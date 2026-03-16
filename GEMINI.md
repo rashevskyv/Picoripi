@@ -5,9 +5,9 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 ## Project Overview
 
-The "Picoripi" is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the localization (translation) of in-game text for retro video games.
+The "Picoripi" (v0.2.1) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
-The application is designed to be highly specialized, with features tailored to the constraints of older games, such as limited text box widths and custom control codes.
+The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
 ### Core Features
 

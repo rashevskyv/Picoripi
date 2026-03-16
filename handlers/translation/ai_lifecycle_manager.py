@@ -31,7 +31,8 @@ class AILifecycleManager(BaseTranslationHandler):
         self._chunk_handlers: Dict[str, Callable] = {}
         
         # Retry context
-        self._retry_context: Optional[Dict] = None
+        self._retry_context: Optional[dict] = None
+        self._is_waiting_retry_delay = False
 
     def register_handler(self, task_type: str, success_cb: Callable, error_cb: Optional[Callable] = None, chunk_cb: Optional[Callable] = None):
         self._success_handlers[task_type] = success_cb
@@ -115,18 +116,9 @@ class AILifecycleManager(BaseTranslationHandler):
         self.is_ai_running = False
         self.main_handler.is_ai_running = False
 
-        if self._retry_context:
-            log_debug("AILifecycleManager: A retry context was found. Initiating retry.")
-            retry_context = self._retry_context
-            self._retry_context = None
-            
-            task_type = retry_context.get('type')
-            if task_type in ['translate_preview', 'translate_block_chunked']:
-                QTimer.singleShot(0, lambda: self.main_handler._initiate_batch_translation(retry_context))
-            else:
-                log_warning(f"A retry was requested for an unhandled task type: {task_type}")
-                self.main_handler.ui_handler.finish_ai_operation()
-                QMessageBox.critical(self.mw, "AI Operation Failed", f"Retry logic not implemented for task '{task_type}'.")
+        if self._retry_context and not self._is_waiting_retry_delay:
+            log_debug("AILifecycleManager: A retry context was found. Initiating immediate retry.")
+            self._perform_retry()
 
     def _on_success(self, response: ProviderResponse, context: dict):
         task_type = context.get('type')
@@ -207,15 +199,54 @@ class AILifecycleManager(BaseTranslationHandler):
                 message = f"AI translation timed out after {timeout_seconds or '?'} seconds while processing {mode}.\n\nWould you like to wait longer and retry?"
                 user_choice = QMessageBox.question(self.mw, "AI Translation Timeout", message, QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
                 if user_choice != QMessageBox.Yes:
+                    log_debug("User chose not to retry after timeout.")
                     pass
                 else:
                     log_debug("Retrying AI translation after user confirmation post-timeout.")
                     self._retry_context = context
+                    self._is_waiting_retry_delay = False
+                    QTimer.singleShot(0, self._on_retry_timer_timeout)
                     return
             else:
-                 log_debug(f"Scheduling retry for AI task. Attempt {next_attempt}/{max_attempts}")
-                 self._retry_context = context
-                 return
+                log_debug(f"Showing debug retry dialog for AI task. Attempt {attempt}/{max_attempts}")
+                
+                msg_box = QMessageBox(self.mw)
+                msg_box.setWindowTitle("AI Translation Error (Debug)")
+                msg_box.setIcon(QMessageBox.Warning)
+                msg_box.setText(f"An error occurred during AI operation (Attempt {attempt}/{max_attempts}).")
+                
+                info_text = f"<b>Mode:</b> {mode}<br><b>Error:</b> {error_message}"
+                msg_box.setInformativeText(info_text)
+                
+                # If the error contains raw output (we'll add this to AIWorker later), show it in details
+                raw_output = context.get('raw_response_text', "")
+                if raw_output:
+                    msg_box.setDetailedText(f"Raw AI Response:\n\n{raw_output}")
+                
+                retry_btn = msg_box.addButton("Retry (Wait 3s)", QMessageBox.AcceptRole)
+                cancel_btn = msg_box.addButton("Stop/Cancel AI", QMessageBox.RejectRole)
+                msg_box.setDefaultButton(retry_btn)
+                
+                # If we have a status dialog, make sure we handle window modality
+                msg_box.exec_()
+                
+                if msg_box.clickedButton() == retry_btn:
+                    log_debug("User clicked Retry in debug dialog.")
+                    self._retry_context = context
+                    self._is_waiting_retry_delay = True
+                    
+                    if hasattr(self.main_handler.ui_handler, 'status_dialog'):
+                        dialog = self.main_handler.ui_handler.status_dialog
+                        dialog.subtitle_label.setText(f"Waiting 3s before retry ({next_attempt}/{max_attempts})...")
+                        dialog.subtitle_label.setStyleSheet("color: #d32f2f;")
+                        dialog.subtitle_label.setVisible(True)
+                    
+                    QTimer.singleShot(3000, self._on_retry_timer_timeout)
+                    return
+                else:
+                    log_debug("User clicked Cancel in debug dialog.")
+                    # Fall through to the final failure handling below
+                    pass
 
         self.main_handler.ui_handler.finish_ai_operation()
         failure_message = f"Operation failed after {max_attempts} attempts while processing {mode}.\n\nLast error: {error_message}"
@@ -238,23 +269,57 @@ class AILifecycleManager(BaseTranslationHandler):
         if not text:
             return ""
             
-        stripped_text = text.strip()
-        if stripped_text.startswith("```") and stripped_text.endswith("```"):
-            lines = stripped_text.splitlines()
-            if len(lines) > 2:
-                # Remove first and last line
-                content_lines = lines[1:-1]
-                joined_content = "\n".join(content_lines).strip()
-                # If the first line of the block was just the language (like 'json'), remove that too
-                if joined_content.startswith("json"):
-                    joined_content = joined_content[4:].strip()
-                return joined_content
-            else:
-                return stripped_text 
-        return stripped_text
-
+        # 1. Try to find content inside triple backticks first
+        import re
+        code_block_match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
+        if code_block_match:
+            return code_block_match.group(1).strip()
+            
+        # 2. If no code blocks, look for the first '{' and last '}'
+        first_brace = text.find('{')
+        last_brace = text.rfind('}')
+        
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            return text[first_brace:last_brace + 1].strip()
+            
+        return text.strip()
     def _trim_trailing_whitespace_from_lines(self, text: str) -> str:
         if not text:
             return ""
         lines = text.split("\n")
         return "\n".join(line.rstrip() for line in lines)
+
+    def _on_retry_timer_timeout(self):
+        log_debug("AILifecycleManager: Retry delay finished. Carrying out retry.")
+        self._is_waiting_retry_delay = False
+        
+        # If the thread already finished while we were waiting, initiate retry now.
+        # If it's somehow still finishing (unlikely), _on_thread_finished will catch it.
+        if not self.is_ai_running and self._retry_context:
+            self._perform_retry()
+
+    def _perform_retry(self):
+        if not self._retry_context:
+            return
+            
+        retry_context = self._retry_context
+        self._retry_context = None
+        
+        task_type = retry_context.get('type')
+        log_info(f"AILifecycleManager: Initiating retry for task type '{task_type}'")
+        
+        # Reset visual error indicator in dialog
+        if hasattr(self.main_handler.ui_handler, 'status_dialog'):
+            dialog = self.main_handler.ui_handler.status_dialog
+            dialog.subtitle_label.setText("") # Will be updated by task start
+            dialog.subtitle_label.setStyleSheet("") # Reset to default
+            dialog.subtitle_label.setVisible(False)
+
+        if task_type in ['translate_preview', 'translate_block_chunked']:
+            # We must use 0-delay timer because we are likely in a callback/signal handler context
+            QTimer.singleShot(0, lambda: self.main_handler._initiate_batch_translation(retry_context))
+        else:
+            log_warning(f"A retry was requested for an unhandled task type: {task_type}")
+            self.main_handler.ui_handler.finish_ai_operation()
+            QMessageBox.critical(self.mw, "AI Operation Failed", f"Retry logic not implemented for task '{task_type}'.")
+

@@ -671,6 +671,35 @@ class ProjectActionHandler(BaseHandler):
         self.ui_updater.populate_blocks()
         self.ui_updater.update_statusbar_paths()
 
+        # Restore UI Session state for project
+        if self.mw.project_manager and self.mw.project_manager.project_file_path:
+            p_path = str(self.mw.project_manager.project_file_path)
+            state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
+            if state:
+                log_info(f"Restoring project UI state for {p_path}")
+                self.ui_updater.apply_tree_state(state)
+                
+                # Apply cursor and scroll positions
+                if self.mw.edited_text_edit:
+                    def _apply_scroll():
+                        self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
+                        self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
+                        if self.mw.preview_text_edit:
+                            self.mw.preview_text_edit.verticalScrollBar().setValue(state.get("preview_v_scroll", 0))
+                        if self.mw.original_text_edit:
+                            self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
+                        
+                        cursor_pos = state.get("cursor_pos", 0)
+                        doc_len = self.mw.edited_text_edit.document().characterCount() - 1
+                        pos_to_set = min(cursor_pos, max(0, doc_len))
+                        cursor = self.mw.edited_text_edit.textCursor()
+                        cursor.setPosition(pos_to_set)
+                        self.mw.edited_text_edit.setTextCursor(cursor)
+                        self.mw.edited_text_edit.ensureCursorVisible()
+
+                    from PyQt5.QtCore import QTimer
+                    QTimer.singleShot(200, _apply_scroll)
+
     def _update_recent_projects_menu(self):
         """Update the Recent Projects submenu with current list."""
         if not hasattr(self.mw, 'recent_projects_menu'):

@@ -714,8 +714,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.event_handler.closeEvent(event)
 
-    def build_glossary_with_ai(self, block_idx=None):
-        log_info("Build Glossary with AI action triggered.")
+    def build_glossary_with_ai(self, block_idx=None, category_name: Optional[str] = None):
+        log_info(f"Build Glossary with AI action triggered. Category: {category_name}")
         from handlers.translation.glossary_builder_handler import GlossaryBuilderHandler
 
         target_block_idx = block_idx if block_idx is not None else self.current_block_idx
@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
             return
         
         handler = GlossaryBuilderHandler(self)
-        handler.build_glossary_for_block(target_block_idx)
+        handler.build_glossary_for_block(target_block_idx, category_name)
 
 
 def global_exception_handler(exc_type, exc_value, exc_traceback):

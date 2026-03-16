@@ -254,7 +254,7 @@ class TranslationHandler(BaseHandler):
             if block_idx in self.translation_progress:
                 del self.translation_progress[block_idx]
 
-            self.ui_updater.populate_strings_for_block(block_idx)
+            self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None))
             self.ui_updater.update_text_views()
         else:
             if block_idx in self.pre_translation_state:
@@ -359,7 +359,7 @@ class TranslationHandler(BaseHandler):
         }
         self._initiate_batch_translation(task_details)
 
-    def translate_current_block(self, block_idx: Optional[int] = None) -> None:
+    def translate_current_block(self, block_idx: Optional[int] = None, category_name: Optional[str] = None) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -371,25 +371,51 @@ class TranslationHandler(BaseHandler):
         self.start_new_session = True
         log_debug(f"TranslationHandler.translate_current_block: Block translation initiated. start_new_session set to {self.start_new_session}")
 
+        operation_title = f"AI Translation (Block {target_block_idx + 1})"
+        if category_name:
+            operation_title = f"AI Translation ({category_name} in Block {target_block_idx + 1})"
+
+        self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
+        from components.ai_status_dialog import AIStatusDialog
+        self.ui_handler.update_ai_operation_step(0, "Preparing data...", AIStatusDialog.STATUS_IN_PROGRESS)
+        from PyQt5.QtWidgets import QApplication
+        QApplication.processEvents()
+
         data_source = getattr(self.mw, 'data', None)
         if not isinstance(data_source, list) or not (0 <= target_block_idx < len(data_source)):
+            self.ui_handler.finish_ai_operation()
             QMessageBox.information(self.mw, "AI Translation", "No block data available to translate.")
             return
 
         block_strings = self.glossary_handler._get_original_block(target_block_idx)
         if not block_strings:
+            self.ui_handler.finish_ai_operation()
             QMessageBox.information(self.mw, "AI Translation", "The selected block is empty.")
             return
+
+        # Determine target indices
+        target_indices = range(len(block_strings))
+        if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+            pm = self.mw.project_manager
+            block_map = getattr(self.mw, 'block_to_project_file_map', {})
+            proj_b_idx = block_map.get(target_block_idx, target_block_idx)
+            if proj_b_idx < len(pm.project.blocks):
+                block = pm.project.blocks[proj_b_idx]
+                category = next((c for c in block.get_all_categories_flat() if c.name == category_name), None)
+                if category:
+                    target_indices = category.line_indices
+                    log_debug(f"Translating only category '{category_name}' ({len(target_indices)} lines)")
 
         self.pre_translation_state[target_block_idx] = self.data_processor.get_block_texts(target_block_idx)
 
         source_items = [
             {"id": idx, "text": str(self.glossary_handler._get_original_string(target_block_idx, idx) or "")}
-            for idx in range(len(block_strings))
+            for idx in target_indices if idx < len(block_strings)
         ]
 
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider:
+            self.ui_handler.finish_ai_operation()
             return
 
         base_timeout = self._resolve_base_timeout(provider)
@@ -398,9 +424,6 @@ class TranslationHandler(BaseHandler):
             f"Starting block AI translation for block {target_block_idx} with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
         )
 
-        operation_title = f"AI Translation (Block {target_block_idx + 1})"
-        self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
-
         task_details = {
             'type': 'translate_block_chunked',
             'provider': provider,
@@ -408,7 +431,7 @@ class TranslationHandler(BaseHandler):
             'attempt': 1,
             'max_retries': 4,
             'block_idx': target_block_idx,
-            'mode_description': f"block {target_block_idx + 1}",
+            'mode_description': f"block {target_block_idx + 1}" if not category_name else f"category '{category_name}' in block {target_block_idx + 1}",
             'provider_settings_override': {'timeout': block_timeout},
             'timeout_seconds': block_timeout,
             'session_reset_attempted': False
@@ -426,11 +449,16 @@ class TranslationHandler(BaseHandler):
             self.pre_translation_state[block_idx] = self.data_processor.get_block_texts(block_idx)
 
         target_block_idx = block_idx
-        block_strings = self.glossary_handler._get_original_block(target_block_idx)
-        source_items = [
-            {"id": idx, "text": str(self.glossary_handler._get_original_string(target_block_idx, idx) or "")}
-            for idx in range(len(block_strings))
-        ]
+        progress_entry = self.translation_progress.get(block_idx, {})
+        source_items = progress_entry.get('source_items', [])
+        
+        if not source_items:
+            # Fallback if somehow missing
+            block_strings = self.glossary_handler._get_original_block(target_block_idx)
+            source_items = [
+                {"id": idx, "text": str(self.glossary_handler._get_original_string(target_block_idx, idx) or "")}
+                for idx in range(len(block_strings))
+            ]
 
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider:
@@ -581,7 +609,7 @@ class TranslationHandler(BaseHandler):
             if block_idx in self.translation_progress:
                 self.translation_progress[block_idx]['completed_chunks'].add(chunk_index)
 
-            self.ui_updater.populate_strings_for_block(block_idx)
+            self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
             self.translated_chunks_count = len(self.translation_progress.get(block_idx, {}).get('completed_chunks', set()))
             self.ui_handler.status_dialog.update_progress(self.translated_chunks_count)
             
@@ -626,7 +654,7 @@ class TranslationHandler(BaseHandler):
 
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_text, response=response)
             self.ui_handler.finish_ai_operation()
-            self.ui_updater.populate_strings_for_block(context['block_idx'])
+            self.ui_updater.populate_strings_for_block(context['block_idx'], getattr(self.mw, 'current_category_name', None), force=True)
             self.ui_updater.update_text_views()
             if hasattr(self.mw, 'app_action_handler'):
                 self.mw.issue_scan_handler.rescan_issues_for_single_block(context['block_idx'], show_message_on_completion=False)
@@ -643,6 +671,7 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         self.ui_handler.apply_full_translation(trimmed_translation)
         self.ui_handler.finish_ai_operation()
+        self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
 
 
     def _handle_variation_success(self, response: ProviderResponse, context: dict):

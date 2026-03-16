@@ -4,13 +4,13 @@
     "window_was_maximized": false,
     "window_normal_geometry": {
         "x": 641,
-        "y": 101,
-        "width": 2066,
-        "height": 1277
+        "y": 102,
+        "width": 2061,
+        "height": 1276
     },
     "main_splitter_state": "AAAA/wAAAAEAAAACAAAA/QAAAyAB/////wEAAAABAA==",
     "right_splitter_state": "AAAA/wAAAAEAAAACAAAAlgAAAcIB/////wEAAAACAA==",
-    "bottom_right_splitter_state": "AAAA/wAAAAEAAAACAAABkAAAAa4B/////wEAAAABAA==",
+    "bottom_right_splitter_state": "AAAA/wAAAAEAAAACAAABkAAAAdAB/////wEAAAABAA==",
     "show_multiple_spaces_as_dots": true,
     "space_dot_color_hex": "#808080",
     "theme": "auto",
@@ -64,5 +64,6 @@
     "last_browse_dir": "D:/git/WW/WindWaker/translation",
     "tree_font_size": 12,
     "preview_font_size": 13,
-    "editors_font_size": 13
+    "editors_font_size": 13,
+    "last_opened_path": "D:\\git\\WW\\Cemu_2.6\\Wind_Waker_Wii_U\\project.uiproj"
 }

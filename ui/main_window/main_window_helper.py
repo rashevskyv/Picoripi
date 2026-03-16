@@ -175,6 +175,25 @@ class MainWindowHelper:
         if self.mw.search_panel_widget:
             self.mw.search_history_to_save = self.mw.search_panel_widget.get_history()
         
+        # Save UI Session State for the current file/project
+        current_path = None
+        if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_file_path:
+            current_path = self.mw.project_manager.project_file_path
+        elif self.mw.json_path:
+            current_path = self.mw.json_path
+            
+        if current_path:
+            state = self.mw.ui_updater.get_tree_state()
+            state.update({
+                "cursor_pos": self.mw.last_cursor_position_in_edited,
+                "v_scroll": self.mw.last_edited_text_edit_scroll_value_v,
+                "h_scroll": self.mw.last_edited_text_edit_scroll_value_h,
+                "preview_v_scroll": self.mw.last_preview_text_edit_scroll_value_v,
+                "original_v_scroll": self.mw.last_original_text_edit_scroll_value_v
+            })
+            self.mw.settings_manager.session_state.set_state_for_file(str(current_path), state)
+            self.mw.settings_manager.set("last_opened_path", str(current_path))
+
         self.mw.window_was_maximized_on_close = self.mw.isMaximized()
         if self.mw.window_was_maximized_on_close:
             self.mw.window_normal_geometry_on_close = self.mw.normalGeometry()
@@ -193,59 +212,36 @@ class MainWindowHelper:
             if hasattr(self.mw, 'window_was_maximized_at_save') and self.mw.window_was_maximized_at_save:
                 self.mw.showMaximized()
 
-        # Priority 1: Auto-open last project from recent projects
-        if hasattr(self.mw, 'recent_projects') and self.mw.recent_projects and hasattr(self.mw, 'app_action_handler'):
-            last_project_path = self.mw.recent_projects[0]
-            if Path(last_project_path).exists():
-                log_info(f"Auto-opening last project from recent projects: {last_project_path}")
-                if hasattr(self.mw.project_action_handler, '_open_recent_project'):
-                    self.mw.project_action_handler._open_recent_project(last_project_path)
-                else:
-                    log_info("project_action_handler._open_recent_project not available")
+        # Determine which path to auto-open
+        path_to_open = getattr(self.mw, 'last_opened_path', "")
+        if not path_to_open and hasattr(self.mw, 'recent_projects') and self.mw.recent_projects:
+            # Fallback to the most recent project if no specific last_opened_path
+            path_to_open = self.mw.recent_projects[0]
+        
+        if path_to_open and Path(path_to_open).exists():
+            log_info(f"Auto-opening: {path_to_open}")
+            p_obj = Path(path_to_open)
+            
+            if p_obj.suffix.lower() == ".uiproj":
+                if hasattr(self.mw, 'project_action_handler'):
+                    self.mw.project_action_handler._open_recent_project(str(p_obj))
             else:
-                log_info(f"Last project path does not exist: {last_project_path}")
-        # Priority 2: Auto-open last file if no projects
-        elif self.mw.initial_load_path and Path(self.mw.initial_load_path).exists():
-            log_info(f"Attempting to load initial file from settings: {self.mw.initial_load_path}")
-            self.mw.app_action_handler.load_all_data_for_path(self.mw.initial_load_path, self.mw.initial_edited_load_path, is_initial_load_from_settings=True)
+                if hasattr(self.mw, 'app_action_handler'):
+                    # Search for associated edited file if possible
+                    edited_path = self.mw.app_action_handler._derive_edited_path(str(p_obj))
+                    self.mw.app_action_handler.load_all_data_for_path(str(p_obj), edited_path, is_initial_load_from_settings=True)
+        else:
+             # Legacy/Fallback if paths are provided separately
+             if hasattr(self.mw, 'initial_load_path') and self.mw.initial_load_path and Path(self.mw.initial_load_path).exists():
+                log_info(f"Loading initial file: {self.mw.initial_load_path}")
+                self.mw.app_action_handler.load_all_data_for_path(self.mw.initial_load_path, self.mw.initial_edited_load_path, is_initial_load_from_settings=True)
+             else:
+                log_info("No file/project to auto-load, updating initial UI state.")
+                self.mw.ui_updater.update_title()
+                self.mw.ui_updater.update_statusbar_paths()
+                self.mw.ui_updater.populate_blocks()
+                self.mw.ui_updater.populate_strings_for_block(-1)
 
-            if self.mw.data and 0 <= self.mw.last_selected_block_index < len(self.mw.data):
-                self.mw.block_list_widget.currentItemChanged.disconnect()
-                self.mw.block_list_widget.select_block_by_index(self.mw.last_selected_block_index)
-
-                selected_item = self.mw.block_list_widget.item(self.mw.last_selected_block_index)
-                if selected_item:
-                    self.mw.list_selection_handler.block_selected(selected_item, None)
-
-                self.mw.block_list_widget.currentItemChanged.connect(self.mw.list_selection_handler.block_selected)
-                QApplication.processEvents()
-
-                if self.mw.current_block_idx == self.mw.last_selected_block_index and \
-                   0 <= self.mw.last_selected_string_index < len(self.mw.data[self.mw.last_selected_block_index]):
-                    self.mw.list_selection_handler.string_selected_from_preview(self.mw.last_selected_string_index)
-                    QApplication.processEvents()
-                    if self.mw.edited_text_edit:
-                        doc_len = self.mw.edited_text_edit.document().characterCount() -1
-                        pos_to_set = min(self.mw.last_cursor_position_in_edited, doc_len if doc_len >= 0 else 0)
-
-                        cursor = self.mw.edited_text_edit.textCursor()
-                        cursor.setPosition(pos_to_set)
-                        self.mw.edited_text_edit.setTextCursor(cursor)
-                        self.mw.edited_text_edit.ensureCursorVisible()
-
-                        self.mw.edited_text_edit.verticalScrollBar().setValue(self.mw.last_edited_text_edit_scroll_value_v)
-                        self.mw.edited_text_edit.horizontalScrollBar().setValue(self.mw.last_edited_text_edit_scroll_value_h)
-                        if self.mw.preview_text_edit:
-                            self.mw.preview_text_edit.verticalScrollBar().setValue(self.mw.last_preview_text_edit_scroll_value_v)
-                        if self.mw.original_text_edit:
-                            self.mw.original_text_edit.verticalScrollBar().setValue(self.mw.last_original_text_edit_scroll_value_v)
-                            self.mw.original_text_edit.horizontalScrollBar().setValue(self.mw.last_original_text_edit_scroll_value_h)
-        # Priority 3: No file or project to load
-        elif not self.mw.json_path:
-             log_info("No file auto-loaded, updating initial UI state.")
-             self.mw.ui_updater.update_title(); self.mw.ui_updater.update_statusbar_paths()
-             self.mw.ui_updater.populate_blocks()
-             self.mw.ui_updater.populate_strings_for_block(-1)
 
         if hasattr(self.mw, 'search_history_to_save') and self.mw.search_panel_widget:
             self.mw.search_panel_widget.load_history(self.mw.search_history_to_save)

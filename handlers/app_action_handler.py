@@ -221,13 +221,45 @@ class AppActionHandler(BaseHandler):
         self.ui_updater.update_title(); self.ui_updater.update_statusbar_paths()
         self.ui_updater.populate_blocks()
 
-        if self.mw.block_list_widget.invisibleRootItem().childCount() > 0:
-            if not is_initial_load_from_settings: 
-                 custom_tree = getattr(self.mw, 'block_list_widget', None)
-                 if custom_tree and hasattr(custom_tree, 'select_block_by_index'):
-                     custom_tree.select_block_by_index(0)
-        else:
-            self.ui_updater.populate_strings_for_block(-1)
+        # Restore UI State (Session)
+        state_restored = False
+        if original_file_path:
+            state = self.mw.settings_manager.session_state.get_state_for_file(str(original_file_path))
+            if state:
+                log_info(f"Restoring UI state for {original_file_path}")
+                self.ui_updater.apply_tree_state(state)
+                
+                # Apply cursor and scroll positions
+                if self.mw.edited_text_edit:
+                    def _apply_scroll():
+                        self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
+                        self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
+                        if self.mw.preview_text_edit:
+                            self.mw.preview_text_edit.verticalScrollBar().setValue(state.get("preview_v_scroll", 0))
+                        if self.mw.original_text_edit:
+                            self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
+                        
+                        cursor_pos = state.get("cursor_pos", 0)
+                        doc_len = self.mw.edited_text_edit.document().characterCount() - 1
+                        pos_to_set = min(cursor_pos, max(0, doc_len))
+                        cursor = self.mw.edited_text_edit.textCursor()
+                        cursor.setPosition(pos_to_set)
+                        self.mw.edited_text_edit.setTextCursor(cursor)
+                        self.mw.edited_text_edit.ensureCursorVisible()
+
+                    from PyQt5.QtCore import QTimer
+                    QTimer.singleShot(200, _apply_scroll)
+                
+                state_restored = True
+
+        if not state_restored:
+            if self.mw.block_list_widget.invisibleRootItem().childCount() > 0:
+                if not is_initial_load_from_settings: 
+                     custom_tree = getattr(self.mw, 'block_list_widget', None)
+                     if custom_tree and hasattr(custom_tree, 'select_block_by_index'):
+                         custom_tree.select_block_by_index(0)
+            else:
+                self.ui_updater.populate_strings_for_block(-1)
             
         self.mw.is_programmatically_changing_text = False
 

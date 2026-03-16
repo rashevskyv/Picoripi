@@ -9,6 +9,7 @@ from core.settings.global_settings import GlobalSettings
 from core.settings.plugin_settings import PluginSettings
 from core.settings.font_map_loader import FontMapLoader
 from core.settings.recent_projects_manager import RecentProjectsManager
+from core.settings.session_state_manager import SessionStateManager
 
 # Load environment variables from .env file
 try:
@@ -28,6 +29,7 @@ class SettingsManager:
         self.plugin_settings = PluginSettings(main_window)
         self.font_map_loader = FontMapLoader(main_window)
         self.recent_projects_manager = RecentProjectsManager(main_window)
+        self.session_state = SessionStateManager()
 
     def get(self, key, default=None):
         """Get a setting value from the centralized storage."""

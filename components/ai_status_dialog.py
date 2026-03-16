@@ -16,7 +16,7 @@ class AIStatusDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("AI Operation")
-        self.setModal(False)
+        self.setModal(True)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setMinimumWidth(450)
         self.setSizeGripEnabled(False)
@@ -131,7 +131,7 @@ class AIStatusDialog(QDialog):
             self.progress_bar.setFormat("Processing...")
             self.progress_bar.setVisible(True)
 
-        self.show()
+        self.open()
 
     def finish(self):
         self._set_model_name(None)

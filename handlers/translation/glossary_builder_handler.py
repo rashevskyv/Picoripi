@@ -84,17 +84,34 @@ class GlossaryBuilderHandler:
 
         return {}
 
-    def build_glossary_for_block(self, block_id):
+    def build_glossary_for_block(self, block_id, category_name: Optional[str] = None):
         if not self.prompt_data:
             return
 
         # 1. Get all text from the block
-        full_text = ""
+        target_strings = []
         if self.mw.data and block_id < len(self.mw.data):
-            full_text = "\n".join(self.mw.data[block_id])
+            block_data = self.mw.data[block_id]
+            
+            # Determine target indices
+            target_indices = range(len(block_data))
+            if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                pm = self.mw.project_manager
+                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(block_id, block_id)
+                if proj_b_idx < len(pm.project.blocks):
+                    block = pm.project.blocks[proj_b_idx]
+                    category = next((c for c in block.get_all_categories_flat() if c.name == category_name), None)
+                    if category:
+                        target_indices = category.line_indices
+                        log_debug(f"Building glossary only for category '{category_name}' ({len(target_indices)} lines)")
+            
+            target_strings = [str(block_data[i]) for i in target_indices if i < len(block_data)]
+        
+        full_text = "\n".join(target_strings)
         
         if not full_text.strip():
-            QMessageBox.information(self.mw, "Info", "The selected block is empty. Nothing to process.")
+            QMessageBox.information(self.mw, "Info", "The selected block/category is empty. Nothing to process.")
             return
 
         # 2. Get AI settings
@@ -146,6 +163,7 @@ class GlossaryBuilderHandler:
 
         self._status_dialog = AIStatusDialog(self.mw)
         self._status_dialog.start(f"AI Glossary Build ({block_label})", is_chunked=True, model_name=str(model_display))
+        QApplication.processEvents()
 
         prompt_composer = None
         translation_handler = getattr(self.mw, 'translation_handler', None)

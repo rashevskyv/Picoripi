@@ -30,18 +30,25 @@ class AIWorker(QObject):
         self.is_cancelled = True
 
     def _clean_json_response(self, text: str) -> str:
-        stripped_text = (text or '').strip()
-        if stripped_text.startswith("```") and stripped_text.endswith("```"):
-            lines = stripped_text.splitlines()
-            if len(lines) > 1:
-                content_lines = lines[1:-1]
-                joined_content = "\n".join(content_lines).strip()
-                if joined_content.startswith("json"):
-                    joined_content = joined_content[4:].strip()
-                return joined_content
-            else:
-                return ""
-        return stripped_text
+        if not text:
+            return ""
+        
+        # 1. Try to find content inside triple backticks first
+        import re
+        code_block_match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
+        if code_block_match:
+            return code_block_match.group(1).strip()
+            
+        # 2. If no code blocks, look for the first '{' and last '}'
+        # This handles cases where the AI talks before or after the JSON
+        first_brace = text.find('{')
+        last_brace = text.rfind('}')
+        
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            return text[first_brace:last_brace + 1].strip()
+            
+        # 3. Fallback to just stripping whitespace
+        return text.strip()
 
     def run(self):
         from components.ai_status_dialog import AIStatusDialog
@@ -119,6 +126,7 @@ class AIWorker(QObject):
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
                         log_debug(f"AIWorker: Error while building glossary chunk {idx + 1}: {exc}")
                         if not self.is_cancelled:
+                            self.task_details['raw_response_text'] = response.text if 'response' in locals() else ""
                             self.error.emit(str(exc), self.task_details)
                         return
 
@@ -157,81 +165,79 @@ class AIWorker(QObject):
                         self.translation_cancelled.emit()
                         return
 
-                    max_retries = self.task_details.get('max_retries', 3)
-                    current_retry = 0
+                    # We no longer handle retries internally here. 
+                    # We emit an error and let the AILifecycleManager handle the interactive retry dialog.
+                    attempt = self.task_details.get('attempt', 1)
 
-                    while current_retry < max_retries:
+                    composer_args_for_chunk = self.task_details['composer_args'].copy()
+                    composer_args_for_chunk['source_items'] = chunk
+                    composer_args_for_chunk['all_source_items'] = source_items
+                    system, user, _ = self.prompt_composer.compose_batch_request(**composer_args_for_chunk)
+
+                    custom_header = self.task_details.get('custom_user_header')
+                    if custom_header:
+                        label = (self.task_details.get('custom_user_label') or 'JSON DATA TO PROCESS:').strip()
+                        _, sep_marker, json_section = user.partition('JSON DATA TO PROCESS:')
+                        if sep_marker:
+                            rebuilt = custom_header.rstrip()
+                            if rebuilt:
+                                rebuilt += '\n\n' + label
+                            else:
+                                rebuilt = label
+                            if not json_section.startswith('\n'):
+                                rebuilt += '\n'
+                            rebuilt += json_section
+                            user = rebuilt
+
+                    session_payload = None
+                    if session_state:
+                        user_message = {"role": "user", "content": user}
+                        messages, session_payload = session_state.prepare_request(user_message)
+                    else:
+                        messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+                    self.progress_updated.emit(i + 1)
+                    self.step_updated.emit(1, f"Translating chunk {i + 1}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
+
+                    try:
+                        response = self.provider.translate(messages, session=session_payload, settings_override=provider_override)
+
                         if self.is_cancelled:
-                            log_debug("AIWorker: Translation cancelled during retry loop.")
+                            log_debug("AIWorker: Translation cancelled during network request. Discarding response.")
                             break
 
-                        composer_args_for_chunk = self.task_details['composer_args'].copy()
-                        composer_args_for_chunk['source_items'] = chunk
-                        composer_args_for_chunk['all_source_items'] = source_items
-                        system, user, _ = self.prompt_composer.compose_batch_request(**composer_args_for_chunk)
+                        cleaned_text = self._clean_json_response(response.text)
+                        parsed_response = json.loads(cleaned_text)
+                        translated_items = parsed_response.get('translated_strings', [])
 
-                        custom_header = self.task_details.get('custom_user_header')
-                        if custom_header:
-                            label = (self.task_details.get('custom_user_label') or 'JSON DATA TO PROCESS:').strip()
-                            _, sep_marker, json_section = user.partition('JSON DATA TO PROCESS:')
-                            if sep_marker:
-                                rebuilt = custom_header.rstrip()
-                                if rebuilt:
-                                    rebuilt += '\n\n' + label
-                                else:
-                                    rebuilt = label
-                                if not json_section.startswith('\n'):
-                                    rebuilt += '\n'
-                                rebuilt += json_section
-                                user = rebuilt
+                        if len(translated_items) == len(chunk):
+                            if session_state and not session_state.bootstrapped:
+                                log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")
+                                session_state.bootstrapped = True
 
-                        session_payload = None
-                        if session_state:
-                            user_message = {"role": "user", "content": user}
-                            messages, session_payload = session_state.prepare_request(user_message)
+                            task_details_for_chunk = self.task_details.copy()
+                            if session_state:
+                                task_details_for_chunk['session_state'] = session_state
+                                task_details_for_chunk['session_user_message'] = user
+                            self.chunk_translated.emit(i, cleaned_text, task_details_for_chunk)
                         else:
-                            messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+                            # Line count mismatch is also an error that should trigger the debug dialog
+                            error_msg = f"Line count mismatch in chunk {i+1}. Expected {len(chunk)}, got {len(translated_items)}."
+                            self.task_details['raw_response_text'] = response.text
+                            self.error.emit(error_msg, self.task_details)
+                            return
 
-                        self.progress_updated.emit(i + 1)
-                        self.step_updated.emit(1, f"Translating chunk {i + 1}/{len(chunks)} (Attempt {current_retry + 1})", AIStatusDialog.STATUS_IN_PROGRESS)
-
-                        try:
-                            response = self.provider.translate(messages, session=session_payload, settings_override=provider_override)
-
-                            if self.is_cancelled:
-                                log_debug("AIWorker: Translation cancelled during network request. Discarding response.")
-                                break
-
-                            cleaned_text = self._clean_json_response(response.text)
-                            parsed_response = json.loads(cleaned_text)
-                            translated_items = parsed_response.get('translated_strings', [])
-
-                            if len(translated_items) == len(chunk):
-                                if session_state and not session_state.bootstrapped:
-                                    log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")
-                                    session_state.bootstrapped = True
-
-                                task_details_for_chunk = self.task_details.copy()
-                                if session_state:
-                                    task_details_for_chunk['session_state'] = session_state
-                                    task_details_for_chunk['session_user_message'] = user
-                                self.chunk_translated.emit(i, cleaned_text, task_details_for_chunk)
-                                break
-                            else:
-                                log_debug(f"AIWorker: Line count mismatch in chunk {i}. Expected {len(chunk)}, got {len(translated_items)}. Retrying...")
-                                current_retry += 1
-
-                        except (TranslationProviderError, json.JSONDecodeError) as e:
-                            log_debug(f"AIWorker: Error translating chunk {i}: {e}. Retrying...")
-                            current_retry += 1
+                    except (TranslationProviderError, json.JSONDecodeError) as e:
+                        log_debug(f"AIWorker: Error translating chunk {i}: {e}.")
+                        self.task_details['raw_response_text'] = response.text if 'response' in locals() else ""
+                        self.error.emit(str(e), self.task_details)
+                        return
 
                     if self.is_cancelled:
                         self.translation_cancelled.emit()
                         return
 
-                    if current_retry >= max_retries:
-                        self.error.emit(f"Failed to translate chunk {i+1} after {current_retry} attempts.", self.task_details)
-                        return
+                return
 
                 return
 

@@ -190,6 +190,11 @@ class LayoutBuilder:
         self.mw.help_button.setIcon(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.SP_DialogHelpButton)))
         self.mw.help_button.setToolTip("View Shortcuts & Help (F1)")
         editable_text_header_layout.addWidget(self.mw.help_button)
+
+        self.mw.revert_string_button = QPushButton()
+        self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowBack))
+        self.mw.revert_string_button.setToolTip("Revert current string to original file content")
+        editable_text_header_layout.addWidget(self.mw.revert_string_button)
         
         bottom_right_layout.addLayout(editable_text_header_layout)
 

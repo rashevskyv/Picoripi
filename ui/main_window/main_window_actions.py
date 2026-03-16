@@ -109,7 +109,7 @@ class MainWindowActions:
                 self.mw.project_manager.save_settings_to_project(self.mw)
                 log_info("Saved project-specific settings to project metadata")
 
-            self.mw.apply_font_size()
+            self.mw.ui_handler.apply_font_size()
             self.mw.helper.reconfigure_all_highlighters()
             self.mw.helper.apply_text_wrap_settings()
             self.mw.ui_handler.update_editor_rules_properties()

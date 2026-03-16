@@ -174,6 +174,12 @@ class LNETContextMenuLogic:
                     tag_palette_widget.setLayout(palette_layout)
                     tag_widget_action.setDefaultWidget(tag_palette_widget)
                     menu.addAction(tag_widget_action)
+
+            # Revert to Original option for edited_text_edit
+            if main_window.current_block_idx != -1 and main_window.current_string_idx != -1:
+                menu.addSeparator()
+                revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), "Revert String to Original")
+                revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, [main_window.current_string_idx]))
         
         if self.editor.objectName() == "preview_text_edit":
             if not custom_actions_added: menu.addSeparator(); custom_actions_added = True
@@ -190,10 +196,10 @@ class LNETContextMenuLogic:
                     line_num = cursor.blockNumber()
                     action_text = f"AI Translate Line {line_num + 1} (UA)"
 
-                translate_action = menu.addAction(action_text)
+                translate_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_MessageBoxInformation), action_text)
                 translate_action.triggered.connect(lambda: translator.translate_preview_selection(position_in_widget_coords))
 
-                translate_block_action = menu.addAction("AI Translate Entire Block (UA)")
+                translate_block_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_MessageBoxInformation), "AI Translate Entire Block (UA)")
                 translate_block_action.triggered.connect(lambda: translator.translate_current_block())
 
             spellchecker_manager = getattr(main_window, 'spellchecker_manager', None)
@@ -207,7 +213,7 @@ class LNETContextMenuLogic:
                     line_num = cursor.blockNumber()
                     spellcheck_text = f"Spellcheck Line {line_num + 1}"
 
-                spellcheck_action = menu.addAction(spellcheck_text)
+                spellcheck_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_DialogHelpButton), spellcheck_text)
                 spellcheck_action.triggered.connect(
                     lambda: self.editor._open_spellcheck_dialog_for_selection(position_in_widget_coords)
                 )
@@ -216,11 +222,27 @@ class LNETContextMenuLogic:
                 num_selected = len(selected_lines)
                 menu.addSeparator()
                 
-                move_action = menu.addAction(f"Move {num_selected} Line(s) to Virtual Block...")
+                move_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_DirIcon), f"Move {num_selected} Line(s) to Virtual Block...")
                 move_action.triggered.connect(main_window.list_selection_handler.move_selection_to_category)
                 
                 menu.addSeparator()
-                set_font_action = menu.addAction(f"Set Font for {num_selected} Lines...")
+                set_font_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_FileDialogListView), f"Set Font for {num_selected} Line(s)...")
                 set_font_action.triggered.connect(self.editor.handle_mass_set_font)
-                set_width_action = menu.addAction(f"Set Width for {num_selected} Lines...")
+                set_width_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_FileDialogListView), f"Set Width for {num_selected} Line(s)...")
                 set_width_action.triggered.connect(self.editor.handle_mass_set_width)
+
+                # Revert to Original
+                menu.addSeparator()
+                real_indices = [main_window.displayed_string_indices[i] for i in selected_lines if i < len(main_window.displayed_string_indices)]
+                if real_indices:
+                    revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
+                    revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, real_indices))
+            else:
+                # No lines selected, try the line under cursor
+                cursor = self.editor.cursorForPosition(position_in_widget_coords)
+                line_val = cursor.blockNumber()
+                if hasattr(main_window, 'displayed_string_indices') and line_val < len(main_window.displayed_string_indices):
+                    real_idx = main_window.displayed_string_indices[line_val]
+                    menu.addSeparator()
+                    revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
+                    revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, [real_idx]))

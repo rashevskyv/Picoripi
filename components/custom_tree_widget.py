@@ -413,13 +413,52 @@ class CustomTreeWidget(QTreeWidget):
                     resume_action = menu.addAction(self.style().standardIcon(QStyle.SP_MediaPlay), f"AI: Resume Translation")
                     resume_action.triggered.connect(lambda checked=False, idx=block_idx: translator.resume_block_translation(idx))
                 else:
-                    translate_block = menu.addAction(self.style().standardIcon(QStyle.SP_MessageBoxInformation), f"AI: Translate Block (UA)")
-                    translate_block.triggered.connect(lambda checked=False, idx=block_idx: translator.translate_current_block(idx))
+                    action_label = f"AI: Translate Block '{block_name}' (UA)"
+                    if category_name:
+                        action_label = f"AI: Translate Virtual Block '{category_name}' (UA)"
+                        
+                    translate_block = menu.addAction(self.style().standardIcon(QStyle.SP_MessageBoxInformation), action_label)
+                    translate_block.triggered.connect(lambda checked=False, idx=block_idx, cname=category_name: translator.translate_current_block(idx, cname))
 
-                generate_glossary = menu.addAction(self.style().standardIcon(QStyle.SP_FileDialogContentsView), f"AI: Build Glossary")
-                generate_glossary.triggered.connect(lambda checked=False, idx=block_idx: main_window.build_glossary_with_ai(idx))
+                glossary_label = f"AI: Build Glossary for '{block_name}'"
+                if category_name:
+                    glossary_label = f"AI: Build Glossary for Virtual Block '{category_name}'"
+                    
+                generate_glossary = menu.addAction(self.style().standardIcon(QStyle.SP_FileDialogContentsView), glossary_label)
+                generate_glossary.triggered.connect(lambda checked=False, idx=block_idx, cname=category_name: main_window.build_glossary_with_ai(idx, cname))
+
+            # Revert to Original
+            menu.addSeparator()
+            selected_items = self.selectedItems()
+            selected_block_indices = []
+            for s_item in selected_items:
+                b_idx = s_item.data(0, Qt.UserRole)
+                if b_idx is not None and b_idx not in selected_block_indices:
+                    selected_block_indices.append(b_idx)
+            
+            if len(selected_block_indices) > 1:
+                revert_action = menu.addAction(self.style().standardIcon(QStyle.SP_ArrowBack), 
+                                              f"Revert {len(selected_block_indices)} selected blocks to original")
+                revert_action.triggered.connect(lambda: self._revert_blocks_to_original(selected_block_indices))
+            else:
+                revert_action = menu.addAction(self.style().standardIcon(QStyle.SP_ArrowBack), 
+                                              f"Revert '{block_name}' to original")
+                revert_action.triggered.connect(lambda: self._revert_blocks_to_original([block_idx]))
 
         menu.exec_(self.mapToGlobal(pos))
+
+    def _revert_blocks_to_original(self, block_indices: list[int]):
+        main_window = self.window()
+        if not hasattr(main_window, 'data_processor'): return
+        
+        reply = QMessageBox.question(
+            self, 'Revert to Original',
+            f"Are you sure you want to revert {len(block_indices)} block(s) to their original state?\n\nAll unsaved changes in these blocks will be lost.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.No: return
+        
+        main_window.data_processor.revert_blocks_to_original(block_indices)
 
     def _handle_item_changed(self, item, column):
         if getattr(self, '_is_programmatic_expansion', False):

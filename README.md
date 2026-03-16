@@ -1,6 +1,6 @@
-# Picoripi
+# Picoripi v0.2.1
 
-A PyQt5-based translation workbench for video game localization, specifically designed for retro Nintendo games (The Legend of Zelda series, Pokemon FireRed).
+A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -10,6 +10,8 @@ A PyQt5-based translation workbench for video game localization, specifically de
 - **Tag Management**: Handle game control codes (player names, button icons, etc.)
 - **Multi-line Analysis**: Visual feedback for line width violations
 - **Spellchecking**: Integrated spellchecking with custom dictionary support
+- **Revert to Original**: Quickly restore original text for individual lines or entire blocks with undo support.
+- **Enhanced UI**: Context menus with icons and better visual cues for actions.
 
 ## Visual Problem Markers
 

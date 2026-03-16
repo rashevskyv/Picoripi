@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QBrush, QTextCursor, QIcon
 from PyQt5.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
 from utils.logging_utils import log_debug
+from utils.constants import APP_VERSION
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, calculate_strict_string_width, remove_all_tags
 from core.glossary_manager import GlossaryOccurrence
 
@@ -11,6 +12,135 @@ class UIUpdater:
     def __init__(self, main_window, data_processor):
         self.mw = main_window
         self.data_processor = data_processor
+
+    def get_tree_state(self) -> dict:
+        """Returns the current expansion and selection state of the block tree."""
+        if not self.mw.block_list_widget:
+            return {}
+        
+        expanded_ids = []
+        selected_id = None
+        selected_type = None # 'block', 'folder', 'category'
+        
+        current_item = self.mw.block_list_widget.currentItem()
+        
+        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+        while iterator.value():
+            item = iterator.value()
+            
+            # Identify the item
+            item_id = None
+            item_type = None
+            
+            # Check if it's a block
+            block_idx = item.data(0, Qt.UserRole)
+            category_name = item.data(0, Qt.UserRole + 10)
+            folder_id = item.data(0, Qt.UserRole + 1)
+            
+            if folder_id is not None:
+                item_id = f"folder_{folder_id}"
+                item_type = 'folder'
+            elif category_name is not None:
+                parent = item.parent()
+                if parent:
+                    p_block_idx = parent.data(0, Qt.UserRole)
+                    item_id = f"cat_{p_block_idx}_{category_name}"
+                item_type = 'category'
+            elif block_idx is not None:
+                item_id = f"block_{block_idx}"
+                item_type = 'block'
+                
+            if item_id:
+                if item.isExpanded():
+                    expanded_ids.append(item_id)
+                if item == current_item:
+                    selected_id = item_id
+                    selected_type = item_type
+                    
+            iterator += 1
+            
+        result = {
+            "expanded_ids": expanded_ids,
+            "selected_id": selected_id,
+            "selected_type": selected_type,
+            "selected_string_idx": self.mw.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1
+        }
+        from utils.logging_utils import log_info
+        log_info(f"UIUpdater: Captured tree state: selected={selected_id}, string_idx={result['selected_string_idx']}")
+        return result
+
+    def apply_tree_state(self, state: dict):
+        """Restores the tree expansion and selection from state."""
+        if not state or not self.mw.block_list_widget:
+            return
+            
+        expanded_ids = set(state.get("expanded_ids", []))
+        selected_id = state.get("selected_id")
+        selected_string_idx = state.get("selected_string_idx", -1)
+        
+        # 1. Restore Expansion (Signals blocked to avoid redundant updates)
+        old_blocked = self.mw.block_list_widget.blockSignals(True)
+        try:
+            iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+            while iterator.value():
+                item = iterator.value()
+                item_id = self._get_item_id(item)
+                if item_id in expanded_ids:
+                    item.setExpanded(True)
+                iterator += 1
+        finally:
+            self.mw.block_list_widget.blockSignals(old_blocked)
+            
+        # 2. Restore Selection (Delayed to ensure tree is stable)
+        if selected_id:
+            from utils.logging_utils import log_info, log_warning
+            
+            def _delayed_select():
+                # Re-find the item to avoid "deleted object" errors
+                target_item = None
+                iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+                while iterator.value():
+                    if self._get_item_id(iterator.value()) == selected_id:
+                        target_item = iterator.value()
+                        break
+                    iterator += 1
+                
+                if target_item:
+                    log_info(f"UIUpdater: Restoring selection to {selected_id}")
+                    self.mw.block_list_widget.setFocus()
+                    self.mw.block_list_widget.setCurrentItem(target_item)
+                    # Manually trigger block load
+                    self.mw.list_selection_handler.block_selected(target_item, None)
+                    
+                    if selected_string_idx != -1:
+                        log_info(f"UIUpdater: Restoring string selection to absolute index {selected_string_idx}")
+                        # Further delay for strings to ensure they are populated and mapped
+                        from PyQt5.QtCore import QTimer
+                        QTimer.singleShot(200, lambda: self.mw.list_selection_handler.select_string_by_absolute_index(selected_string_idx))
+                else:
+                    log_warning(f"UIUpdater: Failed to find item {selected_id} for restoration.")
+
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(50, _delayed_select)
+
+    def _get_item_id(self, item) -> str:
+        """Helper to generate consistent IDs for tree items."""
+        if not item: return None
+        
+        block_idx = item.data(0, Qt.UserRole)
+        category_name = item.data(0, Qt.UserRole + 10)
+        folder_id = item.data(0, Qt.UserRole + 1)
+        
+        if folder_id is not None:
+            return f"folder_{folder_id}"
+        elif category_name is not None:
+            parent = item.parent()
+            if parent:
+                p_block_idx = parent.data(0, Qt.UserRole)
+                return f"cat_{p_block_idx}_{category_name}"
+        elif block_idx is not None:
+            return f"block_{block_idx}"
+        return None
 
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         """Highlights a glossary occurrence in the original_text_edit."""
@@ -527,7 +657,7 @@ class UIUpdater:
 
             
     def update_title(self):
-        title = "Picoripi"
+        title = f"Picoripi v{APP_VERSION}"
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and hasattr(self.mw.project_manager, 'project') and self.mw.project_manager.project:
             title += f" - [{self.mw.project_manager.project.name}]"
         elif self.mw.json_path: 
@@ -642,7 +772,7 @@ class UIUpdater:
             categorized_indices.update(cat.line_indices)
         return categorized_indices
 
-    def populate_strings_for_block(self, block_idx, category_name=None):
+    def populate_strings_for_block(self, block_idx, category_name=None, force=False):
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         original_edit = getattr(self.mw, 'original_text_edit', None)
         edited_edit = getattr(self.mw, 'edited_text_edit', None)
@@ -704,8 +834,8 @@ class UIUpdater:
             
             self.mw.displayed_string_indices = target_indices
 
-            # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled)
-            if block_changed or displayed_indices_changed:
+            # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
+            if block_changed or displayed_indices_changed or force:
                 preview_lines = []
                 for real_idx in target_indices:
                     text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)

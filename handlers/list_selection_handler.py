@@ -153,6 +153,20 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.move_block_down_button.setEnabled(False)
 
 
+    def select_string_by_absolute_index(self, absolute_idx: int):
+        """Select a string using its absolute index in block data, handling relative mapping automatically."""
+        if absolute_idx == -1: return
+
+        rel_idx = -1
+        if hasattr(self.mw, 'displayed_string_indices') and absolute_idx in self.mw.displayed_string_indices:
+            rel_idx = self.mw.displayed_string_indices.index(absolute_idx)
+        else:
+            rel_idx = absolute_idx # Fallback if no mapping exists
+
+        # If strings are not yet populated (e.g. initial load), displayed_string_indices might be empty.
+        # string_selected_from_preview will handle further validation.
+        self.string_selected_from_preview(rel_idx)
+
     def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False):
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
 

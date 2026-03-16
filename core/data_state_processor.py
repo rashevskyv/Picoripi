@@ -68,6 +68,15 @@ class DataStateProcessor:
         else:
             self.mw.edited_data[edit_key] = new_text
 
+        # Update unsaved block indices for the indicator (asterisk)
+        if edit_key in self.mw.edited_data:
+            self.mw.unsaved_block_indices.add(block_idx)
+        else:
+            # Check if any other edits remain in this block
+            has_other_edits = any(b == block_idx for b, s in self.mw.edited_data.keys())
+            if not has_other_edits:
+                self.mw.unsaved_block_indices.discard(block_idx)
+
         # Record in undo manager if it exists and text actually changed
         if hasattr(self.mw, 'undo_manager') and old_text != new_text:
             self.mw.undo_manager.record_action(action_type, block_idx, string_idx, old_text, new_text)
@@ -78,7 +87,87 @@ class DataStateProcessor:
         if unsaved_status_actually_changed:
             log_debug(f"DSP.update_edited_data: Unsaved changes status changed to {self.mw.unsaved_changes}")
         
+        # Explicitly trigger tree item refresh to show/hide asterisk
+        if hasattr(self.mw, 'ui_updater'):
+            self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+
         return unsaved_status_actually_changed
+
+    def revert_strings_to_original(self, block_idx: int, string_indices: list[int]):
+        """Reverts multiple strings in a block to their original state (from the loaded file)."""
+        if not hasattr(self.mw, 'edited_data'): return
+        
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.begin_group()
+            
+        changed = False
+        for s_idx in string_indices:
+            # We specifically use self.mw.data here because "Original" refers to the source text (left panel)
+            original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data, "original_source_data")
+            
+            if original_text is not None:
+                if self.update_edited_data(block_idx, s_idx, original_text, action_type="REVERT"):
+                    changed = True
+        
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.end_group("REVERT")
+            
+        if hasattr(self.mw, 'ui_updater'):
+            self.mw.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+            self.mw.ui_updater.update_text_views()
+
+    def perform_revert_strings(self, block_idx: int, string_indices: list[int], confirm: bool = True):
+        """Unified revert function with optional confirmation and UI updates."""
+        if not string_indices or block_idx == -1: return
+        
+        if confirm:
+            num = len(string_indices)
+            msg = f"Revert {num} string(s) in this block to original?" if num > 1 else "Revert this string to original?"
+            reply = QMessageBox.question(
+                self.mw, 'Revert to Original', 
+                msg + "\n\nUnsaved changes for these strings will be lost.",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.No: return
+            
+        self.revert_strings_to_original(block_idx, string_indices)
+        
+        if hasattr(self.mw, 'statusBar'):
+            if len(string_indices) == 1:
+                self.mw.statusBar.showMessage(f"String {string_indices[0] + 1} reverted to original.", 2000)
+            else:
+                self.mw.statusBar.showMessage(f"{len(string_indices)} strings reverted to original.", 2000)
+
+    def revert_blocks_to_original(self, block_indices: list[int]):
+        """Reverts entire blocks to their state from the loaded edited file (or original)."""
+        if not hasattr(self.mw, 'data') or not self.mw.data: return
+        
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.begin_group()
+            
+        for b_idx in block_indices:
+            if 0 <= b_idx < len(self.mw.data):
+                num_strings = len(self.mw.data[b_idx])
+                # We avoid calling revert_strings_to_original to prevent nested groups
+                # instead we call update_edited_data directly for each string
+                for s_idx in range(num_strings):
+                    # Use self.mw.data to get the actual original source text
+                    original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data, "original_source_data")
+                    
+                    if original_text is not None:
+                        self.update_edited_data(b_idx, s_idx, original_text, action_type="REVERT")
+        
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.end_group("REVERT_BLOCKS")
+            
+        if hasattr(self.mw, 'ui_updater'):
+            if self.mw.current_block_idx in block_indices:
+                self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+                self.mw.ui_updater.update_text_views()
+            else:
+                # Still need to update indicators in tree
+                for b_idx in block_indices:
+                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
 
 
     def save_current_edits(self, ask_confirmation=True):
