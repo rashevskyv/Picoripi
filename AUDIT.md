@@ -101,7 +101,10 @@
 101: | 43 | `is_updating_search_panel_settings` | ✅ Переведено на StateManager |
 102: | 44 | `is_updating_search_panel_history` | ✅ Переведено на StateManager |
 103: | 45 | `is_updating_search_panel_results` | ✅ Переведено на StateManager |
-104: | 46 | `is_updating_search_panel_ui_state` | ✅ Переведено на StateManager |
+104: | 46 | `is_updating_search_panel_ui_state` | ✅ Переведено на StateManager & ВИДАЛЕНО |
+
+> [!NOTE]
+> ✅ **ВИРІШЕНО** (2026-03-17): `MainWindow` декомпоновано. 34+ невикористовуваних прапорці видалено. Решта (12) переведені на `StateManager`. `MainWindow.__init__` розбито на спеціалізовані методи. Впроваджено context managers (`with state.enter(...)`) для безпечного перемикання станів.
 
 **Рішення:**
 
@@ -175,7 +178,7 @@ class BaseHandler:
 3. **Першим кроком** (мінімальний) — винести стан даних (`data`, `edited_data`, `block_names`, `current_block_idx` тощо) у окремий `AppDataStore` клас, на який посилається і MainWindow і хендлери. 
 
 > [!NOTE]
-> ✅ **ЧАСТКОВО ВИРІШЕНО** (2026-03-16): Впроваджено `ProjectContext` (Protocol) у `core/context.py`. `BaseHandler` тепер використовує `self.ctx` замість прямого посилання на `MainWindow`. Це перший крок до повної декапсуляції.
+> ✅ **ЧАСТКОВО ВИРІШЕНО** (2026-03-17): Впроваджено `ProjectContext` (Protocol) у `core/context.py`. `BaseHandler` тепер використовує `self.ctx` замість прямого посилання на `MainWindow`. Розпочато міграцію основних хендлерів (`ListSelectionHandler`, `AppActionHandler`) на використання контексту.
 
 ---
 
@@ -567,19 +570,19 @@ if hasattr(self, 'spellchecker_manager'):
 
 | # | Пріоритет | Проблема | Рішення | Складність |
 |---|---|---|---|---|
-| 1 | 🔴 Критичний | 46 булевих прапорців стану | `StateManager` + enum + context manager | Висока |
-| 2 | 🔴 Критичний | Tight coupling через `self.mw` | Interfaces/Protocol, `AppDataStore` | Висока |
+| 1 | ✅ Вирішено | 46 булевих прапорців стану | `StateManager` + видалення мертвих прапорців | — |
+| 2 | 🟡 Високий | Tight coupling через `self.mw` | `ProjectContext` міграція триває | Висока |
 | 3 | 🟡 Високий | `translation_handler.py` 1329 рядків | Розділити на 3-4 класи | Середня |
 | 4 | ✅ Вирішено | `settings_manager.py` 685 рядків | Декомпоновано на пакет `core/settings/` | — |
 | 5 | ✅ Вирішено | `utils.py` імпортує з `pokemon_fr` | Перенесено маркери в `markers.py` | — |
-| 6 | ✅ Вирішено | 0% coverage pytest | Додано 125 тестів (pytest) | — |
+| 6 | ✅ Вирішено | 0% coverage pytest | Додано 135+ тестів (pytest) | — |
 | 7 | ✅ Вирішено | `setup_main_window_ui` 380 рядків | Розбито на `ui/builders/` | — |
 | 8 | 🟢 Середній | Дублювання App/Project ActionHandler | Об'єднати або прибрати делегування | Низька |
 | 9 | 🟢 Середній | `data_manager` показує QMessageBox | Відділити core від UI | Низька |
-| 10 | 🟢 Середній | `app_debug.txt` 9 МБ | RotatingFileHandler | Низька |
-| 11 | 🔵 Низький | Змішування os.path/pathlib | Стандартизувати на pathlib | Низька |
-| 12 | 🔵 Низький | Неповні type hints | Додати type hints, увімкнути mypy | Поступово |
-| 13 | 🔵 Низький | Делегати-обгортки у MainWindow | Видалити зайві, залишити обґрунтовані | Низька |
+| 10 | ✅ Вирішено | `app_debug.txt` 9 МБ | RotatingFileHandler | — |
+| 11 | ✅ Вирішено | Змішування os.path/pathlib | Стандартизовано на pathlib у core/handlers | — |
+| 12 | ✅ Вирішено | Неповні type hints | Додано до ProjectManager та Handlers | — |
+| 13 | ✅ Вирішено | Делегати-обгортки у MainWindow | Видалено зайві | — |
 | 14 | ✅ Вирішено | **Баг збереження Pokemon (mismatch)** | **Graceful save + Index Desync Fix** | — |
 | 15 | ✅ Вирішено | **Збереження позиції в блоках** | **Persistent `last_selected_string_idx`** | — |
 

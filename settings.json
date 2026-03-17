@@ -1,6 +1,6 @@
 {
     "font_size": 13,
-    "active_game_plugin": "zelda_ww",
+    "active_game_plugin": "pokemon_fr",
     "window_was_maximized": false,
     "window_normal_geometry": {
         "x": 641,
@@ -42,8 +42,8 @@
     "spellchecker_language": "uk",
     "recent_projects": [
         "D:\\git\\WW\\Cemu_2.6\\Wind_Waker_Wii_U\\project.uiproj",
-        "D:\\git\\WW\\WindWaker\\project.uiproj",
         "C:\\Users\\Administrator\\Desktop\\PokemonRS\\Pokemon\\project.uiproj",
+        "D:\\git\\WW\\WindWaker\\project.uiproj",
         "C:\\Users\\Administrator\\Desktop\\PokemonRS\\Pokemon\\Pokemon\\project.uiproj",
         "C:\\Users\\Administrator\\Desktop\\pokemon\\Pokemon\\project.uiproj",
         "C:\\Users\\Administrator\\Desktop\\13\\project.uiproj"

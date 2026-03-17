@@ -9,6 +9,7 @@ from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_wid
 from core.tag_utils import apply_default_mappings_only
 from core.data_manager import load_json_file, load_text_file
 from plugins.base_game_rules import BaseGameRules
+from core.state_manager import AppState
 
 class AppActionHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any, game_rules_plugin: Optional[BaseGameRules]):
@@ -158,153 +159,114 @@ class AppActionHandler(BaseHandler):
 
     def load_all_data_for_path(self, original_file_path: Union[str, Path], manually_set_edited_path: Optional[Union[str, Path]] = None, is_initial_load_from_settings: bool = False) -> None:
         log_info(f"Loading all data for path: '{original_file_path}'")
-        self.mw.is_programmatically_changing_text = True
         
-        if not self.mw.current_game_rules:
-            QMessageBox.critical(self.mw, "Load Error", "Cannot load file: No game plugin is active.")
-            self.mw.is_programmatically_changing_text = False
-            return
+        with self.mw.state.enter(AppState.LOADING_DATA), self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
+            if not self.mw.current_game_rules:
+                QMessageBox.critical(self.mw, "Load Error", "Cannot load file: No game plugin is active.")
+                return
 
-        file_content = None
-        error = None
-        path_obj = Path(original_file_path)
-        file_extension = path_obj.suffix.lower()
+            file_content = None
+            error = None
+            path_obj = Path(original_file_path)
+            file_extension = path_obj.suffix.lower()
 
-        if file_extension == '.json':
-            file_content, error = load_json_file(path_obj, parent_widget=self.mw)
-        elif file_extension == '.txt':
-            file_content, error = load_text_file(path_obj, parent_widget=self.mw)
-        else:
-            error = f"Unsupported file type: {file_extension}"
+            if file_extension == '.json':
+                file_content, error = load_json_file(path_obj, parent_widget=self.mw)
+            elif file_extension == '.txt':
+                file_content, error = load_text_file(path_obj, parent_widget=self.mw)
+            else:
+                error = f"Unsupported file type: {file_extension}"
 
-        if error:
-            self.mw.json_path = None
-            self.mw.edited_json_path = None
-            self.mw.data = []
+            if error:
+                self.mw.json_path = None
+                self.mw.edited_json_path = None
+                self.mw.data = []
+                self.mw.edited_data = {}
+                self.mw.edited_file_data = []
+                self.mw.unsaved_changes = False
+                self.ui_updater.update_title()
+                self.ui_updater.update_statusbar_paths()
+                self.ui_updater.populate_blocks()
+                self.ui_updater.populate_strings_for_block(-1)
+                QMessageBox.critical(self.mw, "Load Error", f"Failed to load: {original_file_path}\n{error}")
+                return
+
+            # Reset plugin state if it tracks keys (like pokemon_fr)
+            if hasattr(self.mw.current_game_rules, 'original_keys'):
+                self.mw.current_game_rules.original_keys = []
+                
+            data, block_names_from_plugin = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+            if not data and file_content is not None:
+                QMessageBox.critical(self.mw, "Plugin Error", f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
+                self.mw.json_path = None
+                self.mw.data = []
+                self.ui_updater.populate_blocks()
+                self.ui_updater.populate_strings_for_block(-1)
+                return
+
+            self.mw.json_path = str(original_file_path)
+            self.mw.data = data
+            if block_names_from_plugin:
+                self.mw.block_names.update(block_names_from_plugin)
+            
             self.mw.edited_data = {}
-            self.mw.edited_file_data = []
             self.mw.unsaved_changes = False
+            
+            self.mw.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(self.mw.json_path)
+            self.mw.edited_file_data = []
+            if self.mw.edited_json_path and Path(self.mw.edited_json_path).exists():
+                edited_file_content = None
+                edit_error = None
+                edited_path_obj = Path(self.mw.edited_json_path)
+                edited_file_extension = edited_path_obj.suffix.lower()
+
+                if edited_file_extension == '.json':
+                    edited_file_content, edit_error = load_json_file(edited_path_obj, parent_widget=self.mw)
+                elif edited_file_extension == '.txt':
+                    edited_file_content, edit_error = load_text_file(edited_path_obj, parent_widget=self.mw)
+
+                if edit_error:
+                    QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.edited_json_path}\n{edit_error}")
+                else:
+                    plugin_keys_backup = None
+                    if hasattr(self.mw.current_game_rules, 'original_keys'):
+                        plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
+                        
+                    edited_data_from_file, _ = self.mw.current_game_rules.load_data_from_json_obj(edited_file_content)
+                    
+                    if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
+                        self.mw.current_game_rules.original_keys = plugin_keys_backup
+                        
+                    self.mw.edited_file_data = edited_data_from_file
+            
+            self.mw.current_block_idx = -1
+            self.mw.current_string_idx = -1
+            
+            if hasattr(self.mw, 'undo_paste_action') and self.mw.undo_paste_action:
+                self.mw.can_undo_paste = False
+                self.mw.undo_paste_action.setEnabled(False)
+            if hasattr(self.mw, 'undo_manager') and self.mw.undo_manager:
+                self.mw.undo_manager.clear()
+            
+            self.mw.block_list_widget.clear()
+            if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:
+                self.mw.preview_text_edit.clear()
+            if hasattr(self.mw, 'original_text_edit') and self.mw.original_text_edit:
+                self.mw.original_text_edit.clear()
+            if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+                self.mw.edited_text_edit.clear()
+
+            self._perform_initial_silent_scan_all_issues()
+            
             self.ui_updater.update_title()
             self.ui_updater.update_statusbar_paths()
             self.ui_updater.populate_blocks()
-            self.ui_updater.populate_strings_for_block(-1)
-            self.mw.is_programmatically_changing_text = False
-            QMessageBox.critical(self.mw, "Load Error", f"Failed to load: {original_file_path}\n{error}")
-            return
 
-        # Reset plugin state if it tracks keys (like pokemon_fr)
-        if hasattr(self.mw.current_game_rules, 'original_keys'):
-            self.mw.current_game_rules.original_keys = []
-            
-        data, block_names_from_plugin = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-        if not data and file_content is not None:
-            QMessageBox.critical(self.mw, "Plugin Error", f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
-            self.mw.json_path = None
-            self.mw.data = []
-            self.ui_updater.populate_blocks()
-            self.ui_updater.populate_strings_for_block(-1)
-            self.mw.is_programmatically_changing_text = False
-            return
-
-        self.mw.json_path = str(original_file_path)
-        self.mw.data = data
-        if block_names_from_plugin:
-            self.mw.block_names.update(block_names_from_plugin)
-        
-        self.mw.edited_data = {}
-        self.mw.unsaved_changes = False
-        
-        self.mw.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(self.mw.json_path)
-        self.mw.edited_file_data = []
-        if self.mw.edited_json_path and Path(self.mw.edited_json_path).exists():
-            edited_file_content = None
-            edit_error = None
-            edited_path_obj = Path(self.mw.edited_json_path)
-            edited_file_extension = edited_path_obj.suffix.lower()
-
-            if edited_file_extension == '.json':
-                edited_file_content, edit_error = load_json_file(edited_path_obj, parent_widget=self.mw)
-            elif edited_file_extension == '.txt':
-                edited_file_content, edit_error = load_text_file(edited_path_obj, parent_widget=self.mw)
-
-            if edit_error:
-                QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.edited_json_path}\n{edit_error}")
-            else:
-                plugin_keys_backup = None
-                if hasattr(self.mw.current_game_rules, 'original_keys'):
-                    plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-                    
-                edited_data_from_file, _ = self.mw.current_game_rules.load_data_from_json_obj(edited_file_content)
-                
-                if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                    self.mw.current_game_rules.original_keys = plugin_keys_backup
-                    
-                self.mw.edited_file_data = edited_data_from_file
-        
-        self.mw.current_block_idx = -1
-        self.mw.current_string_idx = -1
-        
-        if hasattr(self.mw, 'undo_paste_action'):
-            self.mw.can_undo_paste = False
-            self.mw.undo_paste_action.setEnabled(False)
-        if hasattr(self.mw, 'undo_manager'):
-            self.mw.undo_manager.clear()
-        
-        self.mw.block_list_widget.clear()
-        if hasattr(self.mw, 'preview_text_edit'):
-            self.mw.preview_text_edit.clear()
-        if hasattr(self.mw, 'original_text_edit'):
-            self.mw.original_text_edit.clear()
-        if hasattr(self.mw, 'edited_text_edit'):
-            self.mw.edited_text_edit.clear()
-
-        self._perform_initial_silent_scan_all_issues()
-        
-        self.ui_updater.update_title()
-        self.ui_updater.update_statusbar_paths()
-        self.ui_updater.populate_blocks()
-
-        # Restore UI State (Session)
-        state_restored = False
-        if original_file_path:
-            state = self.mw.settings_manager.session_state.get_state_for_file(str(original_file_path))
-            if state:
-                log_info(f"Restoring UI state for {original_file_path}")
-                self.ui_updater.apply_tree_state(state)
-                
-                # Apply cursor and scroll positions
-                if self.mw.edited_text_edit:
-                    def _apply_scroll() -> None:
-                        self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
-                        self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
-                        if self.mw.preview_text_edit:
-                            self.mw.preview_text_edit.verticalScrollBar().setValue(state.get("preview_v_scroll", 0))
-                        if self.mw.original_text_edit:
-                            self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
-                        
-                        cursor_pos = state.get("cursor_pos", 0)
-                        doc_len = self.mw.edited_text_edit.document().characterCount() - 1
-                        pos_to_set = min(cursor_pos, max(0, doc_len))
-                        cursor = self.mw.edited_text_edit.textCursor()
-                        cursor.setPosition(pos_to_set)
-                        self.mw.edited_text_edit.setTextCursor(cursor)
-                        self.mw.edited_text_edit.ensureCursorVisible()
-
-                    from PyQt5.QtCore import QTimer
-                    QTimer.singleShot(200, _apply_scroll)
-                
-                state_restored = True
-
-        if not state_restored:
-            if self.mw.block_list_widget.invisibleRootItem().childCount() > 0:
-                if not is_initial_load_from_settings: 
-                     custom_tree = getattr(self.mw, 'block_list_widget', None)
-                     if custom_tree and hasattr(custom_tree, 'select_block_by_index'):
-                         custom_tree.select_block_by_index(0)
-            else:
-                self.ui_updater.populate_strings_for_block(-1)
-            
-        self.mw.is_programmatically_changing_text = False
+            # Restore UI State (Session)
+            if original_file_path and hasattr(self.mw, 'settings_manager'):
+                 state = self.mw.settings_manager.get_session_state(str(original_file_path))
+                 if state:
+                     self.mw.block_handler.restore_ui_state_from_dict(state)
 
     def reload_original_data_action(self) -> None:
         log_info("Reload Original action triggered.")

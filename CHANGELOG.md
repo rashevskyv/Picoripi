@@ -2,6 +2,31 @@
 
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.5] - 2026-03-17
+
+### Fixed
+- **Plugin Loading Standard**: Fixed a critical bug where flat list JSON files caused a `[DATA ERROR]` by standardizing `load_data_from_json_obj` in `BaseGameRules` to always return a block-based structure.
+- **None Value Graceful Handling**: Updated `UIUpdater` to prevent literal "None" strings from appearing in original text views when data is absent.
+- **Programmatic Interaction Blocking**: Added `AppState.LOADING_DATA` to the data loading context in `AppActionHandler` to correctly silence side-effect events.
+
+### Improved
+- **Plugin Architecture**: Cleaned up the `zelda_mc` plugin to leverage the standardized base loading logic.
+- **Test Integrity**: Updated automated tests to reflect new data structure expectations.
+
+## [0.2.4] - 2026-03-17
+
+### Added
+- **StateManager**: Unified state management to prevent recursive events and track long-running operations.
+- **ProjectContext**: Initial implementation of a context hub to decouple handlers from `MainWindow` god-object.
+- **Strict Type Hinting**: Added comprehensive type hints (including `Union[str, Path]`) to `ProjectManager` and all Handler classes.
+- **Pathlib Standardization**: Replaced `os.path` calls with `pathlib.Path` across core modules and handlers for better cross-platform reliability.
+
+### Improved
+- **MainWindow Decomposition**: Refactored `MainWindow.__init__` into specialized initialization methods.
+- **Dead Code Pruning**: Removed 34+ unused boolean flags and state enums from `MainWindow` and `StateManager`.
+- **Exception Safety**: Replaced manual state flag setting with context managers (`with state.enter(...)`) in `AppActionHandler`.
+- **Test Coverage Verification**: Verified all changes with 135+ automated tests passing.
+
 ## [0.2.3] - 2026-03-17
 
 ### Added

@@ -40,9 +40,9 @@ class TestLoadData:
         assert len(result[0]) == 3
 
     def test_load_empty_list(self, rules):
-        """Empty list input returns empty list."""
+        """Empty list input returns a list containing one empty block."""
         result, block_names = rules.load_data_from_json_obj([])
-        assert result == []
+        assert result == [[]]
 
     def test_load_dict_returns_empty(self, rules):
         """Dict input (unsupported) returns empty list."""

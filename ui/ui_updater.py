@@ -881,7 +881,9 @@ class UIUpdater:
                 self.mw.current_block_idx, self.mw.current_string_idx, self.mw.data, 
                 "original_data_for_readonly_view"
             )
+            if original_text_raw is None: original_text_raw = ""
             edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.current_block_idx, self.mw.current_string_idx)
+            if edited_text_raw is None: edited_text_raw = ""
         
         if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
             original_text_for_display_processed = self.mw.current_game_rules.get_text_representation_for_editor(str(original_text_raw))

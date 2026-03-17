@@ -44,13 +44,8 @@ class GameRules(BaseGameRules):
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
-        if isinstance(json_data, list) and all(isinstance(sublist, list) for sublist in json_data):
-            return json_data, {}
-        # Use base class implementation for Kruptar format support if it's a string
-        if isinstance(json_data, str):
-            return super().load_data_from_json_obj(json_data)
-        log_debug(f"Zelda Plugin: Provided JSON data is not a list of lists or string. Type: {type(json_data)}")
-        return [], {}
+        # Use base class implementation which now correctly handles flat lists and strings
+        return super().load_data_from_json_obj(json_data)
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         # If it's a list of lists, return as is (JSON format)

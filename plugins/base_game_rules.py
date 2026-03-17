@@ -14,7 +14,23 @@ class BaseGameRules:
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
         if isinstance(json_data, list):
-            return json_data, {}
+            # If it's an empty list, return it as a single empty block
+            if not json_data:
+                return [[]], {}
+            # If it's already a list of lists, return as is
+            if all(isinstance(sub, list) for sub in json_data):
+                return json_data, {}
+            # Otherwise, assume it's a single block containing these items
+            return [json_data], {}
+        
+        if isinstance(json_data, dict):
+            # Try to handle common dict-based formats (e.g. { "strings": [...] })
+            if "strings" in json_data and isinstance(json_data["strings"], list):
+                return self.load_data_from_json_obj(json_data["strings"])
+            # Fallback for generic dict: wrap in list? No, probably return as is if it's a block
+            # But the UI expects List[List[str]].
+            return [], {}
+
         if isinstance(json_data, str):
             # Kruptar format check: if it contains {END}, split by it
             if '{END}' in json_data:
