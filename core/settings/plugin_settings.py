@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any, Union
 from PyQt5.QtWidgets import QMessageBox
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
@@ -11,16 +11,16 @@ from utils.constants import (
 from core.translation.config import build_default_translation_config, merge_translation_config
 
 class PluginSettings:
-    def __init__(self, main_window):
+    def __init__(self, main_window: Any):
         self.mw = main_window
 
-    def _get_plugin_config_path(self):
+    def _get_plugin_config_path(self) -> Optional[Path]:
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         if not plugin_name:
             return None
-        return str(Path("plugins") / plugin_name / "config.json")
+        return Path("plugins") / plugin_name / "config.json"
 
-    def _substitute_env_vars(self, data):
+    def _substitute_env_vars(self, data: Any) -> Any:
         """Recursively substitute environment variables in data structure."""
         import re
         if isinstance(data, dict):
@@ -28,14 +28,14 @@ class PluginSettings:
         elif isinstance(data, list):
             return [self._substitute_env_vars(item) for item in data]
         elif isinstance(data, str):
-            def replace_env_var(match):
+            def replace_env_var(match: re.Match) -> str:
                 var_name = match.group(1) or match.group(2)
                 return os.getenv(var_name, match.group(0))
             pattern = r'\$\{([^}]+)\}|\$([A-Z_][A-Z0-9_]*)'
             return re.sub(pattern, replace_env_var, data)
         return data
 
-    def load(self, settings_dict):
+    def load(self, settings_dict: Dict[str, Any]) -> None:
         """Loads plugin-specific settings."""
         defaults = {
             "display_name": "Unknown Plugin", "default_tag_mappings": {}, "block_names": {}, "block_color_markers": {},
@@ -79,12 +79,12 @@ class PluginSettings:
         self.mw.search_history_to_save = []
 
         plugin_config_path = self._get_plugin_config_path()
-        if not plugin_config_path or not Path(plugin_config_path).exists():
+        if not plugin_config_path or not plugin_config_path.exists():
             log_warning(f"Plugin config not found at '{plugin_config_path}'. Using defaults.")
             return
 
         try:
-            with open(plugin_config_path, 'r', encoding='utf-8') as f:
+            with plugin_config_path.open('r', encoding='utf-8') as f:
                 plugin_data = json.load(f)
 
             plugin_data = self._substitute_env_vars(plugin_data)
@@ -122,7 +122,7 @@ class PluginSettings:
         except Exception as e:
             log_error(f"Error loading plugin settings from '{plugin_config_path}': {e}", exc_info=True)
 
-    def _migrate_legacy_styles(self, plugin_data):
+    def _migrate_legacy_styles(self, plugin_data: Dict[str, Any]) -> None:
         # Implementation of style migration from SettingsManager
         if not hasattr(self.mw, 'tag_color_rgba') or not getattr(self.mw, 'tag_color_rgba', None):
             self.mw.tag_color_rgba = plugin_data.get('bracket_tag_color_hex') or '#FF8C00'
@@ -150,15 +150,15 @@ class PluginSettings:
             legacy_nl_css = plugin_data.get('newline_css', '')
             self.mw.newline_underline = 'underline' in legacy_nl_css.lower() if isinstance(legacy_nl_css, str) else False
 
-    def save(self):
+    def save(self) -> None:
         """Saves current plugin settings to plugin's config.json."""
         plugin_config_path = self._get_plugin_config_path()
         if not plugin_config_path: return
 
         plugin_data = {}
         try:
-            if Path(plugin_config_path).exists():
-                with open(plugin_config_path, 'r', encoding='utf-8') as f:
+            if plugin_config_path.exists():
+                with plugin_config_path.open('r', encoding='utf-8') as f:
                     plugin_data = json.load(f)
         except Exception as e:
             log_error(f"Could not read existing plugin config, will create a new one. Error: {e}", exc_info=True)
@@ -203,28 +203,28 @@ class PluginSettings:
         plugin_data.update(plugin_data_to_save)
         
         try:
-            with open(plugin_config_path, 'w', encoding='utf-8') as f:
+            with plugin_config_path.open('w', encoding='utf-8') as f:
                 json.dump(plugin_data, f, indent=4, ensure_ascii=False)
             log_debug(f"Plugin settings saved to '{plugin_config_path}'.")
         except Exception as e:
             log_error(f"ERROR saving plugin settings to '{plugin_config_path}': {e}", exc_info=True)
             QMessageBox.critical(self.mw, "Save Error", f"Could not save plugin configuration to\n{plugin_config_path}")
 
-    def save_block_names(self):
+    def save_block_names(self) -> None:
         plugin_config_path = self._get_plugin_config_path()
         if not plugin_config_path: return
 
         plugin_data = {}
         try:
-            if Path(plugin_config_path).exists():
-                with open(plugin_config_path, 'r', encoding='utf-8') as f:
+            if plugin_config_path.exists():
+                with plugin_config_path.open('r', encoding='utf-8') as f:
                     plugin_data = json.load(f)
         except Exception as e:
             log_error(f"Error reading plugin config for block names: {e}", exc_info=True)
 
         plugin_data["block_names"] = self.mw.block_names
         try:
-            with open(plugin_config_path, 'w', encoding='utf-8') as f:
+            with plugin_config_path.open('w', encoding='utf-8') as f:
                 json.dump(plugin_data, f, indent=4, ensure_ascii=False)
             log_debug(f"Block names saved successfully to '{plugin_config_path}'.")
         except Exception as e:

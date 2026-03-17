@@ -1,4 +1,5 @@
 # --- START OF FILE core/data_state_processor.py ---
+from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 from pathlib import Path
 from PyQt5.QtWidgets import QMessageBox
@@ -6,10 +7,10 @@ from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_error
 
 class DataStateProcessor:
-    def __init__(self, main_window):
+    def __init__(self, main_window: Any):
         self.mw = main_window
 
-    def _get_string_from_source(self, block_idx, string_idx, source_data, source_name):
+    def _get_string_from_source(self, block_idx: int, string_idx: int, source_data: List[Any], source_name: str) -> Optional[str]:
         if not source_data:
             return None
         if not (0 <= block_idx < len(source_data)):
@@ -25,7 +26,7 @@ class DataStateProcessor:
         value = current_block[string_idx]
         return value
 
-    def get_current_string_text(self, block_idx, string_idx):
+    def get_current_string_text(self, block_idx: int, string_idx: int) -> Tuple[str, str]:
         edit_key = (block_idx, string_idx)
         if edit_key in self.mw.edited_data:
             return self.mw.edited_data[edit_key], "edited_data (in-memory)"
@@ -41,14 +42,14 @@ class DataStateProcessor:
         log_debug(f"!!! DSP: Error in get_current_string_text - Index ({block_idx}, {string_idx}) out of bounds or data missing after checking all sources.")
         return "[DATA ERROR]", "error" 
 
-    def get_block_texts(self, block_idx: int) -> list[str]:
+    def get_block_texts(self, block_idx: int) -> List[str]:
         if not self.mw.data or not (0 <= block_idx < len(self.mw.data)):
             return []
         
         num_strings = len(self.mw.data[block_idx])
         return [self.get_current_string_text(block_idx, i)[0] for i in range(num_strings)]
 
-    def update_edited_data(self, block_idx, string_idx, new_text, action_type="TEXT_EDIT"):
+    def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT") -> bool:
         edit_key = (block_idx, string_idx)
         
         # Get old text for undo
@@ -93,7 +94,7 @@ class DataStateProcessor:
 
         return unsaved_status_actually_changed
 
-    def revert_strings_to_original(self, block_idx: int, string_indices: list[int]):
+    def revert_strings_to_original(self, block_idx: int, string_indices: List[int]) -> None:
         """Reverts multiple strings in a block to their original state (from the loaded file)."""
         if not hasattr(self.mw, 'edited_data'): return
         
@@ -116,7 +117,7 @@ class DataStateProcessor:
             self.mw.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
             self.mw.ui_updater.update_text_views()
 
-    def perform_revert_strings(self, block_idx: int, string_indices: list[int], confirm: bool = True):
+    def perform_revert_strings(self, block_idx: int, string_indices: List[int], confirm: bool = True) -> None:
         """Unified revert function with optional confirmation and UI updates."""
         if not string_indices or block_idx == -1: return
         
@@ -138,7 +139,7 @@ class DataStateProcessor:
             else:
                 self.mw.statusBar.showMessage(f"{len(string_indices)} strings reverted to original.", 2000)
 
-    def revert_blocks_to_original(self, block_indices: list[int]):
+    def revert_blocks_to_original(self, block_indices: List[int]) -> None:
         """Reverts entire blocks to their state from the loaded edited file (or original)."""
         if not hasattr(self.mw, 'data') or not self.mw.data: return
         
@@ -170,7 +171,7 @@ class DataStateProcessor:
                     self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
 
 
-    def save_current_edits(self, ask_confirmation=True):
+    def save_current_edits(self, ask_confirmation: bool = True) -> bool:
         log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.unsaved_changes}")
         if self.mw.json_path and not self.mw.edited_json_path:
             self.mw.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.json_path) 
@@ -341,7 +342,7 @@ class DataStateProcessor:
             QMessageBox.critical(self.mw, "Save Error", f"Unexpected error during save prep:\n{e}"); 
             return False
 
-    def revert_edited_file_to_original(self):
+    def revert_edited_file_to_original(self) -> bool:
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
 
         if not is_project_mode:

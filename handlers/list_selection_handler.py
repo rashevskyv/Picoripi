@@ -1,5 +1,6 @@
-# --- START OF FILE handlers/list_selection_handler.py ---
-from PyQt5.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator
+# handlers/list_selection_handler.py
+from typing import Any, Optional, List, Dict, Union, Tuple
+from PyQt5.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock 
 from .base_handler import BaseHandler
@@ -7,23 +8,23 @@ from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
 
 class ListSelectionHandler(BaseHandler):
-    def __init__(self, main_window, data_processor, ui_updater):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
-        self._restoring_selection = False
-    def navigate_between_blocks(self, forward: bool):
+        self._restoring_selection: bool = False
+    def navigate_between_blocks(self, forward: bool) -> None:
         """Handle global Alt+Shift+Up/Down to jump to next/prev block in the tree."""
         if not hasattr(self.mw, 'block_list_widget'): return
-        direction = 1 if forward else -1
+        direction: int = 1 if forward else -1
         self.mw.block_list_widget.navigate_blocks(direction)
 
-    def navigate_between_folders(self, forward: bool):
+    def navigate_between_folders(self, forward: bool) -> None:
         """Handle global Alt+Shift+Left/Right to jump to next/prev folder in the tree."""
         log_debug(f"ListSelectionHandler: navigate_between_folders forward={forward}")
         if not hasattr(self.mw, 'block_list_widget'): return
-        direction = 1 if forward else -1
+        direction: int = 1 if forward else -1
         self.mw.block_list_widget.navigate_folders(direction)
 
-    def block_selected(self, current_item, previous_item):
+    def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
         if self.mw.is_loading_data or self._restoring_selection:
             return
 
@@ -104,9 +105,8 @@ class ListSelectionHandler(BaseHandler):
         finally:
             self.mw.is_programmatically_changing_text = False
 
-    def _restore_block_selection(self):
+    def _restore_block_selection(self) -> None:
         if self.mw.current_block_idx != -1:
-            from PyQt5.QtWidgets import QTreeWidgetItemIterator
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
                 if iterator.value().data(0, Qt.UserRole) == self.mw.current_block_idx:
@@ -153,11 +153,11 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.move_block_down_button.setEnabled(False)
 
 
-    def select_string_by_absolute_index(self, absolute_idx: int):
+    def select_string_by_absolute_index(self, absolute_idx: int) -> None:
         """Select a string using its absolute index in block data, handling relative mapping automatically."""
         if absolute_idx == -1: return
 
-        rel_idx = -1
+        rel_idx: int = -1
         if hasattr(self.mw, 'displayed_string_indices') and absolute_idx in self.mw.displayed_string_indices:
             rel_idx = self.mw.displayed_string_indices.index(absolute_idx)
         else:
@@ -167,7 +167,7 @@ class ListSelectionHandler(BaseHandler):
         # string_selected_from_preview will handle further validation.
         self.string_selected_from_preview(rel_idx)
 
-    def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False):
+    def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False) -> None:
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
 
         original_programmatic_state = self.mw.is_programmatically_changing_text
@@ -262,11 +262,11 @@ class ListSelectionHandler(BaseHandler):
             self.mw.edited_text_edit.setTextCursor(cursor)
 
 
-    def rename_block(self, item):
+    def rename_block(self, item: QTreeWidgetItem) -> None:
         if not item: return
         self.mw.block_list_widget.editItem(item, 0)
 
-    def handle_block_item_text_changed(self, item, column):
+    def handle_block_item_text_changed(self, item: QTreeWidgetItem, column: int) -> None:
         """Handle inline renaming of block or folder."""
         if self.mw.is_loading_data or self.mw.is_programmatically_changing_text:
             return
@@ -477,7 +477,7 @@ class ListSelectionHandler(BaseHandler):
 
             self.mw.is_programmatically_changing_text = original_programmatic_state
 
-    def handle_preview_selection_changed(self, selected_lines=None):
+    def handle_preview_selection_changed(self, selected_lines: Optional[List[int]] = None) -> None:
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit or not preview_edit.hasFocus() or self.mw.is_programmatically_changing_text:
             return
@@ -532,7 +532,7 @@ class ListSelectionHandler(BaseHandler):
         if preview_edit and hasattr(preview_edit, 'set_selected_lines'):
             preview_edit.set_selected_lines(selected_lines)
 
-    def move_selection_to_category(self):
+    def move_selection_to_category(self) -> None:
         """Move selected strings to a virtual block (Category)."""
         selected_indices = getattr(self.mw, 'selected_string_indices', [])
         if not selected_indices:
@@ -575,7 +575,7 @@ class ListSelectionHandler(BaseHandler):
         # For now, just logging
         log_debug(f"Moved {len(selected_indices)} strings to Category '{name}' in Block {proj_b_idx}")
 
-    def rename_category(self, block_idx: int, old_name: str):
+    def rename_category(self, block_idx: int, old_name: str) -> None:
         """Rename a virtual block."""
         from PyQt5.QtWidgets import QInputDialog
         new_name, ok = QInputDialog.getText(self.mw, "Rename Virtual Block", "Enter new name:", text=old_name)
@@ -595,7 +595,7 @@ class ListSelectionHandler(BaseHandler):
             pm.save()
             self.ui_updater.populate_blocks()
 
-    def delete_category(self, block_idx: int, category_name: str):
+    def delete_category(self, block_idx: int, category_name: str) -> None:
         """Remove a virtual block (the strings remain in the block)."""
         from PyQt5.QtWidgets import QMessageBox
         reply = QMessageBox.question(self.mw, "Delete Virtual Block", f"Are you sure you want to delete virtual block '{category_name}'?\n\n(Strings will not be deleted from the block itself.)", QMessageBox.Yes | QMessageBox.No)
@@ -613,13 +613,13 @@ class ListSelectionHandler(BaseHandler):
             self.ui_updater.populate_blocks()
 
 
-    def toggle_highlight_categorized(self, checked):
+    def toggle_highlight_categorized(self, checked: bool) -> None:
         """Toggle highlighting of categorized strings in parent block."""
         self.mw.highlight_categorized = checked
         if self.mw.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, self.mw.current_category_name)
 
-    def toggle_hide_categorized(self, checked):
+    def toggle_hide_categorized(self, checked: bool) -> None:
         """Toggle hiding of categorized strings in parent block."""
         self.mw.hide_categorized = checked
         if self.mw.current_block_idx != -1:

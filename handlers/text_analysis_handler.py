@@ -1,8 +1,8 @@
-# --- START OF FILE handlers/text_analysis_handler.py ---
+# handlers/text_analysis_handler.py
 """Handler for original text width analysis tool."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from PyQt5.QtWidgets import QAction, QMessageBox
 
@@ -15,13 +15,13 @@ from utils.utils import calculate_string_width, DEFAULT_CHAR_WIDTH_FALLBACK
 class TextAnalysisHandler(BaseHandler):
     """Builds data for the top longest lines and shows the dialog."""
 
-    def __init__(self, main_window, data_processor, ui_updater) -> None:
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any) -> None:
         super().__init__(main_window, data_processor, ui_updater)
         self._menu_action: Optional[QAction] = None
         self._dialog: Optional[OriginalTextAnalysisDialog] = None
 
     def ensure_menu_action(self) -> None:
-        tools_menu = getattr(self.mw, 'tools_menu', None)
+        tools_menu: Any = getattr(self.mw, 'tools_menu', None)
         if not tools_menu:
             log_debug('TextAnalysisHandler: Tools menu is not available yet.')
             return
@@ -37,7 +37,7 @@ class TextAnalysisHandler(BaseHandler):
         self._menu_action = action
 
     def analyze_original_text(self) -> None:
-        data_source = getattr(self.mw, 'data', None)
+        data_source: Optional[List[Any]] = getattr(self.mw, 'data', None)
         if not isinstance(data_source, list) or not data_source:
             QMessageBox.information(
                 self.mw,
@@ -55,20 +55,24 @@ class TextAnalysisHandler(BaseHandler):
             )
             return
 
-        initial_font = getattr(self.mw, 'default_font_file', None)
-        if initial_font not in font_maps:
-            initial_font = next(iter(font_maps))
-        initial_map = font_maps.get(initial_font, {})
+        initial_font: Optional[str] = getattr(self.mw, 'default_font_file', None)
+        if not initial_font or initial_font not in font_maps:
+            if font_maps:
+                initial_font = next(iter(font_maps))
+            else:
+                initial_font = ""
+                
+        initial_map: Dict[str, Any] = font_maps.get(initial_font, {}) if initial_font else {}
 
-        raw_entries: List[Dict[str, object]] = []
+        raw_entries: List[Dict[str, Any]] = []
         for block_idx, block in enumerate(data_source):
             if not isinstance(block, list):
                 continue
             for string_idx, value in enumerate(block):
-                text = '' if value is None else str(value)
+                text: str = '' if value is None else str(value)
                 if not text:
                     continue
-                lines = text.split('\n')
+                lines: List[str] = text.split('\n')
                 for line_idx, line in enumerate(lines):
                     raw_entries.append(
                         {
@@ -87,56 +91,59 @@ class TextAnalysisHandler(BaseHandler):
             )
             return
 
-        scored_entries: List[Dict[str, object]] = []
+        scored_entries: List[Dict[str, Any]] = []
         for entry in raw_entries:
-            width = calculate_string_width(
+            width: float = float(calculate_string_width(
                 entry.get('text', ''),
                 initial_map,
                 DEFAULT_CHAR_WIDTH_FALLBACK,
-            )
-            new_entry = dict(entry)
-            new_entry['width_pixels'] = float(width)
+            ))
+            new_entry: Dict[str, Any] = dict(entry)
+            new_entry['width_pixels'] = width
             scored_entries.append(new_entry)
 
         scored_entries.sort(key=lambda item: item['width_pixels'], reverse=True)
-        top_entries = scored_entries[:100]
-        top_entry = top_entries[0]
-        log_debug(
-            "TextAnalysisHandler: prepared %d entries, max width %.2f px"
-            % (len(top_entries), float(top_entry['width_pixels']))
-        )
+        top_entries: List[Dict[str, Any]] = scored_entries[:100]
+        if top_entries:
+            top_entry: Dict[str, Any] = top_entries[0]
+            log_debug(
+                "TextAnalysisHandler: prepared %d entries, max width %.2f px"
+                % (len(top_entries), float(top_entry['width_pixels']))
+            )
 
         if self._dialog is None:
             self._dialog = OriginalTextAnalysisDialog(self.mw)
             self._dialog.on_entry_activated = self._activate_entry
 
-        self._dialog.show_entries(
-            raw_entries,
-            font_maps,
-            initial_font,
-            precomputed_entries=top_entries,
-        )
+        if self._dialog and initial_font:
+            self._dialog.show_entries(
+                raw_entries,
+                font_maps,
+                initial_font,
+                precomputed_entries=top_entries,
+            )
 
-    def _activate_entry(self, entry: Dict[str, object]) -> None:
-        block = entry.get('block_idx')
-        string = entry.get('string_idx')
-        line_idx = entry.get('line_idx')
+    def _activate_entry(self, entry: Dict[str, Any]) -> None:
+        block: Optional[Any] = entry.get('block_idx')
+        string: Optional[Any] = entry.get('string_idx')
+        line_idx: Optional[Any] = entry.get('line_idx')
         if block is None or string is None:
             return
 
         try:
-            block_idx = int(block)
-            string_idx = int(string)
+            block_idx: int = int(block)
+            string_idx: int = int(string)
         except (TypeError, ValueError):
             return
-        line_number = None
+            
+        line_number: Optional[int] = None
         if line_idx is not None:
             try:
                 line_number = int(line_idx)
             except (TypeError, ValueError):
                 line_number = None
 
-        block_widget = getattr(self.mw, 'block_list_widget', None)
+        block_widget: Any = getattr(self.mw, 'block_list_widget', None)
         if block_widget and hasattr(block_widget, 'select_block_by_index'):
             block_widget.select_block_by_index(block_idx)
 
@@ -148,11 +155,11 @@ class TextAnalysisHandler(BaseHandler):
             self.ui_updater.populate_strings_for_block(block_idx)
             self.mw.ui_updater.update_text_views()
 
-        original_editor = getattr(self.mw, 'original_text_edit', None)
+        original_editor: Any = getattr(self.mw, 'original_text_edit', None)
         if original_editor and line_number is not None:
-            block_obj = original_editor.document().findBlockByNumber(line_number)
+            block_obj: Any = original_editor.document().findBlockByNumber(line_number)
             if block_obj.isValid():
-                cursor = original_editor.textCursor()
+                cursor: Any = original_editor.textCursor()
                 cursor.setPosition(block_obj.position())
                 original_editor.setTextCursor(cursor)
                 original_editor.ensureCursorVisible()

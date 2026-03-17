@@ -1,8 +1,9 @@
 # --- START OF FILE handlers/text_operation_handler.py ---
 import re
+from typing import Any, Optional, List, Dict, Tuple, Set, Union
 from PyQt5.QtWidgets import QMessageBox, QApplication, QPlainTextEdit
 from PyQt5.QtGui import QTextCursor, QTextBlock
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
@@ -10,13 +11,13 @@ from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_do
 PREVIEW_UPDATE_DELAY = 250
 
 class TextOperationHandler(BaseHandler):
-    def __init__(self, main_window, data_processor, ui_updater):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
         self.preview_update_timer = QTimer()
         self.preview_update_timer.setSingleShot(True)
         self.preview_update_timer.timeout.connect(self._update_preview_content)
 
-    def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str):
+    def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
         if not self.mw.current_game_rules:
             return
 
@@ -55,7 +56,7 @@ class TextOperationHandler(BaseHandler):
     def _log_undo_state(self, editor, context_message):
         pass
 
-    def _update_preview_content(self):
+    def _update_preview_content(self) -> None:
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit or self.mw.current_block_idx == -1:
             return
@@ -95,7 +96,7 @@ class TextOperationHandler(BaseHandler):
 
         main_window_ref.is_programmatically_changing_text = was_programmatically_changing
         
-    def text_edited(self):
+    def text_edited(self) -> None:
         if self.mw.is_programmatically_changing_text:
             return
         
@@ -135,14 +136,16 @@ class TextOperationHandler(BaseHandler):
             edited_edit.lineNumberArea.update()
 
 
-    def paste_block_text(self):
+    def paste_block_text(self) -> None:
         log_debug(f"--> TextOperationHandler: paste_block_text triggered.")
-        if self.mw.current_block_idx == -1: QMessageBox.warning(self.mw, "Paste Error", "Please select a block."); return
+        if self.mw.current_block_idx == -1:
+            QMessageBox.warning(self.mw, "Paste Error", "Please select a block.")
+            return
         if not self.mw.current_game_rules:
             QMessageBox.warning(self.mw, "Paste Error", "Game rules not loaded.")
             return
             
-        block_idx = self.mw.current_block_idx
+        block_idx: int = self.mw.current_block_idx
         
         self.mw.before_paste_edited_data_snapshot = {
             k: v for k,v in self.mw.edited_data.items() if k[0] == block_idx
@@ -227,7 +230,7 @@ class TextOperationHandler(BaseHandler):
         log_debug("<-- TextOperationHandler: paste_block_text finished.")
 
 
-    def revert_single_line(self, line_index: int):
+    def revert_single_line(self, line_index: int) -> None:
         block_idx = self.mw.current_block_idx
         if block_idx == -1:
              return
@@ -264,7 +267,7 @@ class TextOperationHandler(BaseHandler):
             if edited_edit and hasattr(edited_edit, 'lineNumberArea'): edited_edit.lineNumberArea.update()
 
 
-    def calculate_width_for_data_line_action(self, data_line_idx: int):
+    def calculate_width_for_data_line_action(self, data_line_idx: int) -> None:
         if self.mw.current_block_idx == -1 or data_line_idx < 0:
             QMessageBox.warning(self.mw, "Calculate Width Error", "No block or data line selected.")
             return
@@ -360,7 +363,7 @@ class TextOperationHandler(BaseHandler):
             text_edit_for_size.setMinimumHeight(500)
         result_dialog.exec_()
         
-    def auto_fix_current_string(self):
+    def auto_fix_current_string(self) -> None:
         if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return

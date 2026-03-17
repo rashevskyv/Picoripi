@@ -10,7 +10,7 @@ This module provides data models and management for the project-oriented paradig
 """
 
 import json
-from typing import List, Dict, Optional, Set, Any
+from typing import List, Dict, Optional, Set, Any, Union
 from pathlib import Path
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
@@ -63,7 +63,7 @@ class ProjectManager:
         'detection_enabled',
     ]
 
-    def __init__(self, project_path: Optional[str] = None):
+    def __init__(self, project_path: Optional[Union[str, Path]] = None):
         """
         Initialize ProjectManager.
 
@@ -75,9 +75,9 @@ class ProjectManager:
         self.project_file_path: Optional[str] = None
 
         if project_path:
-            self.load(project_path)
+            self.load(str(project_path))
 
-    def create_new_project(self, project_dir: str, name: str, plugin_name: str, description: str = "",
+    def create_new_project(self, project_dir: Union[str, Path], name: str, plugin_name: str, description: str = "",
                            source_path: str = "", translation_path: Optional[str] = None,
                            is_directory_mode: bool = True, auto_create_translations: bool = False) -> bool:
         """
@@ -132,7 +132,7 @@ class ProjectManager:
             log_error(f"Failed to create project: {e}", exc_info=True)
             return False
 
-    def load(self, path: str) -> bool:
+    def load(self, path: Union[str, Path]) -> bool:
         """
         Load a project from disk.
 
@@ -157,11 +157,12 @@ class ProjectManager:
                 return False
 
             # Load project file
-            if not Path(self.project_file_path).exists():
+            p_file = Path(self.project_file_path)
+            if not p_file.exists():
                 log_error(f"Project file not found: {self.project_file_path}")
                 return False
 
-            with open(self.project_file_path, 'r', encoding='utf-8') as f:
+            with p_file.open('r', encoding='utf-8') as f:
                 data = json.load(f)
 
             self.project = Project.from_dict(data)
@@ -194,7 +195,8 @@ class ProjectManager:
             self.project.modified_at = datetime.now().isoformat()
 
             # Save project file
-            with open(self.project_file_path, 'w', encoding='utf-8') as f:
+            p_file = Path(self.project_file_path)
+            with p_file.open('w', encoding='utf-8') as f:
                 json.dump(self.project.to_dict(), f, indent=4, ensure_ascii=False)
 
             log_debug(f"Saved project '{self.project.name}' to {self.project_file_path}")
@@ -204,7 +206,7 @@ class ProjectManager:
             log_error(f"Failed to save project: {e}", exc_info=True)
             return False
 
-    def add_block(self, name: str, source_file_path: str, translation_file_path: Optional[str] = None, 
+    def add_block(self, name: str, source_file_path: Union[str, Path], translation_file_path: Optional[Union[str, Path]] = None, 
                   internal_key: Optional[str] = None, description: str = "", target_relative_path: str = "") -> Optional[Block]:
         """
         Register a new block (file pair) in the project. Does NOT copy files.
@@ -258,7 +260,7 @@ class ProjectManager:
             log_error(f"Failed to register block: {e}", exc_info=True)
             return None
 
-    def sync_project_files(self, plugin=None):
+    def sync_project_files(self, plugin: Any = None) -> None:
         """
         Synchronize files from external directories with project blocks.
         """
@@ -268,7 +270,7 @@ class ProjectManager:
         source_path = self.project.metadata.get('source_path', '')
         translation_path = self.project.metadata.get('translation_path')
         is_directory_mode = self.project.metadata.get('is_directory_mode', True)
-        auto_create = self.project.metadata.get('auto_create_translations', False)
+        # auto_create = self.project.metadata.get('auto_create_translations', False) # Reserved for later
         
         if not source_path or not Path(source_path).exists():
             log_warning("Source path is invalid or missing during sync.")
@@ -289,7 +291,7 @@ class ProjectManager:
                         added_sub_blocks = False
                         if plugin and filepath.suffix.lower() == '.json':
                             try:
-                                with open(filepath, 'r', encoding='utf-8') as f:
+                                with filepath.open('r', encoding='utf-8') as f:
                                     content = json.load(f)
                                 parsed, names = plugin.load_data_from_json_obj(content)
                                 if parsed and len(parsed) > 1:
@@ -320,12 +322,12 @@ class ProjectManager:
                 rel_path = filepath.name
                 found_sources.add(rel_path)
                 if rel_path not in existing_blocks:
-                    trans_rel_path = Path(translation_path).name if translation_path else rel_path
+                    trans_rel_path: str = Path(translation_path).name if translation_path else rel_path
                     
                     added_sub_blocks = False
                     if plugin and filepath.suffix.lower() == '.json':
                          try:
-                            with open(filepath, 'r', encoding='utf-8') as f:
+                            with filepath.open('r', encoding='utf-8') as f:
                                 content = json.load(f)
                             parsed, names = plugin.load_data_from_json_obj(content)
                             if parsed and len(parsed) > 1:
@@ -360,7 +362,7 @@ class ProjectManager:
             else:
                 self.save()
 
-    def import_directory(self, root_dir_path: str) -> List[Block]:
+    def import_directory(self, root_dir_path: Union[str, Path]) -> List[Block]:
         """
         Legacy functionality for loose imports. Not used in normal external directory modes.
         """
@@ -385,7 +387,7 @@ class ProjectManager:
         categorized = block.get_categorized_line_indices()
         return [i for i in range(total_lines) if i not in categorized]
 
-    def get_absolute_path(self, relative_path: str, is_translation: bool = False) -> str:
+    def get_absolute_path(self, relative_path: Union[str, Path], is_translation: bool = False) -> str:
         """
         Convert a block-relative path to an absolute path.
 
@@ -405,7 +407,8 @@ class ProjectManager:
         if not base_path:
             # Fallback auto create translation path or default directory
             if is_translation and self.project.metadata.get('auto_create_translations', False):
-                base_path = Path(self.project.metadata.get('source_path', '')).parent / 'translation'
+                source_p = Path(self.project.metadata.get('source_path', ''))
+                base_path = source_p.parent / 'translation' if source_p.is_dir() else source_p.parent / 'translation'
             else:
                 return relative_path
 
@@ -414,7 +417,7 @@ class ProjectManager:
         else:
             return str(base_path)
 
-    def get_relative_path(self, absolute_path: str, is_translation: bool = False) -> str:
+    def get_relative_path(self, absolute_path: Union[str, Path], is_translation: bool = False) -> str:
         """
         Convert an absolute path to a relative path against external directories.
 
@@ -437,7 +440,7 @@ class ProjectManager:
         except ValueError:
             return absolute_path
 
-    def save_settings_to_project(self, main_window) -> bool:
+    def save_settings_to_project(self, main_window: Any) -> bool:
         """
         Save project-specific settings from MainWindow to project.metadata.
 
@@ -469,7 +472,7 @@ class ProjectManager:
             log_error(f"Failed to save settings to project: {e}", exc_info=True)
             return False
 
-    def load_settings_from_project(self, main_window) -> bool:
+    def load_settings_from_project(self, main_window: Any) -> bool:
         """
         Load project-specific settings from project.metadata to MainWindow.
 
@@ -508,7 +511,7 @@ class ProjectManager:
         """Get the currently loaded project."""
         return self.project
 
-    def _migrate_file_structure_to_virtual_folders(self):
+    def _migrate_file_structure_to_virtual_folders(self) -> None:
         """Build virtual folder structure from physical file paths of blocks."""
         if not self.project: return
 
@@ -536,10 +539,10 @@ class ProjectManager:
                     # Everything except the last part is a folder
                     path_parts.extend(internal_parts[:-1])
 
-            current_parent_id = None
+            current_parent_id: Optional[str] = None
             current_path = ""
             
-            last_folder = None
+            last_folder: Optional[VirtualFolder] = None
             for part in path_parts:
                 if not part: continue
                 parent_path = current_path
@@ -560,12 +563,6 @@ class ProjectManager:
             
             if last_folder:
                 last_folder.block_ids.append(block.id)
-            else:
-                # Root level block
-                # We'll put root blocks into virtual_folders later or handle separately
-                # For now let's just ensure every block is accounted for.
-                # If no folder, we can attach to a virtual root or just keep in project.blocks
-                pass
 
         # Handle blocks at the root level (no folders)
         root_block_ids = []
@@ -608,7 +605,7 @@ class ProjectManager:
                 parent.children.append(new_folder)
         return new_folder
 
-    def move_strings_to_category(self, block_idx: int, string_indices: List[int], category_name: str):
+    def move_strings_to_category(self, block_idx: int, string_indices: List[int], category_name: str) -> None:
         """Group specific strings within a block into a named virtual category."""
         if not self.project or block_idx < 0 or block_idx >= len(self.project.blocks):
             return
@@ -635,7 +632,7 @@ class ProjectManager:
         block.categories = [c for c in block.categories if c.line_indices]
         self.save()
 
-    def merge_folders(self, source_id: str, target_id: str):
+    def merge_folders(self, source_id: str, target_id: str) -> None:
         """Move all contents from source folder to target folder and delete source."""
         if source_id == target_id: return
         
@@ -684,7 +681,7 @@ class ProjectManager:
         if not parent:
             return False
             
-        def search_recursive(folders):
+        def search_recursive(folders: List[VirtualFolder]) -> bool:
             for f in folders:
                 if f.id == potential_child_id:
                     return True
@@ -721,7 +718,7 @@ class ProjectManager:
             
         return True
 
-    def move_block_to_folder(self, block_id: str, target_folder_id: Optional[str]):
+    def move_block_to_folder(self, block_id: str, target_folder_id: Optional[str]) -> None:
         """Move a block from its current location to a new virtual folder."""
         # 1. Remove from current location
         self._remove_block_id_from_any_folder(block_id)
@@ -738,7 +735,7 @@ class ProjectManager:
                 self.project.metadata['root_block_ids'] = root_blocks
         self.save()
 
-    def _remove_block_id_from_any_folder(self, block_id: str, search_list: Optional[List[VirtualFolder]] = None):
+    def _remove_block_id_from_any_folder(self, block_id: str, search_list: Optional[List[VirtualFolder]] = None) -> None:
         if search_list is None:
             if not self.project: return
             search_list = self.project.virtual_folders
@@ -752,9 +749,9 @@ class ProjectManager:
                 folder.block_ids.remove(block_id)
             self._remove_block_id_from_any_folder(block_id, folder.children)
 
-    def _remove_folder_from_anywhere(self, folder_id: str):
+    def _remove_folder_from_anywhere(self, folder_id: str) -> bool:
         """Remove a folder from its current parent or root."""
-        if not self.project: return
+        if not self.project: return False
         
         # Check root
         for i, f in enumerate(self.project.virtual_folders):
@@ -763,7 +760,7 @@ class ProjectManager:
                 return True
                 
         # Check nested
-        def remove_from_list(folders):
+        def remove_from_list(folders: List[VirtualFolder]) -> bool:
             for i, f in enumerate(folders):
                 if f.id == folder_id:
                     folders.pop(i)

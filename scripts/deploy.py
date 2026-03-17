@@ -1,14 +1,14 @@
-import os
 import re
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 
 # Налаштування шляхів
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONSTANTS_PATH = os.path.join(ROOT_DIR, 'utils', 'constants.py')
-README_PATH = os.path.join(ROOT_DIR, 'README.md')
-CHANGELOG_PATH = os.path.join(ROOT_DIR, 'CHANGELOG.md')
+ROOT_DIR = Path(__file__).resolve().parent.parent
+CONSTANTS_PATH = ROOT_DIR / 'utils' / 'constants.py'
+README_PATH = ROOT_DIR / 'README.md'
+CHANGELOG_PATH = ROOT_DIR / 'CHANGELOG.md'
 
 def log(message, color="\033[94m"):
     print(f"{color}{message}\033[0m")
@@ -24,30 +24,37 @@ def run_command(command, shell=True, capture=True):
         return None
 
 def get_current_version():
-    if not os.path.exists(CONSTANTS_PATH):
+    if not CONSTANTS_PATH.exists():
         return None
-    with open(CONSTANTS_PATH, 'r', encoding='utf-8') as f:
-        content = f.read()
-    match = re.search(r'APP_VERSION = "([^"]+)"', content)
-    if match:
-        return match.group(1)
+    try:
+        content = CONSTANTS_PATH.read_text(encoding='utf-8')
+        match = re.search(r'APP_VERSION = "([^"]+)"', content)
+        if match:
+            return match.group(1)
+    except Exception as e:
+        log(f"Error reading version: {e}", "\033[91m")
     return None
 
 def bump_version(version):
     parts = version.split('.')
     if len(parts) == 3:
-        parts[2] = str(int(parts[2]) + 1)
-        return '.'.join(parts)
+        try:
+            parts[2] = str(int(parts[2]) + 1)
+            return '.'.join(parts)
+        except ValueError:
+            pass
     return version
 
 def update_file(path, pattern, replacement):
-    if not os.path.exists(path):
+    p = Path(path)
+    if not p.exists():
         return
-    with open(path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    new_content = re.sub(pattern, replacement, content)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(new_content)
+    try:
+        content = p.read_text(encoding='utf-8')
+        new_content = re.sub(pattern, replacement, content)
+        p.write_text(new_content, encoding='utf-8')
+    except Exception as e:
+        log(f"Error updating file {path}: {e}", "\033[91m")
 
 def get_recent_commits():
     # Attempt to get last tag for commit range
@@ -79,10 +86,12 @@ def update_changelog(new_version, added, fixed, improved):
         new_entry += "\n"
 
     try:
-        with open(CHANGELOG_PATH, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = CHANGELOG_PATH.read_text(encoding='utf-8')
     except FileNotFoundError:
         content = "# Changelog\n\nAll notable changes to the **Picoripi** project will be documented in this file.\n"
+    except Exception as e:
+        log(f"Error reading changelog: {e}", "\033[91m")
+        return ""
     
     header_pattern = r'(# Changelog\s+All notable changes to the \*\*Picoripi\*\* project[^\n]*\n)'
     if not re.search(header_pattern, content):
@@ -90,8 +99,11 @@ def update_changelog(new_version, added, fixed, improved):
     else:
         new_content = re.sub(header_pattern, f'\\1\n{new_entry}', content, count=1)
     
-    with open(CHANGELOG_PATH, 'w', encoding='utf-8') as f:
-        f.write(new_content)
+    try:
+        CHANGELOG_PATH.write_text(new_content, encoding='utf-8')
+    except Exception as e:
+        log(f"Error writing changelog: {e}", "\033[91m")
+        
     return new_entry
 
 def deploy():
@@ -99,7 +111,7 @@ def deploy():
     
     current_version = get_current_version()
     if not current_version:
-        log("❌ Could not find current version in utils/constants.py", "\033[91m")
+        log(f"❌ Could not find current version in {CONSTANTS_PATH}", "\033[91m")
         return
 
     new_version = bump_version(current_version)
@@ -144,17 +156,20 @@ def deploy():
         run_command("git push")
         run_command("git push --tags")
 
-        with open('release_notes.tmp', 'w', encoding='utf-8') as f:
-            f.write(release_body)
-        
-        release_cmd = f'gh release create v{new_version} -F release_notes.tmp --title "v{new_version}"'
-        if run_command(release_cmd):
-            log(f"✨ GitHub Release v{new_version} created!", "\033[92m")
-        else:
-            log("🚫 'gh' CLI not found or failed. Please create release manually.", "\033[93m")
-        
-        if os.path.exists('release_notes.tmp'):
-            os.remove('release_notes.tmp')
+        notes_path = Path('release_notes.tmp')
+        try:
+            notes_path.write_text(release_body, encoding='utf-8')
+            
+            release_cmd = f'gh release create v{new_version} -F release_notes.tmp --title "v{new_version}"'
+            if run_command(release_cmd):
+                log(f"✨ GitHub Release v{new_version} created!", "\033[92m")
+            else:
+                log("🚫 'gh' CLI not found or failed. Please create release manually.", "\033[93m")
+        except Exception as e:
+            log(f"Error during release creation: {e}", "\033[91m")
+        finally:
+            if notes_path.exists():
+                notes_path.unlink()
     else:
         log("⚠️ Changes committed and tagged locally, but not pushed.", "\033[93m")
 

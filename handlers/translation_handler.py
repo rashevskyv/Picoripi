@@ -30,9 +30,9 @@ from utils.utils import convert_spaces_to_dots_for_display
 
 
 class TranslationHandler(BaseHandler):
-    _MAX_LOG_EXCERPT = 160
+    _MAX_LOG_EXCERPT: int = 160
 
-    def __init__(self, main_window, data_processor, ui_updater):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
         self._cached_system_prompt: Optional[str] = None
         self._cached_glossary: Optional[str] = None
@@ -72,7 +72,7 @@ class TranslationHandler(BaseHandler):
 
         QTimer.singleShot(0, self.glossary_handler.install_menu_actions)
     
-    def initialize_glossary_highlighting(self):
+    def initialize_glossary_highlighting(self) -> None:
         self.glossary_handler.initialize_glossary_highlighting()
 
     def show_glossary_dialog(self, initial_term: Optional[str] = None) -> None:
@@ -87,7 +87,7 @@ class TranslationHandler(BaseHandler):
     def edit_glossary_entry(self, term: str) -> None:
         self.glossary_handler.edit_glossary_entry(term)
 
-    def append_selection_to_glossary(self):
+    def append_selection_to_glossary(self) -> None:
         preview_edit = self.mw.preview_text_edit
         selected_lines = preview_edit.get_selected_lines()
         if not selected_lines:
@@ -114,7 +114,7 @@ class TranslationHandler(BaseHandler):
         self.glossary_handler.add_glossary_entry(term_to_add)
 
 
-    def _prepare_provider(self, provider_key_override: Optional[str] = None):
+    def _prepare_provider(self, provider_key_override: Optional[str] = None) -> Optional[BaseTranslationProvider]:
         return self.ai_lifecycle_manager._prepare_provider(provider_key_override)
 
     def reset_translation_session(self) -> None:
@@ -146,7 +146,7 @@ class TranslationHandler(BaseHandler):
         user_prompt: str,
         save_section: Optional[str] = None,
         save_field: str = 'system_prompt',
-    ) -> Optional[tuple[str, str]]:
+    ) -> Optional[Tuple[str, str]]:
         is_ctrl_pressed = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
         enabled = getattr(self.mw, 'prompt_editor_enabled', True)
         if not is_ctrl_pressed and not enabled:
@@ -223,10 +223,13 @@ class TranslationHandler(BaseHandler):
         elif hasattr(dialog_obj, 'set_notes_variation_busy'):
             dialog_obj.set_notes_variation_busy(busy)
 
-    def _run_ai_task(self, provider: BaseTranslationProvider, task_details: dict):
+    def _run_ai_task(self, provider: BaseTranslationProvider, task_details: Dict[str, Any]) -> None:
         self.ai_lifecycle_manager.run_ai_task(provider, task_details)
 
-    def prompt_for_revert_after_cancel(self):
+    def _handle_ai_cancel(self, context: Dict[str, Any]) -> None:
+        self.ai_lifecycle_manager._handle_ai_cancel(context)
+
+    def prompt_for_revert_after_cancel(self) -> None:
         if not self.worker:
             self.ui_handler.finish_ai_operation()
             return
@@ -264,7 +267,7 @@ class TranslationHandler(BaseHandler):
         self.ui_updater.update_block_item_text_with_problem_count(block_idx)
 
 
-    def _setup_progress_bar(self, total_chunks: int, completed_chunks: int):
+    def _setup_progress_bar(self, total_chunks: int, completed_chunks: int) -> None:
         block_idx = self.worker.task_details.get('block_idx')
         if block_idx is not None and block_idx in self.translation_progress:
             self.translation_progress[block_idx]['total_chunks'] = total_chunks
@@ -272,7 +275,7 @@ class TranslationHandler(BaseHandler):
         self.translated_chunks_count = completed_chunks
         self.ui_handler.status_dialog.setup_progress_bar(total_chunks, completed_chunks)
 
-    def translate_current_string(self):
+    def translate_current_string(self) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -285,7 +288,7 @@ class TranslationHandler(BaseHandler):
             string_idx=self.mw.current_string_idx
         )
 
-    def translate_preview_selection(self, context_menu_pos: QPoint):
+    def translate_preview_selection(self, context_menu_pos: QPoint) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -490,6 +493,9 @@ class TranslationHandler(BaseHandler):
             task_details['system_prompt_override'] = progress_entry.get('system_prompt_override')
         self._initiate_batch_translation(task_details)
 
+    def _on_chunk_timer_timeout(self) -> None:
+        pass # This method was likely intended to be implemented or removed.
+
     def _resolve_base_timeout(self, provider: BaseTranslationProvider) -> int:
         try:
             base = int(provider.settings.get('timeout', 120))
@@ -498,7 +504,7 @@ class TranslationHandler(BaseHandler):
         return max(base, 30)
 
 
-    def _initiate_batch_translation(self, context: dict):
+    def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
         self.translated_chunks_count = 0
         provider = context['provider']
         
@@ -589,7 +595,7 @@ class TranslationHandler(BaseHandler):
         
         self._run_ai_task(provider, context)
 
-    def _handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: dict):
+    def _handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: Dict[str, Any]) -> None:
         log_debug(f"Received translated chunk {chunk_index}. Raw AI response:\n{chunk_text}")
         try:
             block_idx = context['block_idx']
@@ -630,7 +636,7 @@ class TranslationHandler(BaseHandler):
         except (json.JSONDecodeError, ValueError) as e:
             self._handle_ai_error(f"Failed to process chunk {chunk_index + 1}: {e}", context)
 
-    def _handle_preview_translation_success(self, response: ProviderResponse, context: dict):
+    def _handle_preview_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_text = self.ai_lifecycle_manager._clean_model_output(response)
         
@@ -662,7 +668,10 @@ class TranslationHandler(BaseHandler):
         except (json.JSONDecodeError, ValueError) as e:
             self._handle_ai_error(f"Validation failed: {e}", context)
 
-    def _handle_single_translation_success(self, response: ProviderResponse, context: dict):
+    def _handle_ai_error(self, error_msg: str, context: Dict[str, Any]) -> None:
+        self.ai_lifecycle_manager._handle_ai_error(error_msg, context)
+
+    def _handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response)
         trimmed_translation = self.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(cleaned_translation)
@@ -673,8 +682,10 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.finish_ai_operation()
         self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
 
+    def _on_task_finished(self, context: Dict[str, Any]) -> None:
+        self.ai_lifecycle_manager.on_task_finished(context)
 
-    def _handle_variation_success(self, response: ProviderResponse, context: dict):
+    def _handle_variation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned = self.ai_lifecycle_manager._clean_model_output(response)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned, response=response)
@@ -695,7 +706,7 @@ class TranslationHandler(BaseHandler):
                 self.ui_handler.apply_full_translation(chosen)
 
 
-    def generate_variation_for_current_string(self):
+    def generate_variation_for_current_string(self) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -759,7 +770,7 @@ class TranslationHandler(BaseHandler):
         
         self._run_ai_task(provider, task_details)
 
-    def _translate_and_apply(self, *, source_text: str, expected_lines: int, mode_description: str, block_idx: int, string_idx: int):
+    def _translate_and_apply(self, *, source_text: str, expected_lines: int, mode_description: str, block_idx: int, string_idx: int) -> None:
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return
 

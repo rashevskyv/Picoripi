@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, List
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 
 class FontMapLoader:
-    def __init__(self, main_window):
+    def __init__(self, main_window: Any):
         self.mw = main_window
 
-    def load_all_font_maps(self):
+    def load_all_font_maps(self) -> None:
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         self.mw.font_map = {}
         self.mw.all_font_maps = {}
@@ -59,7 +59,7 @@ class FontMapLoader:
         self.update_icon_sequences_cache()
         self.refresh_icon_highlighting()
 
-    def _parse_new_font_format(self, font_data):
+    def _parse_new_font_format(self, font_data: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
         """Parses the new font format and returns a font_map."""
         font_map = {}
         if not isinstance(font_data, dict) or "glyphs" not in font_data:
@@ -78,7 +78,7 @@ class FontMapLoader:
         if not override_path.is_file(): return overrides
 
         try:
-            with open(override_path, 'r', encoding='utf-8') as f:
+            with override_path.open('r', encoding='utf-8') as f:
                 raw_data = json.load(f)
             if isinstance(raw_data, dict):
                 for key, value in raw_data.items():

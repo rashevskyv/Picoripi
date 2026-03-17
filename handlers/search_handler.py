@@ -1,27 +1,28 @@
-# --- START OF FILE handlers/search_handler.py ---
+# handlers/search_handler.py
+import re
+from typing import Any, Optional, List, Dict, Tuple, Set
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QColor, QTextCursor
+from PyQt5.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display, remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QTextCursor
-from PyQt5.QtWidgets import QApplication
-import re
 
 class SearchHandler(BaseHandler):
-    def __init__(self, main_window, data_processor, ui_updater):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
-        self.current_query = ""
-        self.is_case_sensitive = False
-        self.search_in_original = False
-        self.ignore_tags_newlines = True
-        self.is_fuzzy = False # New state
-        self.last_found_block = -1
-        self.last_found_string = -1
-        self.last_found_char_pos_raw = -1
-        self.search_results = []
-        self.current_search_index = -1
+        self.current_query: str = ""
+        self.is_case_sensitive: bool = False
+        self.search_in_original: bool = False
+        self.ignore_tags_newlines: bool = True
+        self.is_fuzzy: bool = False # New state
+        self.last_found_block: int = -1
+        self.last_found_string: int = -1
+        self.last_found_char_pos_raw: int = -1
+        self.search_results: List[Any] = []
+        self.current_search_index: int = -1
         
-    def get_current_search_params(self) -> tuple[str, bool, bool, bool, bool]:
+    def get_current_search_params(self) -> Tuple[str, bool, bool, bool, bool]:
         return self.current_query, self.is_case_sensitive, self.search_in_original, self.ignore_tags_newlines, self.is_fuzzy
 
     def _get_text_for_search(self, block_idx: int, string_idx: int, search_in_original_flag: bool, ignore_tags_flag: bool) -> str:
@@ -40,7 +41,7 @@ class SearchHandler(BaseHandler):
             return prepare_text_for_tagless_search(text_to_process)
         return text_to_process
 
-    def reset_search(self, new_query: str = "", new_case_sensitive: bool = False, new_search_in_original: bool = False, new_ignore_tags: bool = True):
+    def reset_search(self, new_query: str = "", new_case_sensitive: bool = False, new_search_in_original: bool = False, new_ignore_tags: bool = True) -> None:
         log_debug(f"SearchHandler: Resetting search. Q: '{new_query}', Case: {new_case_sensitive}, Orig: {new_search_in_original}, IgnoreTags: {new_ignore_tags}")
         
         self.current_query = new_query
@@ -51,7 +52,7 @@ class SearchHandler(BaseHandler):
         self.last_found_block = -1
         self.last_found_string = -1
         self.last_found_char_pos_raw = -1
-        self.current_search_results = []
+        self.search_results = [] # Corrected variable name from current_search_results to search_results
         self.current_search_index = -1
         self.clear_all_search_highlights()
         self.mw.search_match_block_indices.clear()
@@ -179,7 +180,7 @@ class SearchHandler(BaseHandler):
     def find_previous(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
         log_debug(f"SearchHandler: find_previous. Q: '{query}', Case: {case_sensitive}, Orig: {search_in_original}, IgnoreTags: {ignore_tags}, Fuzzy: {is_fuzzy}")
 
-        effective_query = prepare_text_for_tagless_search(query) if ignore_tags else query
+        effective_query: str = prepare_text_for_tagless_search(query) if ignore_tags else query
         if not effective_query:
             if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
                 self.mw.search_panel_widget.set_status_message("Enter query", is_error=True)
@@ -200,24 +201,24 @@ class SearchHandler(BaseHandler):
             
         if not self.mw.data: return False
 
-        start_block_data_idx = self.last_found_block if self.last_found_block != -1 else len(self.mw.data) - 1
-        start_string_data_idx = self.last_found_string if self.last_found_string != -1 else -1
-        start_char_search_from = self.last_found_char_pos_raw -1 if self.last_found_char_pos_raw != -1 else -1
+        start_block_data_idx: int = self.last_found_block if self.last_found_block != -1 else len(self.mw.data) - 1
+        start_string_data_idx: int = self.last_found_string if self.last_found_string != -1 else -1
+        start_char_search_from: int = self.last_found_char_pos_raw -1 if self.last_found_char_pos_raw != -1 else -1
         
         for b_idx in range(start_block_data_idx, -1, -1):
             if not isinstance(self.mw.data[b_idx], list): continue
             
-            s_idx_start_loop_offset = (start_string_data_idx if b_idx == start_block_data_idx and start_string_data_idx != -1
-                                  else len(self.mw.data[b_idx]) - 1)
+            s_idx_start_loop_offset: int = (start_string_data_idx if b_idx == start_block_data_idx and start_string_data_idx != -1
+                                   else len(self.mw.data[b_idx]) - 1)
             
             for s_idx in range(s_idx_start_loop_offset, -1, -1):
-                text_for_search = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
+                text_for_search: str = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
                 
-                current_char_search_from = (start_char_search_from
+                current_char_search_from: int = (start_char_search_from
                                            if b_idx == start_block_data_idx and s_idx == start_string_data_idx and start_char_search_from != -1
                                            else len(text_for_search) -1 )
                 
-                match_pos_in_search_text = self._find_in_text(
+                match_pos_in_search_text: int = self._find_in_text(
                     text_for_search, 
                     effective_query, 
                     current_char_search_from, 
@@ -245,34 +246,34 @@ class SearchHandler(BaseHandler):
         self.last_found_block = -1; self.last_found_string = -1; self.last_found_char_pos_raw = -1
         return False
 
-    def _find_nth_occurrence_in_display_text(self, display_text: str, display_query: str, target_occurrence: int, case_sensitive: bool) -> tuple[int, int]:
-        current_occurrence = 0; search_start_pos = 0
-        text_to_scan = display_text; query_to_scan = display_query
+    def _find_nth_occurrence_in_display_text(self, display_text: str, display_query: str, target_occurrence: int, case_sensitive: bool) -> Tuple[int, int]:
+        current_occurrence: int = 0; search_start_pos: int = 0
+        text_to_scan: str = display_text; query_to_scan: str = display_query
         if not case_sensitive:
             text_to_scan = display_text.lower(); query_to_scan = display_query.lower()
         if not query_to_scan: return -1, -1
         while True:
-            match_pos = text_to_scan.find(query_to_scan, search_start_pos)
+            match_pos: int = text_to_scan.find(query_to_scan, search_start_pos)
             if match_pos == -1: return -1, -1
             current_occurrence += 1
             if current_occurrence == target_occurrence: return match_pos, len(display_query)
             search_start_pos = match_pos + 1
             if search_start_pos >= len(text_to_scan): return -1, -1
 
-    def _calculate_qtextblock_and_pos_in_block(self, raw_text_line_with_newlines: str, char_pos_in_raw_string_with_newlines: int) -> tuple[int, int]:
-        qtextblock_idx = 0; pos_in_qtextblock = char_pos_in_raw_string_with_newlines
-        last_newline_pos = -1; current_pos = 0
+    def _calculate_qtextblock_and_pos_in_block(self, raw_text_line_with_newlines: str, char_pos_in_raw_string_with_newlines: int) -> Tuple[int, int]:
+        qtextblock_idx: int = 0; pos_in_qtextblock: int = char_pos_in_raw_string_with_newlines
+        last_newline_pos: int = -1; current_pos: int = 0
         while current_pos < char_pos_in_raw_string_with_newlines:
-            newline_found_at = raw_text_line_with_newlines.find('\n', current_pos)
+            newline_found_at: int = raw_text_line_with_newlines.find('\n', current_pos)
             if newline_found_at != -1 and newline_found_at < char_pos_in_raw_string_with_newlines:
                 qtextblock_idx += 1; last_newline_pos = newline_found_at; current_pos = newline_found_at + 1
             else: break
         if last_newline_pos != -1: pos_in_qtextblock = char_pos_in_raw_string_with_newlines - (last_newline_pos + 1)
         return qtextblock_idx, pos_in_qtextblock
 
-    def _navigate_to_match(self, block_idx_match_in_data, string_idx_match_in_data,
+    def _navigate_to_match(self, block_idx_match_in_data: int, string_idx_match_in_data: int,
                            char_pos_in_search_text: int, match_len_in_search_text: int,
-                           was_search_tagless_and_newline_agnostic: bool):
+                           was_search_tagless_and_newline_agnostic: bool) -> None:
         log_debug(f"Navigating. Data: B:{block_idx_match_in_data}, S:{string_idx_match_in_data}. SearchTextPos:{char_pos_in_search_text}, SearchTextLen:{match_len_in_search_text}, TaglessNLSearch:{was_search_tagless_and_newline_agnostic}")
         self.clear_all_search_highlights()
         if self.mw.current_block_idx != block_idx_match_in_data:
@@ -502,7 +503,7 @@ class SearchHandler(BaseHandler):
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.viewport().update()
 
-    def clear_all_search_highlights(self):
+    def clear_all_search_highlights(self) -> None:
         log_debug("SearchHandler: Clearing all search highlights.")
         for editor in [self.mw.preview_text_edit, self.mw.original_text_edit, self.mw.edited_text_edit]:
             if editor and hasattr(editor, 'highlightManager'):

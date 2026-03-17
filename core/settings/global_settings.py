@@ -1,16 +1,17 @@
 import json
 import base64
 from pathlib import Path
+from typing import Dict, Any, Union, Optional
 from PyQt5.QtGui import QFont
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 
 class GlobalSettings:
-    def __init__(self, main_window, settings_file_path="settings.json"):
+    def __init__(self, main_window: Any, settings_file_path: Union[str, Path] = "settings.json"):
         self.mw = main_window
         self.settings_file_path = settings_file_path
         self.defaults = self._get_defaults()
 
-    def _get_defaults(self):
+    def _get_defaults(self) -> Dict[str, Any]:
         default_font_size = QFont().pointSize() if QFont().pointSize() > 0 else 10
         return {
             "tree_font_size": default_font_size,
@@ -50,7 +51,7 @@ class GlobalSettings:
             }
         }
 
-    def load(self, settings_dict):
+    def load(self, settings_dict: Dict[str, Any]) -> None:
         """Loads global settings into the provided settings_dict and updates MainWindow."""
         for key, value in self.defaults.items():
             settings_dict[key] = value
@@ -62,11 +63,12 @@ class GlobalSettings:
         
         self.mw.current_font_size = self.defaults['font_size']
 
-        if not Path(self.settings_file_path).exists():
+        p_file = Path(self.settings_file_path)
+        if not p_file.exists():
             return
 
         try:
-            with open(self.settings_file_path, 'r', encoding='utf-8') as f:
+            with p_file.open('r', encoding='utf-8') as f:
                 settings_data = json.load(f)
 
             for key, default_value in self.defaults.items():
@@ -95,12 +97,13 @@ class GlobalSettings:
         except Exception as e:
             log_error(f"Error loading global settings: {e}", exc_info=True)
 
-    def save(self, settings_dict):
+    def save(self, settings_dict: Dict[str, Any]) -> None:
         """Saves current global settings to settings.json."""
         global_data = {}
+        p_file = Path(self.settings_file_path)
         try:
-            if Path(self.settings_file_path).exists():
-                with open(self.settings_file_path, 'r', encoding='utf-8') as f:
+            if p_file.exists():
+                with p_file.open('r', encoding='utf-8') as f:
                     global_data = json.load(f)
         except Exception as e:
              log_error(f"Could not read existing global settings, will create a new one. Error: {e}", exc_info=True)
@@ -148,7 +151,7 @@ class GlobalSettings:
         except Exception as e: log_warning(f"Failed to save splitter state(s): {e}")
 
         try:
-            with open(self.settings_file_path, 'w', encoding='utf-8') as f:
+            with p_file.open('w', encoding='utf-8') as f:
                 json.dump(global_data, f, indent=4, ensure_ascii=False)
             log_debug("Global settings saved.")
         except Exception as e:

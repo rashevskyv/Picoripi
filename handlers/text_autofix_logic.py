@@ -1,5 +1,6 @@
 # --- START OF FILE handlers/text_autofix_logic.py ---
 import re
+from typing import Any, List, Optional, Tuple, Dict, Set
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QTextCursor
 from utils.logging_utils import log_debug
@@ -16,10 +17,10 @@ ANY_TAG_RE_PATTERN = r"(\{[^}]*\}|\[[^\]]*\])"
 COLOR_WHITE_TAG_PATTERN = re.compile(r"\{Color:White\}", re.IGNORECASE)
 
 class TextAutofixLogic:
-    def __init__(self, main_window, data_processor, ui_updater):
-        self.mw = main_window
-        self.data_processor = data_processor
-        self.ui_updater = ui_updater
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        self.mw: Any = main_window
+        self.data_processor: Any = data_processor
+        self.ui_updater: Any = ui_updater
 
     def _ends_with_sentence_punctuation(self, text_no_tags_stripped: str) -> bool:
         if not text_no_tags_stripped:
@@ -36,7 +37,7 @@ class TextAutofixLogic:
         return last_char in SENTENCE_END_PUNCTUATION_CHARS
 
 
-    def _extract_first_word_with_tags(self, text: str) -> tuple[str, str]:
+    def _extract_first_word_with_tags(self, text: str) -> Tuple[str, str]:
         if not text.strip():
             return "", text 
 
@@ -390,7 +391,7 @@ class TextAutofixLogic:
         return original_text
 
 
-    def auto_fix_current_string(self):
+    def auto_fix_current_string(self) -> None:
         log_debug(f"TextAutofixLogic.auto_fix_current_string: Called.")
         if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")

@@ -20,7 +20,7 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 The application uses colored markers in the line numbers area to indicate structural or length issues in the text.
 Some markers might be rendered at **half-height** (for example, the purple Empty Odd Subline marker in Zelda MC tags), which visually signifies that the problem is not critical and relates to an empty line meant for spacing.
 
-### Pokémon FireRed Plugin Colors:
+### Default Plugin Warning Markers
 - **Red (Width Exceeded)**: The subline is too wide for the in-game text box bounds. Text will likely bleed out of the display.
 - **Green (Short Line)**: The subline is too short. It does not end with punctuation and there is actually enough space to fit the first word of the following line, meaning the wrapping is suboptimal.
 - **Orange (Empty Subline)**: There is an entirely empty line (created by consecutive newlines), which might waste text box space if not intended.
@@ -126,9 +126,6 @@ jsonreader/
 
 ## Documentation
 
-- **[CLAUDE.md](CLAUDE.md)** - Development guide and architecture documentation
-- **[PROJECT_MANAGER_README.md](PROJECT_MANAGER_README.md)** - Project management features
-
 ## Development
 
 See [CLAUDE.md](CLAUDE.md) for detailed development documentation including:
@@ -149,29 +146,6 @@ To add a new game:
 1. Create a new directory in `plugins/`.
 2. Implement your rules by inheriting from `BaseGameRules`.
 3. Define your font maps and control codes.
-
-## Deployment and Versioning
-
-The project follows a strict versioning policy where the version is updated with every commit.
-
-### 1. Incremental Updates (Every Commit)
-To keep the application version in sync with development:
-```powershell
-python scripts/bump_version.py
-```
-This increments the patch version in `utils/constants.py`.
-
-### 2. Formal Release (Deployment)
-When a set of features is ready for a release:
-```powershell
-python scripts/deploy.py
-```
-This interactive script:
-- Bumps the version.
-- Prompts for changelog entries (Added, Fixed, Improved).
-- Updates `CHANGELOG.md` and `README.md`.
-- Commits changes and tags the release.
-- Creates a GitHub Release (requires `gh` CLI).
 
 ## Logs
 

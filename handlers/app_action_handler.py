@@ -1,24 +1,25 @@
-# --- START OF FILE handlers/app_action_handler.py ---
+# handlers/app_action_handler.py
 from pathlib import Path
-from typing import Optional 
+from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt5.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug, log_info
+from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
 from core.tag_utils import apply_default_mappings_only
 from core.data_manager import load_json_file, load_text_file
 from plugins.base_game_rules import BaseGameRules
 
 class AppActionHandler(BaseHandler):
-    def __init__(self, main_window, data_processor, ui_updater, game_rules_plugin: Optional[BaseGameRules]):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any, game_rules_plugin: Optional[BaseGameRules]):
         super().__init__(main_window, data_processor, ui_updater)
         self.game_rules_plugin = game_rules_plugin
 
-    def rescan_all_tags(self):
-        self.mw.issue_scan_handler.rescan_all_tags()
+    def rescan_all_tags(self) -> None:
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler.rescan_all_tags()
 
-    def handle_close_event(self, event):
+    def handle_close_event(self, event: QEvent) -> None:
         if self.mw.unsaved_changes:
             reply = QMessageBox.question(
                 self.mw, 'Unsaved Changes',
@@ -35,43 +36,65 @@ class AppActionHandler(BaseHandler):
                 return
         event.accept()
             
-    def _derive_edited_path(self, original_path):
-        if not original_path: return None
+    def _derive_edited_path(self, original_path: Union[str, Path]) -> Optional[str]:
+        if not original_path:
+            return None
         p = Path(original_path)
         return str(p.parent / f"{p.stem}_edited{p.suffix}")
 
-    def open_file_dialog_action(self):
+    def open_file_dialog_action(self) -> None:
         log_info("Open File Dialog action triggered.")
         if self.mw.unsaved_changes:
             reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel)
             if reply == QMessageBox.Save:
-                if not self.save_data_action(ask_confirmation=True): return
-            elif reply == QMessageBox.Cancel: return
-        start_dir = str(Path(self.mw.json_path).parent) if self.mw.json_path else ""
+                if not self.save_data_action(ask_confirmation=True):
+                    return
+            elif reply == QMessageBox.Cancel:
+                return
+        
+        start_dir = ""
+        if self.mw.json_path:
+            start_dir = str(Path(self.mw.json_path).parent)
+            
         path, _ = QFileDialog.getOpenFileName(self.mw, "Open Original File", start_dir, "Supported Files (*.json *.txt);;JSON (*.json);;Text files (*.txt);;All (*)")
         if path:
             self.load_all_data_for_path(path, manually_set_edited_path=None, is_initial_load_from_settings=False)
 
-    def open_changes_file_dialog_action(self):
+    def open_changes_file_dialog_action(self) -> None:
         log_info("Open Changes File Dialog action triggered.")
-        if not self.mw.json_path: QMessageBox.warning(self.mw, "Open Changes File", "Please open an original file first."); return
-        start_dir = str(Path(self.mw.edited_json_path).parent) if self.mw.edited_json_path else (str(Path(self.mw.json_path).parent) if self.mw.json_path else "")
+        if not self.mw.json_path:
+            QMessageBox.warning(self.mw, "Open Changes File", "Please open an original file first.")
+            return
+            
+        start_dir = ""
+        if self.mw.edited_json_path:
+            start_dir = str(Path(self.mw.edited_json_path).parent)
+        elif self.mw.json_path:
+            start_dir = str(Path(self.mw.json_path).parent)
+            
         path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
         if path:
             if self.mw.unsaved_changes:
                  reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Loading a new changes file will discard current unsaved edits. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                 if reply == QMessageBox.No: return
+                 if reply == QMessageBox.No:
+                     return
             
-            file_content, error = None, None
-            file_extension = Path(path).suffix.lower()
+            file_content = None
+            error = None
+            path_obj = Path(path)
+            file_extension = path_obj.suffix.lower()
+            
             if file_extension == '.json':
-                file_content, error = load_json_file(path)
+                file_content, error = load_json_file(path_obj)
             elif file_extension == '.txt':
-                file_content, error = load_text_file(path)
+                file_content, error = load_text_file(path_obj)
             else:
                 error = f"Unsupported file type: {file_extension}"
 
-            if error: QMessageBox.critical(self.mw, "Load Error", f"Failed to load selected changes file:\n{path}\n\n{error}"); return
+            if error:
+                QMessageBox.critical(self.mw, "Load Error", f"Failed to load selected changes file:\n{path}\n\n{error}")
+                return
+                
             if not self.mw.current_game_rules:
                 QMessageBox.critical(self.mw, "Load Error", "No game plugin active to parse the file.")
                 return
@@ -103,19 +126,23 @@ class AppActionHandler(BaseHandler):
             else:
                  self.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
 
-    def save_data_action(self, ask_confirmation=True):
+    def save_data_action(self, ask_confirmation: bool = True) -> bool:
         """
         High-level save action that delegates to the data processor.
         """
         log_info(f"AppActionHandler: save_data_action called (confirm={ask_confirmation})")
-        return self.data_processor.save_current_edits(ask_confirmation)
+        return bool(self.data_processor.save_current_edits(ask_confirmation))
 
-    def save_as_dialog_action(self):
+    def save_as_dialog_action(self) -> None:
         log_info("Save As Dialog action triggered.")
-        if not self.mw.json_path: QMessageBox.warning(self.mw, "Save As Error", "No original file open."); return
+        if not self.mw.json_path:
+            QMessageBox.warning(self.mw, "Save As Error", "No original file open.")
+            return
+            
         current_edited_path = self.mw.edited_json_path if self.mw.edited_json_path else self._derive_edited_path(self.mw.json_path)
         if not current_edited_path: 
             current_edited_path = str(Path(self.mw.json_path).parent / "untitled_edited.json") if self.mw.json_path else "untitled_edited.json"
+            
         new_edited_path, _ = QFileDialog.getSaveFileName(self.mw, "Save Changes As...", current_edited_path, "Supported Files (*.json *.txt);;JSON (*.json);;All (*)")
         if new_edited_path:
             original_edited_path_backup = self.mw.edited_json_path
@@ -129,7 +156,7 @@ class AppActionHandler(BaseHandler):
                 self.mw.edited_json_path = original_edited_path_backup
                 self.ui_updater.update_statusbar_paths()
 
-    def load_all_data_for_path(self, original_file_path, manually_set_edited_path=None, is_initial_load_from_settings=False):
+    def load_all_data_for_path(self, original_file_path: Union[str, Path], manually_set_edited_path: Optional[Union[str, Path]] = None, is_initial_load_from_settings: bool = False) -> None:
         log_info(f"Loading all data for path: '{original_file_path}'")
         self.mw.is_programmatically_changing_text = True
         
@@ -140,23 +167,30 @@ class AppActionHandler(BaseHandler):
 
         file_content = None
         error = None
-        file_extension = Path(original_file_path).suffix.lower()
+        path_obj = Path(original_file_path)
+        file_extension = path_obj.suffix.lower()
 
         if file_extension == '.json':
-            file_content, error = load_json_file(original_file_path, parent_widget=self.mw)
+            file_content, error = load_json_file(path_obj, parent_widget=self.mw)
         elif file_extension == '.txt':
-            file_content, error = load_text_file(original_file_path, parent_widget=self.mw)
+            file_content, error = load_text_file(path_obj, parent_widget=self.mw)
         else:
             error = f"Unsupported file type: {file_extension}"
 
         if error:
-            self.mw.json_path = None; self.mw.edited_json_path = None
-            self.mw.data = []; self.mw.edited_data = {}; self.mw.edited_file_data = []
+            self.mw.json_path = None
+            self.mw.edited_json_path = None
+            self.mw.data = []
+            self.mw.edited_data = {}
+            self.mw.edited_file_data = []
             self.mw.unsaved_changes = False
-            self.ui_updater.update_title(); self.ui_updater.update_statusbar_paths()
-            self.ui_updater.populate_blocks(); self.ui_updater.populate_strings_for_block(-1)
+            self.ui_updater.update_title()
+            self.ui_updater.update_statusbar_paths()
+            self.ui_updater.populate_blocks()
+            self.ui_updater.populate_strings_for_block(-1)
             self.mw.is_programmatically_changing_text = False
-            QMessageBox.critical(self.mw, "Load Error", f"Failed to load: {original_file_path}\n{error}"); return
+            QMessageBox.critical(self.mw, "Load Error", f"Failed to load: {original_file_path}\n{error}")
+            return
 
         # Reset plugin state if it tracks keys (like pokemon_fr)
         if hasattr(self.mw.current_game_rules, 'original_keys'):
@@ -172,7 +206,7 @@ class AppActionHandler(BaseHandler):
             self.mw.is_programmatically_changing_text = False
             return
 
-        self.mw.json_path = original_file_path
+        self.mw.json_path = str(original_file_path)
         self.mw.data = data
         if block_names_from_plugin:
             self.mw.block_names.update(block_names_from_plugin)
@@ -180,17 +214,18 @@ class AppActionHandler(BaseHandler):
         self.mw.edited_data = {}
         self.mw.unsaved_changes = False
         
-        self.mw.edited_json_path = manually_set_edited_path if manually_set_edited_path else self._derive_edited_path(self.mw.json_path)
+        self.mw.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(self.mw.json_path)
         self.mw.edited_file_data = []
         if self.mw.edited_json_path and Path(self.mw.edited_json_path).exists():
             edited_file_content = None
             edit_error = None
-            edited_file_extension = Path(self.mw.edited_json_path).suffix.lower()
+            edited_path_obj = Path(self.mw.edited_json_path)
+            edited_file_extension = edited_path_obj.suffix.lower()
 
             if edited_file_extension == '.json':
-                edited_file_content, edit_error = load_json_file(self.mw.edited_json_path, parent_widget=self.mw)
+                edited_file_content, edit_error = load_json_file(edited_path_obj, parent_widget=self.mw)
             elif edited_file_extension == '.txt':
-                edited_file_content, edit_error = load_text_file(self.mw.edited_json_path, parent_widget=self.mw)
+                edited_file_content, edit_error = load_text_file(edited_path_obj, parent_widget=self.mw)
 
             if edit_error:
                 QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.edited_json_path}\n{edit_error}")
@@ -206,19 +241,27 @@ class AppActionHandler(BaseHandler):
                     
                 self.mw.edited_file_data = edited_data_from_file
         
-        self.mw.current_block_idx = -1; self.mw.current_string_idx = -1
+        self.mw.current_block_idx = -1
+        self.mw.current_string_idx = -1
         
-        if hasattr(self.mw, 'undo_paste_action'): self.mw.can_undo_paste = False; self.mw.undo_paste_action.setEnabled(False)
-        if hasattr(self.mw, 'undo_manager'): self.mw.undo_manager.clear()
+        if hasattr(self.mw, 'undo_paste_action'):
+            self.mw.can_undo_paste = False
+            self.mw.undo_paste_action.setEnabled(False)
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.clear()
         
         self.mw.block_list_widget.clear()
-        if hasattr(self.mw, 'preview_text_edit'): self.mw.preview_text_edit.clear()
-        if hasattr(self, 'mw.original_text_edit'): self.mw.original_text_edit.clear()
-        if hasattr(self, 'mw.edited_text_edit'): self.mw.edited_text_edit.clear()
+        if hasattr(self.mw, 'preview_text_edit'):
+            self.mw.preview_text_edit.clear()
+        if hasattr(self.mw, 'original_text_edit'):
+            self.mw.original_text_edit.clear()
+        if hasattr(self.mw, 'edited_text_edit'):
+            self.mw.edited_text_edit.clear()
 
         self._perform_initial_silent_scan_all_issues()
         
-        self.ui_updater.update_title(); self.ui_updater.update_statusbar_paths()
+        self.ui_updater.update_title()
+        self.ui_updater.update_statusbar_paths()
         self.ui_updater.populate_blocks()
 
         # Restore UI State (Session)
@@ -231,7 +274,7 @@ class AppActionHandler(BaseHandler):
                 
                 # Apply cursor and scroll positions
                 if self.mw.edited_text_edit:
-                    def _apply_scroll():
+                    def _apply_scroll() -> None:
                         self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
                         self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
                         if self.mw.preview_text_edit:
@@ -263,16 +306,21 @@ class AppActionHandler(BaseHandler):
             
         self.mw.is_programmatically_changing_text = False
 
-    def reload_original_data_action(self):
+    def reload_original_data_action(self) -> None:
         log_info("Reload Original action triggered.")
-        if not self.mw.json_path: QMessageBox.information(self.mw, "Reload", "No file open."); return
+        if not self.mw.json_path:
+            QMessageBox.information(self.mw, "Reload", "No file open.")
+            return
+            
         if self.mw.unsaved_changes:
             reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Reloading will discard current unsaved edits in memory. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.No: return
+            if reply == QMessageBox.No:
+                return
+                
         current_edited_path_before_reload = self.mw.edited_json_path
         self.load_all_data_for_path(self.mw.json_path, manually_set_edited_path=current_edited_path_before_reload, is_initial_load_from_settings=False)
 
-    def calculate_widths_for_block_action(self, block_idx: int):
+    def calculate_widths_for_block_action(self, block_idx: int) -> None:
         if block_idx < 0 or not self.mw.data or block_idx >= len(self.mw.data) or not isinstance(self.mw.data[block_idx], list):
             QMessageBox.warning(self.mw, "Calculate Widths Error", "Invalid block selected or no data.")
             return
@@ -293,7 +341,7 @@ class AppActionHandler(BaseHandler):
         progress.setWindowModality(Qt.WindowModal)
         progress.setMinimumDuration(0)
 
-        results = []
+        results: List[str] = []
         problem_definitions = self.game_rules_plugin.get_problem_definitions()
         
         # Use problem_analyzer if it exists, otherwise use the game rules object itself
@@ -322,7 +370,7 @@ class AppActionHandler(BaseHandler):
             for title_prefix, text_to_analyze, text_source_info in sources_to_check:
                 line_report_parts.append(f"  {title_prefix} (src:{text_source_info}):")
                 
-                logical_sublines = []
+                logical_sublines: List[str] = []
                 if hasattr(analyzer, '_get_sublines_from_data_string'):
                     logical_sublines = analyzer._get_sublines_from_data_string(text_to_analyze)
                 else:
@@ -339,7 +387,7 @@ class AppActionHandler(BaseHandler):
                     sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
                     width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
                     
-                    current_subline_problems = set()
+                    current_subline_problems: set = set()
                     if hasattr(analyzer, 'analyze_data_string'):
                         problems_per_subline_list = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold)
                         current_subline_problems = problems_per_subline_list[subline_idx] if subline_idx < len(problems_per_subline_list) else set()
@@ -352,14 +400,15 @@ class AppActionHandler(BaseHandler):
                             full_data_string_text_for_logical_check=text_to_analyze
                         )
                     
-                    statuses = []
+                    statuses: List[str] = []
                     for prob_id in current_subline_problems:
                         if prob_id in problem_definitions:
                             statuses.append(problem_definitions[prob_id]['name'])
                     
                     status_str = ", ".join(statuses) if statuses else "OK"
                     line_report_parts.append(f"    Sub {subline_idx+1} (rstripped): {width_px}px ({status_str}) '{sub_line_no_tags_rstripped[:30]}...'")
-                if title_prefix == "Current": line_report_parts.append("")
+                if title_prefix == "Current":
+                    line_report_parts.append("")
 
             results.append("\n".join(line_report_parts))
         
@@ -386,4 +435,8 @@ class AppActionHandler(BaseHandler):
             text_edit_for_size.setMinimumWidth(700)
             text_edit_for_size.setMinimumHeight(500)
         result_dialog.exec_()
+
+    def _perform_initial_silent_scan_all_issues(self) -> None:
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
 

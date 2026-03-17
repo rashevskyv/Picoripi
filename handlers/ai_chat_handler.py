@@ -14,7 +14,7 @@ import re
 import markdown
 
 class AIChatHandler(BaseHandler):
-    def __init__(self, main_window, data_processor, ui_updater):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
         self.dialog: Optional[AIChatDialog] = None
         self.sessions: Dict[int, TranslationSessionManager] = {}
@@ -23,19 +23,19 @@ class AIChatHandler(BaseHandler):
         self.system_prompt = "You are a helpful linguistic assistant specializing in video game localization."
         self._stream_buffer: Dict[int, str] = {}
 
-    def _get_available_providers(self) -> dict:
-        providers_data = {}
-        config = getattr(self.mw, 'translation_config', {}).get('providers', {})
+    def _get_available_providers(self) -> Dict[str, Dict[str, str]]:
+        providers_data: Dict[str, Dict[str, str]] = {}
+        config: Dict[str, Any] = getattr(self.mw, 'translation_config', {}).get('providers', {})
         for key, info in config.items():
             if key != 'disabled':
-                display_name = key.replace('_', ' ').title()
+                display_name: str = key.replace('_', ' ').title()
                 providers_data[key] = {
                     'display_name': display_name,
                     'model': info.get('model', 'default')
                 }
         return providers_data
 
-    def show_chat_window(self, initial_text: str = ""):
+    def show_chat_window(self, initial_text: str = "") -> None:
         if self.dialog is None:
             self.dialog = AIChatDialog(self.mw)
             self.dialog.message_sent.connect(self._handle_send_message)
@@ -61,7 +61,7 @@ class AIChatHandler(BaseHandler):
         if current_tab:
             current_tab.input_edit.setFocus()
 
-    def _add_new_chat_session(self):
+    def _add_new_chat_session(self) -> None:
         if not self.dialog: return
 
         new_tab = self.dialog.add_new_tab()
@@ -71,7 +71,7 @@ class AIChatHandler(BaseHandler):
         tab_index = self.dialog.tabs.indexOf(new_tab)
         self.sessions[tab_index] = TranslationSessionManager()
 
-    def _handle_tab_closed(self, index: int):
+    def _handle_tab_closed(self, index: int) -> None:
         if index in self.sessions:
             del self.sessions[index]
             log_debug(f"AI Chat: Session for tab {index} has been removed.")
@@ -80,7 +80,7 @@ class AIChatHandler(BaseHandler):
                 del self.sessions[index]
                 log_debug(f"AI Chat: Session for tab index {index} has been removed.")
 
-    def _handle_send_message(self, tab_index, message, provider_key, web_search_enabled):
+    def _handle_send_message(self, tab_index: int, message: str, provider_key: str, web_search_enabled: bool) -> None:
         if self.dialog:
             html = f"""
             <table class="message-table user-message">
@@ -198,7 +198,7 @@ class AIChatHandler(BaseHandler):
         
         return html_output
 
-    def _on_ai_chunk_received(self, context: dict, chunk: str):
+    def _on_ai_chunk_received(self, context: Dict[str, Any], chunk: str) -> None:
         tab_index = context.get('tab_index')
         if self.dialog and tab_index is not None:
             tab = self.dialog.tabs.widget(tab_index)
@@ -209,7 +209,7 @@ class AIChatHandler(BaseHandler):
                 tab.history_view.ensureCursorVisible()
                 self._stream_buffer[tab_index] = self._stream_buffer.get(tab_index, "") + chunk
     
-    def _on_ai_stream_finished(self, response: ProviderResponse, context: dict):
+    def _on_ai_stream_finished(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         tab_index = context.get('tab_index')
         if self.dialog and tab_index is not None:
             full_response = self._stream_buffer.get(tab_index, "")
@@ -245,8 +245,8 @@ class AIChatHandler(BaseHandler):
                     conversation_id=response.conversation_id
                 )
 
-    def _on_ai_chat_success(self, response: ProviderResponse, context: dict):
-        tab_index = context.get('tab_index')
+    def _on_ai_chat_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
+        tab_index: Optional[int] = context.get('tab_index')
         if self.dialog and tab_index is not None:
             self.dialog.set_input_enabled(tab_index, True)
             ai_response_text = response.text or "[No response]"
@@ -269,7 +269,7 @@ class AIChatHandler(BaseHandler):
             if state and user_content:
                 state.record_exchange(user_content=user_content, assistant_content=ai_response_text, conversation_id=response.conversation_id)
 
-    def _on_ai_error(self, message: str, context: dict):
+    def _on_ai_error(self, message: str, context: Dict[str, Any]) -> None:
         tab_index = context.get('tab_index')
         if self.dialog and tab_index is not None:
             content_end_pos_before = context.get('content_end_pos_before', 0)
@@ -294,7 +294,7 @@ class AIChatHandler(BaseHandler):
             """
             self.dialog.append_to_history(tab_index, html)
 
-    def _cleanup_worker(self):
+    def _cleanup_worker(self) -> None:
         tab_index = self._worker.task_details.get('tab_index') if self._worker else None
         if self.dialog and tab_index is not None:
             self.dialog.set_input_enabled(tab_index, True)

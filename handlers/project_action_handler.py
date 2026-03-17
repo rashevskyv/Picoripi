@@ -1,10 +1,10 @@
-# --- START OF FILE handlers/project_action_handler.py ---
 # handlers/project_action_handler.py
 import os
 import json
 import uuid
 import shutil
 from pathlib import Path
+from typing import Dict, Any, List, Optional, Union, Tuple
 from PyQt5.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem
 from PyQt5.QtCore import Qt
 from core.project_manager import ProjectManager
@@ -14,22 +14,22 @@ from utils.logging_utils import log_info, log_warning, log_error, log_debug
 from components.folder_delete_dialog import FolderDeleteDialog
 
 class ProjectActionHandler(BaseHandler):
-    def __init__(self, main_window, data_processor, ui_updater):
+    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
 
-    def create_new_project_action(self):
+    def create_new_project_action(self) -> None:
         from components.project_dialogs import NewProjectDialog
         log_info("Create New Project action triggered.")
 
         # Get available plugins
-        plugins = {}
+        plugins: Dict[str, str] = {}
         plugins_dir = Path("plugins")
         if plugins_dir.is_dir():
             for item_path in plugins_dir.iterdir():
                 config_path = item_path / "config.json"
                 if item_path.is_dir() and config_path.exists():
                     try:
-                        with open(config_path, 'r', encoding='utf-8') as f:
+                        with config_path.open('r', encoding='utf-8') as f:
                             config_data = json.load(f)
                         display_name = config_data.get("display_name", item_path.name)
                         plugins[display_name] = item_path.name
@@ -46,7 +46,6 @@ class ProjectActionHandler(BaseHandler):
             return
 
         # Create project using ProjectManager
-        from core.project_manager import ProjectManager
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.create_new_project(
@@ -104,7 +103,7 @@ class ProjectActionHandler(BaseHandler):
         else:
             QMessageBox.critical(self.mw, "Project Creation Failed", "Failed to create project.")
 
-    def open_project_action(self):
+    def open_project_action(self) -> None:
         log_info("Open Project action triggered.")
 
         # Open file dialog directly
@@ -121,7 +120,6 @@ class ProjectActionHandler(BaseHandler):
             return
 
         # Load project using ProjectManager
-        from core.project_manager import ProjectManager
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.load(project_path)
@@ -170,7 +168,7 @@ class ProjectActionHandler(BaseHandler):
                 f"Failed to load project from:\n{project_path}"
             )
 
-    def close_project_action(self):
+    def close_project_action(self) -> None:
         log_info("Close Project action triggered.")
 
         if self.mw.unsaved_changes:
@@ -220,7 +218,7 @@ class ProjectActionHandler(BaseHandler):
 
         log_info("Project closed.")
 
-    def import_block_action(self):
+    def import_block_action(self) -> None:
         from components.project_dialogs import ImportBlockDialog
         log_info("Import Block action triggered.")
 
@@ -253,7 +251,7 @@ class ProjectActionHandler(BaseHandler):
         else:
             QMessageBox.critical(self.mw, "Import Failed", "Failed to import block.")
 
-    def import_directory_action(self):
+    def import_directory_action(self) -> None:
         log_info("Import Directory action triggered.")
 
         if not self.mw.project_manager or not self.mw.project_manager.project:
@@ -282,7 +280,7 @@ class ProjectActionHandler(BaseHandler):
         else:
             QMessageBox.information(self.mw, "Import Result", "No supported files found or failed to import.")
 
-    def delete_block_action(self):
+    def delete_block_action(self) -> None:
         log_info("Delete Item action triggered.")
 
         if not self.mw.project_manager or not self.mw.project_manager.project:
@@ -419,12 +417,6 @@ class ProjectActionHandler(BaseHandler):
                 
                 # Apply suggested selection
                 if new_selection_block_idx is not None or new_selection_folder_id is not None:
-                    # We need to temporarily "fake" the selection so populate_blocks picks it up
-                    # Since item will be gone, we can't use setCurrentItem on it yet.
-                    # populate_blocks uses currentItem() as a source.
-                    # We'll rely on the fact that if we DON'T clear selection,
-                    # and we haven't called populate_blocks yet, currentItem is still our 'folder'.
-                    # But we want it to be the neighbor.
                     self.mw.block_list_widget.setCurrentItem(neighbor)
 
                 self.ui_updater.populate_blocks()
@@ -432,8 +424,8 @@ class ProjectActionHandler(BaseHandler):
             elif action == 2:
                 # 2. DELETE FOLDER AND CONTENTS
                 # Recursively delete all items in folder
-                all_block_ids = []
-                def collect_blocks(f):
+                all_block_ids: List[str] = []
+                def collect_blocks(f: Any) -> None:
                     all_block_ids.extend(f.block_ids)
                     for child in f.children:
                         collect_blocks(child)
@@ -456,23 +448,23 @@ class ProjectActionHandler(BaseHandler):
                 else:
                     self.ui_updater.populate_blocks()
 
-    def move_block_up_action(self):
+    def move_block_up_action(self) -> None:
         log_info("Move Block Up action triggered.")
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.move_current_item_up()
 
-    def move_block_down_action(self):
+    def move_block_down_action(self) -> None:
         log_info("Move Block Down action triggered.")
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.move_current_item_down()
 
-    def add_folder_action(self):
+    def add_folder_action(self) -> None:
         log_info("Add Folder action triggered.")
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget._create_folder_at_cursor()
 
 
-    def add_items_to_folder_action(self):
+    def add_items_to_folder_action(self) -> None:
         """Move multiple selected items into a folder."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
@@ -487,7 +479,7 @@ class ProjectActionHandler(BaseHandler):
         from components.project_dialogs import MoveToFolderDialog
         
         # Try to find current parent folder ID if items are in a folder
-        current_parent_id = None
+        current_parent_id: Optional[str] = None
         if selected_items[0].parent():
             current_parent_id = selected_items[0].parent().data(0, Qt.UserRole + 1)
 
@@ -502,7 +494,7 @@ class ProjectActionHandler(BaseHandler):
         undo_mgr = getattr(self.mw, 'undo_manager', None)
         before = undo_mgr.get_project_snapshot() if undo_mgr else None
         
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        block_map: Dict[int, int] = getattr(self.mw, 'block_to_project_file_map', {})
         moved_count = 0
         
         for item in selected_items:
@@ -532,7 +524,7 @@ class ProjectActionHandler(BaseHandler):
             log_info(f"Batch move completed: {moved_count} items moved.")
 
 
-    def _populate_blocks_from_project(self):
+    def _populate_blocks_from_project(self) -> None:
         """Populate block list from current project and load data."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
@@ -550,12 +542,11 @@ class ProjectActionHandler(BaseHandler):
 
         # Load each block's data
         self.mw.block_to_project_file_map = {}
-        source_parsed_counts = []
+        source_parsed_counts: List[int] = []
         
         for project_block_idx, block in enumerate(self.mw.project_manager.project.blocks):
             source_path = self.mw.project_manager.get_absolute_path(block.source_file)
             
-            block_data = []
             if Path(source_path).exists():
                 file_extension = Path(source_path).suffix.lower()
                 if file_extension == '.json':
@@ -681,7 +672,7 @@ class ProjectActionHandler(BaseHandler):
                 
                 # Apply cursor and scroll positions
                 if self.mw.edited_text_edit:
-                    def _apply_scroll():
+                    def _apply_scroll() -> None:
                         self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
                         self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
                         if self.mw.preview_text_edit:
@@ -700,7 +691,7 @@ class ProjectActionHandler(BaseHandler):
                     from PyQt5.QtCore import QTimer
                     QTimer.singleShot(200, _apply_scroll)
 
-    def _update_recent_projects_menu(self):
+    def _update_recent_projects_menu(self) -> None:
         """Update the Recent Projects submenu with current list."""
         if not hasattr(self.mw, 'recent_projects_menu'):
             return
@@ -709,7 +700,7 @@ class ProjectActionHandler(BaseHandler):
         self.mw.recent_projects_menu.clear()
 
         # Get recent projects list
-        recent_projects = getattr(self.mw, 'recent_projects', [])
+        recent_projects: List[str] = getattr(self.mw, 'recent_projects', [])
 
         if not recent_projects:
             # Add "No recent projects" action
@@ -742,7 +733,7 @@ class ProjectActionHandler(BaseHandler):
         clear_action = self.mw.recent_projects_menu.addAction("Clear Recent Projects")
         clear_action.triggered.connect(self._clear_recent_projects)
 
-    def _open_recent_project(self, project_path: str):
+    def _open_recent_project(self, project_path: str) -> None:
         """Open a project from the recent projects list."""
         log_info(f"Opening recent project: {project_path}")
 
@@ -761,7 +752,6 @@ class ProjectActionHandler(BaseHandler):
             return
 
         # Load project using ProjectManager
-        from core.project_manager import ProjectManager
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.load(project_path)
@@ -811,7 +801,7 @@ class ProjectActionHandler(BaseHandler):
                 f"Failed to load project from:\n{project_path}"
             )
 
-    def _clear_recent_projects(self):
+    def _clear_recent_projects(self) -> None:
         """Clear all recent projects."""
         reply = QMessageBox.question(
             self.mw,
@@ -828,7 +818,7 @@ class ProjectActionHandler(BaseHandler):
                 self._update_recent_projects_menu()
             log_info("Recent projects cleared.")
 
-    def expand_all_action(self):
+    def expand_all_action(self) -> None:
         """Expand all nodes in the tree."""
         if hasattr(self.mw, 'block_list_widget'):
             # Set flag to avoid recursive signals during bulk update
@@ -846,7 +836,7 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.block_list_widget._is_programmatic_expansion = False
             log_debug("Tree expanded all.")
 
-    def collapse_all_action(self):
+    def collapse_all_action(self) -> None:
         """Collapse all nodes in the tree."""
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget._is_programmatic_expansion = True
@@ -861,12 +851,12 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.block_list_widget._is_programmatic_expansion = False
             log_debug("Tree collapsed all.")
 
-    def _update_all_folder_expansion_state(self, expanded: bool):
+    def _update_all_folder_expansion_state(self, expanded: bool) -> None:
         """Recursively update the is_expanded state for all virtual folders."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
             
-        def update_folder(f):
+        def update_folder(f: Any) -> None:
             f.is_expanded = expanded
             for child in f.children:
                 update_folder(child)
