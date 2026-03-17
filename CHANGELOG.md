@@ -2,6 +2,20 @@
 
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.3] - 2026-03-17
+
+### Added
+- - Automated deployment system (scripts/deploy.py)
+- - Project renaming to Picoripi (v0.2.3)
+
+### Fixed
+- - Virtual environment path issues after directory move
+
+### Improvements
+- - SettingsManager and UI setup decomposition
+- - Documentation updates (README.md, GEMINI.md)
+
+
 ## [0.2.1] - 2026-03-17
 
 ### Added

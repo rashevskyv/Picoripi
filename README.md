@@ -1,4 +1,4 @@
-# Picoripi v0.2.1
+# Picoripi v0.2.3
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
@@ -9,7 +9,9 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - **Plugin System**: Game-specific rule systems for different titles
 - **Tag Management**: Handle game control codes (player names, button icons, etc.)
 - **Multi-line Analysis**: Visual feedback for line width violations
-- **Spellchecking**: Integrated spellchecking with custom dictionary support
+- **Integrated Spellchecker**: Uses `spylls` (a Hunspell wrapper) for spellchecking within the translation editor.
+
+## Building and Running the Project
 - **Revert to Original**: Quickly restore original text for individual lines or entire blocks with undo support.
 - **Enhanced UI**: Context menus with icons and better visual cues for actions.
 
@@ -147,6 +149,29 @@ To add a new game:
 1. Create a new directory in `plugins/`.
 2. Implement your rules by inheriting from `BaseGameRules`.
 3. Define your font maps and control codes.
+
+## Deployment and Versioning
+
+The project follows a strict versioning policy where the version is updated with every commit.
+
+### 1. Incremental Updates (Every Commit)
+To keep the application version in sync with development:
+```powershell
+python scripts/bump_version.py
+```
+This increments the patch version in `utils/constants.py`.
+
+### 2. Formal Release (Deployment)
+When a set of features is ready for a release:
+```powershell
+python scripts/deploy.py
+```
+This interactive script:
+- Bumps the version.
+- Prompts for changelog entries (Added, Fixed, Improved).
+- Updates `CHANGELOG.md` and `README.md`.
+- Commits changes and tags the release.
+- Creates a GitHub Release (requires `gh` CLI).
 
 ## Logs
 
