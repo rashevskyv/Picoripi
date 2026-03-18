@@ -124,23 +124,63 @@ class CustomListItemDelegate(QStyledItemDelegate):
         active_color_markers_for_block = set()
         block_idx_data = index.data(Qt.UserRole)
         category_name = index.data(Qt.UserRole + 10)
+        merged_folder_ids = index.data(Qt.UserRole + 2) # For compacted folders
         
         problem_definitions = {}
         block_problem_counts = {}
-        has_unsaved_changes_in_block = False
+        has_unsaved_changes_in_item = False
 
-        if main_window and block_idx_data is not None:
-            if hasattr(main_window, 'unsaved_block_indices'):
-                 has_unsaved_changes_in_block = block_idx_data in main_window.unsaved_block_indices
-            
-            if hasattr(main_window, 'block_handler') and hasattr(main_window.block_handler, 'get_block_color_markers'):
-                active_color_markers_for_block = main_window.block_handler.get_block_color_markers(block_idx_data)
+        if main_window:
+            pm = getattr(main_window, 'project_manager', None)
+            project = pm.project if pm else None
+            edited_keys = getattr(main_window, 'edited_data', {})
+            unsaved_blocks = getattr(main_window, 'unsaved_block_indices', set())
 
-            if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
-                problem_definitions = main_window.current_game_rules.get_problem_definitions()
+            # 1. Determine Unsaved changes (*)
+            if category_name:
+                # ITEM is a Category (Virtual Sub-block)
+                # Show star ONLY if this specific category has edited lines
+                if project and block_idx_data is not None:
+                    block_map = getattr(main_window, 'block_to_project_file_map', {})
+                    proj_b_idx = block_map.get(block_idx_data, block_idx_data)
+                    if 0 <= proj_b_idx < len(project.blocks):
+                        block = project.blocks[proj_b_idx]
+                        category = next((c for c in block.categories if c.name == category_name), None)
+                        if category:
+                            # Check if any line index belonging to this category is in edited_data
+                            has_unsaved_changes_in_item = any(
+                                (block_idx_data, l_idx) in edited_keys 
+                                for l_idx in category.line_indices
+                            )
+            elif merged_folder_ids:
+                # ITEM is a Folder (possibly compacted)
+                # Show star if ANY block inside this folder subtree is unsaved
+                if project:
+                    # Collect ALL project block indices in this folder tree
+                    all_p_indices = set()
+                    for folder_id in merged_folder_ids:
+                         all_p_indices.update(pm.get_all_block_indices_under_folder(folder_id))
+                    
+                    # If any edited data block maps to one of these project blocks, show star
+                    block_map = getattr(main_window, 'block_to_project_file_map', {})
+                    has_unsaved_changes_in_item = any(
+                        block_map.get(data_idx) in all_p_indices 
+                        for data_idx in unsaved_blocks
+                    )
+            elif block_idx_data is not None:
+                # ITEM is a regular Block (Physical)
+                has_unsaved_changes_in_item = block_idx_data in unsaved_blocks
 
-            if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
-                block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name)
+            # 2. Other indicators
+            if block_idx_data is not None:
+                if hasattr(main_window, 'block_handler') and hasattr(main_window.block_handler, 'get_block_color_markers'):
+                    active_color_markers_for_block = main_window.block_handler.get_block_color_markers(block_idx_data)
+
+                if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
+                    problem_definitions = main_window.current_game_rules.get_problem_definitions()
+
+                if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
+                    block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name)
 
 
         # 1. Calculate Problem Colors Early
@@ -176,7 +216,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         current_font = option.font
         if not current_font.family(): current_font = QFont()
         painter.setFont(current_font)
-        number_text = f"* {index.row() + 1}" if has_unsaved_changes_in_block else str(index.row() + 1)
+        number_text = f"* {index.row() + 1}" if has_unsaved_changes_in_item else str(index.row() + 1)
         painter.drawText(number_label_rect, Qt.AlignCenter | Qt.TextShowMnemonic, number_text)
 
         # 3. Draw Icon(s) and Warnings in the SAME zone

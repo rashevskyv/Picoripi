@@ -86,7 +86,6 @@ class LNETLineNumberAreaPaintLogic:
                     else:
                         display_number_for_line_area = str(current_q_block_number_in_editor_doc + 1)
                     
-                    if isinstance(main_window_ref, QMainWindow):
                         is_unsaved = False
                         real_idx = current_q_block_number_in_editor_doc
                         if is_preview and hasattr(main_window_ref, 'displayed_string_indices') and main_window_ref.displayed_string_indices:
@@ -95,11 +94,35 @@ class LNETLineNumberAreaPaintLogic:
                             else:
                                 real_idx = -1
 
-                        if is_preview:
-                            is_unsaved = (current_block_idx_data_mw, real_idx) in main_window_ref.edited_data
-                        elif is_editor and current_string_idx_data_mw != -1:
-                            is_unsaved = (current_block_idx_data_mw, current_string_idx_data_mw) in main_window_ref.edited_data
+                        cur_text = current_q_block.text()
                         
+                        if is_preview:
+                            if (current_block_idx_data_mw, real_idx) in main_window_ref.edited_data:
+                                if hasattr(main_window_ref, 'data_state_processor'):
+                                    orig_raw = main_window_ref.data_state_processor._get_string_from_source(
+                                        current_block_idx_data_mw, real_idx, main_window_ref.data, "original_data"
+                                    )
+                                    if orig_raw is not None and game_rules:
+                                        orig_disp = game_rules.get_text_representation_for_preview(str(orig_raw))
+                                        is_unsaved = convert_dots_to_spaces_from_editor(cur_text) != \
+                                                     convert_dots_to_spaces_from_editor(orig_disp)
+                                    else:
+                                        is_unsaved = True
+                        elif is_editor and current_string_idx_data_mw != -1:
+                            if (current_block_idx_data_mw, current_string_idx_data_mw) in main_window_ref.edited_data:
+                                if hasattr(main_window_ref, 'data_state_processor'):
+                                    orig_raw = main_window_ref.data_state_processor._get_string_from_source(
+                                        current_block_idx_data_mw, current_string_idx_data_mw, main_window_ref.data, "original_data"
+                                    )
+                                    if orig_raw is not None and game_rules:
+                                        orig_disp = game_rules.get_text_representation_for_editor(str(orig_raw))
+                                        orig_lines = orig_disp.splitlines()
+                                        if current_q_block_number_in_editor_doc < len(orig_lines):
+                                            is_unsaved = convert_dots_to_spaces_from_editor(cur_text) != \
+                                                         convert_dots_to_spaces_from_editor(orig_lines[current_q_block_number_in_editor_doc])
+                                        else:
+                                            is_unsaved = True
+
                         if is_unsaved:
                             display_number_for_line_area = f"* {display_number_for_line_area}"
 

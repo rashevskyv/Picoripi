@@ -71,10 +71,16 @@ class TextOperationHandler(BaseHandler):
         if self.mw.current_game_rules:
             preview_lines = []
             if 0 <= block_idx < len(self.mw.data) and isinstance(self.mw.data[block_idx], list):
-                for i in range(len(self.mw.data[block_idx])):
-                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, i)
-                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                    preview_lines.append(preview_line_text)
+                # USE displayed_string_indices to respect categories/filters
+                target_indices = getattr(self.mw, 'displayed_string_indices', [])
+                if not target_indices:
+                    target_indices = list(range(len(self.mw.data[block_idx])))
+                
+                for real_idx in target_indices:
+                    if 0 <= real_idx < len(self.mw.data[block_idx]):
+                        text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                        preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                        preview_lines.append(preview_line_text)
 
             preview_full_text = "\n".join(preview_lines)
             

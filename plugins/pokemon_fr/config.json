@@ -1,6 +1,22 @@
 {
     "display_name": "Pokemon FireRed/LeafGreen",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{PLAYER}": "{PLAYER}",
+        "{RIVAL}": "{RIVAL}",
+        "{DPAD_UPDOWN}": "{DPAD_UPDOWN}",
+        "{A_BUTTON}": "{A_BUTTON}",
+        "{B_BUTTON}": "{B_BUTTON}",
+        "{DPAD_LEFTRIGHT}": "{DPAD_LEFTRIGHT}",
+        "{PLUS}": "{PLUS}",
+        "{START_BUTTON}": "{START_BUTTON}",
+        "{NO}": "{NO}",
+        "{LV_2}": "{LV_2}",
+        "{ID}": "{ID}",
+        "{PP}": "{PP}",
+        "{ESCAPE 0x03}": "{ESCAPE 0x03}",
+        "{ID}{NO}": "{ID}{NO}",
+        "{PKMN}": "{PKMN}"
+    },
     "block_names": {
         "0": "data_event_scripts.s",
         "1": "data_field_move_scripts.inc",
@@ -689,7 +705,7 @@
     "edited_file_path": "C:\\Users\\Administrator\\Desktop\\PokemonRS\\translation\\data_event_scripts.s.json",
     "last_selected_block_index": -1,
     "last_selected_string_index": -1,
-    "last_cursor_position_in_edited": 101,
+    "last_cursor_position_in_edited": 57,
     "last_edited_text_edit_scroll_value_v": 0,
     "last_edited_text_edit_scroll_value_h": 0,
     "last_preview_text_edit_scroll_value_v": 0,

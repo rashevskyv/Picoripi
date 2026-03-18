@@ -749,6 +749,25 @@ class ProjectManager:
                 folder.block_ids.remove(block_id)
             self._remove_block_id_from_any_folder(block_id, folder.children)
 
+    def get_all_block_indices_under_folder(self, folder_id: str) -> List[int]:
+        """Collect indices of all project.blocks within a specific folder subtree."""
+        folder = self.find_virtual_folder(folder_id)
+        if not folder or not self.project:
+            return []
+            
+        all_ids = []
+        
+        def collect_recursive(f):
+            all_ids.extend(f.block_ids)
+            for child in f.children:
+                collect_recursive(child)
+                
+        collect_recursive(folder)
+        
+        # Convert UUID to index in project.blocks
+        id_to_idx = {b.id: idx for idx, b in enumerate(self.project.blocks)}
+        return [id_to_idx[bid] for bid in all_ids if bid in id_to_idx]
+
     def _remove_folder_from_anywhere(self, folder_id: str) -> bool:
         """Remove a folder from its current parent or root."""
         if not self.project: return False

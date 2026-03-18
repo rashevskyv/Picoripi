@@ -145,16 +145,52 @@ def convert_spaces_to_dots_for_display(text: str, enable_conversion: bool) -> st
     if not enable_conversion or text is None:
         return text if text is not None else ""
     
-    # Замінюємо 2+ пробіли
-    processed_text = re.sub(r" {2,}", lambda m: SPACE_DOT_SYMBOL * len(m.group(0)), text)
+    def replace_match(m):
+        return SPACE_DOT_SYMBOL * len(m.group(0))
+
+    # (?m) enables multiline mode for ^ and $
+    # 1. Matches spaces at the beginning of any line: ^ +
+    # 2. Matches spaces at the end of any line:  +$(?=\r?\n|$)
+    #    Note: we use a positive lookahead to find effectively the end of a logical line 
+    #    without consuming the newline character itself.
+    # 3. Matches 2 or more spaces anywhere:  {2,}
     
-    # Замінюємо пробіл на початку рядка (якщо за ним не йде ще один пробіл, оброблений вище)
-    processed_text = re.sub(r"^ (?=[^ ])", SPACE_DOT_SYMBOL, processed_text)
+    # Updated regex to be more precise about start/end of line
+    # We use a combined regex to avoid replacing the same character twice
+    # - ^ + : Leading spaces (any number)
+    # -  +$(?=\n|$) : Trailing spaces (any number) - handled line by line
     
-    # Замінюємо пробіл в кінці рядка (якщо перед ним не стоїть пробіл)
-    processed_text = re.sub(r"(?<![ ]) $", SPACE_DOT_SYMBOL, processed_text)
+    lines = text.splitlines(keepends=True)
+    processed_lines = []
     
-    return processed_text
+    for line in lines:
+        # Check if line has a trailing newline to strip it for $ matching
+        line_content = line.rstrip('\r\n')
+        line_endings = line[len(line_content):]
+        import re
+        line_content = line.rstrip('\r\n')
+        line_endings = line[len(line_content):]
+        
+        # We find ALL sequences of spaces
+        def replace_spaces(match):
+            spaces = match.group(0)
+            start_pos = match.start()
+            end_pos = match.end()
+            
+            # Rule: Always dots if:
+            # 1. At the very start of line
+            # 2. At the very end of line
+            # 3. Sequence length > 1
+            if start_pos == 0 or end_pos == len(line_content) or len(spaces) > 1:
+                return SPACE_DOT_SYMBOL * len(spaces)
+            
+            # Otherwise, it's a single middle space
+            return spaces
+            
+        new_content = re.sub(r" +", replace_spaces, line_content)
+        processed_lines.append(new_content + line_endings)
+        
+    return "".join(processed_lines)
 
 
 def convert_dots_to_spaces_from_editor(text: str) -> str:

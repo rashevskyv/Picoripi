@@ -1,6 +1,13 @@
-# Picoripi v0.2.4
+# Picoripi v0.2.9
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+
+## New in v0.2.9
+
+- **Smart Asterisk Propagation**: Changes are now indicated by an asterisk (*) that flows upward from the modified string to its category, overall block, and parent folders.
+- **Dynamic Space Visualization**: Spaces are now shown as dots only where it makes sense (leading/trailing or 2+ consecutive). Single middle spaces remain spaces for a cleaner look.
+- **Improved Undo for Revert**: The "Revert to Original" action is now fully undoable, including structural and bulk reverts.
+- **Enhanced Startup Stability**: Fixes for encoding issues and initialization order prevent crashes on launch.
 
 ## Features
 

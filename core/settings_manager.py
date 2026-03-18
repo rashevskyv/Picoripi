@@ -97,9 +97,11 @@ class SettingsManager:
                     self.mw.unsaved_changes = bool(self.mw.edited_data)
                     log_info(f"Successfully loaded {len(self.mw.edited_data)} unsaved items from session.")
                     if self.mw.unsaved_changes:
-                        QTimer.singleShot(0, self.mw.helper.rebuild_unsaved_block_indices)
-                        QTimer.singleShot(0, self.mw.ui_updater.update_title)
-                        QTimer.singleShot(0, self.mw.ui_updater.populate_blocks)
+                        if hasattr(self.mw, 'helper'):
+                            QTimer.singleShot(0, self.mw.helper.rebuild_unsaved_block_indices)
+                        if hasattr(self.mw, 'ui_updater'):
+                            QTimer.singleShot(0, self.mw.ui_updater.update_title)
+                            QTimer.singleShot(0, self.mw.ui_updater.populate_blocks)
             else:
                 log_debug("Restore unsaved session is disabled in settings. Skipping load.")
         except Exception as e:

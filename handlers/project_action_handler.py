@@ -16,6 +16,22 @@ from components.folder_delete_dialog import FolderDeleteDialog
 class ProjectActionHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
+        # Ensure ProjectManager is initialized on the main window
+        if not hasattr(self.mw, 'project_manager') or self.mw.project_manager is None:
+            self.mw.project_manager = ProjectManager()
+
+    def _set_project_actions_enabled(self, enabled: bool):
+        """Enable or disable project-specific UI actions."""
+        actions = [
+            'close_project_action', 'import_block_action', 
+            'import_directory_action', 'add_block_button', 
+            'add_folder_button'
+        ]
+        for action_name in actions:
+            action = getattr(self.mw, action_name, None)
+            if action:
+                action.setEnabled(enabled)
+
 
     def create_new_project_action(self) -> None:
         from components.project_dialogs import NewProjectDialog
@@ -65,6 +81,7 @@ class ProjectActionHandler(BaseHandler):
 
             # Update recent projects
             project_file = str(Path(info['directory']) / "project.uiproj")
+            self.mw.last_opened_path = project_file
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.add_recent_project(project_file)
                 self.mw.settings_manager.save_settings()
@@ -130,6 +147,7 @@ class ProjectActionHandler(BaseHandler):
 
             # Update recent projects
             if hasattr(self.mw, 'settings_manager'):
+                self.mw.last_opened_path = project_path
                 self.mw.settings_manager.add_recent_project(project_path)
                 self.mw.settings_manager.save_settings()
                 self._update_recent_projects_menu()
@@ -555,8 +573,12 @@ class ProjectActionHandler(BaseHandler):
                     # Try loading as text for any other extension
                     file_content, error = load_text_file(source_path)
 
-                if not error and self.mw.current_game_rules:
-                    parsed_data, names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+                if not error:
+                    if not self.mw.current_game_rules:
+                        log_error(f"Cannot load data for block '{block.name}': current_game_rules is None! Using empty data fallback.")
+                        parsed_data, names = [], {}
+                    else:
+                        parsed_data, names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
                     
                     if block.internal_key:
                         # Find the specific sub-block
@@ -758,42 +780,52 @@ class ProjectActionHandler(BaseHandler):
 
         if success:
             project = self.mw.project_manager.project
-            log_info(f"Recent project '{project.name}' loaded successfully.")
+            log_info(f"Recent project '{project.name}' metadata loaded. Required plugin: '{project.plugin_name}'")
 
-            # Move to top of recent projects
+            # 1. Update global path tracking
+            self.mw.last_opened_path = project_path
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.add_recent_project(project_path)
                 self.mw.settings_manager.save_settings()
                 self._update_recent_projects_menu()
 
-            # Switch plugin if needed
-            if project.plugin_name and project.plugin_name != self.mw.active_game_plugin:
-                log_info(f"Switching plugin to '{project.plugin_name}'")
-                self.mw.active_game_plugin = project.plugin_name
-                self.mw.load_game_plugin()
-                self.ui_updater.update_plugin_status_label()
+            # 2. FORCE correct plugin to load BEFORE any data parsing happens
+            # Even if it's the same plugin, we reload it to ensure a clean state for this project
+            target_plugin = project.plugin_name or self.mw.active_game_plugin
+            log_info(f"Initializing project plugin: '{target_plugin}' (previous: '{self.mw.active_game_plugin}')")
+            self.mw.active_game_plugin = target_plugin
+            self.mw.load_game_plugin() # SYNC CALL UPDATING current_game_rules
+            self.ui_updater.update_plugin_status_label()
 
-            # Load project-specific settings from metadata
-            if self.mw.project_manager:
-                self.mw.project_manager.load_settings_from_project(self.mw)
+            # 3. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
+            self.mw.project_manager.load_settings_from_project(self.mw)
+            
+            # Fetch restored values for the timer
+            restored_block = getattr(self.mw, 'last_block_idx', 0)
+            restored_cat = getattr(self.mw, 'last_category_name', None)
 
-            # Enable project-specific actions
-            if hasattr(self.mw, 'close_project_action'):
-                self.mw.close_project_action.setEnabled(True)
-            if hasattr(self.mw, 'import_block_action'):
-                self.mw.import_block_action.setEnabled(True)
-            if hasattr(self.mw, 'import_directory_action'):
-                self.mw.import_directory_action.setEnabled(True)
-            if hasattr(self.mw, 'add_block_button'):
-                self.mw.add_block_button.setEnabled(True)
-            if hasattr(self.mw, 'add_folder_button'):
-                self.mw.add_folder_button.setEnabled(True)
+            # 4. Enable project-related UI elements
+            self._set_project_actions_enabled(True)
 
-            # Update UI
+            # 5. Populate UI components with the new project data
             self.ui_updater.update_title()
             self._populate_blocks_from_project()
+            
+            log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data)}")
 
-            log_info(f"Recent project '{project.name}' opened with {len(project.blocks)} blocks.")
+            # 6. Final UI polish: select the last block/category after QTreeWidget has settled
+            def restore_view():
+                log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
+                if hasattr(self.mw, 'block_list_widget'):
+                    self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
+                
+                # These calls refresh the string list and editors
+                self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
+                self.ui_updater.update_statusbar_paths()
+                self.ui_updater.update_plugin_status_label() # Ensure label is accurate
+
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
         else:
             QMessageBox.critical(
                 self.mw,

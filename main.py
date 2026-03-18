@@ -303,13 +303,14 @@ class MainWindow(QMainWindow):
     def _init_handlers(self) -> None:
         # Core Services
         self.settings_manager = SettingsManager(self)
-        self.settings_manager.load_settings()
-
+        
         self.helper = MainWindowHelper(self)
         self.actions = MainWindowActions(self)
         self.data_processor = DataStateProcessor(self)
         self.ui_updater = UIUpdater(self, self.data_processor)
         self.undo_manager = UndoManager(self)
+        
+        self.settings_manager.load_settings()
         
         # Actions Handlers
         self.string_settings_updater = StringSettingsUpdater(self, self.data_processor)
@@ -590,7 +591,7 @@ if __name__ == '__main__':
     
     temp_settings = {}
     try:
-        with open("settings.json", 'r') as f:
+        with open("settings.json", 'r', encoding='utf-8') as f:
             temp_settings = json.load(f)
     except FileNotFoundError:
         pass

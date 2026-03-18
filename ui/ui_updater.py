@@ -385,12 +385,13 @@ class UIUpdater:
                 if project.virtual_folders or 'root_block_ids' in project.metadata:
                     has_virtual_structure = True
             
-            # Show/hide categorization toggles based on project mode
-            is_project_mode = bool(hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project)
+            # Hide categorization toggles during tree rebuild; they will be
+            # shown by populate_strings_for_block only when the selected block
+            # actually has categories.
             if hasattr(self.mw, 'highlight_categorized_checkbox'):
-                self.mw.highlight_categorized_checkbox.setVisible(is_project_mode)
+                self.mw.highlight_categorized_checkbox.setVisible(False)
             if hasattr(self.mw, 'hide_categorized_checkbox'):
-                self.mw.hide_categorized_checkbox.setVisible(is_project_mode)
+                self.mw.hide_categorized_checkbox.setVisible(False)
 
             # Compute aggregated problems for ALL blocks once (O(M) complexity instead of O(N*M))
             pre_aggregated_counts = {}
@@ -474,60 +475,66 @@ class UIUpdater:
         if not hasattr(self.mw, 'block_list_widget'):
             return
         
-        item = None
+        # Find ALL tree items representing this block (could be multiple if categories are listed as sub-items)
+        items_to_update = []
         iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
         while iterator.value():
             tree_item = iterator.value()
             if tree_item.data(0, Qt.UserRole) == block_idx:
-                item = tree_item
-                break
+                items_to_update.append(tree_item)
             iterator += 1
 
-        if not item: return
+        if not items_to_update: return
 
-        # Try to use stored base name to preserve folder path in compacted view
-        base_display_name = item.data(0, Qt.UserRole + 4)
-        if base_display_name is None:
-            base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
-            
         problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
-        block_problem_counts = self._get_aggregated_problems_for_block(block_idx)
-        
-        display_name_with_issues = base_display_name
-        issue_texts = []
 
-        sorted_problem_ids_for_display = sorted(
-            block_problem_counts.keys(),
-            key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)
-        )
+        self.mw.block_list_widget.blockSignals(True)
+        try:
+            for item in items_to_update:
+                category_name = item.data(0, Qt.UserRole + 10)
+                
+                # Try to use stored base name to preserve folder path in compacted view
+                base_display_name = item.data(0, Qt.UserRole + 4)
+                if base_display_name is None:
+                    base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
+                    
+                block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name)
+                
+                display_name_with_issues = base_display_name
+                issue_texts = []
 
-        for problem_id in sorted_problem_ids_for_display:
-            count_sublines = block_problem_counts[problem_id]
-            if count_sublines > 0:
-                short_name = self.mw.current_game_rules.get_short_problem_name(problem_id)
-                issue_texts.append(f"{count_sublines} {short_name}")
+                sorted_problem_ids_for_display = sorted(
+                    block_problem_counts.keys(),
+                    key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)
+                )
 
-        if issue_texts:
-            display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
-        
-        tooltip_lines = []
-        for problem_id in sorted_problem_ids_for_display:
-            count_sublines = block_problem_counts[problem_id]
-            if count_sublines > 0:
-                prob_def = problem_definitions.get(problem_id, {})
-                full_name = prob_def.get("name", problem_id)
-                desc = prob_def.get("description", "")
-                tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
-        
-        block_tooltip = "<br><br>".join(tooltip_lines) if tooltip_lines else "No issues found"
-        
-        if item.text(0) != display_name_with_issues:
-            self.mw.block_list_widget.blockSignals(True)
-            try:
-                item.setText(0, display_name_with_issues)
-                item.setData(0, Qt.EditRole, base_display_name)
-            finally:
-                self.mw.block_list_widget.blockSignals(False)
+                for problem_id in sorted_problem_ids_for_display:
+                    count_sublines = block_problem_counts[problem_id]
+                    if count_sublines > 0:
+                        short_name = self.mw.current_game_rules.get_short_problem_name(problem_id)
+                        issue_texts.append(f"{count_sublines} {short_name}")
+
+                if issue_texts:
+                    display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
+                
+                if item.text(0) != display_name_with_issues:
+                    item.setText(0, display_name_with_issues)
+                
+                # 1. Trigger parent tree update for recursive asterisks
+                # We climb up the tree from each item and force its parent to update/repaint
+                # This ensures CustomListItemDelegate.paint is called for all ancestors.
+                curr = item
+                while curr:
+                    # In Qt, changing a property or just calling update() on the viewport 
+                    # usually suffice if we triggered dataChanged.
+                    # tree_item.emitDataChanged() is internal but we can trigger it 
+                    # by setting an irrelevant property if needed, or just update the viewport.
+                    curr = curr.parent()
+        finally:
+            self.mw.block_list_widget.blockSignals(False)
+            
+        # Global update to ensure all delegates are re-run for visible ancestors
+        self.mw.block_list_widget.viewport().update()
 
     def update_status_bar(self):
         if not hasattr(self.mw, 'edited_text_edit') or not self.mw.edited_text_edit or \
@@ -781,6 +788,20 @@ class UIUpdater:
         
         self.mw.is_programmatically_changing_text = True
         self.mw.current_category_name = category_name
+
+        # Show "Highlight moved" / "Hide moved" only when this block has categories
+        block_has_categories = False
+        if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+            pm = self.mw.project_manager
+            block_map = getattr(self.mw, 'block_to_project_file_map', {})
+            proj_b_idx = block_map.get(block_idx, block_idx)
+            if proj_b_idx < len(pm.project.blocks):
+                block_has_categories = bool(pm.project.blocks[proj_b_idx].categories)
+        show_cat_toggles = block_has_categories and not category_name
+        if hasattr(self.mw, 'highlight_categorized_checkbox'):
+            self.mw.highlight_categorized_checkbox.setVisible(show_cat_toggles)
+        if hasattr(self.mw, 'hide_categorized_checkbox'):
+            self.mw.hide_categorized_checkbox.setVisible(show_cat_toggles)
 
         # Use a local cache of the last populated block to avoid redundant full resets
         last_block_idx = getattr(self, '_last_populated_block_idx', -999)

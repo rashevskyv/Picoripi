@@ -141,7 +141,8 @@ class MainWindowEventHandler:
         self.mw.app_action_handler.handle_close_event(event)
         
         if event.isAccepted():
-            if not self.mw.unsaved_changes and not self.mw.is_restart_in_progress:
+            # Always save user settings (geometry, last path, etc.) unless restarting
+            if not self.mw.is_restart_in_progress:
                 self.mw.settings_manager.save_settings()
             super(self.mw.__class__, self.mw).closeEvent(event)
 
