@@ -182,36 +182,75 @@ class BaseHandler:
 
 ---
 
-### 2.3. Монолітний `TranslationHandler` — 1329 рядків
+### 2.3. Монолітний `TranslationHandler` → Новий центр тяжіння: `GlossaryHandler` — 1278 рядків
 
-**Файл:** [translation_handler.py](file:///d:/git/dev/zeldamc/jsonreader/handlers/translation_handler.py)
-
-**Опис проблеми:**  
-Один клас з 45 методами відповідає за:
-- Глосарій (show, get, add, edit, append, occurrences, batch update, notes variation)
-- AI-сесії (reset, prepare, attach, record)
-- Переклад рядків, блоків, виділення
-- UI прогрес-бару
-- Промпт-редактор
-- Скасування та відновлення перекладу
-
-**Чому це проблема:**
-- Порушення Single Responsibility — один файл робить все
-- Складно навігувати і розуміти потік виконання
-- Зміна глосарію може зламати AI-переклад і навпаки
-
-**Рішення:**
-
-Розділити на 3–4 класи:
-- `GlossaryHandler` — винесено в `handlers/translation/glossary_handler.py`
-- `AILifecycleManager` — управління сесіями, промптами, retry-логіка
-- `TranslationExecutor` — виконання перекладу рядків/блоків/виділень
-- `TranslationHandler` — фасад, що делегує до трьох попередніх
+**Файли:**
+- [`handlers/translation/translation_handler.py`](file:///d:/git/dev/Picoripi/handlers/translation/translation_handler.py) — 836 рядків (основний фасад, стабільний)
+- [`handlers/translation/glossary_handler.py`](file:///d:/git/dev/Picoripi/handlers/translation/glossary_handler.py) — **1278 рядків / 59 КБ** (проблемний)
 
 > [!NOTE]
-> ✅ **ЧАСТКОВО ВИРІШЕНО** (2026-03-16): `TranslationHandler` декомпоновано. Логіку глосарію винесено в `GlossaryHandler`, життєвий цикл AI та сесії — в `AILifecycleManager`. Промпти винесено в `AIPromptComposer`, а UI логіку — в `TranslationUIHandler`. Розмір файлу зменшено з 1329 до ~850 рядків.
+> ✅ **ЧАСТКОВО ВИРІШЕНО** (2026-03-16): `TranslationHandler` декомпоновано. Логіку глосарію винесено в `GlossaryHandler`, життєвий цикл AI та сесії — в `AILifecycleManager`. Промпти винесено в `AIPromptComposer`, а UI логіку — в `TranslationUIHandler`. Розмір `translation_handler.py` зменшено з 1329 до ~836 рядків. Поточна схема модулів:
+> - `translation_handler.py` — тонкий фасад-координатор (~836 рядків)
+> - `glossary_handler.py` — **монолітний файл (1278 рядків)** — наступна ціль
+> - `ai_lifecycle_manager.py` — lifecycle AI запитів (~400 рядків)
+> - `ai_prompt_composer.py` — побудова промптів (~440 рядків)
+> - `ai_worker.py` — виконання AI у QThread (~450 рядків)
+> - `translation_ui_handler.py` — UI прогресу та діалоги (~260 рядків)
+> - `glossary_builder_handler.py` — AI побудова глосарію (~332 рядків)
 
 ---
+
+#### Аналіз `glossary_handler.py` (2026-03-17)
+
+**`GlossaryHandler` містить 4 різних відповідальності в одному класі:**
+
+| Зона відповідальності | Методи | Рядки |
+|---|---|---|
+| **UI-діалоги глосарію** | `show_glossary_dialog`, `_create_edit_dialog`, `_on_glossary_dialog_closed`, `_handle_glossary_entry_update`, `_handle_glossary_entry_delete`, `_show_translation_update_dialog` | ~250 |
+| **AI Fill / Notes Variation** | `_ai_fill_glossary_entry`, `_handle_ai_fill_success`, `_handle_ai_fill_error`, `_start_glossary_notes_variation`, `_handle_notes_variation_from_dialog`, `_handle_glossary_notes_variation_success` | ~200 |
+| **Occurrence Update (batch & single)** | `request_glossary_occurrence_update`, `request_glossary_occurrence_batch_update`, `_start_ai_occurrence_batch`, `_resume_ai_occurrence_batch`, `_handle_occurrence_ai_result`, `_handle_occurrence_batch_success`, `_handle_occurrence_ai_error`, `_handle_glossary_occurrence_update_success`, `_handle_glossary_occurrence_batch_success` | ~450 |
+| **Утиліти + Промпти** | `load_prompts`, `save_prompt_section`, `_extract_glossary_prompt`, `_extract_system_prompt`, `_ensure_glossary_loaded`, `_update_glossary_highlighting`, `_get_glossary_prompt_template`, `_get_original_string`, `_get_original_block`, `_resolve_selection_from_original`, `_resolve_selection_from_preview`, `_jump_to_occurrence` | ~380 |
+
+Додатково: **два вбудованих UI-класи** на початку файлу:
+- `_ReturnToAcceptFilter` — event filter для Enter в діалозі
+- `_EditEntryDialog` — повноцінний QDialog (~85 рядків)
+
+**Чому це проблема:**
+- `_EditEntryDialog` — окремий UI-компонент, прихований всередині handler-файлу. Не може бути протестований або перевикористаний незалежно
+- `request_glossary_occurrence_batch_update` — один метод на ~100 рядків (рядки 982–1080): окремий промпт-конструктор, retry-логіка, state management — все разом
+- Batch occurrence update дублює частину логіки одиночного occurrence update
+- AI-заповнення глосарію (`_ai_fill_glossary_entry`) та Notes Variation (`_start_glossary_notes_variation`) — це фактично окремі AI-задачі з власними lifecycle, але вони вбудовані у GlossaryHandler замість AILifecycleManager
+
+**Рекомендований план декомпозиції:**
+
+```
+handlers/translation/glossary/
+├── __init__.py                         # реекспортує GlossaryHandler
+├── glossary_handler.py                 # тонкий фасад (~150 рядків)
+├── glossary_edit_dialog.py             # _EditEntryDialog + _ReturnToAcceptFilter (~130 рядків) → /components/
+├── glossary_occurrence_updater.py      # occurrence single + batch update + AI lifecycle (~480 рядків)
+├── glossary_prompt_loader.py           # load_prompts, save_prompt_section, _get_glossary_prompt_template (~200 рядків)
+└── glossary_data_utils.py              # _get_original_string, _get_original_block, _resolve_selection_*, _jump_to_occurrence (~130 рядків)
+```
+
+> [!TIP]
+> `_EditEntryDialog` краще перемістити в `components/glossary_edit_dialog.py` — це справжній UI-компонент, і він може бути тестований незалежно від бізнес-логіки.
+
+**Складність реалізації:** Середня — файл написаний досить послідовно, зв'язки між методами відносно чіткі. Головна небезпека — приховані перехресні залежності між зонами (особливо між `_handle_glossary_entry_update` та occurrence updater).
+
+**Пріоритет:** Середній — файл великий, але **функціонально стабільний**. Помилки у ньому не виявлені. Декомпозиція покращить навігацію та тестованість, але не є терміновою.
+
+> [!NOTE]
+> ✅ **ЧАСТКОВО ВИКОНАНО** (2026-03-18): Перший етап декомпозиції `glossary_handler.py` завершено:
+> - `_EditEntryDialog` → `components/glossary_edit_dialog.py` (122 рядки) — окремий UI-компонент
+> - Промпти/кешування → `handlers/translation/glossary_prompt_manager.py` (233 рядки) — ізольована логіка I/O
+> - `glossary_handler.py` зменшено з **1278 → 917 рядків** (−28%)
+> - Всі 135 тестів пройдені, імпорти перевірені
+
+
+
+---
+
 
 - Environment variables substitution
 
