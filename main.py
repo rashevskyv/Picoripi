@@ -214,6 +214,11 @@ class MainWindow(QMainWindow):
     def problems_per_subline(self, v): self.data_store.problems_per_subline = v
 
     @property
+    def edited_sublines(self): return self.data_store.edited_sublines
+    @edited_sublines.setter
+    def edited_sublines(self, v): self.data_store.edited_sublines = v
+
+    @property
     def last_selected_block_index(self): return self.data_store.last_selected_block_index
     @last_selected_block_index.setter
     def last_selected_block_index(self, v): self.data_store.last_selected_block_index = v

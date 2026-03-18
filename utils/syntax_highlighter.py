@@ -92,7 +92,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         
     def on_contents_change(self, position, chars_removed, chars_added):
         self._invalidate_icon_cache()
-        self.rehighlight()
+        # QSyntaxHighlighter automatically handles rehighlighting the changed blocks.
+        # Calling rehighlight() here can interrupt its internal state and strip colors during setPlainText.
 
     def set_glossary_manager(self, manager: Optional[GlossaryManager]) -> None:
         self._glossary_manager = manager
@@ -470,7 +471,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             final_format = format_map.get(current_block_color_state, self.color_default_format)
             self.setFormat(last_pos, len(text) - last_pos, final_format)
 
-        # Застосовуємо кастомні правила з плагіну гри
+        # Apply custom rules from the game plugin
         rules_to_apply = self.custom_rules
         
         # Performance optimization for the preview window by not highlighting bracket tags (controller buttons)

@@ -357,9 +357,31 @@ class UndoManager:
                 self.mw.ui_updater.update_title()
                 self.mw.ui_updater.update_status_bar()
                 self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+
+                # Dynamically calculate which sublines remain edited relative to saved file
+                text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.edited_file_data, "edited_file_data")
+                if text_from_saved_file is None:
+                    text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data, "original_data")
+                if text_from_saved_file is None:
+                    text_from_saved_file = ""
+                    
+                saved_lines = str(text_from_saved_file).split('\n')
+                
+                # We need actual_text_with_spaces representation
+                actual_text_with_spaces = self.mw.utils.convert_dots_to_spaces_from_editor(text) if hasattr(self.mw, 'utils') else text
+                # Actually 'text' parameter in _apply_data is ALREADY the raw actual_text_with_spaces
+                curr_lines = text.split('\n')
+                
+                self.mw.edited_sublines.clear()
+                for i, curr_line in enumerate(curr_lines):
+                    if i >= len(saved_lines) or curr_line != saved_lines[i]:
+                        self.mw.edited_sublines.add(i)
                 
                 # Re-apply highlights
                 self.mw.ui_updater._apply_highlights_to_editor(self.mw.edited_text_edit, block_idx, string_idx)
+                
+                if hasattr(self.mw.edited_text_edit, 'lineNumberArea'):
+                    self.mw.edited_text_edit.lineNumberArea.update()
                 
         finally:
             self.mw.is_programmatically_changing_text = was_programmatic

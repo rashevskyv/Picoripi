@@ -116,12 +116,25 @@ class TextOperationHandler(BaseHandler):
         
         if not edited_edit or not self.mw.current_game_rules:
             return
-        
+            
         text_from_editor = edited_edit.toPlainText()
-        
         actual_text = self.mw.current_game_rules.convert_editor_text_to_data(text_from_editor)
-        
         actual_text_with_spaces = convert_dots_to_spaces_from_editor(actual_text)
+
+        # Determine which sublines differ from the saved baseline
+        text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.edited_file_data, "edited_file_data")
+        if text_from_saved_file is None:
+            text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.data, "original_data")
+        if text_from_saved_file is None:
+            text_from_saved_file = ""
+            
+        saved_lines = str(text_from_saved_file).split('\n')
+        curr_lines = actual_text_with_spaces.split('\n')
+        
+        self.mw.edited_sublines.clear()
+        for i, curr_line in enumerate(curr_lines):
+            if i >= len(saved_lines) or curr_line != saved_lines[i]:
+                self.mw.edited_sublines.add(i)
         
         self._rescan_issues_for_current_string(block_idx, string_idx_in_block, actual_text_with_spaces)
 
@@ -137,6 +150,9 @@ class TextOperationHandler(BaseHandler):
         
         # Re-apply highlights to editor
         self.mw.ui_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx_in_block)
+        
+        # Dynamically update the visual representation of spaces (dots)
+        self.mw.ui_updater.update_text_views()
         
         if edited_edit and hasattr(edited_edit, 'lineNumberArea'):
             edited_edit.lineNumberArea.update()

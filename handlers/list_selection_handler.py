@@ -205,6 +205,7 @@ class ListSelectionHandler(BaseHandler):
                 preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
         else:
             self.mw.current_string_idx = real_idx
+            self.mw.edited_sublines.clear() # Clear editor sublines on line change
             
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
                 cat = getattr(self.mw, 'current_category_name', None)

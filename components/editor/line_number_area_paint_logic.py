@@ -70,61 +70,40 @@ class LNETLineNumberAreaPaintLogic:
                 if current_q_block.isVisible() and bottom >= event.rect().top():
                     line_height = int(self.editor.blockBoundingRect(current_q_block).height())
                     
+                    # Basic indexes and state
                     is_preview = self.editor.objectName() == "preview_text_edit"
                     is_editor = self.editor.objectName() in["original_text_edit", "edited_text_edit"]
+                    
+                    real_idx = current_q_block_number_in_editor_doc
+                    if is_preview and hasattr(main_window_ref, 'displayed_string_indices') and main_window_ref.displayed_string_indices:
+                        if 0 <= current_q_block_number_in_editor_doc < len(main_window_ref.displayed_string_indices):
+                            real_idx = main_window_ref.displayed_string_indices[current_q_block_number_in_editor_doc]
+                        else:
+                            real_idx = -1
 
-                    # Check if custom line numbers are set (e.g., from spellcheck dialog)
+                    # 1. Determine base number text
                     if hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers:
                         if current_q_block_number_in_editor_doc < len(self.editor.custom_line_numbers):
                             custom_num = self.editor.custom_line_numbers[current_q_block_number_in_editor_doc]
-                            if custom_num is not None:
-                                display_number_for_line_area = str(custom_num)
-                            else:
-                                display_number_for_line_area = ""  # Empty for sublines or spacers
+                            display_number_for_line_area = str(custom_num) if custom_num is not None else ""
                         else:
                             display_number_for_line_area = str(current_q_block_number_in_editor_doc + 1)
                     else:
                         display_number_for_line_area = str(current_q_block_number_in_editor_doc + 1)
                     
-                        is_unsaved = False
-                        real_idx = current_q_block_number_in_editor_doc
-                        if is_preview and hasattr(main_window_ref, 'displayed_string_indices') and main_window_ref.displayed_string_indices:
-                            if 0 <= current_q_block_number_in_editor_doc < len(main_window_ref.displayed_string_indices):
-                                real_idx = main_window_ref.displayed_string_indices[current_q_block_number_in_editor_doc]
-                            else:
-                                real_idx = -1
+                    # 2. Determine unsaved status from global data_processor state
+                    is_unsaved = False
+                    if is_preview:
+                        if (current_block_idx_data_mw, real_idx) in main_window_ref.edited_data:
+                            is_unsaved = True
+                    elif is_editor and current_string_idx_data_mw != -1:
+                        # Check only THIS specific subline (QTextBlock), not the entire string
+                        edited_sublines = getattr(main_window_ref, 'edited_sublines', set())
+                        if current_q_block_number_in_editor_doc in edited_sublines:
+                            is_unsaved = True
 
-                        cur_text = current_q_block.text()
-                        
-                        if is_preview:
-                            if (current_block_idx_data_mw, real_idx) in main_window_ref.edited_data:
-                                if hasattr(main_window_ref, 'data_state_processor'):
-                                    orig_raw = main_window_ref.data_state_processor._get_string_from_source(
-                                        current_block_idx_data_mw, real_idx, main_window_ref.data, "original_data"
-                                    )
-                                    if orig_raw is not None and game_rules:
-                                        orig_disp = game_rules.get_text_representation_for_preview(str(orig_raw))
-                                        is_unsaved = convert_dots_to_spaces_from_editor(cur_text) != \
-                                                     convert_dots_to_spaces_from_editor(orig_disp)
-                                    else:
-                                        is_unsaved = True
-                        elif is_editor and current_string_idx_data_mw != -1:
-                            if (current_block_idx_data_mw, current_string_idx_data_mw) in main_window_ref.edited_data:
-                                if hasattr(main_window_ref, 'data_state_processor'):
-                                    orig_raw = main_window_ref.data_state_processor._get_string_from_source(
-                                        current_block_idx_data_mw, current_string_idx_data_mw, main_window_ref.data, "original_data"
-                                    )
-                                    if orig_raw is not None and game_rules:
-                                        orig_disp = game_rules.get_text_representation_for_editor(str(orig_raw))
-                                        orig_lines = orig_disp.splitlines()
-                                        if current_q_block_number_in_editor_doc < len(orig_lines):
-                                            is_unsaved = convert_dots_to_spaces_from_editor(cur_text) != \
-                                                         convert_dots_to_spaces_from_editor(orig_lines[current_q_block_number_in_editor_doc])
-                                        else:
-                                            is_unsaved = True
-
-                        if is_unsaved:
-                            display_number_for_line_area = f"* {display_number_for_line_area}"
+                    if is_unsaved and display_number_for_line_area:
+                        display_number_for_line_area = f"* {display_number_for_line_area}"
 
                     number_part_rect = QRect(0, top, number_part_width, line_height)
                     extra_info_part_rect = QRect(number_part_width, top, extra_part_width, line_height)

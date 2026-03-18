@@ -289,6 +289,7 @@ class DataStateProcessor:
                 if success_all:
                     self.mw.unsaved_changes = False
                     self.mw.edited_data = {}
+                    self.mw.edited_sublines.clear()
                     if global_keys_backup is not None:
                         self.mw.current_game_rules.original_keys = global_keys_backup
                         
@@ -323,6 +324,7 @@ class DataStateProcessor:
                 if save_file_success:
                     self.mw.unsaved_changes = False
                     self.mw.edited_data = {} 
+                    self.mw.edited_sublines.clear()
                     
                     # Backup and restore keys since we are just re-parsing to update UI data
                     plugin_keys_backup = None
@@ -371,7 +373,7 @@ class DataStateProcessor:
                         return False
     
                 if save_file_success:
-                    self.mw.unsaved_changes = False; self.mw.edited_data = {}; 
+                    self.mw.unsaved_changes = False; self.mw.edited_data = {}; self.mw.edited_sublines.clear(); 
                     
                     # Backup and restore keys since we are reading translation data
                     plugin_keys_backup = None

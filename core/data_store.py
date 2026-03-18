@@ -36,6 +36,9 @@ class AppDataStore:
     # Analysis & Problems
     problems_per_subline: Dict[int, Set[str]] = field(default_factory=dict)
     
+    # Editor subline modification tracking (QTextBlock numbers that were changed)
+    edited_sublines: Set[int] = field(default_factory=set)
+    
     # Selection Persistence
     last_selected_block_index: int = -1
     last_selected_string_index: int = -1
@@ -53,6 +56,7 @@ class AppDataStore:
         self.current_block_idx = -1
         self.current_string_idx = -1
         self.problems_per_subline = {}
+        self.edited_sublines = set()
         log_debug("AppDataStore: Data cleared")
 
     def mark_dirty(self, block_idx: int):

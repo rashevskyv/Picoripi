@@ -167,27 +167,30 @@ def convert_spaces_to_dots_for_display(text: str, enable_conversion: bool) -> st
         # Check if line has a trailing newline to strip it for $ matching
         line_content = line.rstrip('\r\n')
         line_endings = line[len(line_content):]
-        import re
         line_content = line.rstrip('\r\n')
         line_endings = line[len(line_content):]
         
-        # We find ALL sequences of spaces
-        def replace_spaces(match):
-            spaces = match.group(0)
+        # We find ALL sequences of spaces OR already converted dots
+        # This is needed because some plugins already partially convert text
+        pattern = f'[ {SPACE_DOT_SYMBOL}]+'
+        
+        def replace_spaces_and_dots(match):
+            cluster = match.group(0)
             start_pos = match.start()
             end_pos = match.end()
             
-            # Rule: Always dots if:
+            # Rule: We want to show dots if:
             # 1. At the very start of line
             # 2. At the very end of line
-            # 3. Sequence length > 1
-            if start_pos == 0 or end_pos == len(line_content) or len(spaces) > 1:
-                return SPACE_DOT_SYMBOL * len(spaces)
+            # 3. Cluster length > 1 (e.g., space+space, space+dot, etc.)
             
-            # Otherwise, it's a single middle space
-            return spaces
+            if start_pos == 0 or end_pos == len(line_content) or len(cluster) > 1:
+                return SPACE_DOT_SYMBOL * len(cluster)
             
-        new_content = re.sub(r" +", replace_spaces, line_content)
+            # Otherwise, it's a single middle space - keep it as space (or dot if it was dot)
+            return cluster
+            
+        new_content = re.sub(pattern, replace_spaces_and_dots, line_content)
         processed_lines.append(new_content + line_endings)
         
     return "".join(processed_lines)
