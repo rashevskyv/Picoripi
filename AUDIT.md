@@ -241,12 +241,12 @@ handlers/translation/glossary/
 **Пріоритет:** Середній — файл великий, але **функціонально стабільний**. Помилки у ньому не виявлені. Декомпозиція покращить навігацію та тестованість, але не є терміновою.
 
 > [!NOTE]
-> ✅ **ЧАСТКОВО ВИКОНАНО** (2026-03-18): Перший етап декомпозиції `glossary_handler.py` завершено:
+> ✅ **ВИКОНАНО** (2026-03-18): Повна декомпозиція `glossary_handler.py` (1278 → 443 рядків, −65%):
 > - `_EditEntryDialog` → `components/glossary_edit_dialog.py` (122 рядки) — окремий UI-компонент
 > - Промпти/кешування → `handlers/translation/glossary_prompt_manager.py` (233 рядки) — ізольована логіка I/O
-> - `glossary_handler.py` зменшено з **1278 → 917 рядків** (−28%)
-> - Всі 135 тестів пройдені, імпорти перевірені
-
+> - Occurrence AI update → `handlers/translation/glossary_occurrence_updater.py` (~460 рядків) — окремий цикл AI-ретрансляції
+> - `glossary_handler.py` — тонкий фасад (443 рядки) з CRUD, діалогами, AI Fill та proxy-методами
+> - Всі 135 тестів пройдені
 
 
 ---
@@ -611,13 +611,13 @@ if hasattr(self, 'spellchecker_manager'):
 |---|---|---|---|---|
 | 1 | ✅ Вирішено | 46 булевих прапорців стану | `StateManager` + видалення мертвих прапорців | — |
 | 2 | 🟡 Високий | Tight coupling через `self.mw` | `ProjectContext` міграція триває | Висока |
-| 3 | 🟡 Високий | `translation_handler.py` 1329 рядків | Розділити на 3-4 класи | Середня |
+| 3 | 🟢 Частково | `translation_handler.py` 1329→836, `glossary_handler.py` 1278→917 | Декомпоновано: GlossaryEditDialog, GlossaryPromptManager, AIPromptComposer, AILifecycleManager, TranslationUIHandler | — |
 | 4 | ✅ Вирішено | `settings_manager.py` 685 рядків | Декомпоновано на пакет `core/settings/` | — |
 | 5 | ✅ Вирішено | `utils.py` імпортує з `pokemon_fr` | Перенесено маркери в `markers.py` | — |
 | 6 | ✅ Вирішено | 0% coverage pytest | Додано 135+ тестів (pytest) | — |
 | 7 | ✅ Вирішено | `setup_main_window_ui` 380 рядків | Розбито на `ui/builders/` | — |
-| 8 | 🟢 Середній | Дублювання App/Project ActionHandler | Об'єднати або прибрати делегування | Низька |
-| 9 | 🟢 Середній | `data_manager` показує QMessageBox | Відділити core від UI | Низька |
+| 8 | ✅ Вирішено | Дублювання App/Project ActionHandler | Видалено делегати, UI напряму підключено до ProjectActionHandler | — |
+| 9 | ✅ Вирішено | `data_manager` показує QMessageBox | Повертає помилки, UI обробляє в хендлерах | — |
 | 10 | ✅ Вирішено | `app_debug.txt` 9 МБ | RotatingFileHandler | — |
 | 11 | ✅ Вирішено | Змішування os.path/pathlib | Стандартизовано на pathlib у core/handlers | — |
 | 12 | ✅ Вирішено | Неповні type hints | Додано до ProjectManager та Handlers | — |
