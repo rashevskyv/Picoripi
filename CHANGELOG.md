@@ -2,6 +2,17 @@
 
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.10] - 2026-03-18
+
+### Fixed
+- **Dynamic Space Visualization**: Spaces are now correctly replaced with dots (·) only for leading, trailing, or multiple consecutive spaces, updating dynamically as you type.
+- **Syntax Highlighting Stability**: Fixed an issue where tags would lose their color during space-to-dot conversion by removing redundant manual rehighlighting.
+- **Granular Modification Indicators**: Asterisks (*) next to line numbers now only appear for sublines that actually differ from the saved version.
+- **Smart Undo/Redo**: Modification stars now correctly disappear when a change is undone and the text returns to its original saved state.
+
+### Improved
+- **Code Internationalization**: Translated several internal Python comments from Ukrainian to English to maintain project standards.
+
 ## [0.2.6] - 2026-03-18
 
 ### Improved
