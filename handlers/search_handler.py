@@ -314,13 +314,13 @@ class SearchHandler(BaseHandler):
                     
                     current_search_offset_in_qblock = 0
                     while current_search_offset_in_qblock < len(text_in_widget_qtextblock):
-                        start_pos, _ = self._find_in_text(text_in_widget_qtextblock, first_word_display, current_search_offset_in_qblock, self.is_case_sensitive)
+                        start_pos, matched_word_len = self._find_in_text(text_in_widget_qtextblock, first_word_display, current_search_offset_in_qblock, self.is_case_sensitive, is_fuzzy=self.is_fuzzy)
                         if start_pos == -1: break
 
                         highlight_start_qblock_idx = current_widget_qblock_idx
                         highlight_start_pos_in_qblock = start_pos
                         highlight_end_qblock_idx = current_widget_qblock_idx
-                        highlight_end_pos_in_qblock_end_of_word = start_pos + len(first_word_display)
+                        highlight_end_pos_in_qblock_end_of_word = start_pos + matched_word_len
                         
                         all_words_found_sequentially = True
                         if len(query_words_for_display_search) > 1:
@@ -341,10 +341,10 @@ class SearchHandler(BaseHandler):
                                     
                                     search_from_in_next_block = temp_offset_for_next_words if j == temp_current_qblock_for_next_words else 0
                                     
-                                    next_pos, _ = self._find_in_text(text_of_block_to_search_next, next_word_display, search_from_in_next_block, self.is_case_sensitive)
+                                    next_pos, next_matched_len = self._find_in_text(text_of_block_to_search_next, next_word_display, search_from_in_next_block, self.is_case_sensitive, is_fuzzy=self.is_fuzzy)
                                     if next_pos != -1:
                                         highlight_end_qblock_idx = j
-                                        highlight_end_pos_in_qblock_end_of_word = next_pos + len(next_word_display)
+                                        highlight_end_pos_in_qblock_end_of_word = next_pos + next_matched_len
                                         temp_current_qblock_for_next_words = j
                                         temp_offset_for_next_words = highlight_end_pos_in_qblock_end_of_word
                                         found_current_next_word = True

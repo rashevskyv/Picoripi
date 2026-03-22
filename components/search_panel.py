@@ -60,8 +60,8 @@ class SearchPanelWidget(QWidget):
 
         left_layout = QHBoxLayout()
         left_layout.addWidget(self.search_query_edit)
-        left_layout.addWidget(self.find_next_button)
         left_layout.addWidget(self.find_previous_button)
+        left_layout.addWidget(self.find_next_button)
         
         options_layout = QHBoxLayout()
         options_layout.setSpacing(8)
