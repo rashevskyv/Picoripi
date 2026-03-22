@@ -294,9 +294,27 @@ class ListSelectionHandler(BaseHandler):
         undo_mgr = getattr(self.mw, 'undo_manager', None)
         before = undo_mgr.get_project_snapshot() if undo_mgr else None
 
+        # Check if it's a virtual block (category). Virtual blocks have BOTH block_index AND category_name set.
+        # We must check category_name FIRST because virtual block items also have a block_index.
+        category_name = item.data(0, Qt.UserRole + 10)
+        
         self.mw.is_programmatically_changing_text = True
         try:
-            if block_index_from_data is not None:
+            if category_name is not None and block_index_from_data is not None:
+                # Rename Virtual Block (Category) — delegate to the proper method
+                log_debug(f"Virtual block '{category_name}' renamed to '{new_text}' (via inline edit)")
+                pm = getattr(self.mw, 'project_manager', None)
+                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(block_index_from_data, block_index_from_data)
+                if pm and proj_b_idx < len(pm.project.blocks):
+                    block = pm.project.blocks[proj_b_idx]
+                    for cat in block.categories:
+                        if cat.name == category_name:
+                            cat.name = new_text.strip()
+                            break
+                    pm.save()
+                    self.ui_updater.populate_blocks()
+            elif block_index_from_data is not None:
                 # Rename Block
                 block_index_str = str(block_index_from_data)
                 

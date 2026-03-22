@@ -18,15 +18,14 @@
     "original_file_path": "D:\\git\\WW\\WindWaker\\sources\\message_orig.txt",
     "edited_file_path": "D:\\git\\WW\\WindWaker\\translation\\message_orig.txt",
     "last_selected_block_index": 0,
-    "last_selected_string_index": 357,
-    "last_cursor_position_in_edited": 123,
+    "last_selected_string_index": 177,
+    "last_cursor_position_in_edited": 10,
     "last_edited_text_edit_scroll_value_v": 0,
     "last_edited_text_edit_scroll_value_h": 0,
-    "last_preview_text_edit_scroll_value_v": 151,
+    "last_preview_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_h": 0,
     "search_history": [
-        "острів",
         "Скаржиться, що через зайнятість",
         "Любить тікати з замку",
         "початок підземелля",
@@ -45,7 +44,8 @@
         "orca",
         "осетр",
         "Sturgeon",
-        "Оcтов"
+        "Оcтов",
+        "острів"
     ],
     "autofix_enabled": {
         "ZWW_TAG_WARNING": false,

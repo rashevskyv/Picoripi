@@ -251,6 +251,7 @@ class UIUpdater:
                 block = pm.project.blocks[proj_b_idx]
                 for cat in block.categories:
                     cat_item = QTreeWidgetItem([cat.name])
+                    cat_item.setFlags(cat_item.flags() | Qt.ItemIsEditable)
                     cat_item.setData(0, Qt.UserRole, block_idx)
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
                     cat_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
