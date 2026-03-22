@@ -130,13 +130,37 @@ class LNETContextMenuLogic:
                         lambda checked=False, word=word_under_cursor: spellchecker_manager.add_to_custom_dictionary(word)
                     )
 
-            if translator and has_selection:
+            if translator:
                 if not custom_actions_added:
                     menu.addSeparator()
                     custom_actions_added = True
 
-                variation_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_MessageBoxInformation), "AI Variations for Selected")
-                variation_action.triggered.connect(translator.generate_variation_for_current_string)
+                # Check if there is an existing glossary entry under cursor
+                glossary_entry = self.editor._find_glossary_entry_at(position_in_widget_coords)
+                if glossary_entry:
+                    action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Edit Glossary Entry…")
+                    action.triggered.connect(
+                        lambda checked=False, term=glossary_entry.original: translator.edit_glossary_entry(term)
+                    )
+                else:
+                    # Determine candidate for adding to glossary
+                    if has_selection:
+                        add_term_candidate = cursor.selectedText().replace('·', ' ').strip()
+                    else:
+                        cursor_at_pos = self.editor.cursorForPosition(position_in_widget_coords)
+                        cursor_at_pos.select(QTextCursor.WordUnderCursor)
+                        add_term_candidate = cursor_at_pos.selectedText().strip()
+                    
+                    if add_term_candidate:
+                        action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Add to Glossary…")
+                        context_line = cursor.block().text().replace('\u2029', ' ').strip()
+                        action.triggered.connect(
+                            lambda checked=False, t=add_term_candidate, ctx=context_line: translator.add_glossary_entry(term="", translation=t, context=ctx)
+                        )
+
+                if has_selection:
+                    variation_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_MessageBoxInformation), "AI Variations for Selected")
+                    variation_action.triggered.connect(translator.generate_variation_for_current_string)
 
             # Dynamic Tags Section
             if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:

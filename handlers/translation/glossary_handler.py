@@ -153,14 +153,18 @@ class GlossaryHandler(BaseTranslationHandler):
 
     # ── Entry CRUD ────────────────────────────────────────────────────────
 
-    def add_glossary_entry(self, term: str, context: Optional[str] = None) -> None:
-        self.edit_glossary_entry(term, is_new=True, context=context)
+    def add_glossary_entry(self, term: str, context: Optional[str] = None, translation: str = "") -> None:
+        self.edit_glossary_entry(term, is_new=True, context=context, translation=translation)
 
-    def edit_glossary_entry(self, term: str, is_new: bool = False, context: Optional[str] = None) -> None:
+    def edit_glossary_entry(self, term: str, is_new: bool = False, context: Optional[str] = None, translation: str = "") -> None:
         entry = self.glossary_manager.get_entry(term) if not is_new else None
         old_translation = entry.translation if entry else None
+        
+        # If we have an initial translation provided (e.g. from context menu)
+        # we'll use it if the entry doesn't have one or if we are creating a new one.
+        effective_translation = translation or (entry.translation if entry else "")
 
-        dialog = self._create_edit_dialog(term, entry, context)
+        dialog = self._create_edit_dialog(term, entry, context, initial_translation=effective_translation)
         if dialog.exec_() != QDialog.Accepted:
             return
 
@@ -192,8 +196,11 @@ class GlossaryHandler(BaseTranslationHandler):
                     entry=updated_entry, previous_translation=old_translation, occurrences=occurrences
                 )
 
-    def _create_edit_dialog(self, term: str, entry: Optional[GlossaryEntry], context: Optional[str]) -> GlossaryEditDialog:
+    def _create_edit_dialog(self, term: str, entry: Optional[GlossaryEntry], context: Optional[str], initial_translation: str = "") -> GlossaryEditDialog:
         dialog_ref: Dict[str, GlossaryEditDialog] = {}
+        
+        # Use initial_translation if provided, otherwise fallback to existing entry's translation
+        translation_to_use = initial_translation or (entry.translation if entry else "")
 
         def _ai_fill_wrapper() -> None:
             d = dialog_ref.get("dialog")
@@ -213,7 +220,7 @@ class GlossaryHandler(BaseTranslationHandler):
         dialog = GlossaryEditDialog(
             parent=self.mw,
             term=term,
-            translation=entry.translation if entry else "",
+            translation=translation_to_use,
             notes=entry.notes if entry else "",
             context=context,
             ai_assist_callback=_ai_fill_wrapper,
