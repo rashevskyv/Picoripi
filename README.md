@@ -1,6 +1,16 @@
-# Picoripi v0.2.15-dev
+# Picoripi v0.2.17
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+
+## New in v0.2.17
+
+- **Glossary Highlighting Fix**: Glossary terms are now correctly highlighted immediately after opening a project, without needing to open the glossary window.
+- **Enhanced Performance**: 
+  - Massive speedup in glossary term identification using first-word pre-filtering.
+  - Pixel-perfect width calculations now use an optimized Trie structure.
+  - Syntax highlighter now uses pre-compiled regex for better responsiveness.
+- **Plugin-Specific Context Menus**: Unique context menu tags per plugin to prevent leakage between projects.
+- **Improved UI Stability**: Added guards to prevent crashes during early initialization or invalid block selection.
 
 ## New in v0.2.11
 

@@ -1,0 +1,15 @@
+## [0.2.17] - 2026-03-22
+
+### Fixed
+- **Glossary Highlighting Trigger**: Fixed a critical issue where glossary terms were not highlighted until the glossary window was manually opened. Term highlighting is now triggered correctly upon project load.
+- **UI Initialization Stability**: Added guard clauses to `UIUpdater` and `JsonTagHighlighter` to prevent `AttributeError` crashes during early application startup.
+- **Settings Reloading Leak**: Fixed a memory/logic leak where project settings were not fully reset when switching projects.
+
+### Added
+- **Plugin-Specific Context Menus**: Unique context menu tags per plugin now ensure that game-specific markers and formatting options don't leak between different project types.
+
+### Improved
+- **High-Performance Glossary Matching**: Implemented first-word pre-filter indexing in `GlossaryManager`, drastically reducing analysis time for large text blocks.
+- **Optimized Width Calculation**: Integrated a Trie-based character width calculator for faster pixel-perfect rendering in the editor.
+- **Responsive Syntax Highlighter**: Replaced ad-hoc regex compilation with pre-compiled patterns and optimized hit detection.
+- **Spellchecker Responsiveness**: Added in-memory caching for spellchecker suggestions and dictionary data.
