@@ -487,25 +487,32 @@ class GlossaryManager:
     def build_translation_regex(term: str) -> Optional[re.Pattern[str]]:
         """
         Build a regex for a translated term that handles Slavic inflections.
-        It uses a simple 'stemming' approach to allow for case endings.
+        Supports multiple translations separated by semicolons (;).
         """
         if not term or not term.strip():
             return None
 
-        # 1. Clean up and lower
-        term = term.strip()
+        # Split into variations by semicolon
+        variations = [v.strip() for v in term.split(';') if v.strip()]
+        if not variations:
+            return None
+
+        patterns = []
+        sep = r"(?:\s+|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
+
+        for var in variations:
+            words = var.split()
+            if len(words) > 1:
+                # Multi-word variation logic
+                parts = [GlossaryManager._get_word_stem_pattern(word) for word in words]
+                patterns.append(rf"(?<!\w){sep.join(parts)}(?!\w)")
+            else:
+                # Single-word variation logic
+                patterns.append(rf"(?<!\w){GlossaryManager._get_word_stem_pattern(var)}(?!\w)")
         
-        # 2. Handle multi-word terms
-        words = term.split()
-        if len(words) > 1:
-            parts = [GlossaryManager._get_word_stem_pattern(word) for word in words]
-            sep = r"(?:\s+|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
-            pattern = rf"(?<!\w){sep.join(parts)}(?!\w)"
-            return re.compile(pattern, re.IGNORECASE)
-        
-        # 3. Handle single word
-        pattern = rf"(?<!\w){GlossaryManager._get_word_stem_pattern(term)}(?!\w)"
-        return re.compile(pattern, re.IGNORECASE)
+        # Combine all variations into a single OR pattern
+        combined_pattern = f"(?:{'|'.join(patterns)})"
+        return re.compile(combined_pattern, re.IGNORECASE)
 
     @staticmethod
     def _get_word_stem_pattern(word: str) -> str:

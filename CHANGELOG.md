@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.38] - 2026-03-22
+
+### 🚀 Added
+- **Multi-variation Glossary Support**: Added support for multiple translation variations for a single glossary term, separated by semicolons (`;`). Both single-word and multi-word variations are perfectly handled with Slavic inflection support.
+
+## [0.2.37] - 2026-03-22
+
+### ⚡ Improved
+- **Glossary Tooltip Responsiveness**: Improved tooltip registration in the translation window. Tooltips now correctly refresh their position when moving between lines of a multi-line glossary term, providing a much smoother user experience.
+
 ## [0.2.36] - 2026-03-22
 
 ### 🐛 Fixed

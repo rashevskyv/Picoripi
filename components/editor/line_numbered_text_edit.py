@@ -149,6 +149,8 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.spellcheck_logic.apply_corrected_text(corrected_text, line_numbers)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        cursor = self.cursorForPosition(event.pos())
+        block = cursor.block()
         entry = self._find_glossary_entry_at(event.pos())
         warning_tooltip = self._find_warning_tooltip_at(event.pos())
         
@@ -163,12 +165,19 @@ class LineNumberedTextEdit(QPlainTextEdit):
         # Warning tooltips from the main text area are now handled only by handle_line_number_area_mouse_move
         # for the LineNumberArea. We keep glossary tooltips here if needed, but remove warning_tooltip logic.
 
-        if tooltip_text and tooltip_text != getattr(self, '_current_combined_tooltip', None):
-            QToolTip.showText(self.mapToGlobal(event.pos()), tooltip_text, self)
-            self._current_combined_tooltip = tooltip_text
-        elif not tooltip_text and getattr(self, '_current_combined_tooltip', None):
+        # Tracking state to avoid flickering but allow position updates between lines
+        current_state = (tooltip_text, block.blockNumber()) if entry else None
+        last_state = getattr(self, '_last_tooltip_state', None)
+
+        if tooltip_text:
+            if current_state != last_state:
+                QToolTip.showText(self.mapToGlobal(event.pos()), tooltip_text, self)
+                self._last_tooltip_state = current_state
+                self._current_combined_tooltip = tooltip_text
+        elif getattr(self, '_current_combined_tooltip', None):
             QToolTip.hideText()
             self._current_combined_tooltip = None
+            self._last_tooltip_state = None
 
         self._hovered_glossary_entry = entry
         self._hovered_warning_text = warning_tooltip
