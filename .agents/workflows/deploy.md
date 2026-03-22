@@ -18,8 +18,10 @@ Follow these steps when the USER requests a "deploy":
    - Create a local tag: `git tag -a v[VERSION] -m "Release v[VERSION]"`
    - Push tag: `git push origin v[VERSION]`
 5. **GitHub Release**:
-   - Generate release notes using the changelog.
-   - Instruct the user to create a release on GitHub using the provided notes (or use `gh` if available).
+   - Generate release notes using the latest entries in `CHANGELOG.md`.
+   - If `gh` CLI is available, create the release automatically:
+     `gh release create v[VERSION] --title "Release v[VERSION]" --notes-file [NOTES_FILE]`
+   - Otherwise, provide the notes to the user for manual creation.
 6. **Post-Deploy**:
    - Increment `APP_VERSION` in `utils/constants.py` for the next development cycle (increment patch version by default).
 1.  **Check Current Version**: Read `utils/constants.py` to get `APP_VERSION`.
