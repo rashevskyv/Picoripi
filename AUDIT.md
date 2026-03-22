@@ -105,7 +105,7 @@
 | 3 | ✅ | Glossary/Spell range | **Виконано** | `setFormat(range)` | **8.0x** |
 | 4 | ✅ | **Spellchecker cache** | **Виконано** | Персистентний кеш `is_misspelled` | 2-5x |
 | 5 | ✅ | **MainWindow stubs** | **Виконано** | Видалено property boilerplate | Чистота |
-| 6 | 🟡 | Glossary Aho-Corasick | Pending | `pyahocorasick` бібл. | 10-100x |
+| 6 | ✅ | Glossary Aho-Corasick | **Виконано** | `pyahocorasick` бібл. | 10-100x |
 | 7 | 🟡 | `ui_updater.py` size | Pending | Подальша декомпозиція | Підтримка |
 | 8 | 🟡 | `UndoManager` memory | Pending | Використання diff-ів | RAM |
 | 9 | 🟢 | Cython для width | Optional | С-компіляція hot-path | 20x+ |

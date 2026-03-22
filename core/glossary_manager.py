@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 import re
 import unicodedata
+import ahocorasick
 
 from utils.logging_utils import log_debug
 
@@ -61,6 +62,7 @@ class GlossaryManager:
         self._session_changes: Dict[str, Optional[GlossaryEntry]] = {}
 
         # Optimization structures for fast pattern matching
+        self._automaton: Optional[ahocorasick.Automaton] = None
         self._first_word_index: Dict[str, List[Tuple[GlossaryEntry, re.Pattern[str]]]] = {}
         self._non_word_patterns: List[Tuple[GlossaryEntry, re.Pattern[str]]] = []
         self._word_finder = re.compile(r'\w+')
@@ -145,22 +147,40 @@ class GlossaryManager:
             return []
             
         matches: List[GlossaryMatch] = []
-        
-        # Pre-filter text to find all unique words
+        seen_ranges: set[Tuple[int, int, str]] = set()
+
+        # Phase 1: Aho-Corasick for exact matches (extremely fast)
+        if self._automaton:
+            # We search in lowercase for case-insensitivity
+            # Note: The automaton was built using normalize_term(original)
+            search_text = text.lower()
+            for end_pos, (entry, length) in self._automaton.iter(search_text):
+                start_pos = end_pos - length + 1
+                
+                # Verify word boundaries for exact matches
+                is_start_boundary = (start_pos == 0 or not text[start_pos-1].isalnum())
+                is_end_boundary = (end_pos == len(text)-1 or not text[end_pos+1].isalnum())
+                
+                if is_start_boundary and is_end_boundary:
+                    matches.append(GlossaryMatch(entry=entry, start=start_pos, end=end_pos + 1))
+                    seen_ranges.add((start_pos, end_pos + 1, entry.original))
+
+        # Phase 2: Regex fallback for matches with tags/spaces (the current strategy)
+        # We only check patterns that haven't been fully satisfied by AC 
+        # OR patterns that commonly contain tags.
         text_words = {m.group(0).lower() for m in self._word_finder.finditer(text)}
         
-        # Build list of patterns to check based on words present in the text
         patterns_to_check = list(self._non_word_patterns)
         for word in text_words:
             if word in self._first_word_index:
                 patterns_to_check.extend(self._first_word_index[word])
                 
-        # Only execute regexes that have a chance of matching
         for entry, pattern in patterns_to_check:
             for match in pattern.finditer(text):
-                matches.append(GlossaryMatch(entry=entry, start=match.start(), end=match.end()))
+                m_start, m_end = match.span()
+                if (m_start, m_end, entry.original) not in seen_ranges:
+                    matches.append(GlossaryMatch(entry=entry, start=m_start, end=m_end))
                 
-        # Sort matches by start index to preserve correct rendering order
         return sorted(matches, key=lambda m: m.start)
 
     def build_occurrence_index(self, dataset: Sequence) -> Dict[str, List[GlossaryOccurrence]]:
@@ -186,25 +206,18 @@ class GlossaryManager:
                     if not line:
                         continue
                         
-                    # Pre-filter using local words in the line for massive speedup
-                    line_words = {m.group(0).lower() for m in self._word_finder.finditer(line)}
-                    patterns_to_check = list(self._non_word_patterns)
-                    for word in line_words:
-                        if word in self._first_word_index:
-                            patterns_to_check.extend(self._first_word_index[word])
-                            
-                    for entry, pattern in patterns_to_check:
-                        for match in pattern.finditer(line):
-                            occ = GlossaryOccurrence(
-                                entry=entry,
-                                block_idx=block_idx,
-                                string_idx=string_idx,
-                                line_idx=line_idx,
-                                start=match.start(),
-                                end=match.end(),
-                                line_text=line,
-                            )
-                            occurrences.setdefault(entry.original, []).append(occ)
+                    # Use the AC-optimized find_matches
+                    for match in self.find_matches(line):
+                        occ = GlossaryOccurrence(
+                            entry=match.entry,
+                            start=match.start,
+                            end=match.end,
+                            block_idx=block_idx,
+                            string_idx=string_idx,
+                            line_idx=line_idx,
+                            line_text=line,
+                        )
+                        occurrences.setdefault(match.entry.original, []).append(occ)
 
         self._occurrence_index = occurrences
         return occurrences
@@ -419,19 +432,32 @@ class GlossaryManager:
         self._first_word_index.clear()
         self._non_word_patterns.clear()
         
+        # Use a fresh automaton
+        self._automaton = ahocorasick.Automaton()
+        
         for entry in self._entries:
             if not entry.original:
                 continue
+            
             pattern = self._build_regex(entry.original)
             self._compiled_patterns[entry.original] = pattern
             
-            # Index optimization: extract the first alphanumeric word to use as a pre-filter
+            # 1. Add to Aho-Corasick for exact matching
+            # We use the lowercased version since we search in lowercase
+            normalized = entry.original.lower()
+            if normalized:
+                # Store (entry, length) so find_matches can reconstruct the match
+                self._automaton.add_word(normalized, (entry, len(normalized)))
+
+            # 2. Index optimization for regex (case with tags/extra spaces)
             words = self._word_finder.findall(entry.original)
             if words:
                 first_word = words[0].lower()
                 self._first_word_index.setdefault(first_word, []).append((entry, pattern))
             else:
                 self._non_word_patterns.append((entry, pattern))
+        
+        self._automaton.make_automaton()
 
     @staticmethod
     def _build_regex(term: str) -> re.Pattern[str]:
