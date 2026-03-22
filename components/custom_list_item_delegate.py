@@ -439,6 +439,23 @@ class CustomListItemDelegate(QStyledItemDelegate):
             return True
         return super().helpEvent(event, view, option, index)
 
+    def setEditorData(self, editor, index):
+        # We explicitly stored the pure name in Qt.UserRole + 4 to avoid 
+        # issues where QTreeWidget fallback pulls the DisplayRole (which has issue counts).
+        pure_name = index.data(Qt.UserRole + 4)
+        if pure_name is not None:
+            if hasattr(editor, 'setText'):
+                editor.setText(pure_name)
+                return
+        super().setEditorData(editor, index)
+
+    def setModelData(self, editor, model, index):
+        if hasattr(editor, 'text'):
+            new_text = editor.text()
+            model.setData(index, new_text, Qt.EditRole)
+        else:
+            super().setModelData(editor, model, index)
+
     def updateEditorGeometry(self, editor, option, index):
         item_rect = option.rect
         current_number_area_width = self._get_current_number_area_width(option)

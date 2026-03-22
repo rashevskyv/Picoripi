@@ -226,6 +226,7 @@ class UIUpdater:
             display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
             
         item.setText(0, display_name_with_issues)
+        
         if tooltip_lines:
             item.setToolTip(0, "<br><br>".join(tooltip_lines))
         else:
@@ -239,7 +240,6 @@ class UIUpdater:
         item = self.mw.block_list_widget.create_item(base_display_name, block_idx, Qt.UserRole)
         self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         
-        item.setData(0, Qt.EditRole, base_display_name)
         item.setData(0, Qt.UserRole + 4, base_display_name)
         
         # Add categories as children
@@ -254,7 +254,6 @@ class UIUpdater:
                     cat_item.setFlags(cat_item.flags() | Qt.ItemIsEditable)
                     cat_item.setData(0, Qt.UserRole, block_idx)
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
-                    cat_item.setData(0, Qt.EditRole, cat.name)
                     cat_item.setData(0, Qt.UserRole + 4, cat.name)
                     cat_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
                     
@@ -311,7 +310,6 @@ class UIUpdater:
 
         # Create folder item
         folder_item = QTreeWidgetItem([display_name])
-        folder_item.setData(0, Qt.EditRole, clean_display_name)
         folder_item.setFlags(folder_item.flags() | Qt.ItemIsEditable)
         folder_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
         
