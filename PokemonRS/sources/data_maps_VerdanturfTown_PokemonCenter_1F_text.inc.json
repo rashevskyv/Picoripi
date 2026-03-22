@@ -1,0 +1,6 @@
+{
+  "data/maps/VerdanturfTown_PokemonCenter_1F/text.inc": {
+    "VerdanturfTown_PokemonCenter_1F_Text_TrainerIsntQualifiedIf": "I daresay a TRAINER isn't qualified if\\nPOKéMON aren't settled and friendly.\\lHave you given them any {POKEBLOCK}S?",
+    "VerdanturfTown_PokemonCenter_1F_Text_AllContestsOriginateHere": "Let me hazard a guess why you're in\\nVERDANTURF. The reason: CONTESTS.\\pAll CONTEST challenges originate here."
+  }
+}

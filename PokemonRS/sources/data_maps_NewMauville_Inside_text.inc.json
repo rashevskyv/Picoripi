@@ -1,0 +1,7 @@
+{
+  "data/maps/NewMauville_Inside/text.inc": {
+    "NewMauville_Inside_Text_198315": "The generator is radiating heat that\\ncan be felt even at a distance.\\pIt looks like it should be turned off\\nas soon as possible.",
+    "NewMauville_Inside_Text_198395": "The generator quieted down.",
+    "NewMauville_Inside_Text_1983B1": "{PLAYER} stepped on the switch.\\pClick...\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pThe generator appears to have\\nstopped..."
+  }
+}

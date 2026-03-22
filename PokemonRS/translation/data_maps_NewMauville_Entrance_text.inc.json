@@ -1,0 +1,7 @@
+{
+    "data_maps_NewMauville_Entrance_text.inc": {
+        "NewMauville_Entrance_Text_1982C0": "Двері зачинено.",
+        "NewMauville_Entrance_Text_1982D4": "Використати BASEMENT KEY?",
+        "NewMauville_Entrance_Text_1982EA": "{PLAYER} використовує BASEMENT KEY.\\pДвері відчинилися!"
+    }
+}

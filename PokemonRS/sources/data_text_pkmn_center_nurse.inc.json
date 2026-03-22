@@ -1,0 +1,10 @@
+{
+  "data/text/pkmn_center_nurse.inc": {
+    "gText_NurseJoy_Welcome": "Hello, and welcome to the POKéMON\\nCENTER.\\pWe restore your tired POKéMON to\\nfull health.\\pWould you like to rest your POKéMON?",
+    "gText_NurseJoy_WeHopeToSeeYouAgain": "We hope to see you again!",
+    "gText_NurseJoy_ThankYouForWaiting": "Thank you for waiting.\\pWe've restored your POKéMON to\\nfull health.",
+    "UnknownString_81A0B57": "Welcome to the POKéMON CABLE CLUB\\nTRADE CENTER.",
+    "UnknownString_81A0B87": "Welcome to the POKéMON CABLE CLUB\\nCOLOSSEUM.",
+    "UnknownString_81A0BB4": "Welcome to the POKéMON CABLE CLUB\\nTIME CAPSULE."
+  }
+}

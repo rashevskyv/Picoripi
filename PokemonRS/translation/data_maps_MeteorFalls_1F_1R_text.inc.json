@@ -1,0 +1,15 @@
+{
+    "data_maps_MeteorFalls_1F_1R_text.inc": {
+        "MeteorFalls_1F_1R_Text_193237": "Хе-хе-хе!\\pЗ цим METEORITE, MT. CHIMNEY\\nбуде...",
+        "MeteorFalls_1F_1R_Text_193268": "Ге?\\pЯ не знаю, хто ти такий, але якщо ти\\nстанеш на шляху TEAM {EVIL_TEAM}, не\\lочікуй на милість!",
+        "MeteorFalls_1F_1R_Text_1932C5": "Ану стійте, TEAM {EVIL_TEAM}!\\pМи, TEAM {GOOD_TEAM}, не дозволимо вам\\nуникнути кари за ваші злодіяння!",
+        "MeteorFalls_1F_1R_Text_193320": "Хе-хе-хе!\\nНавіть TEAM {GOOD_TEAM} приєднується до нас!\\pАле з вами всіма надто\\nбагато клопоту...\\pХе, це не має значення!\\pУ нас є METEORITE, тож ми вирушаємо до\\nMT. CHIMNEY!\\pХе-хе-хе! Ще побачимось, ви, бовдури з TEAM\\n{GOOD_TEAM}!",
+        "MeteorFalls_1F_1R_Text_1933EC": "А ти хто такий?\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pрозуміло, отже ти {PLAYER}{KUN}.\\pЯ MAXIE. Як лідер TEAM MAGMA,\\nя присвятив себе тому, щоб перешкоджати\\lнебезпечним планам TEAM AQUA.\\pЧому? Тому що TEAM AQUA є серйозною\\nзагрозою для всіх нас.\\pВони скоїли багато руйнівних\\nдій у спробі розширити море.\\pМи, TEAM MAGMA, понад усе любимо сушу!\\nTEAM AQUA - наш запеклий ворог!",
+        "MeteorFalls_1F_1R_Text_193584": "Хто ти такий?\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pА, отже ти {PLAYER}{KUN}.\\pЯ ARCHIE. Як лідер TEAM AQUA,\\nя присвятив себе тому, щоб перешкоджати\\lнебезпечним планам TEAM MAGMA.\\pЧому? Бо TEAM MAGMA - це серйозна\\nзагроза для всіх нас.\\pВони скоїли багато руйнівних\\nдій у спробах розширити суходіл.\\pМи, TEAM AQUA, любимо море понад\\nусе! TEAM MAGMA - наш запеклий ворог!",
+        "MeteorFalls_1F_1R_Text_193720": "{GOOD_LEADER}, нам слід переслідувати\\nTEAM {EVIL_TEAM}...",
+        "MeteorFalls_1F_1R_Text_193747": "{GOOD_LEADER}: Так, так, ми мусимо!\\nТреба поквапитися.\\pНевідомо, що TEAM {EVIL_TEAM}\\nвтворить на MT. CHIMNEY!",
+        "MeteorFalls_1F_1R_Text_1937AA": "{GOOD_LEADER}: {PLAYER}{KUN}, тобі також слід\\nстежити за TEAM {EVIL_TEAM}.\\pПрощавай!",
+        "MeteorFalls_1F_1R_Text_1937EB": "Я... Я COZMO...\\nЯ PROFESSOR...\\pЗазвичай я досліджую METEORITES у\\nFALLARBOR TOWN...\\pПотім якісь люди з TEAM {EVIL_TEAM}\\nзмусили мене провести їх до METEOR FALLS...\\pВони пообіцяли мені, що вони\\nрозкопають METEORITES для мене...\\pАле я...\\nTEAM {EVIL_TEAM} обдурили мене...\\pОх... Той METEORITE...\\nТепер він ніколи не буде моїм...\\pАле ця TEAM {EVIL_TEAM}...\\pЩо вони збираються робити з цим\\nMETEORITE на MT. CHIMNEY?",
+        "MeteorFalls_1F_1R_Text_19396A": "PROF. COZMO: Ця TEAM {EVIL_TEAM}...\\pЩо вони збираються робити з цим\\nMETEORITE на MT. CHIMNEY?"
+    }
+}

@@ -1,0 +1,26 @@
+{
+    "data_maps_FortreeCity_Gym_text.inc": {
+        "FortreeCity_Gym_Text_GymGuideAdvice": "Йо, як справи, майбутній\\nCHAMPION {PLAYER}?\\pFORTREE GYM LEADER WINONA справжня\\nмайстриня POKéMON FLYING-type.\\pВона чекає в глибині цього GYM,\\nза дверима, що обертаються.\\pВона чекає на нових претендентів, \\nякі прагнуть розправити крила!\\pГаразд, уперед!",
+        "FortreeCity_Gym_Text_GymGuidePostVictory": "Ти це зробив!\\nТепер ти справді відірвався від землі!",
+        "FortreeCity_Gym_Text_JaredIntro": "Поглянь на елегантний стиль бою\\nBIRD POKéMON!",
+        "FortreeCity_Gym_Text_JaredDefeat": "Ти...\\nТи справді сильний...",
+        "FortreeCity_Gym_Text_JaredPostBattle": "TRAINER повинен бути кмітливим, щоб\\nвстигати за несподіваними поворотами подій.\\pПодивимося, чи вистачить тобі розуму\\nдістатися до нашого LEADER?",
+        "FortreeCity_Gym_Text_WillIntro": "Любителі BIRD POKéMON прагнуть\\nприєднатися до цього GYM.\\pЯк член FORTREE GYM,\\nя не маю права програвати!",
+        "FortreeCity_Gym_Text_WillDefeat": "Це був занадто великий тягар, щоб я\\nзміг його винести...",
+        "FortreeCity_Gym_Text_WillPostBattle": "Світ величезний, і в ньому незліченна\\nкількість сильних TRAINERS.\\pЯ продовжуватиму тренування, щоб\\nстати ще сильнішим.",
+        "FortreeCity_Gym_Text_TerrellIntro": "WINONA, нашій GYM LEADER,\\nзовсім не обов'язково розбиратися з тобою!\\pЯ і сам цілком з тобою впораюся!",
+        "FortreeCity_Gym_Text_TerrellDefeat": "WINONA, Я...\\nЯ програв!",
+        "FortreeCity_Gym_Text_TerrellPostBattle": "WINONA мила й сильна.\\nВона - неперевершена LEADER!\\pОй, я аж зашарівся...",
+        "FortreeCity_Gym_Text_KyleeIntro": "WINONA вчила мене особисто!\\nТобі не вдасться так просто мене перемогти!",
+        "FortreeCity_Gym_Text_KyleeDefeat": "Мене перемогли...",
+        "FortreeCity_Gym_Text_KyleePostBattle": "Завдяки WINONA, мешканці\\nFORTREE можуть жити без остраху.",
+        "FortreeCity_Gym_Text_WinonaIntro": "Я WINONA. Я LEADER\\nFORTREE POKéMON GYM.\\pЯ стала одним цілим із BIRD POKéMON\\nі здіймалась високо в небо...\\pЯкою б запеклою не була битва, ми\\nздобували перемогу з особливою витонченістю.\\pСтань свідком нашої прекрасної хореографії -\\nмене та BIRD POKéMON!",
+        "FortreeCity_Gym_Text_WinonaDefeat": "Ніколи раніше я не бачила TRAINER,\\nщо керував би POKéMON з більшою грацією,\\lніж я...\\pНа знак визнання твоєї майстерності,\\nя вручаю тобі цей GYM BADGE.",
+        "FortreeCity_Gym_Text_ReceivedFeatherBadge": "{PLAYER} отримав FEATHER BADGE\\nвід WINONA.",
+        "FortreeCity_Gym_Text_ExplainFeatherBadgeTakeThis": "З FEATHER BADGE, усі POKéMON\\nдо 70-го рівня, навіть ті, яких ти отримав\\lчерез обмін, слухатимуться кожної твоєї команди.\\pТакож ти зможеш використовувати\\nHM-прийом FLY поза межами бою.\\pІ ось це...\\nЦе мій особистий подарунок для тебе.",
+        "FortreeCity_Gym_Text_ExplainAerialAce": "TM40 містить AERIAL ACE.\\pЙого швидкість...\\nЖоден POKéMON не зможе уникнути цієї атаки.",
+        "FortreeCity_Gym_Text_WinonaPostBattle": "Хоч я і програла тобі, я залишаюся\\nвідданою BIRD POKéMON.",
+        "FortreeCity_Gym_Text_GymStatue": "FORTREE CITY POKéMON GYM",
+        "FortreeCity_Gym_Text_GymStatueCertified": "FORTREE CITY POKéMON GYM\\pWINONA'S CERTIFIED TRAINERS:\\n{PLAYER}"
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "data_maps_DewfordTown_text.inc": {
+        "DewfordTown_Text_TinyIslandCommunity": "DEWFORD TOWN - це крихітна острівна спільнота.\\nЯкщо тут щось стає модним,\\lусі одразу це підхоплюють.",
+        "DewfordTown_Text_TownSign": "DEWFORD TOWN\\n“Крихітний острів у синьому морі.”",
+        "DewfordTown_Text_GymSign": "DEWFORD TOWN POKéMON GYM\\nLEADER: BRAWLY\\l“Велика хвиля у боях!”",
+        "DewfordTown_Text_HallSign": "DEWFORD HALL\\n“Місце обміну інформацією для кожного!”",
+        "Route104_Text_LandedInDewfordDeliverLetter": "MR. BRINEY: Ахой!\\nМи причалили у DEWFORD.\\pадаю, ти збираєшся доставити той LETTER\\nяк же його звали...STEVEN!",
+        "DewfordTown_Text_SetSailBackToPetalburg": "MR. BRINEY: Ти вже доставив свій\\nLETTER?\\pЧи ти надумав вертатися назад до\\nPETALBURG?",
+        "DewfordTown_Text_PetalburgWereSettingSail2": "MR. BRINEY: Тоді тримаємо курс на PETALBURG!\\pЯкорі на борт!\\nPEEKO, серденько моє, ми виходимо в море!",
+        "DewfordTown_Text_GoDeliverIllBeWaiting": "MR. BRINEY: Тоді йди і достав LETTER.\\nА я тебе тут зачекаю.",
+        "Route109_Text_BrineyLandedInDewford": "MR. BRINEY: Ахой!\\nМи причалили у DEWFORD!\\pПросто скажи мені, коли захочеш\\nзнову відплисти!",
+        "DewfordTown_Text_WhereAreWeBound": "Ахой. BRINEY: Ahoy!\\nЗаради тебе я вийду в море у будь-який час!\\pНу що, друже, куди тримаємо курс?",
+        "DewfordTown_Text_PetalburgWereSettingSail": "MR. BRINEY: Значить, до PETALBURG?\\pПідняти якорі! PEEKO, ми відпливаємо,\\nмоя люба!",
+        "DewfordTown_Text_SlateportWereSettingSail": "MR. BRINEY: Значить, до SLATEPORT?\\pПідняти якорі! PEEKO, ми відпливаємо,\\nмоя люба!",
+        "DewfordTown_Text_JustTellMeWhenYouNeedToSetSail": "MR. BRINEY: Просто скажи мені, коли\\nзахочеш знову відплисти.",
+        "DewfordTown_Text_GettingItchToFish": "Це славнозвісне місце для риболовлі.\\nЩо, руки вже сверблять закинути вудку?",
+        "DewfordTown_Text_GiveYouOneOfMyRods": "Я тебе почув, і мені подобається те,\\nщо ти кажеш!\\pТримай-но одну з моїх рибальських RODS.",
+        "DewfordTown_Text_ThrowInFishingAdvice": "А як бонус - я дам тобі кілька\\nпорад щодо риболовлі!\\pСпершу повернись обличчям до води,\\nа тоді використай ROD.\\pЗосередься...\\nЯкщо клюне - тягни ROD.\\pІнколи можна щось витягти одразу,\\nале з великим уловом,\\lтобі доведеться підбирати момент, коли тягнеш ROD,\\lщоб його витягнути.",
+        "DewfordTown_Text_ThatsTooBadThen": "О, ось воно як?\\nНу, тоді шкода.",
+        "DewfordTown_Text_HowsYourFishing": "Здоров!\\nНу що, як клює?",
+        "DewfordTown_Text_GreatHaulInSomeBigOnes": "О, оце діло! Краса! Ну, давай,\\nтягай там справжніх велетнів!",
+        "DewfordTown_Text_FishingAdvice": "О, та годі тобі, не вішай носа!\\nДам я тобі одну рибальську пораду.\\pпочатку стань лицем до води,\\nа тоді закидай ROD.\\pГоловне - зосередитись...\\nЯкщо клюне - тягни ROD.\\pБуває, що риба чіпляється миттєво,\\nале якщо попадеться хтось крупний,\\lдоведеться вичікувати момент, поки тягнеш ROD,\\lщоб його вивудити.",
+        "DewfordTown_Text_XIsTheBiggestHappeningThingRight": "Мені подобається все сучасне, актуальне та модне.\\nЯ завжди за цим стежу.\\pСлухай, ти чув про це нове\\n“{STR_VAR_1}”?\\pСаме так! \\nЗвісно, ти знаєш!\\pТа це ж, блін,\\n“{STR_VAR_1}”...\\lКрутіше просто не буває!\\pДе б ти не жив, про\\n“{STR_VAR_1}”\\lзараз гудуть усі навколо, правда ж?",
+        "DewfordTown_Text_TellMeWhatsNewAndIn": "Тю!\\nХіба це вже не останній писк моди?\\pСлухай, тоді викладай - що зараз новенького\\nі що реально “рулить”?",
+        "DewfordTown_Text_OfCourseIKnowAboutThat": "Га?\\n“{STR_VAR_2}”?\\p... ...\\p...Е-е... Так! Саме так!\\nТак, я це знав! Знав увесь цей час!\\pЗвісно, я про це знаю!\\n“{STR_VAR_2},” правильно?\\pТак, це воно, саме так!\\nХіба “{STR_VAR_2}”\\lне найкрутіша річ?\\pЦе наймодніша річ серед усіх модних.\\nТи думав, я про це не знатиму?\\p“{STR_VAR_1}”...\\nЦе вже, знаєш, учорашній день.\\pА от, “{STR_VAR_2}” - це\\nте, що зараз важливо і йде в ногу з часом!",
+        "DewfordTown_Text_XHuhIThinkYIsCool": "Хмм...\\n“{STR_VAR_2},” кажеш?\\pАле як на мене,\\n“{STR_VAR_1}” -\\lце те, що по-справжньому круто.",
+        "DewfordTown_Text_HearOfAnyTrendsComeShareWithMe": "Що ж, якщо почуєш про якісь нові тренди,\\nприходь і поділися ними зі мною, добре?",
+        "DewfordTown_Text_YeahDefinitionOfInRightNow": "Так, абсолютно правильно!\\p“{STR_VAR_1}” це зараз і є\\nсправжній пік моди.",
+        "DewfordTown_Text_PinnacleOfCool": "“{STR_VAR_2}” це зараз\\nсамий пік моди."
+    }
+}

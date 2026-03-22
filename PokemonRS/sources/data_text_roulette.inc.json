@@ -1,0 +1,17 @@
+{
+  "data/text/roulette.inc": {
+    "UnknownString_81C40DF": "The minimum wager at this table is {STR_VAR_1}. \\nDo you want to play?",
+    "UnknownString_81C411C": "You don't have enough COINS.",
+    "UnknownString_81C4139": "Special rate table right now!",
+    "gUnknown_081C4157": "Place your wager with the + Control Pad,\\nthen press the A Button.",
+    "UnknownString_81C4199": "It's a hit!",
+    "UnknownString_81C41A5": "Jackpot!",
+    "UnknownString_81C41AE": "Nothing doing!",
+    "UnknownString_81C41BD": "You've won {STR_VAR_1} COINS!",
+    "UnknownString_81C41D2": "No COINS left...",
+    "UnknownString_81C41E3": "Keep playing?",
+    "UnknownString_81C41F1": "The ROULETTE board will be cleared.",
+    "UnknownString_81C4215": "You don't have a COIN CASE.",
+    "UnknownString_81C4231": "Your COIN CASE is full!\\nCoins can be exchanged for prizes."
+  }
+}

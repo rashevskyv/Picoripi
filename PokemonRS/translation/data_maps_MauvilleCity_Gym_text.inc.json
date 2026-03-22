@@ -1,0 +1,27 @@
+{
+    "data_maps_MauvilleCity_Gym_text.inc": {
+        "MauvilleCity_Gym_Text_GymGuideAdvice": "Гей, як справи, майбутній\\nCHAMPION{PLAYER}?\\pWATTSON, LEADER у MAUVILLE GYM,\\nвикористовує ELECTRIC-type POKéMON.\\pЯкщо ти кинеш йому виклик з WATER-type POKéMON,\\nвін їх підсмажить! Бззт!\\pА ще він встановив двері з перемикачами по всьому\\nсвоєму GYM! Ексцентрично!\\pНу давай, покажи їм!",
+        "MauvilleCity_Gym_Text_GymGuidePostVictory": "Оце так, ну ти й заряджений!\\nТвій розряд змусив двері відчинитися!",
+        "MauvilleCity_Gym_Text_KirkIntro": "Моя електрична душа рознесе твої\\nмрії на друзки, воу-є-є-а!",
+        "MauvilleCity_Gym_Text_KirkDefeat": "Оце так вжарив! Справжній електричний\\nрозрив на повну котушку, малий!",
+        "MauvilleCity_Gym_Text_KirkPostBattle": "POKéMON і рок - головне, щоб усе йшло\\nвід серця, воу-є-є!",
+        "MauvilleCity_Gym_Text_ShawnIntro": "Мене вчив сам WATTSON!\\nЯ так просто не здамся!",
+        "MauvilleCity_Gym_Text_ShawnDefeat": "Знеструмлений та вимкнений...",
+        "MauvilleCity_Gym_Text_ShawnPostBattle": "ATTSON, наш GYM LEADER, займається\\nцим уже дуже-дуже давно.\\pВін бився ще до того, як твій тато\\nнародився, цей міцний старий.",
+        "MauvilleCity_Gym_Text_BenIntro": "У цьому GYM є головоломки!\\nХіба це не весело?",
+        "MauvilleCity_Gym_Text_BenDefeat": "Програвати - зовсім не весело...",
+        "MauvilleCity_Gym_Text_BenPostBattle": "WATTSON каже, що йому подобається встановлювати\\nневеликі пастки з перемикачами.",
+        "MauvilleCity_Gym_Text_VivianIntro": "З моєю чарівністю та прийомами моїх POKéMON,\\nти будеш шокований!",
+        "MauvilleCity_Gym_Text_VivianDefeat": "Я шокований твоєю силою!",
+        "MauvilleCity_Gym_Text_VivianPostBattle": "Я чув, що MAUVILLE був заснований\\nWATTSON.\\pВін був TRAINER задовго до того,\\nяк ми ними стали.\\lВін, мабуть, знає стільки всього!",
+        "MauvilleCity_Gym_Text_WattsonIntro": "Я відмовився від своїх планів щодо\\nперебудови міста, це так.\\pІ тому я присвятив свій час створенню\\nдверних пасток у моєму GYM.\\pО? І що ти тут робиш?\\pЩо таке? Кажеш, ти пройшов крізь\\nусі мої закриті двері?\\pВа-ха-ха-ха!\\nОце справді кумедно!\\pТоді я, WATTSON, LEADER у MAUVILLE GYM,\\nвдарю по тобі розрядом!",
+        "MauvilleCity_Gym_Text_WattsonDefeat": "Ва-ха-ха-ха!\\nГаразд, я програв!\\pТобі таки вдалося мене розважити!\\nВізьми цей BADGE!",
+        "MauvilleCity_Gym_Text_ReceivedDynamoBadge": "{PLAYER} отримує DYNAMO BADGE\\nвід WATTSON.",
+        "MauvilleCity_Gym_Text_ExplainDynamoBadgeTakeThis": "Маючи DYNAMO BADGE, твої POKéMON зможуть розбивати каміння\\nза допомогою ROCK SMASH просто під час подорожі.\\pДо того ж, це додасть твоїм улюбленцям\\nтрохи швидкості.\\pСлухай,\\nтримай-но ще й ось це!",
+        "MauvilleCity_Gym_Text_ExplainShockWave": "У цій TM34 міститься SHOCK WAVE.\\pЦе надійний прийом, який ніколи не промахується!\\nТи можеш на нього покластися!",
+        "MauvilleCity_Gym_Text_WattsonPostBattle": "Мене переповнює оптимізм, коли я бачу такого\\nбагатообіцяючого молодого TRAINER, як ти!",
+        "MauvilleCity_Gym_Text_WattsonGoForthAndEndeavor": "Ва-ха-ха-ха!\\nВирушай уперед і досягай нових висот, юначе!",
+        "MauvilleCity_Gym_Text_GymStatue": "MAUVILLE CITY POKéMON GYM",
+        "MauvilleCity_Gym_Text_GymStatueCertified": "MAUVILLE CITY POKéMON GYM\\pWATTSON'S CERTIFIED TRAINERS:\\n{PLAYER}"
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "data_maps_RustboroCity_Mart_text.inc": {
+        "RustboroCity_Mart_Text_BuyingHealsInCaseOfShroomish": "Я купую PARLYZ HEAL та\\nANTIDOTE.\\pПро всяк випадок, якщо зустріну SHROOMISH\\nу лісі PETALBURG WOODS.",
+        "RustboroCity_Mart_Text_ShouldBuySuperPotionsInstead": "Мій POKéMON еволюціонував!\\nТепер у нього купа HP.\\pМабуть, пора вже переходити зі\\nзвичайних POTIONS на SUPER POTIONS.",
+        "RustboroCity_Mart_Text_GettingEscapeRopeJustInCase": "Я купую ESCAPE ROPE про всяк випадок,\\nякщо загублюся в печері.\\pМені просто потрібно буде використати\\nйого, щоб повернутися до входу."
+    }
+}

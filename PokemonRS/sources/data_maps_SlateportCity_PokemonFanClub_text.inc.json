@@ -1,0 +1,24 @@
+{
+  "data/maps/SlateportCity_PokemonFanClub/text.inc": {
+    "SlateportCity_PokemonFanClub_Text_MeetChairman": "Er-hem! I am the CHAIRMAN of the\\nPOKéMON FAN CLUB!\\pBeing the CHAIRMAN, I am naturally\\nthe most important!\\pNo one could best me when it comes\\nto raising POKéMON. No one!\\pIn any CONTEST, my victory is a\\nforegone conclusion!\\pBut, that would deprive others of\\ntheir enjoyment.\\pSo, I now while away my time\\nexamining the POKéMON of others.\\pIt is marvelous to witness how\\nothers have raised POKéMON.\\pThe contented faces of properly\\nraised POKéMON...\\pThe kind and loving gazes of their\\nTRAINERS...\\pMy heart is overwhelmed - there is\\nso much happiness.\\pOh, my! Excuse me! I seem to have\\nnattered on far too long!\\pPlease, do allow me to examine your\\nPOKéMON and see how it's grown.",
+    "SlateportCity_PokemonFanClub_Text_HowIsYourPokemonGrowing": "How is your POKéMON growing?\\nAllow me to examine it.",
+    "SlateportCity_PokemonFanClub_Text_HmHmISee": "Hm, hm...\\nI see...",
+    "SlateportCity_PokemonFanClub_Text_GiveMonMorePokeblocks": "Hmmm... It's not bad, but it's not\\ngood, either...\\pYou, the TRAINER, must put more\\neffort into raising this POKéMON!\\pFor instance, may I suggest that\\nyou give it more {POKEBLOCK}S?",
+    "SlateportCity_PokemonFanClub_Text_NoSpaceForReward": "Oh, my...\\pYour POKéMON is growing quite well,\\nso you deserve a reward.\\pUnfortunately, you have no space for\\nthis in your BAG.",
+    "SlateportCity_PokemonFanClub_Text_MonMostImpressiveGiveItThis": "Your {STR_VAR_1}, it is growing in\\na most impressive manner!\\lIt is one fine specimen!\\pBut! If you were to give it this,\\nit would grow even better! Indeed!",
+    "SlateportCity_PokemonFanClub_Text_ExplainRedScarf": "Let a POKéMON hold that RED SCARF.\\pEveryone will recognize the coolness\\nof that POKéMON!",
+    "SlateportCity_PokemonFanClub_Text_ExplainBlueScarf": "Let a POKéMON hold that BLUE SCARF.\\pIts beauty will be accentuated much\\nmore than now!",
+    "SlateportCity_PokemonFanClub_Text_ExplainPinkScarf": "Let a POKéMON hold that PINK SCARF.\\pIt will draw out the cuteness of\\nthe POKéMON some more!",
+    "SlateportCity_PokemonFanClub_Text_ExplainGreenScarf": "Let a POKéMON hold that GREEN SCARF.\\pThat will enhance the\\nsmartness of POKéMON!",
+    "SlateportCity_PokemonFanClub_Text_ExplainYellowScarf": "Let a POKéMON hold that YELLOW SCARF.\\pIt will bolster your POKéMON's\\ntoughness so much more!",
+    "SlateportCity_PokemonFanClub_Text_NothingElseToGiveYou": "I'm sorry, but I've nothing else to\\ngive you! None at all!\\pAfter all, you're blessed with the gift\\nof raising POKéMON without resorting\\lto any items!",
+    "SlateportCity_PokemonFanClub_Text_ShowMePokemonThatLoveYou": "I love seeing POKéMON that love\\ntheir TRAINERS.\\pPOKéMON are very sensitive to the\\nfeelings of their TRAINERS.\\pIf you treat your POKéMON with love\\nand care, they'll love you back.\\pWhen your POKéMON grow to love you,\\nplease come show me.",
+    "SlateportCity_PokemonFanClub_Text_PokemonAdoresYou": "Your POKéMON really adores you.\\pFor you, a most compassionate\\nTRAINER, a gift from the FAN CLUB!",
+    "SlateportCity_PokemonFanClub_Text_TreatPokemonWithLove": "POKéMON are very sensitive to the\\nfeelings of their TRAINERS.\\pIf you treat your POKéMON with love\\nand care, they'll love you back.",
+    "SlateportCity_PokemonFanClub_Text_PokemonDontLikeFainting": "If you keep letting a POKéMON faint\\nin battle, it'll come to resent it.\\pSoon, it will become less trusting\\nof the TRAINER.\\pIn other words, it certainly won't\\nlike you very much.",
+    "SlateportCity_PokemonFanClub_Text_MonEnjoyedProtein": "Do POKéMON enjoy having items used\\non them?\\pMine acted really happy when I gave\\nit some PROTEIN.",
+    "SlateportCity_PokemonFanClub_Text_Skitty": "SKITTY: Fffnyaaaah...",
+    "SlateportCity_PokemonFanClub_Text_Zigzagoon": "ZIGZAGOON: Kyuuu...",
+    "SlateportCity_PokemonFanClub_Text_Azumarill": "AZUMARILL: Marimari?"
+  }
+}

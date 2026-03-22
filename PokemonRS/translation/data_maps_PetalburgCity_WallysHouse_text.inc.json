@@ -1,0 +1,13 @@
+{
+    "data_maps_PetalburgCity_WallysHouse_text.inc": {
+        "PetalburgCity_WallysHouse_Text_ThanksForPlayingWithWally": "Ти...\\nО, ти, мабуть,{PLAYER}{KUN}, так?\\pДякую, що нещодавно трохи погрався з WALLY.\\pВін був кволим і хворобливим ще змалечку.\\pТому ми відправили його на деякий час до моїх родичів у\\nVERDANTURF TOWN.\\pПовітря там набагато чистіше,\\nніж тут.\\pЩо? Де WALLY?\\nВін уже поїхав, наш WALLY.\\pЦікаво, де він може бути зараз?",
+        "PetalburgCity_WallysHouse_Text_WonderHowWallyIsDoing": "Цікаво, як там наш WALLY?",
+        "PetalburgCity_WallysHouse_Text_WallyHasBecomeHealthy": "Привіт, {PLAYER}{KUN}!\\pНаш WALLY дуже зміцнів, відколи\\nпереїхав у VERDANTURF TOWN.\\pМи всім завдячуємо тобі!\\pКоли WALLY залишав місто, ти допоміг йому\\nспіймати POKéMON, чи не так?\\pГадаю, це зробило його\\nпо-справжньому щасливим.\\pНасправді, не лише WALLY.\\nЦе ощасливило і мене, як батька.\\pЯ такий радий, що він має такого\\nчудового друга, як ти.\\pЦе не якийсь там підкуп,\\nале я б дуже хотів, щоб ти це взяв.",
+        "PetalburgCity_WallysHouse_Text_SurfGoAllSortsOfPlaces": "Якщо твій POKéMON володіє SURF, ти зможеш\\nвідвідати найрізноманітніші куточки світу.",
+        "PetalburgCity_WallysHouse_Text_WallyIsComingHomeSoon": "WALLY скоро повернеться додому.\\nЯ з нетерпінням на це чекаю.",
+        "PetalburgCity_WallysHouse_Text_YouMetWallyInEverGrandeCity": "О? Ти зустрів WALLY в EVER GRANDE\\nCITY?\\pОй, {PLAYER}{KUN}, ну не сміши мене.\\pВін, може, і зміцнів, але він\\nне міг зайти так далеко\\lзовсім один.",
+        "PetalburgCity_WallysHouse_Text_WallyWasReallyHappy": "WALLY був неймовірно щасливим, коли розповідав\\nнам, як спіймав POKéMON.\\pМинуло багато часу відтоді, як я\\nвостаннє бачила таку посмішку на його обличчі.",
+        "PetalburgCity_WallysHouse_Text_HusbandHasSomethingForYou": "О, привіт, {PLAYER}!\\nУ нас є дещо для тебе.\\pЦя річ у мого чоловіка, тож поговори з ним,\\nбудь ласка.",
+        "PetalburgCity_WallysHouse_Text_WallyLeftWithoutTelling": "Тільки не кажи про це моєму чоловікові,\\nнехай це буде таємницею...\\pНаш WALLY покинув VERDANTURF TOWN,\\nнікому не сказавши ні слова.\\pЗнаєш, WALLY хоч і кволий, але\\nвін має дивовижно сильний характер.\\pЯ впевнена, що одного дня він повернеться\\nживим і здоровим!"
+    }
+}

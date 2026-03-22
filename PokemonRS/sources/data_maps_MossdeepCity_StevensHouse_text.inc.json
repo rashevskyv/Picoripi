@@ -1,0 +1,14 @@
+{
+  "data/maps/MossdeepCity_StevensHouse/text.inc": {
+    "MossdeepCity_StevensHouse_Text_YouveEarnedHMDive": "STEVEN: {PLAYER}{KUN}?\\pYes, this is my place. It's a little\\nembarrassing how empty it is here.\\pOh, here, you should take this HM.\\pIt contains DIVE.\\nI've already taught my POKéMON.",
+    "MossdeepCity_StevensHouse_Text_ExplainDive": "STEVEN: While you're using SURF, you\\nshould notice dark patches of water.\\pUse DIVE if you come to deep water\\nlike it. You'll drop to the seafloor.\\pWhen you want to come back up, use\\nDIVE again.\\pIn some places, it won't be possible\\nfor you to surface, though.",
+    "MossdeepCity_StevensHouse_Text_UnderwateCavernBetweenMossdeepSootopolis": "STEVEN: Apparently, there's an\\nunderwater cavern between\\lMOSSDEEP and SOOTOPOLIS.\\pYou know, the one that CAPT. STERN\\nfound in his submarine.\\pAn underwater cavern...\\pThere might be some rare stones down\\nthere... I should go for a DIVE...",
+    "MossdeepCity_StevensHouse_Text_TakeBallContainingBeldum": "{PLAYER} checked the POKé BALL.\\pIt contained the POKéMON\\nBELDUM.\\pTake the POKé BALL?",
+    "MossdeepCity_StevensHouse_Text_ObtainedBeldum": "{PLAYER} obtained a BELDUM.",
+    "MossdeepCity_StevensHouse_Text_NoSpaceForAnotherMon": "There is no space for another POKéMON.",
+    "MossdeepCity_StevensHouse_Text_LeftPokeBallWhereItWas": "{PLAYER} left the POKé BALL where\\nit was.",
+    "MossdeepCity_StevensHouse_Text_LetterFromSteven": "It's a letter.\\p... ... ... ... ... ...\\pTo {PLAYER}{KUN}...\\pI've decided to do a little soul-\\nsearching and train on the road.\\pI don't plan to return home for some\\ntime.\\pI have a favor to ask of you.\\pI want you to take the POKé BALL on\\nthe desk.\\pInside it is a BELDUM, my favorite\\nPOKéMON.\\pI'm counting on you.\\pMay our paths cross some day.\\pSTEVEN STONE",
+    "MossdeepCity_StevensHouse_Text_LetterFromStevenWithDive": "It's a letter.\\p... ... ... ... ... ...\\pTo {PLAYER}{KUN}...\\pI've decided to do a little soul-\\nsearching and train on the road.\\pI don't plan to return home for some\\ntime.\\pI have a favor to ask of you.\\pI want you to take the POKé BALL on\\nthe desk.\\pInside it is a BELDUM, my favorite\\nPOKéMON.\\pI'm counting on you.\\pIf you'd like, you should also take\\nthe HM DIVE.\\pMay our paths cross some day.\\pSTEVEN STONE",
+    "MossdeepCity_StevensHouse_Text_CollectionOfRareRocks": "It's a collection of rare rocks and\\nstones assembled by STEVEN."
+  }
+}

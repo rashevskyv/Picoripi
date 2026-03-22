@@ -1,0 +1,7 @@
+{
+    "data_maps_RustboroCity_CuttersHouse_text.inc": {
+        "RustboroCity_CuttersHouse_Text_YouCanPutThisHMToGoodUse": "Цей рішучий вираз обличчя...\\nЦя спритність у твоїх рухах...\\lІ твої добре натреновані POKéMON...\\pТи, вочевидь, вправний TRAINER!\\pНі, чекай, не кажи ні слова.\\nЯ бачу це по одному лише твоєму вигляду.\\pЯ впевнений, що ти зможеш\\nвикористати цю HM з розумом.\\pНе треба бути скромним чи соромитися.\\nТримай, вона твоя!",
+        "RustboroCity_CuttersHouse_Text_ExplainCut": "Ця HM - це CUT.\\pОсобливість HM-прийомів у тому, що POKéMON\\nможе використовувати поза межами битви.\\pКожен POKéMON що вивчив CUT, може зрубувати\\nтонкі дерева, якщо TRAINER\\lуже здобув STONE BADGE.\\pІ, на відміну від TM, HM не зникає\\nпісля одного використання.",
+        "RustboroCity_CuttersHouse_Text_DadHelpedClearLandOfTrees": "Мій батько свого часу долучився до\\nрозбудови RUSTBORO.\\pЙого POKéMON за допомогою прийому CUT розчищали\\nділянки від чагарників та дерев."
+    }
+}

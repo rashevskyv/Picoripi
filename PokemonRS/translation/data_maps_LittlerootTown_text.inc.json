@@ -1,0 +1,21 @@
+{
+    "data_maps_LittlerootTown_text.inc": {
+        "LittlerootTown_Text_OurNewHomeLetsGoInside": "MOM: {PLAYER}, серденько, ми приїхали!\\pМабуть виснажливо їхати разом з речами\\lв кузові вантажівки.\\pНу що, знайомся - це містечко LITTLEROOT TOWN.\\pЯк воно тобі?\\nТепер це наш дім!\\pТут так затишно та спокійно..\\nжити тут насолода, як гадаєш?\\pІ до речі, {PLAYER}, у тебе тепер є власна кімната\\nХодімо всередину.",
+        "LittlerootTown_Text_WaitPlayer": "MOM: Зачекай, {PLAYER}!",
+        "LittlerootTown_Text_WearTheseRunningShoes": "MOM: {PLAYER}! {PLAYER}! А ти\\nвже познайомився з PROF. BIRCH?\\pОх! Який же милий POKéMON!\\nТобі його дав PROF. BIRCH. Як чудово!\\pТи справжній син свого батька.\\nВи з твоїм POKéMON маєте чудовий вигляд!\\pОсь, серденько!Якщо збираєшься у пригоду,\\nвзуй ці RUNNING SHOES.\\pЗ ними ти літатимеш як на крилах!",
+        "LittlerootTown_Text_SwitchShoesWithRunningShoes": "{PLAYER} перевзувся у\\nRUNNING SHOES.",
+        "LittlerootTown_Text_ExplainRunningShoes": "MOM: {PLAYER}, до цих кросівок\\nє інструкція.\\p“Натисни кнопку B взутий у\\nRUNNING SHOES щоб бігти швидше!\\p“Взувай RUNNING SHOES та мерщій\\nдо пригод!”",
+        "LittlerootTown_Text_ComeHomeIfAnythingHappens": "... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pПодумати тільки, у тебе є власний\\nPOKéMON...\\lБатько буде просто щасливий!\\p...Але будь ласка, будь обережним.\\nЯкщо щось трапиться - повертайся додому.\\pА тепер - вперед, покажи їм усім, серденько!",
+        "LittlerootTown_Text_CanUsePCToStoreItems": "За допомогою PC, можна зберігати речі\\nта POKéMON.\\pСила науки просто вражає!",
+        "LittlerootTown_Text_BirchSpendsDaysInLab": "PROF. BIRCH днями не виходить з LAB\\nа потім він раптово йде\\lу дику далечінь по знання...\\pКоли ж PROF. BIRCH буває вдома?",
+        "LittlerootTown_Text_IfYouGoInGrassPokemonWillJumpOut": "Якщо зайдеш у високу траву обабіч дороги,\\nна тебе чатуватимуть дикі POKéMON.",
+        "LittlerootTown_Text_DangerousIfYouDontHavePokemon": "Йти далі небезпечно, поки в тебе \\nнемає власного POKéMON.",
+        "LittlerootTown_Text_CanYouGoSeeWhatsHappening": "Здається далі по дорозі хтось кличе\\nна допомогу.\\pЩо ж мені робити? Як бути? \\nТреба ж допомогти...",
+        "LittlerootTown_Text_YouSavedBirch": "Хух, як же я радий, що ти пішов і \\nврятував PROFESSOR.",
+        "LittlerootTown_Text_GoodLuckCatchingPokemon": "Збираєшся ловити POKéMON?\\nЩо ж, успіхів тобі!",
+        "LittlerootTown_Text_TownSign": "LITTLEROOT TOWN\\n“Містечко, не торкнуте жодною барвою.”",
+        "LittlerootTown_Text_ProfBirchsLab": "PROF. BIRCH'S POKéMON LAB",
+        "LittlerootTown_Text_PlayersHouse": "ДІМ {PLAYER}",
+        "LittlerootTown_Text_ProfBirchsHouse": "ДІМ PROF. BIRCH"
+    }
+}

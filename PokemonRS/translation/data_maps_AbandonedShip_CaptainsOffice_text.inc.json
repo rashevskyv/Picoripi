@@ -1,0 +1,7 @@
+{
+    "data_maps_AbandonedShip_CaptainsOffice_text.inc": {
+        "AbandonedShip_CaptainsOffice_Text_NoSuccessFindingScanner": "Я досліджую цей корабель за\\nдорученням CAPT. STERN.\\pВін також попросив мене знайти SCANNER,\\nале поки що безрезультатно...",
+        "AbandonedShip_CaptainsOffice_Text_OhCanYouDeliverScanner": "О! Це ж SCANNER!\\pСлухай, чи не міг би ти передати\\nйого CAPT. STERN?\\pЯ хочу ще трохи дослідити\\nцей корабель.",
+        "AbandonedShip_CaptainsOffice_Text_ThisIsSSCactus": "Цей корабель називається S.S. CACTUS.\\nСхоже, він із давнішої епохи."
+    }
+}

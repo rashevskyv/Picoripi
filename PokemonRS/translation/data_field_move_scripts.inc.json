@@ -1,0 +1,23 @@
+{
+    "data_field_move_scripts.inc": {
+        "UseCutPromptText": "Здається, це дерево можна CUT.\\pБажаєш його CUT?",
+        "UsedCutRockSmashText": "{STR_VAR_1} використав {STR_VAR_2}.",
+        "CannotUseCutText": "Здається, це дерево можна CUT.",
+        "UseRockSmashPromptText": "Схоже, цей камінь можна розбити.\\nБажаєш використати ROCK SMASH?",
+        "CannotUseRockSmashText": "Це міцна скеля, але POKéMON\\nміг би її розбити.",
+        "UseStrengthPromptText": "Це великий валун, але POKéMON міг\\nби його відштовхнути.\\pБажаєш використати STRENGTH?",
+        "UsedStrengthText": "{STR_VAR_1} використав STRENGTH.\\p{STR_VAR_1} STRENGTH дає змогу\\nпересувати валуни.",
+        "CannotUseStrengthText": "Це великий валун, але POKéMON міг\\nби його відштовхнути.",
+        "AlreadyUsedStrengthText": "STRENGTH дає змогу пересувати\\nвалуни.",
+        "CannotUseWaterfallText": "Стіна води з могутнім гуркотом\\nспадає донизу.",
+        "UseWaterfallPromptText": "Це величезний водоспад.\\nХочеш застосувати WATERFALL?",
+        "UsedWaterfallText": "{STR_VAR_1} використав WATERFALL.",
+        "CannotUseDiveText": "Тут глибоко. POKéMON міг би пірнути\\nпід воду в цьому місці.",
+        "UseDivePromptText": "Тут глибоке море.\\nБажаєш використати DIVE?",
+        "UsedDiveText": "{STR_VAR_1} використав DIVE.",
+        "UnderwaterCannotUseDiveText": "Згори пробивається світло.\\nТут POKéMON міг би піднятися на поверхню.",
+        "UnderwaterUseDivePromptText": "Згори пробивається світло.\\nБажаєш використати DIVE?",
+        "SurfacingBlockedText": "Згори щось заважає.\\nТут неможливо використати DIVE.",
+        "SweetScentNothingHereText": "Схоже, тут нічого немає..."
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "data_maps_LittlerootTown_ProfessorBirchsLab_text.inc": {
+        "UnknownString_8173A9D": "ВИДИ ТА СЕРЕДОВИЩА POKéMON...\\nСПІВІСНУВАННЯ ЛЮДЕЙ ТА POKéMON...\\lPOKéMONOLOGY ДЛЯ ПОЧАТКІВЦІВ...\\pВона вщент заповнена книгами за\\nавторством PROF. BIRCH.",
+        "LittlerootTown_ProfessorBirchsLab_Text_BirchAwayOnFieldwork": "Га? PROF. BIRCH?\\pPROF на польових дослідженнях..\\nОтже, його тут немає.\\pО, дозволь мені пояснити, що це таке..\\pЦе вивчення природи в її природному середовищі,\\nяк-от у полях чи горах,\\lзамість лабораторії.\\pPROF не з тих, хто любить паперову роботу.\\nВін така людина, яка радше вийде надвір\\lі пізнає світ на практиці,\\lніж буде читати про це тут.",
+        "LittlerootTown_ProfessorBirchsLab_Text_BirchIsntOneForDeskWork": "PROF не з тих, хто любить паперову роботу.\\nВін така людина, яка радше вийде надвір\\lі пізнає світ на практиці,\\lніж буде читати про це тут.",
+        "LittlerootTown_ProfessorBirchsLab_Text_BirchEnjoysRivalsHelpToo": "PROF. BIRCH вивчає середовища проживання\\nта розповсюдження POKéMON.\\pPROF також дуже цінує допомогу {RIVAL}.\\nМіж ними панує справжня любов.",
+        "LittlerootTown_ProfessorBirchsLab_Text_LikeYouToHavePokemon": "PROF. BIRCH: Отже, {PLAYER}{KUN}.\\pЯ багато чув про тебе від\\nтвого батька.\\pНавіть казали, у тебе ще немає\\nвласного POKéMON.\\pАле те, як ти бився щойно,\\nти впорався просто блискуче!\\pСхоже, у твоїх жилах таки тече\\nбатьківська кров!\\pАх, так. На знак подяки за мій порятунок,\\nя хочу віддати тобі того POKéMON, якого\\lти обрав.\\p{PLAYER} отримав {STR_VAR_1}!",
+        "LittlerootTown_ProfessorBirchsLab_Text_WhyNotGiveNicknameToMon": "PROF. BIRCH: Раз уже на те пішло, чому б не дати \\nцьому {STR_VAR_1} якесь прізвисько?",
+        "LittlerootTown_ProfessorBirchsLab_Text_MightBeGoodIdeaToGoSeeRival": "PROF. BIRCH: Якщо ти присвятиш себе POKéMON\\nі будеш набиратися досвіду, то гадаю ти\\lстанеш чудовим TRAINER.\\pМоя дитина, {RIVAL}, зараз на ROUTE 103\\nвивчає POKéMON.\\pуло б непогано, якби ти пішов і\\nрозшукав {RIVAL}. Що скажеш?",
+        "LittlerootTown_ProfessorBirchsLab_Text_GetRivalToTeachYou": "PROF. BIRCH: Чудово!\\n{RIVAL} теж зрадіє.\\pНехай {RIVAL} покаже тобі,\\nщо означає бути TRAINER.",
+        "LittlerootTown_ProfessorBirchsLab_Text_DontBeThatWay": "PROF. BIRCH: Ой, ну чого ти так?\\nТобі справді варто піти йпознайомитися з моєю дитиною.",
+        "LittlerootTown_ProfessorBirchsLab_Text_BirchRivalRoute103": "PROF. BIRCH: {RIVAL} має бути десь на\\nROUTE 103.\\pЯкщо ти або твої POKéMON втомитесь,\\nзайдіть додому перепочити.",
+        "LittlerootTown_ProfessorBirchsLab_Text_HeardYouBeatRivalTakePokedex": "PROF. BIRCH: О, привіт, {PLAYER}{KUN}!\\pЧув, ти здолав {RIVAL} з\\nпершої ж спроби. Це просто неймовірно!\\p{RIVAL}уже дуже давно допомагає мені з \\nдослідженнями.\\p{RIVAL} уже має чималий досвід в ролі\\nTRAINER.\\pОсь, {PLAYER}{KUN}, я замовляв це для своєї \\nроботи, але гадаю, що саме тобі варто\\lмати цей POKéDEX.",
+        "LittlerootTown_ProfessorBirchsLab_Text_ReceivedPokedex": "{PLAYER} отримав POKéDEX!",
+        "LittlerootTown_ProfessorBirchsLab_Text_ExplainPokedex": "PROF. BIRCH: The POKéDEX - це високотехнологічний\\nпристрій, який автоматично реєструє кожного\\lPOKéMON, якого ти зустрінеш або спіймаєш.\\pMоя дитина, {RIVAL}, нікуди без нього\\nне ходить.\\pЩоразу, коли вона ловить рідкісного POKéMON\\nі заносить дані в POKéDEX,\\l{RIVAL} знаходить мене навіть під час польових робіт,\\lщоб усе мені показати.",
+        "LittlerootTown_ProfessorBirchsLab_Text_CountlessPokemonAwait": "PROF. BIRCH: Безліч POKéMON чекають\\nна тебе!\\pЕх, мені вже й самому кортить знову вибратися\\nна польові дослідження!",
+        "LittlerootTown_ProfessorBirchsLab_Text_MayGotPokedexTooTakeThese": "MAY: Ого, круто, {PLAYER}{KUN}!\\nТи також отримав POKéDEX!\\pЦе чудово! Тепер ти зовсім як я!\\nА в мене теж є дещо для тебе!",
+        "LittlerootTown_ProfessorBirchsLab_Text_CatchCutePokemonWithPokeBalls": "MAY: Це так весело коли ти можеш збирати багато\\nPOKéMON!\\pЯ зазирну в кожен куточок, бо хочу знайти якнайбільше \\nрізних POKéMON.\\pЯкщо я натраплю на якихось миленьких POKéMON,\\nто обов'язково спіймаю їх у POKé BALLS!",
+        "LittlerootTown_ProfessorBirchsLab_Text_OhYourBagsFull": "Ой! Твій BAG повний.",
+        "LittlerootTown_ProfessorBirchsLab_Text_MayWhereShouldIGoNext": "MAY: Цікаво, куди ж мені податися на пошуки\\nPOKéMON тепер?",
+        "LittlerootTown_ProfessorBirchsLab_Text_BrendanGotPokedexTooTakeThese": "BRENDAN: Хм...\\nТо ти теж отримала POKéDEX.\\pНу що ж, тоді тримай.\\nЯ дам тобі це.",
+        "LittlerootTown_ProfessorBirchsLab_Text_CatchCoolPokemonWithPokeBalls": "BRENDAN: Знаєш, мандрувати значно веселіше,\\nколи в тебе ціла купа POKéMON.\\pЯ збираюся дослідити тут кожен куточок,\\nщоб знайти якомога більше різних POKéMON.\\pЯкщо натраплю на якихось крутих POKéMON, будь певна - \\nобов'язково спробую спіймати їх у POKé BALLS.",
+        "LittlerootTown_ProfessorBirchsLab_Text_HeyYourBagsFull": "Ой! Твій BAG повний.",
+        "LittlerootTown_ProfessorBirchsLab_Text_BrendanWhereShouldIGoNext": "BRENDAN: Цікаво, куди ж мені податися на пошуки\\nPOKéMON тепер?",
+        "LittlerootTown_ProfessorBirchsLab_Text_SeriousLookingMachine": "Цей апарат виглядає дуже серйозно.\\nНапевно, PROF використовує його для досліджень",
+        "LittlerootTown_ProfessorBirchsLab_Text_PCUsedForResearch": "Це PC для досліджень.\\nКраще з ним не бавитися.",
+        "LittlerootTown_ProfessorBirchsLab_Text_CrammedWithBooksOnPokemon": "Тут купа книг про POKéMON.",
+        "LittlerootTown_ProfessorBirchsLab_Text_BookTooHardToRead": "Цю книгу занадто важко читати."
+    }
+}

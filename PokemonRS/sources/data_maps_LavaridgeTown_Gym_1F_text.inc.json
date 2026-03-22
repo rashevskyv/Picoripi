@@ -1,0 +1,29 @@
+{
+  "data/maps/LavaridgeTown_Gym_1F/text.inc": {
+    "LavaridgeTown_Gym_1F_Text_GymGuideAdvice": "Hey, how's it going, CHAMPION-\\nbound {PLAYER}?\\pLAVARIDGE's GYM LEADER FLANNERY\\nuses FIRE-type POKéMON.\\pHer passion for POKéMON burns stronger\\nand hotter than a volcano.\\pDon't get too close to her - you'll burn!\\nHose her down with water and then\\lgo for it!",
+    "LavaridgeTown_Gym_1F_Text_GymGuidePostVictory": "Yow! That was a scorching hot battle!",
+    "LavaridgeTown_Gym_1F_Text_ColeIntro": "Owowowowow!\\nYikes, it's hot!",
+    "LavaridgeTown_Gym_1F_Text_ColeDefeat": "I'm blinded by sweat in my eyes...",
+    "LavaridgeTown_Gym_1F_Text_ColePostBattle": "Being buried in hot sand promotes\\ncirculation.\\pIt's effective for healing pain in\\nyour joints.",
+    "LavaridgeTown_Gym_1F_Text_AxleIntro": "I'm trying to relieve my stress.\\nDon't come along and stress me out!",
+    "LavaridgeTown_Gym_1F_Text_AxleDefeat": "I hope FLANNERY flames you good!",
+    "LavaridgeTown_Gym_1F_Text_AxlePostBattle": "Haaah... Whew...\\pIf you spend too much time buried in\\nhot sand, it tuckers you out...",
+    "LavaridgeTown_Gym_B1F_Text_AndyIntro": "You must be getting tired by now.\\nYou'd like to rest in the hot sand,\\lwouldn't you?\\pBut you should know that maintaining\\nyour willpower is an important ability\\lfor all TRAINERS.",
+    "LavaridgeTown_Gym_B1F_Text_AndyDefeat": "Play with fire, and be burned...",
+    "LavaridgeTown_Gym_B1F_Text_AndyPostBattle": "Your skill is real...\\nBut our LEADER FLANNERY is strong.\\pIf you don't watch yourself, you'll be\\nburned seriously.",
+    "LavaridgeTown_Gym_1F_Text_ZaneIntro": "Can your POKéMON withstand\\n392-degree heat?",
+    "LavaridgeTown_Gym_1F_Text_ZaneDefeat": "It didn't burn hotly enough...",
+    "LavaridgeTown_Gym_1F_Text_ZanePostBattle": "The temperature of magma is\\n392 degrees.\\pYour POKéMON beat me, so they should\\neasily survive in magma.",
+    "LavaridgeTown_Gym_1F_Text_SadieIntro": "Um...\\nOkay, I'll battle with you.",
+    "LavaridgeTown_Gym_1F_Text_SadieDefeat": "Oh, but you're too strong.",
+    "LavaridgeTown_Gym_1F_Text_SadiePostBattle": "I'm going to be a pretty and strong\\nTRAINER just like FLANNERY.",
+    "LavaridgeTown_Gym_1F_Text_FlanneryIntro": "Welcome... No, wait.\\pPuny TRAINER, how good to see you've\\nmade it here!\\pI have been entrusted with the...\\nNo, wait.\\pI am FLANNERY, and I'm the GYM\\nLEADER here!\\pUh...\\nDare not underestimate me, though\\lI have been LEADER only a short time!\\pWith skills inherited from my grand-\\nfather, I shall, uh...demonstrate the\\lhot moves we have honed on this land!",
+    "LavaridgeTown_Gym_1F_Text_FlanneryDefeat": "Oh...\\nI guess I was trying too hard...\\pI... I've only recently become a GYM\\nLEADER.\\pI tried too hard to be someone I'm not.\\pI have to do things my natural way.\\nIf I don't, my POKéMON will be confused.\\pThanks for teaching me that.\\nFor that, you deserve this.",
+    "LavaridgeTown_Gym_1F_Text_ReceivedHeatBadge": "{PLAYER} received the HEAT BADGE\\nfrom FLANNERY.",
+    "LavaridgeTown_Gym_1F_Text_ExplainHeatBadgeTakeThis": "If you have a HEAT BADGE, all POKéMON\\nup to Level 50, even those you get in\\ltrades from other people, will obey\\lyou completely.\\pAnd, it lets POKéMON use the HM move\\nSTRENGTH outside of battle.\\pThis is a token of my appreciation.\\nDon't be shy about taking it!",
+    "LavaridgeTown_Gym_1F_Text_ExplainOverheat": "That TM50 contains OVERHEAT.\\pThat move inflicts serious damage on\\nthe opponent.\\pBut it also sharply cuts the SP. ATK\\nof the POKéMON using it. It might not\\lbe suitable for longer battles.",
+    "LavaridgeTown_Gym_1F_Text_FlanneryPostBattle": "Your power reminds me of someone...\\pOh! I know! You battle like NORMAN,\\nthe GYM LEADER of PETALBURG.",
+    "LavaridgeTown_Gym_1F_Text_GymStatue": "LAVARIDGE TOWN POKéMON GYM",
+    "LavaridgeTown_Gym_1F_Text_GymStatueCertified": "LAVARIDGE TOWN POKéMON GYM\\pFLANNERY'S CERTIFIED TRAINERS:\\n{PLAYER}"
+  }
+}

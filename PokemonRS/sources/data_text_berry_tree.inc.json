@@ -1,0 +1,23 @@
+{
+  "data/text/berry_tree.inc": {
+    "Route102_Text_1A16B6": "It's soft, loamy soil.",
+    "Route102_Text_1A16CD": "It's soft, loamy soil.\\nWant to plant a BERRY?",
+    "Route102_Text_1A16FB": "{PLAYER} planted one {STR_VAR_1} BERRY in\\nthe soft, loamy soil.",
+    "Route102_Text_1A172C": "One {STR_VAR_1} BERRY was planted here.",
+    "Route102_Text_1A174B": "{STR_VAR_1} has sprouted.",
+    "Route102_Text_1A175C": "This {STR_VAR_1} plant is growing taller.",
+    "Route102_Text_1A177D": "These {STR_VAR_1} flowers are blooming\\n{STR_VAR_2}.",
+    "Route102_Text_1A179F": "very beautifully",
+    "Route102_Text_1A17B0": "cutely",
+    "Route102_Text_1A17B7": "prettily",
+    "Route102_Text_1A17C0": "There are {STR_VAR_2} {STR_VAR_1} BERRIES!\\pDo you want to pick the\\n{STR_VAR_1} BERRIES?",
+    "Route102_Text_1A17FD": "{PLAYER} picked the {STR_VAR_2} {STR_VAR_1} BERRIES.",
+    "Route102_Text_1A181A": "{PLAYER} put away the {STR_VAR_1} BERRIES\\nin the BAG's BERRIES POCKET.\\pThe soil returned to its soft and\\nloamy state.",
+    "Route102_Text_1A1881": "The BAG's BERRIES POCKET is full.\\pThe {STR_VAR_1} BERRIES couldn't be taken.",
+    "Route102_Text_1A18C5": "{PLAYER} left the {STR_VAR_1} BERRIES\\nunpicked.",
+    "Route102_Text_1A18E6": "Want to water the {STR_VAR_1} with the\\nWAILMER PAIL?",
+    "Route102_Text_1A1912": "{PLAYER} watered the {STR_VAR_1}.",
+    "Route102_Text_1A1925": "The plant seems to be delighted.",
+    "Route102_Text_1A1946": "!"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "data/maps/NewMauville_Entrance/text.inc": {
+    "NewMauville_Entrance_Text_1982C0": "The door is closed.",
+    "NewMauville_Entrance_Text_1982D4": "Use the BASEMENT KEY?",
+    "NewMauville_Entrance_Text_1982EA": "{PLAYER} used the BASEMENT KEY.\\pThe door opened!"
+  }
+}

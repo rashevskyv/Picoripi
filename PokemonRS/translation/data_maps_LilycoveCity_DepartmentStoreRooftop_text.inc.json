@@ -1,0 +1,12 @@
+{
+    "data_maps_LilycoveCity_DepartmentStoreRooftop_text.inc": {
+        "LilycoveCity_DepartmentStoreRooftop_Text_SetDatesForClearOutSales": "Хіба у них немає встановлених дат для\\nповних розпродажів?\\pЯ дивлюся TV, але там ніколи не\\nпоказують рекламу.",
+        "LilycoveCity_DepartmentStoreRooftop_Text_BeenWaitingForClearOutSale": "Так! Я довго чекав на цей великий\\nрозпродаж.\\pТут є речі, які можна дістати лише в цьому місці.\\nЯ збираюся добряче закупитися, це точно!",
+        "LilycoveCity_DepartmentStoreRooftop_Text_BoneDryThirsty": "Ох... Я страшенно хочу пити!",
+        "LilycoveCity_DepartmentStoreRooftop_Text_WhichDrinkWouldYouLike": "Це VENDING MACHINE.\\nЯкий напій ви бажаєте?",
+        "LilycoveCity_DepartmentStoreRooftop_Text_CanOfDrinkDroppedDown": "Дзинь!\\pБаночка {STR_VAR_1} вискочила з автомата.",
+        "LilycoveCity_DepartmentStoreRooftop_Text_ExtraCanOfDrinkDroppedDown": "Дзинь!\\pОце пощастило! Вискочила ще\\nодна баночка {STR_VAR_1}!",
+        "LilycoveCity_DepartmentStoreRooftop_Text_NotEnoughMoney": "Грошей замало...",
+        "LilycoveCity_DepartmentStoreRooftop_Text_DecidedAgainstBuyingDrink": "Вирішив не купувати напій."
+    }
+}

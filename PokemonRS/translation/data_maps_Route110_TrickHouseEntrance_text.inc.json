@@ -1,0 +1,25 @@
+{
+    "data_maps_Route110_TrickHouseEntrance_text.inc": {
+        "Route110_TrickHouseEntrance_Text_YoureBeingWatched": "За тобою стежать...",
+        "Route110_TrickHouseEntrance_Text_ConcealedBeneathDesk": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nпід цим столом? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConcealedBehindTree": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nза цим деревом? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConcealedInDresser": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nв цьому комоді? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConealedBeyondWindow": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nза цим вікном? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConcealedInPlanter": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nв цьому вазоні? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConcealedInCupboard": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nв цій шафі? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConcealedBehindWindow": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nза цим вікном? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_ConcealedBeneathCushion": "Га? Гррр...\\pЯк ти дізнався, що я сховався\\nпід цією подушкою? А ти гострий на розум!",
+        "Route110_TrickHouseEntrance_Text_TheyCallMeTrickMaster": "Дивись!\\pБо я - найвеличніша людина-загадка\\nв усьому регіоні HOENN!\\lМене кличуть...\\pTRICK MASTER!\\nВа-ха-ха! Радий знайомству!",
+        "Route110_TrickHouseEntrance_Text_ComeToChallengeTrickHouse": "Ти, ти прийшов кинути виклик моєму\\nTRICK HOUSE, чи не так?\\pТи ж саме тому тут, еге ж?\\nНу звісно!\\pВважай, що твій виклик прийнято!\\pПроходь крізь той сувій,\\nі нехай твоє випробування почнеться!\\pЯ чекатиму тебе в глибині!",
+        "Route110_TrickHouseEntrance_Text_ItsAScroll": "Це сувій.",
+        "Route110_TrickHouseEntrance_Text_GoInHoleBehindScroll": "За сувоєм велика діра!\\pХочеш увійти?",
+        "Route110_TrickHouseEntrance_Text_LeavingOnJourneyNote": "На сувої прикріплена записка...\\p“Я вирушаю в подорож.\\nНе шукайте мене. TRICK MASTER”",
+        "Route110_TrickHouseEntrance_Text_NextTimeUseThisTrick": "Наступного разу я використаю цей трюк,\\nцю схему та ці хитрощі...\\pМу-фу-фу-фу... Якщо дозволите, це\\nблискуче складно, навіть для мене!",
+        "Route110_TrickHouseEntrance_Text_InMidstOfDevisingNewChallenges": "Га? Що?!\\nО, це ти!\\pЯ якраз у розпалі створення нових\\nхитромудрих випробувань!\\pЦе ж не надто велике прохання - дати\\nмені ще трохи часу на роздуми, га?\\lТи ж не будеш проти?\\lПовертайся трохи згодом!",
+        "Route110_TrickHouseEntrance_Text_YoureHereToAcceptReward": "О, це ти! Ти прийшов отримати\\nсвою винагороду, чи не так?\\lТак, я ж правий!\\pОсь!\\nТримай її зараз!",
+        "Route110_TrickHouseEntrance_Text_DidYouNotComeToClaimReward": "Га?\\nХіба ти не прийшов по свою нагороду?",
+        "Route110_TrickHouseEntrance_Text_MechadollWhichTent": "Я MECHADOLL 5!\\nЯКЩО ТИ НЕ ЗАБЕРЕШ НАГОРОДУ,\\lТО ЗА TRICK MASTER ПІТИ НЕ ЗМОЖЕШ.",
+        "Route110_TrickHouseEntrance_Text_ThenFarewell": "ТОДІ ПРОЩАВАЙ.",
+        "Route110_TrickHouseEntrance_Text_PCFullAgain": "СТАТУС ТВОГО ПК: ПЕРЕПОВНЕНИЙ.\\nВИХОДИТЬ, ТИ СКУПИЙ."
+    }
+}

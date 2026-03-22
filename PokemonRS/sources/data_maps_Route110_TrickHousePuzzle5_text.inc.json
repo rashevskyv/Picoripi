@@ -1,0 +1,33 @@
+{
+  "data/maps/Route110_TrickHousePuzzle5/text.inc": {
+    "Route110_TrickHousePuzzle5_Text_Mechadoll1Intro": "CLICKETY-CLACK...\\nMECHADOLL 1 AM I!\\pIF YOU ANSWER QUIZZES CORRECTLY,\\nTHEN YOU WILL GO TO MECHADOLL 5.\\lTHEN YOU CAN OBTAIN THE SECRET CODE.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll1Quiz1": "MECHADOLL 1 QUIZ.\\pOne of these POKéMON is not found\\non ROUTE 103. Which one is it?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll1Quiz2": "MECHADOLL 1 QUIZ.\\pOne of these POKéMON is not of the\\nGRASS type. Which one is it?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll1Quiz3": "MECHADOLL 1 QUIZ.\\pOne of these POKéMON uses SCRATCH.\\nWhich one is it?",
+    "Route110_TrickHousePuzzle5_Text_CorrectGoThrough1": "CONGRATULATIONS. CORRECT YOU ARE.\\nGO THROUGH. PLEASE.",
+    "Route110_TrickHousePuzzle5_Text_DisappointmentError": "BZZZT. DISAPPOINTMENT.\\nERROR.",
+    "Route110_TrickHousePuzzle5_Text_Wahahahaha": "WAHAHAHAHA! WAHAHAHAHA!\\nCLICKETY-CLACK!",
+    "Route110_TrickHousePuzzle5_Text_WaitForNextChallenge": "YOUR NEXT CHALLENGE WE WAIT FOR.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll2Intro": "CLICKETY-CLACK...\\nMECHADOLL 2 AM I!\\pMECHADOLL 1'S QUIZ DIFFICULTY LEVEL\\nIS SET TOO LOW.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll2Quiz1": "MECHADOLL 2 QUIZ.\\pIn PROF. BIRCH's bag, there were three\\nPOKéMON. Which one was at the right?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll2Quiz2": "MECHADOLL 2 QUIZ.\\pWhich POKéMON was offered for a trade\\nat the POKéMON TRAINER'S SCHOOL?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll2Quiz3": "MECHADOLL 2 QUIZ.\\pThe DEVON RESEARCHER was looking for\\nwhat POKéMON in PETALBURG WOODS?",
+    "Route110_TrickHousePuzzle5_Text_CorrectGoThrough2": "CONGRATULATIONS. CORRECT YOU ARE.\\nGO THROUGH. PLEASE.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll3Intro": "CLICKETY-CLACK...\\nMECHADOLL 3 AM I!\\pMATTERS OF MONEY ARE MY SOLE FOCUS.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll3Quiz1": "MECHADOLL 3 QUIZ.\\pWhich costs more?\\nThree POKé BALLS or one SUPER POTION?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll3Quiz2": "MECHADOLL 3 QUIZ.\\pSell one ESCAPE ROPE and buy\\none ANTIDOTE. How much money remains?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll3Quiz3": "MECHADOLL 3 QUIZ.\\pDo one FULL HEAL and GREAT BALL\\ncost more than one REVIVE?",
+    "Route110_TrickHousePuzzle5_Text_CorrectGoThrough3": "CONGRATULATIONS. CORRECT YOU ARE.\\nGO THROUGH. PLEASE.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll4Intro": "CLICKETY-CLACK...\\nMECHADOLL 4 THAT IS ME!\\pMY QUIZ IS AN OBJECT OF BEAUTY.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll4Quiz1": "MECHADOLL 4 QUIZ.\\pRUSTBORO GYM LEADER ROXANNE used a\\nGEODUDE. Was it male or female?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll4Quiz2": "MECHADOLL 4 QUIZ.\\pIn DEWFORD HALL, were there more men\\nor women?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll4Quiz3": "MECHADOLL 4 QUIZ.\\pThe first TRAINER in DEWFORD GYM was\\nmale or female?",
+    "Route110_TrickHousePuzzle5_Text_CorrectGoThrough4": "CONGRATULATIONS. CORRECT YOU ARE.\\nGO THROUGH. PLEASE.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll5Intro": "CLICKETY-CLACK...\\nMECHADOLL 5 AM I!\\pTHE MASTER'S BEST AND PROUDEST\\nACHIEVEMENT AM I.",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll5Quiz1": "MECHADOLL 5 QUIZ.\\pHow many BIKES does RYDEL have on\\ndisplay outside his cycle shop?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll5Quiz2": "MECHADOLL 5 QUIZ.\\pHow many people give you BERRIES at the\\nPRETTY PETAL flower shop?",
+    "Route110_TrickHousePuzzle5_Text_Mechadoll5Quiz3": "MECHADOLL 5 QUIZ.\\pHow many signs are there in\\nLILYCOVE CITY?",
+    "Route110_TrickHousePuzzle5_Text_CorrectGoThrough5": "CONGRATULATIONS. CORRECT YOU ARE.\\nGO THROUGH. PLEASE.",
+    "Route110_TrickHousePuzzle5_Text_WroteSecretCodeLockOpened": "{PLAYER} wrote down the secret code\\non the door.\\p“TRICK MASTER is my life.”\\n... ... ... ... ... ... ... ...\\pThe lock clicked open!"
+  }
+}

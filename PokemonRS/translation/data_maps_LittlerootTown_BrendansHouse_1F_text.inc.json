@@ -1,0 +1,30 @@
+{
+    "data_maps_LittlerootTown_BrendansHouse_1F_text.inc": {
+        "PlayersHouse_1F_Text_IsntItNiceInHere": "MOM: Бачиш, {PLAYER}?\\nТут дуже мило, правда ж?",
+        "PlayersHouse_1F_Text_MoversPokemonGoSetClock": "Покемони-вантажники зроблять все за нас :\\nі речі занесуть, і поприбирають.\\lЦе так зручно!\\p{PLAYER}, твоя кімната на другому поверсі\\nСходи подивись, серденько!\\pDAD купив тобі новий годинник\\nна честь переїзду.\\lНе забудь виставити час!",
+        "PlayersHouse_1F_Text_ArentYouInterestedInRoom": "MOM: То як, {PLAYER}?\\pХіба тобі не кортить подивитись\\nна свою власну кімнату?",
+        "PlayersHouse_1F_Text_GoSetTheClock": "MOM: {PLAYER}.\\pНалаштуй годинник в кімнаті, серденько.",
+        "PlayersHouse_1F_Text_OhComeQuickly": "MOM: Ох! {PLAYER}, {PLAYER}!\\nШвидко! Ходи сюди!",
+        "PlayersHouse_1F_Text_MaybeDadWillBeOn": "MOM: Глянь! Це PETALBURG GYM!\\nМоже зараз і DAD покажуть!",
+        "PlayersHouse_1F_Text_ItsOverWeMissedHim": "MOM: Ой... Усе закінчилось.\\pЗдається, тата показували, та ми його проґавили.\\nШкода.",
+        "PlayersHouse_1F_Text_GoIntroduceYourselfNextDoor": "Ой, точно.\\nУ місті живе один ТАТІВ друг.\\pЙого звати PROF. BIRCH.\\pВін наш сусід, тож зазирни \\nдо нього та познайомся.",
+        "PlayersHouse_1F_Text_SeeYouHoney": "MOM: Бувай, сонечко!",
+        "PlayersHouse_1F_Text_DidYouMeetProfBirch": "MOM: Ну що, ти познайомився вже з\\nPROF. BIRCH?",
+        "PlayersHouse_1F_Text_YouShouldRestABit": "MOM: Як твої справи, {PLAYER}?\\nВиглядаєш трішки втомленим.\\pДумаю, тобі варто трохи перепочити.",
+        "PlayersHouse_1F_Text_TakeCareHoney": "MOM: Бережи себе, любчику!",
+        "PlayersHouse_1F_Text_GotDadsBadgeHeresSomethingFromMom": "MOM: Ого! Це DAD дав тобі такий BADGE?\\pТоді тримай дещо і від MOM!",
+        "PlayersHouse_1F_Text_DontPushYourselfTooHard": "Не виснажуй себе, любчику.\\nТебе завжди чекають вдома.\\pЩасти тобі, сонечко!",
+        "PlayersHouse_1F_Text_Machoke1": "Гр-р-а-а! Гр-р-а-а-а-а!...",
+        "PlayersHouse_1F_Text_Machoke2": "Гр-р-ах! Гр-р-ах-ах...",
+        "PlayersHouse_1F_Text_ReportFromPetalburgGym": "INTERVIEWER: ...Ми вели цей репортаж\\nпрямо біля PETALBURG GYM.",
+        "PlayersHouse_1F_Text_TheresAMovieOnTV": "По телевізору йде кіно.\\pДвоє чоловіків танцюють на велетенських клавішах\\nпіаніно.\\pМені час в дорогу!",
+        "UnknownString_81728E3": "Це інструкція до RUNNING SHOES.\\p“Натисни кнопку B взутий у\\nRUNNING SHOES щоб бігти швидше.\\p“Взувай RUNNING SHOES та мерщій\\nдо пригод!”",
+        "PlayersHouse_1F_Text_TicketFromBrineyCameForYou": "DAD: Хм?\\pО, це ж{PLAYER}!\\pДавно ми не бачились, але ти\\nвиглядаєш...ніби, сильнішим.\\pПринаймні у мене таке враження.\\nАле твій старий ще не здався!\\pО, точно, дещо для тебе.\\nЦе передав тобі дехто на ім'я\\lMR. BRINEY.",
+        "PlayersHouse_1F_Text_PortsInSlateportLilycove": "DAD: Гм, TICKET на пором?\\pНаскільки пригадую, поромні порти є у\\nSLATEPORT та LILYCOVE.\\p{PLAYER}, якщо ти маєш амбіції\\nTRAINER, вирушай до BATTLE TOWER.\\pВона навчить тебе, що обраний шлях\\nTRAINER не має кінця.",
+        "PlayersHouse_1F_Text_BetterGetBackToGym": "Мені вже час повертатися до PETALBURG GYM.\\pMOM, дякую, що приглядаєш за домом,\\nпоки мене немає.",
+        "PlayersHouse_1F_Text_DadShouldStayLonger": "MOM: Ох, уже цей твій DAD...\\pЗавітав додому вперше за довгий\\nчас, а тільки й розмов, що про POKéMON.\\pКраще б відпочив та побув з нами трохи довше.",
+        "UnknownString_8172C50": "До вашої уваги - терміновий випуск новин\\pНам надійшли повідомлення про появу блакитного\\nFLYING POKéMON у різних куточках HOENN.\\pЦей POKéMON наразі лишається\\nнеопізнаним.\\pА зараз ми повертаємо вас до перегляду \\nкінофільму.",
+        "UnknownString_8172D30": "До вашої уваги - терміновий випуск новин\\pНам надійшли повідомлення про появу червоного\\nFLYING POKéMON у різних куточках HOENN.\\pЦей POKéMON наразі лишається\\nнеопізнаним.\\pА зараз ми повертаємо вас до перегляду \\nкінофільму.",
+        "UnknownString_8172E0F": "Гав-гав!"
+    }
+}

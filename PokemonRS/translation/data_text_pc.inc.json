@@ -1,0 +1,10 @@
+{
+    "data_text_pc.inc": {
+        "Text_BootUpPC": "{PLAYER} увімкнув PC.",
+        "Text_WhichPCShouldBeAccessed": "До якого PC отримати доступ?",
+        "Text_AccessedSomeonesPC": "Зайшов у чийсь PC.",
+        "Text_StorageSystemOpened": "Відкрито сховище POKéMON.",
+        "Text_AccessedPlayersPC": "Відкрито {PLAYER} PC.",
+        "Text_AccessedLanettesPC": "Відкрито LANETTE's PC."
+    }
+}

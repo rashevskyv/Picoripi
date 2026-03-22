@@ -1,0 +1,9 @@
+{
+  "data/maps/LilycoveCity_PokemonCenter_1F/text.inc": {
+    "LilycoveCity_PokemonCenter_1F_Text_HowManyKindsOfPokemon": "I wonder how many kinds of POKéMON\\nthere are in the world?\\pIt'd be great to cross seas and\\ntrade POKéMON with people far away.",
+    "LilycoveCity_PokemonCenter_1F_Text_HeardAboutRottenScoundrels": "I've been hearing about some rotten\\nscoundrels who steal POKéMON and rip\\loff METEORITES.",
+    "LilycoveCity_PokemonCenter_1F_Text_HaventSeenRottenScoundrels": "Those rotten scoundrels who steal\\nPOKéMON and rip off METEORITES...\\pI haven't seen them around recently.",
+    "UnknownString_818A10A": "I'm going to get X ATTACK to raise\\nATTACK during battle.\\pThat way, I'll be guaranteed to win!",
+    "UnknownString_818A168": "FULL HEAL is a little expensive,\\nbut it is convenient.\\pJust one of these can cure any\\nPOKéMON status problem."
+  }
+}

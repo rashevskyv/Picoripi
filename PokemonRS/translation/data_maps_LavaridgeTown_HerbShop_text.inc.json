@@ -1,0 +1,8 @@
+{
+    "data_maps_LavaridgeTown_HerbShop_text.inc": {
+        "LavaridgeTown_HerbShop_Text_WelcomeToHerbShop": "Вітаємо у HERB SHOP, де ви знайдете\\nдієві та недорогі ліки!",
+        "LavaridgeTown_HerbShop_Text_YouveComeToLookAtHerbalMedicine": "Ти прийшов подивитися на трав'яні ліки\\nв LAVARIDGE?\\pЦе вельми похвально.\\pТи мені подобаєшся! Візьми це!",
+        "LavaridgeTown_HerbShop_Text_ExplainCharcoal": "Той CHARCOAL, що я тобі дав, використовується\\nдля виготовлення трав'яних ліків.\\pВін також творить дива, якщо його\\nтримає POKéMON.\\pВін посилює потужність FIRE-type\\nприйомів.",
+        "LavaridgeTown_HerbShop_Text_HerbalMedicineWorksButMonWillDislike": "Трав'яні ліки діють вражаюче добре.\\nАле твої POKéMON розлюблять тебе за це.\\lВони, мабуть, жахливо гіркі!"
+    }
+}

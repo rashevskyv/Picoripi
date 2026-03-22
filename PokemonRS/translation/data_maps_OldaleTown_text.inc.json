@@ -1,0 +1,14 @@
+{
+    "data_maps_OldaleTown_text.inc": {
+        "OldaleTown_Text_SavingMyProgress": "Хочеться відпочити, тому збережу\\nсвій прогрес.",
+        "OldaleTown_Text_IWorkAtPokemonMart": "Привіт!\\nЯ працюю в POKéMON MART.\\pХодімо зі мною?",
+        "OldaleTown_Text_ThisIsAPokemonMart": "Ця будівля - POKéMON MART.\\nПросто шукай наш синій дах.\\pМи продаємо різні товари,зокрема\\nPOKé BALLS для лову POKéMON.\\pОсь, тримай це як рекламний\\nподарунок.",
+        "OldaleTown_Text_PotionExplanation": "POTION можна вжити будь-коли, тож\\nіноді воно навіть корисніше ніж\\nPOKéMON CENTER",
+        "OldaleTown_Text_WaitDontComeInHere": "А-а-а-а-а! Чекай!\\nБудь ласка, не заходь сюди.\\pЯ щойно знайшов сліди\\nрідкісного POKéMON!\\pЗачекай, поки я закінчу\\nїх замальовувати, добре?",
+        "OldaleTown_Text_DiscoveredFootprints": "I just discovered the footprints of\\na rare POKéMON!\\pWait until I finish sketching\\nthem, okay?",
+        "OldaleTown_Text_FinishedSketchingFootprints": "Я закінчив замальовувати сліди\\nрідкісного POKéMON.\\pАле виявилося, що це були\\nмої власні сліди...",
+        "OldaleTown_Text_MayLetsGoBack": "MAY: {PLAYER}{KUN}!\\nСюди!\\lМерщій додому!",
+        "OldaleTown_Text_BrendanLetsGoBack": "BRENDAN: Я повертаюся до татової\\nLAB.\\l{PLAYER}, тобі теж варто поквапитися.",
+        "OldaleTown_Text_TownSign": "OLDALE TOWN\\n“Де все починається з малого”"
+    }
+}

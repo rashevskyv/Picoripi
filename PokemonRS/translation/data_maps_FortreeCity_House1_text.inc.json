@@ -1,0 +1,11 @@
+{
+    "data_maps_FortreeCity_House1_text.inc": {
+        "FortreeCity_House1_Text_WouldYouTradeIt": "Привіт, я тут шукаю одного\\nPOKéMON.\\pМені потрібен {STR_VAR_1}.\\nУ тебе він є?\\pЧи не обміняєш ти його на мого {STR_VAR_2}?",
+        "FortreeCity_House1_Text_PleaseBeNiceToMon": "Дякую!\\pЯ буду добре дбати про твого {STR_VAR_1},\\nтож, будь ласка, піклуйся про мого {STR_VAR_2}!",
+        "FortreeCity_House1_Text_ThatMonIsntAMon": "Стривай!\\nЦей POKéMON - не {STR_VAR_1}.\\pМабуть, ти не хочеш зі мною\\nобмінюватися.",
+        "FortreeCity_House1_Text_ChangeYourMindSeeMe": "Ой, гаразд. Якщо передумаєш, будь ласка,\\nзаходь до мене.\\pЯ чекатиму!",
+        "FortreeCity_House1_Text_PromiseToTakeGoodCareOfMon": "Дякую за обмін!\\pЯ дуже хотіла цього POKéMON,\\nтому обіцяю добре про нього піклуватися!",
+        "FortreeCity_House1_Text_TradingMemoriesWithOthers": "Обмін POKéMON з іншими...\\pЦе ніби ти обмінюєшся власними\\nспогадами з іншими людьми.",
+        "FortreeCity_House1_Text_Zigzagoon": "ZIGZAGOON: Гр-р-мо-о?"
+    }
+}

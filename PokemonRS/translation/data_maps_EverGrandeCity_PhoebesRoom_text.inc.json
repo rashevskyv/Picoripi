@@ -1,0 +1,7 @@
+{
+    "data_maps_EverGrandeCity_PhoebesRoom_text.inc": {
+        "EverGrandeCity_PhoebesRoom_Text_IntroSpeech": "Аха-ха-ха!\\pЯ PHOEBE з ELITE FOUR.\\nСвої тренування я проходила на MT. PYRE.\\pПід час них я здобула здатність спілкуватися\\nз GHOST-type POKéMON.\\pТак, мій зв'язок із покемонами\\nнадзвичайно міцний.\\pТож давай, спробуй-но бодай якось\\nзачепити моїх POKéMON!",
+        "EverGrandeCity_PhoebesRoom_Text_Defeat": "Отакої.\\nВзяла і програла.",
+        "EverGrandeCity_PhoebesRoom_Text_PostBattleSpeech": "Між тобою та твоїми POKéMON\\nтеж є незаперечний зв'язок.\\pЯ не розгледіла цього, тож цілком природно,\\nщо я програла.\\pЩо ж, мені цікаво подивитися, як далеко\\nцей зв'язок зможе тебе завести.\\pПроходь, наступна зала чекає на тебе."
+    }
+}

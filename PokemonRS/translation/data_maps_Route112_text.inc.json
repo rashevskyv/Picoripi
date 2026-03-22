@@ -1,0 +1,10 @@
+{
+    "data_maps_Route112_text.inc": {
+        "Route112_Text_16FDF0": "Гррр...\\pЩо сталося з іншими, хто вирушив до\\nFALLARBOR? Чогось вони забарилися...",
+        "Route112_Text_16FE3E": "Гррр...\\pЯ б теж хотів піднятися на\\nCABLE CAR на саму гору..",
+        "Route112_Text_16FE7A": "Ех, я б хотів дістатися до MAUVILLE, але\\nякщо я спущуся цими уступами\\lповернутися до LAVARIDGE буде нелегко.",
+        "Route112_Text_16FEED": "MT. CHIMNEY CABLE CAR\\n“Зовсім поруч {0x79}!”",
+        "Route112_Text_16FF19": "MT. CHIMNEY\\p“Для поїздки до LAVARIDGE TOWN або на вершину,\\nбудь ласка, скористайтеся CABLE CAR.”",
+        "Route112_Text_16FF64": "ROUTE 112\\n{0x7B} LAVARIDGE TOWN"
+    }
+}

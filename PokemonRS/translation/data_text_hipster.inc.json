@@ -1,0 +1,8 @@
+{
+    "data_text_hipster.inc": {
+        "gTextHipster_TheyCallMeTheHipster": "Hey, yo! They call me the HIPSTER.\\nI'll teach you what's hip and happening.",
+        "gTextHipster_TaughtYouAlready": "But, hey, I taught you what's hip and\\nhappening already.\\pI'd like to spread the good word to\\nother folks.",
+        "gTextHipster_YouAlreadyKnowALot": "But, hey, you already know a lot about\\nwhat's hip and happening.\\pI've got nothing new to teach you!",
+        "gTextHipster_HaveYouHeardAbout": "Hey, have you heard about\\n“{STR_VAR_1}”?\\pWhat's it mean? Well...\\nAsk your daddy or mommy, okay?"
+    }
+}

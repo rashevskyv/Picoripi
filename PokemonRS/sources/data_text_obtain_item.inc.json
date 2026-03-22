@@ -1,0 +1,12 @@
+{
+  "data/text/obtain_item.inc": {
+    "Text_ObtainedTheItem": "Obtained the {STR_VAR_2}.",
+    "Text_TheBagIsFull": "The BAG is full...",
+    "Text_PutItemInPocket": "{PLAYER} put away the {STR_VAR_2}\\nin the {STR_VAR_3} POCKET.",
+    "Text_FoundOneItem": "{PLAYER} found one {STR_VAR_2}!",
+    "Text_TooBadBagIsFull": "Too bad!\\nThe BAG is full...",
+    "Text_ObtainedTheDecor": "Obtained the {STR_VAR_2}.",
+    "Text_NoRoomLeftForAnother": "Too bad! There's no room left for\\nanother {STR_VAR_2}...",
+    "Text_TheDecorWasTransferredToThePC": "The {STR_VAR_2} was transferred\\nto the PC."
+  }
+}

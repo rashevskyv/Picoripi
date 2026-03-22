@@ -1,0 +1,7 @@
+{
+  "data/maps/SlateportCity_House2/text.inc": {
+    "SlateportCity_House_Text_NatureToDoWithStatGains": "My POKéMON has a HASTY nature.\\pIt has higher SPEED compared to my\\nother POKéMON.\\pMaybe their nature has something to\\ndo with the stat gains of POKéMON.",
+    "SlateportCity_House_Text_NeedContestPass": "You need a CONTEST PASS to enter a\\nCONTEST.\\pIt's easy to get. They give it to\\nanyone who has POKéMON.",
+    "SlateportCity_House_Text_HaveContestPass": "Oh, a CONTEST PASS!\\nYou're going to be a contestant?"
+  }
+}

@@ -1,0 +1,18 @@
+{
+    "data_maps_RustboroCity_DevonCorp_3F_text.inc": {
+        "RustboroCity_DevonCorp_3F_Text_MrStoneIHaveFavor": "Я MR. STONE, PRESIDENT\\nкомпанії DEVON CORPORATION.\\pДо мене вже дійшли чутки про твої пригоди!\\pТи виручив наших людей не один раз,\\nа двічі!\\pМаю прохання до такого сміливця,\\nяк ти.\\pЯ чув, ти якраз тримаєш шлях до\\nSHIPYARD у SLATEPORT з пакунком.\\pСлухай, а заскочиш по дорозі в\\nDEWFORD TOWN?\\pДуже сподіваюся, що ти занесеш LETTER\\nдля STEVEN в DEWFORD.",
+        "RustboroCity_DevonCorp_3F_Text_MrStoneWantYouToHaveThis": "MR. STONE: Тож знай - я видатний\\nPRESIDENT.\\pЯ не якийсь там скнара, щоб просити про\\nпослугу і не віддячити.\\pОсь чому я хочу, щоб ти взяв це!",
+        "RustboroCity_DevonCorp_3F_Text_ReceivedPokenav": "{PLAYER} отримав POKéNAV.",
+        "RustboroCity_DevonCorp_3F_Text_MrStoneExplainPokenav": "MR. STONE: Оцей пристрій...\\pЦе POKéMON NAVIGATOR, або\\nскорочено POKéNAV.\\pЦе незамінний інструмент для\\nбудь-якого TRAINER у пригодах.\\pУ ньому є мапа регіону HOENN.\\pТи можеш легко перевірити розташування\\nDEWFORD та SLATEPORT!",
+        "RustboroCity_DevonCorp_3F_Text_CountingOnYou": "MR. STONE: Я розраховую на тебе!",
+        "RustboroCity_DevonCorp_3F_Text_ThankYouForDeliveringLetter": "MR. STONE: Ти доставив мій LETTER?\\nЩиро тобі дякую!!\\pПрийми це як мою подяку.\\nТобі, як TRAINER, воно точно стане в пригоді.",
+        "RustboroCity_DevonCorp_3F_Text_ExplainExpShare": "MR. STONE: Якщо POKéMON тримає\\nEXP. SHARE йому перепадатиме частина очок\\lEXP Points за результатами битви.\\pВін здобуватиме очки EXP Points навіть якщо\\nфактично не брав участі в бою.\\pЯ б сказав, що EXP. SHARE це просто знахідка,\\nщоб підкачати слабеньких POKéMON.",
+        "RustboroCity_DevonCorp_3F_Text_NotFamiliarWithTrends": "MR. STONE: З юності я цілковито присвятив\\nсебе роботі.\\pТому я не дуже обізнаний у трендах\\nі тому подібному.\\pСкажи, невже зараз усі молоді люди тільки\\nй мріють стати TRAINERS у POKéMON LEAGUE?",
+        "RustboroCity_DevonCorp_3F_Text_ThisIs3rdFloorWaitHere": "Це у нас третій поверх\\nDEVON CORPORATION.\\pТут якраз офіс нашого PRESIDENT.\\pСлухай, я навіть не знаю, як тобі віддячити\\nза все, що ти зробив.\\pГм... До речі, щодо того пакунка, який ти\\nвідбив у злодіїв...\\pМоже, занесеш його до\\nSHIPYARD в SLATEPORT?\\pСтрашно й подумати, що буде, якщо ті грабіжники\\nзнову спробують його поцупити.\\pЕ-е... Хе-хе, ну то що, виручиш\\nмене ще разок?\\pОх, ледь не забув.\\nЗачекай-но тут хвилинку, добре?",
+        "RustboroCity_DevonCorp_3F_Text_WordWithPresidentComeWithMe": "Наш PRESIDENT хотів би\\nпоговорити з тобою.\\pХодімо зі мною, будь ласка.",
+        "RustboroCity_DevonCorp_3F_Text_PleaseGoAhead": "Будь ласка, проходь.",
+        "RustboroCity_DevonCorp_3F_Text_VisitCaptSternShipyard": "Коли будеш у SHIPYARD в SLATEPORT,\\nтобі слід побачитися з CAPT. STERN.",
+        "RustboroCity_DevonCorp_3F_Text_RepeatAndTimerHugelyPopular": "Нові товари the REPEAT BALL DEVON: \\nREPEAT BALL та TIMER BALL, стали надзвичайно\\lпопулярними серед TRAINERS.",
+        "RustboroCity_DevonCorp_3F_Text_RareRocksDisplay": "Це колекція рідкісних гірських порід\\nта каміння, зібрана PRESIDENT."
+    }
+}

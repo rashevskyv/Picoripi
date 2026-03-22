@@ -1,0 +1,14 @@
+{
+    "data_maps_MossdeepCity_StevensHouse_text.inc": {
+        "MossdeepCity_StevensHouse_Text_YouveEarnedHMDive": "STEVEN: {PLAYER}{KUN}?\\pТак, це моя оселя. Навіть трохи\\nніяково, що тут так порожньо.\\pО, ось, візьми цей HM.\\pУ ньому техніка DIVE.\\nЯ вже навчив своїх POKéMON.",
+        "MossdeepCity_StevensHouse_Text_ExplainDive": "STEVEN: Коли ти використовуєш SURF,\\nти помітиш темні плями на воді.\\pВикористовуй DIVE, якщо натрапиш на\\nтаку глибоку воду. Ти спустишся на дно.\\pКоли захочеш повернутися нагору, знову\\nвикористовуй DIVE.\\pХоча в деяких місцях ти не зможеш\\nвипливти на поверхню.",
+        "MossdeepCity_StevensHouse_Text_UnderwateCavernBetweenMossdeepSootopolis": "STEVEN: Схоже, що\\nміж MOSSDEEP та SOOTOPOLIS є\\lпідводна печера.\\pНу, та сама, яку CAPT. STERN\\nзнайшов на своєму підводному човні.\\pПідводна печера...\\pТам можуть бути рідкісні камені...\\nМені варто було б зробити DIVE...",
+        "MossdeepCity_StevensHouse_Text_TakeBallContainingBeldum": "{PLAYER} перевірив POKé BALL.\\pУ ньому був POKéMON\\nBELDUM.\\pВзяти POKé BALL?",
+        "MossdeepCity_StevensHouse_Text_ObtainedBeldum": "{PLAYER} отримав BELDUM.",
+        "MossdeepCity_StevensHouse_Text_NoSpaceForAnotherMon": "Немає місця для ще одного POKéMON.",
+        "MossdeepCity_StevensHouse_Text_LeftPokeBallWhereItWas": "{PLAYER} залишив POKé BALL там,\\nде він був.",
+        "MossdeepCity_StevensHouse_Text_LetterFromSteven": "Це лист.\\p... ... ... ... ... ...\\pДля {PLAYER}{KUN}...\\pЯ вирішив трохи розібратися в собі\\nта потренуватися в дорозі.\\pЯ не планую повертатися додому\\nнайближчим часом.\\pУ мене є до тебе прохання.\\pЯ хочу, щоб ти забрав POKé BALL\\nзі столу.\\pУсередині BELDUM, мій улюблений\\nPOKéMON.\\pЯ розраховую на тебе.\\pНехай наші шляхи колись перетнуться.\\pSTEVEN STONE",
+        "MossdeepCity_StevensHouse_Text_LetterFromStevenWithDive": "Це лист.\\p... ... ... ... ... ...\\pДля {PLAYER}{KUN}...\\pЯ вирішив трохи розібратися в собі\\nта потренуватися в дорозі.\\pЯ не планую повертатися додому\\nнайближчим часом.\\pУ мене є до тебе прохання.\\pЯ хочу, щоб ти забрав POKé BALL\\nзі столу.\\pУсередині BELDUM, мій улюблений\\nPOKéMON.\\pЯ розраховую на тебе.\\pЯкщо хочеш, також візьми\\nHM DIVE.\\pНехай наші шляхи колись перетнуться.\\pSTEVEN STONE",
+        "MossdeepCity_StevensHouse_Text_CollectionOfRareRocks": "Це колекція рідкісних гірських порід і\\nкаменів, зібрана STEVEN."
+    }
+}

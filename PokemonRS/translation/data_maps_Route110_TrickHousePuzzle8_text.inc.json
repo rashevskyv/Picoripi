@@ -1,0 +1,13 @@
+{
+    "data_maps_Route110_TrickHousePuzzle8_text.inc": {
+        "Route110_TrickHousePuzzle8_Text_VincentIntro": "Мало хто з TRAINERS зміг\\nдійти аж сюди.",
+        "Route110_TrickHousePuzzle8_Text_VincentDefeat": "Значить, ти теж крутий...",
+        "Route110_TrickHousePuzzle8_Text_VincentPostBattle": "Ти переміг POKéMON LEAGUE\\nCHAMPION? Це неймовірно!",
+        "Route110_TrickHousePuzzle8_Text_ElaineIntro": "Вважай, що тобі пощастило\\nбитися зі мною!",
+        "Route110_TrickHousePuzzle8_Text_ElaineDefeat": "Щось тут не так!\\nЯ не можу програти!",
+        "Route110_TrickHousePuzzle8_Text_ElainePostBattle": "Просто диво, що ти мене здолав.\\nТи можеш цим хизуватися.",
+        "Route110_TrickHousePuzzle8_Text_LeroyIntro": "Ти також пробирався крізь випробування\\nTRICK HOUSE.",
+        "Route110_TrickHousePuzzle8_Text_LeroyDefeat": "Я бачу...\\nТи володієш надзвичайним стилем.",
+        "Route110_TrickHousePuzzle8_Text_LeroyPostBattle": "Зустріч із кимось таким, як ти,\\nмає порадувати TRICK MASTER."
+    }
+}

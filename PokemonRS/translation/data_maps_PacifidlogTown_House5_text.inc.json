@@ -1,0 +1,7 @@
+{
+    "data_maps_PacifidlogTown_House5_text.inc": {
+        "PacifidlogTown_House5_Text_CantSeeMirageIslandToday": "Сьогодні я не бачу MIRAGE ISLAND...",
+        "PacifidlogTown_House5_Text_CanSeeMirageIslandToday": "О! Ох батюшки!\\nСьогодні я бачу MIRAGE ISLAND!",
+        "PacifidlogTown_House5_Text_MirageIslandAppearDependingOnWeather": "MIRAGE ISLAND...\\pМабуть, він стає видимим чи невидимим\\nзалежно від погодних умов,\\lщо спричиняють міражі.\\pЧи він і справді то з'являється,\\nто зникає?"
+    }
+}

@@ -1,0 +1,8 @@
+{
+    "data_maps_BattleTower_BattleRoom_text.inc": {
+        "BattleTower_BattleRoom_Text_19ACDC": "Ми повністю відновимо здоров'я\\nваших POKéMON.",
+        "BattleTower_BattleRoom_Text_19AD09": "На тебе чекає суперник під номером {STR_VAR_1}.\\nГотовий до бою?",
+        "BattleTower_BattleRoom_Text_19AD3C": "Бажаєте зберегтися та\\nвийти з гри?",
+        "BattleTower_BattleRoom_Text_19AD66": "Бажаєте перервати випробування в \\nBATTLE ROOM?"
+    }
+}

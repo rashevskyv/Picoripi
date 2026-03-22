@@ -1,0 +1,19 @@
+{
+  "data/maps/RustboroCity_PokemonSchool/text.inc": {
+    "RustboroCity_PokemonSchool_Text_BlackboardListsStatusChanges": "The blackboard lists status changes\\nthat may affect POKéMON in battle.",
+    "RustboroCity_PokemonSchool_Text_ReadWhichTopic": "Which topic do you want to read?",
+    "RustboroCity_PokemonSchool_Text_ExplainPoison": "If a POKéMON is poisoned, it will\\nsteadily lose HP.\\pThe effects of poison remain after\\na battle.\\pA poisoned POKéMON's HP will drop\\nwhile it is traveling.\\pHeal a poisoning using an ANTIDOTE.",
+    "RustboroCity_PokemonSchool_Text_ExplainParalysis": "If a POKéMON becomes paralyzed,\\nits SPEED drops.\\pIt may also not be able to move while\\nit is in battle.\\pParalysis remains after battle.\\nCure it using a PARLYZ HEAL.",
+    "RustboroCity_PokemonSchool_Text_ExplainSleep": "If a POKéMON falls asleep, it will be\\nunable to attack.\\pA POKéMON may wake up on its own,\\nbut if a battle ends while it is sleeping,\\lit will stay asleep.\\pWake it up using an AWAKENING.",
+    "RustboroCity_PokemonSchool_Text_ExplainBurn": "A burn reduces ATTACK power, and it\\nsteadily reduces the victim's HP.\\pA burn lingers after battle.\\nCure a burn using a BURN HEAL.",
+    "RustboroCity_PokemonSchool_Text_ExplainFreeze": "If a POKéMON is frozen, it becomes\\ncompletely helpless.\\pIt will remain frozen after battle.\\nThaw it out using an ICE HEAL.",
+    "RustboroCity_PokemonSchool_Text_StudentsWhoDontStudyGetQuickClaw": "Students who don't study get a little\\ntaste of my QUICK CLAW.\\pWhether or not you are a good student \\nwill be evident from the way you use\\lthis item.",
+    "RustboroCity_PokemonSchool_Text_ExplainQuickClaw": "A POKéMON holding the QUICK CLAW will\\noccasionally speed up and get to move\\lbefore its opponent.\\pThere are many other items that are\\nmeant to be held by POKéMON.\\pJust those alone will give you many\\ntopics to study!",
+    "RustboroCity_PokemonSchool_Text_TradingRightNow": "I'm trading POKéMON with my friend\\nright now.",
+    "RustboroCity_PokemonSchool_Text_AlwaysWantedSeedot": "I always wanted a SEEDOT, and\\nI'm finally getting one!",
+    "RustboroCity_PokemonSchool_Text_PokemontCantUseManMadeItems": "POKéMON can hold items, but they\\ndon't know what to do with man-made\\litems like POTION and ANTIDOTE.",
+    "RustboroCity_PokemonSchool_Text_ConfusedPokemonAttacksItself": "You know how some POKéMON moves can\\nconfuse a POKéMON?\\pA confused POKéMON will sometimes\\nattack itself without meaning to.\\pBut once it leaves battle, it will\\nreturn to normal.",
+    "RustboroCity_PokemonSchool_Text_PokemonHealItselfWithBerry": "A POKéMON holding a BERRY will heal\\nitself...\\pThere are many kinds of items that\\nPOKéMON can hold...\\pBoy, it sure is hard taking notes\\ndown...",
+    "RustboroCity_PokemonSchool_Text_StudentsNotes": "It's this student's notebook...\\pPOKéMON are to be caught using\\nPOKé BALLS.\\pUp to six POKéMON can accompany\\na TRAINER.\\pA TRAINER is someone who catches\\nPOKéMON, raises them, and battles\\lwith them.\\pA TRAINER's mission is to defeat the\\nstrong TRAINERS who await challengers\\lin POKéMON GYMS."
+  }
+}

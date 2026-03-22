@@ -1,0 +1,20 @@
+{
+    "data_maps_AbandonedShip_Rooms2_1F_text.inc": {
+        "AbandonedShip_Rooms2_1F_Text_HalIntro": "HAL: Поки ми шукали скарби,\\nми натрапили на TRAINER!",
+        "AbandonedShip_Rooms2_1F_Text_HalDefeat": "HAL: Ми не змогли перемогти,\\nхоча й діяли злагоджено...",
+        "AbandonedShip_Rooms2_1F_Text_HalPostBattle": "HAL: Ми не можемо знайти жодних скарбів...\\nЦікаво, чи хтось уже встиг їх забрати?",
+        "AbandonedShip_Rooms2_1F_Text_HalNeedTwoPokemon": "HAL: У тебе навіть немає двох POKéMON.\\nНе сподівайся перемогти нас отак.",
+        "AbandonedShip_Rooms2_1F_Text_LoisIntro": "LOIS: О? Ми шукали якісь скарби,\\nа натомість знайшли TRAINER.",
+        "AbandonedShip_Rooms2_1F_Text_LoisDefeat": "LOIS: Ого, нічого собі, ти\\nсправді сильний гравець!",
+        "AbandonedShip_Rooms2_1F_Text_LoisPostBattle": "LOIS: Цікаво, де заховані\\nскарби?\\pЯ вже знаю, що збираюся купити,\\nколи знайду їх!",
+        "AbandonedShip_Rooms2_1F_Text_LoisNeedTwoPokemon": "LOIS: У тебе немає двох POKéMON?\\nЩо ж, доведеться битися іншим разом!",
+        "AbandonedShip_Rooms2_1F_Text_HalRematchIntro": "HAL: Ми весь цей час шукали\\nскарби.\\pНаші POKéMON також стали сильнішими.\\nДозволь нам показати тобі, гаразд?",
+        "AbandonedShip_Rooms2_1F_Text_HalRematchDefeat": "HAL: Ти сильний, як і завжди!",
+        "AbandonedShip_Rooms2_1F_Text_HalRematchPostBattle": "HAL: Ми не можемо знайти жодних скарбів,\\nми програємо в битвах POKéMON...\\pЯ хочу додому... Але якщо я це скажу,\\nвона на мене дуже розсердиться...",
+        "AbandonedShip_Rooms2_1F_Text_HalRematchNeedTwoPokemon": "HAL: У тебе навіть немає двох POKéMON.\\nНе сподівайся перемогти нас отак.",
+        "AbandonedShip_Rooms2_1F_Text_LoisRematchIntro": "LOIS: О, привіт, ми знову зустрілися!\\pТи, як і ми, ніяк не полишаєш\\nпошуки скарбів!\\pЯк щодо битви? Хто програє -\\nтой припиняє пошуки!",
+        "AbandonedShip_Rooms2_1F_Text_LoisRematchDefeat": "LOIS: Ой, ми знову програли...",
+        "AbandonedShip_Rooms2_1F_Text_LoisRematchPostBattle": "LOIS: Ми ще краще натренуємо наших POKéMON.\\pМи не повернемося додому,\\nдоки не знайдемо свої скарби!",
+        "AbandonedShip_Rooms2_1F_Text_LoisRematchNeedTwoPokemon": "LOIS: У тебе немає двох POKéMON?\\nЩо ж, доведеться битися іншим разом!"
+    }
+}

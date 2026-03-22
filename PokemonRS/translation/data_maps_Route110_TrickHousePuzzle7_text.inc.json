@@ -1,0 +1,14 @@
+{
+    "data_maps_Route110_TrickHousePuzzle7_text.inc": {
+        "Route110_TrickHousePuzzle7_Text_JoshuaIntro": "TRICK MASTER завжди зникає, наче дим.\\nЯк він це робить?",
+        "Route110_TrickHousePuzzle7_Text_JoshuaDefeat": "А-а-а-ай! Ти занадто сильний!\\nЯк тобі це вдається?",
+        "Route110_TrickHousePuzzle7_Text_JoshuaPostBattle": "Я теж хотів би з'являтися та зникати,\\nніби я теж дим.",
+        "Route110_TrickHousePuzzle7_Text_PatriciaIntro": "Ходжу навколо того самого місця...\\nЦе приносить невдачу...",
+        "Route110_TrickHousePuzzle7_Text_PatriciaDefeat": "Програв!\\nЦе поганий знак...",
+        "Route110_TrickHousePuzzle7_Text_PatriciaPostBattle": "Я обійшов те саме місце вже понад\\nдесять разів... Це погана прикмета...",
+        "Route110_TrickHousePuzzle7_Text_AlexisIntro": "Хто переможе, той пройде тут\\nпершим. Отаке в мене відчуття.",
+        "Route110_TrickHousePuzzle7_Text_AlexisDefeat": "О!\\nНу що ж, тоді проходь!",
+        "Route110_TrickHousePuzzle7_Text_AlexisPostBattle": "Ти розв'язуєш усі загадки у\\nTRICK HOUSE. Таке в мене відчуття.",
+        "Route110_TrickHousePuzzle7_Text_WroteSecretCodeLockOpened": "{PLAYER} записав секретний код\\nна дверях.\\p“Я люблю TRICK MASTER.”\\n... ... ... ... ... ... ... ...\\pЗамок клацнув і відчинився!"
+    }
+}

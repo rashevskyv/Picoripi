@@ -1,0 +1,10 @@
+{
+  "data/maps/PacifidlogTown_House3/text.inc": {
+    "PacifidlogTown_House3_Text_WillingToTradeIt": "Hello, TRAINER. Would you do me a favor\\nand trade POKéMON with me?\\pLiving in PACIFIDLOG, I can only catch\\ncertain kinds of POKéMON.\\p{STR_VAR_1}? Do you have one?\\nI'll trade you my {STR_VAR_2} for it.",
+    "PacifidlogTown_House3_Text_MonIsSoFluffy": "Wow!\\nThis {STR_VAR_1} is so fluffy!",
+    "PacifidlogTown_House3_Text_ThatsNoMon": "That's no {STR_VAR_1}.",
+    "PacifidlogTown_House3_Text_ImDisappointed": "I'm a little disappointed...",
+    "PacifidlogTown_House3_Text_NowWereFriends": "Since we traded, you and me,\\nwe're friends, aren't we?",
+    "PacifidlogTown_House3_Text_IsThatAPokedex": "Is that a POKéDEX?\\pDid you get to meet a lot of different\\nPOKéMON?\\pI wish I was like you."
+  }
+}

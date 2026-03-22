@@ -1,0 +1,12 @@
+{
+    "data_maps_LilycoveCity_MoveDeletersHouse_text.inc": {
+        "LilycoveCity_MoveDeletersHouse_Text_ICanMakeMonForgetMove": "Е-е...\\nО, так, я MOVE DELETER.\\pЯ можу змусити POKéMON забути їхні прийоми.\\pХочеш, щоб я це зробив?",
+        "LilycoveCity_MoveDeletersHouse_Text_WhichMonShouldForget": "Який POKéMON має забути прийом?",
+        "LilycoveCity_MoveDeletersHouse_Text_WhichMoveShouldBeForgotten": "Який прийом слід забути?",
+        "LilycoveCity_MoveDeletersHouse_Text_MonOnlyKnowsOneMove": "Здається, {STR_VAR_1} знає лише один\\nприйом...",
+        "LilycoveCity_MoveDeletersHouse_Text_MonsMoveShouldBeForgotten": "Гм! {STR_VAR_1} та його {STR_VAR_2}?\\nЦей прийом слід забути?",
+        "LilycoveCity_MoveDeletersHouse_Text_MonHasForgottenMove": "Все пройшло ідеально!\\p{STR_VAR_1} забув\\n{STR_VAR_2} повністю.",
+        "LilycoveCity_MoveDeletersHouse_Text_ComeAgain": "Заходь ще, якщо будуть інші прийоми,\\nякі слід забути.",
+        "LilycoveCity_MoveDeletersHouse_Text_EggCantForgetMoves": "Та ну?\\nЯке ще EGG? Воно ж не може знати ніяких прийомів."
+    }
+}

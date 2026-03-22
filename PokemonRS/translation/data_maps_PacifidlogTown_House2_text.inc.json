@@ -1,0 +1,15 @@
+{
+    "data_maps_PacifidlogTown_House2_text.inc": {
+        "PacifidlogTown_House2_Text_ChairmansYoungerBrotherOnVacation": "Кхм-кхм!\\pЯ - найважливіша особа у\\nPOKéMON FAN CLUB\\lмолодший брат CHAIRMAN.\\pЯ тут насолоджуюся відпусткою\\nразом із POKéMON, так, саме так.",
+        "PacifidlogTown_House2_Text_AhYourPokemon": "Ах!\\nТвій POKéMON...",
+        "PacifidlogTown_House2_Text_AdoringPokemonTakeThis": "Видно, що він тебе дуже любить.\\pТакий відданий та чарівний POKéMON\\nзаслуговує на отаку TM, чи не так?",
+        "PacifidlogTown_House2_Text_PutInSomeMoreEffort": "Хм...\\nНепогано, але й не те щоб добре.\\pТобі як TRAINER, слід докласти\\nтрохи більше зусиль.",
+        "PacifidlogTown_House2_Text_ViciousPokemonTakeThis": "У нього доволі хижий погляд.\\pТакий лячний POKéMON\\nзаслуговує на отаку TM.",
+        "PacifidlogTown_House2_Text_ExplainReturnFrustration": "Якщо POKéMON тебе дуже любить,\\nсила атаки RETURN зростає.\\pЯкщо ж він тебе не любить, тоді\\nпосилюється атака FRUSTRATION.",
+        "PacifidlogTown_House2_Text_GetGoodTMInXDays": "О, так. Десь за {STR_VAR_1} дн. або близько того,\\nя маю отримати одну-дві хороші TM.\\pЗаходь до мене тоді.\\nЯ дам тобі TM, яка пасуватиме\\lтвоєму POKéMON.",
+        "PacifidlogTown_House2_Text_Rurii": "AZURILL: Рурі-і.",
+        "PacifidlogTown_House2_Text_VeryFriendlyWithTrainer": "Видно, що він дуже дружелюбний\\nзі своїм TRAINER.",
+        "PacifidlogTown_House2_Text_Rururi": "AZURILL: Рурі-і!",
+        "PacifidlogTown_House2_Text_DoesntLikeTrainerVeryMuch": "Схоже, він не дуже любить\\nсвого ТРЕНЕРА."
+    }
+}

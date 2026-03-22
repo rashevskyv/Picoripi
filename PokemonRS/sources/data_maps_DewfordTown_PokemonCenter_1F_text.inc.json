@@ -1,0 +1,6 @@
+{
+  "data/maps/DewfordTown_PokemonCenter_1F/text.inc": {
+    "DewfordTown_PokemonCenter_1F_Text_StoneCavern": "There's a stone cavern at the edge\\nof town.\\pI've heard you can find rare stones\\nthere.",
+    "DewfordTown_PokemonCenter_1F_Text_FaintedMonCanUseHM": "Even if a POKéMON faints and can't\\nbattle, it can still use a move learned\\lfrom a Hidden Machine, HM."
+  }
+}

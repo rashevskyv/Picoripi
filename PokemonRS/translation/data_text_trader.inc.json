@@ -1,0 +1,18 @@
+{
+    "data_text_trader.inc": {
+        "gTextTrader_Introduction": "Hi, I'm the TRADER.\\nWant to trade decorations with me?",
+        "gTextTrader_FeelUnwanted1": "Oh...\\nI feel unwanted...",
+        "gTextTrader_TradedAlready": "But we've traded decorations already,\\nyou and I.",
+        "gTextTrader_MenuPrompt": "If you see any decorative item that\\nyou want of mine, speak up.",
+        "gTextTrader_DontWantAnything": "You don't want anything?\\nI feel unwanted...",
+        "gTextTrader_ItemOnceBelongedTo": "That decorative item once belonged\\nto {STR_VAR_1}.\\pDo you want it?",
+        "gTextTrader_YouDontHaveDecorations": "Uh... Wait a second. You don't have a\\nsingle piece of decoration!",
+        "gTextTrader_PickDecorationYoullTrade": "Okay, pick the decoration that you'll\\ntrade to me.",
+        "gTextTrader_FeelUnwanted2": "You won't trade with me?\\nI feel unwanted...",
+        "gTextTrader_NoRoomForThis": "You've got all the {STR_VAR_2}S that can\\nbe stored. You've no room for this.",
+        "gTextTrader_SoWellTrade": "Okay, so we'll trade my {STR_VAR_3}\\nfor your {STR_VAR_2}?",
+        "gTextTrader_InUseYouCantTradeIt": "That piece of decoration is in use.\\nYou can't trade it.",
+        "gTextTrader_ThenWellTrade": "Then we'll trade!\\nI'll send my decoration to your PC.",
+        "gTextTrader_ICantTradeThatOneAway": "Oops! Sorry!\\nThat's a really rare piece of decoration.\\lI can't trade that one away!\\pCan I interest you in something else?"
+    }
+}

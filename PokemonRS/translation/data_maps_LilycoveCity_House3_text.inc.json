@@ -1,0 +1,12 @@
+{
+    "data_maps_LilycoveCity_House3_text.inc": {
+        "LilycoveCity_House3_Text_LearnFromMasterOfPokeblocks": "Ой-ой-ой! Ти подорожуєш сам?\\nАле ж ти такий молодий! Молодчина!\\pЯ впевнений, що мої діти могли б дечому\\nнавчитися у тебе!\\pЯ? Я майстер {POKEBLOCK}.\\pЯкщо я хоч трохи зосереджуся, то зможу\\nприготувати чудові {POKEBLOCK}.\\pЧи хотів би ти повчитися у мене,\\nмайстра {POKEBLOCK}?",
+        "LilycoveCity_House3_Text_OhAreYouSure": "О? Ти точно впевнений?\\pТобі не слід завжди намагатися робити\\nвсе самостійно, мій любий!",
+        "LilycoveCity_House3_Text_ExplainPokeblocks": "О, чудово! Ти розумна душа!\\nЦе трохи довго, тому слухай уважно!\\pТи готовий?\\pЯкщо ти подивишся на {POKEBLOCK}, о побачиш,\\nщо вони оцінюються за тим, які вони на дотик.\\pЧим нижча оцінка відчуття,\\nтим краще. Не забувай про це!\\pХороший {POKEBLOCK} має низьку оцінку\\nвідчуття та високий рівень.\\pPOKéMON також може з'їсти більше хороших\\n{POKEBLOCK} ніж звичайних.\\pІ це важливо.\\pЯкщо хочеш зробити ніжні {POKEBLOCK},\\nвикористовуй різні види BERRIES.\\pНе будь скупим - види BERRIES\\nвпливають на ніжність{POKEBLOCK}.\\pО, і ще дещо.\\pЧим більше людей змішують BERRIES,\\nтим ніжнішими стають {POKEBLOCK}.\\pСаме тому тобі варто спілкуватися з іншими\\nлюдьми та готувати {POKEBLOCK} разом.\\pЦе майже все, що тобі потрібно знати, щоб\\nготувати хороші {POKEBLOCK}.\\pЯкби у кожного були улюблені POKéMON,\\nніжні {POKEBLOCK}, а любляча родина,\\lсвіт став би щасливішим місцем.\\pНе опускай руки, друже!",
+        "LilycoveCity_House3_Text_HappyToHaveQuadruplets": "Коли моя дружина народила четвірню,\\nповір - я був шокований.\\pАле зараз, бачачи, як вони граються разом,\\nя почуваюся щасливим.",
+        "LilycoveCity_House3_Text_GoingToWinMultiBattles": "Ми тут зійшлися у MULTI BATTLES,\\nта я впевнений - перемога буде за мною.",
+        "LilycoveCity_House3_Text_LikeMixingAtRecordCorner": "Нам подобається змішувати речі у\\nRECORD CORNER.\\pАле що саме там змішується?",
+        "LilycoveCity_House3_Text_MakePokeblocksWithBerryBlender": "Ми збираємося зробити супер {POKEBLOCK}\\nза допомогою BERRY BLENDER!",
+        "LilycoveCity_House3_Text_GoingToEnterContest": "Я хочу похвалитися тим, наскільки\\nміцний мій POKéMON, тому ми збираємося\\lразом взяти участь у CONTEST."
+    }
+}

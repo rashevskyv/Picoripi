@@ -1,0 +1,10 @@
+{
+  "data/maps/Route112/text.inc": {
+    "Route112_Text_16FDF0": "Grumble...\\pWhat happened to the others who went\\nto FALLARBOR? They're late...",
+    "Route112_Text_16FE3E": "Grumble...\\pI'd like to ride the CABLE CAR to the\\ntop, too..",
+    "Route112_Text_16FE7A": "Eh, I'd like to get to MAUVILLE, but if\\nI went down these ledges, it'd be no\\leasy matter to get back to LAVARIDGE.",
+    "Route112_Text_16FEED": "MT. CHIMNEY CABLE CAR\\n“A short walk {0x79} way!”",
+    "Route112_Text_16FF19": "MT. CHIMNEY\\p“For LAVARIDGE TOWN or the summit,\\nplease take the CABLE CAR.”",
+    "Route112_Text_16FF64": "ROUTE 112\\n{0x7B} LAVARIDGE TOWN"
+  }
+}

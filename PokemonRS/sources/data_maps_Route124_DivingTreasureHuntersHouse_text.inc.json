@@ -1,0 +1,15 @@
+{
+  "data/maps/Route124_DivingTreasureHuntersHouse/text.inc": {
+    "Route124_DivingTreasureHuntersHouse_Text_19F416": "I'm the DIVING TREASURE HUNTER!\\pI'm the awesome dude who makes\\ndeep-sea dives to gather treasures\\lresting at the bottom.",
+    "Route124_DivingTreasureHuntersHouse_Text_19F48F": "Tell me, have you seen any SHARDS of\\ntools made in ancient times?",
+    "Route124_DivingTreasureHuntersHouse_Text_19F4D1": "You haven't got any treasures\\nfor me...\\pIf you see any SHARDS, like the RED\\nSHARD, you've got to trade it with me!",
+    "Route124_DivingTreasureHuntersHouse_Text_19F544": "Oh, hey! That...\\nThat's a SHARD! I'm looking for those!\\pOh, man, you've got to trade that\\nwith me! I'll give you something good!",
+    "Route124_DivingTreasureHuntersHouse_Text_19F5C5": "What do you want to trade?",
+    "Route124_DivingTreasureHuntersHouse_Text_19F5E0": "You'll trade your {STR_VAR_1} for\\nmy {STR_VAR_2}, then?",
+    "Route124_DivingTreasureHuntersHouse_Text_19F606": "It's a done deal!\\nUse that wisely!",
+    "Route124_DivingTreasureHuntersHouse_Text_19F629": "Do you want to trade something else?",
+    "Route124_DivingTreasureHuntersHouse_Text_19F64E": "Whoops, your BAG's full.\\nGet rid of some items, friend!",
+    "Route124_DivingTreasureHuntersHouse_Text_19F686": "No? That's a downer.\\nWell, if you change your mind, come back.",
+    "Route124_DivingTreasureHuntersHouse_Text_19F6C5": "Wanted item              Trade item\\n RED SHARD           {0x7B}{0x7C} FIRE STONE\\pWanted item              Trade item\\n YELLOW SHARD     {0x7B}{0x7C} THUNDERSTONE\\pWanted item              Trade item\\n BLUE SHARD         {0x7B}{0x7C} WATER STONE\\pWanted item              Trade item\\n GREEN SHARD       {0x7B}{0x7C} LEAF STONE"
+  }
+}

@@ -1,0 +1,33 @@
+{
+    "data_maps_MossdeepCity_Gym_text.inc": {
+        "MossdeepCity_Gym_Text_GymGuideAdvice": "Йо, як справи, {PLAYER},\\nмайбутній CHAMPION?\\pGYM LEADERS тут використовують PSYCHIC-type\\nPOKéMON.\\pЯкщо ти виступиш проти них із POKéMON\\nтипу FIGHTING- або POISON,\\lвони завдадуть жахливої шкоди!\\pДо того ж вони атакуватимуть тебе\\nвражаючими комбінаціями.\\pЯкщо хочеш перемогти, тобі треба показати\\nїм, наскільки ви близькі зі своїми\\lPOKéMON. Вперед!",
+        "MossdeepCity_Gym_Text_GymGuidePostVictory": "Вау, ти неймовірний!\\nТи справді крутий TRAINER!",
+        "MossdeepCity_Gym_Text_PrestonIntro": "У битві все вирішує міць твого духу!\\nСлабким духом перемоги не бачити!",
+        "MossdeepCity_Gym_Text_PrestonDefeat": "Я програв! Я маю знову загартувати свій дух!",
+        "MossdeepCity_Gym_Text_PrestonPostBattle": "Нерішучі програють.\\nЦе моє попередження тобі.",
+        "MossdeepCity_Gym_Text_VirgilIntro": "Ану, покажи, на що ти здатний!",
+        "MossdeepCity_Gym_Text_VirgilDefeat": "Ти володієш надзвичайним талантом!",
+        "MossdeepCity_Gym_Text_VirgilPostBattle": "Якщо у світі існують вундеркінди,\\nто наші GYM LEADERS - це вони!\\pПроте, ти можеш бути навіть\\nталановитішим за них...",
+        "MossdeepCity_Gym_Text_FritzIntro": "Хе-хе-хе-хе... Заціни, як я зараз змушу\\nPOKé BALL літати силою думки!\\pГр-р-р-р-р-р-р-р-р-а-а-а-а-а-а-х!\\n... ... ... ... ... ... ...\\pБуває, що я просто збиваюся з хвилі...",
+        "MossdeepCity_Gym_Text_FritzDefeat": "Мої навички битви POKéMON\\nтакож не в ладу!",
+        "MossdeepCity_Gym_Text_FritzPostBattle": "POKé BALL виявилася заважкою для телекінезу.\\nАле оця порошинка...\\pХу-у-у-у-у-у-у-у-у-у-у-у-х!\\n... ... ... ... ... ...\\pНі, я не шахраюю!\\nЯ не дув на неї! Чесно!",
+        "MossdeepCity_Gym_Text_HannahIntro": "Коли програєш мені, не будь занадто\\nсуворим до себе.\\pСправа не в тому, що ти слабкий -\\nя просто занадто сильний!",
+        "MossdeepCity_Gym_Text_HannahDefeat": "Ти просто занадто сильний!",
+        "MossdeepCity_Gym_Text_HannahPostBattle": "Я не збираюся вішати носа через\\nпоразку. Мені просто треба підналягти на тренування.\\pОптимізм - це мій головний\\nкозир!",
+        "MossdeepCity_Gym_Text_SamanthaIntro": "Я це бачу...\\nЯ бачу твоє майбутнє...\\pЯкщо ти зможеш мене перемогти, я\\nрозповім тобі твоє майбутнє!",
+        "MossdeepCity_Gym_Text_SamanthaDefeat": "Я здаюся!",
+        "MossdeepCity_Gym_Text_SamanthaPostBattle": "На тебе чекає неймовірно запекла битва\\nз нашими GYM LEADERS...\\pРезультат...\\nТи не почуєш його від мене!",
+        "MossdeepCity_Gym_Text_MauraIntro": "Шляхи, якими ти пройшов...\\nТе, що ти пережив...\\pНападай на мене з усім, чого ти\\nнавчився!",
+        "MossdeepCity_Gym_Text_MauraDefeat": "Твій шлях був воістину славетним!",
+        "MossdeepCity_Gym_Text_MauraPostBattle": "Світле майбутнє чекає на тих, хто\\nпрацював старанно.\\pДля тих, хто ледарював, у\\nкінці є лише відчай.\\pЩо посієш, те й пожнеш...",
+        "MossdeepCity_Gym_Text_TateAndLizaIntro": "TATE: Хе-хе-хе... Ну що, здивувався?\\pLIZA: Пу-пу-пу... Здивувався, га?\\pTATE: Що GYM LEADERS аж двоє?\\nLIZA: Що GYM LEADERS аж двоє?\\pTATE: Ми ж двійнята!\\nLIZA: Ми ж двійнята!\\pTATE: Нам і слова не потрібні, адже...\\nLIZA: Ми і так знаємо, про що...\\pTATE: Інший зараз міркує...\\nLIZA: Прямо в себе в голові!\\pTATE: Проти нашого дуету...\\nLIZA: Ти встоїш чи ні?",
+        "MossdeepCity_Gym_Text_TateAndLizaDefeat": "TATE: Що?! Наш дует...\\nLIZA: Тріснув по швах!\\pTATE: Що ж, нічого не вдієш. Твоя взяла...\\nLIZA: Тож тримай це, ти на це заслужив.",
+        "MossdeepCity_Gym_Text_ReceivedMindBadge": "{PLAYER} отримав MIND BADGE\\nвід LIZA та TATE.",
+        "MossdeepCity_Gym_Text_ExplainMindBadgeTakeThis": "TATE: MIND BADGE покращує\\nSP. ATK та SP. DEF ваших POKéMON.\\pLIZA: Також він дозволяє використовувати HM-прийом\\nDIVE поза межами битви.\\pTATE: Тобі також варто взяти і це.",
+        "MossdeepCity_Gym_Text_ExplainCalmMind": "TATE: Цей TM04 містить...\\nLIZA: CALM MIND!\\pTATE: Він підвищує SP. ATK та...\\nLIZA: Він підвищує SP. DEF!\\pTATE: Це прийом, який ідеально підходить...\\nLIZA: Для PSYCHIC POKéMON!",
+        "MossdeepCity_Gym_Text_TateAndLizaPostBattle": "TATE: Схоже, зв'язок між тобою\\nта твоїми POKéMON набагато сильніший, ніж\\lтой зв'язок, що ми маємо як близнюки.\\pLIZA: Ти станеш ще сильнішим!\\nМи билися з тобою, тож ми знаємо.",
+        "MossdeepCity_Gym_Text_TateAndLizaNeedTwoMons": "TATE: Хе-хе-хе... Ти здивувався?\\pLIZA: Що тут двоє GYM LEADERS?\\pTATE: Ой, у тебе лише один...\\nLIZA: POKéMON, який може битися.\\pTATE: Ми не можемо так битися!\\pLIZA: Якщо хочеш кинути нам виклик,\\nпринеси ще POKéMON.",
+        "MossdeepCity_Gym_Text_GymStatue": "MOSSDEEP CITY POKéMON GYM",
+        "MossdeepCity_Gym_Text_GymStatueCertified": "MOSSDEEP CITY POKéMON GYM\\pLIZA AND TATE'S CERTIFIED TRAINERS:\\n{PLAYER}"
+    }
+}

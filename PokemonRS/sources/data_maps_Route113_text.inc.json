@@ -1,0 +1,10 @@
+{
+  "data/maps/Route113/text.inc": {
+    "Route113_Text_16FF7F": "Wahahaha! Today's technology is a\\nwondrous thing!\\pTake this volcanic ash here.\\nIt can be fashioned into glass.",
+    "Route113_Text_16FFEE": "It's fun walking through the volcano's\\nashes on the ground and grass.\\pYou can see where you walked - it's\\nreally neat!",
+    "Route113_Text_170065": "ROUTE 113\\n{0x7C} ROUTE 111",
+    "Route113_Text_17007B": "ROUTE 113\\n{0x7B} FALLARBOR TOWN",
+    "Route113_Text_170096": "TRAINER TIPS\\pYou may register one of the KEY ITEMS\\nin your BAG as SELECT.\\pSimply press SELECT to use the\\nregistered item conveniently.",
+    "Route113_Text_17011D": "GLASS WORKSHOP\\n“Turning Volcanic Ash into Glass Items”"
+  }
+}

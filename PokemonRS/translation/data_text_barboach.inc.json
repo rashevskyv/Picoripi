@@ -1,0 +1,12 @@
+{
+    "data_text_barboach.inc": {
+        "UnknownString_81C426C": "I'm very interested in big {STR_VAR_1}.\\nThe bigger the better.\\pHuh? Do you have a {STR_VAR_1}?\\nP-p-please, show me!",
+        "UnknownString_81C42CE": "Oh, my gosh, this is a big one!\\nThis is a grand {STR_VAR_1}!\\pThanks for showing me.\\nThis is my thanks!",
+        "UnknownString_81C432C": "{PLAYER} received one {STR_VAR_2}.",
+        "UnknownString_81C4340": "Hunh?\\nYour BAG is crammed full.",
+        "UnknownString_81C4360": "Hmm... I've seen a bigger {STR_VAR_1}\\nthan this one.",
+        "UnknownString_81C438C": "Oh, now this is quite something...\\nBut it's not a {STR_VAR_1}!",
+        "UnknownString_81C43C2": "You don't have a big {STR_VAR_1}?\\nThat's too bad...\\pIf you get a big {STR_VAR_1},\\nplease come show me.",
+        "UnknownString_81C4417": "The biggest {STR_VAR_1} in history!\\n{STR_VAR_2}'s {STR_VAR_3}-inch colossus!"
+    }
+}

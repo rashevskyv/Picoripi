@@ -1,0 +1,13 @@
+{
+  "data/maps/Route118/text.inc": {
+    "Route118_Text_170D66": "STEVEN: Hi!\\pYou're that TRAINER I met in DEWFORD!\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pOh, okay, you're {PLAYER}{KUN}.\\nI'll remember it.\\p{PLAYER}{KUN}.\\pIn this vast world, there are many\\nkinds of POKéMON.\\lThey come in many types.\\pDo you raise different types?\\nOr do you raise only POKéMON of a\\lcertain type?\\pWhat do you think as a TRAINER?\\pSorry, it's not my place to ask, is it?\\pWell, anyway, I hope to see you\\nagain.",
+    "Route118_Text_170F12": "Hmm!\\nA GOOD ROD is really good!\\pWouldn't you agree?",
+    "Route118_Text_170F46": "Hmm!\\nWe're of identical minds!\\pHmm!\\nTake this GOOD ROD!",
+    "Route118_Text_170F7E": "Wherever there's water, try your luck\\nat fishing.",
+    "Route118_Text_170FB0": "Don't you like to fish?",
+    "Route118_Text_170FC8": "Try catching all sorts of POKéMON\\nwith your GOOD ROD.",
+    "Route118_Text_170FFE": "Even if there isn't a boat, you can\\ncross rivers and the sea if you have\\la POKéMON that knows SURF.\\pPOKéMON can be counted on to do so\\nmuch!",
+    "Route118_Text_17108B": "ROUTE 118\\n{0x7B} MAUVILLE CITY",
+    "Route118_Text_1710A5": "ROUTE 118\\n{0x79} ROUTE 119"
+  }
+}

@@ -1,0 +1,7 @@
+{
+    "data_maps_EverGrandeCity_PokemonLeague_text.inc": {
+        "EverGrandeCity_PokemonLeague_1F_Text_MustHaveAllGymBadges": "За цю межу дозволено проходити лише тим\\nTRAINERS, які зібрали всі\\lGYM BADGES\\pTRAINER, дозволь нам переконатися, що ти\\nмаєш усі GYM BADGES.",
+        "EverGrandeCity_PokemonLeague_1F_Text_HaventObtainedAllBadges": "Ти ще не маєш усіх BADGES.\\pЯкщо твоя мета - POKéMON LEAGUE, ти мусиш\\nповернутися сюди лише тоді, коли збереш їх усі.",
+        "EverGrandeCity_PokemonLeague_1F_Text_GoForth": "TRAINER! Вір у власні сили та у своїх POKéMON,\\nі рушай назустріч долі!"
+    }
+}

@@ -1,0 +1,18 @@
+{
+  "data/maps/Route104/text.inc": {
+    "Route104_Text_16DA13": "That seaside cottage is where\\nMR. BRINEY lives.\\pHe was once a mighty sailor who never\\nfeared the sea, however stormy.",
+    "Route104_Text_16DA89": "The sea, huh?\\pI wonder what it's like at the bottom\\nof the sea?",
+    "Route104_Text_16DAC9": "If you're going to throw a POKé BALL,\\nweaken the wild POKéMON first.\\pIt will be easier to catch if it's been\\npoisoned, burned, or lulled to sleep.",
+    "Route104_Text_16DB5C": "You're a thief if you try to steal\\nsomeone else's POKéMON.\\pYou should throw POKé BALLS only at\\nwild POKéMON.",
+    "Route104_Text_16DBC9": "Oh, no, I'm not a TRAINER.\\pBut that's right, if TRAINERS lock eyes,\\nit's a challenge to battle.\\pIf you don't want to battle, stay out\\nof their sight.",
+    "Route104_Text_16DC5F": "I like filling my mouth with seeds,\\nthen spitting them out fast!\\pYou can have this, so you try it out!\\pUse it on a POKéMON, and it will learn\\na move for firing seeds rapidly.",
+    "Route104_Text_16DD0E": "A word of advice!\\pA TM, TECHNICAL MACHINE, is good only\\nfor one-time use.\\pOnce you use it, it's gone.\\nThink twice before using it!",
+    "Route104_Text_16DD91": "This FLOWER SHOP started selling\\nsaplings recently.\\pIt made me so happy, I went overboard\\nshopping. I don't need this WHITE HERB\\lanymore. Would you take it, please?",
+    "Route104_Text_16DE36": "This FLOWER SHOP started selling\\nsaplings recently.\\pIt made me so happy, I went overboard\\nshopping. Where should I put them?",
+    "Route104_Text_16DEB3": "MR. BRINEY'S COTTAGE",
+    "Route104_Text_16DEC8": "ROUTE 1O4\\n{0x7C} PETALBURG CITY",
+    "Route104_Text_16DEE3": "ROUTE 1O4\\n{0x79} RUSTBORO CITY",
+    "Route104_Text_16DEFD": "PRETTY PETAL FLOWER SHOP",
+    "Route104_Text_16DF16": "TRAINER TIPS\\pIn the HOENN region there are pairs\\nof TRAINERS who challenge others\\lfor 2-on-2 POKéMON battles called\\lDOUBLE BATTLES.\\pIn a DOUBLE BATTLE, the TRAINER must\\nsend out two POKéMON, the one at the\\lleft of the list and the top one.\\lWatch how POKéMON are lined up."
+  }
+}

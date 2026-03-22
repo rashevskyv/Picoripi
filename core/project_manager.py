@@ -243,14 +243,13 @@ class ProjectManager:
             self.project.add_block(block)
             
             # Ensure it's tracked in virtual structure
-            if 'root_block_ids' in self.project.metadata:
-                if block.id not in self.project.metadata['root_block_ids']:
-                    self.project.metadata['root_block_ids'].append(block.id)
-            elif self.project.virtual_folders:
-                 # If folders exist but not in root, we might want to put it in root anyway
-                 root_ids = self.project.metadata.get('root_block_ids', [])
-                 root_ids.append(block.id)
-                 self.project.metadata['root_block_ids'] = root_ids
+            if 'root_block_ids' not in self.project.metadata:
+                self.project.metadata['root_block_ids'] = []
+            
+            if block.id not in self.project.metadata['root_block_ids']:
+                # Only add to root if it's not already in some virtual folder
+                # For simplicity in add_block, we assume it goes to root unless moved later
+                self.project.metadata['root_block_ids'].append(block.id)
 
             self.save()
             log_info(f"Registered block '{block.name}' loosely linked at {source_rel_path}")

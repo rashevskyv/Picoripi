@@ -1,0 +1,31 @@
+{
+  "data/text/pokeblocks.inc": {
+    "FallarborTown_ContestLobby_Text_1B6E63": "Oh? Did you want to make some {POKEBLOCK}S\\nwith this old-timer?",
+    "FallarborTown_ContestLobby_Text_1B6E9D": "Excellent!",
+    "FallarborTown_ContestLobby_Text_1B6EA8": "Oh...\\nYou've made this old-timer sad...",
+    "FallarborTown_ContestLobby_Text_1B6ED0": "Do you know how to make a {POKEBLOCK}?",
+    "FallarborTown_ContestLobby_Text_1B6EF1": "Let's get started, then!\\pLet's BERRY BLENDER!",
+    "FallarborTown_ContestLobby_Text_1B6F1F": "Okay, a little explanation, then.\\pOh, don't worry, it's quite simple.\\pWhen the BLENDER's arrow comes to\\nyour marker, just press the A Button.\\pThat's all you have to do.\\nYou'll see how easy it is when you try.",
+    "FallarborTown_ContestLobby_Text_1B6FF0": "Oh?\\nYou don't have any BERRIES?\\pIf you don't have any BERRIES,\\nyou can't make any {POKEBLOCK}S.",
+    "FallarborTown_ContestLobby_Text_1B704A": "Well, that won't do at all now, will it?\\pIf you don't mind leftovers, you can\\nhave one of my BERRIES.\\pThat way, we could make some {POKEBLOCK}S\\ntogether using the BERRY BLENDER.",
+    "FallarborTown_ContestLobby_Text_1B70F6": "If I had some BERRIES left over,\\nI'd gladly give you one...\\pBut, I don't have any to spare today.\\nWe'll have to do this another time.",
+    "FallarborTown_ContestLobby_Text_1B717C": "But your {POKEBLOCK} CASE is full.\\pYou should use some {POKEBLOCK}S before\\nyou come see me again.",
+    "FallarborTown_ContestLobby_Text_1B71D2": "But you don't have a {POKEBLOCK} CASE.\\pYou should get a {POKEBLOCK} CASE and then\\ncome see me.",
+    "SlateportCity_ContestLobby_Text_LetsGetBlendingAlready": "Let's get blending already!",
+    "LilycoveCity_ContestLobby_Text_1B7241": "I wonder what kind of {POKEBLOCK} I'll get?\\nThis is so exciting!",
+    "FallarborTown_ContestLobby_Text_1B727C": "{POKEBLOCK}S will be made with your friends \\nfrom BERRIES in the BERRY BLENDER.\\pIs it okay to save the game before\\nlinking with your friends?",
+    "FallarborTown_ContestLobby_Text_1B7304": "Searching for your friends...\\n... ... B Button: Cancel",
+    "FallarborTown_ContestLobby_Text_1B733B": "{STR_VAR_1} arrived.",
+    "FallarborTown_ContestLobby_Text_1B7347": "{STR_VAR_1} and {STR_VAR_2} arrived.",
+    "FallarborTown_ContestLobby_Text_1B735A": "{STR_VAR_1}, {STR_VAR_2}, and\\n{STR_VAR_3} arrived.",
+    "UnknownString_81B7372": "Nobody came...",
+    "FallarborTown_ContestLobby_Text_1B7381": "You have no BERRIES.\\nThe BERRY BLENDER can't be used.",
+    "FallarborTown_ContestLobby_Text_1B73B7": "Your {POKEBLOCK} CASE is full.\\nThe BERRY BLENDER can't be used.",
+    "FallarborTown_ContestLobby_Text_1B73F1": "You don't have a {POKEBLOCK} CASE.\\nThe BERRY BLENDER can't be used.",
+    "FallarborTown_ContestLobby_Text_1B742F": "I love making {POKEBLOCK}S.\\pI always have some BERRIES with me.",
+    "FallarborTown_ContestLobby_Text_1B7469": "If you'd like, we could make some\\n{POKEBLOCK}S together using the\\lBERRY BLENDER.",
+    "FallarborTown_ContestLobby_Text_1B74B4": "Oh?\\nYou don't have any BERRIES?\\pWell, that won't do at all now, will it?\\pIf you don't mind leftovers, you can\\nhave one of my BERRIES.",
+    "FallarborTown_ContestLobby_Text_1B753A": "We'll use it to make {POKEBLOCK}S together\\nusing the BERRY BLENDER.",
+    "FallarborTown_ContestLobby_Text_1B7578": "Oh?\\nYou don't have any BERRIES?\\pIf I had some left over, I'd gladly\\ngive you one...\\pBut, I don't have any to spare today.\\nSorry about that."
+  }
+}

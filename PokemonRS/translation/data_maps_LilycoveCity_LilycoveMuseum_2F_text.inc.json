@@ -1,0 +1,24 @@
+{
+    "data_maps_LilycoveCity_LilycoveMuseum_2F_text.inc": {
+        "LilycoveCity_LilycoveMuseum_2F_Text_ThisIsExhibitHall": "This is our special exhibit hall.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ExplainExhibitHall": "As you can plainly see, there is not a\\nsingle painting on exhibit.\\pHere, I don't wish to exhibit works of\\nso-called classical art.\\pSuch classical works you can see on\\nour ground floor.\\pI wish to exhibit work that is far\\ndifferent from the classics.\\pArt, after all, is not restricted to old,\\nfamous works!\\pThis exhibit hall, I wish to fill it with...\\pModern and vibrant artworks of\\nPOKéMON seemingly ready to spring\\lforth into glorious life!",
+        "LilycoveCity_LilycoveMuseum_2F_Text_PleaseObtainPaintingsForExhibit": "I beg your pardon. I didn't intend\\nto monopolize the conversation.\\pNow, as you are young, and yet\\nobviously well traveled...\\pYou must encounter lively POKéMON\\nand works of art depicting them.\\pIf you were to come across such a\\npainting, may we ask you to obtain\\lthe artist's permission to exhibit\\lit here?",
+        "LilycoveCity_LilycoveMuseum_2F_Text_WishToFillExhibit": "I wish to fill this exhibit hall with\\nmodern and vibrant paintings of\\lPOKéMON.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ThanksAddedNewPainting": "Thanks to you, we've added a new\\npainting to our collection!\\pI've heard it depicts your POKéMON.\\nTruly magnificent!\\pThank you so very, very much!",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsYouPlayer": "А! Та це ж ти,\\n{PLAYER}!",
+        "LilycoveCity_LilycoveMuseum_2F_Text_PaintingsAttractedMoreGuests": "Хіба це не чудово?\\nЦя колекція картин!\\pКожна з них бездоганна!\\nЖодна не поступається іншій!\\pЦі картини залучили ще більше\\nгостей до нашого ART MUSEUM.\\pЩиро дякую тобі, {PLAYER}.\\nЦе здійснення моєї мрії!",
+        "LilycoveCity_LilycoveMuseum_2F_Text_TokenOfGratitude": "Це лише скромний знак моєї вдячності.",
+        "UnknownString_8188148": "{PLAYER} отримав GLASS ORNAMENT.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_KeepThisForYou": "Я збережу це для тебе до нашої\\nнаступної зустрічі.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_HonorToHaveYouVisit": "О, як приємно тебе бачити, {PLAYER}!\\pДля нас велика честь, що ти завітав до\\nнас під час своїх насичених пригод.\\pБудь ласка, відпочинь і насолоджуйся\\nперебуванням у нас.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsPinkPictureFrame": "Це рамка для картин,\\nоздоблена рожевим.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsYellowPictureFrame": "Це рамка для картин,\\nоздоблена жовтим.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsBluePictureFrame": "Це рамка для картин,\\nоздоблена синім.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsRedPictureFrame": "Це рамка для картин,\\nоздоблена червоним.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsGreenPictureFrame": "Це рамка для картин,\\nоздоблена зеленим.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ItsPaintingOfPokemon": "Це зображення POKéMON.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_NewPaintingsSurprisedMe": "Мене довго не було, тож нові картини\\nтут мене здивували.\\pЯ хотів би, щоб хтось намалював\\nмого POKéMON так само гарно.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_NewPaintingsRatherAmusing": "Ну... Тож саме тут показують ці\\nтематичні картини POKéMON.\\pЯ бачу, ці нові картини справді\\nдосить цікаві.",
+        "LilycoveCity_LilycoveMuseum_2F_Text_ThesePaintingsOfYourPokemon": "Ого, невже це правда?\\nНа цих картинах зображені твої POKéMON.\\pХіба це не найбільша радість для\\nкожного TRAINER?"
+    }
+}

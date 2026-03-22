@@ -1,0 +1,18 @@
+{
+    "data_maps_RustboroCity_DevonCorp_2F_text.inc": {
+        "RustboroCity_DevonCorp_2F_Text_DeviceForTalkingToPokemon": "Ми розробляємо пристрій для спілкування\\nз POKéMON.\\pАле діло поки що йде туго...",
+        "RustboroCity_DevonCorp_2F_Text_DevelopingNewBalls": "Я розробляю нові види\\nPOKé BALLS...\\pАле поки що діло стоїть на місці...",
+        "RustboroCity_DevonCorp_2F_Text_WeFinallyMadeNewBalls": "Нарешті ми створили нові види POKé BALLS!\\pREPEAT BALL полегшує ловлю\\nPOKéMON, яких ти вже ловив раніше.\\pTIMER BALL стає ефективнішим для ловлі\\nPOKéMON, чим довше триває битва.\\pОбидва з гордістю розроблені\\nDEVON CORPORATION.\\pБудь ласка, випробуй їх!",
+        "RustboroCity_DevonCorp_2F_Text_IMadePokenav": "Це я змайстрував POKéNAV!\\pДля мене як для інженера - це справжня гордість,\\nстворити таку крутезну штуковину!",
+        "RustboroCity_DevonCorp_2F_Text_WowThatsAPokenav": "Ого, оце так!\\nТа це ж POKéNAV!\\pЙого змайстрували, бо наш\\nPRESIDENT дуже хотів збагнути,\\lщо на душі в POKéMON.\\pТобі розжувати в деталях,\\nна що він здатний?\\pА, хоча ні. Думаю, ти й сам швидко розберешся,\\nяк тільки трохи поклацаєш POKéNAV.",
+        "RustboroCity_DevonCorp_2F_Text_DeviceToVisualizePokemonDreams": "Я намагаюся розробити пристрій,\\nякий візуально відтворює сни\\lPOKéMON...\\pАле справи йдуть не дуже вдало.",
+        "RustboroCity_DevonCorp_2F_Text_DevelopDeviceToResurrectFossils": "Я тут все мудрував над штуковиною, щоб\\nповертати POKéMON до життя зі скам'янілостей...\\pІ, дивись-но, вона таки запрацювала!",
+        "RustboroCity_DevonCorp_2F_Text_WantToBringFossilBackToLife": "Зачекай! Що це там у тебе таке?...\\nЦе скам'янілість POKéMON?\\pЧи не хотів би ти повернути цього\\nPOKéMON до життя?\\pЯ можу це зробити за допомогою мого нещодавно\\nрозробленого FOSSIL REGENERATOR.",
+        "RustboroCity_DevonCorp_2F_Text_OhIsThatSo": "О, невже?\\pТехнологічний досвід DEVON просто\\nвражаючий, кажу тобі.",
+        "RustboroCity_DevonCorp_2F_Text_HandedFossilToResearcher": "Клас!\\nМерщій до справи!\\p{PLAYER} передав {STR_VAR_1} для\\nDEVON RESEARCHER.",
+        "RustboroCity_DevonCorp_2F_Text_FossilRegeneratorTakesTime": "FOSSIL REGENERATOR, який я створив,\\nпросто неймовірний.\\pАле він має одну ваду - йому потрібно\\nбагато часу для роботи.\\pТож, е-е... Може, підеш десь провітряшся,\\nпоки йде процес?",
+        "RustboroCity_DevonCorp_2F_Text_FossilizedMonBroughtBackToLife": "Дякую за очікування!\\pТвій закам'янілий POKéMON\\nбув повернутий до життя!\\pЦя скам'янілість виявилася прадавнім POKéMON.\\n{STR_VAR_2}, це був він!",
+        "RustboroCity_DevonCorp_2F_Text_ReceivedMonFromResearcher": "{PLAYER} отримав {STR_VAR_2} від\\nDEVON RESEARCHER.",
+        "RustboroCity_DevonCorp_2F_Text_TooManyPokemon": "Ой-ой, у тебе забагато POKéMON.\\nЩе один сюди вже ніяк не влізе."
+    }
+}

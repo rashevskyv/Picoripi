@@ -1,0 +1,19 @@
+{
+  "data/maps/SootopolisCity_House8/text.inc": {
+    "SootopolisCity_MonSizeRecordHouse_Text_PleaseShowMeBigShroomish": "Do you know the POKéMON SHROOMISH?\\nIt's hardly ever seen in SOOTOPOLIS.\\pAnyway, I love big SHROOMISH.\\nThe bigger the better.\\pBut my younger brother, he says that\\nBARBOACH is bigger.\\pThat's silly. SHROOMISH has to be\\nbigger than that!\\pHuh? Do you have a SHROOMISH with you?\\nP-p-please, show me!",
+    "SootopolisCity_MonSizeRecordHouse_Text_GoshMightBeBiggerThanBarboach": "{STR_VAR_2} inches!\\nOh, my gosh, this is a big one!\\pIt might even beat the big BARBOACH\\nmy younger brother saw!\\pThanks for showing me.\\nThis is my thanks!",
+    "UnknownString_81902AE": "{PLAYER} received a POTION.",
+    "SootopolisCity_MonSizeRecordHouse_Text_BagCrammedFull1": "Hunh?\\nYour BAG is crammed full.",
+    "SootopolisCity_MonSizeRecordHouse_Text_SeenBiggerShroomish": "{STR_VAR_2} inches, is it?\\pHmm... I've seen a bigger SHROOMISH\\nthan this one.",
+    "SootopolisCity_MonSizeRecordHouse_Text_ThatsNotShroomish": "Oh, now this is quite something...\\nBut it's not a SHROOMISH!",
+    "SootopolisCity_MonSizeRecordHouse_Text_DontHaveBigShroomish": "You don't have a big SHROOMISH?\\nThat's too bad...\\pIf you get a big SHROOMISH, please\\ncome show me.",
+    "SootopolisCity_MonSizeRecordHouse_Text_BiggestShroomishInHistory": "The biggest SHROOMISH in history!\\n{STR_VAR_2}'s {STR_VAR_3}-inch giant!\\pA SHROOMISH bigger than a BARBOACH\\nalways wanted!",
+    "SootopolisCity_MonSizeRecordHouse_Text_PleaseShowMeBigBarboach": "Do you know the POKéMON BARBOACH?\\nIt's rarely seen in SOOTOPOLIS.\\pI love, I mean love, big BARBOACH!\\pMy big brother says that SHROOMISH is\\nbigger.\\pBut that's wrong! Everyone knows that\\nBARBOACH is a lot bigger.\\pHunh? Do you have a BARBOACH?\\nP-p-please show me!",
+    "SootopolisCity_MonSizeRecordHouse_Text_WowMightBeBiggerThanBarboach": "{STR_VAR_2} inches!\\nWow, that is big!\\pIt might be even bigger than the huge\\nSHROOMISH my big brother saw.\\pThanks for showing me!\\nThis is my thanks!",
+    "SootopolisCity_House8_Text_BagIsFull": "Whoops, looks like your BAG is full.",
+    "SootopolisCity_MonSizeRecordHouse_Text_SeenBiggerBarboach": "{STR_VAR_2} inches?\\pHmm... I've seen a bigger BARBOACH\\nthan this one here.",
+    "SootopolisCity_MonSizeRecordHouse_Text_ThatsNotBarboach": "Well, isn't this something!\\nBut it's no BARBOACH!",
+    "SootopolisCity_MonSizeRecordHouse_Text_DontHaveBigBarboach": "Don't you have a big BARBOACH?\\nHow disappointing...\\pIf you get a big BARBOACH, please\\ncome show me!",
+    "SootopolisCity_MonSizeRecordHouse_Text_BiggestBarboachInHistory": "The biggest BARBOACH in history!\\n{STR_VAR_2}'s {STR_VAR_3}-inch colossus!\\pA BARBOACH bigger than a SHROOMISH\\nalways wanted!"
+  }
+}

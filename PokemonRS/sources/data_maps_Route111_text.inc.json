@@ -1,0 +1,30 @@
+{
+  "data/maps/Route111/text.inc": {
+    "Route111_Text_16F705": "Hello! I take it you're a traveler.\\pHow's this? What do you say to taking\\non our family of four in a series of\\lPOKéMON battles?",
+    "Route111_Text_16F785": "Is that so?\\nDrop in, if you change your mind!",
+    "Route111_Text_16F7B3": "That's the spirit! I like you!",
+    "Route111_Text_16F7D2": "Aiyah!\\nYou're a lot tougher than I expected!",
+    "Route111_Text_16F7FF": "Hey, all!\\nI've found a pretty strong TRAINER!",
+    "Route111_Text_16F82D": "Oh, my goodness! Aren't you young?\\pYou must be quite the TRAINER to beat\\nmy husband, though.\\pIt's my turn to battle now!",
+    "Route111_Text_16F8A6": "Oh, gosh!\\nI can't get over how strong you are!",
+    "Route111_Text_16F8D5": "There's a strong TRAINER here!\\nThis one's really strong!",
+    "Route111_Text_16F90E": "You're stronger than Mommy? Wow!\\pBut I'm strong, too!\\nReally! Honestly!",
+    "Route111_Text_16F956": "Huh? Did I just lose?",
+    "Route111_Text_16F96C": "This stinks...\\p...Snivel... Grandma!",
+    "Route111_Text_16F991": "How dare you make my granddaughter\\ncry!\\pFor that, I'm going to smack you!\\nPrepare to lose!",
+    "Route111_Text_16F9EC": "Kwah! You are strong...\\nMy granddaughter was right...",
+    "Route111_Text_16FA22": "If you're not in any hurry, visit with\\nus awhile.",
+    "Route111_Text_16FA54": "You found the ROOT FOSSIL.\\pIf this FOSSIL is taken, the other\\none will sink into the sand...\\pTake the ROOT FOSSIL anyway?",
+    "Route111_Text_16FACE": "{PLAYER} left the ROOT FOSSIL alone.",
+    "Route111_Text_16FAED": "You found the CLAW FOSSIL.\\pIf this FOSSIL is taken, the other\\none will sink into the sand...\\pTake the CLAW FOSSIL anyway?",
+    "Route111_Text_16FB67": "{PLAYER} left the CLAW FOSSIL alone.",
+    "Route111_Text_16FB86": "If you don't raise your POKéMON some\\nmore, it could be tough to keep winning\\lup through the ranks.\\pI've heard the POKéMON LEAGUE's\\nELITE FOUR are far stronger than\\lany GYM LEADER.",
+    "Route111_Text_16FC3A": "I challenged the WINSTRATE family,\\nbut four matches in a row is tough\\lgoing... They destroyed me.",
+    "Route111_Text_16FC9C": "ROUTE 111\\n{0x7A} MAUVILLE CITY",
+    "Route111_Text_16FCB6": "“Our family's hearts beat as one!”\\nTHE WINSTRATE'S HOUSE",
+    "Route111_Text_16FCEF": "ROUTE 111\\n{0x7B} ROUTE 112",
+    "Route111_Text_16FD05": "ROUTE 111\\n{0x7B} ROUTE 113",
+    "Route111_Text_16FD1B": "OLD LADY'S REST STOP\\n“Come in and rest your tired bones.”",
+    "Route111_Text_16FD55": "TRAINER TIPS\\pOne of the indicators of a POKéMON's\\npowerfulness is SP. ATK. It stands for\\l“SPECIAL ATTACK.”\\pLikewise, SP. DEF stands for “SPECIAL\\nDEFENSE.”"
+  }
+}

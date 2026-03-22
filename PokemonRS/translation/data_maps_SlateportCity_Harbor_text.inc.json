@@ -1,0 +1,29 @@
+{
+    "data_maps_SlateportCity_Harbor_text.inc": {
+        "SlateportCity_Harbor_Text_FerryServiceUnavailable": "Перепрошую?\\nТи шукаєш корабель?\\pМені шкода, наразі пором не\\nходить...",
+        "SlateportCity_Harbor_Text_MayISeeYourTicket": "Привіт, ти тут щодо порома?\\nЧи можу я глянути на твій TICKET?",
+        "SlateportCity_Harbor_Text_YouMustHaveTicket": "{PLAYER} не має TICKET...\\pМені дуже шкода.\\pТобі потрібно мати TICKET,\\nщоб сісти на пором.",
+        "SlateportCity_Harbor_Text_FlashedTicketWhereTo": "{PLAYER} показав TICKET.\\pЧудово! Це все, що тобі потрібно!\\pІ куди б ти хотів вирушити?",
+        "SlateportCity_Harbor_Text_SailAnotherTime": "Будь ласка, пливіть з нами наступного разу!",
+        "SlateportCity_Harbor_Text_LilycoveItIs": "Тоді вирішено - до LILYCOVE CITY!",
+        "SlateportCity_Harbor_Text_BattleTowerItIs": "Тоді вирішено - до BATTLE TOWER!",
+        "SlateportCity_Harbor_Text_PleaseBoardFerry": "Будь ласка, сідайте на пором і чекайте на\\nвідправлення.",
+        "SlateportCity_Harbor_Text_WhereWouldYouLikeToGo": "Тоді куди б ти хотів вирушити?",
+        "SlateportCity_Harbor_Text_LoveToGoDeepUnderwaterSomeday": "Подорож на саме морське дно...\\nЦікаво, як би це було?\\pЯ хотів би колись так само\\nспуститися глибоко під воду.",
+        "SlateportCity_Harbor_Text_SubTooSmallForMe": "Я хотів вирушити з CAPT. STERN на\\nдослідження океанського дна.\\pАле субмарина занадто мала для мене.\\pЯкби я туди втиснувся, для CAPTAIN не\\nлишилося б місця...",
+        "SlateportCity_Harbor_Text_SameThugsTriedToRobAtMuseum": "CAPT. STERN: Ті бандити...\\pЦе та сама зграя, яка намагалася викрасти\\nDEVON GOODS у MUSEUM.",
+        "SlateportCity_Harbor_Text_YouAgainHideoutInLilycove": "{EVIL_LEADER}: Фвахахаха...\\nЯ тобі співчуваю!\\pВсі ті зусилля, що ти витратив,\\nпереслідуючи мене сюди аж від MT. PYRE.\\pАле тепер...\\nНіхто не зможе нас зупинити! Ніхто!\\pАбо, можливо, ти підеш за нами до нашого\\nHIDEOUT у LILYCOVE CITY?\\pФвахахахаха...",
+        "SlateportCity_Harbor_Text_CaptSternWhyStealMySubmarine": "CAPT. STERN: Чому...\\pНавіщо TEAM {EVIL_TEAM} викрадати мій\\nSUBMARINE EXPLORER 1?\\pНе може бути, щоб вони полювали за сплячим\\nPOKéMON на дні моря...\\pАле навіть якби я погнався за ними,\\nу мене немає жодного шансу проти них...",
+        "SlateportCity_Harbor_Text_EvilTeamLeftNeedDive": "CAPT. STERN: Ох, {PLAYER}{KUN}...\\pЗрозуміло... Значить, TEAM {EVIL_TEAM} пішла до\\nтого, як ти зміг їх зупинити...\\pО, ні, не звинувачуй себе.\\nТи не несеш за це відповідальності.\\pНамагатися наздогнати субмарину...\\nЦе неможливо для більшості людей.\\pТобі знадобиться POKéMON, який знає,\\nяк робити DIVE...\\pМожливо, якби ти вирушив до\\nMOSSDEEP CITY...\\pТам живе багато нирців, тому\\nхтось міг би тебе навчити...",
+        "SlateportCity_Harbor_Text_NeedDiveToCatchSub": "CAPT. STERN: Намагатися наздогнати\\nпідводний човен...  Це неможливо.\\pТобі знадобиться POKéMON, який знає\\nяк застосовувати DIVE...\\pМожливо, якби ти вирушив до\\nMOSSDEEP CITY...\\pТам живе багато нирців, тому\\nхтось може тебе навчити...",
+        "SlateportCity_Harbor_Text_WontBeLongBeforeWeFinishFerry": "CAPT. STERN: О, так.\\nMR. BRINEY завітав до нашого SHIPYARD.\\pВже зовсім скоро ми закінчимо\\nбудівництво порома!",
+        "SlateportCity_Harbor_Text_FinishedMakingFerry": "CAPT. STERN: {PLAYER}{KUN}!\\pМи нарешті закінчили будувати пором\\nS.S. TIDAL!\\pМи не змогли б зробити це без твого\\nдруга MR. BRINEY.\\pБудь ласка, вирушай на ньому в круїз!",
+        "SlateportCity_Harbor_Text_WouldYouTradeScanner": "CAPT. STERN: О?\\n{PLAYER}{KUN}, ця річ, що в тебе є...\\pЦе ж SCANNER! Він би точно\\nдопоміг нам у наших дослідженнях.\\p{PLAYER}{KUN}, чи не обміняєш ти свій\\nSCANNER на що-небудь?\\pНаприклад, на DEEPSEATOOTH або\\nDEEPSEASCALE, які в мене є?",
+        "SlateportCity_Harbor_Text_IfYouWantToTradeLetMeKnow": "CAPT. STERN: Ти впевнений?\\nВін тобі без потреби, {PLAYER}{KUN}...\\pНу, гаразд. Якщо захочеш обміняти\\nсвій SCANNER, дай мені знати.",
+        "SlateportCity_Harbor_Text_TradeForDeepSeaTooth": "CAPT. STERN: То ти обміняєш його на\\nмій DEEPSEATOOTH?",
+        "SlateportCity_Harbor_Text_TradeForDeepSeaScale": "CAPT. STERN: То ти обміняєш його на\\nмій DEEPSEASCALE?",
+        "SlateportCity_Harbor_Text_WhichOneDoYouWant": "CAPT. STERN: Який ти хочеш?",
+        "SlateportCity_Harbor_Text_HandedScannerToStern": "{PLAYER} передав SCANNER\\nCAPT. STERN.",
+        "SlateportCity_Harbor_Text_ThisWillHelpResearch": "CAPT. STERN: Дякую, {PLAYER}{KUN}!\\nЦе значно допоможе нашому дослідженню!"
+    }
+}

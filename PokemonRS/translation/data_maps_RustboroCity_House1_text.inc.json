@@ -1,0 +1,10 @@
+{
+    "data_maps_RustboroCity_House1_text.inc": {
+        "RustboroCity_House1_Text_IllTradeIfYouWant": "Ти даєш прізвиська своїм POKéMON?\\nЯ от своєму дав дуже круте ім'я.\\pАле коли я кличу свого POKéMON на ім'я,\\nлюди сміються з мене...\\pЯкщо ти не проти, хочеш обміняти\\nсвого {STR_VAR_1} на мого {STR_VAR_2}?",
+        "RustboroCity_House1_Text_PleaseBeGoodToMyPokemon": "Е-хе-хе, о-о-о, як же це круто!",
+        "RustboroCity_House1_Text_ThatIsNoMon": "Але це не {STR_VAR_1}.\\nТьху, яке розчарування...",
+        "RustboroCity_House1_Text_AwwItsAGoodMon": "Ох, це хороший POKéMON...",
+        "RustboroCity_House1_Text_WontYouGetCurious": "А тобі ніколи не було цікаво, які прізвиська\\nдають своїм POKéMON інші тренери?",
+        "RustboroCity_House1_Text_AllSortsOfPlaces": "Світ великий, і всюди - різні люди\\nта різні POKéMON.\\pМене це так заворожує, що я просто не можу\\nвсидіти на місці й постійно кудись їду."
+    }
+}

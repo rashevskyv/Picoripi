@@ -1,0 +1,28 @@
+{
+    "data_maps_LilycoveCity_LilycoveMuseum_1F_text.inc": {
+        "LilycoveCity_LilycoveMuseum_1F_Text_WelcomeToLilycoveMuseum": "Ласкаво просимо до LILYCOVE MUSEUM.\\pБудь ласка, знайдіть час, щоб насолодитися\\nнашою колекцією фантастичних витворів\\lмистецтва, присвячених POKéMON.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_ImCuratorHaveYouViewedOurPaintings": "Я - CURATOR цього MUSEUM образотворчого\\nмистецтва.\\pДуже відрадно бачити такого молодого\\nхлопця, як ти, у нашому MUSEUM.\\pВстиг уже роздивитися нашу\\nзбірку полотен?",
+        "LilycoveCity_LilycoveMuseum_1F_Text_NotDisturbYouTakeYourTime": "А, тоді не буду тебе відволікати.\\nПрошу, не квапся, роздивись тут усе.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_HaveYouAnInterestInPaintings": "О? Здається мені, що ти\\nPOKéMON TRAINER.\\pТи теж цікавишся\\nживописом?",
+        "LilycoveCity_LilycoveMuseum_1F_Text_HonoredYoudVisitInSpiteOfThat": "Зрозуміло...\\pДля мене честь, що ти завітав\\nдо нас попри це.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_ExcellentCanYouComeWithMe": "О, чудово!\\nТобі справді подобається живопис!\\pТоді, ходімо-но зі мною, якщо твоя ласка.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_VeryOldPainting": "Це дуже стара картина.\\nФарба місцями полущилася.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_OddLandscapeFantasticScenery": "Це дивний пейзаж із химерними та\\nфантастичними краєвидами.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_PaintingOfBeautifulWoman": "Це портрет вродливої жінки, що всміхається,\\nа в неї на колінах моститься POKéMON.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_PaintingOfLegendaryPokemon": "Це картина з легендарним POKéMON\\nз давніх часів\\pХудожник писав це зі своєї\\nвласної фантазії.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_PaintingOfGrassPokemon": "Це картина, на якій GRASS POKéMON\\nгойдаються від легкого вітерця.\\pЗдається, вони насолоджуються лагідними\\nобіймами вітру.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_PaintingOfBerries": "Це дуже апетитне картина\\nBERRIES.\\pНа цю картину як глянеш, то аж їсти\\nхочеться!",
+        "LilycoveCity_LilycoveMuseum_Text_BirdPokemonSculptureReplica": "Це копія відомої скульптури.\\pВона зображує стародавнього BIRD POKéMON.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_BigPokeBallCarvedFromStone": "Це великий POKé BALL,\\nвисічений із чорного каменю.\\pЙого, очевидно, використовували\\nпід час фестивалів у давні часи.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_StoneTabletWithAncientText": "Це величезна кам'яна плита, на якій\\nвикарбувані POKéMON та густий текст\\lдрібними символами давньої,\\lнезрозумілої мови.",
+        "UnknownString_818788B": "Хмм...\\nЯка неймовірна краса...",
+        "LilycoveCity_LilycoveMuseum_1F_Text_MustntForgetLoveForFineArts": "Битви з POKéMON - це весело,\\nя це визнаю.\\pАле не слід забувати про нашу любов\\nдо високого мистецтва.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_ThisMuseumIsInspiration": "Цей ART MUSEUM... Ну, тут можна\\nпобачити багато фантастичних картин.\\pА CURATOR - чудова людина.\\pДля таких митців, як я, цей MUSEUM\\nє справжнім натхненням.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_ThisLadyIsPretty": "Ця леді гарна!\\nВона схожа на Маму!",
+        "LilycoveCity_LilycoveMuseum_1F_Text_ThisPokemonIsAdorable": "Цей POKéMON такий чарівний!\\nТочнісінько як наш маленький хлопчик!",
+        "LilycoveCity_LilycoveMuseum_1F_Text_HeardMuseumGotNewPaintings": "Я чув, що цей ART MUSEUM отримав\\nкілька нових картин.\\pТож, звісно, я поспішив сюди.\\pЧи виставлені нові картини на\\nдругому поверсі?",
+        "LilycoveCity_LilycoveMuseum_1F_Text_CuratorHasBeenCheerful": "Останнім часом CURATOR став\\nнезвично життєрадісним.\\pБ’юсь об заклад, у нього сталося\\nщось хороше. Безумовно.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_AimToSeeGreatPaintings": "Я прагну побачити тут багато чудових\\nкартин і повчитися у них.\\pУ мене є мрія, що одного дня мої\\nроботи будуть виставлені тут.",
+        "LilycoveCity_LilycoveMuseum_1F_Text_MuseumTouristDestination": "ART MUSEUM став улюбленим місцем\\nдля туристів.\\pЦе чудово для LILYCOVE...\\nНі, чудово для всього регіону HOENN!\\pОсь що я чув - один самотній TRAINER\\nдістав усі картини, що нагорі."
+    }
+}

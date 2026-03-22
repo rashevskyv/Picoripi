@@ -1,0 +1,9 @@
+{
+    "data_maps_MossdeepCity_House3_text.inc": {
+        "MossdeepCity_House3_Text_YouWantSuperRod": "Привіт, TRAINER!\\nSUPER ROD дійсно супер!\\pКажи що хочеш, але ця крихітка може\\nловити POKéMON із морського дна!\\pЩо ти думаєш?\\nТи хочеш її, чи не так?",
+        "MossdeepCity_House3_Text_SuperRodIsSuper": "Ще б пак, ще б пак!\\nЗрештою, SUPER ROD дійсно супер!",
+        "MossdeepCity_House3_Text_TryDroppingRodInWater": "Якщо десь є вода, спробуй закинути свою\\nROD і подивися, хто клюне!",
+        "MossdeepCity_House3_Text_DontYouLikeToFish": "Га?\\nТи що, рибалити не любиш?",
+        "MossdeepCity_House3_Text_GoAfterSeafloorPokemon": "Полюй на глибоководних POKéMON за\\nдопомогою своєї SUPER ROD."
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "data_maps_SlateportCity_OceanicMuseum_2F_text.inc": {
+        "SlateportCity_OceanicMuseum_2F_Text_ThankYouForTheParts": "Так? Якщо ти шукаєш STERN,\\nто це я.\\pО! Це, мабуть, та деталь, яку я\\nзамовив у MR. STONE з DEVON.\\pДякую! Це чудово!\\nТепер ми можемо готуватися до нашої експедиції.",
+        "SlateportCity_OceanicMuseum_2F_Text_WellTakeThoseParts": "Хе-хе-хе, ану стояти!\\nЦі запчастини тепер наші!",
+        "SlateportCity_OceanicMuseum_2F_Text_SternWhoAreYou": "CAPT. STERN: Щ-що?\\nХто ви такі?",
+        "SlateportCity_OceanicMuseum_2F_Text_WereEvilTeam": "Ми - TEAM {EVIL_TEAM}!\\pНаш BOSS хоче ці деталі!\\nЗавали пельку та гони їх сюди!",
+        "SlateportCity_OceanicMuseum_2F_Text_Grunt1Defeat": "А-а-а-а-а-а!\\nЯкийсь малюк мене взув!",
+        "SlateportCity_OceanicMuseum_2F_Text_BossGoingToBeFurious": "Ну і влипли ми, оце так халепа...\\nBOSS тепер просто оскаженіє...",
+        "SlateportCity_OceanicMuseum_2F_Text_LetMeTakeCareOfThis": "Тху, плаксивий слабаку!\\nЯ сам із цим розберуся!",
+        "SlateportCity_OceanicMuseum_2F_Text_Grunt2Defeat": "Що?!\\nЯ теж програв!",
+        "SlateportCity_OceanicMuseum_2F_Text_MeddlingKid": "Що тепер? Якщо ми не отримаємо деталі,\\nнам не здобрувати!\\pАр-р-ргх, я не розраховував, що мені завадить\\nякась настирлива дитина!",
+        "SlateportCity_OceanicMuseum_2F_Text_CameToSeeWhatsTakingSoLong": "Я прийшов подивитись, чого ви так\\nдовго телились, а вас \\lбовдурів взуло якесь маля?",
+        "SlateportCity_OceanicMuseum_2F_Text_ArchieWarning": "Я - ARCHIE з TEAM AQUA.\\pСкажи мені, чому ти втручаєшся в\\nблагородні справи TEAM AQUA?\\pPOKéMON, люди, все життя залежить від\\nморя.\\pТож, TEAM AQUA присвячена\\nрозширенню моря.\\pХіба ти не згоден? Те, що ми робимо,\\nце велична справа.\\pА, ну гаразд...\\nТи ще занадто молодий.\\pНічого не вдієш, ти не\\nрозумієш наших ідеалів.\\pАле якщо ти знову станеш нам на заваді,\\nбудуть наслідки!\\pЗваж на моє попередження!\\nПрощавай!",
+        "SlateportCity_OceanicMuseum_2F_Text_MaxieWarning": "Я - MAXIE з TEAM MAGMA.\\pЧому ти взагалі відчуваєш потребу\\nпсувати плани TEAM MAGMA?\\pPOKéMON, люди, все життя існує на суходолі...\\pОсь чому TEAM MAGMA намагається\\nзбільшити земну масу світу.\\pХіба ти не згоден? Те, що ми робимо,\\nце велична справа.\\pНу, це не має значення...\\nТи молодий.\\pТвоя нездатність зрозуміти нашу\\nшляхетну мету цілком зрозуміла...\\pАле якщо ти ще коли-небудь завадиш нам,\\nто не чекай від нас милосердя!\\pДобре запам'ятай це!\\nПрощавай!",
+        "SlateportCity_OceanicMuseum_2F_Text_SternThankYouForSavingUs": "CAPT. STERN: Ти...\\nА, точно, ти {PLAYER}{KUN}...\\pУ будь-якому разі, це була напружена ситуація!\\nДякую, що врятував нас!\\pО, так, я майже забув, що ти\\nнавіть приніс деталі з DEVON!",
+        "UnknownString_817F404": "{PLAYER} передав DEVON GOODS\\nдля CAPT. STERN.",
+        "SlateportCity_OceanicMuseum_2F_Text_SternIveGotToGo": "CAPT. STERN: Ой!\\nНе можна гаяти часу!\\pМи маємо зовсім скоро вирушати в\\nекспедицію на океанічне дно.\\pДякую, і вибач мені!",
+        "SlateportCity_OceanicMuseum_2F_Text_RemindsMeOfAbandonedShip": "Я бачив тут модель корабля.\\pВона нагадала мені про ABANDONED SHIP\\nпоблизу DEWFORD TOWN...",
+        "SlateportCity_OceanicMuseum_2F_Text_DontRunInMuseum": "Не смій бігати всередині\\nMUSEUM!",
+        "SlateportCity_OceanicMuseum_2F_Text_WantToRideSubmarine": "Ух ти, підводний човен просто дивовижний!\\nЯ хочу на ньому покататися!",
+        "SlateportCity_OceanicMuseum_2F_Text_WaterQualitySample1": "“ЗРАЗОК ЯКОСТІ ВОДИ КАНТО”, -\\nнаписано на етикетці.\\p“Усі моря з'єднані між собою, але\\nвода в кожному регіоні, схоже, різна.”",
+        "SlateportCity_OceanicMuseum_2F_Text_WaterQualitySample2": "“ЗРАЗОК ЯКОСТІ ВОДИ З ДЖОТО”, -\\nнаписано на етикетці.\\pМожливо, солоність води відрізняється\\nвід одного регіону до іншого...",
+        "SlateportCity_OceanicMuseum_2F_Text_PressureExperiment": "Гумовий м'яч розширюється і стискається.\\p“У морі вага самої води\\nстворює тиск.\\p“На мілководді тиск не\\nдуже сильний.\\p“Однак, на екстремальній глибині,\\nтиск може сягати навіть десятків\\lтисяч тонн на невелику площу.”",
+        "SlateportCity_OceanicMuseum_2F_Text_HoennModel": "“МАКЕТ РЕГІОНУ ХОЕНН”\\pЦе мініатюрна діорама\\nрегіону ХОЕНН.\\pА де ж на ній МІСТЕЧКО ЛІТЛРУТ?",
+        "SlateportCity_OceanicMuseum_2F_Text_DeepSeawaterDisplay": "Це стенд про течії морської води.\\p“Біля морського дна вода\\nтече через різницю в таких\\lфакторах, як температура та солоність.”",
+        "SlateportCity_OceanicMuseum_2F_Text_SurfaceSeawaterDisplay": "Це стенд про рух\\nморської води.\\p“Ближче до поверхні вода утворює\\nтечії, які підганяють вітри.”",
+        "SlateportCity_OceanicMuseum_2F_Text_SSTidalReplica": "“THE FERRY S.S. TIDAL\\p“Зменшена копія судна, яке\\nзараз будують на STERN SHIPYARD.”",
+        "SlateportCity_OceanicMuseum_2F_Text_SubmarineReplica": "“ПІДВОДНИЙ ДОСЛІДНИК 1\\p“Копія високотехнологічної\\nсубмарини для дослідження дна океану.”",
+        "SlateportCity_OceanicMuseum_2F_Text_SumbersibleReplica": "“ПІДВОДНА КАПСУЛА\\p“Копія компактної, безпілотної\\nкапсули для дослідження морського дна.”",
+        "SlateportCity_OceanicMuseum_2F_Text_SSAnneReplica": "“S.S. ANNE\\p“Копія розкішного лайнера, який\\nплаває по всьому світу.”"
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "data/maps/BattleTower_Outside/text.inc": {
+    "BattleTower_Outside_Text_199C6F": "BATTLE TOWER\\n“Win it all and be the best, TRAINERS!”",
+    "BattleTower_Outside_Text_199CA4": "This is the BATTLE TOWER.\\pTRAINERS bring their best-raised\\nPOKéMON for elimination-style matches.",
+    "BattleTower_Outside_Text_199D06": "Hello, are you here for the ferry?\\nMay I see your TICKET?",
+    "BattleTower_Outside_Text_199D40": "{PLAYER} doesn't have the TICKET...\\pI'm terribly sorry.\\pYou must have a TICKET to board\\nthe ferry.",
+    "BattleTower_Outside_Text_199D9D": "{PLAYER} flashed the TICKET.\\pPerfect! That's all you need!\\pAnd where would you like to go?",
+    "BattleTower_Outside_Text_199DF2": "SLATEPORT CITY it is, then!",
+    "BattleTower_Outside_Text_199E0E": "LILYCOVE CITY it is, then!",
+    "BattleTower_Outside_Text_199E29": "Please sail with us another time!",
+    "BattleTower_Outside_Text_199E4B": "Please board the ferry and wait for\\ndeparture.",
+    "BattleTower_Outside_Text_199E7A": "Then, where would you like to go?",
+    "BattleTower_Outside_Text_199E9C": "I'm not leaving until I've beaten 35\\nTRAINERS in a row!",
+    "BattleTower_Outside_Text_199ED4": "Gee, there're a lot of tough-looking\\nTRAINERS here.\\lI'm not good enough to enter yet..."
+  }
+}

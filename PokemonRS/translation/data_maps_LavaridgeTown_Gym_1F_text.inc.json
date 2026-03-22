@@ -1,0 +1,29 @@
+{
+    "data_maps_LavaridgeTown_Gym_1F_text.inc": {
+        "LavaridgeTown_Gym_1F_Text_GymGuideAdvice": "Hey, how's it going, CHAMPION-\\nbound {PLAYER}?\\pLAVARIDGE's GYM LEADER FLANNERY\\nuses FIRE-type POKéMON.\\pHer passion for POKéMON burns stronger\\nand hotter than a volcano.\\pDon't get too close to her - you'll burn!\\nHose her down with water and then\\lgo for it!",
+        "LavaridgeTown_Gym_1F_Text_GymGuidePostVictory": "Yow! That was a scorching hot battle!",
+        "LavaridgeTown_Gym_1F_Text_ColeIntro": "Owowowowow!\\nYikes, it's hot!",
+        "LavaridgeTown_Gym_1F_Text_ColeDefeat": "I'm blinded by sweat in my eyes...",
+        "LavaridgeTown_Gym_1F_Text_ColePostBattle": "Перебування в гарячому піску\\nпокращує кровообіг.\\pЦе ефективно допомагає вгамувати\\nбіль у твоїх суглобах.",
+        "LavaridgeTown_Gym_1F_Text_AxleIntro": "Я намагаюся зняти стрес.\\nНе підходь і не нервуй мене!",
+        "LavaridgeTown_Gym_1F_Text_AxleDefeat": "Сподіваюся, FLANNERY дасть тобі жару!",
+        "LavaridgeTown_Gym_1F_Text_AxlePostBattle": "Ха-а-а... Фух...\\pЯкщо проводити занадто багато часу в\\nгарячому піску, це виснажує тебе...",
+        "LavaridgeTown_Gym_B1F_Text_AndyIntro": "Ти, мабуть, уже втомився.\\nТобі б хотілося відпочити в гарячому піску,\\lчи не так?\\pАле ти маєш знати, що витримка -\\nце важлива риса для всіх\\lTRAINERS.",
+        "LavaridgeTown_Gym_B1F_Text_AndyDefeat": "Хто з вогнем жартує, той собі пальці обпалює...",
+        "LavaridgeTown_Gym_B1F_Text_AndyPostBattle": "Твоя майстерність вражає...\\nАле наш LEADER FLANNERY дуже сильний.\\pЯкщо не будеш обережним,\\nти отримаєш серйозні опіки.",
+        "LavaridgeTown_Gym_1F_Text_ZaneIntro": "Чи зможуть твої POKéMON витримати\\ncпеку у 200 градусів?",
+        "LavaridgeTown_Gym_1F_Text_ZaneDefeat": "Бракувало жару...",
+        "LavaridgeTown_Gym_1F_Text_ZanePostBattle": "Температура магми становить\\n200 градусів.\\pТвої POKéMON перемогли мене, тож\\nвони мають легко вижити і в магмі.",
+        "LavaridgeTown_Gym_1F_Text_SadieIntro": "Ну-у...\\nДобре, давай поборемось.",
+        "LavaridgeTown_Gym_1F_Text_SadieDefeat": "Ой, але ти занадто сильний.",
+        "LavaridgeTown_Gym_1F_Text_SadiePostBattle": "Я збираюся стати красивим і\\nсильним TRAINER, як і FLANNERY.",
+        "LavaridgeTown_Gym_1F_Text_FlanneryIntro": "Вітаю... Ні, чекай.\\pЖлюгідний TRAINER, як приємно бачити,\\nщо ти сюди дістався!\\pМені було довірено...\\nНі, чекай.\\pЯ - FLANNERY, і я тутешній\\nGYM LEADER!\\pЕ-ем...\\nНе смій недооцінювати мене,\\lхоч я і LEADER зовсім недовго!\\pнавичками, що я успадкувала від дідуся,\\nя...ем...продемонструю гарячі прийоми,\\lякі ми відточили на цій землі!",
+        "LavaridgeTown_Gym_1F_Text_FlanneryDefeat": "Ох...\\nЗдається, я занадто старалася...\\pЯ... я лише нещодавно стала GYM\\nLEADER.\\pЯ занадто намагалася бути кимось, ким я не є.\\pЯ маю все робити у свій природний спосіб.\\nЯкщо ні, мої POKéMON будуть збентежені.\\pДякую, що навчив мене цього.\\nЗа це ти заслуговуєш на ось це.",
+        "LavaridgeTown_Gym_1F_Text_ReceivedHeatBadge": "{PLAYER} отримав HEAT BADGE\\nвід FLANNERY.",
+        "LavaridgeTown_Gym_1F_Text_ExplainHeatBadgeTakeThis": "Якщо в тебе є HEAT BADGE, усі POKéMON\\nдо 50-го рівня, навіть ті, яких ти\\lотримав через обмін з іншими людьми,\\lбудуть повністю тобі підкорятися.\\pТакож він дозволяє POKéMON використовувати\\nHM-прийом STRENGTH поза боєм.\\pЦе на знак моєї вдячності.\\nНе соромся, бери його!",
+        "LavaridgeTown_Gym_1F_Text_ExplainOverheat": "У цьому TM50 міститься прийом OVERHEAT.\\pВін завдає серйозної\\nшкоди супернику.\\pАле він також різко знижує SP. ATK\\nтого POKéMON, який його використовує.\\lЦей прийом може не підійти для тривалих битв.",
+        "LavaridgeTown_Gym_1F_Text_FlanneryPostBattle": "Твоя сила нагадує мені декого...\\pО! Я знаю! Ти б'єшся прямо як NORMAN,\\nGYM LEADER міста PETALBURG.",
+        "LavaridgeTown_Gym_1F_Text_GymStatue": "LAVARIDGE TOWN POKéMON GYM",
+        "LavaridgeTown_Gym_1F_Text_GymStatueCertified": "LAVARIDGE TOWN POKéMON GYM\\pFLANNERY'S CERTIFIED TRAINERS:\\n{PLAYER}"
+    }
+}

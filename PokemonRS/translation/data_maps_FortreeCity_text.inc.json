@@ -1,0 +1,16 @@
+{
+    "data_maps_FortreeCity_text.inc": {
+        "FortreeCity_Text_YouSmellSinged": "Шмиг...\\nГм... Ти це, ну...смаленим тхнеш.\\pТи що, на вулкані побував чи як?",
+        "FortreeCity_Text_SomethingBlockingGym": "Я хочу потрапити до POKéMON GYM,\\nале щось загороджує шлях.\\pПісля всіх тих зусиль, що я доклав,\\nтренуючись на ROUTE 120...",
+        "FortreeCity_Text_ThisTimeIllBeatWinona": "Зі мною мій POKéMON - моя гордість і втіха.\\nЦього разу я переможу WINONA.",
+        "FortreeCity_Text_TreesGrowByDrinkingRainwater": "Земля вбирає дощову воду,\\nа дерева ростуть, п'ючи її...\\pНаше FORTREE CITY існує завдяки тому,\\nщо тут є і вода, і ґрунт.",
+        "FortreeCity_Text_EveryoneHealthyAndLively": "Це CITY складається з будинків,\\nзведених на деревах.\\pМожливо, саме через такий спосіб життя\\nвсі тут здорові та сповнені сил.\\pТа що там, навіть я - відчуваю себе\\nна тридцять років молодшим.",
+        "FortreeCity_Text_BugPokemonComeThroughWindow": "Жити на верхівках дерев - це нормально.\\pАле іноді BUG POKéMON залітають\\nкрізь вікна.\\lМожна й злякатися з переляку!",
+        "FortreeCity_Text_PokemonThatEvolveWhenTraded": "Деякі POKéMON еволюціонують,\\nколи проходять крізь Game Link кабель.",
+        "FortreeCity_Text_SomethingUnseeable": "Щось невидиме перегороджує дорогу.",
+        "FortreeCity_Text_UnseeableUseDevonScope": "Дорогу перегородило щось невидиме.\\pХочеш використати DEVON SCOPE?",
+        "FortreeCity_Text_UsedDevonScopePokemonFled": "{PLAYER} використав DEVON SCOPE.\\pНевидимий POKéMON став повністю\\nвидимим!\\pПереляканий POKéMON дременув геть!",
+        "FortreeCity_Text_CitySign": "FORTREE CITY\\n“Місто серед крон, що ніби грається з\\lсамою природою.”",
+        "FortreeCity_Text_GymSign": "FORTREE CITY POKéMON GYM\\nLEADER: WINONA\\p“Та, що керує птахами та розправляє\\nкрила над усім світом.”"
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "data/maps/LittlerootTown_MaysHouse_1F/text.inc": {
+    "RivalsHouse_1F_Text_OhYoureTheNewNeighbor": "Oh, hello. And you are?\\p... ... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ... ...\\pOh, you're {PLAYER}{KUN}, our new next-door\\nneighbor! Hi!\\pWe have a {STR_VAR_1} about the same\\nage as you.\\pOur {STR_VAR_1} was excited about making\\na new friend.\\pOur {STR_VAR_1} is upstairs, I think.",
+    "RivalsHouse_1F_Text_RivalIsUpstairsIThink": "Our {STR_VAR_1} is upstairs, I think.",
+    "RivalsHouse_1F_Text_WhereHasHusbandGone": "Where has my husband gone?\\nJust when {PLAYER}{KUN} is visiting, too...\\pThat man can never sit still for long...\\nHe might be at his LAB.",
+    "RivalsHouse_1F_Text_WentOutSomewhere": "Oh, {RIVAL} has gone out somewhere.\\pLike father, like child.\\n{RIVAL} can't stay quietly at home.",
+    "RivalsHouse_1F_Text_ShouldGoHomeEverySoOften": "I think it's wonderful for people to\\ntravel with POKéMON.\\pBut you should go home every so often\\nto let your mother know you're okay.\\pShe might not say it, but I'm sure she\\nworries about you, {PLAYER}{KUN}."
+  }
+}

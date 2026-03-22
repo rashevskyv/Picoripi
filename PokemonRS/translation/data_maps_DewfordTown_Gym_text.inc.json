@@ -1,0 +1,23 @@
+{
+    "data_maps_DewfordTown_Gym_text.inc": {
+        "DewfordTown_Gym_Text_GymGuideAdvice": "Hey, how's it going, CHAMPION-\\nbound {PLAYER}?\\pDEWFORD's GYM LEADER BRAWLY commands\\nFIGHTING-type POKéMON.\\pGoing against him with NORMAL-type\\nPOKéMON is asking for trouble.\\pFIGHTING POKéMON will lay a serious\\nsmack down on NORMAL POKéMON,\\lso be careful!\\pWhat's worse, the GYM is as dark as\\nthe ocean floor.\\pBut it will get brighter after defeating\\nthe TRAINERS in your way.\\pHey, okay, go for it!",
+        "DewfordTown_Gym_Text_GymGuidePostVictory": "Whoah! It's turned too bright in here!\\pYour future is bright, too!",
+        "DewfordTown_Gym_Text_HidekiIntro": "Might is right!\\nCome on!",
+        "DewfordTown_Gym_Text_HidekiDefeat": "Not enough power...",
+        "DewfordTown_Gym_Text_HidekiPostBattle": "Твоя майстерність виявилася сильнішою за мою міць!\\nТвоя техніка заслуговує на похвалу!",
+        "DewfordTown_Gym_Text_TessaIntro": "Немає жодної потреби вплутувати\\nBRAWLY!\\pЯ тебе в порох зітру!",
+        "DewfordTown_Gym_Text_TessaDefeat": "Але... Як?\\nЯк я міг програти так легко?",
+        "DewfordTown_Gym_Text_TessaPostBattle": "Я не дозволю цій поразці бути марною.\\nВона стане моїм стимулом до тренуван!\\pКолись я стану GYM LEADER...\\pНі, я стану POKéMON LEAGUE\\nCHAMPION!",
+        "DewfordTown_Gym_Text_LauraIntro": "Не смій мене ігнорувати!\\nЯ не буду винен, якщо ти розплачешся!",
+        "DewfordTown_Gym_Text_LauraDefeat": "А-а-а-а-а-а!\\nЯ продув!",
+        "DewfordTown_Gym_Text_LauraPostBattle": "Я б'юся в темряві, щоб загартувати\\nсвоє серце.\\pАле через те, що тут так темно, я ніяк\\nне можу розгледіти обличчя BRAWLY...",
+        "DewfordTown_Gym_Text_BrawlyIntro": "Я - BRAWLY!\\nDEWFORD's GYM LEADER!\\pМене шліфували бурхливі хвилі цих країв,\\nі я став міцним, як скеля,\\lу цій непроглядній пітьмі печери!\\pТо ти хочеш кинути мені виклик?\\nАну покажи, на що ти здатен!",
+        "DewfordTown_Gym_Text_BrawlyDefeat": "Ого, оце так! Ти здійняв куди більшу хвилю,\\nніж я очікував!\\pТи мене просто змив!\\pОкей, твоя взяла.\\nОтримуй цей GYM BADGE!",
+        "DewfordTown_Gym_Text_ReceivedKnuckleBadge": "{PLAYER} отримав KNUCKLE BADGE\\nвід BRAWLY.",
+        "DewfordTown_Gym_Text_KnuckleBadgeInfoTakeThis": "KNUCKLE BADGE змушує всіх POKéMON\\nдо 30-го рівня, навіть тих, кого ти отримав\\lчерез обмін, слухатися беззаперечно.\\pКрім того, ти зможеш використовувати HM-прийом\\nFLASH поза боєм.\\pЯкщо бажаєш, скористайся також цією\\nTECHNICAL MACHINE.",
+        "DewfordTown_Gym_Text_ExplainBulkUp": "Ця TM08 містить BULK UP.\\pЦе прийом, який підвищує показники ATTACK\\nта DEFENSE.",
+        "DewfordTown_Gym_Text_BrawlyPostBattle": "Я бачу, як твій талант колись стане\\nвелетенською хвилею,\\lщо здійме справжній шторм подиву серед TRAINERS!",
+        "DewfordTown_Gym_Text_GymStatue": "DEWFORD TOWN POKéMON GYM",
+        "DewfordTown_Gym_Text_GymStatueCertified": "DEWFORD TOWN POKéMON GYM\\pBRAWLY'S CERTIFIED TRAINERS:\\n{PLAYER}"
+    }
+}

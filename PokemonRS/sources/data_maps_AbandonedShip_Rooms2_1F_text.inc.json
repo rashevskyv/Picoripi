@@ -1,0 +1,20 @@
+{
+  "data/maps/AbandonedShip_Rooms2_1F/text.inc": {
+    "AbandonedShip_Rooms2_1F_Text_HalIntro": "HAL: While searching for treasures,\\nwe discovered a TRAINER!",
+    "AbandonedShip_Rooms2_1F_Text_HalDefeat": "HAL: We couldn't win even though\\nwe worked together...",
+    "AbandonedShip_Rooms2_1F_Text_HalPostBattle": "HAL: We can't find any treasures...\\nI wonder if someone got them already?",
+    "AbandonedShip_Rooms2_1F_Text_HalNeedTwoPokemon": "HAL: You don't even have two POKéMON.\\nYou can't expect to beat us like that.",
+    "AbandonedShip_Rooms2_1F_Text_LoisIntro": "LOIS: Oh? We were looking for some\\ntreasure, but we only found a TRAINER.",
+    "AbandonedShip_Rooms2_1F_Text_LoisDefeat": "LOIS: Oh, wow, you're strong!",
+    "AbandonedShip_Rooms2_1F_Text_LoisPostBattle": "LOIS: I wonder where the treasures\\nare hidden?\\pI already know what I'm going to buy\\nwhen I find them!",
+    "AbandonedShip_Rooms2_1F_Text_LoisNeedTwoPokemon": "LOIS: Don't you have two POKéMON?\\nWe'll have to battle another time!",
+    "AbandonedShip_Rooms2_1F_Text_HalRematchIntro": "HAL: We've been searching for\\ntreasures all this time.\\pOur POKéMON have grown stronger, too.\\nLet us show you, okay?",
+    "AbandonedShip_Rooms2_1F_Text_HalRematchDefeat": "HAL: You're strong as usual!",
+    "AbandonedShip_Rooms2_1F_Text_HalRematchPostBattle": "HAL: We can't find any treasures,\\nwe lose at POKéMON...\\pI want to go home... But if I say that,\\nshe gets all angry with me...",
+    "AbandonedShip_Rooms2_1F_Text_HalRematchNeedTwoPokemon": "HAL: You don't even have two POKéMON.\\nYou can't expect to beat us like that.",
+    "AbandonedShip_Rooms2_1F_Text_LoisRematchIntro": "LOIS: Oh, hi, we meet again!\\pJust like us, you haven't given up\\nsearching for treasures!\\pHow about we battle, and the loser has\\nto give up looking?",
+    "AbandonedShip_Rooms2_1F_Text_LoisRematchDefeat": "LOIS: Oh, we lost again...",
+    "AbandonedShip_Rooms2_1F_Text_LoisRematchPostBattle": "LOIS: We'll raise our POKéMON more.\\pWe're not going home until we find our\\ntreasures!",
+    "AbandonedShip_Rooms2_1F_Text_LoisRematchNeedTwoPokemon": "LOIS: Don't you have two POKéMON?\\nWe'll have to battle another time!"
+  }
+}

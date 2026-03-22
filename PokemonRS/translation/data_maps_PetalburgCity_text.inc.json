@@ -1,0 +1,13 @@
+{
+    "data_maps_PetalburgCity_text.inc": {
+        "PetalburgCity_Text_WhereIsWally": "Куди це наш WALLY подівся?\\pНам уже зовсім скоро час вирушати до\\nVERDANTURF TOWN...",
+        "PetalburgCity_Text_AreYouRookieTrainer": "О, привіт! Ти ж, мабуть....\\nTRAINER-НОВАЧОК?\\pА ти знаєш, що роблять POKéMON TRAINERS,\\nколи приходять до нового міста??\\pСпершу вони дивляться, який у місті GYM.",
+        "PetalburgCity_Text_ThisIsPetalburgGym": "Бачиш? Це PETALBURG CITY's GYM.",
+        "PetalburgCity_Text_ThisIsGymSign": "Це вивіска GYM. Шукай таку щоразу,\\nколи тобі знадобиться GYM.",
+        "PetalburgCity_Text_WaterReflection": "Моє обличчя віддзеркалюється у воді.\\pЦе осяйна усмішка, сповнена надії....\\pбо ж похмура мовчанка, що бореться\\nзі страхом...\\pА що ти бачиш у своєму відображенні?",
+        "PetalburgCity_Text_FullPartyExplanation": "Скажімо, у тебе вже є шість POKéMON.\\nЯкщо ти спіймаєш ще одного...\\pВін автоматично потрапить до STORAGE\\nBOX через систему PC.",
+        "PetalburgCity_Text_GymSign": "PETALBURG CITY POKéMON GYM\\nLEADER: NORMAN\\l“У вічній гонитві за силою!”",
+        "PetalburgCity_Text_CitySign": "PETALBURG CITY\\n“Тут люди живуть у злагоді з природою.”",
+        "PetalburgCity_Text_WallyHouseSign": "WALLY'S HOUSE"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "data_maps_LavaridgeTown_text.inc": {
+        "LavaridgeTown_Text_MayNiceBadgesTakeThis": "MAY: {PLAYER}{KUN}! Давно не бачилися!\\pО? Поки я ніжилася у гарячих джерелах,\\nти вже здобув LAVARIDGE GYM BADGE.\\pМабуть, ти спіймав хороших POKéMON...\\nХоча ні, скоріше ти їх добре натренував.\\pГадаю, тобі варто\\nмати це.",
+        "LavaridgeTown_Text_MayExplainGoGogglesChallengeDad": "MAY: З цими GO-GOGGLES ти без\\nпроблем подолаєш\\lпустелю біля ROUTE 111.\\pАле ого, {PLAYER}{KUN}...\\nКидаєш виклик GYMS...\\pБ'юся об заклад, ти так стараєшся,\\nбо не хочеш мені програти!\\p{PLAYER}{KUN}, гадаю, мені теж варто кинути\\nвиклик твоєму татові у PETALBURG GYM.\\p{PLAYER}{KUN}, ще побачимось!",
+        "LavaridgeTown_Text_BrendanNiceBadgesTakeThis": "BRENDAN: {PLAYER}, привіт! Давно не бачилися.\\nЯк справи?\\pХм...\\nЦе досить непогана колекція BADGES.\\pГаразд, тоді.\\nМожеш забрати й це.",
+        "LavaridgeTown_Text_BrendanExplainGoGogglesChallengeDad": "BRENDAN: Тримай їх при собі, якщо\\nплануєш іти в ту пустелю біля\\lROUTE 111.\\pТам мають бути POKéMON, які мешкають\\nвиключно в пустелі.\\lМожеш пошукати їх там.\\pА щодо мене...\\nЯ роздумую над тим, щоб кинути виклик NORMAN,\\lGYM LEADER PETALBURG.\\pНа відміну від тебе, {PLAYER}, твій тато виглядає\\nпо-справжньому міцним горішком.\\pЩе побачимось!",
+        "LavaridgeTown_Text_HaveEggWillYouTakeIt": "У мене тут є EGG.\\pЯ сподівалася висидіти його, заривши в\\nгарячий пісок біля джерел.\\lАле, схоже, цього замало...\\pЯ чула, що найкраще тримати його поруч із\\nPOKéMON та постійно\\lносити з собою.\\pТи ж TRAINER, чи не так?\\nТвої POKéMON просто випромінюють життєву силу.\\pТо що скажеш?\\nВізьмеш це EGG, щоб воно вилупилося?",
+        "LavaridgeTown_Text_HopeYoullWalkPlentyWithEgg": "Чудово! Сподіваюся, ти чимало\\nпомандруєш разом із цим EGG!",
+        "LavaridgeTown_Text_ReceivedTheEgg": "{PLAYER} отримав EGG.",
+        "LavaridgeTown_Text_NoRoomForThisEgg": "О? У тебе забагато POKéMON.\\nДля цього EGG немає місця...",
+        "LavaridgeTown_Text_AsYouWishThen": "Що ж, як забажаєш...\\pЯкщо ти передумаєш щодо висиджування\\nцього EGG, я буду тут.",
+        "LavaridgeTown_Text_EverySoOftenEggFoundAtDayCare": "Час від часу в POKéMON DAY CARE\\nзнаходять EGG.\\pПринаймні, так подейкують.",
+        "LavaridgeTown_Text_HotSpringsNeverRunDry": "Ми беремо стільки гарячої води, скільки нам потрібно,\\nі все ж гарячі джерела ніколи не висихають.\\pХіба це не магія?\\pЦі джерела з'являються поблизу діючих вулканів.\\nВодні жили глибоко під землею\\lнагріваються магмою, а потім вириваються на\\lповерхню у вигляді гарячих джерел.",
+        "LavaridgeTown_Text_PokemonNippedBackside": "Бути заритим у цей гарячий пісок - це...\\nЕх...\\pТак тепло, справжня насолода...\\pГа? Гя-а-а! Ой!\\pЯкийсь POKéMON вщипнув мене за дупцю!",
+        "LavaridgeTown_Text_OhYouLikeHotSprings": "О, то тобі подобаються гарячі джерела, так?\\pЦе незвично, як для когось\\nнастільки юного.",
+        "LavaridgeTown_Text_BatheInHotSpringsEveryDay": "Я ніжуся в гарячих джерелах щодня.\\pХочу стати такою ж красивою та сильною\\nGYM LEADER, як FLANNERY.",
+        "LavaridgeTown_Text_IfPokemonInHotSprings": "Якби люди брали із собою в джерела POKéMON,\\nце було б те ще видовище.\\pТільки уяви: комусь дісталася б електромасажна ванна,\\nкомусь - ванна з бульбашками, а комусь - взагалі з лави...",
+        "LavaridgeTown_Text_HotSpringsClaims": "Стверджують, ніби ці гарячі джерела допомагають\\nзаспокоїти нерви, зняти біль у м'язах,\\lвирішити любовні проблеми\\lта навіть привабити\\lгроші...",
+        "LavaridgeTown_Text_TownSign": "LAVARIDGE TOWN\\p“POKéMON CENTER HOT SPRINGS\\nЧудове місце для відпочинку!”",
+        "LavaridgeTown_Text_GymSign": "LAVARIDGE TOWN POKéMON GYM\\nLEADER: FLANNERY\\l“Та, чия полум'яна пристрасть палає!”",
+        "LavaridgeTown_Text_HerbShopSign": "POKéMON HERB SHOP\\n“Гіркий смак - кращий результат!”"
+    }
+}

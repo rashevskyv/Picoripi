@@ -1,0 +1,7 @@
+{
+  "data/maps/RustboroCity_CuttersHouse/text.inc": {
+    "RustboroCity_CuttersHouse_Text_YouCanPutThisHMToGoodUse": "That determined expression...\\nThat limber way you move...\\lAnd your well-trained POKéMON...\\pYou're obviously a skilled TRAINER!\\pNo, wait, don't say a word.\\nI can tell just by looking at you.\\pI'm sure that you will be capable\\nof putting this HM to good use.\\pNo need to be modest or shy.\\nGo on, take it!",
+    "RustboroCity_CuttersHouse_Text_ExplainCut": "That HM, it's CUT.\\pAn HM move is one that can be used\\nby POKéMON out of a battle.\\pAny POKéMON that's learned CUT can\\nchop down thin trees if the TRAINER\\lhas earned the STONE BADGE.\\pAnd, unlike a TM, an HM doesn't break\\nafter one use.",
+    "RustboroCity_CuttersHouse_Text_DadHelpedClearLandOfTrees": "When they were expanding the city of\\nRUSTBORO, my dad helped out.\\pHe made his POKéMON use CUT to clear\\nthe land of trees."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "data/maps/RustboroCity_Gym/text.inc": {
+    "RustboroCity_Gym_Text_GymGuideAdvice": "Yo, how's it going?\\pListen, my friend!\\nWould you like to become the CHAMPION?\\pI'm no TRAINER, not me, but I can\\nsure give you winning advice.\\pThat's settled, then! We'll aim for the\\nPOKéMON CHAMPIONSHIP together!\\pIt's your job as a TRAINER to collect\\nGYM BADGES, am I right?\\pBut GYM LEADERS aren't pushovers!\\pAnd that's where I come in!\\nI'm here to provide expert advice!\\pROXANNE, the GYM LEADER, is a user\\nof ROCK-type POKéMON.\\pThe ROCK type is very durable, but\\nit can't stand WATER-type and\\lGRASS-type moves.\\pCome see me afterwards, if you beat\\nthe GYM LEADER.\\pWell, go for it!",
+    "RustboroCity_Gym_Text_GymGuidePostVictory": "Whoa! What a breathtaking victory!\\nMy cheering must've worked!\\pGreat!\\nCheck your TRAINER CARD.\\pThe STONE BADGE you got should be\\nproperly recorded on it.\\pIn other words...\\pYou've climbed the first step on\\nthe stairs to the CHAMPIONSHIP!\\pThat's got to feel awesome!",
+    "RustboroCity_Gym_Text_JoshIntro": "Don't take us GYM TRAINERS lightly!\\nI'll show you why we're better!",
+    "RustboroCity_Gym_Text_JoshDefeat": "You were too good for me...",
+    "RustboroCity_Gym_Text_JoshPostBattle": "You haven't seen anything of the ROCK\\ntype's terrifying power!",
+    "RustboroCity_Gym_Text_TommyIntro": "If you can't beat me, you won't stand\\na chance against ROXANNE!",
+    "RustboroCity_Gym_Text_TommyDefeat": "Wow! You've got some potential!",
+    "RustboroCity_Gym_Text_TommyPostBattle": "ROXANNE is stronger than me by\\nseveral times.\\pYou'd better be on your guard!",
+    "RustboroCity_Gym_Text_RoxanneIntro": "Hello, I am ROXANNE, the RUSTBORO\\nPOKéMON GYM LEADER.\\pI became a GYM LEADER so that I may\\napply what I learned at the POKéMON\\lTRAINER'S SCHOOL in battle.\\pWould you kindly demonstrate how you\\nbattle, and with which POKéMON?",
+    "RustboroCity_Gym_Text_RoxanneDefeat": "So...\\nI lost...\\pIt seems that I still have much more\\nto learn...\\pI understand.\\pThe POKéMON LEAGUE's rules state\\nthat TRAINERS are to be given this\\lif they defeat a GYM LEADER.\\pPlease accept the official POKéMON\\nLEAGUE STONE BADGE.",
+    "RustboroCity_Gym_Text_ReceivedStoneBadge": "{PLAYER} received the STONE BADGE\\nfrom ROXANNE.",
+    "RustboroCity_Gym_Text_StoneBadgeInfoTakeThis": "The STONE BADGE heightens the ATTACK\\npower of your POKéMON.\\pIt also enables them to use the HM move\\nCUT outside of battle.\\pPlease take this with you, too.",
+    "RustboroCity_Gym_Text_ExplainRockTomb": "That TM39 contains ROCK TOMB.\\pIt not only inflicts damage by dropping\\nrocks, it also lowers SPEED.\\pIf you use a TM, it instantly teaches\\nthe move to a POKéMON.\\pRemember, a TM can be used only once,\\nso think before you use it.",
+    "RustboroCity_Gym_Text_RoxannePostBattle": "Since you are so strong, you should\\nchallenge other GYM LEADERS.\\pBy battling many TRAINERS, you should\\nlearn many things.",
+    "RustboroCity_Gym_Text_GymStatue": "RUSTBORO CITY POKéMON GYM",
+    "RustboroCity_Gym_Text_GymStatueCertified": "RUSTBORO CITY POKéMON GYM\\pROXANNE'S CERTIFIED TRAINERS:\\n{PLAYER}"
+  }
+}

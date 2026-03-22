@@ -1,0 +1,15 @@
+{
+    "data_maps_Route124_DivingTreasureHuntersHouse_text.inc": {
+        "Route124_DivingTreasureHuntersHouse_Text_19F416": "Я DIVING TREASURE HUNTER!\\pЯ той крутий хлопець, який пірнає\\nна глибину, щоб збирати скарби,\\lщо спочивають на дні.",
+        "Route124_DivingTreasureHuntersHouse_Text_19F48F": "Скажи мені, ти бачив якісь SHARDS\\nінструментів, зроблених у давні часи?",
+        "Route124_DivingTreasureHuntersHouse_Text_19F4D1": "У тебе немає для мене\\nніяких скарбів...\\pЯкщо побачиш якісь SHARDS, як-от RED\\nSHARD, ти мусиш обміняти їх мені!",
+        "Route124_DivingTreasureHuntersHouse_Text_19F544": "О, привіт! Це...\\nЦе SHARD! Я якраз такі шукаю!\\pО, чоловіче, ти мусиш обміняти його\\nмені! Я дам тобі щось хороше!",
+        "Route124_DivingTreasureHuntersHouse_Text_19F5C5": "Що ти хочеш обміняти?",
+        "Route124_DivingTreasureHuntersHouse_Text_19F5E0": "Виміняєш свій {STR_VAR_1} на\\nмій {STR_VAR_2}, тоді?",
+        "Route124_DivingTreasureHuntersHouse_Text_19F606": "Домовлено!\\nВикористовуй це мудро!",
+        "Route124_DivingTreasureHuntersHouse_Text_19F629": "Хочеш обміняти щось ще?",
+        "Route124_DivingTreasureHuntersHouse_Text_19F64E": "Ой, твій BAG повний.\\nПозбудься якихось речей, друже!",
+        "Route124_DivingTreasureHuntersHouse_Text_19F686": "Ні? Оце облом.\\nЩо ж, якщо передумаєш, повертайся.",
+        "Route124_DivingTreasureHuntersHouse_Text_19F6C5": "Потрібна річ              Річ на обмін\\n RED SHARD           {0x7B}{0x7C} FIRE STONE\\pПотрібна річ              Річ на обмін\\n YELLOW SHARD     {0x7B}{0x7C} THUNDERSTONE\\pПотрібна річ              Річ на обмін\\n BLUE SHARD         {0x7B}{0x7C} WATER STONE\\pПотрібна річ              Річ на обмін\\n GREEN SHARD       {0x7B}{0x7C} LEAF STONE"
+    }
+}

@@ -1,0 +1,10 @@
+{
+  "data/text/pc.inc": {
+    "Text_BootUpPC": "{PLAYER} booted up the PC.",
+    "Text_WhichPCShouldBeAccessed": "Which PC should be accessed?",
+    "Text_AccessedSomeonesPC": "Accessed someone's PC.",
+    "Text_StorageSystemOpened": "POKéMON Storage System opened.",
+    "Text_AccessedPlayersPC": "Accessed {PLAYER}'s PC.",
+    "Text_AccessedLanettesPC": "Accessed LANETTE's PC."
+  }
+}

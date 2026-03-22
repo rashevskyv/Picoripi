@@ -1,0 +1,19 @@
+{
+  "data/maps/SSTidalCorridor/text.inc": {
+    "SSTidalRooms_Text_199007": "This ferry is built to plow through\\nfast-running currents.\\pWe hope you enjoy your voyage with us.\\nFeel free to explore the ship.",
+    "SSTidalCorridor_Text_199088": "We hope you enjoy your voyage on\\nour ferry.",
+    "SSTidalRooms_Text_1990B4": "We have made land in SLATEPORT CITY.\\nThank you for sailing with us.",
+    "SSTidalRooms_Text_1990F8": "We have made land in LILYCOVE CITY.\\nThank you for sailing with us.",
+    "SSTidalCorridor_Text_19913B": "It'll be some time before we make land,\\nI reckon.\\pYou can rest up in your cabin if you'd\\nlike. Your cabin's No. 2.\\pThe bed in there is soft and plushy.\\nI can attest to how comfy it is!",
+    "SSTidalCorridor_Text_1991F4": "We've arrived!",
+    "SSTidalCorridor_Text_199203": "Go visit other cabins.\\nTRAINERS bored of the boat trip will\\lbe itching to battle.",
+    "SSTidalCorridor_Text_199255": "Enjoy your cruise!",
+    "SSTidalCorridor_Text_199268": "The horizon spreads beyond the\\nporthole.",
+    "SSTidalCorridor_Text_199291": "MR. BRINEY: Welcome aboard, {PLAYER}{KUN}!\\pThey made me honorary captain of the\\nS.S. TIDAL!\\pYou can call me CAPTAIN BRINEY now!\\pYou know, I retired once before, but\\nwhen I saw this majestic ship...\\pLet me just say, it stirred my sleeping\\nsoul as a sailor!",
+    "SSTidalCorridor_Text_199388": "PEEKO: Pihyo pihyohyo...",
+    "SSTidalCorridor_Text_1993A1": "Cabin 1",
+    "SSTidalCorridor_Text_1993A9": "Cabin 2",
+    "SSTidalCorridor_Text_1993B1": "Cabin 3",
+    "SSTidalCorridor_Text_1993B9": "Cabin 4"
+  }
+}

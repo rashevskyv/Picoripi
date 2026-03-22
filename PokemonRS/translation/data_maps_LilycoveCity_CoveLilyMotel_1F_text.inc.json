@@ -1,0 +1,11 @@
+{
+    "data_maps_LilycoveCity_CoveLilyMotel_1F_text.inc": {
+        "LilycoveCity_CoveLilyMotel_1F_Text_GuestsDoubledByMascot": "Гм, то вони подвоїли кількість гостей,\\nвикористовуючи POKéMON як атракціони?\\pГм, ну, можливо, мені варто зробити милого\\nPOKéMON талісманом нашого заїзду.\\pЦікаво, чи привабить це більше\\nгостей зупинятися у нас?",
+        "LilycoveCity_CoveLilyMotel_1F_Text_NoGuestsWithEvilTeam": "Ой, перепрошую, вибач!\\nЯ занадто захопився переглядом TV!\\pВідтоді як та TEAM {EVIL_TEAM} з'явилася в місті,\\nтуристи почали триматися подалі.",
+        "LilycoveCity_CoveLilyMotel_1F_Text_CantSeeTheTV": "Гей, присядь там попереду!\\nМені ж за тобою нічого не видно на TV!",
+        "LilycoveCity_CoveLilyMotel_1F_Text_MonFoundLostItem": "Неймовірно! Ти кажеш, що POKéMON знайшов\\nчиюсь загублену річ?\\pОце так. Якби у нас був такий\\nрозумний POKéMON...\\pМи могли б повернути будь-що, що\\nнаші гості випадково загубили...",
+        "LilycoveCity_CoveLilyMotel_1F_Text_HeardEvilTeamHideoutBusted": "Ой, вибач, вибач!\\nЯ занадто захопився переглядом TV!\\pЯ чув, що хтось накрив\\nTEAM {EVIL_TEAM} HIDEOUT.\\pЗавдяки цьому ми щойно прийняли\\nбронювання від великої групи.\\pЦе була компанія під назвою... Е-е...\\nGAME щось там...",
+        "LilycoveCity_CoveLilyMotel_1F_Text_HouseSittingMonCaughtBurglar": "Неймовірно! POKéMON, який наглядав за\\nбудинком, спіймав грабіжника?\\pОце так новина. Якби у нас був такий сильний\\nPOKéMON як охоронець...\\pМи змогли б забезпечити нашим гостям набагато\\nвищий рівень безпеки.",
+        "LilycoveCity_CoveLilyMotel_1F_Text_BetterGetWorkingOnGuestsDinner": "Ой, вибач, вибач!\\nЯ занадто захопився переглядом TV.\\pО, так. Велика група гостей\\nприбула нещодавно.\\pВони зареєструвалися як GAME FREAK,\\nтож я гадаю, що вони роблять ігри.\\pОй-ой, мені краще взятися за\\nїхню вечерю!"
+    }
+}

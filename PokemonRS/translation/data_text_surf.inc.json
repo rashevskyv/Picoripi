@@ -1,0 +1,6 @@
+{
+    "data_text_surf.inc": {
+        "gText_WantToUseSurf": "Вода тут аж темно-синя...\\nБажаєш використати SURF?",
+        "gText_PlayerUsedSurf": "{STR_VAR_1} використав SURF!"
+    }
+}

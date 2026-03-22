@@ -1,0 +1,14 @@
+{
+    "data_maps_SlateportCity_SternsShipyard_1F_text.inc": {
+        "SlateportCity_SternsShipyard_1F_Text_CantMakeHeadsOrTails": "Гм... Якщо це сюди, а те\\nйде он туди...\\pТоді куди ж ця річ іде?\\nА як щодо тієї штуковини?\\pА-а-агх! Я не можу розібратися\\nв цьому!",
+        "SlateportCity_SternsShipyard_1F_Text_MeetDockDeliverToStern": "Гм?\\nПривіт, я DOCK.\\pCAPT. STERN доручив мені\\nспроєктувати паром.\\pО! Це там...\\nЦе DEVON GOODS?\\pАле, гм...\\nТак не піде...\\pCAPT. STERN кудись пішов.\\nВін сказав, що має роботу.\\pЧи не міг би ти знайти CAPT.\\nSTERN і передати це йому?",
+        "SlateportCity_SternsShipyard_1F_Text_CouldYouFindStern": "DOCK: Куди міг CAPT. STERN\\nподітися?\\pЧи не міг би ти знайти CAPT. STERN і\\nдоставити йому цей пакунок?",
+        "SlateportCity_SternsShipyard_1F_Text_CouldUseAdviceFromVeteran": "DOCK: Кораблебудування - це мистецтво.\\pБагато речей неможливо з'ясувати\\nлише за допомогою розрахунків.\\pМені б справді знадобилася порада ветерана,\\nякий знає моря...",
+        "SlateportCity_SternsShipyard_1F_Text_BrineyJoinedUs": "DOCK: Привіт! MR. BRINEY приєднався до нас,\\nщоб надати свою допомогу.\\pЗавдяки моряку-ветерану, цей\\nпаром впевнено набуває форми.",
+        "SlateportCity_SternsShipyard_1F_Text_FerryIsReady": "DOCK: Паром нарешті готовий!\\pНовий S.S. TIDAL - це справжнє диво\\nтехніки!\\pАле я відчуваю, що ми можемо\\nзробити щось ще краще.\\pЗнаєш, прогресу технологій\\nнемає меж.",
+        "SlateportCity_SternsShipyard_1F_Text_DecidedToHelpDock": "MR. BRINEY: А, {PLAYER}{KUN}!\\nДавно не бачилися!\\pТак, відколи я зустрів тебе, цей старий морський вовк\\nвідчув приплив сил!\\pТому я вирішив допомогти DOCK зробити\\nпаром.\\pТак, зрештою, паром зможе\\nперевозити багато людей.\\pАле, знаєш, цей DOCK справді\\nособливий.\\pЗ його хистом до техніки та\\nмоїм досвідом, я впевнений, що ми зможемо\\lпобудувати один чудовий корабель, так!",
+        "UnknownString_817C6A6": "PEEKO: Пій-пііхьоро!!",
+        "SlateportCity_SternsShipyard_1F_Text_SeaIsLikeLivingThing": "Пори року, погода, те, де\\nмісяць знаходиться на небі...\\pЦі та інші умови змушують\\nморе змінювати свій вигляд.\\pСаме так!\\nМоре - як жива істота!",
+        "SlateportCity_SternsShipyard_1F_Text_GetSeasickEasily": "Мене дуже легко заколисує на морі.\\nТому натомість я допомагаю тут."
+    }
+}

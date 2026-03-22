@@ -1,117 +1,138 @@
-# --- START OF FILE tests/conftest.py ---
-"""
-Shared fixtures for all test modules.
-"""
-import sys
-import json
-import tempfile
 import pytest
-from pathlib import Path
+import gc
+from unittest.mock import MagicMock
+from PyQt5.QtWidgets import QApplication, QWidget
 
-# Add project root to path
-project_root = Path(__file__).resolve().parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
+@pytest.fixture(autouse=True)
+def silent_logging(mocker):
+    """Mocks logging so tests don't pollute output unnecessarily."""
+    try:
+        mocker.patch('utils.logging_utils.log_info')
+        mocker.patch('utils.logging_utils.log_error')
+        mocker.patch('utils.logging_utils.log_warning')
+    except Exception:
+        pass
 
 @pytest.fixture
-def temp_dir():
-    """Temporary directory that is cleaned up after test."""
-    with tempfile.TemporaryDirectory() as d:
-        yield d
+def mock_project_manager():
+    """Provides a mocked ProjectManager instance that doesn't touch the disk."""
+    pm_mock = MagicMock()
+    pm_mock.current_project = MagicMock()
+    pm_mock.current_project.name = "TestProject"
+    return pm_mock
 
+@pytest.fixture
+def mock_ui_provider():
+    """Mocks the UI Provider for handlers."""
+    ui_mock = MagicMock()
+    ui_mock.edited_text_edit = MagicMock()
+    ui_mock.original_text_edit = MagicMock()
+    ui_mock.block_list_widget = MagicMock()
+    return ui_mock
+
+@pytest.fixture(scope="session")
+def qapp():
+    """Provides a single QApplication instance for the entire test session."""
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    yield app
+
+@pytest.fixture(autouse=True)
+def cleanup_qt(qapp):
+    """Ensures all top-level widgets are destroyed and memory is collected after each test."""
+    yield
+    # Close all top-level widgets that might have been created
+    for widget in QApplication.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    
+    # Process events to let deleteLater work
+    QApplication.processEvents()
+    
+    # Force garbage collection
+    gc.collect()
+
+@pytest.fixture
+def mock_mw(qapp):
+    """Provides a mocked MainWindow instance."""
+    mw = MagicMock()
+    mw.unsaved_changes = False
+    # Common UI elements
+    mw.block_list_widget = MagicMock()
+    mw.edited_text_edit = MagicMock()
+    mw.original_text_edit = MagicMock()
+    mw.preview_text_edit = MagicMock()
+    
+    mw.settings_manager = MagicMock()
+    mw.settings_manager.session_state = MagicMock()
+    mw.settings_manager.session_state.get_state_for_file.return_value = {}
+    
+    # Helper and font map
+    mw.helper = MagicMock()
+    mw.font_map = {}
+    mw.data = []
+    mw.problems_per_subline = {}
+    mw.string_metadata = {}
+    mw.line_width_warning_threshold_pixels = 100
+    mw.game_dialog_max_width_pixels = 240
+    mw.current_game_rules = MagicMock()
+    
+    return mw
+
+@pytest.fixture
+def temp_dir(tmp_path):
+    """Alias for tmp_path for compatibility with some tests."""
+    return str(tmp_path)
 
 @pytest.fixture
 def sample_json_data():
-    """Sample JSON data representing game text blocks."""
-    return [
-        ["Hello, {PLAYER}!", "Welcome to Hyrule.", "Press {A_BUTTON} to continue."],
-        ["Good morning!", "The weather is nice today."],
-    ]
-
+    return {"key": "value", "nested": [1, 2, 3]}
 
 @pytest.fixture
-def sample_json_path(temp_dir, sample_json_data):
-    """A temporary JSON file with sample data."""
-    path = Path(temp_dir) / "test_data.json"
+def sample_json_path(tmp_path, sample_json_data):
+    path = tmp_path / "sample.json"
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump(sample_json_data, f, ensure_ascii=False)
+        import json
+        json.dump(sample_json_data, f)
     return str(path)
 
+@pytest.fixture
+def invalid_json_path(tmp_path):
+    path = tmp_path / "invalid.json"
+    with open(path, 'w') as f:
+        f.write("{ invalid json")
+    return str(path)
 
 @pytest.fixture
 def sample_text_content():
-    """Sample text content (Kruptar format)."""
-    return "Привіт, {PLAYER}!\n{END}\n\nДобрий ранок!\n{END}\n"
-
+    return "Line 1\nLine 2\nCyrillic: Привіт"
 
 @pytest.fixture
-def sample_text_path(temp_dir, sample_text_content):
-    """A temporary text file with sample Kruptar-format content."""
-    path = Path(temp_dir) / "test_data.txt"
+def sample_text_path(tmp_path, sample_text_content):
+    path = tmp_path / "sample.txt"
     with open(path, 'w', encoding='utf-8') as f:
         f.write(sample_text_content)
     return str(path)
 
-
 @pytest.fixture
-def sample_utf16_path(temp_dir):
-    """A temporary UTF-16 encoded text file."""
-    path = Path(temp_dir) / "test_utf16.txt"
+def sample_utf16_path(tmp_path):
+    path = tmp_path / "utf16.txt"
+    content = "Тестовий текст UTF-16"
     with open(path, 'w', encoding='utf-16') as f:
-        f.write("Тестовий текст UTF-16")
+        f.write(content)
     return str(path)
-
-
-@pytest.fixture
-def invalid_json_path(temp_dir):
-    """A temporary file with invalid JSON."""
-    path = Path(temp_dir) / "bad.json"
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write("{invalid json content!!")
-    return str(path)
-
-
-@pytest.fixture
-def sample_font_map():
-    """A font map with character widths for testing."""
-    return {
-        'a': {'width': 6}, 'b': {'width': 6}, 'c': {'width': 5},
-        'd': {'width': 6}, 'e': {'width': 5}, 'f': {'width': 4},
-        'g': {'width': 6}, 'h': {'width': 6}, 'i': {'width': 2},
-        'j': {'width': 3}, 'k': {'width': 5}, 'l': {'width': 2},
-        'm': {'width': 8}, 'n': {'width': 6}, 'o': {'width': 6},
-        'p': {'width': 6}, 'q': {'width': 6}, 'r': {'width': 4},
-        's': {'width': 5}, 't': {'width': 4}, 'u': {'width': 6},
-        'v': {'width': 6}, 'w': {'width': 8}, 'x': {'width': 6},
-        'y': {'width': 6}, 'z': {'width': 5},
-        ' ': {'width': 4},
-        '.': {'width': 2}, ',': {'width': 2}, '!': {'width': 2},
-        '?': {'width': 5}, "'": {'width': 2},
-        'А': {'width': 7}, 'Б': {'width': 7}, 'В': {'width': 7},
-        'а': {'width': 6}, 'б': {'width': 6}, 'в': {'width': 6},
-        '{PLAYER}': {'width': 48},
-        '[L-Stick]': {'width': 12},
-        '[L]': {'width': 8},
-        '[A]': {'width': 10},
-    }
-
 
 @pytest.fixture
 def sample_glossary_md():
-    """Sample glossary in Markdown table format."""
-    return """## Glossary
+    """Sample glossary markdown for GlossaryManager tests."""
+    return """# Glossary
 
 | Original | Translation | Notes |
-|---|---|---|
-| Link | Лінк | Ім'я головного героя |
+|----------|-------------|-------|
+| Link | Лінк | Ім'я героя гри |
 | Zelda | Зельда | Принцеса |
-| Rupee | Рупія | Ігрова валюта |
-| Hyrule | Хайрул | Назва королівства |
+| Hyrule | Хайрул | Королівство |
+| Rupee | Рупія | Валюта гри |
 """
 
-
-@pytest.fixture
-def empty_font_map():
-    """An empty font map."""
-    return {}

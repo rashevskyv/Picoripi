@@ -1,0 +1,19 @@
+{
+    "data_maps_SootopolisCity_House8_text.inc": {
+        "SootopolisCity_MonSizeRecordHouse_Text_PleaseShowMeBigShroomish": "Чи знаєш ти POKéMON SHROOMISH?\\nЙого майже ніколи не бачили в SOOTOPOLIS.\\pУ будь-якому разі, я люблю великих SHROOMISH.\\nЧим більше, тим краще.\\pАле мій молодший брат, він каже, що\\nBARBOACH більший.\\pЦе безглуздо. SHROOMISH має бути\\nбільшим за нього!\\pГа? У тебе є з собою SHROOMISH?\\nБ-б-будь ласка, покажи мені!",
+        "SootopolisCity_MonSizeRecordHouse_Text_GoshMightBeBiggerThanBarboach": "{STR_VAR_2} дюймів!\\nОго, оце так здоровань!\\pВін може навіть утерти носа тому BARBOACH\\nякого бачив мій малий братик!\\pДякую, що дав глянути.\\nТримай мою подяку!",
+        "UnknownString_81902AE": "{PLAYER} отримав POTION.",
+        "SootopolisCity_MonSizeRecordHouse_Text_BagCrammedFull1": "Ой?\\nУ тебе BAG забитий під зав'язку.",
+        "SootopolisCity_MonSizeRecordHouse_Text_SeenBiggerShroomish": "{STR_VAR_2} дюймів, так?\\pГм... Я бачив більшого SHROOMISH\\nніж цей.",
+        "SootopolisCity_MonSizeRecordHouse_Text_ThatsNotShroomish": "О, а це вже щось особливе...\\nАле це не SHROOMISH!",
+        "SootopolisCity_MonSizeRecordHouse_Text_DontHaveBigShroomish": "У тебе немає великого SHROOMISH?\\nШкода...\\pЯк знайдеш здоровенного SHROOMISH,\\nзанось мені показати.",
+        "SootopolisCity_MonSizeRecordHouse_Text_BiggestShroomishInHistory": "Найбільший SHROOMISH в історії!\\nГігант {STR_VAR_2} на {STR_VAR_3} дюймів!\\pSHROOMISH, більший за BARBOACH,\\nякого я завжди хотів!▶",
+        "SootopolisCity_MonSizeRecordHouse_Text_PleaseShowMeBigBarboach": "Чи знаєш ти POKéMON BARBOACH?\\nЙого рідко можна побачити в SOOTOPOLIS.\\pЯ люблю, тобто обожнюю, великих BARBOACH!\\pМій старший брат каже, що SHROOMISH\\nбільший.\\pАле це неправильно! Кожен знає, що\\nBARBOACH значно більший.\\pГа? У тебе є BARBOACH?\\nБ-б-будь ласка, покажи мені!",
+        "SootopolisCity_MonSizeRecordHouse_Text_WowMightBeBiggerThanBarboach": "{STR_VAR_2} дюймів!\\nОго, оце так здоровань!\\pВін може виявитися навіть більшим за того гіганта\\nSHROOMISH, якого бачив мій старший.\\pДякую, що дав глянути!\\nТримай мою подяку!",
+        "SootopolisCity_House8_Text_BagIsFull": "Ой, схоже, твій BAG повний.",
+        "SootopolisCity_MonSizeRecordHouse_Text_SeenBiggerBarboach": "{STR_VAR_2} дюймів?\\pГм... Я бачив більшого BARBOACH\\nніж цей тут.",
+        "SootopolisCity_MonSizeRecordHouse_Text_ThatsNotBarboach": "Ну, це вже дещо!\\nАле це не BARBOACH!",
+        "SootopolisCity_MonSizeRecordHouse_Text_DontHaveBigBarboach": "У тебе що, нема великого BARBOACH?\\nЯка прикрість...\\pЯк роздобудеш здоровенного BARBOACH,\\nзанось мені глянути!",
+        "SootopolisCity_MonSizeRecordHouse_Text_BiggestBarboachInHistory": "Найбільший BARBOACH в історії!\\nКолос {STR_VAR_2} на {STR_VAR_3} дюймів!\\pBARBOACH, більший за SHROOMISH,\\nякого я завжди хотів!"
+    }
+}

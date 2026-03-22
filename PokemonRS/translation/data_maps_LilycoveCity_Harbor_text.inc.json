@@ -1,0 +1,15 @@
+{
+    "data_maps_LilycoveCity_Harbor_text.inc": {
+        "LilycoveCity_Harbor_Text_FerryUnavailable": "Перепрошую?\\nВи шукаєте корабель?\\pНа жаль, зараз пором\\nне ходить...",
+        "LilycoveCity_Harbor_Text_MayISeeYourTicket": "Вітаю! Ви чекаєте на пором?\\nМожна глянути ваш TICKET?",
+        "LilycoveCity_Harbor_Text_NoTicket": "{PLAYER} не має TICKET...\\pВельми перепрошую.\\pТобі потрібен TICKET, щоб\\nсісти на пором.",
+        "LilycoveCity_Harbor_Text_FlashTicketWhereTo": "{PLAYER} показав TICKET.\\pІдеально! Це все, що треба!\\pІ куди ти бажаєш вирушити?",
+        "LilycoveCity_Harbor_Text_SailAnotherTime": "Будь ласка, пливи з нами наступного разу!",
+        "LilycoveCity_Harbor_Text_SlateportItIs": "Значить, вирушаємо до SLATEPORT CITY!",
+        "LilycoveCity_Harbor_Text_BattleTowerItIs": "Значить, вирушаємо до BATTLE TOWER!",
+        "LilycoveCity_Harbor_Text_PleaseBoard": "Будь ласка, заходь на пором і\\nчекай на відправлення.",
+        "LilycoveCity_Harbor_Text_WhereWouldYouLikeToGo": "То куди тримаємо шлях?",
+        "LilycoveCity_Harbor_Text_SailorFerryUnavailable": "Доки вони не закінчать будувати пором,\\nнам, морякам, немає чого робити...\\pЯ б хотів, щоб вони поквапилися, ті люди\\nна SHIPYARD у SLATEPORT.",
+        "LilycoveCity_Harbor_Text_SailorFerryAvailable": "Пором S.S. TIDAL нарешті\\nвийшов у рейси.\\pЛюди на SHIPYARD у SLATEPORT, мабуть,\\nдуже тяжко працювали.\\pЩо ж, тепер моя черга ставати до роботи!"
+    }
+}

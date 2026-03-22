@@ -1,0 +1,29 @@
+{
+  "src/data/text/nature_names_en.h": {
+    "string_0": "HARDY",
+    "string_1": "LONELY",
+    "string_2": "BRAVE",
+    "string_3": "ADAMANT",
+    "string_4": "NAUGHTY",
+    "string_5": "BOLD",
+    "string_6": "DOCILE",
+    "string_7": "RELAXED",
+    "string_8": "IMPISH",
+    "string_9": "LAX",
+    "string_10": "TIMID",
+    "string_11": "HASTY",
+    "string_12": "SERIOUS",
+    "string_13": "JOLLY",
+    "string_14": "NAIVE",
+    "string_15": "MODEST",
+    "string_16": "MILD",
+    "string_17": "QUIET",
+    "string_18": "BASHFUL",
+    "string_19": "RASH",
+    "string_20": "CALM",
+    "string_21": "GENTLE",
+    "string_22": "SASSY",
+    "string_23": "CAREFUL",
+    "string_24": "QUIRKY"
+  }
+}

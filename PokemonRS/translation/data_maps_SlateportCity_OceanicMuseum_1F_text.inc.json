@@ -1,0 +1,31 @@
+{
+    "data_maps_SlateportCity_OceanicMuseum_1F_text.inc": {
+        "SlateportCity_OceanicMuseum_1F_Text_WouldYouLikeToEnter": "Ласкаво просимо до OCEANIC MUSEUM.\\pВартість входу - ¥50.\\nБажаєте увійти?",
+        "SlateportCity_OceanicMuseum_1F_Text_PleaseEnjoyYourself": "Гарно тобі провести час!",
+        "SlateportCity_OceanicMuseum_1F_Text_NotEnoughMoney": "О? Пробач, але, здається, у тебе\\nнедостатньо грошей.",
+        "SlateportCity_OceanicMuseum_1F_Text_CatchUpWithYourGroup": "О? Ти з тієї групи, яка\\nзайшла раніше?\\pТільки ти один запізнився.\\nТобі краще піти і наздогнати їх!",
+        "UnknownString_817E2A0": "Заходь якось іншим разом!",
+        "SlateportCity_OceanicMuseum_1F_Text_EvilTeamExistForGoodOfAll": "Ми, TEAM {EVIL_TEAM}, працюємо на благо\\nкожного!",
+        "SlateportCity_OceanicMuseum_1F_Text_OurBossIsntHere": "Нам сказали зібратися тут, тож\\nми так і зробили, але...\\pНашого BOSS, головної опори, тут немає.",
+        "SlateportCity_OceanicMuseum_1F_Text_WouldStuffHereMakeMeRich": "Якщо я поцуплю тутешні речі,\\nчи зробить це мене багатим?",
+        "SlateportCity_OceanicMuseum_1F_Text_CanLearnForNefariousDeeds": "Те, що я дізнаюся тут, я зможу\\nвикористати для мерзенних справ...",
+        "SlateportCity_OceanicMuseum_1F_Text_RustboroBungled": "Якби наші підручні не напортачили в\\nRUSTBORO, нас би тут не було!",
+        "SlateportCity_OceanicMuseum_1F_Text_DidntHaveMoney": "Я не мав ¥50, тож я змарнував купу\\nчасу, поки пройшов повз адміністратора.",
+        "SlateportCity_OceanicMuseum_1F_Text_LearnAboutSeaForBattling": "Я хочу дізнатися про море і\\nвикористати ці знання для битв.",
+        "SlateportCity_OceanicMuseum_1F_Text_SternIsRoleModel": "Я просто млію та тану від щастя, коли\\nбачу море!\\pДля мене CAPT. STERN - найкращий\\nвзірець для наслідування!",
+        "SlateportCity_OceanicMuseum_1F_Text_MustBePokemonWeDontKnow": "Море безкрає, йому немає кінця, і\\nвоно нескінченно глибоке...\\pПевно, є ще чимало POKéMON, про яких\\nми зовсім не знаємо.",
+        "SlateportCity_OceanicMuseum_1F_Text_WantSeaPokemon": "Я хочу морського POKéMON.\\pГадаю, він був би прохолодним і приємним,\\nякщо його обійняти.",
+        "SlateportCity_OceanicMuseum_1F_Text_RememberMeTakeThis": "А-а-ай!\\nЩо ти тут робиш?\\pЯ? Я той учасник TEAM {EVIL_TEAM}, якого ти\\nвідлупцював раніше, пам'ятаєш?\\pНа, тримай це!\\nТи маєш мене пробачити!",
+        "SlateportCity_OceanicMuseum_1F_Text_YouScrewedUpOurPlans": "Ох, хай йому грець!\\nТи так зіпсував наші плани!\\pЯ збирався поцупити бодай щось,\\nщоб якось це відшкодувати, але...\\pНу, постривай!\\nКолись ти отримаєш своє!",
+        "SlateportCity_OceanicMuseum_1F_Text_YouHaveToTakeThis": "Та годі тобі!\\nПросто забирай це і дай мені піти!",
+        "SlateportCity_OceanicMuseum_1F_Text_WhirlpoolExperiment": "Блакитна рідина кружляє всередині\\nскляної посудини.\\p“Це експеримент, щоб штучно створити\\nWHIRLPOOL за допомогою вітру.”",
+        "SlateportCity_OceanicMuseum_1F_Text_WaterfallExperiment": "Червона куля погойдується вгору-вниз\\nвсередині скляної посудини.\\p“Це експеримент, що імітує\\nWATERFALL за допомогою плавучості кулі.”",
+        "SlateportCity_OceanicMuseum_1F_Text_OceanSoilDisplay": "Це зразок ґрунту з океанічного\\nдна.\\p“Протягом багатьох років рештки\\nформ життя осідають на дні\\lморя, утворюючи осадові шари.\\p“Завдяки аналізу цих шарів\\nрозкривається прадавнє минуле.”",
+        "SlateportCity_OceanicMuseum_1F_Text_BeachSandDisplay": "Це зразок пляжного піску.\\p“Камені з гір змиваються\\nрічками донизу, де вони\\lкришаться та розтираються.\\p“Вони перетворюються на зерна й\\nопиняються як пісок на пляжах.”",
+        "SlateportCity_OceanicMuseum_1F_Text_OceanicMinifact1": "“ОКЕАНІЧНИЙ МІНІ ФАКТ 1\\nЧому морська вода синя?\\p“Світло складається з багатьох кольорів.\\p“Коли світло проходить крізь воду,\\nбільшість видів світла втрачають колір.\\p“Однак, синє світло зберігає свій\\nколір, через що море здається синім.”",
+        "SlateportCity_OceanicMuseum_1F_Text_OceanicMinifact2": "“ОКЕАНІЧНИЙ МІНІ ФАКТ  2\\nЧому море солоне?\\p“Морська вода містить розчинену сіль у\\nформі іонів натрію та хлору.\\p“Ці іони вимиваються з гірських порід і\\nвиносяться в море дощем.\\p“Концентрація розчиненої солі\\nробить море солоним.”",
+        "SlateportCity_OceanicMuseum_1F_Text_OceanicMinifact3": "“ОКЕАНІЧНИЙ МІНІ ФАКТ  3\\nЩо більше? Море чи суходіл?\\p“Море вкриває близько 70% всієї\\nпланети, а решта - це суходіл.\\p“Тому море за розміром більш ніж\\nудвічі перевищує суходіл.”",
+        "SlateportCity_OceanicMuseum_1F_Text_FossilDisplay": "Це скам'янілість із хвилястими гребенями на ній.\\p“Ґрунт на дні океану розмивається\\nприпливом.\\p“Морська вода, що тече, залишає на ґрунті\\nневеликі гребені та заглибини.\\p“Якщо цей ґрунт закам'яніє, його\\nназивають знаками рябі.”",
+        "SlateportCity_OceanicMuseum_1F_Text_DepthMeasuringMachine": "Дивна машина обертається під\\nскляним ковпаком.\\pМожливо, вона для вимірювання глибини\\nчогось..."
+    }
+}

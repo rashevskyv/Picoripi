@@ -1,0 +1,30 @@
+{
+    "data_maps_DewfordTown_Hall_text.inc": {
+        "DewfordTown_Hall_Text_CantImagineLifeWithoutTrend": "What's in vogue? Why, it has to be\\n“{STR_VAR_1}”!\\pI can't imagine what life would be like\\nwithout “{STR_VAR_1}”!",
+        "DewfordTown_Hall_Text_GettingBoredOfTrend": "What's in vogue? Why, it has to be\\n“{STR_VAR_1}”!\\pBut I'm getting kind of bored with it.\\pI should look for the next big thing.",
+        "DewfordTown_Hall_Text_TeachingMonAboutTrend": "I'm teaching my POKéMON about\\n“{STR_VAR_1},”\\lbut it's not going well.\\pIt's a bit too much, I think.",
+        "DewfordTown_Hall_Text_DeepLinkBetweenXAndY": "I'm studying up on the hip and trendy\\n“{STR_VAR_1}” now.\\pIs it true that there's a deep link\\nbetween “{STR_VAR_1}”\\land “{STR_VAR_2}”?",
+        "DewfordTown_Hall_Text_MyHunchWasRight": "О!\\nЗначить, чуйка мене не підвела!\\pЯ тепер ще на крок ближче до того, щоб\\nбути в самому центрі хайпу, оце так!",
+        "DewfordTown_Hall_Text_NotEasyToKeepUp": "Що?!\\nНевже це так?!\\pТакому літньому чоловікові, як я,\\nнелегко встигати за всіма новими трендами!",
+        "DewfordTown_Hall_Text_TVShowAboutTrend": "Оці всі розмови про\\n“{STR_VAR_1}”...\\lХіба про це не показують якесь телешоу?",
+        "DewfordTown_Hall_Text_IsTrendMorePopularAcrossSea": "Там, за морем...\\pНевже “{STR_VAR_1}”\\nще популярніше?",
+        "DewfordTown_Hall_Text_CollectTrendMerchandise": "Я колекціоную офіційний\\n“{STR_VAR_1}”\\lліцензійний мерч.\\pУ мене є офіційні ляльки\\n“{STR_VAR_1}”...\\pОфіційний “{STR_VAR_1}”\\nбрендовий одяг...\\pІ офіційні ліцензійні\\n“{STR_VAR_1}”\\lкнижки з картинками.\\pХе-хе, це все моє!\\nЯ нічим з тобою не поділюся!",
+        "DewfordTown_Hall_Text_BooksAboutTrend": "ЯК РОЗПІЗНАТИ ХОРОШИЙ\\n“{STR_VAR_1}” &\\lПОГАНИЙ “{STR_VAR_1}”...\\pЗВ'ЯЗОК МІЖ\\n“{STR_VAR_1}” ТА\\lPOKéMON...\\pКОРИСНИЙ\\n“{STR_VAR_1}”...\\pПолиця охайно вщент забита книжками про\\n“{STR_VAR_1}.”",
+        "DewfordTown_Hall_Text_TrendsScream": "“{STR_VAR_1}'S\\nSCREAM” - назва цієї книжки.",
+        "DewfordTown_Hall_Text_TrendsSmile": "“{STR_VAR_1}'S\\nSMILE” - назва цієї книжки.",
+        "DewfordTown_Hall_Text_LastTrend": "Назва свідчить: “THE LAST\\n{STR_VAR_1}”.",
+        "DewfordTown_Hall_Text_BirthOfTrend": "Назва свідчить: “THE BIRTH OF\\n{STR_VAR_1}”.",
+        "DewfordTown_Hall_Text_SawTrendCoolestThing": "Я бачив “{STR_VAR_1}”!\\nКрутяк, правда?\\pЦе зараз, типу, наймодніша фішка!\\pБуло просто нереально!\\nОце я розумію - справжня тема, о так!",
+        "DewfordTown_Hall_Text_AllegedTrendNotAuthentic": "Та ні, що ти, зовсім ні.\\pОтой так званий\\n“{STR_VAR_1}”\\lпро який ти кажеш - то лише підробка.\\pСправжній взірець набагато...\\nЯк би це влучно висловитись?\\lВін виразніший, проте куди плавніший!\\pХоча, неважливо. Це щось неймовірне!",
+        "DewfordTown_Hall_Text_ComposedTrendThemeSong": "Гей, послухай! Я склав тематичну\\nпісню про “{STR_VAR_1}.”\\p“{STR_VAR_1}”\\nзараз справді популярний.\\pНу, слухай!\\n... ...\\pО!\\n{STR_VAR_1}!\\pЧудовий\\n{STR_VAR_1}!",
+        "DewfordTown_Hall_Text_WorkOnYourSinging": "... ...\\pМушу зауважити, друже, тобі не завадило\\nб попрацювати над вокалом,\\lперш ніж так легковажно братися за оспівування\\l“{STR_VAR_1}.”",
+        "DewfordTown_Hall_Text_OrganizeTrendParty": "Менше з тим, як я вже казав раніше,\\nнам варто зібратися й організувати\\lна острові вечірку\\lна честь “{STR_VAR_1}”.",
+        "DewfordTown_Hall_Text_BrilliantIndeed": "О, просто блискуча ідея!\\pЦе дозволить раз і назавжди з'ясувати,\\nхто ж найкращий у\\l“{STR_VAR_1}.”\\lСправді геніально!\\pВідсьогодні все наше життя обертатиметься\\nнавколо“{STR_VAR_1}”!",
+        "DewfordTown_Hall_Text_TrendHasBecomePartOfLife": "Хоча, знаєш, я тут міркував...\\pЧи не погодишся ти, що\\n“{STR_VAR_1}”\\lуже перестало бути просто модною фішкою\\lі стало частиною нашого повсякденного життя?",
+        "DewfordTown_Hall_Text_TrendWeighsHeavilyOnMind": "Перепрошую?\\nАж настільки?\\pХоча, це правда -\\n“{STR_VAR_1}”\\lне йде вам з думки, чи ви\\lспите, чи не спите.\\pБезперечно, ви справжній\\n“{STR_VAR_1}”\\lPROFESSOR, старий!",
+        "DewfordTown_Hall_Text_IfWeTeamUpWellBeInvincible": "Якщо ми з тобою об'єднаємося в дует,\\nми станемо просто непереможними в усьому,\\lщо стосується “{STR_VAR_1}”!",
+        "DewfordTown_Hall_Text_WellBeTrendDuo": "Саме так, друже!\\pМи будемо ДУЕТОМ\\n“{STR_VAR_1}”!\\pНу хіба не чудовий образ?\\nХа-ха-ха!",
+        "DewfordTown_Hall_Text_GiveYouSludgeBomb": "Як на мене, SLUDGE BOMB зараз на самому піку\\nпопулярності. Це саме те,\\pщо треба! Га? Ти хочеш сказати, що нічого не\\nзнаєш про SLUDGE BOMB?\\pЦе просто жалюгідно.\\nТримай, я дам тобі одну.",
+        "DewfordTown_Hall_Text_LoveSludgeBombButTrendInToo": "Я обожнюю SLUDGE BOMB.\\pАле POKéMON з прийомом\\n“{STR_VAR_1}”\\lзараз теж у моді."
+    }
+}

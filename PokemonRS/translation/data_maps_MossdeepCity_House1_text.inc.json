@@ -1,0 +1,8 @@
+{
+    "data_maps_MossdeepCity_House1_text.inc": {
+        "MossdeepCity_House1_Text_HmmYourPokemon": "Хмм!\\nТвій {STR_VAR_1}...",
+        "MossdeepCity_House1_Text_ItLikesXPokeblocks": "Йому подобаються {STR_VAR_1},\\nчи не так?\\pНі, я в цьому впевнений! \\nЙому точно подобаються {STR_VAR_1}!",
+        "MossdeepCity_House1_Text_DoesntLikeOrDislikePokeblocks": "Здається, він не полюбляє і не\\nнедолюблює жодних {POKEBLOCK}.",
+        "MossdeepCity_House1_Text_HusbandCanTellPokeblockMonLikes": "Мій чоловік може з першого погляду визначити,\\nякі {POKEBLOCK} подобаються POKéMON."
+    }
+}

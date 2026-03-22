@@ -1,0 +1,9 @@
+{
+    "data_maps_LittlerootTown_MaysHouse_1F_text.inc": {
+        "RivalsHouse_1F_Text_OhYoureTheNewNeighbor": "Ой, вітаю! А ти у нас?\\p... ... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ... ...\\pА-а, то ти{PLAYER}{KUN}, наш новий\\nсусід! Привіт!\\pУ нас є{STR_VAR_1}, вона приблизно\\nтвого віку.\\pНаша {STR_VAR_1} дуже хотіла знайти\\nнового друга.\\pЗдається {STR_VAR_1} зараз нагорі.",
+        "RivalsHouse_1F_Text_RivalIsUpstairsIThink": "Здається {STR_VAR_1} зараз нагорі.",
+        "RivalsHouse_1F_Text_WhereHasHusbandGone": "Куди це подівся мій чоловік?\\nЯкраз тоді, коли {PLAYER}{KUN} завітав у гості...\\pЙому на місці ніяк не сидиться...\\nМабуть, він у себе в LAB.",
+        "RivalsHouse_1F_Text_WentOutSomewhere": "Ой, {RIVAL} уже кудись пішла.\\pЯкий батько, така й дитина.\\n{RIVAL} теж ніяк не всидить удома.",
+        "RivalsHouse_1F_Text_ShouldGoHomeEverySoOften": "Як на мене, це просто чудово - \\nмандрувати з POKéMON.\\pАле тобі варто час від часу заглядати додому,\\nщоб мама знала, що з тобою все гаразд.\\pВона може цього й не казати, але я впевнена - \\nвона дуже за тебе хвилюється, {PLAYER}{KUN}."
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "data_maps_MauvilleCity_text.inc": {
+        "MauvilleCity_Text_UncleHesTooPeppy": "UNCLE: Мабуть, саме завдяки POKéMON цей\\nхлопець став жвавішим...\\lАле він став навіть занадто енергійним...",
+        "MauvilleCity_Text_WallyWantToChallengeGym": "WALLY: Ну-у, UNCLE, ну будь ласочка!\\pЯ хочу кинути виклик цьому GYM і побачити,\\nнаскільки кращим я став.\\pБудь ласка! Ну невже не можна?",
+        "MauvilleCity_Text_UncleYourePushingIt": "UNCLE: Стій-но, WALLY.\\pВідтоді як ти почав жити з POKéMON,\\nти став набагато сильнішим.\\pАле чи не здається тобі, що це занадто - отак\\nраптово кидати виклик GYM?",
+        "MauvilleCity_Text_WallyWeCanBeatAnyone": "WALLY: Я не перебільшую свої сили.\\pЯкщо я об'єднаю зусилля з RALTS,\\nми зможемо перемогти будь-кого!",
+        "MauvilleCity_Text_WallyWillYouBattleMe": "WALLY: О! Привіт, {PLAYER}!\\pЯ став набагато сильнішим відтоді,\\nяк ми зустрілися.\\p{PLAYER}, я хочу, щоб ти і мій UNCLE\\nце зрозуміли.\\p{PLAYER}, прошу тебе,\\nти поборешся зі мною?",
+        "MauvilleCity_Text_WallyMyUncleWontKnowImStrong": "WALLY: Ех... Якщо ти не захочеш зі мною битися,\\n{PLAYER}, мій UNCLE так і не побачить,\\lнаскільки сильнішим я став.",
+        "MauvilleCity_Text_UncleCanYouBattleWally": "UNCLE: {PLAYER}{KUN}, правильно?\\nВід імені WALLY, чи можу я попросити тебе\\lпоборотися з ним лише цього разу?\\pНе думаю, що він зараз здатний слухати\\nбудь-які аргументи.",
+        "MauvilleCity_Text_WallyPleaseBattleMe": "WALLY: {PLAYER}, ну будь ласочка!\\nДавай поборемось, дуже тебе прошу.",
+        "MauvilleCity_Text_WallyHereICome": "WALLY: {PLAYER}, дякую тобі.\\pГаразд... Я починаю!",
+        "MauvilleCity_Text_WallyDefeat": "WALLY: ... ... ... ... ... ... ...\\p... ... ... ... ... ... ... ...\\pЯ програв...",
+        "MauvilleCity_Text_WallyIllGoBackToVerdanturf": "WALLY: UNCLE...\\nЯ піду до VERDANTURF...",
+        "MauvilleCity_Text_ThankYouNotEnoughToBattle": "{PLAYER}, дякую тобі.\\nБути TRAINER важко, чи не так?\\pНедостатньо просто мати POKéMON і\\nзмушувати їх битися.\\lБути справжнім TRAINER - це не лише про це.",
+        "MauvilleCity_Text_UncleNoNeedToBeDown": "UNCLE: WALLY, ну чого ти так\\nноса повісив?\\pТобі ж ніщо не заважає і далі набиратися\\nсили та рости над собою.\\pХодімо, повернімося додому.\\nНа тебе всі чекають.",
+        "MauvilleCity_Text_UncleVisitUsSometime": "UNCLE: {PLAYER}{KUN}, мене щойно осяяло,\\nщо ти, мабуть, і є той TRAINER,\\lякий наглядав за WALLY, коли він ловив\\lсвого POKéMON.\\pЧому б тобі якось не завітати до нас\\nу VERDANTURF?\\lЯ впевнений, WALLY буде цьому радий.",
+        "MauvilleCity_Text_WattsonNeedFavorTakeKey": "WATTSON: О, {PLAYER}{KUN}!\\nА ти, я бачу, дуже енергійний!\\lТак і треба, вахахахаха!\\pВирішено!\\nЄ в мене до тебе одне діло, {PLAYER}{KUN}!\\pПід MAUVILLE CITY є підземний район\\n- NEW MAUVILLE.\\p{PLAYER}{KUN}, я хочу, щоб ти збігав туди\\nі вирубив GENERATOR.\\pТой GENERATOR щось геть сказився.\\nЦе вже стає небезпечно.\\pТримай, це KEY, щоб пробратися в\\nNEW MAUVILLE.",
+        "MauvilleCity_Text_WattsonWontBeChallenge": "WATTSON: Не хвилюйся про це. Для тебе\\nце не буде проблемою.\\pВхід до NEW MAUVILLE знаходиться зовсім поруч із\\nROUTE 110, треба лише трохи пропливти, використовуючи SURF.\\pНа цьому все, я тобі довіряю!\\nВахахахаха!",
+        "MauvilleCity_Text_WattsonThanksTakeTM": "WATTSON: Вахахахаха!\\pЯ так і знав, {PLAYER}{KUN}! Я знав, що зробив\\nправильний вибір, коли звернувся до тебе!\\pОсь моя подяка - TM, що містить\\nTHUNDERBOLT!\\pТримай, ти на це заслужив!",
+        "MauvilleCity_Text_WattsonYoungTakeCharge": "WATTSON: Вахахаха!\\pМені безмежно приємно бачити,\\nяк молодь бере ініціативу у свої руки!",
+        "MauvilleCity_Text_NurseHurtMonBackToHealth": "Знаєш, це круто - влаштовувати битви\\nPOKéMON і таке інше...\\pАле якщо твій POKéMON постраждає,\\nтобі доведеться його вилікувати.",
+        "MauvilleCity_Text_AllSortsOfPeopleComeThrough": "Дороги цього міста простягаються на північ і південь,\\nа також на схід і захід.\\pЧерез це крізь наше місто проходить\\nбагато найрізноманітніших людей.",
+        "MauvilleCity_Text_RydelVeryGenerous": "Ти вже зазирав у RYDEL'S CYCLES?\\pRYDEL, господар тієї крамниці,-\\nдуже щедрий чолов'яга.",
+        "MauvilleCity_Text_PokemonCanJumpYouOnBike": "Навіть якщо ти їдеш на BIKE, дикі\\nPOKéMON можуть зненацька напасти на тебе.",
+        "MauvilleCity_Text_CitySign": "MAUVILLE CITY\\n“Сяюче місто, де завжди повно розваг!”",
+        "MauvilleCity_Text_GymSign": "MAUVILLE CITY POKéMON GYM\\nLEADER: WATTSON\\l“Веселун, що заряджає іскрами!”",
+        "MauvilleCity_Text_BikeShopSign": "“Ганяй по гравію - струсони свою\\nдушу як слід!”\\lRYDEL'S CYCLES",
+        "MauvilleCity_Text_GameCornerSign": "“Територія розваг для всіх і кожного!”\\nMAUVILLE GAME CORNER",
+        "MauvilleCity_Text_ExplainTV": "Привіт, ти взагалі дивишся телевізор?\\pОстаннім часом там з'явилося багато\\nкрутих нових шоу.\\pТелевізор - це так круто. Я бачив своїх\\nдрузів по ТБ зовсім зненацька.\\pІ іноді тебе навіть показують по телевізору,\\nне попередивши.\\pЯ б теж хотів колись потрапити на телебачення.\\pОсь чому я вважаю, що тобі варто перевіряти\\nтелевізори за кожної нагоди.",
+        "MauvilleCity_Text_BeenCheckingOutTV": "Привіт, ну що, дивився вже ТБ?"
+    }
+}

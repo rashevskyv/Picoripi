@@ -1,0 +1,16 @@
+{
+  "data/maps/Route120/text.inc": {
+    "Route120_Text_171827": "STEVEN: Hm? {PLAYER}{KUN}, hi.\\nIt's been a while.\\pThere's something here that you can't\\nsee, right?\\pNow, if I were to use this device on\\nthe invisible obstacle...\\pNo, no. Rather than describing it,\\nI should just show you.\\lThat would be more fun.\\p{PLAYER}{KUN}, are your POKéMON ready for\\nbattle?",
+    "Route120_Text_17193D": "STEVEN: No?\\pI'll wait here, so you can get ready.",
+    "Route120_Text_17196F": "STEVEN: {PLAYER}{KUN}, are your POKéMON\\nready for battle?",
+    "Route120_Text_1719A0": "STEVEN: {PLAYER}{KUN}, show me your true\\npower as a TRAINER!",
+    "Route120_Text_1719D4": "STEVEN used the DEVON SCOPE.\\pAn invisible POKéMON became completely\\nvisible!\\pThe startled POKéMON attacked!",
+    "Route120_Text_171A40": "STEVEN: I see...\\nYour battle style is intriguing.\\pYour POKéMON have obviously grown\\nsince I first met you in DEWFORD.\\pI'd like you to have this\\nDEVON SCOPE.\\pWho knows, there may be other\\nconcealed POKéMON.",
+    "Route120_Text_171B0E": "STEVEN: {PLAYER}{KUN}.\\pI enjoy seeing POKéMON and TRAINERS\\nwho strive together.\\pI think you're doing great.\\pWell, let's meet again somewhere.",
+    "Text_SomethingUnseeable": "Something unseeable is in the way.",
+    "Text_WantToUseDevonScope": "Something unseeable is in the way.\\pWant to use the DEVON SCOPE?",
+    "Text_UseDevonScopeMonAttacked": "{PLAYER} used the DEVON SCOPE.\\pAn invisible POKéMON became completely\\nvisible!\\pThe startled POKéMON attacked!",
+    "Route120_Text_171C5E": "ROUTE 120\\n{0x7B} FORTREE CITY",
+    "Route120_Text_171C77": "{0x7C} ROUTE 121\\n{0x7B} ROUTE 120"
+  }
+}

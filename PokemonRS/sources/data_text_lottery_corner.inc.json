@@ -1,0 +1,20 @@
+{
+  "data/text/lottery_corner.inc": {
+    "LilycoveCity_DepartmentStore_1F_Text_LotteryCornerDrawTicket": "This is the POKéMON LOTTERY CORNER.\\pAll shoppers visiting our DEPARTMENT\\nSTORE get to draw a POKéMON LOTO\\lTICKET.\\pIf the LOTO TICKET's number matches\\nthe ID number of any of your POKéMON,\\lyou will receive a fabulous gift.\\pWould you like to draw a POKéMON\\nLOTO TICKET?",
+    "LilycoveCity_DepartmentStore_1F_Text_ComeBackTomorrow": "Please come back tomorrow.",
+    "LilycoveCity_DepartmentStore_1F_Text_PleaseVisitAgain": "Please do visit us again.",
+    "UnknownString_81C4C9F": "Please pick a LOTO TICKET.\\n... ... ...",
+    "LilycoveCity_DepartmentStore_1F_Text_PleasePickTicket": "Please pick a LOTO TICKET.\\n...{PAUSE}{0x39} ...{PAUSE}{0x39} ...{PAUSE}{0x39}",
+    "LilycoveCity_DepartmentStore_1F_Text_TicketNumberIsXPleaseWait": "The LOTO TICKET number is {STR_VAR_1}.\\pI need to run a check on this number\\nto see if it matches any of your\\lPOKéMON's ID numbers. Please wait.",
+    "LilycoveCity_DepartmentStore_1F_Text_TicketMatchesPartyMon": "Congratulations!\\pThe ID number of your team's\\n{STR_VAR_1} matches your LOTO TICKET's\\lnumber!",
+    "LilycoveCity_DepartmentStore_1F_Text_TicketMatchesPCMon": "Congratulations!\\pThe ID number of your PC-boxed\\n{STR_VAR_1} matches your LOTO TICKET's\\lnumber!",
+    "LilycoveCity_DepartmentStore_1F_Text_NoNumbersMatched": "I'm sorry.\\nNone of the numbers matched.",
+    "LilycoveCity_DepartmentStore_1F_Text_TwoDigitsMatched": "Two digits matched, so you win the\\nthird prize!\\lYou've won the {STR_VAR_1}!",
+    "LilycoveCity_DepartmentStore_1F_Text_ThreeDigitsMatched": "Three digits matched, so you win the\\nsecond prize!\\lYou've won the {STR_VAR_1}!",
+    "LilycoveCity_DepartmentStore_1F_Text_FourDigitsMatched": "Four digits matched, so you win the\\nfirst prize!\\lYou've won the {STR_VAR_1}!",
+    "LilycoveCity_DepartmentStore_1F_Text_AllFiveDigitsMatched": "Oh, my goodness, all five digits matched!\\pYou've won the jackpot prize!\\nYou've won the {STR_VAR_1}!",
+    "LilycoveCity_DepartmentStore_1F_Text_NoRoomForThis": "Oh?\\nYou seem to have no room for this.\\pPlease make room in your BAG and\\nlet me know.",
+    "LilycoveCity_DepartmentStore_1F_Text_PrizeWeveBeenHolding": "{PLAYER}?\\nYes, I've been expecting you.\\pThis is the prize we've been holding\\nfor you.",
+    "LilycoveCity_DepartmentStore_1F_Text_PleaseVisitAgain2": "Please do visit again."
+  }
+}

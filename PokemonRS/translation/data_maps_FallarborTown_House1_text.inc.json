@@ -1,0 +1,13 @@
+{
+    "data_maps_FallarborTown_House1_text.inc": {
+        "FallarborTown_CozmosHouse_Text_MeteoriteWillNeverBeMineNow": "PROF. COZMO: Ох...\\nЯ ніколи не мав дозволяти їм обдурити себе\\lта розповідати TEAM {EVIL_TEAM}, де\\nможна знайти METEORITES...\\pТой METEORITE з METEOR FALLS...\\nТепер він ніколи не буде моїм...",
+        "FallarborTown_CozmosHouse_Text_IsThatMeteoriteMayIHaveIt": "О!\\nЩо-що?\\pОця штука...\\pТа невже?\\pЧи це той METEORITE, який TEAM {EVIL_TEAM}\\nзабрали з METEOR FALLS?\\pБудь ласка, віддаси його мені?\\pЯ не прошу його безкоштовно.\\nЯк щодо обміну на цю TM?",
+        "FallarborTown_CozmosHouse_Text_PleaseUseThisTM": "PROF. COZMO: Ця TM - символ\\nмоєї вдячності.\\lБери, хай стане в пригоді!",
+        "FallarborTown_CozmosHouse_Text_ReallyGoingToHelpMyResearch": "PROF. COZMO: Ох, я не можу в це повірити.\\nЦе справді, справді чудово!\\pЦе дуже допоможе моїм дослідженням!",
+        "FallarborTown_CozmosHouse_Text_CrushedWithDisappointment": "PROF. COZMO: Ох, але як же так...\\nУ мене просто руки опустилися від розпачу...",
+        "FallarborTown_CozmosHouse_Text_MayIHaveMeteorite": "PROF. COZMO: Будь ласка, чи можу я отримати той\\nMETEORITE?\\pЯ не прошу його задарма.\\nЯк щодо обміну на цю TM?",
+        "FallarborTown_CozmosHouse_Text_CozmoWentToMeteorFalls": "PROF. COZMO вирушив до METEOR FALLS на\\nROUTE 114 з якимись людьми з\\lTEAM {EVIL_TEAM}.",
+        "FallarborTown_CozmosHouse_Text_FeelSorryForCozmo": "Бідний PROF. COZMO...\\nВін такий пригнічений... Аж серце за нього болить.",
+        "FallarborTown_CozmosHouse_Text_CozmoIsSoHappy": "Поглянь на PROF. COZMO...\\nВін такий щасливий! Як на мене, це дуже мило."
+    }
+}

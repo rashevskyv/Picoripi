@@ -1,0 +1,8 @@
+{
+    "data_maps_FallarborTown_ContestLobby_text.inc": {
+        "FallarborTown_ContestLobby_Text_UsedToHaveSketch": "Там на стіні висів ескіз мого POKéMON, \\nале його\\lвже замінили на новий.\\pЯ виставлю свою HANA на CONTESTS,\\nщоб її ескіз знову там висів!",
+        "FallarborTown_ContestLobby_Text_AreYouMakingPokeblock": "Привіт, ти готуєш якісь {POKEBLOCK}?\\pЗаглядай якось до нас, прихопивши з\\nсобою побільше BERRIES.",
+        "FallarborTown_ContestLobby_Text_ICreateSketches": "Бачиш, як тут виставляють ескіз\\nпереможця CONTEST?\\pЦе я їх малюю!\\pЯкщо хтось із твоїх POKéMON виграє CONTEST,\\nя залюбки зроблю його ескіз!",
+        "FallarborTown_ContestLobby_Text_YourSketchIsUp": "Привіт! Мої вітання!\\pЯ виставив ескіз твого POKéMON прямо тут,\\nщоб кожен міг його побачити!"
+    }
+}

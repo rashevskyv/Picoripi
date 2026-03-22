@@ -1,0 +1,7 @@
+{
+    "data_maps_OldaleTown_Mart_text.inc": {
+        "OldaleTown_Mart_Text_PokeBallsAreSoldOut": "Продавець каже, що все розкупили.\\nЯ не можу купити жодного POKé BALLS.",
+        "OldaleTown_Mart_Text_ImGoingToBuyPokeBalls": "Я збираюся купити купу POKé BALLS\\nі наловити цілу купу POKéMON!",
+        "OldaleTown_Mart_Text_RestoreHPWithPotion": "Якщо POKéMON зазнає шкоди, втратить HP\\nі знепритомніє - він не зможе битися.\\pЩоб твій POKéMON не знепритомнів,\\nвідновлюй його HP за допомогою POTION."
+    }
+}

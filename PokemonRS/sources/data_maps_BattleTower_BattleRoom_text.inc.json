@@ -1,0 +1,8 @@
+{
+  "data/maps/BattleTower_BattleRoom/text.inc": {
+    "BattleTower_BattleRoom_Text_19ACDC": "We will restore your POKéMON to\\nfull health.",
+    "BattleTower_BattleRoom_Text_19AD09": "You will be facing opponent no. {STR_VAR_1}.\\nAre you ready?",
+    "BattleTower_BattleRoom_Text_19AD3C": "Would you like to save and\\nquit the game?",
+    "BattleTower_BattleRoom_Text_19AD66": "Would you like to cancel your BATTLE\\nROOM challenge?"
+  }
+}

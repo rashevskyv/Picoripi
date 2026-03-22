@@ -1,0 +1,16 @@
+{
+    "data_maps_BattleTower_Outside_text.inc": {
+        "BattleTower_Outside_Text_199C6F": "BATTLE TOWER\\n“Перемагайте всіх і станьте найкращими, TRAINERS!”",
+        "BattleTower_Outside_Text_199CA4": "Вітаємо у BATTLE TOWER!\\pTRAINERS виставляють своїх найкраще тренованих\\nPOKéMON для участі в матчах на вибування.",
+        "BattleTower_Outside_Text_199D06": "Вітаю! Ви на пором?\\nМожу я побачити ваш TICKET?",
+        "BattleTower_Outside_Text_199D40": "{PLAYER} не має TICKET...\\pДуже шкода.\\pВи повинні мати TICKET, щоб\\nсісти на пором.",
+        "BattleTower_Outside_Text_199D9D": "{PLAYER} показує TICKET.\\pЧудово! Це все, що потрібно!\\pКуди ви бажаєте вирушити?",
+        "BattleTower_Outside_Text_199DF2": "Тоді до SLATEPORT CITY!",
+        "BattleTower_Outside_Text_199E0E": "Тоді до LILYCOVE CITY!",
+        "BattleTower_Outside_Text_199E29": "Будемо раді бачити вас знову!",
+        "BattleTower_Outside_Text_199E4B": "Будь ласка, сідайте на пором і\\nчекайте відплиття.",
+        "BattleTower_Outside_Text_199E7A": "Ну що, куди тримаємо шлях?",
+        "BattleTower_Outside_Text_199E9C": "Я не піду звідси, доки не переможно\\nздолаю 35 TRAINERS поспіль!",
+        "BattleTower_Outside_Text_199ED4": "Ого, тут повно TRAINERS, які виглядають\\nну дуже сильними.\\lЯ ще недостатньо вправний, щоб брати участь..."
+    }
+}

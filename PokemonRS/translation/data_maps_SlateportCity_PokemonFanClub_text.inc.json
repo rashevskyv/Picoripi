@@ -1,0 +1,24 @@
+{
+    "data_maps_SlateportCity_PokemonFanClub_text.inc": {
+        "SlateportCity_PokemonFanClub_Text_MeetChairman": "Кхм! Я - CHAIRMAN у\\nPOKéMON FAN CLUB!\\pБудучи CHAIRMAN, я, звісно ж,\\nнайважливіша особа!\\pНіхто не зможе перевершити мене, коли справа\\nдоходить до виховання POKéMON. Ніхто!\\pУ будь-якому CONTEST моя перемога - це\\nзаздалегідь відомий факт!\\pАле це б позбавило інших\\nїхньої насолоди від гри.\\pТому тепер я просто марную свій час,\\nрозглядаючи POKéMON інших людей.\\pЦе чудово - спостерігати за тим, як\\nінші виховують своїх POKéMON.\\pЗадоволені мордочки правильно\\nвихованих POKéMON...\\pДобрі та люблячі погляди їхніх\\nTRAINERS...\\pМоє серце переповнене - навколо\\nтак багато щастя.\\pОй! Вибачте мені! Здається, я\\nрозбалакався занадто довго!\\pБудь ласка, дозвольте мені оглянути вашого\\nPOKéMON і побачити, як він виріс.",
+        "SlateportCity_PokemonFanClub_Text_HowIsYourPokemonGrowing": "Як росте твій POKéMON?\\nДозволь мені оглянути його.",
+        "SlateportCity_PokemonFanClub_Text_HmHmISee": "Хм, хм...\\nУсе ясно...",
+        "SlateportCity_PokemonFanClub_Text_GiveMonMorePokeblocks": "Гм-м... Це непогано, але й\\nне добре також...\\pТи, як TRAINER, мусиш докласти більше\\nзусиль до виховання цього POKéMON!\\pНаприклад, дозволь порадити тобі\\nдавати йому більше {POKEBLOCK}?",
+        "SlateportCity_PokemonFanClub_Text_NoSpaceForReward": "Ой...\\pТвій POKéMON росте досить добре,\\nтож ти заслуговуєш на нагороду.\\pНа жаль, у тебе немає місця для\\nцього у твоєму BAG.",
+        "SlateportCity_PokemonFanClub_Text_MonMostImpressiveGiveItThis": "Твій {STR_VAR_1}, він росте\\nнайбільш вражаючим чином!\\lЦе чудовий екземпляр!\\pАле! Якби ти дав йому це,\\nвін би ріс ще краще! Справді!",
+        "SlateportCity_PokemonFanClub_Text_ExplainRedScarf": "Нехай POKéMON тримає цей RED SCARF.\\pКожен визнає крутість\\nцього POKéMON!",
+        "SlateportCity_PokemonFanClub_Text_ExplainBlueScarf": "Нехай POKéMON тримає цей BLUE SCARF.\\pЙого краса буде підкреслена значно\\nбільше, ніж зараз!",
+        "SlateportCity_PokemonFanClub_Text_ExplainPinkScarf": "Нехай POKéMON тримає цей PINK SCARF.\\pЦе допоможе розкрити миловидність\\nцього POKéMON ще більше!",
+        "SlateportCity_PokemonFanClub_Text_ExplainGreenScarf": "Нехай POKéMON тримає цей GREEN SCARF.\\pЦе допоможе підвищити\\nкмітливість POKéMON!",
+        "SlateportCity_PokemonFanClub_Text_ExplainYellowScarf": "Нехай POKéMON тримає цей YELLOW SCARF.\\pЦе зміцнить витривалість твого\\nPOKéMON значно сильніше!",
+        "SlateportCity_PokemonFanClub_Text_NothingElseToGiveYou": "Мені шкода, але я більше нічого не можу\\nтобі дати! Зовсім нічого!\\pЗрештою, ти благословенний даром\\nвиховувати POKéMON без використання\\lбудь-яких предметів!",
+        "SlateportCity_PokemonFanClub_Text_ShowMePokemonThatLoveYou": "Я обожнюю бачити POKéMON, які люблять\\nсвоїх TRAINERS.\\pPOKéMON дуже чутливі до\\nпочуттів своїх TRAINERS.\\pЯкщо ти ставишся до POKéMON з любов'ю\\nта турботою, вони полюблять тебе у відповідь.\\pКоли твій POKéMON полюбить тебе,\\nбудь ласка, прийди і покажи мені.",
+        "SlateportCity_PokemonFanClub_Text_PokemonAdoresYou": "Твій POKéMON справді обожнює тебе.\\pДля тебе, найбільш турботливого\\nTRAINER, подарунок від FAN CLUB!",
+        "SlateportCity_PokemonFanClub_Text_TreatPokemonWithLove": "POKéMON дуже чутливі до\\nпочуттів своїх TRAINERS.\\pЯкщо ти ставишся до POKéMON з любов'ю\\nта турботою, вони полюблять тебе у відповідь.",
+        "SlateportCity_PokemonFanClub_Text_PokemonDontLikeFainting": "Якщо ти і далі дозволятимеш POKéMON\\nнепритомніти у бою, він почне ображатися.\\pНезабаром він стане менше довіряти\\nсвоєму TRAINER.\\pІншими словами, він точно не буде\\nтебе дуже любити.",
+        "SlateportCity_PokemonFanClub_Text_MonEnjoyedProtein": "Чи подобається POKéMON, коли на них\\nвикористовують предмети?\\pМій виглядав дуже щасливим, коли я\\nдав йому трохи PROTEIN.",
+        "SlateportCity_PokemonFanClub_Text_Skitty": "SKITTY: Фффняяяя...",
+        "SlateportCity_PokemonFanClub_Text_Zigzagoon": "ZIGZAGOON: Кююю...",
+        "SlateportCity_PokemonFanClub_Text_Azumarill": "AZUMARILL: Марімарі?"
+    }
+}

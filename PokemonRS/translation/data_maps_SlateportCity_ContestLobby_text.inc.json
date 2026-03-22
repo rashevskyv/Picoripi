@@ -1,0 +1,9 @@
+{
+    "data_maps_SlateportCity_ContestLobby_text.inc": {
+        "SlateportCity_ContestLobby_Text_WantToRaiseUltimateMon": "Я хочу виростити POKéMON, який\\nбув би справді “найкращим” і в\\lбитвах, і в CONTESTS.\\pЦе справжня морока - намагатися з'ясувати,\\nяких атак мені варто його навчити.",
+        "SlateportCity_ContestLobby_Text_DoYourFriendsHaveBerries": "Do any of your friends have any\\nBERRIES?\\pYou can use that BERRY BLENDER and\\nmake {POKEBLOCK}S with your friends!\\pYou should try it - it's a lot of fun!",
+        "SlateportCity_ContestLobby_Text_YouCanHavePokeblockCase": "У мене є два, тому один можеш взяти собі!",
+        "SlateportCity_ContestLobby_Text_PutPokeblocksInThere": "Роби {POKEBLOCK} і клади їх туди.\\pКоли ти робиш {POKEBLOCK}, кожен\\nмає покласти іншу BERRY.",
+        "SlateportCity_ContestLobby_Text_ContestWinnerPostersOnWall": "Якщо ти переможеш у CONTEST, вони\\nпочеплять плакат із твоїм POKéMON на стіну.\\pНа ньому буде портрет твого\\nPOKéMON і обидва ваші імені."
+    }
+}

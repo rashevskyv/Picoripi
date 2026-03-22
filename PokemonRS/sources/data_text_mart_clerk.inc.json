@@ -1,0 +1,8 @@
+{
+  "data/text/mart_clerk.inc": {
+    "Text_HowMayIServeYou": "Welcome!\\pHow may I serve you?",
+    "Text_PleaseComeAgain": "Please come again!",
+    "Text_DiscountSaleToday": "Welcome!\\pWe're having a discount sale today!",
+    "Text_PlayerWhatCanIDoForYou": "{PLAYER}{KUN}, welcome!\\pWhat can I do for you?"
+  }
+}

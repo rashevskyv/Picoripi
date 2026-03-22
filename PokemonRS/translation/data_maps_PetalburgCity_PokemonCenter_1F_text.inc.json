@@ -1,0 +1,10 @@
+{
+    "data_maps_PetalburgCity_PokemonCenter_1F_text.inc": {
+        "PetalburgCity_PokemonCenter_1F_Text_PCStorageSystem": "Ця комп'ютерна система зберігання POKéMON...\\pТой, хто її розробив, напевно, якийсь\\nнауковий чаклун!",
+        "PetalburgCity_PokemonCenter_1F_Text_OranBerryRegainedHP": "Коли мій POKéMON з'їв\\nORAN BERRY, він відновив HP!",
+        "PetalburgCity_PokemonCenter_1F_Text_ManyTypesOfPokemon": "Існує багато типів POKéMON.\\pКожен тип має свої сильні та слабкі\\nсторони проти інших типів.\\pЗалежно від типів POKéMON,\\nбій може бути як легким, так і дуже важким.",
+        "PetalburgCity_PokemonCenter_1F_Text_TreeckoIsGrassType": "Наприклад, твій TREECKO\\nGRASS типу.\\pВін сильний проти WATER та\\nGROUND типів.\\pАле він вразливий до FIRE-type\\nPOKéMON.",
+        "PetalburgCity_PokemonCenter_1F_Text_TorchicIsFireType": "Наприклад, твій TORCHIC\\nFIRE типу.\\pВін сильний проти GRASS та\\nBUG типів.\\pАле він вразливий до WATER-type\\nPOKéMON.",
+        "PetalburgCity_PokemonCenter_1F_Text_MudkipIsWaterType": "For example, your MUDKIP is a\\nWATER типу.\\pВін сильний проти FIRE типу.\\pАле він вразливий до GRASS-type\\nта ELECTRIC-type POKéMON."
+    }
+}

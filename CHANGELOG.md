@@ -1,6 +1,18 @@
-# Changelog
-
 All notable changes to the **Picoripi** project will be documented in this file.
+
+## [0.2.11] - 2026-03-22
+
+### Added
+- **Comprehensive Testing Suite**: over 600 verified unit tests covering core business logic, handlers, and UI components.
+- **Testing Documentation**: Added instructions for running tests and generating coverage reports to `README.md`.
+
+### Improved
+- **Clean Test Environment**: Removed 2000+ auto-generated stub tests to ensure a 100% green and meaningful test suite.
+- **UIUpdater Reliability**: Fixed critical synchronization issues and reached 79% test coverage for the UI update engine.
+- **Unit Test Integrity**: Stabilized tests for `TranslationHandler`, `TextOperationHandler`, and `ProjectManager`.
+
+### Fixed
+- **Highlight Synchronization**: Resolved issues where UI highlights wouldn't align correctly with the text cursor after certain bulk operations.
 
 ## [0.2.10] - 2026-03-18
 

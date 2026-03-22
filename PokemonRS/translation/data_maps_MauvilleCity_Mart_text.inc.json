@@ -1,0 +1,6 @@
+{
+    "data_maps_MauvilleCity_Mart_text.inc": {
+        "MauvilleCity_Mart_Text_ItemsToTemporarilyElevateStats": "Є предмети, що тимчасово підвищують\\nхарактеристики POKéMON.\\pТі, про які я знаю, що ти використовуєш у бою\\n- це X ATTACK та X DEFEND...\\pЯ впевнений, що існують й інші\\nподібні речі.",
+        "MauvilleCity_Mart_Text_DecisionsDetermineBattle": "Використати певний прийом чи натомість\\nзастосувати предмет...\\pЯ вважаю, що саме рішення\\nTRAINER визначають результат битви."
+    }
+}

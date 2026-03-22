@@ -1,0 +1,11 @@
+{
+  "data/maps/Route101/text.inc": {
+    "Route101_Text_16D10E": "H-help me!",
+    "Route101_Text_16D119": "Hello! You over there!\\nPlease! Help!\\pIn my BAG!\\nThere's a POKé BALL!",
+    "Route101_Text_16D15E": "Wh-Where are you going?!\\nDon't leave me like this!",
+    "Route101_Text_16D191": "PROF. BIRCH: Whew...\\pI was in the tall grass studying wild\\nPOKéMON when I was jumped.\\pYou saved me.\\nThanks a lot!\\pOh?\\pHi, you're {PLAYER}{KUN}!\\pThis is not the place to chat, so come\\nby my POKéMON LAB later, okay?",
+    "Route101_Text_16D25E": "If POKéMON get tired, take them to\\na POKéMON CENTER.\\pThere's a POKéMON CENTER in OLDALE\\nTOWN right close by.",
+    "Route101_Text_16D2CB": "Wild POKéMON will jump out at you in\\ntall grass.\\pIf you want to catch POKéMON, you have\\nto go into the tall grass and search.",
+    "Route101_Text_16D349": "ROUTE 101\\n{0x79} OLDALE TOWN"
+  }
+}

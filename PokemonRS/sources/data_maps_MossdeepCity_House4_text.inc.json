@@ -1,0 +1,9 @@
+{
+  "data/maps/MossdeepCity_House4/text.inc": {
+    "MossdeepCity_House4_Text_BrotherLikesToFindBases": "My little brother says he likes to go\\nfind people's SECRET BASES.",
+    "MossdeepCity_House4_Text_BrotherLikesToVisitBasesAndBattle": "My little brother says he likes to\\nvisit people's SECRET BASES and have\\lPOKéMON battles.",
+    "MossdeepCity_House4_Text_YouMadeSecretBaseNearX": "Was it you who made a SECRET BASE in\\n{STR_VAR_1}?",
+    "MossdeepCity_House4_Text_MakeSecretBase": "You should make a SECRET BASE\\nsomewhere. I'll go find it!",
+    "MossdeepCity_House4_Text_Delcatty": "DELCATTY: Miyaan?"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "data/maps/FortreeCity_House1/text.inc": {
+    "FortreeCity_House1_Text_WouldYouTradeIt": "Hi, there's this POKéMON that I'm\\nlooking for.\\pI want a {STR_VAR_1}.\\nDo you have one?\\pWould you trade it for my {STR_VAR_2}?",
+    "FortreeCity_House1_Text_PleaseBeNiceToMon": "Thank you!\\pI'll be good to your {STR_VAR_1},\\nso please be nice to my {STR_VAR_2}!",
+    "FortreeCity_House1_Text_ThatMonIsntAMon": "Wait!\\nThat POKéMON isn't a {STR_VAR_1}.\\pI guess you don't want to trade\\nwith me.",
+    "FortreeCity_House1_Text_ChangeYourMindSeeMe": "Oh, okay. If you change your mind,\\nplease come see me.\\pI'll be waiting!",
+    "FortreeCity_House1_Text_PromiseToTakeGoodCareOfMon": "Thank you for trading with me!\\pI really wanted this POKéMON, so\\nI promise to take good care of it!",
+    "FortreeCity_House1_Text_TradingMemoriesWithOthers": "Trading POKéMON with others...\\pIt's as if you're trading your own\\nmemories with other people.",
+    "FortreeCity_House1_Text_Zigzagoon": "ZIGZAGOON: Gumomoh?"
+  }
+}

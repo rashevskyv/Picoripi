@@ -1,0 +1,11 @@
+{
+  "data/maps/MossdeepCity_SpaceCenter_1F/text.inc": {
+    "MossdeepCity_SpaceCenter_1F_Text_RocketLaunchImminent": "The rocket's launch is imminent!",
+    "MossdeepCity_SpaceCenter_1F_Text_SuccessfulLaunchNumber": "The rocket launched safely!\\nThat's successful launch no. {STR_VAR_1}!",
+    "MossdeepCity_SpaceCenter_1F_Text_RocketLaunchDemandsPerfection": "A rocket launch demands perfection.\\nNot even a 1% margin of error is allowed.\\pEven if it's 99% okay, the whole thing\\nis useless if 1% happens to be no good.\\pDespite that, we never stop trying.\\nWhy? It's a dream that never ends.",
+    "MossdeepCity_SpaceCenter_1F_Text_FoundThisYouCanHaveIt": "I was taking a stroll down the beach\\nwhen I found this.\\pIt's not anything I need, so you can\\nhave it.",
+    "MossdeepCity_SpaceCenter_1F_Text_HoennFamousForMeteorShowers": "The HOENN region has been famous for \\nits meteor showers for a long time.",
+    "MossdeepCity_SpaceCenter_1F_Text_DidPokemonComeFromSpace": "Some people claim that POKéMON came\\nfrom space. Could it be true?",
+    "MossdeepCity_SpaceCenter_1F_Text_RocketsBoggleMyMind": "A giant chunk of metal bursts through\\nthe skies and flies into space...\\pIt boggles my mind!"
+  }
+}

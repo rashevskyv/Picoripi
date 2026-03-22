@@ -1,0 +1,26 @@
+{
+    "data_text_easy_chat_group_name_strings.inc": {
+        "gEasyChatGroupName_Pokemon": "POKéMON",
+        "gEasyChatGroupName_Trainer": "TRAINER",
+        "gEasyChatGroupName_Status": "STATUS",
+        "gEasyChatGroupName_Battle": "BATTLE",
+        "gEasyChatGroupName_Greetings": "GREETINGS",
+        "gEasyChatGroupName_People": "PEOPLE",
+        "gEasyChatGroupName_Voices": "VOICES",
+        "gEasyChatGroupName_Speech": "SPEECH",
+        "gEasyChatGroupName_Endings": "ENDINGS",
+        "gEasyChatGroupName_Feelings": "FEELINGS",
+        "gEasyChatGroupName_Conditions": "CONDITIONS",
+        "gEasyChatGroupName_Actions": "ACTIONS",
+        "gEasyChatGroupName_Lifestyle": "LIFESTYLE",
+        "gEasyChatGroupName_Hobbies": "HOBBIES",
+        "gEasyChatGroupName_Time": "TIME",
+        "gEasyChatGroupName_Misc": "MISC.",
+        "gEasyChatGroupName_Adjectives": "ADJECTIVES",
+        "gEasyChatGroupName_Events": "EVENT.",
+        "gEasyChatGroupName_Move1": "MOVE 1",
+        "gEasyChatGroupName_Move2": "MOVE 2",
+        "gEasyChatGroupName_TrendySaying": "TRENDY SAYING",
+        "gEasyChatGroupName_Pokemon2": "POKéMON2"
+    }
+}

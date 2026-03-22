@@ -1,0 +1,12 @@
+{
+    "data_maps_FortreeCity_House2_text.inc": {
+        "FortreeCity_House2_Text_HiddenPowersArousedByNature": "Люди... POKéMON...\\pЇхні приховані сили пробуджуються завдяки\\nжиттю в природному середовищі...",
+        "FortreeCity_House2_Text_CoinInWhichHand": "Нехай стара погляне, чи прокинулася твоя\\nприхована сила...\\pУ моїй руці монета.\\pА тепер скажи мені: я затисла її у\\nправій руці? Чи в лівій?",
+        "FortreeCity_House2_Text_CorrectTryAgainWhichHand": "О! Так, правильно!\\pСпробуємо ще раз.\\pУ якій руці я затисла монетку?\\nУ правій чи в лівій?",
+        "FortreeCity_House2_Text_CorrectTryAgainWhichHand2": "О! Так, знову влучно!\\pСпробуємо ще востаннє.\\pУ якій руці я затисла монету?\\nУ правій чи в лівій? Обирай!",
+        "FortreeCity_House2_Text_YourHiddenPowerHasAwoken": "О! Чудово!\\nТвоя прихована сила прокинулася!\\pОсь, тримай це і пробуди приховану\\nсилу своїх POKéMON.",
+        "FortreeCity_House2_Text_ExplainHiddenPower": "HIDDEN POWER це прийом, який\\nзмінюється залежно від POKéMON.",
+        "FortreeCity_House2_Text_YouGuessedWrong": "Ні, шкода.\\nТи не вгадав.",
+        "UnknownString_8186585": "Місцевість довкола FORTREE CITY\\nнагадує джунглі.\\pХодити цим містом страшенно\\nвтомливо.\\pОсь чому я використовую FLY, щоб миттєво\\nдістатися до будь-якого міста, де я вже бував."
+    }
+}

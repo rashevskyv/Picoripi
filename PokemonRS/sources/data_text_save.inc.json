@@ -1,0 +1,10 @@
+{
+  "data/text/save.inc": {
+    "UnknownString_81C6C85": "Would you like to save the game?",
+    "UnknownString_81C6CA6": "There is already a saved file.\\nIs it okay to overwrite it?",
+    "BattleTower_BattleRoom_Text_1C6CE1": "SAVING...\\nDON'T TURN OFF THE POWER.",
+    "BattleTower_BattleRoom_Text_1C6D05": "{PLAYER} saved the game.",
+    "UnknownString_81C6D18": "Save error...",
+    "UnknownString_81C6D26": "There is a different game file that is\\nalready saved.\\pIs it okay to overwrite it?"
+  }
+}

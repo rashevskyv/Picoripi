@@ -1,0 +1,12 @@
+{
+    "data_maps_FallarborTown_text.inc": {
+        "FallarborTown_Text_ShadyFellowAtLab": "Здоров-здоров, як воно?\\pЯ бачив підозрілого чоловіка, який\\nтинявся туди-сюди в PROF. COZMO's LAB.",
+        "FallarborTown_Text_RegionKnownForMeteors": "Цей регіон відомий метеоритами ще з\\nдавніх часів.\\pКажуть, що METEOR FALLS був вибитий\\nпадінням метеорита дуже давно.",
+        "FallarborTown_Text_MyPreciousAzurill": "Дивись! Поглянь!\\nЦе мій дорогоцінний AZURILL!\\pВін такий гладенький та м'якенький плюшик!",
+        "FallarborTown_Text_Azurill": "AZURILL: Рурі-і-і-ло-о!",
+        "FallarborTown_Text_HaveYouChallengedFlannery": "Ти вже кинув виклик FLANNERY,\\nLEADER у LAVARIDGE GYM?\\pДідусь цієї дівчини був відомим.\\nСвого часу він був одним з ELITE FOUR у\\lPOKéMON LEAGUE.\\pЯ нікраплі не здивуюся, якщо FLANNERY\\nі сама згодом\\lстане крутим TRAINER.",
+        "FallarborTown_Text_ContestHallSign": "POKéMON CONTESTS\\nSUPER RANK REGISTRATION\\p“Засяй на POKéMON-сцені!”",
+        "FallarborTown_Text_TownSign": "FALLARBOR TOWN\\n“Сільська громада з маленькими садочками.”",
+        "FallarborTown_Text_MoveTutorSign": "MOVE TUTOR'S HOUSE\\n“Тут навчають POKéMON новим прийомам.”"
+    }
+}

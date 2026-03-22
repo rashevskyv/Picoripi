@@ -1,0 +1,9 @@
+{
+  "data/maps/SlateportCity_ContestLobby/text.inc": {
+    "SlateportCity_ContestLobby_Text_WantToRaiseUltimateMon": "I want to raise a POKéMON that's\\nthe ultimate in “great” for both\\lbattles and CONTESTS.\\pIt's vexing, trying to figure out\\nwhich moves I should make it learn.",
+    "SlateportCity_ContestLobby_Text_DoYourFriendsHaveBerries": "Do any of your friends have any\\nBERRIES?\\pYou can use that BERRY BLENDER and\\nmake {POKEBLOCK}S with your friends!\\pYou should try it - it's a lot of fun!",
+    "SlateportCity_ContestLobby_Text_YouCanHavePokeblockCase": "I have two, so you can have one!",
+    "SlateportCity_ContestLobby_Text_PutPokeblocksInThere": "Make {POKEBLOCK}S and put them in there.\\pWhen you make a {POKEBLOCK}, everyone\\nhas to put in a different BERRY.",
+    "SlateportCity_ContestLobby_Text_ContestWinnerPostersOnWall": "If you win a CONTEST, they put up a\\nposter of your POKéMON on the wall.\\pIt will have a portrait of your\\nPOKéMON and both your names."
+  }
+}

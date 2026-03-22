@@ -1,0 +1,9 @@
+{
+    "data_maps_MossdeepCity_House4_text.inc": {
+        "MossdeepCity_House4_Text_BrotherLikesToFindBases": "Мій молодший брат каже, що йому подобається\\nшукати чужі SECRET BASES.",
+        "MossdeepCity_House4_Text_BrotherLikesToVisitBasesAndBattle": "Мій молодший брат каже, що йому подобається\\nвідвідувати чужі SECRET BASES і проводити\\lбитви POKéMON.",
+        "MossdeepCity_House4_Text_YouMadeSecretBaseNearX": "Це ти зробив SECRET BASE у\\n{STR_VAR_1}?",
+        "MossdeepCity_House4_Text_MakeSecretBase": "Тобі варто десь облаштувати SECRET BASE.\\nЯ піду і знайду її!",
+        "MossdeepCity_House4_Text_Delcatty": "DELCATTY: Мя-а-ан?"
+    }
+}

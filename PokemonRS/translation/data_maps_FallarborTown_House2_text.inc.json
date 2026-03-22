@@ -1,0 +1,12 @@
+{
+    "data_maps_FallarborTown_House2_text.inc": {
+        "FallarborTown_MoveRelearnersHouse_Text_ImTheMoveTutor": "Я - MOVE TUTOR.\\pЯ знаю всі прийоми, які вивчають POKéMON -\\nкожен до єдиного - і можу\\lнавчити POKéMON цим прийомам.\\pЯ можу навчити прийому твого POKéMON,\\nякщо ти забажаєш.\\pЯ зроблю це за одну HEART SCALE.\\nЯ зараз саме їх збираю.",
+        "FallarborTown_MoveRelearnersHouse_Text_ThatsAHeartScaleWantMeToTeachMove": "О! Це вона! Справжнісінька\\nHEART SCALE!\\pДай вгадаю, ти хочеш, щоб\\nя навчив прийому?",
+        "FallarborTown_MoveRelearnersHouse_Text_TutorWhichMon": "Якого POKéMON потрібно навчити?",
+        "FallarborTown_MoveRelearnersHouse_Text_TeachWhichMove": "Якому прийому мені навчити?",
+        "FallarborTown_MoveRelearnersHouse_Text_DontHaveMoveToTeachPokemon": "Вибач...\\pСхоже, у мене немає жодного прийому, якого\\nя міг би навчити цього POKéMON.",
+        "FallarborTown_MoveRelearnersHouse_Text_HandedOverHeartScale": "{PLAYER} передав одну\\nHEART SCALE в обмін.",
+        "FallarborTown_MoveRelearnersHouse_Text_ComeBackWithHeartScale": "Якщо твоїм POKéMON знадобиться вивчити\\nприйом, повертайся з HEART SCALE.",
+        "FallarborTown_MoveRelearnersHouse_Text_CantTeachEgg": "Га? Немає жодного прийому,\\nякого я міг би навчити EGG."
+    }
+}

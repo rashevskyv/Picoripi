@@ -145,9 +145,6 @@ def convert_spaces_to_dots_for_display(text: str, enable_conversion: bool) -> st
     if not enable_conversion or text is None:
         return text if text is not None else ""
     
-    def replace_match(m):
-        return SPACE_DOT_SYMBOL * len(m.group(0))
-
     # (?m) enables multiline mode for ^ and $
     # 1. Matches spaces at the beginning of any line: ^ +
     # 2. Matches spaces at the end of any line:  +$(?=\r?\n|$)

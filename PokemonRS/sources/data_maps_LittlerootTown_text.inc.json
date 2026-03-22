@@ -1,0 +1,21 @@
+{
+  "data/maps/LittlerootTown/text.inc": {
+    "LittlerootTown_Text_OurNewHomeLetsGoInside": "MOM: {PLAYER}, we're here, honey!\\pIt must be tiring riding with our things\\nin the moving truck.\\pWell, this is LITTLEROOT TOWN.\\pHow do you like it?\\nThis is our new home!\\pIt has a quaint feel, but it seems to be\\nan easy place to live, don't you think?\\pAnd, you get your own room, {PLAYER}!\\nLet's go inside.",
+    "LittlerootTown_Text_WaitPlayer": "MOM: Wait, {PLAYER}!",
+    "LittlerootTown_Text_WearTheseRunningShoes": "MOM: {PLAYER}! {PLAYER}! Did you\\nintroduce yourself to PROF. BIRCH?\\pOh! What an adorable POKéMON!\\nYou got it from PROF. BIRCH. How nice!\\pYou're your father's child, all right.\\nYou look good together with POKéMON!\\pHere, honey! If you're going out on an\\nadventure, wear these RUNNING SHOES.\\pThey'll put a zip in your step!",
+    "LittlerootTown_Text_SwitchShoesWithRunningShoes": "{PLAYER} switched shoes with the\\nRUNNING SHOES.",
+    "LittlerootTown_Text_ExplainRunningShoes": "MOM: {PLAYER}, those shoes came with\\ninstructions.\\p“Press the B Button while wearing these\\nRUNNING SHOES to run extra-fast!\\p“Slip on these RUNNING SHOES and race\\nin the great outdoors!”",
+    "LittlerootTown_Text_ComeHomeIfAnythingHappens": "... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pTo think that you have your very own\\nPOKéMON now...\\lYour father will be overjoyed.\\p...But please be careful.\\nIf anything happens, you can come home.\\pGo on, go get them, honey!",
+    "LittlerootTown_Text_CanUsePCToStoreItems": "If you use a PC, you can store items\\nand POKéMON.\\pThe power of science is staggering!",
+    "LittlerootTown_Text_BirchSpendsDaysInLab": "PROF. BIRCH spends days in his LAB\\nstudying, then he'll suddenly go out in\\lthe wild to do more research...\\pWhen does PROF. BIRCH spend time\\nat home?",
+    "LittlerootTown_Text_IfYouGoInGrassPokemonWillJumpOut": "If you go in the tall grass at the sides\\nof this road, wild POKéMON will appear.",
+    "LittlerootTown_Text_DangerousIfYouDontHavePokemon": "It's not safe to go out there if you\\ndon't have any POKéMON with you.",
+    "LittlerootTown_Text_CanYouGoSeeWhatsHappening": "I can hear someone shouting down the\\nroad here.\\pWhat should I do? What should we do?\\nSomebody has to go help...",
+    "LittlerootTown_Text_YouSavedBirch": "Boy, am I glad you went and rescued\\nthe PROFESSOR.",
+    "LittlerootTown_Text_GoodLuckCatchingPokemon": "Are you going to catch POKéMON?\\nGood luck!",
+    "LittlerootTown_Text_TownSign": "LITTLEROOT TOWN\\n“A town that can't be shaded any hue.”",
+    "LittlerootTown_Text_ProfBirchsLab": "PROF. BIRCH'S POKéMON LAB",
+    "LittlerootTown_Text_PlayersHouse": "{PLAYER}'s HOUSE",
+    "LittlerootTown_Text_ProfBirchsHouse": "PROF. BIRCH'S HOUSE"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "data/text/sample_message.inc": {
+    "Text_SampleMessage1": "This is sample message 1.\\pWelcome to the world of\\nPOKéMON AGB!\\lWe hope you enjoy this!",
+    "Text_SampleMessage2": "This is sample message 2.\\pWelcome to the world of\\nPOKéMON AGB!\\lWe hope you enjoy this!",
+    "Text_SampleMessage3": "This is sample message 3.\\pWelcome to the world of\\nPOKéMON AGB!\\lWe hope you enjoy this!"
+  }
+}

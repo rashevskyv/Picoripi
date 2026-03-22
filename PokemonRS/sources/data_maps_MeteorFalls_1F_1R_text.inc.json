@@ -1,0 +1,15 @@
+{
+  "data/maps/MeteorFalls_1F_1R/text.inc": {
+    "MeteorFalls_1F_1R_Text_193237": "Hehehe!\\pWith this METEORITE, MT. CHIMNEY\\nwill...",
+    "MeteorFalls_1F_1R_Text_193268": "Heh?\\pI don't know who you are, but if you get\\nin the way of TEAM {EVIL_TEAM}, don't\\lexpect any mercy!",
+    "MeteorFalls_1F_1R_Text_1932C5": "Hold it right there, TEAM {EVIL_TEAM}!\\pWe, TEAM {GOOD_TEAM}, won't allow you to\\nget away with your misdeeds!",
+    "MeteorFalls_1F_1R_Text_193320": "Hehehe!\\nEven TEAM {GOOD_TEAM} joins us!\\pBut it's too much trouble to deal with\\nyou all...\\pHeh, it doesn't matter!\\pWe've got the METEORITE, so off to\\nMT. CHIMNEY we go!\\pHehehe! Be seeing you, you TEAM\\n{GOOD_TEAM} dingbats!",
+    "MeteorFalls_1F_1R_Text_1933EC": "And you are?\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pFine, so you are {PLAYER}{KUN}.\\pI am MAXIE. As the head of TEAM MAGMA,\\nI have dedicated myself to thwarting\\lthe dangerous plans of TEAM AQUA.\\pWhy? Because TEAM AQUA is a grave\\nthreat to us all.\\pThey have committed many destructive\\nacts in their bid to enlarge the sea.\\pWe, TEAM MAGMA, love dry land above\\nall! TEAM AQUA is our sworn enemy!",
+    "MeteorFalls_1F_1R_Text_193584": "Who might you be?\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pAh, so you are {PLAYER}{KUN}.\\pI am ARCHIE. As the head of TEAM AQUA,\\nI have dedicated myself to thwarting\\lthe dangerous plans of TEAM MAGMA.\\pWhy? Because TEAM MAGMA is a grave\\nthreat to us all.\\pThey have committed many destructive\\nacts in their bid to expand the land.\\pWe, TEAM AQUA, love the sea above\\nall! TEAM MAGMA is our sworn enemy!",
+    "MeteorFalls_1F_1R_Text_193720": "{GOOD_LEADER}, we should give chase to\\nTEAM {EVIL_TEAM}...",
+    "MeteorFalls_1F_1R_Text_193747": "{GOOD_LEADER}: Yes, yes, we must!\\nWe've got to hurry.\\pThere's no telling what TEAM {EVIL_TEAM}\\nwill do at MT. CHIMNEY!",
+    "MeteorFalls_1F_1R_Text_1937AA": "{GOOD_LEADER}: {PLAYER}{KUN}, you should keep\\nan eye out for TEAM {EVIL_TEAM}, too.\\pFarewell!",
+    "MeteorFalls_1F_1R_Text_1937EB": "I... I'm COZMO...\\nI'm a PROFESSOR...\\pI usually study METEORITES in\\nFALLARBOR TOWN...\\pThen some people from TEAM {EVIL_TEAM}\\nmade me guide them to METEOR FALLS...\\pThey promised me that they would\\nexcavate METEORITES for me...\\pBut, I...\\nTEAM {EVIL_TEAM} tricked me...\\pOh... That METEORITE...\\nIt will never be mine now...\\pBut that TEAM {EVIL_TEAM}...\\pWhat are they going to do with that\\nMETEORITE at MT. CHIMNEY?",
+    "MeteorFalls_1F_1R_Text_19396A": "PROF. COZMO: That TEAM {EVIL_TEAM}...\\pWhat are they going to do with that\\nMETEORITE at MT. CHIMNEY?"
+  }
+}

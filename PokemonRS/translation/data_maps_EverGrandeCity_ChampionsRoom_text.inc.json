@@ -1,0 +1,17 @@
+{
+    "data_maps_EverGrandeCity_ChampionsRoom_text.inc": {
+        "EverGrandeCity_ChampionsRoom_Text_IntroSpeech": "STEVEN: Радий бачити тебе, {PLAYER}{KUN}.\\pЯ знав, що рано чи пізно ти\\nприйдеш сюди.\\pТобі... Що відкрилося тобі під час твоїх\\nмандрів?\\pЯкі почуття викликали зустрічі з багатьма\\nіншими TRAINERS?\\pЯка іскра запалала в твоєму серці?\\nЯ прагну відчути все це в нашому бою!\\pДавай, до справи!",
+        "EverGrandeCity_ChampionsRoom_Text_Defeat": "Я, CHAMPION, зазнаю поразки...\\pЧесть і хвала тобі, {PLAYER}{KUN}!\\pТи - справді шляхетний POKéMON\\nTRAINER!",
+        "EverGrandeCity_ChampionsRoom_Text_PostBattleSpeech": "STEVEN: Прийми мої вітання!\\pТвоя відданість\\nPOKéMON...\\pТа POKéMON що відгукнулися на\\nтвій поклик усією душею...\\pВаша єдність створила\\nнездоланну силу.\\pІ завдяки цьому сьогодні перемога\\nу твоїх руках!\\pТи заслужено стаєш в регіоні\\nHOENN новим...",
+        "EverGrandeCity_ChampionsRoom_Text_MayAdvice": "MAY: {PLAYER}{KUN}!\\pМаю для тебе пораду, перш ніж ти\\nкинеш виклик CHAMPION...",
+        "EverGrandeCity_ChampionsRoom_Text_MayItsAlreadyOver": "MAY: Га? Що-що-що?!\\p{PLAYER}{KUN}...\\nНе кажи мені, що...\\lвсе вже позаду?",
+        "EverGrandeCity_ChampionsRoom_Text_BrendanAdvice": "BRENDAN: {PLAYER}!\\pСлухай, як щодо поради, перш ніж\\nти кинеш виклик CHAMPION?...",
+        "EverGrandeCity_ChampionsRoom_Text_BrendanYouveWon": "BRENDAN: {PLAYER}...\\pТи хочеш сказати...\\nЩо ти вже здолав CHAMPION?",
+        "EverGrandeCity_ChampionsRoom_Text_BirchArriveRatePokedex": "PROF. BIRCH: Бачиш?\\nЩо я тобі казав, {RIVAL}?\\pХіба я не казав, що тобі не варто\\nхвилюватися за {PLAYER}{KUN}?\\p... ... ... ... ... ... ... ...\\n{PLAYER}{KUN}, тобі нарешті це вдалося!\\pКоли я дізнався, що ти переміг власного\\nбатька у PETALBURG GYM,\\lя подумав, що, можливо, у тебе є шанс...\\pАле подумати тільки - ти справді\\nстав CHAMPION!\\pО, так!\\pА що там із твоїм POKéDEX?\\nАну, дай-но погляну",
+        "EverGrandeCity_ChampionsRoom_Text_BirchCongratulations": "PROF. BIRCH: У будь-якому разі,\\nмої вітання!\\pА тепер гордо крокуй до останньої зали!",
+        "EverGrandeCity_ChampionsRoom_Text_StevenComeWithMe": "STEVEN: {PLAYER}{KUN}...\\pНі, новий CHAMPION!\\pХодімо зі мною.",
+        "EverGrandeCity_ChampionsRoom_Text_StevenWaitOutside": "STEVEN: Мені прикро, але...\\pВідтепер і далі вхід дозволено лише тим TRAINERS,\\nякі стали CHAMPIONS.\\pВам доведеться зачекати зовні разом із\\nPROFESSOR.",
+        "EverGrandeCity_ChampionsRoom_Text_MayCongratulations": "MAY: О-ох...\\p... ... ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pТа я ж просто жартую! Все гаразд!\\nПравила є правила!\\p{PLAYER}{KUN}!\\nЩиро вітаю!",
+        "EverGrandeCity_ChampionsRoom_Text_BrendanCongratulations": "BRENDAN: ... ... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pНічого не вдієш, раз такі правила.\\p{PLAYER}, так тримати!\\nВітаю!"
+    }
+}

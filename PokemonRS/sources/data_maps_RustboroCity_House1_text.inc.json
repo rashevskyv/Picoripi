@@ -1,0 +1,10 @@
+{
+  "data/maps/RustboroCity_House1/text.inc": {
+    "RustboroCity_House1_Text_IllTradeIfYouWant": "Do you nickname your POKéMON?\\nI gave a cool name to mine.\\pBut when I call my POKéMON by that\\nname, people laugh at me...\\pIf it's okay with you, want to trade\\nyour {STR_VAR_1} for my {STR_VAR_2}?",
+    "RustboroCity_House1_Text_PleaseBeGoodToMyPokemon": "Eheheheh, ooh, this is so exciting!",
+    "RustboroCity_House1_Text_ThatIsNoMon": "But that's no {STR_VAR_1}.\\nTch, that's so disappointing...",
+    "RustboroCity_House1_Text_AwwItsAGoodMon": "Aww, it's a good POKéMON...",
+    "RustboroCity_House1_Text_WontYouGetCurious": "Don't you get curious about what other\\npeople named their POKéMON?",
+    "RustboroCity_House1_Text_AllSortsOfPlaces": "In all sorts of places, there are all\\nsorts of POKéMON and people.\\pI find that fascinating, so I go to all\\nsorts of places."
+  }
+}

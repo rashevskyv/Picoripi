@@ -1,0 +1,30 @@
+{
+  "data/maps/LittlerootTown_ProfessorBirchsLab/text.inc": {
+    "UnknownString_8173A9D": "POKéMON SPECIES & HABITATS...\\nHUMAN & POKéMON COEXISTENCE...\\lPOKéMONOLOGY FOR BEGINNERS...\\pIt's brimming with books written by\\nPROF. BIRCH.",
+    "LittlerootTown_ProfessorBirchsLab_Text_BirchAwayOnFieldwork": "Hunh? PROF. BIRCH?\\pThe PROF's away on fieldwork.\\nErgo, he isn't here.\\pOh, let me explain what fieldwork is.\\pIt is to study things in the natural\\nenvironment, like fields and mountains,\\linstead of a laboratory.\\pThe PROF isn't one for doing desk work.\\nHe's the type of person who would\\lrather go outside and experience\\lthings than read about them here.",
+    "LittlerootTown_ProfessorBirchsLab_Text_BirchIsntOneForDeskWork": "The PROF isn't one for doing desk work.\\nHe's the type of person who would\\lrather go outside and experience\\lthings than read about them here.",
+    "LittlerootTown_ProfessorBirchsLab_Text_BirchEnjoysRivalsHelpToo": "PROF. BIRCH is studying the habitats\\nand distribution of POKéMON.\\pThe PROF enjoys {RIVAL}'s help, too.\\nThere's a lot of love there.",
+    "LittlerootTown_ProfessorBirchsLab_Text_LikeYouToHavePokemon": "PROF. BIRCH: So, {PLAYER}{KUN}.\\pI've heard so much about you from\\nyour father.\\pI've heard that you don't have your\\nown POKéMON yet.\\pBut the way you battled earlier,\\nyou pulled it off with aplomb!\\pI guess you have your father's blood\\nin your veins after all!\\pOh, yes. As thanks for rescuing me,\\nI'd like you to have the POKéMON you\\lused earlier.\\p{PLAYER} received the {STR_VAR_1}!",
+    "LittlerootTown_ProfessorBirchsLab_Text_WhyNotGiveNicknameToMon": "PROF. BIRCH: While you're at it, why not\\ngive a nickname to that {STR_VAR_1}?",
+    "LittlerootTown_ProfessorBirchsLab_Text_MightBeGoodIdeaToGoSeeRival": "PROF. BIRCH: If you work at POKéMON\\nand gain experience, I think you'll make\\la darn good TRAINER.\\pMy kid, {RIVAL}, is out on ROUTE 103\\nstudying POKéMON.\\pIt might not be a bad idea for you to\\ngo see {RIVAL}. What do you think?",
+    "LittlerootTown_ProfessorBirchsLab_Text_GetRivalToTeachYou": "PROF. BIRCH: Great!\\n{RIVAL} should be happy, too.\\pGet {RIVAL} to teach you what it\\nmeans to be a TRAINER.",
+    "LittlerootTown_ProfessorBirchsLab_Text_DontBeThatWay": "PROF. BIRCH: Oh, don't be that way.\\nYou should go meet my kid.",
+    "LittlerootTown_ProfessorBirchsLab_Text_BirchRivalRoute103": "PROF. BIRCH: {RIVAL} should be on\\nROUTE 103 somewhere.\\pIf you or your POKéMON get tired,\\nget some rest at home.",
+    "LittlerootTown_ProfessorBirchsLab_Text_HeardYouBeatRivalTakePokedex": "PROF. BIRCH: Oh, hi, {PLAYER}{KUN}!\\pI heard you beat {RIVAL} on\\nyour first try. That's excellent!\\p{RIVAL}'s been helping with my research\\nfor a long time.\\p{RIVAL} has an extensive history as\\na TRAINER already.\\pHere, {PLAYER}{KUN}, I ordered this for my\\nresearch, but I think you should have\\lthis POKéDEX.",
+    "LittlerootTown_ProfessorBirchsLab_Text_ReceivedPokedex": "{PLAYER} received the POKéDEX!",
+    "LittlerootTown_ProfessorBirchsLab_Text_ExplainPokedex": "PROF. BIRCH: The POKéDEX is a high-tech\\ntool that automatically makes a record\\lof any POKéMON you meet or catch.\\pMy kid, {RIVAL}, goes everywhere\\nwith it.\\pWhenever my kid catches a rare POKéMON\\nand records its data in the POKéDEX,\\lwhy, {RIVAL} looks for me while I'm out\\ldoing fieldwork, and shows me.",
+    "LittlerootTown_ProfessorBirchsLab_Text_CountlessPokemonAwait": "PROF. BIRCH: Countless POKéMON await\\nyou!\\pArgh, I'm getting the itch to get out\\nand do fieldwork again!",
+    "LittlerootTown_ProfessorBirchsLab_Text_MayGotPokedexTooTakeThese": "MAY: Oh, wow, {PLAYER}{KUN}!\\nYou got a POKéDEX, too!\\pThat's great! Just like me!\\nI've got something for you, too!",
+    "LittlerootTown_ProfessorBirchsLab_Text_CatchCutePokemonWithPokeBalls": "MAY: It's fun if you can get a lot of\\nPOKéMON!\\pI'm going to look all over the place\\nbecause I want different POKéMON.\\pIf I find any cute POKéMON, I'll catch\\nthem with POKé BALLS!",
+    "LittlerootTown_ProfessorBirchsLab_Text_OhYourBagsFull": "Oh? Your BAG's full.",
+    "LittlerootTown_ProfessorBirchsLab_Text_MayWhereShouldIGoNext": "MAY: I wonder where I should go look\\nfor POKéMON next?",
+    "LittlerootTown_ProfessorBirchsLab_Text_BrendanGotPokedexTooTakeThese": "BRENDAN: Huh...\\nSo you got a POKéDEX, too.\\pWell then, here.\\nI'll give you this.",
+    "LittlerootTown_ProfessorBirchsLab_Text_CatchCoolPokemonWithPokeBalls": "BRENDAN: You know it's more fun to\\nhave a whole bunch of POKéMON.\\pI'm going to explore all over the place\\nto find different POKéMON.\\pIf I find any cool POKéMON, you bet\\nI'll try to get them with POKé BALLS.",
+    "LittlerootTown_ProfessorBirchsLab_Text_HeyYourBagsFull": "Hey, your BAG's full.",
+    "LittlerootTown_ProfessorBirchsLab_Text_BrendanWhereShouldIGoNext": "BRENDAN: Where should I look for\\nPOKéMON next...",
+    "LittlerootTown_ProfessorBirchsLab_Text_SeriousLookingMachine": "It's a serious-looking machine.\\nThe PROF must use this for research.",
+    "LittlerootTown_ProfessorBirchsLab_Text_PCUsedForResearch": "It's a PC used for research.\\nBetter not mess around with it.",
+    "LittlerootTown_ProfessorBirchsLab_Text_CrammedWithBooksOnPokemon": "It's crammed with books on POKéMON.",
+    "LittlerootTown_ProfessorBirchsLab_Text_BookTooHardToRead": "It's a book that's too hard to read."
+  }
+}

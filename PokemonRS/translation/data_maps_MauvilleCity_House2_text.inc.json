@@ -1,0 +1,9 @@
+{
+    "data_maps_MauvilleCity_House2_text.inc": {
+        "MauvilleCity_House2_Text_BuyHarborMailAtSlateport": "Мав би я BIKE, то без проблем поїхав би\\nу SLATEPORT щось прикупити..\\pЯ зміг би купити HARBOR MAIL у\\nPOKéMON MART у SLATEPORT...",
+        "MauvilleCity_House2_Text_TradeHarborMailForCoinCase": "О! У тебе є HARBOR MAIL?\\nМоже, махнемося на COIN CASE?",
+        "MauvilleCity_House2_Text_IllTradeYouCoinCase": "О, я такий щасливий!\\nГаразд, я виміняю тобі COIN CASE!",
+        "MauvilleCity_House2_Text_UseCoinCaseAtGameCorner": "Цей COIN CASE тобі точно знадобиться\\nу GAME CORNER.",
+        "MauvilleCity_House2_Text_ThatsDisappointing": "Ех, як шкода.\\pCOIN CASE потрібен для\\nGAME CORNER."
+    }
+}

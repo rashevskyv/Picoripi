@@ -1,0 +1,13 @@
+{
+    "data_text_eon_ticket.inc": {
+        "UnknownString_81C5033": "DAD: {PLAYER}! Good to see you!\\nThere's a letter here for you, {PLAYER}.",
+        "UnknownString_81C5070": "DAD: I guess this is a PASS for a ship.\\nBut I've never seen this ship before.\\pYou should find out what this is about\\nin LILYCOVE.",
+        "EventTicket_Text_ThatPass": "The ferry to SLATEPORT is...\\pOh?\\nThat PASS...",
+        "EventTicket_Text_ShowEonTicket": "Aye, mate, are you the one who brought\\nthat mighty odd PASS?\\pI'll tell you, you're trying to reach a\\ntiny spit of an island far in the south.\\pThere's no telling what we'll encounter\\nonce we reach there, aye.\\lThat shivers my timbers!\\pAll aboard!",
+        "SouthernIsland_Exterior_Text_1C5215": "Aye, mate, there's nothing here to\\nsee or do on this forgettable island.\\pWhat say we sail back to LILYCOVE?",
+        "SouthernIsland_Exterior_Text_1C5281": "Aye, right, then!\\nSail home we will!",
+        "SouthernIsland_Exterior_Text_1C52A6": "Aye, right, as you like, then.",
+        "SouthernIsland_Interior_Text_1C52C5": "“All dreams are but another reality.\\nNever forget...”",
+        "SouthernIsland_Exterior_Text_1C52FB": "“Those whose memories fade seek to\\ncarve them in their hearts...”"
+    }
+}

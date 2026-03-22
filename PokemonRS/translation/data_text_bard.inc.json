@@ -1,0 +1,13 @@
+{
+    "data_text_bard.inc": {
+        "gTextBard_BardTesting": "BARD testing!",
+        "gTextBard_HiImTheBard": "Hi, I'm the BARD.\\nWould you like to hear my song?",
+        "gTextBard_OhYouveLeftMe": "Oh...\\nYou've left me feeling the blues...",
+        "gTextBard_OhWhatAMovingSong": "Oh, what a moving song...\\nI wish I could play it for others...",
+        "gTextBard_SoHowDoYouLikeMySong": "So?\\nHow do you like my song?\\pBut I'm none too happy about the\\nlyrics.\\pHow would you like to write some new\\nlyrics for me?",
+        "gTextBard_OhYouveLeftMe2": "Oh...\\nYou've left me feeling the blues...",
+        "gTextBard_ThankYouKindly": "Thank you kindly!\\nLet me sing it for you.",
+        "gTextBard_WasThatHowYouWanted": "Was that how you wanted your song\\nto go?",
+        "gTextBard_OkayThatsIt": "Okay! That's it, then.\\nI'll sing this song for a while."
+    }
+}

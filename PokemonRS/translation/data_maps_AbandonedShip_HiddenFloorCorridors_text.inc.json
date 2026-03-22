@@ -1,0 +1,9 @@
+{
+    "data_maps_AbandonedShip_HiddenFloorCorridors_text.inc": {
+        "AbandonedShip_HiddenFloorCorridors_Text_Rm1DoorIsLocked": "Двері замкнені.\\p“RM. 1” написано на дверях.",
+        "AbandonedShip_HiddenFloorCorridors_Text_Rm2DoorIsLocked": "Двері замкнені.\\p“RM. 2” написано на дверях.",
+        "AbandonedShip_HiddenFloorCorridors_Text_Rm4DoorIsLocked": "Двері замкнені.\\p“RM. 4” написано на дверях.",
+        "AbandonedShip_HiddenFloorCorridors_Text_Rm6DoorIsLocked": "Двері замкнені.\\p“RM. 6” написано на дверях.",
+        "AbandonedShip_HiddenFloorCorridors_Text_InsertedKey": "{PLAYER} вставив та повернув\\nKEY.\\pВставлений KEY застряг намертво,\\nале двері відчинилися."
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "data_maps_LittlerootTown_BrendansHouse_2F_text.inc": {
+        "PlayersHouse_2F_Text_ClockIsStopped": "Годинник зупинився...\\pТреба його ввімкнути та налаштувати!",
+        "PlayersHouse_2F_Text_HowDoYouLikeYourRoom": "MOM: {PLAYER}, як тобі твоя нова\\nкімната\\pЧудово! Усе так охайно розкладено!\\pВнизу теж уже все закінчили\\nрозвантажувати.\\pПокемони-вантажники такі зручні!\\pОй, обов'язково перевір, чи все на місці\\nу тебе на столі.",
+        "UnknownString_8172F31": "Книжкова полиця вщент заставлена\\nкнигами про POKéMON.\\pЦе справжня гордість {PLAYER}.",
+        "UnknownString_8172F85": "{PLAYER} увімкнув PC.",
+        "PlayersHouse_2F_Text_Notebook": "{PLAYER} розгорнув записник.\\pПРАВИЛО ПРИГОД NO.1\\nВідкривай МЕНЮ кнопкою START..\\pПРАВИЛО ПРИГОД NO.2\\nЗберігай прогрес за допомогою SAVE.\\pРешта сторінок порожні...",
+        "Common_Text_LookCloserAtMap": "{PLAYER} уважно придивився до мапи\\nрегіону HOENN.",
+        "PlayersHouse_2F_Text_ItsAGameCube": "Це Nintendo GameCube.\\pGame Boy Advance приєднаний\\nдо нього як контролер."
+    }
+}

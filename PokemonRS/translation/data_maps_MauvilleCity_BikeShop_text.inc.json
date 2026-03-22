@@ -1,0 +1,26 @@
+{
+    "data_maps_MauvilleCity_BikeShop_text.inc": {
+        "MauvilleCity_BikeShop_Text_RydelGreeting": "Well, well, what have we here?\\nA most energetic customer!\\pMe? You may call me RYDEL.\\nI'm the owner of this cycle shop.",
+        "MauvilleCity_BikeShop_Text_DidYouComeFromFarAway": "RYDEL: Your RUNNING SHOES...\\nThey're awfully filthy.\\pDid you come from far away?",
+        "MauvilleCity_BikeShop_Text_GuessYouDontNeedBike": "RYDEL: Is that right?\\pThen, I guess you have no need for\\nany of my BIKES.",
+        "MauvilleCity_BikeShop_Text_ExplainBikesChooseWhichOne": "RYDEL: Hm, hm... ... ... ... ...\\n... ... ... ... ... ... ... ...\\pYou're saying that you came all this\\nway from LITTLEROOT?\\pMy goodness!\\nThat's ridiculously far!\\pIf you had one of my BIKES, you could\\ngo anywhere easily while feeling the\\lgentle caress of the wind!\\pI'll tell you what!\\nI'll give you a BIKE!\\pOh, wait a second!\\pI forgot to tell you that there are\\ntwo kinds of BIKES!\\pThey are the MACH BIKE and the\\nACRO BIKE!\\pMACH BIKE is for cyclists who want\\nto feel the wind with their bodies!\\pAnd an ACRO BIKE is for those who\\nprefer technical rides!\\pI'm a real sweetheart, so you can\\nhave whichever one you like!\\pWhich one will you choose?",
+        "MauvilleCity_BikeShop_Text_ChoseMachBike": "{PLAYER} chose the MACH BIKE.",
+        "MauvilleCity_BikeShop_Text_ChoseAcroBike": "{PLAYER} chose the ACRO BIKE.",
+        "MauvilleCity_BikeShop_Text_ComeBackToSwitchBikes": "RYDEL: If you get the urge to switch\\nBIKES, just come see me!",
+        "MauvilleCity_BikeShop_Text_WantToSwitchBikes": "RYDEL: Oh? Were you thinking about\\nswitching BIKES?",
+        "MauvilleCity_BikeShop_Text_IllSwitchBikes": "RYDEL: Okay, no problem!\\nI'll switch BIKES for you!",
+        "MauvilleCity_BikeShop_Text_ExchangedMachForAcro": "{PLAYER} got the MACH BIKE exchanged\\nfor an ACRO BIKE.",
+        "MauvilleCity_BikeShop_Text_ExchangedAcroForMach": "{PLAYER} got the ACRO BIKE exchanged\\nfor a MACH BIKE.",
+        "MauvilleCity_BikeShop_Text_HappyYouLikeIt": "RYDEL: Добре, добре!\\nЯ дуже радий, що він тобі припав до душі!",
+        "MauvilleCity_BikeShop_Text_OhYourBikeIsInPC": "О? Що сталося з тим BIKE, який\\nя тобі дав?\\pЗрозуміло, ти залишив його у своєму PC.\\pЩо ж, дістань його зі сховища PC,\\nі я з радістю його обміняю!\\pНехай вітер завжди буде попутним\\nу твоїх мандрах!",
+        "MauvilleCity_BikeShop_Text_HandbooksAreInBack": "Я дізнаюся більше про BIKES\\nпоки тут працюю.\\pЯкщо тобі потрібна порада, як керувати\\nсвоїм ВЕЛОСИПЕДОМ,\\lтам позаду є пара посібників.",
+        "MauvilleCity_BikeShop_Text_MachHandbookWhichPage": "Це посібник про MACH BIKE.\\pЯку сторінку ти хочеш прочитати?",
+        "MauvilleCity_BikeShop_Text_HowToRideMachBike": "BIKE рухається в тому напрямку, куди\\nнатиснуто + Control Pad.\\pВін почне набирати швидкість, щойно рушить з місця.\\pЩоб зупинитися, відпустіть + Control Pad.\\nBIKE поступово сповільниться до повної зупинки.\\pБажаєте прочитати іншу сторінку?",
+        "MauvilleCity_BikeShop_Text_HowToTurnMachBike": "A MACH BIKE дуже швидкий, але він\\nне може зупинитися миттєво.\\pВходити в повороти стає\\nтрохи складно.\\pВідпустіть + Control Pad трохи заздалегідь\\nперед поворотом, щоб сповільнитися.\\pБажаєте прочитати іншу сторінку?",
+        "MauvilleCity_BikeShop_Text_SandySlopes": "У всьому регіоні HOENN зустрічаються\\nневеликі піщані схили.\\pЧерез пухкий та розсипчастий пісок на них неможливо\\nвийти звичайним способом.\\pАле якщо у вас є MACH BIKE, ви\\nзможете швидко виїхати на такий схил.\\pБажаєте прочитати іншу сторінку?",
+        "MauvilleCity_BikeShop_Text_AcroHandbookWhichPage": "Це посібник про ACRO BIKE.\\pЯку сторінку ви хочете прочитати?",
+        "MauvilleCity_BikeShop_Text_Wheelies": "Натисніть кнопку B під час їзди, і\\nпереднє колесо підніметься.\\pВи можете швидко пересуватися з піднятим переднім\\nколесом за допомогою + Control Pad.\\pЦя техніка називається “wheelie”.\\pБажаєте прочитати іншу сторінку?",
+        "MauvilleCity_BikeShop_Text_BunnyHops": "Утримуючи кнопку B, ви змусите свій\\nBIKE стрибати на місці.\\pЦя техніка називається “bunny hop”.\\pВи також можете їхати, продовжуючи підстрибувати.\\pБажаєте прочитати іншу сторінку?",
+        "MauvilleCity_BikeShop_Text_Jumps": "Натисніть кнопку B та + Control\\nPad одночасно, щоб стрибнути.\\pНатисніть + Control Pad убік,\\nщоб стрибнути вбік.\\pНатисніть кнопку напрямку назад, щоб ВЕЛОСИПЕД\\nрозвернувся під час стрибка.\\pБажаєте прочитати іншу сторінку?"
+    }
+}

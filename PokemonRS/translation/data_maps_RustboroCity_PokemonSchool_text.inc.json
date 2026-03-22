@@ -1,0 +1,19 @@
+{
+    "data_maps_RustboroCity_PokemonSchool_text.inc": {
+        "RustboroCity_PokemonSchool_Text_BlackboardListsStatusChanges": "На дошці перелічено зміни статусу,\\nякі можуть вплинути на POKéMON у бою.",
+        "RustboroCity_PokemonSchool_Text_ReadWhichTopic": "Обери тему, про яку хочеш дізнатися більше.",
+        "RustboroCity_PokemonSchool_Text_ExplainPoison": "Якщо POKéMON отруєний, він\\nпоступово втрачатиме HP.\\pЕфекти отруєння зберігаються і\\nпісля завершення бою.\\pHP отруєного POKéMON зменшуватиметься\\nнавіть під час подорожі.\\pТож не зволікай і скористайся ANTIDOTE.",
+        "RustboroCity_PokemonSchool_Text_ExplainParalysis": "Якщо POKéMON паралізований, його\\nSPEED знижується.\\pТакож він може втратити здатність\\nрухатися під час бою.\\pПараліч не минає після завершення битви.\\nВилікуйте його за допомогою PARLYZ HEAL.",
+        "RustboroCity_PokemonSchool_Text_ExplainSleep": "Якщо POKéMON засинає, він\\nне зможе атакувати.\\pPOKéMON може прокинутися сам по собі, але якщо\\nбій закінчиться, поки він спить,\\lвін так і залишиться сплячим.\\pРозбудіть його за допомогою AWAKENING.",
+        "RustboroCity_PokemonSchool_Text_ExplainBurn": "Опік знижує силу ATTACK і\\nпоступово зменшує HP жертви.\\pОпік залишається і після завершення бою.\\nВилікуйте опік за допомогою BURN HEAL.",
+        "RustboroCity_PokemonSchool_Text_ExplainFreeze": "Якщо POKéMON заморожений, він\\nстає абсолютно безпорадним.\\pВін залишатиметься замороженим і після завершення бою.\\nРозморозьте його за допомогою ICE HEAL.",
+        "RustboroCity_PokemonSchool_Text_StudentsWhoDontStudyGetQuickClaw": "Учні, які не вчаться, відчують на\\nсобі мій QUICK CLAW.\\pТе, наскільки ти старанний учень,\\nстане зрозуміло з того,\\lяк ти використаєш цей предмет.",
+        "RustboroCity_PokemonSchool_Text_ExplainQuickClaw": "POKéMON, який тримає QUICK CLAW, час від\\nчасу прискорюватиметься і зможе\\lходити раніше за суперника.\\pЄ багато інших предметів, призначених для\\nтого, щоб їх тримали POKéMON.\\pТільки вони одні дадуть тобі чимало\\nтем для вивчення!",
+        "RustboroCity_PokemonSchool_Text_TradingRightNow": "Я зараз обмінююся POKéMON зі\\nсвоїм другом.",
+        "RustboroCity_PokemonSchool_Text_AlwaysWantedSeedot": "Я завжди хотів SEEDOT, і ось\\nнарешті я його отримую!",
+        "RustboroCity_PokemonSchool_Text_PokemontCantUseManMadeItems": "POKéMON можуть тримати предмети, проте вони не\\nзнають, як користуватися речами, створеними людьми,\\lтакими як POTION чи ANTIDOTE.",
+        "RustboroCity_PokemonSchool_Text_ConfusedPokemonAttacksItself": "Ти знаєш, як деякі прийоми POKéMON\\nможуть спантеличити POKéMON?\\pСпантеличений POKéMON іноді може\\nненавмисно атакувати сам себе.\\pАле щойно він вийде з бою, він\\nзнову стане нормальним.",
+        "RustboroCity_PokemonSchool_Text_PokemonHealItselfWithBerry": "POKéMON, який тримає BERRY,\\nзцілюватиметься сам...\\pЄ багато видів предметів, які POKéMON\\nможуть тримати при собі...\\pОй-ой, як же важко встигати все\\nце записувати...",
+        "RustboroCity_PokemonSchool_Text_StudentsNotes": "Це записник цього учня...\\pPOKéMON слід ловити за допомогою\\nPOKé BALLS...\\pДо шести POKéMON можуть супроводжувати\\nTRAINER...\\pTRAINER - це той, хто ловить POKéMON,\\nвиховує їх\\lі бере участь у битвах.\\pМісія TRAINER - перемагати сильних тренерів,\\nякі чекають на претендентів\\lу POKéMON GYMS."
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "data_maps_Route104_MrBrineysHouse_text.inc": {
+        "Route104_MrBrineysHouse_Text_191A82": "MR. BRINEY: Стій, малечо!\\nПочекай, PEEKO!",
+        "Route104_MrBrineysHouse_Text_191AAD": "Гм? Та ти ж {PLAYER}{KUN}!\\nТи врятував мою любу PEEKO!\\lМи твої боржники!\\pЩо ти кажеш?\\nХочеш відправитися в плавання зі мною?\\pГм-гм...\\pЗначить, маєш LETTER bound до DEWFORD\\nта пакунок до SLATEPORT?\\pНу й насичене ж у тебе життя!\\pАле, звісно, твоє прохання для мене\\nзовсім не проблема.\\pТи звернувся за адресою!\\nВирушаємо до DEWFORD.",
+        "Route104_MrBrineysHouse_Text_191BFD": "MR. BRINEY: DEWFORD, чекай на нас!\\pПідняти якорі!\\nPEEKO, люба моя, ми відчалюємо!",
+        "Route104_MrBrineysHouse_Text_191C57": "MR. BRINEY: Он воно що?\\nДоставки почекають?\\pЩо ж, просто скажи мені, щойно захочеш\\nвідчалити!",
+        "Route104_MrBrineysHouse_Text_191CC3": "MR. BRINEY: Ахой!\\nЯ точно знаю, що ти хочеш сказати!\\pТобі треба доставити LETTER до DEWFORD,\\nі пакунок до SLATEPORT.\\pТе, що тобі від мене потрібно - не проблема.\\nЯ саме той, хто впорається з цим завданням!\\pСпершу ми відпливаємо до DEWFORD.",
+        "Route104_MrBrineysHouse_Text_191DA6": "MR. BRINEY: Ахой!\\nЯ точно знаю, що ти хочеш сказати!\\pТобі треба доставити пакунок\\nCAPT. STERN в SLATEPORT.\\pТе, що тобі від мене потрібно - не проблема.\\nЯ саме той, хто впорається з цим завданням!\\pСпершу ми відпливаємо до DEWFORD.",
+        "Route104_MrBrineysHouse_Text_191E80": "MR. BRINEY: Ахой!\\nДля тебе я підніму вітрила хоч посеред ночі!\\pТож, мій друже, куди тримаємо курс?",
+        "Route104_MrBrineysHouse_Text_191EDB": "MR. BRINEY: Ось як?\\nЩо ж, PEEKO завдячує тобі своїм життям.\\pПросто скажи мені, щойно захочеш відчалити!",
+        "UnknownString_8191F4F": "MR. BRINEY: Ахой!\\nМи причалили до берегів PETALBURG!\\pПросто скажи мені, щойно захочеш знову вийти в море!",
+        "Route104_MrBrineysHouse_Text_191FB9": "PEEKO: Пі-і-і піхьоро-о!"
+    }
+}

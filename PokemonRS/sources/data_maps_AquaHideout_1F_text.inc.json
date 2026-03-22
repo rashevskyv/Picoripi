@@ -1,0 +1,11 @@
+{
+  "data/maps/AquaHideout_1F/text.inc": {
+    "AquaHideout_1F_Text_196AFD": "What? What? What do you want with \\nTEAM {EVIL_TEAM}?\\pOur BOSS isn't here! He's gone off to\\nsnatch something important!\\p... ...\\nWhere did he go?\\pWahaha! Do you really think I'd tell\\nyou something that crucial?",
+    "AquaHideout_1F_Text_196BC5": "What? What? What do you want with \\nTEAM {EVIL_TEAM}?\\pOur BOSS isn't here!\\nHe's gone off to jack a submarine!\\p... ...\\nWhere did he go?\\pWahaha! Do you really think I'd tell\\nyou something that crucial?",
+    "AquaHideout_1F_Text_196C83": "What? What? What do you want with \\nTEAM {EVIL_TEAM}?\\pOur BOSS isn't here! He's on his way to\\nMT. PYRE on ROUTE 122!\\p... ...\\nWhy did he go?\\pWahaha! Do you really think I'd tell\\nyou something that crucial?",
+    "AquaHideout_1F_Text_196D46": "What? What? What do you want with\\nTEAM {EVIL_TEAM}?\\pOur BOSS isn't here!\\nHe's on his way to SLATEPORT CITY!\\p... ...\\nWhy did he go?\\pWahaha! Do you really think I'd tell\\nyou something that crucial?",
+    "AquaHideout_1F_Text_196E01": "Ayiyiyi!\\nSuspicious character spotted!",
+    "AquaHideout_1F_Text_196E28": "Grrrrr...\\nI lost it!",
+    "AquaHideout_1F_Text_196E3D": "I took the loss for the TEAM, but\\nI did my job..."
+  }
+}

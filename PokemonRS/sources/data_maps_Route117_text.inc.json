@@ -1,0 +1,10 @@
+{
+  "data/maps/Route117/text.inc": {
+    "Route117_Text_170C26": "I left my POKéMON at the DAY CARE.\\pWhen I got it back, it had a new move\\nthat I didn't teach it.\\lI was really, really surprised.",
+    "Route117_Text_170CA7": "What do you think?\\nAren't these flowers pretty?\\pI planted them all!",
+    "Route117_Text_170CEB": "The air is tasty here!",
+    "Route117_Text_170D02": "ROUTE 117\\n{0x7B} VERDANTURF TOWN",
+    "Route117_Text_170D1E": "ROUTE 117\\n{0x7C} MAUVILLE CITY",
+    "Route117_Text_170D38": "POKéMON DAY CARE\\n“Let us raise your POKéMON.”"
+  }
+}

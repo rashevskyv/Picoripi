@@ -1,0 +1,13 @@
+{
+  "data/text/birch_speech.inc": {
+    "gBirchSpeech_Welcome": "Hi! Sorry to keep you waiting!\\pWelcome to the world of POKéMON!\\pMy name is BIRCH.\\pBut everyone calls me the POKéMON\\nPROFESSOR.\\p",
+    "gBirchSpeech_ThisIsPokemon": "This is what we call a “POKéMON.”",
+    "gBirchSpeech_WorldInhabitedByPokemon": "This world is widely inhabited by\\ncreatures known as POKéMON.\\pWe humans live alongside POKéMON,\\nat times as friendly playmates, and\\lat times as cooperative workmates.\\pAnd sometimes, we band together\\nand battle others like us.\\pBut despite our closeness, we don't\\nknow everything about POKéMON.\\pIn fact, there are many, many\\nsecrets surrounding POKéMON.\\pTo unravel POKéMON mysteries,\\nI've been undertaking research.\\lThat's what I do.\\p",
+    "gBirchSpeech_AndYouAre": "And you are?",
+    "gBirchSpeech_AreYouBoyOrGirl": "Are you a boy?\\nOr are you a girl?",
+    "gBirchSpeech_WhatsYourName": "All right.\\nWhat's your name?",
+    "gBirchSpeech_SoItsPlayer": "So it's {PLAYER}{KUN}?",
+    "gBirchSpeech_AhOkayYouArePlayer": "Ah, okay!\\pYou're {PLAYER}{KUN} who's moving to my\\nhometown of LITTLEROOT.\\lI get it now!",
+    "gBirchSpeech_AreYouReady": "All right, are you ready?\\pYour very own adventure is about\\nto unfold.\\pTake courage, and leap into the\\nworld of POKéMON where dreams,\\ladventure, and friendships await!\\pWell, I'll be expecting you later.\\nCome see me in my POKéMON LAB.\\p"
+  }
+}

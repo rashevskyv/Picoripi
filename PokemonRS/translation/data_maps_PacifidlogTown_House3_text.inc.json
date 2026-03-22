@@ -1,0 +1,10 @@
+{
+    "data_maps_PacifidlogTown_House3_text.inc": {
+        "PacifidlogTown_House3_Text_WillingToTradeIt": "Привіт, TRAINER. Не зробиш мені послугу\\nне обміняєшся зі мною POKéMON?\\pЖивучи в PACIFIDLOG, я можу спіймати\\nлише певні види POKéMON.\\p{STR_VAR_1}? У тебе є такий?\\nЯ віддам за нього свого {STR_VAR_2}.",
+        "PacifidlogTown_House3_Text_MonIsSoFluffy": "Ого!\\nЦей {STR_VAR_1} такий пухнастий!",
+        "PacifidlogTown_House3_Text_ThatsNoMon": "Це не {STR_VAR_1}.",
+        "PacifidlogTown_House3_Text_ImDisappointed": "Я трохи розчарований...",
+        "PacifidlogTown_House3_Text_NowWereFriends": "Раз ми обмінялися, то ми з тобою\\nтепер друзі, чи не так?",
+        "PacifidlogTown_House3_Text_IsThatAPokedex": "Це що, POKéDEX?\\pТобі вже вдалося зустріти багато\\nрізних POKéMON?\\pЕх, хотів би і я бути таким, як ти."
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "data_maps_MossdeepCity_SpaceCenter_1F_text.inc": {
+        "MossdeepCity_SpaceCenter_1F_Text_RocketLaunchImminent": "Старт ракети відбудеться з хвилини на хвилину!",
+        "MossdeepCity_SpaceCenter_1F_Text_SuccessfulLaunchNumber": "Ракета успішно стартувала!\\nЦе вже успішний запуск No.{STR_VAR_1}!",
+        "MossdeepCity_SpaceCenter_1F_Text_RocketLaunchDemandsPerfection": "Запуск ракети вимагає досконалості.\\nНе допускається навіть 1% похибки.\\pНавіть якщо все добре на 99%, уся справа\\nмарна, якщо 1% виявиться невдалим.\\pНезважаючи на це, ми не припиняємо спроб.\\nЧому? Це мрія, яка ніколи не закінчується.",
+        "MossdeepCity_SpaceCenter_1F_Text_FoundThisYouCanHaveIt": "Я прогулювався берегом,\\nколи знайшов це.\\pМені воно ні до чого, тож можеш\\nзабрати собі.",
+        "MossdeepCity_SpaceCenter_1F_Text_HoennFamousForMeteorShowers": "Регіон HOENN уже багато років\\nвідомий своїми зорепадами.",
+        "MossdeepCity_SpaceCenter_1F_Text_DidPokemonComeFromSpace": "Дехто каже, ніби POKéMON з'явилися\\nз космосу. Цікаво, чи це правда?",
+        "MossdeepCity_SpaceCenter_1F_Text_RocketsBoggleMyMind": "Гігантська брила металу прошиває\\nнебо і прямує прямо в космос...\\pУ мене просто мозок плавиться від такого!"
+    }
+}

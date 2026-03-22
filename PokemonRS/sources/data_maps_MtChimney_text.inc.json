@@ -1,0 +1,29 @@
+{
+  "data/maps/MtChimney/text.inc": {
+    "MtChimney_Text_195760": "LAVA COOKIES are MT. CHIMNEY's local\\nspecialty.\\pTry one. It's just ¥200.",
+    "MtChimney_Text_1957A9": "Thank you, dear!",
+    "MtChimney_Text_1957BA": "Oh, dear. You can't buy a thing if\\nyou've not got the money.",
+    "MtChimney_Text_1957F7": "Oh, fine then.",
+    "MtChimney_Text_195806": "A METEORITE is fitted on a mysterious\\nmachine...\\pThe machine seems to be storing\\nenergy in the METEORITE.",
+    "MtChimney_Text_195870": "A METEORITE is fitted on a mysterious\\nmachine...\\pDo you want to remove the METEORITE?",
+    "MtChimney_Text_1958C6": "{PLAYER} removed the METEORITE from\\nthe mysterious machine.",
+    "MtChimney_Text_1958FC": "{PLAYER} left the METEORITE where\\nit was.",
+    "MtChimney_Text_195920": "This mysterious machine...\\nIt makes no response whatsoever.",
+    "MtChimney_Text_19595C": "{0x7A} JAGGED PATH\\nLAVARIDGE TOWN AHEAD",
+    "MtChimney_Text_19597F": "I've been to the hot springs and\\nrefreshed my tired bones.\\lRight now I'm feeling strong!",
+    "MtChimney_Text_1959D8": "Oh, my goodness.\\nNow, aren't you something!",
+    "MtChimney_Text_195A04": "Well, well, I've lost. I can't call\\nmyself an EXPERT now, can I?",
+    "MtChimney_Text_195A45": "If you can mesh your heart with those\\nof your POKéMON, why, you should be\\lable to achieve great things.",
+    "MtChimney_Text_195AAD": "Oh, my goodness.\\nNow, aren't you something!",
+    "MtChimney_Text_195AD9": "Perhaps your heart has become one\\nwith the hearts of your POKéMON.",
+    "MtChimney_Text_195B1C": "I've got the fire in me, baby.\\nI can't stand it! I have to battle!",
+    "MtChimney_Text_195B5F": "Ooh, that was a scorching-hot match!",
+    "MtChimney_Text_195B84": "The heat of MT. CHIMNEY lights my\\nfire, baby!",
+    "MtChimney_Text_195BB2": "I've finally made it to MT. CHIMNEY.\\nI want to make my POKéMON battle!",
+    "MtChimney_Text_195BF9": "The way you battle...\\nIt's like a MT. CHIMNEY eruption!",
+    "MtChimney_Text_195C31": "Like I said, I've finally made it to\\nMT. CHIMNEY. It would be a shame if\\lI only do a little sightseeing...\\pI want to get in some battles and buy\\nCOOKIES as souvenirs.",
+    "MtChimney_Text_195CD8": "Since I bathed in the hot springs,\\nI've been feeling great!\\lI'm sure I'm going to win!",
+    "MtChimney_Text_195D2F": "Yowch!\\nI'm getting a chill out of the water.",
+    "MtChimney_Text_195D5C": "I'll have to take another dip in the\\nhot springs. Want to join me?\\pJust joking!"
+  }
+}

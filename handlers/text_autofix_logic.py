@@ -250,18 +250,22 @@ class TextAutofixLogic:
                     else:
                         break 
                 
-                if last_fit_index != -1 :
+                if last_fit_index != -1:
                     text_overflows = "".join(line_parts[last_fit_index + 1:]).lstrip()
                     temp_newly_created_lines_for_this_original_line.append(text_fits.rstrip())
                     current_processing_line = text_overflows
-                    if not text_overflows and not current_processing_line: 
+                    if not text_overflows: 
                         break
                 else: 
+                    # If not even the first part fits (e.g. one very long word), 
+                    # we must take it anyway to avoid an infinite loop and make progress.
                     if line_parts:
-                        temp_newly_created_lines_for_this_original_line.append("") 
-                        current_processing_line = "".join(line_parts).lstrip() 
+                        first_part = line_parts[0]
+                        temp_newly_created_lines_for_this_original_line.append(first_part.strip())
+                        current_processing_line = "".join(line_parts[1:]).lstrip()
+                        if not current_processing_line:
+                            break
                     else: 
-                        temp_newly_created_lines_for_this_original_line.append(current_processing_line) 
                         break 
             
             new_full_text_lines.extend(temp_newly_created_lines_for_this_original_line)

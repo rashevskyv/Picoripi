@@ -1,0 +1,7 @@
+{
+  "data/maps/MauvilleCity_House1/text.inc": {
+    "MauvilleCity_House1_Text_TakeHMRockSmash": "Woohoo, your POKéMON look pretty\\nstrong.\\pI like that!\\nHere, take this HM!",
+    "MauvilleCity_House1_Text_ExplainRockSmash": "That HM contains ROCK SMASH.\\pIf you come across large boulders\\nthat block your path...\\pWell, use that HM move and smash\\nit right out of your way!",
+    "MauvilleCity_House1_Text_MonCanFlyOutOfSmashedRock": "Oh, yes, if you smash a rock, a POKéMON\\ncould come flying out."
+  }
+}

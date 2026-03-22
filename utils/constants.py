@@ -1,5 +1,5 @@
 # --- START OF FILE utils/constants.py ---
-APP_VERSION = "0.2.10"
+APP_VERSION = "0.2.11"
 
 # Player tags
 EDITOR_PLAYER_TAG = "player"

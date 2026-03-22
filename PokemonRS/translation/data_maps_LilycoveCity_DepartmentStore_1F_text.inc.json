@@ -1,0 +1,10 @@
+{
+    "data_maps_LilycoveCity_DepartmentStore_1F_text.inc": {
+        "LilycoveCity_DepartmentStore_1F_Text_WelcomeToDeptStore": "Вітаємо у LILYCOVE DEPARTMENT STORE.",
+        "LilycoveCity_DepartmentStore_1F_Text_IBuyAllSortsOfThings": "Кожного разу, як я приходжу до DEPARTMENT\\nSTORE, я закінчую тим, що купую безліч\\lрізних речей, бо це так весело.",
+        "LilycoveCity_DepartmentStore_1F_Text_MomBuyingMeFurniture": "Сьогодні мама збирається купити мені\\nгарні меблі.",
+        "LilycoveCity_DepartmentStore_1F_Text_BuyingSomethingForAzumarill": "упую своєму AZUMARILL подарунок.\\nЦе йому за те, що він виграв у CONTEST.",
+        "LilycoveCity_DepartmentStore_1F_Text_Azumarill": "AZUMARILL: Марі-рі-рууу!",
+        "LilycoveCity_DepartmentStore_1F_Text_FloorNamesSign": "1F: SERVICE COUNTER\\n    LOTTERY CORNER\\p2F: TRAINER'S ZONE\\p3F: BATTLE COLLECTION\\p4F: TM CORNER\\p5F: POKé DOLL FLOOR\\pROOFTOP: ROOFTOP PLAZA"
+    }
+}

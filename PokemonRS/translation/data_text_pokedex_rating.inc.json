@@ -1,0 +1,29 @@
+{
+    "data_text_pokedex_rating.inc": {
+        "gBirchDexRatingText_ComeToShowMePokedex": "PROF. BIRCH: Ah, {PLAYER}{KUN}!\\pHave you come to show me how your\\nPOKéDEX is coming along?",
+        "gBirchDexRatingText_Cancel": "Hm? Oh, you haven't caught enough\\nPOKéMON to make it worthwhile.",
+        "gBirchDexRatingText_SoYouveSeenAndCaught": "Hmhm...\\pSo, you've seen {STR_VAR_1} POKéMON,\\nand you've caught {STR_VAR_2} POKéMON...",
+        "gBirchDexRatingText_LessThan10": "You should go into grassy areas more\\nand look for POKéMON more carefully.",
+        "gBirchDexRatingText_LessThan20": "I guess you're getting the hang of it.\\nBut, it gets harder from here.",
+        "gBirchDexRatingText_LessThan30": "Some POKéMON only appear in certain\\nareas. You'll need to be persistent.",
+        "gBirchDexRatingText_LessThan40": "Well, it could use more quantity, but\\nthis is looking more like a POKéDEX now.",
+        "gBirchDexRatingText_LessThan50": "This is coming along pretty good.\\nKeep up the effort.",
+        "gBirchDexRatingText_LessThan60": "Are you using any RODS?\\nThere are many POKéMON in the sea.",
+        "gBirchDexRatingText_LessThan70": "Instead of just catching POKéMON,\\nhow about making them evolve, too?",
+        "gBirchDexRatingText_LessThan80": "This is going to be a fantastic POKéDEX.\\nThat's the feeling I'm getting.",
+        "gBirchDexRatingText_LessThan90": "You've collected this many...\\nYour talent is remarkable!",
+        "gBirchDexRatingText_LessThan100": "Have you visited the SAFARI ZONE?\\pI hear there are some POKéMON that\\ncan only be caught there.",
+        "gBirchDexRatingText_LessThan110": "You've finally reached the 100-kind\\nmark. This is an impressive POKéDEX!",
+        "gBirchDexRatingText_LessThan120": "There might be POKéMON that can be\\nfound using ROCK SMASH.",
+        "gBirchDexRatingText_LessThan130": "You should get some more POKéMON by\\ntrading with others.",
+        "gBirchDexRatingText_LessThan140": "I've heard of POKéMON that evolve when\\nthey come to fully love their TRAINERS.",
+        "gBirchDexRatingText_LessThan150": "I had no idea that there were so many\\nPOKéMON species in the HOENN region.",
+        "gBirchDexRatingText_LessThan160": "On occasion, some POKéMON appear in\\nlarge numbers like wild outbreaks.\\lDon't miss opportunities like those.",
+        "gBirchDexRatingText_LessThan170": "One can get a very good idea about the\\nPOKéMON of the HOENN region by looking\\lthrough your POKéDEX.",
+        "gBirchDexRatingText_LessThan180": "I'd say you already qualify as a POKéMON\\nPROFESSOR, and a good one, too!",
+        "gBirchDexRatingText_LessThan190": "With a POKéDEX this complete, you're\\na real professional at this!",
+        "gBirchDexRatingText_LessThan200": "You're very close to completing this\\nPOKéDEX. I can feel it in my bones!",
+        "gBirchDexRatingText_DexCompleted": "Congratulations!\\nYour POKéDEX is complete!",
+        "gBirchDexRatingText_OnANationwideBasis": "Hmhm...\\nOn a nationwide basis...\\pYou've seen {STR_VAR_1} POKéMON,\\nand you've caught {STR_VAR_2} POKéMON..."
+    }
+}

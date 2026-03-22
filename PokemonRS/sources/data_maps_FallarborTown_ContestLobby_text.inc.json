@@ -1,0 +1,8 @@
+{
+  "data/maps/FallarborTown_ContestLobby/text.inc": {
+    "FallarborTown_ContestLobby_Text_UsedToHaveSketch": "They had a sketch of my POKéMON up\\non the wall over there, but they\\lchanged it with a new one already.\\pI'm going to enter my HANA in CONTESTS\\nso we can get her sketch up again!",
+    "FallarborTown_ContestLobby_Text_AreYouMakingPokeblock": "Hi, are you making any {POKEBLOCK}S?\\pYou should come by with a bunch of\\nBERRIES sometime.",
+    "FallarborTown_ContestLobby_Text_ICreateSketches": "You see how they display a sketch of\\na CONTEST winner here?\\pI sketch them!\\pIf any of your POKéMON wins a CONTEST,\\nI'd gladly make a sketch of it!",
+    "FallarborTown_ContestLobby_Text_YourSketchIsUp": "Hello! Congratulations!\\pI've put up a sketch of your POKéMON\\nright here for everyone to see!"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "data/maps/Route119/text.inc": {
+    "Route119_Text_1710BB": "MAY: {PLAYER}{KUN}!\\nWhere were you? I was looking for you!\\pHow much stronger have you gotten?\\nLet me check for you!\\pReady with your POKéMON?\\nOf course you are! Go!",
+    "Route119_Text_171156": "Achah!\\n{PLAYER}{KUN}, you're strong!\\pI was worried that you might be\\nstruggling with your training.",
+    "Route119_Text_1711B1": "MAY: But I had absolutely nothing to\\nworry about! Keep it up!\\pAnd, here! I have a present for you.",
+    "Route119_Text_171214": "MAY: Use FLY, and your POKéMON will\\ninstantly carry you to any town you've\\lalready visited.\\pBut, to use FLY, you have to get the\\nGYM BADGE from FORTREE CITY.\\lThat's important, so don't forget.\\pYou should FLY home and visit\\nLITTLEROOT for a change.\\pI bet your mom's worried about you,\\n{PLAYER}{KUN}.\\pWell, let's meet again somewhere!",
+    "Route119_Text_171358": "BRENDAN: {PLAYER}! So this is where\\nyou've been looking for POKéMON?\\pLet me see how good you got.\\nI'll test you!\\pNow!\\nIt's a battle, so battle!",
+    "Route119_Text_1713E2": "Hmm...\\nYou've gotten pretty darn decent.",
+    "Route119_Text_17140B": "BRENDAN: I'd say you're good enough\\nto search for POKéMON anywhere.\\pHere, I'll give you this.\\nTry it out.",
+    "Route119_Text_171475": "BRENDAN: Use FLY, and your POKéMON\\ninstantly carries you to any town\\lyou've already visited.\\pBut you need the FORTREE GYM BADGE \\nto do that.\\pAnyway, I have to move along.",
+    "Route119_Text_171520": "We're standing lookout here.\\pHey, you! Stay away from the WEATHER\\nINSTITUTE. It's not safe.",
+    "Route119_Text_17157C": "Lookout duty is surprisingly boring.\\pHey, you! Please don't go near the\\nWEATHER INSTITUTE.",
+    "Route119_Text_1715D7": "I thought you FLY by catching a whole\\nflock of BIRD POKéMON, and then\\lhanging on to them somehow.\\pBut it turns out there's an HM move\\ncalled FLY!\\pI wish I'd known about that a long\\ntime ago...",
+    "Route119_Text_171698": "Tch... It's a no-go...\\pThe tall grass snares BIKE tires.\\nThere's no way you can cycle here.",
+    "Route119_Text_1716F4": "Can your POKéMON use its SECRET POWER\\non a big pile of grass and make a\\lSECRET BASE?",
+    "Route119_Text_171749": "ROUTE 119\\n{0x7C} FORTREE CITY",
+    "Route119_Text_171762": "WEATHER INSTITUTE",
+    "Route119_Text_171774": "TRAINER TIPS\\pUp to sixteen decorations and\\nfurniture items can be placed in\\la SECRET BASE.\\pPick your favorite items and create\\nyour very own SECRET BASE exactly the\\lway you want."
+  }
+}

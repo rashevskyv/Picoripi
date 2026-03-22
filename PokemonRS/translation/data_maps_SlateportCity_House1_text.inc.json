@@ -1,0 +1,13 @@
+{
+    "data_maps_SlateportCity_House1_text.inc": {
+        "SlateportCity_NameRatersHouse_Text_PleasedToRateMonNickname": "Привіт-привіт! Я NAME RATER!\\nЯ бачу долю в іменах!\\pЗалюбки гляну на\\nкличку твого POKéMON.",
+        "SlateportCity_NameRatersHouse_Text_CritiqueWhichMonNickname": "Прізвисько якого POKéMON мені\\nпогадати?",
+        "SlateportCity_NameRatersHouse_Text_FineNameSuggestBetterOne": "Хммм... {STR_VAR_1}, кажеш? Це\\nдосить гарне ім'я, яке ти дав.\\pАле! Що скажеш, якщо я\\nзапропоную дещо краще ім'я?",
+        "SlateportCity_NameRatersHouse_Text_WhatShallNewNameBe": "А, добре. Тоді, яким буде нове\\nпрізвисько?",
+        "SlateportCity_NameRatersHouse_Text_MonShallBeKnownAsName": "Готово! Відтепер цей POKéMON\\nбуде відомий як {STR_VAR_1}!\\pЦе ім'я краще за попереднє!\\nЯка вдача для тебе!",
+        "SlateportCity_NameRatersHouse_Text_DoVisitAgain": "Зрозуміло.\\nБудь ласка, заходь ще.",
+        "SlateportCity_NameRatersHouse_Text_NameNoDifferentYetSuperior": "Готово! Віднині цей POKéMON\\nбуде відомий як {STR_VAR_1}!\\pВін виглядає так само, як і раніше,\\nі все ж, він значно кращий!\\lЯка вдача для тебе!",
+        "SlateportCity_NameRatersHouse_Text_MagnificentName": "Хммм... {STR_VAR_1}, отже!\\pЦе чудове прізвисько!\\nВоно бездоганне і поза критикою!\\pТобі варто цінувати свого\\n{STR_VAR_1} зараз і надалі.",
+        "SlateportCity_NameRatersHouse_Text_ThatIsMerelyAnEgg": "Ну-ну.\\nЦе ж просто EGG!"
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "data_maps_FallarborTown_PokemonCenter_1F_text.inc": {
+        "FallarborTown_PokemonCenter_1F_Text_LanetteGreeting": "О, привіт.\\nА ти?\\pГаразд, тебе звати{PLAYER}{KUN}.\\nЯ бачу, що ти TRAINER.\\pЦе означає, що ти користуєшся POKéMON\\nStorage System, яку я розробила.\\pТе, як я дійшла такого висновку - \\nце простий процес дедукції.\\pТи заговорив до мене, бо хотів отримати\\nдоступ до чогось на цьому PC.\\pОй, вибач. Я - LANETTE.\\pЧесно кажучи, я рада знайомству - це чудово,\\nщо ти користуєшся Storage System.\\pЯкщо зможеш, будь ласка, завітай до мене додому.\\nМій будинок на ROUTE 114.",
+        "FallarborTown_PokemonCenter_1F_Text_FossilManiacEdgeOfTown": "Цікаво, як виглядали POKéMON дуже,\\nдуже давно?\\pМожливо, FOSSIL MANIAC на околиці\\nміста це знатиме.",
+        "FallarborTown_PokemonCenter_1F_Text_PlantHardyTrees": "На полях FALLARBOR ми висаджуємо саджанці\\nвитривалих дерев, що добре ростуть\\lнавіть у вулканічному попелі."
+    }
+}

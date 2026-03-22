@@ -1,0 +1,11 @@
+{
+    "data_maps_AbandonedShip_Corridors_B1F_text.inc": {
+        "AbandonedShip_Corridors_B1F_Text_DuncanIntro": "Коли ми виходимо в море, ми, SAILORS\\nзавжди беремо з собою своїх POKéMON.\\lЯк щодо швидкої битви?",
+        "AbandonedShip_Corridors_B1F_Text_DuncanDefeat": "Ой, мене потопили!",
+        "AbandonedShip_Corridors_B1F_Text_DuncanPostBattle": "Нижня частина судна затонула\\nдесь у безодні.\\pЯкби якийсь POKéMON вмів пірнати під воду,\\nми б нарешті зрушили з місця...",
+        "AbandonedShip_Corridors_B1F_Text_YayItsAShip": "Ого-го!\\nСправжній корабель!",
+        "AbandonedShip_Corridors_B1F_Text_DoorIsLocked": "Двері замкнені.\\p“STORAGE” - свідчить напис на дверях. ",
+        "AbandonedShip_Corridors_B1F_Text_InsertedStorageKey": "{PLAYER} вставив та повернув\\nSTORAGE KEY.\\pКлюч застряг намертво, але двері\\nвідчинилися.",
+        "AbandonedShip_Text_TheDoorIsOpen": "Двері відчинені."
+    }
+}

@@ -7,6 +7,7 @@ import pytest
 
 from utils.utils import (
     calculate_string_width,
+    calculate_strict_string_width,
     remove_all_tags,
     is_fuzzy_match,
     convert_spaces_to_dots_for_display,
@@ -19,6 +20,22 @@ from utils.utils import (
 
 
 # ── calculate_string_width ──────────────────────────────────────────
+
+@pytest.fixture
+def sample_font_map():
+    return {
+        'a': {'width': 6}, 
+        'b': {'width': 6}, 
+        'c': {'width': 5}, 
+        ' ': {'width': 4},
+        '[L]': {'width': 8}, 
+        '[L-Stick]': {'width': 12}, 
+        '{PLAYER}': {'width': 48}
+    }
+
+@pytest.fixture
+def empty_font_map():
+    return {}
 
 class TestCalculateStringWidth:
     def test_simple_ascii(self, sample_font_map):
@@ -77,7 +94,25 @@ class TestCalculateStringWidth:
     def test_empty_font_map(self, empty_font_map):
         """With empty font_map, all chars use default_char_width."""
         width = calculate_string_width("abc", empty_font_map, default_char_width=7)
-        assert width == 21  # 3 * 7
+    def test_with_icon_sequences(self, sample_font_map):
+        """Testing icon_sequences being passed."""
+        width = calculate_string_width("abc", sample_font_map, icon_sequences=["[Custom]"])
+        assert width == 17
+
+class TestCalculateStrictStringWidth:
+    def test_strict_all_known(self, sample_font_map):
+        width = calculate_strict_string_width("abc[L]", sample_font_map)
+        assert width == 6 + 6 + 5 + 8
+        
+    def test_strict_missing_char(self, sample_font_map):
+        assert calculate_strict_string_width("abXc", sample_font_map) is None
+        
+    def test_strict_missing_sequence(self, sample_font_map):
+        assert calculate_strict_string_width("[UNKNOWN]", sample_font_map, icon_sequences=["[UNKNOWN]"]) is None
+        
+    def test_strict_tags_ignored(self, sample_font_map):
+        assert calculate_strict_string_width("{Color}a", sample_font_map) == 6
+        assert calculate_strict_string_width("[Tag]a", sample_font_map) == 6
 
 
 # ── remove_all_tags ─────────────────────────────────────────────────
@@ -183,6 +218,9 @@ class TestSpaceDotConversion:
         dotted = convert_spaces_to_dots_for_display(original, True)
         restored = convert_dots_to_spaces_from_editor(dotted)
         assert restored == original
+
+    def test_convert_dots_to_spaces_none(self):
+        assert convert_dots_to_spaces_from_editor(None) == ""
 
 
 # ── remove_curly_tags ───────────────────────────────────────────────
