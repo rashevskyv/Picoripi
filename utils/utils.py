@@ -252,12 +252,18 @@ def prepare_text_for_tagless_search(text: str, keep_original_case: bool = False)
     if text is None:
         return ""
     
+    # Remove all bracket and curly tags
     no_tags_text = ALL_TAGS_PATTERN.sub("", text)
     
-    text_with_spaces_instead_of_newlines = no_tags_text.replace('\n', ' ')
+    # Replace Zelda-style '+' separators with spaces
+    text_with_normalized_plus = no_tags_text.replace('+', ' ')
     
+    # Replace dots (display symbols) with spaces
+    text_with_normalized_dots = text_with_normalized_plus.replace(SPACE_DOT_SYMBOL, ' ')
+    
+    # Standardize newlines and multiple spaces
+    text_with_spaces_instead_of_newlines = text_with_normalized_dots.replace('\n', ' ')
     normalized_spaces_text = re.sub(r' {2,}', ' ', text_with_spaces_instead_of_newlines)
     
     stripped_text = normalized_spaces_text.strip()
-    
     return stripped_text

@@ -111,7 +111,8 @@
 | 6 | ✅ | Glossary Aho-Corasick | **Виконано** | `pyahocorasick` бібл. | 10-100x |
 | 7 | 🟡 | `ui_updater.py` size | Pending | Подальша декомпозиція | Підтримка |
 | 8 | 🟡 | `UndoManager` memory | Pending | Використання diff-ів | RAM |
-| 9 | 🟢 | Cython для width | Optional | С-компіляція hot-path | 20x+ |
+| 9 | 🟡 | **Advanced Search Window** | **ToDo** | New Search UI (like spellcheck) | UX |
+| 10 | 🟢 | Cython для width | Optional | С-компіляція hot-path | 20x+ |
 
 ---
 

@@ -377,6 +377,11 @@ class SearchHandler(BaseHandler):
                             scroll_to_block_nav = editor.document().findBlockByNumber(highlight_start_qblock_idx)
                             cursor_nav = QTextCursor(scroll_to_block_nav)
                             cursor_nav.setPosition(scroll_to_block_nav.position() + highlight_start_pos_in_qblock)
+                            
+                            # Select until the end of the last word found
+                            end_block_nav = editor.document().findBlockByNumber(highlight_end_qblock_idx)
+                            cursor_nav.setPosition(end_block_nav.position() + highlight_end_pos_in_qblock_end_of_word, QTextCursor.KeepAnchor)
+                            
                             editor.setTextCursor(cursor_nav); editor.ensureCursorVisible()
                             found_overall_match_in_editor = True; break
                         else:
@@ -491,8 +496,8 @@ class SearchHandler(BaseHandler):
                     log_debug(f"Precise Highlighting in {editor_name_precise}: QBlk(widget):{widget_qtextblock_idx_to_use}, DispPosInBlk:{match_pos_in_widget_qtextblock_precise}, DispLen:{match_len_in_widget_qtextblock_precise}, QueryUsedForDisplay: '{display_query_for_widget_precise}'")
                     
                     cursor_precise = QTextCursor(widget_block_precise)
-                    cursor_precise.setPosition(widget_block_precise.position() + match_pos_in_widget_qtextblock_precise) # Corrected to move to start of match
-                    cursor_precise.clearSelection()
+                    cursor_precise.setPosition(widget_block_precise.position() + match_pos_in_widget_qtextblock_precise)
+                    cursor_precise.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, match_len_in_widget_qtextblock_precise)
                     editor_precise.setTextCursor(cursor_precise)
                     editor_precise.ensureCursorVisible()
                 else: 
