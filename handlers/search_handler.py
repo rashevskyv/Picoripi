@@ -61,8 +61,9 @@ class SearchHandler(BaseHandler):
         if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
             self.mw.search_panel_widget.clear_status()
 
-    def _find_in_text(self, text_to_search_in: str, query_to_find: str, start_offset: int, case_sensitive: bool, find_reverse: bool = False, is_fuzzy: bool = False) -> int:
-        if not query_to_find: return -1
+    def _find_in_text(self, text_to_search_in: str, query_to_find: str, start_offset: int, case_sensitive: bool, find_reverse: bool = False, is_fuzzy: bool = False) -> Tuple[int, int]:
+        """Returns (match_position, matched_length) or (-1, 0) if not found."""
+        if not query_to_find: return -1, 0
         
         # 1. Звичайний пошук (точний)
         if not is_fuzzy:
@@ -73,43 +74,32 @@ class SearchHandler(BaseHandler):
                 compare_query = query_to_find.lower()
 
             if find_reverse:
-                return compare_text.rfind(compare_query, 0, start_offset + 1)
+                pos = compare_text.rfind(compare_query, 0, start_offset + 1)
             else:
-                return compare_text.find(compare_query, start_offset)
+                pos = compare_text.find(compare_query, start_offset)
+            return (pos, len(query_to_find)) if pos != -1 else (-1, 0)
         
         # 2. Нечіткий пошук
         else:
-            # Шукаємо слова в тексті
-            # Regex для пошуку слів (буквено-цифрових послідовностей)
             word_iter = re.finditer(r'\w+', text_to_search_in)
-            matches = []
+            matches = []  # (start, length)
             
             for match in word_iter:
-                # Фільтруємо за start_offset
                 if not find_reverse:
                     if match.start() < start_offset: continue
                 else:
-                    # Для зворотного пошуку перевіряємо, щоб початок слова був до offset
-                    # Але rfind шукає "останнє входження в межах", тому тут логіка трохи складніша
-                    # Ми зберемо всі збіги, а потім виберемо потрібний
                     if match.start() > start_offset: break
                 
-                # Перевірка на нечіткий збіг
-                # Якщо запит складається з кількох слів, це складніше, 
-                # тому для простоти реалізуємо нечіткий пошук ПО СЛОВАХ.
-                # Якщо запит - одне слово, порівнюємо.
                 if is_fuzzy_match(query_to_find, match.group(0), threshold=0.75):
-                    matches.append(match.start())
+                    matches.append((match.start(), len(match.group(0))))
             
             if not matches:
-                return -1
+                return -1, 0
             
             if find_reverse:
-                # Повертаємо останній збіг, який <= start_offset
-                valid_matches = [m for m in matches if m <= start_offset]
-                return valid_matches[-1] if valid_matches else -1
+                valid_matches = [(pos, ln) for pos, ln in matches if pos <= start_offset]
+                return valid_matches[-1] if valid_matches else (-1, 0)
             else:
-                # Повертаємо перший збіг
                 return matches[0]
 
     def find_next(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
@@ -149,7 +139,7 @@ class SearchHandler(BaseHandler):
                 
                 text_for_search = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
                 
-                match_pos_in_search_text = self._find_in_text(
+                match_pos_in_search_text, match_len_in_search_text = self._find_in_text(
                     text_for_search, 
                     effective_query, 
                     current_char_search_offset, 
@@ -159,12 +149,12 @@ class SearchHandler(BaseHandler):
                 )
                 
                 if match_pos_in_search_text != -1:
-                    log_debug(f"Found match in {'processed' if ignore_tags else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}")
+                    log_debug(f"Found match in {'processed' if ignore_tags else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}, Len {match_len_in_search_text}")
                     self.last_found_block = b_idx
                     self.last_found_string = s_idx
                     self.last_found_char_pos_raw = match_pos_in_search_text
                     
-                    self._navigate_to_match(b_idx, s_idx, match_pos_in_search_text, len(effective_query), self.ignore_tags_newlines)
+                    self._navigate_to_match(b_idx, s_idx, match_pos_in_search_text, match_len_in_search_text, self.ignore_tags_newlines)
                     if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
                         self.mw.search_panel_widget.set_status_message(f"Found: B{b_idx+1}, S{s_idx+1}")
                     return True
@@ -218,7 +208,7 @@ class SearchHandler(BaseHandler):
                                            if b_idx == start_block_data_idx and s_idx == start_string_data_idx and start_char_search_from != -1
                                            else len(text_for_search) -1 )
                 
-                match_pos_in_search_text: int = self._find_in_text(
+                match_pos_in_search_text, match_len_in_search_text = self._find_in_text(
                     text_for_search, 
                     effective_query, 
                     current_char_search_from, 
@@ -228,12 +218,12 @@ class SearchHandler(BaseHandler):
                 )
                 
                 if match_pos_in_search_text != -1:
-                    log_debug(f"Found (prev) match in {'processed' if ignore_tags else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}")
+                    log_debug(f"Found (prev) match in {'processed' if ignore_tags else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}, Len {match_len_in_search_text}")
                     self.last_found_block = b_idx
                     self.last_found_string = s_idx
                     self.last_found_char_pos_raw = match_pos_in_search_text
                     
-                    self._navigate_to_match(b_idx, s_idx, match_pos_in_search_text, len(effective_query), self.ignore_tags_newlines)
+                    self._navigate_to_match(b_idx, s_idx, match_pos_in_search_text, match_len_in_search_text, self.ignore_tags_newlines)
                     if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
                         self.mw.search_panel_widget.set_status_message(f"Found: B{b_idx+1}, S{s_idx+1}")
                     return True
@@ -324,7 +314,7 @@ class SearchHandler(BaseHandler):
                     
                     current_search_offset_in_qblock = 0
                     while current_search_offset_in_qblock < len(text_in_widget_qtextblock):
-                        start_pos = self._find_in_text(text_in_widget_qtextblock, first_word_display, current_search_offset_in_qblock, self.is_case_sensitive)
+                        start_pos, _ = self._find_in_text(text_in_widget_qtextblock, first_word_display, current_search_offset_in_qblock, self.is_case_sensitive)
                         if start_pos == -1: break
 
                         highlight_start_qblock_idx = current_widget_qblock_idx
@@ -351,7 +341,7 @@ class SearchHandler(BaseHandler):
                                     
                                     search_from_in_next_block = temp_offset_for_next_words if j == temp_current_qblock_for_next_words else 0
                                     
-                                    next_pos = self._find_in_text(text_of_block_to_search_next, next_word_display, search_from_in_next_block, self.is_case_sensitive)
+                                    next_pos, _ = self._find_in_text(text_of_block_to_search_next, next_word_display, search_from_in_next_block, self.is_case_sensitive)
                                     if next_pos != -1:
                                         highlight_end_qblock_idx = j
                                         highlight_end_pos_in_qblock_end_of_word = next_pos + len(next_word_display)
