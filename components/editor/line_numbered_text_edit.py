@@ -197,6 +197,13 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if hasattr(self, 'highlightManager'):
             self.highlightManager.clearAllHighlights()
         super().setPlainText(text)
+        # If we have an active glossary, we must re-trigger highlighting
+        # because set_glossary_manager ran while the editor was empty,
+        # so rehighlight() did nothing at that time.
+        if text and hasattr(self, 'highlighter') and self.highlighter:
+            highlighter = self.highlighter
+            if getattr(highlighter, '_glossary_enabled', False):
+                highlighter.rehighlight()
 
     def reset_selection_state(self):
         """Explicitly reset all selection tracking and visual highlights."""
@@ -248,14 +255,23 @@ class LineNumberedTextEdit(QPlainTextEdit):
         super().leaveEvent(event)
 
     def _find_glossary_entry_at(self, pos):
-        if not hasattr(self, 'glossary_manager') or not self.glossary_manager:
+        if not hasattr(self, '_glossary_manager') or not self._glossary_manager:
             return None
+            
         cursor = self.cursorForPosition(pos)
         block = cursor.block()
         if not block.isValid():
             return None
+            
+        data = block.userData()
+        if not data or not hasattr(data, 'matches'):
+            return None
+            
         pos_in_block = cursor.positionInBlock()
-        return self.glossary_manager.find_entry_at(block.blockNumber(), pos_in_block)
+        for match in data.matches:
+            if match.start <= pos_in_block < match.end:
+                return match.entry
+        return None
 
     def _find_warning_tooltip_at(self, pos: QPoint) -> Optional[str]:
         return self.tooltip_logic.find_warning_tooltip_at(pos)

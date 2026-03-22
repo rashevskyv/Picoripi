@@ -352,6 +352,9 @@ class UIUpdater:
                 folder_item.setSelected(True)
 
     def populate_blocks(self, override_folder_id=None, override_block_idx=None):
+        if not hasattr(self.mw, 'block_list_widget') or not self.mw.block_list_widget:
+            return  # Sometimes called during initialization before block_list_widget is created
+
         current_selection_block_idx = override_block_idx
         current_selection_folder_id = override_folder_id
         
@@ -780,6 +783,9 @@ class UIUpdater:
         return categorized_indices
 
     def populate_strings_for_block(self, block_idx, category_name=None, force=False):
+        if not hasattr(self.mw, 'preview_text_edit') or not getattr(self.mw, 'current_game_rules', None):
+            return
+
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         original_edit = getattr(self.mw, 'original_text_edit', None)
         edited_edit = getattr(self.mw, 'edited_text_edit', None)

@@ -227,6 +227,14 @@ class GlossaryPromptManager:
 
     def _update_glossary_highlighting(self) -> None:
         manager = self._glossary_manager if self._glossary_manager.get_entries() else None
-        editor = getattr(self._mw, "original_text_edit", None)
-        if editor and hasattr(editor, "set_glossary_manager"):
-            editor.set_glossary_manager(manager)
+        
+        # Update all three editors
+        editors = [
+            getattr(self._mw, "original_text_edit", None),
+            getattr(self._mw, "edited_text_edit", None),
+            getattr(self._mw, "preview_text_edit", None)
+        ]
+        
+        for editor in editors:
+            if editor and hasattr(editor, "set_glossary_manager"):
+                editor.set_glossary_manager(manager)
