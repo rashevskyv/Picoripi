@@ -2,38 +2,14 @@
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
-## New in v0.2.23
 
-- **Visual Cloud Indicators**: Virtual folders (categories) now have a distinct cloud overlay icon to distinguish them from standard blocks.
-- **Accurate Virtual Block Tooltips**: Virtual blocks display independent problem counts directly, rather than inheriting their parent's tooltip.
-- **Global Spellchecker Prefetching**: Dramatically improved spellchecker context menu speed by loading dictionaries and suggestions entirely in the background.
-- **Improved Asterisk Persistence**: Edited indicators (stars) correctly propagate to parent folders and are no longer lost when navigating away from edited code strings.
-
-## New in v0.2.17
-
-- **Glossary Highlighting Fix**: Glossary terms are now correctly highlighted immediately after opening a project, without needing to open the glossary window.
-- **Enhanced Performance**: 
-  - Massive speedup in glossary term identification using first-word pre-filtering.
-  - Pixel-perfect width calculations now use an optimized Trie structure.
-  - Syntax highlighter now uses pre-compiled regex for better responsiveness.
-- **Plugin-Specific Context Menus**: Unique context menu tags per plugin to prevent leakage between projects.
-- **Improved UI Stability**: Added guards to prevent crashes during early initialization or invalid block selection.
-
-## New in v0.2.11
-
-- **Comprehensive Testing Suite**: Over 600 unit tests added and refined, covering core handlers, data processing, and UI logic (achieving ~80% coverage for key modules).
-- **Clean Test Environment**: Removed over 2000 auto-generated stub tests to ensure a 100% green and meaningful test report.
-- **Improved UI Stability**: Fixed critical issues in UI update logic and highlight synchronization.
-- **Smart Asterisk Propagation (v0.2.10)**: Changes are now indicated by an asterisk (*) that flows upward from the modified string to its category, overall block, and parent folders.
-- **Dynamic Space Visualization (v0.2.10)**: Spaces are now shown as dots only where it makes sense (leading/trailing or 2+ consecutive). Single middle spaces remain spaces for a cleaner look.
-- **Improved Undo for Revert (v0.2.10)**: The "Revert to Original" action is now fully undoable, including structural and bulk reverts.
-- **Enhanced Startup Stability (v0.2.10)**: Fixes for encoding issues and initialization order prevent crashes on launch.
 
 ## Features
 
 ### Project Management
 - Create, load, and save `.uiproj` projects that encapsulate all files and settings for a translation effort.
 - Organize strings into **virtual folders (categories)** for logical grouping of translated texts.
+- **Visual Status Tracking**: Unsaved changes propagate via clear asterisk (*) indicators up the project tree. Virtual folders display their own specialized error counts and custom cloud icons for easy identification.
 - Automatic synchronization of local files with project data during work.
 - Move files or individual text blocks between categories with drag-and-drop support.
 
@@ -66,6 +42,7 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 
 ### Integrated Spellchecker
 - Built-in Hunspell spellchecking via the `spylls` library.
+- **Global Background Prefetching**: Dictionaries and suggestions are loaded entirely in the background, ensuring instant context menu suggestions without UI freezes.
 - Underlines errors and provides quick replacement suggestions from the context menu.
 - Built-in dictionary manager: download required languages directly from the app.
 - Add game-specific slang to personal or project-level custom dictionaries.

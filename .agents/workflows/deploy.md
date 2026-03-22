@@ -12,8 +12,8 @@ Follow these steps when the USER requests a "deploy":
    - Categorize into: New Features, Bug Fixes, UI Improvements, Refactoring.
    - Write/Update `CHANGELOG.md`.
 3. **Update Documentation**:
-   - Ensure `README.md` and `GEMINI.md` describe new features.
-   - Verify all feature descriptions are up to date and translated in Ukrainian in the overview if requested (but internal docs are English).
+   - Organically update the existing "Features" sections in both `README.md` and `GEMINI.md` to include newly added capabilities and remove obsolete ones.
+   - **Crucial**: Do NOT add "New in vX.Y.Z" or changelog sections to `README.md` or `GEMINI.md`.
 4. **Git Tagging**:
    - Create a local tag: `git tag -a v[VERSION] -m "Release v[VERSION]"`
    - Push tag: `git push origin v[VERSION]`
@@ -64,8 +64,8 @@ Group changes into these exact categories with their respective icons (omit cate
 
 ### 4. Codebase Updates
 - `CHANGELOG.md`: The official source of truth for ALL versions.
-- `README.md`: ONLY a "New in vX.Y.Z" highlights section for the *latest* version.
-- `GEMINI.md`: Update version in the header: `The "Picoripi" (vX.Y.Z)`.
+- `README.md`: Keep the "Features" section strictly up to date. Do NOT append changelogs.
+- `GEMINI.md`: Keep the "Core Features" section strictly up to date and update the version in the header: `The "Picoripi" (vX.Y.Z)`.
 - `utils/constants.py`: Update `APP_VERSION = "X.Y.Z-dev"`.
 
 ### Example Template (Copy-paste this!):
