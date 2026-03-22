@@ -313,7 +313,10 @@ class ListSelectionHandler(BaseHandler):
                             cat.name = new_text.strip()
                             break
                     pm.save()
-                    self.ui_updater.populate_blocks()
+                    item.setData(0, Qt.UserRole + 10, new_text.strip())
+                    item.setData(0, Qt.UserRole + 4, new_text.strip())
+                    item.setData(0, Qt.EditRole, new_text.strip())
+                    self.ui_updater.update_block_item_text_with_problem_count(block_index_from_data)
             elif block_index_from_data is not None:
                 # Rename Block
                 block_index_str = str(block_index_from_data)
@@ -323,6 +326,13 @@ class ListSelectionHandler(BaseHandler):
                     parts = new_text.split(" / ")
                     actual_block_name = parts[-1].strip()
                     self.mw.data_store.block_names[block_index_str] = actual_block_name
+                    
+                    # Also update ProjectManager if applicable
+                    if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                        proj_idx = block_map.get(block_index_from_data)
+                        if proj_idx is not None and proj_idx < len(self.mw.project_manager.project.blocks):
+                            self.mw.project_manager.project.blocks[proj_idx].name = actual_block_name
                     
                     # Rename parent folders in the chain
                     folder_names = parts[:-1]
@@ -355,9 +365,22 @@ class ListSelectionHandler(BaseHandler):
                                     folder_obj.name = new_name
                 else:
                     self.mw.data_store.block_names[block_index_str] = new_text
+                    
+                    # Also update ProjectManager if applicable
+                    if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                        proj_idx = block_map.get(block_index_from_data)
+                        if proj_idx is not None and proj_idx < len(self.mw.project_manager.project.blocks):
+                            self.mw.project_manager.project.blocks[proj_idx].name = new_text
+                            self.mw.project_manager.save()
                 
+                item.setData(0, Qt.UserRole + 4, new_text)
+                item.setData(0, Qt.EditRole, new_text)
                 self.mw.settings_manager.save_block_names()
                 log_debug(f"Block {block_index_from_data} renamed to '{new_text}'")
+                
+                # Repopulate to fix any visual issues
+                self.ui_updater.update_block_item_text_with_problem_count(block_index_from_data)
             elif folder_id:
                 # Rename Folder
                 folder = self.mw.project_manager.find_virtual_folder(folder_id)
@@ -469,7 +492,6 @@ class ListSelectionHandler(BaseHandler):
              current_check_idx = (start_scan_idx + 1) if direction_down else (start_scan_idx - 1)
 
         original_programmatic_state = self.mw.is_programmatically_changing_text
-        self.mw.is_programmatically_changing_text = True
 
         found_target_s_idx = -1
 
@@ -496,13 +518,17 @@ class ListSelectionHandler(BaseHandler):
         
         if found_target_s_idx != -1:
             log_debug(f"[NAV] Found target string at index: {found_target_s_idx}")
+            self.mw.is_programmatically_changing_text = True # Set programmatic state before calling string_selected_from_preview
             self.string_selected_from_preview(found_target_s_idx)
+            self.mw.is_programmatically_changing_text = original_programmatic_state # Restore after selection
         else:
             log_debug("[NAV] No problem string found in current search.")
             if start_scan_idx != -1 and self._data_string_has_any_problem(self.mw.data_store.current_block_idx, start_scan_idx):
+                 self.mw.is_programmatically_changing_text = True # Set programmatic state before calling string_selected_from_preview
                  self.string_selected_from_preview(start_scan_idx)
-
-            self.mw.is_programmatically_changing_text = original_programmatic_state
+                 self.mw.is_programmatically_changing_text = original_programmatic_state # Restore after selection
+            else:
+                self.mw.is_programmatically_changing_text = original_programmatic_state
 
     def handle_preview_selection_changed(self, selected_lines: Optional[List[int]] = None) -> None:
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
@@ -514,7 +540,12 @@ class ListSelectionHandler(BaseHandler):
             if not cursor.hasSelection():
                 if self.mw.data_store.current_string_idx != -1:
                     if hasattr(preview_edit, 'set_selected_lines'):
-                        preview_edit.set_selected_lines([self.mw.data_store.current_string_idx])
+                        # Find the relative index for the current string to highlight it
+                        rel_idx = -1
+                        if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.current_string_idx in self.mw.data_store.displayed_string_indices:
+                            rel_idx = self.mw.data_store.displayed_string_indices.index(self.mw.data_store.current_string_idx)
+                        if rel_idx != -1:
+                            preview_edit.set_selected_lines([rel_idx])
                 return
 
             start_pos = cursor.selectionStart()

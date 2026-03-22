@@ -103,6 +103,7 @@ class BlockListUpdater(BaseUIUpdater):
                     dir_nodes[current_path] = dir_item
 
             item = self.mw.block_list_widget.create_item(display_name_with_issues, i, Qt.UserRole)
+            item.setData(0, Qt.UserRole + 4, base_display_name) # Store pure name for editor
             parent_item = dir_nodes.get(dir_path, dir_nodes[""])
             parent_item.addChild(item)
 

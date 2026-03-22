@@ -166,15 +166,15 @@ class LayoutBuilder:
         editable_text_header_layout.addWidget(QLabel("Editable Text:"))
         editable_text_header_layout.addStretch(1)
         
-        self.mw.navigate_up_button = QPushButton()
-        self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowUp))
-        self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
-        editable_text_header_layout.addWidget(self.mw.navigate_up_button)
-
         self.mw.navigate_down_button = QPushButton()
         self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowDown))
         self.mw.navigate_down_button.setToolTip("Navigate to next problem string (Ctrl+Down)")
         editable_text_header_layout.addWidget(self.mw.navigate_down_button)
+
+        self.mw.navigate_up_button = QPushButton()
+        self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowUp))
+        self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
+        editable_text_header_layout.addWidget(self.mw.navigate_up_button)
 
         self.mw.ai_translate_button = QPushButton('AI Translate')
         editable_text_header_layout.addWidget(self.mw.ai_translate_button)

@@ -430,9 +430,8 @@ class SettingsDialogUiMixin:
         provider_form = QFormLayout()
         self.translation_provider_combo = QComboBox(self)
         self.translation_provider_combo.addItem("Disabled", "disabled")
-        self.translation_provider_combo.addItem("OpenAI Chat Completions", "openai_chat")
-        self.translation_provider_combo.addItem("OpenAI Responses (gpt-5)", "openai_responses")
-        self.translation_provider_combo.addItem("ChatMock (GPT-5 via ChatGPT)", "chatmock")
+        self.translation_provider_combo.addItem("OpenAI", "openai_chat")
+
         self.translation_provider_combo.addItem("Ollama Chat", "ollama_chat")
         self.translation_provider_combo.addItem("DeepL", "deepl")
         self.translation_provider_combo.addItem("Gemini", "gemini")
@@ -446,7 +445,7 @@ class SettingsDialogUiMixin:
         disabled_page = QWidget()
         self.ai_provider_pages.addWidget(disabled_page)
 
-        openai_group = QGroupBox("OpenAI Chat (gpt-4o, etc.) / ChatMock", self.ai_translation_tab)
+        openai_group = QGroupBox("OpenAI", self.ai_translation_tab)
         openai_layout = QFormLayout(openai_group)
         self.openai_api_key_edit = QLineEdit(self)
         self.openai_api_key_edit.setEchoMode(QLineEdit.Password)
@@ -472,20 +471,7 @@ class SettingsDialogUiMixin:
         openai_layout.addRow("Request Timeout:", self.openai_timeout_spin)
         self.ai_provider_pages.addWidget(openai_group)
 
-        openai_responses_group = QGroupBox("OpenAI Responses API (gpt-5)", self.ai_translation_tab)
-        openai_responses_layout = QFormLayout(openai_responses_group)
-        self.responses_use_chat_key_checkbox = QCheckBox("Use API Key from OpenAI Chat", self)
-        openai_responses_layout.addRow(self.responses_use_chat_key_checkbox)
-        self.responses_api_key_edit = QLineEdit(self); self.responses_api_key_edit.setEchoMode(QLineEdit.Password); openai_responses_layout.addRow("API Key:", self.responses_api_key_edit)
-        self.responses_model_edit = QLineEdit(self); self.responses_model_edit.setText("gpt-5"); openai_responses_layout.addRow("Model:", self.responses_model_edit)
-        self.responses_effort_combo = QComboBox(self); self.responses_effort_combo.addItems(["low", "medium", "high"]); openai_responses_layout.addRow("Reasoning Effort:", self.responses_effort_combo)
-        self.responses_verbosity_combo = QComboBox(self); self.responses_verbosity_combo.addItems(["low", "medium", "high"]); openai_responses_layout.addRow("Text Verbosity:", self.responses_verbosity_combo)
-        self.responses_timeout_spin = QSpinBox(self); self.responses_timeout_spin.setRange(1, 600); self.responses_timeout_spin.setSuffix(" s"); self.responses_timeout_spin.setValue(120); openai_responses_layout.addRow("Request Timeout:", self.responses_timeout_spin)
-        self.ai_provider_pages.addWidget(openai_responses_group)
-        self.responses_use_chat_key_checkbox.stateChanged.connect(
-            lambda state: self.responses_api_key_edit.setDisabled(state == Qt.Checked)
-        )
-        self.responses_use_chat_key_checkbox.stateChanged.connect(self._refresh_glossary_api_key_from_translation)
+
 
         ollama_group = QGroupBox("Ollama Chat API", self.ai_translation_tab)
         ollama_layout = QFormLayout(ollama_group)
@@ -537,7 +523,7 @@ class SettingsDialogUiMixin:
         self.translation_provider_combo.currentIndexChanged.connect(self.on_provider_changed)
         self.openai_api_key_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
         self.openai_api_key_env_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
-        self.responses_api_key_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
+
         self.gemini_api_key_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
         layout.addStretch(1)
 
@@ -586,10 +572,6 @@ class SettingsDialogUiMixin:
 
         if provider_name == 'OpenAI':
             api_key = self.openai_api_key_edit.text().strip()
-            if not api_key and not self.responses_use_chat_key_checkbox.isChecked():
-                api_key = self.responses_api_key_edit.text().strip()
-                if not api_key:
-                    api_key = providers_cfg.get('openai_responses', {}).get('api_key', '')
             if not api_key:
                 api_key = providers_cfg.get('openai_chat', {}).get('api_key', '')
 

@@ -45,12 +45,10 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.provider_page_map = {
             "disabled": 0,
             "openai_chat": 1,
-            "openai_responses": 2,
-            "chatmock": 1,
-            "ollama_chat": 3,
-            "deepl": 4,
-            "gemini": 5,
-            "perplexity": 6
+            "ollama_chat": 2,
+            "deepl": 3,
+            "gemini": 4,
+            "perplexity": 5
         }
 
         main_layout = QVBoxLayout(self)
@@ -172,8 +170,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         providers_cfg = self.translation_config_snapshot.get('providers', {})
         
-        openai_cfg = providers_cfg.get('openai_chat', {}); chatmock_cfg = providers_cfg.get('chatmock', {})
-        active_openai_cfg = openai_cfg if provider_key != 'chatmock' else chatmock_cfg
+        openai_cfg = providers_cfg.get('openai_chat', {})
+        active_openai_cfg = openai_cfg
         self.openai_api_key_edit.setText(active_openai_cfg.get('api_key', '')); self.openai_api_key_env_edit.setText(active_openai_cfg.get('api_key_env', ''))
         self.openai_base_url_edit.setText(active_openai_cfg.get('base_url', '')); self.openai_model_edit.setText(active_openai_cfg.get('model', ''))
         try: self.openai_temperature_spin.setValue(float(active_openai_cfg.get('temperature', 0.0)))
@@ -182,16 +180,6 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         except (TypeError, ValueError): self.openai_max_tokens_spin.setValue(0)
         try: self.openai_timeout_spin.setValue(int(active_openai_cfg.get('timeout', 60) or 60))
         except (TypeError, ValueError): self.openai_timeout_spin.setValue(60)
-
-        responses_cfg = providers_cfg.get('openai_responses', {})
-        self.responses_api_key_edit.setText(responses_cfg.get('api_key', ''))
-        self.responses_model_edit.setText(responses_cfg.get('model', 'gpt-5'))
-        self.responses_effort_combo.setCurrentText(responses_cfg.get('reasoning_effort', 'low'))
-        self.responses_verbosity_combo.setCurrentText(responses_cfg.get('text_verbosity', 'low'))
-        self.responses_timeout_spin.setValue(responses_cfg.get('timeout', 120))
-        use_chat_key = responses_cfg.get('use_chat_key', False)
-        self.responses_use_chat_key_checkbox.setChecked(use_chat_key)
-        self.responses_api_key_edit.setDisabled(use_chat_key)
 
 
         ollama_cfg = providers_cfg.get('ollama_chat', {})
@@ -278,24 +266,15 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         translation_config_to_save['provider'] = provider_key
         providers_cfg = translation_config_to_save.setdefault('providers', {})
         
-        openai_cfg = providers_cfg.setdefault('openai_chat', {}); chatmock_cfg = providers_cfg.setdefault('chatmock', {})
+        openai_cfg = providers_cfg.setdefault('openai_chat', {})
         openai_values = {
             'api_key': self.openai_api_key_edit.text().strip(), 'api_key_env': self.openai_api_key_env_edit.text().strip(),
             'base_url': self.openai_base_url_edit.text().strip(), 'model': self.openai_model_edit.text().strip(),
             'temperature': float(self.openai_temperature_spin.value()), 'max_output_tokens': int(self.openai_max_tokens_spin.value()),
             'timeout': int(self.openai_timeout_spin.value())
         }
-        if provider_key == 'chatmock': chatmock_cfg.update(openai_values)
-        else: openai_cfg.update(openai_values)
+        openai_cfg.update(openai_values)
         
-        responses_cfg = providers_cfg.setdefault('openai_responses', {})
-        use_chat_key = self.responses_use_chat_key_checkbox.isChecked()
-        api_key_to_save = self.openai_api_key_edit.text().strip() if use_chat_key else self.responses_api_key_edit.text().strip()
-        responses_cfg.update({
-            'api_key': api_key_to_save, 'model': self.responses_model_edit.text().strip(),
-            'reasoning_effort': self.responses_effort_combo.currentText(), 'text_verbosity': self.responses_verbosity_combo.currentText(),
-            'timeout': self.responses_timeout_spin.value(), 'use_chat_key': use_chat_key
-        })
 
         ollama_cfg = providers_cfg.setdefault('ollama_chat', {}); ollama_cfg.update({
             'base_url': self.ollama_base_url_edit.text().strip(), 'model': self.ollama_model_edit.text().strip(),

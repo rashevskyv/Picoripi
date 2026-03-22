@@ -38,8 +38,8 @@ def test_SearchHandler_reset_search(search_handler, mock_mw):
     mock_mw.search_panel_widget.clear_status.assert_called_once()
 
 def test_SearchHandler_find_in_text(search_handler):
-    assert search_handler._find_in_text("hello world", "world", 0, True) == 6
-    assert search_handler._find_in_text("hello world", "WORLD", 0, False) == 6
+    assert search_handler._find_in_text("hello world", "world", 0, True) == (6, 5)
+    assert search_handler._find_in_text("hello world", "WORLD", 0, False) == (6, 5)
 
 def test_SearchHandler_find_nth_occurrence_in_display_text(search_handler):
     text = "test apple test"

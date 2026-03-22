@@ -241,6 +241,7 @@ class UIUpdater:
         self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         
         item.setData(0, Qt.UserRole + 4, base_display_name)
+        item.setData(0, Qt.EditRole, base_display_name)
         
         # Add categories as children
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
@@ -255,6 +256,7 @@ class UIUpdater:
                     cat_item.setData(0, Qt.UserRole, block_idx)
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
                     cat_item.setData(0, Qt.UserRole + 4, cat.name)
+                    cat_item.setData(0, Qt.EditRole, cat.name)
                     cat_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
                     
                     cat_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts=None, category_name=cat.name)
@@ -317,6 +319,7 @@ class UIUpdater:
         folder_item.setData(0, Qt.UserRole + 2, merged_folder_ids)
         folder_item.setData(0, Qt.UserRole + 3, compaction_type)
         folder_item.setData(0, Qt.UserRole + 4, display_name)
+        folder_item.setData(0, Qt.EditRole, display_name)
         
         # Store RAW folder names for robust synchronization (avoids parsing display_name with counters)
         raw_names = []
@@ -529,17 +532,6 @@ class UIUpdater:
                 
                 if item.text(0) != display_name_with_issues:
                     item.setText(0, display_name_with_issues)
-                
-                # 1. Trigger parent tree update for recursive asterisks
-                # We climb up the tree from each item and force its parent to update/repaint
-                # This ensures CustomListItemDelegate.paint is called for all ancestors.
-                curr = item
-                while curr:
-                    # In Qt, changing a property or just calling update() on the viewport 
-                    # usually suffice if we triggered dataChanged.
-                    # tree_item.emitDataChanged() is internal but we can trigger it 
-                    # by setting an irrelevant property if needed, or just update the viewport.
-                    curr = curr.parent()
         finally:
             self.mw.block_list_widget.blockSignals(False)
             
@@ -731,7 +723,7 @@ class UIUpdater:
                     if r_idx in categorized_indices:
                         preview_indices.append(p_idx)
                 if preview_indices:
-                    highlight_color = QColor(200, 230, 255, 60) # Light subtle blue
+                    highlight_color = QColor(100, 180, 255, 120) # More visible blue
                     preview_edit.highlightManager.setCategorizedLineHighlights(preview_indices, highlight_color)
         else:
             preview_edit.highlightManager.clearCategorizedLineHighlights()
