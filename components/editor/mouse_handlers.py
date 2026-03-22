@@ -107,7 +107,7 @@ class LNETMouseHandlers:
             ai_chat_handler = getattr(main_window, 'ai_chat_handler', None)
             if ai_chat_handler:
                 menu.addSeparator()
-                discuss_action = menu.addAction("Discuss with AI...")
+                discuss_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_DialogHelpButton), "Discuss with AI...")
                 
                 text_to_discuss = ""
                 cursor = self.editor.textCursor()

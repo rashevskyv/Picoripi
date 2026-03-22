@@ -460,6 +460,9 @@ class MainWindow(QMainWindow):
     def load_game_plugin(self):
         """Proxy to plugin_handler for backward compatibility in handlers."""
         self.plugin_handler.load_game_plugin()
+        # Reload plugin settings to match the new active_game_plugin
+        if hasattr(self, 'settings_manager'):
+            self.settings_manager.plugin_settings.load(self.settings_manager._settings)
 
     def nativeEvent(self, eventType, message):
         if hasattr(self, 'hotkey_manager'):

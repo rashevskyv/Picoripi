@@ -61,6 +61,7 @@ class ProjectManager:
         'default_tag_mappings',
         'autofix_enabled',
         'detection_enabled',
+        'context_menu_tags',
     ]
 
     def __init__(self, project_path: Optional[Union[str, Path]] = None):

@@ -1,7 +1,8 @@
 import re
-from PyQt5.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout
+from PyQt5.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtCore import Qt, QPoint
+from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 
 class LNETContextMenuLogic:
@@ -40,13 +41,13 @@ class LNETContextMenuLogic:
                 existing_entry = translator.get_glossary_entry(add_term_candidate)
 
             if existing_entry and translator is not None:
-                action = menu.addAction("Edit Glossary Entry…")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Edit Glossary Entry…")
                 action.setEnabled(True)
                 action.triggered.connect(
                     lambda checked=False, term=existing_entry.original: translator.edit_glossary_entry(term)
                 )
             else:
-                action = menu.addAction("Add to Glossary…")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Add to Glossary…")
                 action_enabled = bool(add_term_candidate) and translator is not None
                 action.setEnabled(action_enabled)
                 if action_enabled:
@@ -58,6 +59,7 @@ class LNETContextMenuLogic:
                 menu.addSeparator()
                 term_value = glossary_entry.original
                 show_action = menu.addAction(
+                    main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView),
                     f"Show Glossary Entry for \"{term_value}\""
                 )
                 if translator:
@@ -122,7 +124,7 @@ class LNETContextMenuLogic:
                         no_suggestions_action.setEnabled(False)
                         menu.addSeparator()
 
-                    add_to_dict_action = menu.addAction(f"Add \"{word_under_cursor}\" to Dictionary")
+                    add_to_dict_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_DialogHelpButton), f"Add \"{word_under_cursor}\" to Dictionary")
                     add_to_dict_action.triggered.connect(
                         lambda checked=False, word=word_under_cursor: spellchecker_manager.add_to_custom_dictionary(word)
                     )
@@ -132,7 +134,7 @@ class LNETContextMenuLogic:
                     menu.addSeparator()
                     custom_actions_added = True
 
-                variation_action = menu.addAction("AI Variations for Selected")
+                variation_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_MessageBoxInformation), "AI Variations for Selected")
                 variation_action.triggered.connect(translator.generate_variation_for_current_string)
 
             # Dynamic Tags Section
@@ -244,5 +246,8 @@ class LNETContextMenuLogic:
                 if hasattr(main_window, 'displayed_string_indices') and line_val < len(main_window.displayed_string_indices):
                     real_idx = main_window.displayed_string_indices[line_val]
                     menu.addSeparator()
-                    revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
+                    revert_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, [real_idx]))
+
+        prettify_standard_context_menu(menu, main_window.style())
+
