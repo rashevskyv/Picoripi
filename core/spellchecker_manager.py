@@ -71,11 +71,18 @@ class SpellcheckerManager:
         self.custom_words = set()
         self._spell_cache: Dict[str, bool] = {}
         self._suggestions_cache: Dict[str, List[str]] = {}
+        self._cache_file = LOCAL_DICT_PATH / "spell_cache.json"
 
         self._initialize_spellchecker()
+        self._load_persistent_cache()
         self._setup_prefetch_worker()
 
     def __del__(self):
+        try:
+            self._save_persistent_cache()
+        except:
+            pass
+            
         if hasattr(self, 'thread') and self.thread.isRunning():
             if hasattr(self, 'worker'):
                 self.worker.stop()
@@ -198,6 +205,40 @@ class SpellcheckerManager:
                 self.mw.edited_text_edit.highlighter.rehighlight()
                 log_debug("Rehighlighting after glossary words reload")
 
+    def _load_persistent_cache(self):
+        """Loads spell check results from a JSON file."""
+        if not self._cache_file.exists():
+            return
+        try:
+            import json
+            with self._cache_file.open('r', encoding='utf-8') as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    self._spell_cache.update(data)
+            log_debug(f"Loaded {len(data)} cached spell entries from disk.")
+        except Exception as e:
+            log_warning(f"Failed to load persistent spell cache: {e}")
+
+    def _save_persistent_cache(self):
+        """Saves current memory spell cache to disk."""
+        if not self._spell_cache:
+            return
+        try:
+            import json
+            # Save only entries with reasonable keys
+            to_save = {k: v for k, v in self._spell_cache.items() if len(k) < 32}
+            # Limit cache size to avoid huge files (e.g. 20k entries)
+            if len(to_save) > 20000:
+                # Keep only newest or just truncate
+                to_save = dict(list(to_save.items())[:20000])
+                
+            self._cache_file.parent.mkdir(parents=True, exist_ok=True)
+            with self._cache_file.open('w', encoding='utf-8') as f:
+                json.dump(to_save, f, ensure_ascii=False, indent=0)
+            log_debug(f"Saved {len(to_save)} spell cache entries to disk.")
+        except Exception as e:
+            log_error(f"Failed to save persistent spell cache: {e}")
+
     def _load_glossary_words(self):
         """Load all words from glossary translations into custom dictionary."""
         if not hasattr(self.mw, 'translation_handler') or not self.mw.translation_handler:
@@ -263,6 +304,8 @@ class SpellcheckerManager:
                         self.mw.edited_text_edit.highlighter.rehighlight()
             except Exception as e:
                 log_error(f"Failed to save user dictionary: {e}", exc_info=True)
+        
+        self._save_persistent_cache()
 
     def is_misspelled(self, word: str) -> bool:
         if not self.enabled:
