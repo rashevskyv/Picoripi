@@ -185,3 +185,29 @@ def test_GlossaryManager_build_regex():
     # Test non-alphanumeric term
     pat_punct = GlossaryManager._build_regex("...")
     assert pat_punct.search("Hey...")
+
+def test_GlossaryManager_prefilter_logic(manager):
+    # Test our First-Word Pre-filter optimization specifically
+    manager._entries = [
+        GlossaryEntry("Master Sword", "Майстер Меч"),
+        GlossaryEntry("+1 Shield", "Щит +1"),
+        GlossaryEntry("!!!", "Обережно"),
+    ]
+    manager._build_pattern_cache()
+    
+    # 1. Term basic
+    assert len(manager.find_matches("I found the Master Sword!")) == 1
+    
+    # 2. Term split by invisible chars/tags
+    assert len(manager.find_matches("I found the Master{Color:Red} Sword!")) == 1
+    
+    # 3. Term starting with non-letter but having a digit (digit is a word char \w)
+    # The word finder extracts '1' as the first word
+    assert len(manager.find_matches("Here is a +1 Shield")) == 1
+    
+    # 4. Purely non-word term (!!! -> should be in _non_word_patterns)
+    assert len(manager.find_matches("Watch out!!! It's dangerous!")) == 1
+    
+    # 5. Multiple matches
+    matches = manager.find_matches("Master Sword !!! +1 Shield")
+    assert len(matches) == 3

@@ -60,6 +60,11 @@ class GlossaryManager:
         self._section_order: List[str] = []
         self._session_changes: Dict[str, Optional[GlossaryEntry]] = {}
 
+        # Optimization structures for fast pattern matching
+        self._first_word_index: Dict[str, List[Tuple[GlossaryEntry, re.Pattern[str]]]] = {}
+        self._non_word_patterns: List[Tuple[GlossaryEntry, re.Pattern[str]]] = []
+        self._word_finder = re.compile(r'\w+')
+
     @staticmethod
     def normalize_term(value: str) -> str:
         if value is None:
@@ -138,11 +143,25 @@ class GlossaryManager:
     def find_matches(self, text: str) -> List[GlossaryMatch]:
         if not text:
             return []
+            
         matches: List[GlossaryMatch] = []
-        for entry, pattern in self.iter_compiled():
+        
+        # Pre-filter text to find all unique words
+        text_words = {m.group(0).lower() for m in self._word_finder.finditer(text)}
+        
+        # Build list of patterns to check based on words present in the text
+        patterns_to_check = list(self._non_word_patterns)
+        for word in text_words:
+            if word in self._first_word_index:
+                patterns_to_check.extend(self._first_word_index[word])
+                
+        # Only execute regexes that have a chance of matching
+        for entry, pattern in patterns_to_check:
             for match in pattern.finditer(text):
                 matches.append(GlossaryMatch(entry=entry, start=match.start(), end=match.end()))
-        return matches
+                
+        # Sort matches by start index to preserve correct rendering order
+        return sorted(matches, key=lambda m: m.start)
 
     def build_occurrence_index(self, dataset: Sequence) -> Dict[str, List[GlossaryOccurrence]]:
         occurrences: Dict[str, List[GlossaryOccurrence]] = {entry.original: [] for entry in self._entries}
@@ -166,7 +185,15 @@ class GlossaryManager:
                 for line_idx, line in enumerate(lines):
                     if not line:
                         continue
-                    for entry, pattern in compiled_entries:
+                        
+                    # Pre-filter using local words in the line for massive speedup
+                    line_words = {m.group(0).lower() for m in self._word_finder.finditer(line)}
+                    patterns_to_check = list(self._non_word_patterns)
+                    for word in line_words:
+                        if word in self._first_word_index:
+                            patterns_to_check.extend(self._first_word_index[word])
+                            
+                    for entry, pattern in patterns_to_check:
                         for match in pattern.finditer(line):
                             occ = GlossaryOccurrence(
                                 entry=entry,
@@ -389,11 +416,22 @@ class GlossaryManager:
 
     def _build_pattern_cache(self) -> None:
         self._compiled_patterns.clear()
+        self._first_word_index.clear()
+        self._non_word_patterns.clear()
+        
         for entry in self._entries:
             if not entry.original:
                 continue
             pattern = self._build_regex(entry.original)
             self._compiled_patterns[entry.original] = pattern
+            
+            # Index optimization: extract the first alphanumeric word to use as a pre-filter
+            words = self._word_finder.findall(entry.original)
+            if words:
+                first_word = words[0].lower()
+                self._first_word_index.setdefault(first_word, []).append((entry, pattern))
+            else:
+                self._non_word_patterns.append((entry, pattern))
 
     @classmethod
     def _build_regex(cls, term: str) -> re.Pattern[str]:
