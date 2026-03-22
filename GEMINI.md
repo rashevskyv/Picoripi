@@ -11,12 +11,16 @@ The application is designed to be highly versatile, with features tailored to ha
 
 ### Core Features
 
-- **Project Management**: The application is moving towards a project-based workflow. A "project" (`.uiproj` file) encapsulates all files and settings for a specific translation effort. A project contains "blocks" (which map to game text files) and allows for virtual "categories" to organize strings.
-- **Plugin-Based Architecture**: Game-specific logic is handled by a robust plugin system located in the `plugins/` directory. Each plugin (e.g., `zelda_mc`, `pokemon_fr`) defines its own rules for text parsing, tag handling, font metrics for width calculation, and problem analysis.
-- **AI-Assisted Translation**: Integrates with external AI services (OpenAI, Gemini, DeepL) to provide translation suggestions. It uses a glossary system to ensure contextual accuracy and consistency.
-- **Specialized UI Components**: Features custom widgets like `LineNumberedTextEdit`, which provides line numbers and visual warnings for text that exceeds the game's displayable width, calculated using game-specific font maps.
-- **Tag Management**: Recognizes and provides syntax highlighting for special in-game control codes (e.g., for player names, button icons, text colors).
-- **Integrated Spellchecker**: Uses `spylls` (a Hunspell wrapper) for spellchecking within the translation editor.
+- **Project Management**: A fully project-based workflow. A "project" (`.uiproj` file) encapsulates all files and settings for a specific translation effort. A project contains "blocks" (which map to game text files) and allows for virtual "categories" (folders) to organize strings. Projects support automatic file synchronization, block import/export, and persistent selection state.
+- **Plugin-Based Architecture**: Game-specific logic is handled by a robust plugin system located in the `plugins/` directory. Each plugin (e.g., `zelda_mc`, `zelda_ww`, `pokemon_fr`, `plain_text`) defines its own rules for text parsing, tag handling, font metrics for width calculation, problem analysis, and autofix behavior. Plugins inherit from `BaseGameRules` (`plugins/base_game_rules.py`).
+- **AI-Assisted Translation**: Integrates with external AI services (OpenAI, Gemini, DeepL) for translation. Features include: batch translation, translation variations for long sentences, AI-powered glossary fill, glossary occurrence batch-update, and a dedicated AI Chat window. The system uses configurable prompts (`AIPromptComposer`) and a full lifecycle manager (`AILifecycleManager`) for reliable async operations.
+- **Glossary System**: Full CRUD glossary management with intelligent highlighting of glossary terms in the editor. Supports AI-powered term filling, batch occurrence updates, and prompt file I/O for AI context.
+- **Specialized UI Components**: Custom widgets like `LineNumberedTextEdit` that calculates pixel-perfect character widths using game-specific font maps, provides line numbers, and shows visual warnings (colored markers) for text exceeding display limits.
+- **Tag Management**: Recognizes and provides syntax highlighting for special in-game control codes (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
+- **Integrated Spellchecker**: Uses `spylls` (Hunspell implementation) for spellchecking. Supports custom dictionaries, built-in dictionary manager for language downloads, and integration with the glossary to avoid false positives on game-specific terms.
+- **Analysis & Safety**: Built-in Analysis Tool for visualizing text sizes and problem counts. Project-wide Issue Scan for width violations and tag errors. Text Autofix engine for automatic correction of common problems.
+- **Comprehensive Undo/Redo**: Multi-level undo system (`UndoManager`) that covers text edits, folder structure changes, block reverts, paste operations, and navigation history.
+- **Global Search**: Project-wide search panel with fuzzy matching, case-sensitive/insensitive modes, and tagless search support.
 
 ## Building and Running the Project
 
@@ -54,25 +58,84 @@ General application settings are stored in `settings.json`.
     python main.py
     ```
 
+### 4. Running Tests
+
+The project uses `pytest` with 600+ unit tests:
+```bash
+# Windows
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
+
+# With coverage
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest --cov=core --cov=handlers --cov=ui tests/
+```
+
 ## Codebase Structure & Conventions
 
-The project follows a well-organized, modular structure.
+The project follows a well-organized, modular structure with clear separation of concerns.
 
--   `main.py`: The application entry point. Contains the `MainWindow` class which acts as the central orchestrator.
--   `core/`: Contains core business logic and data models, including `project_manager.py`, `settings_manager.py`, and `spellchecker_manager.py`.
--   `handlers/`: Holds specialized classes that manage specific functionalities like file operations (`AppActionHandler`), text editing (`TextOperationHandler`), and AI translation (`TranslationHandler`).
--   `ui/`: Manages the overall UI setup (`ui_setup.py`) and high-level UI logic.
--   `components/`: Contains custom, reusable PyQt5 widgets like the text editors and dialogs.
--   `plugins/`: Contains the game-specific plugin modules. Each plugin is a self-contained package with its own rules, configuration, and font maps.
--   `utils/`: Contains utility functions, constants, and the logging setup.
--   `CLAUDE.md`, `PLAN.md`: Detailed internal documentation files describing architecture and future plans.
+### Directory Layout
+
+-   `main.py`: Application entry point. Contains `MainWindow` — the central orchestrator that initializes all managers, handlers, and UI.
+-   `core/`: Core business logic and data models:
+    -   `data_state_processor.py`: Central data access and mutation layer. All reads/writes to block and string data go through this module.
+    -   `data_store.py`: `AppDataStore` — the shared state container holding `data`, `edited_data`, `block_names`, `current_block_idx`, etc.
+    -   `data_manager.py`: Low-level JSON/text file I/O (no UI dependencies).
+    -   `project_manager.py`: `.uiproj` project lifecycle (create, load, save, sync, block management).
+    -   `project_models.py`: Dataclasses for `Project`, `Block`, `Category`.
+    -   `glossary_manager.py`: Glossary parsing (markdown tables), matching, CRUD, and occurrence indexing.
+    -   `spellchecker_manager.py`: Hunspell integration via `spylls` with custom dictionary support.
+    -   `state_manager.py`: `StateManager` with `AppState` enum — replaces the old boolean flag system with context managers (`with state.enter(AppState.LOADING):`).
+    -   `undo_manager.py`: Multi-level undo/redo with deep-copy snapshots.
+    -   `context.py`: `ProjectContext` (Protocol) for decoupling handlers from `MainWindow`.
+    -   `settings_manager.py`: Facade for the `settings/` subsystem.
+    -   `settings/`: Decomposed settings: `global_settings.py`, `plugin_settings.py`, `font_map_loader.py`, `recent_projects_manager.py`, `session_state_manager.py`.
+-   `handlers/`: Specialized classes for specific functionality:
+    -   `base_handler.py`: Base class providing `self.ctx`, `self.data_processor`, `self.ui_updater`.
+    -   `app_action_handler.py`: Global app actions (file export/import, open, close).
+    -   `project_action_handler.py`: Project-level CRUD and block management.
+    -   `list_selection_handler.py`: Block/string selection logic and preview updates.
+    -   `text_operation_handler.py`: Text editing, paste, revert, and modification tracking.
+    -   `text_analysis_handler.py`: Width and length analysis.
+    -   `text_autofix_logic.py`: Auto-correction engine (short lines, width exceeded, empty sublines, tag spacing).
+    -   `search_handler.py`: Global search with fuzzy matching.
+    -   `issue_scan_handler.py`: Project-wide issue scanning.
+    -   `string_settings_handler.py`: Per-string width and display settings.
+    -   `ai_chat_handler.py`: AI chat window handler.
+    -   `translation_handler.py`: Translation facade coordinating the subsystem below.
+    -   `translation/`: Decomposed AI translation subsystem:
+        -   `ai_lifecycle_manager.py`: AI request lifecycle (queue, retry, cancellation).
+        -   `ai_prompt_composer.py`: Prompt construction with glossary and context injection.
+        -   `ai_worker.py`: QThread-based async AI execution.
+        -   `glossary_handler.py`: Glossary UI and CRUD operations.
+        -   `glossary_builder_handler.py`: AI-powered glossary term generation.
+        -   `glossary_occurrence_updater.py`: Batch occurrence updates with AI.
+        -   `glossary_prompt_manager.py`: Prompt file I/O and caching.
+        -   `translation_ui_handler.py`: Translation progress UI and dialogs.
+-   `ui/`: UI management:
+    -   `ui_updater.py`: Central UI refresh coordinator — the largest UI module.
+    -   `ui_setup.py`: UI initialization entry point.
+    -   `settings_dialog.py`: Application settings dialog.
+    -   `themes.py`: Theme management.
+    -   `builders/`: UI construction modules (`layout_builder.py`, `menu_builder.py`, `toolbar_builder.py`, `statusbar_builder.py`).
+    -   `updaters/`: Decomposed UI updaters: `block_list_updater.py`, `preview_updater.py`, `string_settings_updater.py`, `title_status_bar_updater.py`.
+    -   `main_window/`: MainWindow event handling and actions.
+-   `components/`: Reusable PyQt5 widgets (text editors, tree widgets, dialogs, glossary edit dialog).
+-   `plugins/`: Game-specific plugin modules:
+    -   `base_game_rules.py`: Abstract base class for all plugins.
+    -   `common/`: Shared markers and utilities (`markers.py`).
+    -   `zelda_mc/`, `zelda_ww/`, `pokemon_fr/`, `plain_text/`: Individual game plugins.
+-   `utils/`: Utility functions (`utils.py`), constants (`constants.py`), syntax highlighter (`syntax_highlighter.py`), and logging (`logging_utils.py`).
+-   `tests/`: 600+ unit tests organized by module (pytest).
 
 ### Key Development Conventions
 
--   **State Management**: The `MainWindow` class uses a large number of boolean flags (e.g., `is_loading_data`, `is_programmatically_changing_text`) to control application state and prevent recursive event handling. When modifying the code, it is critical to respect these flags.
--   **Delegation**: The `MainWindow` delegates most of its logic to the various handlers in the `handlers/` directory. This promotes a clean separation of concerns.
--   **Logging**: All diagnostic output is managed by `utils/logging_utils.py` and is written to `app_debug.txt` in the project root. Use `log_info()`, `log_warning()`, and `log_error()` for logging.
--   **Plugin Interface**: The `plugins/base_game_rules.py` file defines the abstract base class that all game plugins must inherit from.
+-   **State Management**: The application uses `StateManager` (`core/state_manager.py`) with `AppState` enum values (e.g., `LOADING_DATA`, `SAVING_DATA`, `ADJUSTING_CURSOR`). States are entered via context managers: `with self.state.enter(AppState.LOADING_DATA):`. This replaced the old system of 46+ boolean flags.
+-   **Data Flow**: All data mutations go through `DataStateProcessor` (`core/data_state_processor.py`). Direct access to `data`/`edited_data` arrays should be avoided — use the processor's methods instead.
+-   **Delegation**: `MainWindow` delegates logic to handlers in `handlers/`. Each handler receives `ProjectContext`, `DataStateProcessor`, and `UIUpdater` via `BaseHandler`.
+-   **Decoupling**: Handlers use `ProjectContext` (Protocol, defined in `core/context.py`) instead of direct `MainWindow` references, enabling unit testing with mocks.
+-   **Logging**: All diagnostic output is managed by `utils/logging_utils.py` using `RotatingFileHandler` (2 MB limit, 5 backups). Written to `app_debug.txt`. Use `log_info()`, `log_warning()`, `log_error(msg, exc_info=True)` for logging.
+-   **Plugin Interface**: `plugins/base_game_rules.py` defines the abstract base class. Plugins must implement: `load_data_from_json_obj`, `save_data_to_json_obj`, `get_enter_char`, `analyze_subline`, and optionally `autofix_data_string`, `process_pasted_segment`.
+-   **Testing**: All tests use `pytest` with fixtures defined in `tests/conftest.py`. Mock-based unit tests for handlers use `unittest.mock.MagicMock` for `MainWindow` and Qt widgets.
 
 Розмовляй та пиши волксру та плани kbit українською
 
