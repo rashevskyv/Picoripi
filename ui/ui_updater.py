@@ -713,7 +713,7 @@ class UIUpdater:
         if not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
-        displayed_indices = getattr(self.mw, 'displayed_string_indices', [])
+        displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
         if not displayed_indices:
              # If no filtering is active, use all
              displayed_indices = list(range(len(self.mw.data_store.data[block_idx])))
@@ -723,7 +723,7 @@ class UIUpdater:
                 preview_edit.addProblemLineHighlight(preview_idx)
         
         # Highlight categorized strings if enabled
-        if getattr(self.mw, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
+        if getattr(self.mw.data_store, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
             categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
             if categorized_indices:
                 preview_indices = []
@@ -855,7 +855,7 @@ class UIUpdater:
             if not target_indices and not category_name:
                 target_indices = list(range(len(self.mw.data_store.data[block_idx])))
                 # Filter out categorized if "Hide moved" is enabled
-                if getattr(self.mw, 'hide_categorized', False):
+                if getattr(self.mw.data_store, 'hide_categorized', False):
                     categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
                     target_indices = [idx for idx in target_indices if idx not in categorized_indices]
             

@@ -224,14 +224,20 @@ def test_UIUpdater_apply_highlights_for_block_with_no_displayed_indices(updater,
     mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
 
 def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw):
-    """Test highlight_categorized branch."""
+    """highlight_categorized must be read from data_store, not mw directly."""
+    from core.data_store import AppDataStore
+    # Use a REAL separate data_store so that data_store.highlight_categorized != mw.highlight_categorized
+    real_store = AppDataStore()
+    real_store.highlight_categorized = True
+    real_store.current_category_name = None
+    real_store.displayed_string_indices = [0, 1]
+    real_store.data = [["s1", "s2"]]
+    real_store.problems_per_subline = {}
+    mock_mw.data_store = real_store
+    
     mock_mw.preview_text_edit = MagicMock()
     mock_mw.preview_text_edit.highlightManager = MagicMock()
     mock_mw.current_game_rules = MagicMock()
-    mock_mw.data = [["s1", "s2"]]
-    mock_mw.displayed_string_indices = [0, 1]
-    mock_mw.highlight_categorized = True
-    mock_mw.current_category_name = None
     mock_mw.list_selection_handler._data_string_has_any_problem.return_value = False
     
     pm = MagicMock()
@@ -245,6 +251,7 @@ def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw)
     mock_mw.block_to_project_file_map = {0: 0}
     
     updater._apply_highlights_for_block(0)
+    # MUST call setCategorizedLineHighlights when data_store.highlight_categorized is True
     mock_mw.preview_text_edit.highlightManager.setCategorizedLineHighlights.assert_called_once()
 
 def test_UIUpdater_apply_highlights_to_editor_no_editor(updater, mock_mw):
@@ -410,6 +417,51 @@ def test_UIUpdater_populate_strings_with_project_manager(mock_hl, mock_ut, updat
     
     # Verify that the full string set is displayed
     assert mock_mw.displayed_string_indices == [0, 1]
+
+@patch.object(UIUpdater, 'update_text_views')
+@patch.object(UIUpdater, '_apply_highlights_for_block')
+def test_UIUpdater_populate_strings_hide_categorized_from_data_store(mock_hl, mock_ut, updater, mock_mw):
+    """hide_categorized must be read from data_store, not mw directly."""
+    from core.data_store import AppDataStore
+    # Use a REAL separate data_store so that data_store.hide_categorized != mw.hide_categorized
+    real_store = AppDataStore()
+    real_store.hide_categorized = True
+    real_store.highlight_categorized = False
+    real_store.current_category_name = None
+    real_store.data = [["s0", "s1", "s2"]]
+    real_store.problems_per_subline = {}
+    real_store.displayed_string_indices = []
+    real_store.current_block_idx = -1
+    real_store.current_string_idx = -1
+    mock_mw.data_store = real_store
+    
+    pm = MagicMock()
+    proj = MagicMock()
+    block = MagicMock()
+    cat = MagicMock(); cat.line_indices = [1]
+    block.categories = [cat]
+    proj.blocks = [block]
+    pm.project = proj
+    pm.get_all_block_indices_under_folder = MagicMock(return_value=[])
+    mock_mw.project_manager = pm
+    mock_mw.block_to_project_file_map = {0: 0}
+    
+    mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
+    mock_mw.preview_text_edit = MagicMock()
+    mock_mw.preview_text_edit.toPlainText.return_value = ""
+    mock_mw.preview_text_edit.highlightManager = MagicMock()
+    mock_mw.preview_text_edit.document.return_value.blockCount.return_value = 2
+    updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
+    
+    updater.populate_strings_for_block(0, force=True)
+    
+    # String at index 1 is categorized -> should be filtered out when data_store.hide_categorized is True
+    assert 1 not in real_store.displayed_string_indices, (
+        "Expected categorized string (idx=1) to be hidden when data_store.hide_categorized=True, "
+        f"but displayed_string_indices={real_store.displayed_string_indices}"
+    )
+    assert real_store.displayed_string_indices == [0, 2]
 
 def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     """Test update_text_views with original_width_label."""
