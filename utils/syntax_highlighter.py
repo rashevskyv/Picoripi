@@ -557,6 +557,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 self.setFormat(local_start, local_length, existing_format)
 
         # Translation Glossary Bridge highlighting
+        # Translation Glossary Bridge highlighting
+        translation_matches = []
         if self._is_translation_mode and self._source_editor_ref and self._glossary_manager:
             try:
                 # 1. Access the corresponding block in the source editor
@@ -594,20 +596,32 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                                     if has_custom_color:
                                         existing_format.setUnderlineColor(underline_color)
                                     self.setFormat(t_start, t_len, existing_format)
+
+                                    # 5. Store match for tooltips/etc.
+                                    translation_matches.append(
+                                        GlossaryMatch(entry=entry, start=t_start, end=t_start + t_len)
+                                    )
             except Exception as e:
                 log_debug(f"JsonTagHighlighter: Error in translation glossary highlighting: {e}")
 
+        # Combine matches for user data (to enable tooltips and context menu)
+        all_matches = []
         if glossary_matches_for_block:
-            block_matches = [
-                GlossaryMatch(
-                    entry=match.entry,
-                    start=local_start,
-                    end=local_start + local_length,
-                )
-                for local_start, local_length, match in glossary_matches_for_block
-                if local_length > 0
-            ]
-            self.setCurrentBlockUserData(self.GlossaryBlockData(block_matches))
+            for local_start, local_length, match in glossary_matches_for_block:
+                if local_length > 0:
+                    all_matches.append(
+                        GlossaryMatch(
+                            entry=match.entry,
+                            start=local_start,
+                            end=local_start + local_length,
+                        )
+                    )
+        
+        # Add translation bridge matches
+        all_matches.extend(translation_matches)
+
+        if all_matches:
+            self.setCurrentBlockUserData(self.GlossaryBlockData(all_matches))
         else:
             self.setCurrentBlockUserData(None)
 
