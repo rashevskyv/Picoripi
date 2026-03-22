@@ -201,29 +201,44 @@ class UIUpdater:
         return problem_counts
 
 
+    def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
+        display_name_with_issues = base_display_name
+        issue_texts = []
+        tooltip_lines = []
+        
+        sorted_problem_ids_for_display = sorted(
+            problem_counts.keys(),
+            key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)
+        )
+
+        for problem_id in sorted_problem_ids_for_display:
+            count_sublines = problem_counts[problem_id]
+            if count_sublines > 0:
+                short_name = self.mw.current_game_rules.get_short_problem_name(problem_id)
+                issue_texts.append(f"{count_sublines} {short_name}")
+                
+                prob_def = problem_definitions.get(problem_id, {})
+                full_name = prob_def.get("name", problem_id)
+                desc = prob_def.get("description", "")
+                tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
+        
+        if issue_texts:
+            display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
+            
+        item.setText(0, display_name_with_issues)
+        if tooltip_lines:
+            item.setToolTip(0, "<br><br>".join(tooltip_lines))
+        else:
+            item.setToolTip(0, "")
+
     def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
         """Helper to create a single block tree item with issue counts and tooltips."""
         base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
         block_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts)
         
-        display_name_with_issues = base_display_name
-        issue_texts = []
+        item = self.mw.block_list_widget.create_item(base_display_name, block_idx, Qt.UserRole)
+        self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         
-        sorted_problem_ids_for_display = sorted(
-            block_problem_counts.keys(),
-            key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)
-        )
-
-        for problem_id in sorted_problem_ids_for_display:
-            count_sublines = block_problem_counts[problem_id]
-            if count_sublines > 0:
-                short_name = self.mw.current_game_rules.get_short_problem_name(problem_id)
-                issue_texts.append(f"{count_sublines} {short_name}")
-        
-        if issue_texts:
-            display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
-        
-        item = self.mw.block_list_widget.create_item(display_name_with_issues, block_idx, Qt.UserRole)
         item.setData(0, Qt.EditRole, base_display_name)
         item.setData(0, Qt.UserRole + 4, base_display_name)
         
@@ -239,20 +254,11 @@ class UIUpdater:
                     cat_item.setData(0, Qt.UserRole, block_idx)
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
                     cat_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
+                    
+                    cat_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts=None, category_name=cat.name)
+                    self._apply_issues_and_tooltip(cat_item, cat.name, cat_problem_counts, problem_definitions)
+                    
                     item.addChild(cat_item)
-        
-        # Tooltip logic
-        tooltip_lines = []
-        for problem_id in sorted_problem_ids_for_display:
-            count_sublines = block_problem_counts[problem_id]
-            if count_sublines > 0:
-                prob_def = problem_definitions.get(problem_id, {})
-                full_name = prob_def.get("name", problem_id)
-                desc = prob_def.get("description", "")
-                tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
-        
-        if tooltip_lines:
-            item.setToolTip(0, "<br><br>".join(tooltip_lines))
             
         return item
 

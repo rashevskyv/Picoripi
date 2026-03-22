@@ -1,21 +1,7 @@
 {
     "display_name": "Pokemon FireRed/LeafGreen",
     "default_tag_mappings": {
-        "{PLAYER}": "{PLAYER}",
-        "{RIVAL}": "{RIVAL}",
-        "{DPAD_UPDOWN}": "{DPAD_UPDOWN}",
-        "{A_BUTTON}": "{A_BUTTON}",
-        "{B_BUTTON}": "{B_BUTTON}",
-        "{DPAD_LEFTRIGHT}": "{DPAD_LEFTRIGHT}",
-        "{PLUS}": "{PLUS}",
-        "{START_BUTTON}": "{START_BUTTON}",
-        "{NO}": "{NO}",
-        "{LV_2}": "{LV_2}",
-        "{ID}": "{ID}",
-        "{PP}": "{PP}",
-        "{ESCAPE 0x03}": "{ESCAPE 0x03}",
-        "{ID}{NO}": "{ID}{NO}",
-        "{PKMN}": "{PKMN}"
+        "player": "original"
     },
     "block_names": {
         "0": "data_event_scripts.s",
@@ -734,22 +720,18 @@
         "do"
     ],
     "autofix_enabled": {
-        "ZWW_TAG_WARNING": false,
-        "ZWW_WIDTH_EXCEEDED": true,
-        "ZWW_EMPTY_ODD_SUBLINE_LOGICAL": false,
-        "ZWW_EMPTY_ODD_SUBLINE_DISPLAY": false,
-        "ZWW_EMPTY_FIRST_LINE_OF_PAGE": false,
-        "ZWW_SINGLE_WORD_SUBLINE": false,
-        "ZWW_SHORT_LINE": false
+        "PKFR_WIDTH_EXCEEDED": false,
+        "PKFR_TAG_WARNING": false,
+        "PKFR_EMPTY_SUBLINE": false,
+        "PKFR_SINGLE_WORD_SUBLINE": false,
+        "PKFR_SHORT_LINE": false
     },
     "detection_enabled": {
-        "ZWW_TAG_WARNING": true,
-        "ZWW_WIDTH_EXCEEDED": true,
-        "ZWW_EMPTY_ODD_SUBLINE_LOGICAL": true,
-        "ZWW_EMPTY_ODD_SUBLINE_DISPLAY": true,
-        "ZWW_EMPTY_FIRST_LINE_OF_PAGE": true,
-        "ZWW_SINGLE_WORD_SUBLINE": true,
-        "ZWW_SHORT_LINE": true
+        "PKFR_WIDTH_EXCEEDED": true,
+        "PKFR_TAG_WARNING": true,
+        "PKFR_EMPTY_SUBLINE": true,
+        "PKFR_SINGLE_WORD_SUBLINE": true,
+        "PKFR_SHORT_LINE": true
     },
     "string_metadata": {
         "(0, 134)": {

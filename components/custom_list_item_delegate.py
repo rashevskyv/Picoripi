@@ -266,6 +266,29 @@ class CustomListItemDelegate(QStyledItemDelegate):
             if not icon.isNull():
                 icon_rect = QRect(status_rect_in_gutter.left() + 2, icon_y, icon_size, icon_size)
                 draw_stacked_icon(icon, icon_rect, painter)
+                
+                # Draw cloud if it's a category
+                category_name = index.data(Qt.UserRole + 10)
+                if category_name:
+                    painter.save()
+                    painter.setRenderHint(QPainter.Antialiasing)
+                    cloud_color = QColor("#FFFFFF") if theme == "light" else QColor("#E0E0E0")
+                    cloud_border = QColor("#44AADD") if theme == "light" else QColor("#2288CC")
+                    painter.setPen(cloud_border)
+                    painter.setBrush(cloud_color)
+                    
+                    cx = icon_rect.right() - 2
+                    cy = icon_rect.top() + 4
+                    
+                    # Draw 3 overlapping circles
+                    painter.drawEllipse(QPoint(cx - 3, cy), 3, 3)
+                    painter.drawEllipse(QPoint(cx + 3, cy), 3, 3)
+                    painter.drawEllipse(QPoint(cx, cy - 2), 4, 4)
+                    
+                    # Fill the gap over the bottom border of the top circle
+                    painter.setPen(Qt.NoPen)
+                    painter.drawRect(cx - 2, cy - 1, 5, 4)
+                    painter.restore()
 
         # Draw Warning Strips (at the far right of the status zone)
         if problem_indicator_colors_to_draw:
@@ -379,21 +402,22 @@ class CustomListItemDelegate(QStyledItemDelegate):
         
         if number_rect.contains(mouse_pos):
             block_idx = index.data(Qt.UserRole)
+            category_name = index.data(Qt.UserRole + 10)
             if block_idx is not None:
-                tooltip_text = self._get_problems_tooltip_text(main_window, block_idx)
+                tooltip_text = self._get_problems_tooltip_text(main_window, block_idx, category_name)
                 if tooltip_text:
                     QToolTip.showText(event.globalPos(), tooltip_text, view)
                     return
         
         QToolTip.hideText()
 
-    def _get_problems_tooltip_text(self, main_window, block_idx) -> str:
+    def _get_problems_tooltip_text(self, main_window, block_idx, category_name=None) -> str:
         problem_definitions = {}
         if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
             problem_definitions = main_window.current_game_rules.get_problem_definitions()
         
         if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
-            block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx)
+            block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name)
             tooltip_lines = []
             if problem_definitions and block_problem_counts:
                 sorted_ids = sorted(block_problem_counts.keys(), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))

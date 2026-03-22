@@ -1,6 +1,13 @@
-# Picoripi v0.2.17
+# Picoripi v0.2.23
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+
+## New in v0.2.23
+
+- **Visual Cloud Indicators**: Virtual folders (categories) now have a distinct cloud overlay icon to distinguish them from standard blocks.
+- **Accurate Virtual Block Tooltips**: Virtual blocks display independent problem counts directly, rather than inheriting their parent's tooltip.
+- **Global Spellchecker Prefetching**: Dramatically improved spellchecker context menu speed by loading dictionaries and suggestions entirely in the background.
+- **Improved Asterisk Persistence**: Edited indicators (stars) correctly propagate to parent folders and are no longer lost when navigating away from edited code strings.
 
 ## New in v0.2.17
 
