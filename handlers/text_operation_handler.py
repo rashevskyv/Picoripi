@@ -157,6 +157,35 @@ class TextOperationHandler(BaseHandler):
         if edited_edit and hasattr(edited_edit, 'lineNumberArea'):
             edited_edit.lineNumberArea.update()
 
+    def sync_subline_asterisks(self, block_idx: int, string_idx: int, current_text: str) -> None:
+        """
+        Compares the current text of a string with its original version from the file 
+        and updates mw.edited_sublines to show asterisks (*) on modified sublines in the editor.
+        """
+        if not hasattr(self.mw, 'edited_sublines'):
+            return
+
+        # Determine the baseline (original) text for comparison
+        text_from_saved_file = self.data_processor._get_string_from_source(
+            block_idx, string_idx, self.mw.edited_file_data, "edited_file_data"
+        )
+        if text_from_saved_file is None:
+            text_from_saved_file = self.data_processor._get_string_from_source(
+                block_idx, string_idx, self.mw.data, "original_data"
+            )
+        
+        if text_from_saved_file is None:
+            self.mw.edited_sublines.clear()
+            return
+
+        saved_lines = str(text_from_saved_file).split('\n')
+        curr_lines = str(current_text).split('\n')
+        
+        self.mw.edited_sublines.clear()
+        for i, curr_line in enumerate(curr_lines):
+            # If current line differs OR it's a new line (beyond saved lines), mark as edited
+            if i >= len(saved_lines) or curr_line != saved_lines[i]:
+                self.mw.edited_sublines.add(i)
 
     def paste_block_text(self) -> None:
         log_debug(f"--> TextOperationHandler: paste_block_text triggered.")

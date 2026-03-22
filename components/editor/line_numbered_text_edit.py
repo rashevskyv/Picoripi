@@ -91,7 +91,6 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
         if not self.isReadOnly():
             self.cursorPositionChanged.connect(self.highlightManager.updateCurrentLineHighlight)
-            self.cursorPositionChanged.connect(self._on_cursor_position_changed)
             self.setUndoRedoEnabled(False)
 
         self.updateLineNumberAreaWidth(0)
@@ -298,29 +297,6 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if hasattr(self, 'lineNumberArea'):
              self.lineNumberArea.update()
         self.viewport().update()
-
-    def _on_cursor_position_changed(self):
-        if self.isReadOnly():
-            return
-            
-        cursor = self.textCursor()
-        if cursor.hasSelection():
-            return
-            
-        # Get word under cursor
-        cursor.select(QTextCursor.WordUnderCursor)
-        word = cursor.selectedText().strip()
-        
-        if not word:
-            return
-            
-        # Access spellchecker through main window reference in highlighter
-        if hasattr(self, 'highlighter') and self.highlighter and self.highlighter.mw:
-            sm = getattr(self.highlighter.mw, 'spellchecker_manager', None)
-            if sm and sm.enabled:
-                # Only prefetch if it's actually misspelled
-                if sm.is_misspelled(word):
-                    sm.enqueue_suggestion_prefetch(word)
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.ControlModifier:

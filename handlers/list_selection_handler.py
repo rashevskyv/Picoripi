@@ -207,6 +207,14 @@ class ListSelectionHandler(BaseHandler):
             self.mw.current_string_idx = real_idx
             self.mw.edited_sublines.clear() # Clear editor sublines on line change
             
+            # Restore subline asterisks if the selected line has unsaved changes in memory
+            if (self.mw.current_block_idx, real_idx) in self.mw.edited_data:
+                current_text = self.mw.edited_data[(self.mw.current_block_idx, real_idx)]
+                if hasattr(self.mw, 'text_operation_handler'):
+                    self.mw.text_operation_handler.sync_subline_asterisks(
+                        self.mw.current_block_idx, real_idx, current_text
+                    )
+
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
                 cat = getattr(self.mw, 'current_category_name', None)
                 self.mw.undo_manager.record_navigation(
