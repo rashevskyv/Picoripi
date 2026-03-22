@@ -27,37 +27,39 @@ class LNETTooltipLogic:
 
         if is_preview:
             string_idx = line_idx_in_widget
-            if hasattr(main_window, 'displayed_string_indices') and main_window.data_store.displayed_string_indices:
+            if hasattr(main_window.data_store, 'displayed_string_indices') and main_window.data_store.displayed_string_indices:
                 if 0 <= line_idx_in_widget < len(main_window.data_store.displayed_string_indices):
                     string_idx = main_window.data_store.displayed_string_indices[line_idx_in_widget]
                 else:
                     string_idx = -1
 
             if string_idx != -1:
-                for key, probs in getattr(main_window, 'problems_per_subline', {}).items():
+                problems_map = getattr(main_window.data_store, 'problems_per_subline', {})
+                for key, probs in problems_map.items():
                     if key[0] == block_idx and key[1] == string_idx:
                         problems.update(probs)
         else:
-            if not hasattr(main_window, 'current_string_idx'):
+            if not hasattr(main_window.data_store, 'current_string_idx'):
                 return None
             string_idx = main_window.data_store.current_string_idx
-            problems = getattr(main_window, 'problems_per_subline', {}).get((block_idx, string_idx, line_idx_in_widget), set())
+            problems = getattr(main_window.data_store, 'problems_per_subline', {}).get((block_idx, string_idx, line_idx_in_widget), set())
         
         tooltip_lines = []
         
         # Check for Unsaved Changes indicator (*)
         is_unsaved = False
+        edited_data = getattr(main_window.data_store, 'edited_data', {})
         if is_preview:
-            is_unsaved = (block_idx, string_idx) in getattr(main_window, 'edited_data', {})
+            is_unsaved = (block_idx, string_idx) in edited_data
         elif is_editor and string_idx != -1:
-            is_unsaved = (block_idx, string_idx) in getattr(main_window, 'edited_data', {})
+            is_unsaved = (block_idx, string_idx) in edited_data
         
         if is_unsaved:
              tooltip_lines.append("<b>*</b>: Unsaved changes")
 
         # Check for Metadata indicators in Preview
         if is_preview:
-            string_meta = getattr(main_window, 'string_metadata', {}).get((block_idx, string_idx), {})
+            string_meta = getattr(main_window.data_store, 'string_metadata', {}).get((block_idx, string_idx), {})
             if "font_file" in string_meta or "width" in string_meta:
                 meta_info = []
                 if "font_file" in string_meta:
