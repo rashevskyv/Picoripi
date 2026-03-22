@@ -344,6 +344,13 @@ class SpellcheckDialog(QDialog):
     def pre_highlight_all_misspelled_words(self):
         """Highlight all misspelled words with red wavy underline."""
         cursor = self.text_edit.textCursor()
+        
+        # Clear existing underlines first
+        cursor.select(QTextCursor.Document)
+        clear_format = QTextCharFormat()
+        clear_format.setUnderlineStyle(QTextCharFormat.NoUnderline)
+        cursor.mergeCharFormat(clear_format)
+
         cursor.setPosition(0)
 
         # Create format for misspelled words (red wavy underline)

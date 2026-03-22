@@ -403,7 +403,7 @@ class CustomTreeWidget(QTreeWidget):
             if spellchecker_manager and spellchecker_manager.enabled:
                 menu.addSeparator()
                 spellcheck_action = menu.addAction(self.style().standardIcon(QStyle.SP_DialogHelpButton), f"Spellcheck")
-                spellcheck_action.triggered.connect(lambda checked=False, idx=block_idx: self._open_spellcheck_for_block(idx))
+                spellcheck_action.triggered.connect(lambda checked=False, idx=block_idx, cname=category_name: self._open_spellcheck_for_block(idx, cname))
 
             translator = getattr(main_window, 'translation_handler', None)
             if translator:
@@ -1141,8 +1141,8 @@ class CustomTreeWidget(QTreeWidget):
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.warning(self, "Reveal", f"File not found:\n{abs_path}")
 
-    def _open_spellcheck_for_block(self, block_idx: int):
-        log_debug(f"CustomTreeWidget: _open_spellcheck_for_block called for block_idx={block_idx}")
+    def _open_spellcheck_for_block(self, block_idx: int, category_name: str = None):
+        log_debug(f"CustomTreeWidget: _open_spellcheck_for_block called for block_idx={block_idx}, category={category_name}")
 
         try:
             main_window = self.window()
@@ -1164,7 +1164,23 @@ class CustomTreeWidget(QTreeWidget):
 
             all_translated_lines = []
 
+            valid_indices = None
+            if category_name and hasattr(main_window, 'project_manager') and main_window.project_manager.project:
+                project = main_window.project_manager.project
+                proj_block_idx = block_idx
+                if hasattr(main_window, 'block_to_project_file_map'):
+                    proj_block_idx = main_window.block_to_project_file_map.get(block_idx, block_idx)
+                if proj_block_idx < len(project.blocks):
+                    block = project.blocks[proj_block_idx]
+                    for cat in block.categories:
+                        if cat.name == category_name:
+                            valid_indices = set(cat.line_indices)
+                            break
+
             for string_idx in range(len(block_data)):
+                if valid_indices is not None and string_idx not in valid_indices:
+                    continue
+
                 key = (block_idx, string_idx)
                 text = None
 

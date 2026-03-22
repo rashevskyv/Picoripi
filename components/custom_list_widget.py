@@ -98,7 +98,7 @@ class CustomListWidget(QListWidget):
         if spellchecker_manager and spellchecker_manager.enabled:
             menu.addSeparator()
             spellcheck_action = menu.addAction(f"Spellcheck Block '{block_name}'")
-            spellcheck_action.triggered.connect(lambda checked=False, idx=block_idx: self._open_spellcheck_for_block(idx))
+            spellcheck_action.triggered.connect(lambda checked=False, idx=block_idx: self._open_spellcheck_for_block(idx, None))
 
         translator = getattr(main_window, 'translation_handler', None)
         if translator:
@@ -129,9 +129,9 @@ class CustomListWidget(QListWidget):
                         return True
         return super().viewportEvent(event)
 
-    def _open_spellcheck_for_block(self, block_idx: int):
+    def _open_spellcheck_for_block(self, block_idx: int, category_name: str = None):
         """Open spellcheck dialog for a specific block."""
-        log_debug(f"CustomListWidget: _open_spellcheck_for_block called for block_idx={block_idx}")
+        log_debug(f"CustomListWidget: _open_spellcheck_for_block called for block_idx={block_idx}, category={category_name}")
 
         try:
             main_window = self.window()
@@ -168,7 +168,23 @@ class CustomListWidget(QListWidget):
             # First pass: collect all translated lines and check for misspellings
             all_translated_lines = []  # (string_idx, text)
 
+            valid_indices = None
+            if category_name and hasattr(main_window, 'project_manager') and main_window.project_manager.project:
+                project = main_window.project_manager.project
+                proj_block_idx = block_idx
+                if hasattr(main_window, 'block_to_project_file_map'):
+                    proj_block_idx = main_window.block_to_project_file_map.get(block_idx, block_idx)
+                if proj_block_idx < len(project.blocks):
+                    block = project.blocks[proj_block_idx]
+                    for cat in block.categories:
+                        if cat.name == category_name:
+                            valid_indices = set(cat.line_indices)
+                            break
+
             for string_idx in range(len(block_data)):
+                if valid_indices is not None and string_idx not in valid_indices:
+                    continue
+
                 key = (block_idx, string_idx)
                 text = None
 
