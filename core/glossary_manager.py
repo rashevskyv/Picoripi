@@ -433,8 +433,8 @@ class GlossaryManager:
             else:
                 self._non_word_patterns.append((entry, pattern))
 
-    @classmethod
-    def _build_regex(cls, term: str) -> re.Pattern[str]:
+    @staticmethod
+    def _build_regex(term: str) -> re.Pattern[str]:
         if not term:
             return re.compile(r"(?!x)x")
 
@@ -450,16 +450,39 @@ class GlossaryManager:
         prefix = r'(?<!\w)'
         suffix = r'(?!\w)'
         if not term[0].isalnum():
-            # Simple approach: match words separated by any whitespace or tags
+            prefix = ''
+        if not term[-1].isalnum():
+            suffix = ''
+
+        pattern = f"{prefix}{pattern_body}{suffix}"
+        return re.compile(pattern, re.IGNORECASE)
+
+    @staticmethod
+    def build_translation_regex(term: str) -> Optional[re.Pattern[str]]:
+        """
+        Build a regex for a translated term that handles Slavic inflections.
+        It uses a simple 'stemming' approach to allow for case endings.
+        """
+        if not term or not term.strip():
+            return None
+
+        # 1. Clean up and lower
+        term = term.strip()
+        
+        # 2. Handle multi-word terms
+        words = term.split()
+        if len(words) > 1:
+            parts = [GlossaryManager._get_word_stem_pattern(word) for word in words]
             sep = r"(?:\s+|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
             pattern = rf"(?<!\w){sep.join(parts)}(?!\w)"
             return re.compile(pattern, re.IGNORECASE)
         
         # 3. Handle single word
-        pattern = rf"(?<!\w){self._get_word_stem_pattern(term)}(?!\w)"
+        pattern = rf"(?<!\w){GlossaryManager._get_word_stem_pattern(term)}(?!\w)"
         return re.compile(pattern, re.IGNORECASE)
 
-    def _get_word_stem_pattern(self, word: str) -> str:
+    @staticmethod
+    def _get_word_stem_pattern(word: str) -> str:
         """Internal helper to get a stem pattern for a single word."""
         if len(word) <= 2:
             return re.escape(word)
