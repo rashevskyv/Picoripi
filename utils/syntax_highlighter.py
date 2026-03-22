@@ -643,7 +643,13 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         self.setFormat(local_start, local_length, existing_format)
                         
                         # Store for user data (tooltips)
-                        translation_matches.append(t_match)
+                        translation_matches.append(
+                            GlossaryMatch(
+                                entry=t_match.entry,
+                                start=local_start,
+                                end=local_start + local_length
+                            )
+                        )
             except Exception as e:
                 log_debug(f"JsonTagHighlighter: Error in translation glossary highlighting: {e}")
 
