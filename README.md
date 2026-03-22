@@ -1,4 +1,4 @@
-# Picoripi v0.2.38
+# Picoripi v0.2.39
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
@@ -10,6 +10,7 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - Create, load, and save `.uiproj` projects that encapsulate all files and settings for a translation effort.
 - Organize strings into **virtual folders (categories)** for logical grouping of translated texts.
 - **Visual Status Tracking**: Unsaved changes propagate via clear asterisk (*) indicators up the project tree. Virtual folders display their own specialized error counts and custom cloud icons for easy identification.
+- **Robust Tree Interaction**: Support for **inline renaming** of both blocks and virtual folders, with advanced data role handling to prevent UI metadata from interfering with raw names.
 - Automatic synchronization of local files with project data during work.
 - Move files or individual text blocks between categories with drag-and-drop support.
 
@@ -54,7 +55,8 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 ### Analysis, Navigation & Safety
 - **Analysis Tool**: Histograms and visualizations for text sizes and problem counts.
 - **Undo / Redo**: Comprehensive undo system covering text edits, folder structure changes, reverts, and even tree navigation.
-- **Global Search**: Project-wide search panel with fuzzy matching support.
+- **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
+- **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
 - **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
 - **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).
 

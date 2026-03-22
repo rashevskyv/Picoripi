@@ -1,5 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.39] - 2026-03-22
+
+### 🚀 Added
+- **Visual Selection Highlighting**: Improved UI feedback when strings are found via search, ensuring matches are clearly visible and correctly highlighted.
+
+### 🐛 Fixed
+- **Virtual Block Inline Renaming**: Fixed a critical issue where renaming virtual blocks (categories) within the tree widget would fail with an "editing failed" error or accidentally rename the parent physical block. 
+- **Qt Role Synchronization**: Resolved a bug where problem counts and technical metadata were appearing inside the inline editor field during renaming due to native Qt role behavior.
+- **Fuzzy Search Highlighting**: Fixed an issue where fuzzy search matches were not highlighted with the correct length, especially when the matched word form differed from the search query.
+- **Search Navigation Accuracy**: Improved search result navigation and fixed button order (Prev/Next) for a more conventional user experience.
+- **Search Term Normalization**: Fixed accuracy issues with search terms containing special characters (like `+`).
+
+### ⚡ Improved
+- **Deployment Workflow**: Enhanced the automated release process to include automatic GitHub Release creation using the `gh` CLI.
+
 ## [0.2.38] - 2026-03-22
 
 ### 🚀 Added

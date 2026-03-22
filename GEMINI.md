@@ -5,13 +5,14 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 ## Project Overview
 
-The "Picoripi" (v0.2.38) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.2.39) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
 ### Core Features
 
-- **Project Management**: A fully project-based workflow. A "project" (`.uiproj` file) encapsulates all files and settings for a specific translation effort. A project contains "blocks" (which map to game text files) and allows for virtual "categories" (folders) to organize strings. Projects support automatic file synchronization, block import/export, and persistent selection state.
+- **Project Management**: A fully project-based workflow. A "project" (`.uiproj` file) encapsulates all files and settings for a specific translation effort. Supports virtual "categories" (folders) for logical grouping, **robust inline renaming**, and persistent selection state.
+- **Visual Feedback System**: Automatic file synchronization, clear problem counts and warning indicators across the project tree with **recursive asterisk propagation for unsaved changes**.
 - **Plugin-Based Architecture**: Game-specific logic is handled by a robust plugin system located in the `plugins/` directory. Each plugin (e.g., `zelda_mc`, `zelda_ww`, `pokemon_fr`, `plain_text`) defines its own rules for text parsing, tag handling, font metrics for width calculation, problem analysis, and autofix behavior. Plugins inherit from `BaseGameRules` (`plugins/base_game_rules.py`).
 - **AI-Assisted Translation**: Integrates with external AI services (OpenAI, Gemini, DeepL) for translation. Features include: batch translation, translation variations for long sentences, AI-powered glossary fill, glossary occurrence batch-update, and a dedicated AI Chat window. The system uses configurable prompts (`AIPromptComposer`) and a full lifecycle manager (`AILifecycleManager`) for reliable async operations.
 - **Glossary System**: Full CRUD glossary management with intelligent, high-performance highlighting of glossary terms using the **Aho-Corasick** algorithm. Supports Slavic-friendly morphological matching, **multiple translation variations** (semicolon-separated), multi-line Bridge Highlighting, AI-powered term filling, batch occurrence updates, and interactive tooltips.
@@ -20,7 +21,8 @@ The application is designed to be highly versatile, with features tailored to ha
 - **Integrated Spellchecker**: Uses `spylls` (Hunspell implementation) for spellchecking with **persistent disk-based caching** for optimized performance. Supports custom dictionaries, built-in dictionary manager for language downloads, and integration with the glossary to avoid false positives on game-specific terms.
 - **Analysis & Safety**: Built-in Analysis Tool for visualizing text sizes and problem counts. Project-wide Issue Scan for width violations and tag errors. Text Autofix engine for automatic correction of common problems.
 - **Comprehensive Undo/Redo**: Multi-level undo system (`UndoManager`) that covers text edits, folder structure changes, block reverts, paste operations, and navigation history.
-- **Global Search**: Project-wide search panel with fuzzy matching, case-sensitive/insensitive modes, and tagless search support.
+- **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
+- **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
 
 ## Building and Running the Project
 
