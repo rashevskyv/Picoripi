@@ -49,3 +49,4 @@ PyQt5
 markdown
 spylls
 pycountry
+pyahocorasick
