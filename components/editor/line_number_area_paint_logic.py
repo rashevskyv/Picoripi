@@ -62,9 +62,9 @@ class LNETLineNumberAreaPaintLogic:
             # ВИПРАВЛЕНО: Відступи для цих рядків збільшено на 4 пробіли, щоб вони знаходились всередині блоку try:
             current_block_idx_data_mw = -1
             current_string_idx_data_mw = -1
-            if isinstance(main_window_ref, QMainWindow):
-                current_block_idx_data_mw = main_window_ref.current_block_idx
-                current_string_idx_data_mw = main_window_ref.current_string_idx
+            if isinstance(main_window_ref, QMainWindow) and hasattr(main_window_ref, 'data_store'):
+                current_block_idx_data_mw = main_window_ref.data_store.current_block_idx
+                current_string_idx_data_mw = main_window_ref.data_store.current_string_idx
 
             while current_q_block.isValid() and top <= event.rect().bottom():
                 if current_q_block.isVisible() and bottom >= event.rect().top():
@@ -75,9 +75,9 @@ class LNETLineNumberAreaPaintLogic:
                     is_editor = self.editor.objectName() in["original_text_edit", "edited_text_edit"]
                     
                     real_idx = current_q_block_number_in_editor_doc
-                    if is_preview and hasattr(main_window_ref, 'displayed_string_indices') and main_window_ref.displayed_string_indices:
-                        if 0 <= current_q_block_number_in_editor_doc < len(main_window_ref.displayed_string_indices):
-                            real_idx = main_window_ref.displayed_string_indices[current_q_block_number_in_editor_doc]
+                    if is_preview and hasattr(main_window_ref, 'data_store') and main_window_ref.data_store.displayed_string_indices:
+                        if 0 <= current_q_block_number_in_editor_doc < len(main_window_ref.data_store.displayed_string_indices):
+                            real_idx = main_window_ref.data_store.displayed_string_indices[current_q_block_number_in_editor_doc]
                         else:
                             real_idx = -1
 
@@ -94,7 +94,7 @@ class LNETLineNumberAreaPaintLogic:
                     # 2. Determine unsaved status from global data_processor state
                     is_unsaved = False
                     if is_preview:
-                        if (current_block_idx_data_mw, real_idx) in main_window_ref.edited_data:
+                        if hasattr(main_window_ref, 'data_store') and (current_block_idx_data_mw, real_idx) in main_window_ref.data_store.edited_data:
                             is_unsaved = True
                     elif is_editor and current_string_idx_data_mw != -1:
                         # Check only THIS specific subline (QTextBlock), not the entire string
@@ -202,9 +202,9 @@ class LNETLineNumberAreaPaintLogic:
                             
                             # Use absolute index if possible
                             real_idx = current_q_block_number_in_editor_doc
-                            if hasattr(main_window_ref, 'displayed_string_indices') and main_window_ref.displayed_string_indices:
-                                if 0 <= current_q_block_number_in_editor_doc < len(main_window_ref.displayed_string_indices):
-                                    real_idx = main_window_ref.displayed_string_indices[current_q_block_number_in_editor_doc]
+                            if hasattr(main_window_ref, 'data_store') and main_window_ref.data_store.displayed_string_indices:
+                                if 0 <= current_q_block_number_in_editor_doc < len(main_window_ref.data_store.displayed_string_indices):
+                                    real_idx = main_window_ref.data_store.displayed_string_indices[current_q_block_number_in_editor_doc]
                                 else:
                                     real_idx = -1
 

@@ -308,7 +308,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         # Calculate available text space
         string_count_text = ""
         count_width = 0
-        if main_window and block_idx_data is not None and hasattr(main_window, 'data'):
+        if main_window and block_idx_data is not None and hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'data'):
             count = 0
             if category_name and hasattr(main_window, 'project_manager') and main_window.project_manager.project:
                 pm = main_window.project_manager

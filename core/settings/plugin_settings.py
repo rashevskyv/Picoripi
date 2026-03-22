@@ -71,7 +71,7 @@ class PluginSettings:
         ]:
             if not hasattr(self.mw, field): setattr(self.mw, field, default)
         
-        if not hasattr(self.mw, 'block_names'): self.mw.data_store.block_names = {}
+        if hasattr(self.mw, 'data_store') and not hasattr(self.mw.data_store, 'block_names'): self.mw.data_store.block_names = {}
         if not hasattr(self.mw, 'block_color_markers'): self.mw.block_color_markers = {}
         if not hasattr(self.mw, 'default_tag_mappings'): self.mw.default_tag_mappings = {}
         if not hasattr(self.mw, 'string_metadata'): self.mw.string_metadata = {}

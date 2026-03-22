@@ -345,7 +345,7 @@ class CustomTreeWidget(QTreeWidget):
         # 5. Block Actions (if it's a block or F/B compaction)
         if block_idx is not None:
             block_name = item.text(0)
-            if hasattr(main_window, 'block_names'):
+            if hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'block_names'):
                  block_name = main_window.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
 
             # For Folder/Block compaction, add a header for the block part
@@ -1151,7 +1151,7 @@ class CustomTreeWidget(QTreeWidget):
             if not spellchecker_manager:
                 return
 
-            if not hasattr(main_window, 'data') or block_idx >= len(main_window.data_store.data):
+            if not hasattr(main_window, 'data_store') or not hasattr(main_window.data_store, 'data') or block_idx >= len(main_window.data_store.data):
                 return
 
             block_data = main_window.data_store.data[block_idx]

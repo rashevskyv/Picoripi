@@ -100,7 +100,7 @@ class DataStateProcessor:
 
     def revert_strings_to_original(self, block_idx: int, string_indices: List[int]) -> None:
         """Reverts multiple strings in a block to their original state (from the loaded file)."""
-        if not hasattr(self.mw, 'edited_data'): return
+        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data'): return
         
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:
@@ -146,7 +146,7 @@ class DataStateProcessor:
 
     def revert_blocks_to_original(self, block_indices: List[int]) -> None:
         """Reverts entire blocks to their state from the loaded edited file (or original)."""
-        if not hasattr(self.mw, 'data') or not self.mw.data_store.data: return
+        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'data') or not self.mw.data_store.data: return
         
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:

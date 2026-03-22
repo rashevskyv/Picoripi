@@ -16,7 +16,7 @@ class LNETTooltipLogic:
         
         line_idx_in_widget = block.blockNumber() 
         main_window = self.editor.window()
-        if not hasattr(main_window, 'current_block_idx'):
+        if not hasattr(main_window, 'data_store') or not hasattr(main_window.data_store, 'current_block_idx'):
             return None
             
         block_idx = main_window.data_store.current_block_idx

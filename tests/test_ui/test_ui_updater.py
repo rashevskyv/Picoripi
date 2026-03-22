@@ -111,6 +111,7 @@ def test_UIUpdater_populate_blocks(updater):
     mock_item = QTreeWidgetItem([])
     updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
     updater.mw.data_store.data = [[]]
+    updater.mw.data_store.block_names = {"0": "Block 0"}
     updater.mw.current_game_rules = MagicMock()
     updater.mw.project_manager = None
     updater.mw.block_list_widget.clear = MagicMock()

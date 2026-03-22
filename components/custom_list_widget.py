@@ -61,7 +61,7 @@ class CustomListWidget(QListWidget):
         self.setCurrentItem(item)
         block_idx = item.data(Qt.UserRole)
         block_name = item.text()
-        if hasattr(main_window, 'block_names'):
+        if hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'block_names'):
             block_name = main_window.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
 
         rename_action = menu.addAction(f"Rename '{block_name}'")
@@ -145,8 +145,8 @@ class CustomListWidget(QListWidget):
                 return
 
             # Get all lines from the block
-            if not hasattr(main_window, 'data') or block_idx >= len(main_window.data_store.data):
-                log_debug(f"CustomListWidget: Invalid block_idx or no data. has_data={hasattr(main_window, 'data')}, block_idx={block_idx}")
+            if not hasattr(main_window, 'data_store') or not hasattr(main_window.data_store, 'data') or block_idx >= len(main_window.data_store.data):
+                log_debug(f"CustomListWidget: Invalid block_idx or no data. has_data={hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'data')}, block_idx={block_idx}")
                 return
 
             block_data = main_window.data_store.data[block_idx]
