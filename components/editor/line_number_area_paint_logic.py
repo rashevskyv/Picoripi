@@ -135,8 +135,8 @@ class LNETLineNumberAreaPaintLogic:
 
                     problem_key = (current_block_idx_data_mw, data_line_idx_for_lookup, qtextblock_idx_for_lookup)
 
-                    if isinstance(main_window_ref, QMainWindow) and hasattr(main_window_ref, 'problems_per_subline') and problem_key in main_window_ref.problems_per_subline:
-                        problem_ids_for_this_qtextblock = main_window_ref.problems_per_subline[problem_key]
+                    if isinstance(main_window_ref, QMainWindow) and hasattr(main_window_ref, 'data_store') and hasattr(main_window_ref.data_store, 'problems_per_subline') and problem_key in main_window_ref.data_store.problems_per_subline:
+                        problem_ids_for_this_qtextblock = main_window_ref.data_store.problems_per_subline[problem_key]
 
                     filtered_problems = {p_id for p_id in problem_ids_for_this_qtextblock if detection_config.get(p_id, True)}
                     
@@ -208,7 +208,11 @@ class LNETLineNumberAreaPaintLogic:
                                 else:
                                     real_idx = -1
 
-                            string_meta = main_window_ref.string_metadata.get((current_block_idx_data_mw, real_idx), {})
+                            string_meta = {}
+                            if hasattr(main_window_ref, 'data_store') and hasattr(main_window_ref.data_store, 'string_metadata'):
+                                string_meta = main_window_ref.data_store.string_metadata.get((current_block_idx_data_mw, real_idx), {})
+                            elif hasattr(main_window_ref, 'string_metadata'):
+                                string_meta = main_window_ref.string_metadata.get((current_block_idx_data_mw, real_idx), {})
                             has_custom_font = "font_file" in string_meta
                             has_custom_width = "width" in string_meta
 
@@ -227,8 +231,8 @@ class LNETLineNumberAreaPaintLogic:
                             # 2. Warning Indicators (Consolidated with stripes)
                             aggregated_probs = set()
                             preview_prob_key = (current_block_idx_data_mw, real_idx)
-                            if real_idx != -1 and hasattr(main_window_ref, 'problems_per_subline'):
-                                for key, problems in main_window_ref.problems_per_subline.items():
+                            if real_idx != -1 and hasattr(main_window_ref, 'data_store') and hasattr(main_window_ref.data_store, 'problems_per_subline'):
+                                for key, problems in main_window_ref.data_store.problems_per_subline.items():
                                     if key[0] == preview_prob_key[0] and key[1] == preview_prob_key[1]:
                                         aggregated_probs.update(problems)
 
