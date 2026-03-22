@@ -450,9 +450,34 @@ class GlossaryManager:
         prefix = r'(?<!\w)'
         suffix = r'(?!\w)'
         if not term[0].isalnum():
-            prefix = ''
-        if not term[-1].isalnum():
-            suffix = ''
-
-        pattern = f"{prefix}{pattern_body}{suffix}"
+            # Simple approach: match words separated by any whitespace or tags
+            sep = r"(?:\s+|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
+            pattern = rf"(?<!\w){sep.join(parts)}(?!\w)"
+            return re.compile(pattern, re.IGNORECASE)
+        
+        # 3. Handle single word
+        pattern = rf"(?<!\w){self._get_word_stem_pattern(term)}(?!\w)"
         return re.compile(pattern, re.IGNORECASE)
+
+    def _get_word_stem_pattern(self, word: str) -> str:
+        """Internal helper to get a stem pattern for a single word."""
+        if len(word) <= 2:
+            return re.escape(word)
+
+        # Common Slavic endings to strip to get a 'soft' stem
+        # This is a heuristic, not a full linguistic stemmer
+        endings = ['а', 'е', 'и', 'і', 'о', 'у', 'я', 'ь', 'ий', 'ій', 'ая', 'яя', 'ое', 'ее']
+        
+        stem = word
+        for e in sorted(endings, key=len, reverse=True):
+            if word.lower().endswith(e):
+                stem = word[:-len(e)]
+                break
+        
+        # If stem is too short, fall back to a safer N-character prefix
+        if len(stem) < 2:
+             stem = word[:3] if len(word) > 3 else word
+             
+        # Pattern: Stem + any trailing Cyrillic characters (optional)
+        # We use [а-яА-ЯіїІїЄєґҐ']* to match optional endings
+        return rf"{re.escape(stem)}[а-яА-ЯіїІїЄєґҐ']*"

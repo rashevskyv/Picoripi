@@ -62,6 +62,10 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self._spellchecker_format = QTextCharFormat()
         self._spellchecker_enabled = False
 
+        # Translation Glossary Bridge
+        self._is_translation_mode = False
+        self._source_editor_ref = None
+
         self.default_text_color = QColor(Qt.black)
         
         current_theme = getattr(self.mw, 'theme', 'auto')
@@ -128,6 +132,12 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             self.rehighlight()
         else:
             log_debug(f"JsonTagHighlighter ({editor_name}): Spellchecker state unchanged, no rehighlight needed")
+
+    def set_translation_mode(self, enabled: bool, source_editor_ref: Optional[QWidget] = None) -> None:
+        """Enable or disable translation-specific glossary highlighting."""
+        self._is_translation_mode = enabled
+        self._source_editor_ref = source_editor_ref
+        self.rehighlight()
 
     def _apply_css_to_format(self, char_format, css_str, base_color=None):
         if base_color:
@@ -545,6 +555,47 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 if has_custom_color:
                     existing_format.setUnderlineColor(underline_color)
                 self.setFormat(local_start, local_length, existing_format)
+
+        # Translation Glossary Bridge highlighting
+        if self._is_translation_mode and self._source_editor_ref and self._glossary_manager:
+            try:
+                # 1. Access the corresponding block in the source editor
+                block_num = self.currentBlock().blockNumber()
+                source_doc = self._source_editor_ref.document()
+                source_block = source_doc.findBlockByNumber(block_num)
+                
+                if source_block.isValid():
+                    # 2. Extract found glossary entries from source block metadata
+                    user_data = source_block.userData()
+                    if isinstance(user_data, self.GlossaryBlockData):
+                        # Use a set to avoid redundant regex building for the same entries
+                        processed_entries = set()
+                        underline_style = self._glossary_format.underlineStyle()
+                        underline_color = self._glossary_format.underlineColor()
+                        has_custom_color = underline_color.isValid()
+
+                        for source_match in user_data.matches:
+                            entry = source_match.entry
+                            if entry.original in processed_entries:
+                                continue
+                            processed_entries.add(entry.original)
+
+                            # 3. Build a fuzzy regex for the translation (Slavic friendly)
+                            translation_regex = self._glossary_manager.build_translation_regex(entry.translation)
+                            if translation_regex:
+                                for t_match in translation_regex.finditer(text):
+                                    t_start = t_match.start()
+                                    t_len = t_match.end() - t_start
+                                    
+                                    # 4. Highlight in translation text
+                                    existing_format = self.format(t_start)
+                                    existing_format.setFontUnderline(True)
+                                    existing_format.setUnderlineStyle(underline_style)
+                                    if has_custom_color:
+                                        existing_format.setUnderlineColor(underline_color)
+                                    self.setFormat(t_start, t_len, existing_format)
+            except Exception as e:
+                log_debug(f"JsonTagHighlighter: Error in translation glossary highlighting: {e}")
 
         if glossary_matches_for_block:
             block_matches = [

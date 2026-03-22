@@ -238,3 +238,9 @@ class GlossaryPromptManager:
         for editor in editors:
             if editor and hasattr(editor, "set_glossary_manager"):
                 editor.set_glossary_manager(manager)
+                
+                # Special case: Enable translation-side glossary bridge for edited_text_edit
+                if editor == getattr(self._mw, "edited_text_edit", None):
+                    original_editor = getattr(self._mw, "original_text_edit", None)
+                    if hasattr(editor, "highlighter") and editor.highlighter:
+                        editor.highlighter.set_translation_mode(manager is not None, original_editor)
