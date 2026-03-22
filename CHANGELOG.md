@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.35] - 2026-03-22
+
+### 🐛 Fixed
+- **Multi-line Glossary in Translation**: Fixed a bug where glossary terms split across multiple lines were not highlighted in the translation window. The `JsonTagHighlighter` now builds a document-wide cache for translation matches, mirroring the robust logic used for original text.
+- **Cache Invalidation**: Fixed a generic issue where glossary highlights might not refresh immediately after some text changes.
+
 ## [0.2.34] - 2026-03-22
 
 ### ⚡ Improved
