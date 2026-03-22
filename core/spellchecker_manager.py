@@ -20,6 +20,7 @@ class SpellcheckerManager:
         self.enabled = False
         self.custom_words = set()
         self._spell_cache: Dict[str, bool] = {}
+        self._suggestions_cache: Dict[str, List[str]] = {}
 
         self._initialize_spellchecker()
 
@@ -43,6 +44,7 @@ class SpellcheckerManager:
             self.hunspell = Dictionary.from_files(str(dictionary_basename))
             log_debug(f"spylls Dictionary object created successfully for language '{dictionary_name}'.")
             self._spell_cache.clear()
+            self._suggestions_cache.clear()
             self._load_user_dictionary()
             self._load_glossary_words()
 
@@ -148,6 +150,8 @@ class SpellcheckerManager:
                 if len(cleaned_word) >= MIN_WORD_LENGTH and cleaned_word not in self.custom_words:
                     self.custom_words.add(cleaned_word)
                     self._spell_cache[cleaned_word] = False
+                    if cleaned_word in self._suggestions_cache:
+                        del self._suggestions_cache[cleaned_word]
                     glossary_words_count += 1
 
         log_debug(f"Loaded {glossary_words_count} words from glossary into spellchecker dictionary.")
@@ -161,6 +165,8 @@ class SpellcheckerManager:
         if normalized_word not in self.custom_words:
             self.custom_words.add(normalized_word)
             self._spell_cache[normalized_word] = False
+            if normalized_word in self._suggestions_cache:
+                del self._suggestions_cache[normalized_word]
 
             custom_dict_path = LOCAL_DICT_PATH / CUSTOM_DICT_FILENAME
             try:
@@ -213,6 +219,10 @@ class SpellcheckerManager:
         cleaned_word = word.strip("'·")
 
         # Convert generator to list
+        if cleaned_word.lower() in self._suggestions_cache:
+            return self._suggestions_cache[cleaned_word.lower()]
+
         suggestions = list(self.hunspell.suggest(cleaned_word.lower()))
+        self._suggestions_cache[cleaned_word.lower()] = suggestions
         log_debug(f"Spellchecker: Got {len(suggestions)} suggestions for '{word}' (cleaned: '{cleaned_word}'): {suggestions[:5]}")
         return suggestions

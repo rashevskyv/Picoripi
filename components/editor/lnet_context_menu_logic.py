@@ -6,6 +6,8 @@ from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 
 class LNETContextMenuLogic:
+    WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
+
     def __init__(self, editor):
         self.editor = editor
 
@@ -85,12 +87,11 @@ class LNETContextMenuLogic:
                     position_in_block = click_position - block.position()
                     text_with_spaces = block_text.replace('·', ' ')
 
-                    word_pattern = re.compile(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ\']+')
                     word_under_cursor = ""
                     word_start = 0
                     word_end = 0
 
-                    for match in word_pattern.finditer(text_with_spaces):
+                    for match in self.WORD_PATTERN.finditer(text_with_spaces):
                         if match.start() <= position_in_block < match.end():
                             word_under_cursor = match.group(0).strip("'")
                             word_start = match.start()
