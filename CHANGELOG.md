@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.36] - 2026-03-22
+
+### 🐛 Fixed
+- **Translation Glossary Tooltips**: Fixed an issue where glossary tooltips in the translation window were using absolute document coordinates instead of relative block coordinates, causing incorrect hover detection.
+
 ## [0.2.35] - 2026-03-22
 
 ### 🐛 Fixed
