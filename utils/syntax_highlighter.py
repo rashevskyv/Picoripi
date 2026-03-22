@@ -54,6 +54,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self._glossary_format = QTextCharFormat()
         self._glossary_matches_cache: Dict[int, List[Tuple[int, int, GlossaryMatch]]] = {}
         self._glossary_cache_revision: Optional[int] = None
+        self._translation_matches_cache: Dict[int, List[Tuple[int, int, GlossaryMatch]]] = {}
+        self._translation_cache_revision: Optional[int] = None
         self._icon_sequences_cache: Dict[int, List[Tuple[int, int]]] = {}
         self._icon_cache_revision: Optional[int] = None
         self._icon_sequences_snapshot: Tuple[str, ...] = ()
@@ -108,6 +110,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         
     def on_contents_change(self, position, chars_removed, chars_added):
         self._invalidate_icon_cache()
+        self._glossary_cache_revision = None
+        self._translation_cache_revision = None
         # QSyntaxHighlighter automatically handles rehighlighting the changed blocks.
         # Calling rehighlight() here can interrupt its internal state and strip colors during setPlainText.
 
@@ -337,6 +341,62 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 if not block.isValid():
                     break
 
+    def _rebuild_translation_glossary_cache(self) -> None:
+        """Rebuilds the bridge translation glossary cache for the whole document."""
+        doc = self.document()
+        if not doc or not self._is_translation_mode or not self._source_editor_ref or not self._glossary_manager:
+            self._translation_matches_cache.clear()
+            self._translation_cache_revision = None
+            return
+
+        revision = doc.revision()
+        if self._translation_cache_revision == revision:
+            return
+
+        self._translation_cache_revision = revision
+        self._translation_matches_cache.clear()
+
+        source_text = self._source_editor_ref.toPlainText()
+        # Find entries that occur in the source document
+        source_matches = self._glossary_manager.get_relevant_terms(source_text)
+        if not source_matches:
+            return
+
+        full_text = doc.toPlainText()
+        for entry in source_matches:
+            # Build and search for translation regex
+            # Note: build_translation_regex handles multi-line/fuzzy Slavic terms
+            regex = self._glossary_manager.build_translation_regex(entry.translation)
+            if not regex:
+                continue
+            
+            for match in regex.finditer(full_text):
+                start, end = match.start(), match.end()
+                if end <= start:
+                    continue
+                
+                block = doc.findBlock(start)
+                if not block.isValid():
+                    continue
+                
+                while block.isValid() and start < end:
+                    block_start = block.position()
+                    block_length = block.length()
+                    block_end = block_start + block_length
+                    overlap_start = max(start, block_start)
+                    overlap_end = min(end, block_end)
+                    if overlap_end > overlap_start:
+                        local_start = overlap_start - block_start
+                        local_length = overlap_end - overlap_start
+                        self._translation_matches_cache.setdefault(block.blockNumber(), []).append(
+                            (local_start, local_length, GlossaryMatch(entry=entry, start=start, end=end))
+                        )
+                    if block_end >= end:
+                        break
+                    block = block.next()
+                    if not block.isValid():
+                        break
+
     def _ensure_icon_cache(self, sequences: List[str]) -> None:
         if not self._should_highlight_icons():
             self._icon_sequences_cache.clear()
@@ -557,50 +617,33 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 self.setFormat(local_start, local_length, existing_format)
 
         # Translation Glossary Bridge highlighting
-        # Translation Glossary Bridge highlighting
         translation_matches = []
         if self._is_translation_mode and self._source_editor_ref and self._glossary_manager:
             try:
-                # 1. Access the corresponding block in the source editor
-                block_num = self.currentBlock().blockNumber()
-                source_doc = self._source_editor_ref.document()
-                source_block = source_doc.findBlockByNumber(block_num)
+                self._rebuild_translation_glossary_cache()
                 
-                if source_block.isValid():
-                    # 2. Extract found glossary entries from source block metadata
-                    user_data = source_block.userData()
-                    if isinstance(user_data, self.GlossaryBlockData):
-                        # Use a set to avoid redundant regex building for the same entries
-                        processed_entries = set()
-                        underline_style = self._glossary_format.underlineStyle()
-                        underline_color = self._glossary_format.underlineColor()
-                        has_custom_color = underline_color.isValid()
-
-                        for source_match in user_data.matches:
-                            entry = source_match.entry
-                            if entry.original in processed_entries:
-                                continue
-                            processed_entries.add(entry.original)
-
-                            # 3. Build a fuzzy regex for the translation (Slavic friendly)
-                            translation_regex = self._glossary_manager.build_translation_regex(entry.translation)
-                            if translation_regex:
-                                for t_match in translation_regex.finditer(text):
-                                    t_start = t_match.start()
-                                    t_len = t_match.end() - t_start
-                                    
-                                    # 4. Highlight in translation text
-                                    existing_format = self.format(t_start)
-                                    existing_format.setFontUnderline(True)
-                                    existing_format.setUnderlineStyle(underline_style)
-                                    if has_custom_color:
-                                        existing_format.setUnderlineColor(underline_color)
-                                    self.setFormat(t_start, t_len, existing_format)
-
-                                    # 5. Store match for tooltips/etc.
-                                    translation_matches.append(
-                                        GlossaryMatch(entry=entry, start=t_start, end=t_start + t_len)
-                                    )
+                block_num = self.currentBlock().blockNumber()
+                matches_for_block = self._translation_matches_cache.get(block_num, [])
+                
+                if matches_for_block:
+                    underline_style = self._glossary_format.underlineStyle()
+                    underline_color = self._glossary_format.underlineColor()
+                    has_custom_color = underline_color.isValid()
+                    
+                    for local_start, local_length, t_match in matches_for_block:
+                        if local_length <= 0:
+                            continue
+                            
+                        # Highlight in translation text
+                        existing_format = self.format(local_start)
+                        existing_format.setFontUnderline(True)
+                        existing_format.setUnderlineStyle(underline_style)
+                        if has_custom_color:
+                            existing_format.setUnderlineColor(underline_color)
+                        self.setFormat(local_start, local_length, existing_format)
+                        
+                        # Store for user data (tooltips)
+                        translation_matches.append(t_match)
             except Exception as e:
                 log_debug(f"JsonTagHighlighter: Error in translation glossary highlighting: {e}")
 
