@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.33] - 2026-03-22
+
+### ⚡ Improved
+- **Persistent Spellchecker Cache**: Implemented disk-based caching for spellcheck results. This dramatically reduces CPU load during text editing and block switching by avoiding redundant calls to the slow pure-Python `spylls` library.
+- **Spellchecker Manager Cleanup**: Fixed indentation and cleaned up internal state management during dictionary reloads.
+
 ## [0.2.32] - 2026-03-22
 
 ### 🐛 Fixed
