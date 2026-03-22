@@ -1,5 +1,23 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.32] - 2026-03-22
+
+### 🐛 Fixed
+- **Tooltip Logic Restoration**: Fixed a critical issue where tooltips for warnings and unsaved changes were missing in editor and translation windows. The logic was updated to correctly read from `AppDataStore`.
+- **Robust Tooltip Testing**: Implemented a new testing suite using real `QMainWindow` hierarchies and `AppDataStore` to prevent future regressions in tooltip data access.
+
+## [0.2.31] - 2026-03-22
+
+### 🐛 Fixed
+- **Line Number Display Restoration**: Resolved an `AttributeError` that caused line numbers and warning indicators to disappear. Corrected property access to use `data_store`.
+- **Warning Indicator Painting**: Fixed the paint logic for line number areas to correctly visualize pixel-width warnings in all editor types.
+
+## [0.2.29] - 2026-03-22
+
+### ⚡ Improved
+- **MainWindow Clean Refactoring**: Removed 20+ legacy property stubs from `MainWindow`, fully decoupling UI from the data layer (`AppDataStore`).
+- **Data Access Standardization**: Standardized how all handlers and components access core application state, ensuring consistency and testability.
+
 ## [0.2.28] - 2026-03-22
 
 ### 🚀 Added
