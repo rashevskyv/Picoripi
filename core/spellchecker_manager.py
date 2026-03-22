@@ -1,15 +1,60 @@
 # --- START OF FILE core/spellchecker_manager.py ---
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
 import re
+import time
 from pathlib import Path
 from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
 from spylls.hunspell import Dictionary
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 CUSTOM_DICT_FILENAME = "custom_dictionary.txt"
 LOCAL_DICT_PATH = Path("resources/spellchecker")
 MIN_WORD_LENGTH = 3
 WORD_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
+SUGGESTION_LIMIT = 7
+
+class SpellSuggestionWorker(QObject):
+    finished = pyqtSignal()
+    suggestion_ready = pyqtSignal(str, list)
+
+    def __init__(self, spellchecker_manager):
+        super().__init__()
+        self.sm = spellchecker_manager
+        self._queue = []
+        self._is_running = True
+        self._processing = False
+
+    @pyqtSlot()
+    def process_queue(self):
+        while self._is_running:
+            if self._queue:
+                word = self._queue.pop(0)
+                if word not in self.sm._suggestions_cache:
+                    try:
+                        # Use the same iterative approach to avoid blocking too long
+                        suggestions = []
+                        gen = self.sm.hunspell.suggest(word)
+                        for _ in range(SUGGESTION_LIMIT):
+                            try:
+                                suggestions.append(next(gen))
+                            except StopIteration:
+                                break
+                        
+                        if suggestions:
+                            self.suggestion_ready.emit(word, suggestions)
+                    except Exception as e:
+                        log_debug(f"SpellSuggestionWorker: Error suggesting for '{word}': {e}")
+            else:
+                time.sleep(0.1)
+        self.finished.emit()
+
+    def stop(self):
+        self._is_running = False
+
+    def enqueue(self, word):
+        if word not in self._queue and word not in self.sm._suggestions_cache:
+            self._queue.append(word)
 
 class SpellcheckerManager:
     def __init__(self, main_window, language='uk', custom_dict_path=None):
@@ -23,6 +68,40 @@ class SpellcheckerManager:
         self._suggestions_cache: Dict[str, List[str]] = {}
 
         self._initialize_spellchecker()
+        self._setup_prefetch_worker()
+
+    def __del__(self):
+        if hasattr(self, 'thread') and self.thread.isRunning():
+            if hasattr(self, 'worker'):
+                self.worker.stop()
+            self.thread.quit()
+            self.thread.wait()
+
+    def _setup_prefetch_worker(self):
+        if not self.hunspell:
+            return
+        self.thread = QThread()
+        self.worker = SpellSuggestionWorker(self)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.process_queue)
+        self.worker.suggestion_ready.connect(self._on_suggestion_ready)
+        self.thread.start()
+
+    def _on_suggestion_ready(self, word, suggestions):
+        if word not in self._suggestions_cache:
+            self._suggestions_cache[word] = suggestions
+
+    def enqueue_suggestion_prefetch(self, word):
+        if not self.enabled or not self.hunspell:
+            return
+        
+        cleaned_word = word.strip("'·").lower()
+        if len(cleaned_word) < MIN_WORD_LENGTH:
+            return
+            
+        if cleaned_word not in self._suggestions_cache:
+            if hasattr(self, 'worker'):
+                self.worker.enqueue(cleaned_word)
 
     def _initialize_spellchecker(self):
         log_debug("Attempting to initialize spellchecker...")
@@ -222,7 +301,18 @@ class SpellcheckerManager:
         if cleaned_word.lower() in self._suggestions_cache:
             return self._suggestions_cache[cleaned_word.lower()]
 
-        suggestions = list(self.hunspell.suggest(cleaned_word.lower()))
+        # Iterative approach: take only first SUGGESTION_LIMIT to avoid long freezes
+        suggestions = []
+        try:
+            gen = self.hunspell.suggest(cleaned_word.lower())
+            for _ in range(SUGGESTION_LIMIT):
+                try:
+                    suggestions.append(next(gen))
+                except StopIteration:
+                    break
+        except Exception as e:
+            log_error(f"Spellchecker error during suggest for '{cleaned_word}': {e}")
+
         self._suggestions_cache[cleaned_word.lower()] = suggestions
-        log_debug(f"Spellchecker: Got {len(suggestions)} suggestions for '{word}' (cleaned: '{cleaned_word}'): {suggestions[:5]}")
+        log_debug(f"Spellchecker: Got {len(suggestions)} (limited) suggestions for '{word}' (cleaned: '{cleaned_word}'): {suggestions[:5]}")
         return suggestions
