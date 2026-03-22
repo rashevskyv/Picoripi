@@ -81,11 +81,11 @@ class TranslationHandler(BaseHandler):
     def get_glossary_entry(self, term: str) -> Optional[GlossaryEntry]:
         return self.glossary_handler.glossary_manager.get_entry(term)
 
-    def add_glossary_entry(self, term: str, context: Optional[str] = None) -> None:
-        self.glossary_handler.add_glossary_entry(term, context)
+    def add_glossary_entry(self, term: str, context: Optional[str] = None, translation: str = "") -> None:
+        self.glossary_handler.add_glossary_entry(term, context, translation)
 
-    def edit_glossary_entry(self, term: str) -> None:
-        self.glossary_handler.edit_glossary_entry(term)
+    def edit_glossary_entry(self, term: str, translation: str = "") -> None:
+        self.glossary_handler.edit_glossary_entry(term, translation=translation)
 
     def append_selection_to_glossary(self) -> None:
         preview_edit = self.mw.preview_text_edit
