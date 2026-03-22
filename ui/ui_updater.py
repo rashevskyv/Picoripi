@@ -254,6 +254,8 @@ class UIUpdater:
                     cat_item.setFlags(cat_item.flags() | Qt.ItemIsEditable)
                     cat_item.setData(0, Qt.UserRole, block_idx)
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
+                    cat_item.setData(0, Qt.EditRole, cat.name)
+                    cat_item.setData(0, Qt.UserRole + 4, cat.name)
                     cat_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
                     
                     cat_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts=None, category_name=cat.name)
