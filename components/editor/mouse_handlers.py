@@ -117,9 +117,9 @@ class LNETMouseHandlers:
                     if self.editor.objectName() == "preview_text_edit":
                         clicked_cursor = self.editor.cursorForPosition(pos)
                         line_num = clicked_cursor.blockNumber()
-                        if main_window.current_block_idx != -1:
-                            orig_text = main_window.data_processor._get_string_from_source(main_window.current_block_idx, line_num, main_window.data, "context_menu")
-                            edited_text, _ = main_window.data_processor.get_current_string_text(main_window.current_block_idx, line_num)
+                        if main_window.data_store.current_block_idx != -1:
+                            orig_text = main_window.data_processor._get_string_from_source(main_window.data_store.current_block_idx, line_num, main_window.data_store.data, "context_menu")
+                            edited_text, _ = main_window.data_processor.get_current_string_text(main_window.data_store.current_block_idx, line_num)
                             text_to_discuss = f"Original:\n---\n{orig_text}\n---\n\nTranslated:\n---\n{edited_text}\n---"
                     else: # original_text_edit or edited_text_edit
                         text_to_discuss = self.editor.toPlainText().replace('\u2029', '\n')

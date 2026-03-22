@@ -397,12 +397,12 @@ class TextAutofixLogic:
 
     def auto_fix_current_string(self) -> None:
         log_debug(f"TextAutofixLogic.auto_fix_current_string: Called.")
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
 
-        block_idx = self.mw.current_block_idx
-        string_idx = self.mw.current_string_idx
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
         
         current_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         
@@ -468,11 +468,11 @@ class TextAutofixLogic:
 
             self.mw.is_programmatically_changing_text = True 
             
-            if self.mw.unsaved_changes != (bool(self.mw.edited_data) or final_text_to_apply != current_text) : 
+            if self.mw.data_store.unsaved_changes != (bool(self.mw.data_store.edited_data) or final_text_to_apply != current_text) : 
                  self.ui_updater.update_title()
             
             if self.mw.original_text_edit:
-                original_text_raw = self.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data, "original_data_for_autofix_view")
+                original_text_raw = self.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data_for_autofix_view")
                 original_text_for_display = convert_spaces_to_dots_for_display(str(original_text_raw), self.mw.show_multiple_spaces_as_dots)
                 if self.mw.original_text_edit.toPlainText() != original_text_for_display:
                     self.mw.original_text_edit.setPlainText(original_text_for_display)

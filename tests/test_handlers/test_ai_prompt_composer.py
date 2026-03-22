@@ -6,6 +6,7 @@ from core.glossary_manager import GlossaryEntry
 @pytest.fixture
 def composer():
     mw = MagicMock()
+    mw.data_store = mw
     main_handler = MagicMock()
     # Mocking current_game_rules to avoid errors in __init__? 
     # Actually AIPromptComposer inherits from BaseTranslationHandler 
@@ -37,7 +38,7 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
     composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
     
     composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
-    composer.mw.block_names = {"0": "Block 0"}
+    composer.mw.data_store.block_names = {"0": "Block 0"}
     
     system, user, pmap = composer.compose_batch_request(
         "SysPrompt", source_items, all_items, block_idx=0, mode_description="TestMode"

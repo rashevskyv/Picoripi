@@ -11,7 +11,7 @@ def mock_main_handler():
     mh = MagicMock()
     mh.mw = MagicMock()
     mh.mw.tools_menu = MagicMock()
-    mh.mw.data = [["Block 0 String 0", "Block 0 String 1"]]
+    mh.mw.data_store.data = [["Block 0 String 0", "Block 0 String 1"]]
     mh.mw.current_game_rules = MagicMock()
     mh.mw.current_game_rules.get_display_name.return_value = "Test Game"
     mh.ui_handler = MagicMock()
@@ -115,13 +115,13 @@ def test_gh_show_glossary_dialog(mock_box, mock_dialog, gh):
     
     # No data
     gh.glossary_manager.get_entries.return_value = [GlossaryEntry("a", "b", "c")]
-    gh.mw.data = None
+    gh.mw.data_store.data = None
     gh.show_glossary_dialog()
     mock_box.information.assert_called_once()
     mock_box.reset_mock()
     
     # Success
-    gh.mw.data = [[]]
+    gh.mw.data_store.data = [[]]
     gh.show_glossary_dialog("initial")
     assert gh.dialog == mock_dialog_inst
     mock_dialog_inst.show.assert_called_once()
@@ -232,7 +232,7 @@ def test_gh_start_glossary_notes_variation(gh):
 def test_gh_handle_notes_variation_from_dialog(gh):
     # Setup dialog
     gh.dialog = MagicMock()
-    gh.mw.data = [["Block 0 String 0"]]
+    gh.mw.data_store.data = [["Block 0 String 0"]]
     
     occurrence = GlossaryOccurrence(GlossaryEntry("t", "tr", "n"), 0, 0, 0, 0, 0, "Block 0 String 0")
     gh.glossary_manager.build_occurrence_index.return_value = {"t": [occurrence]}

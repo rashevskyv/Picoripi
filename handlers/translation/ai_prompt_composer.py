@@ -130,7 +130,7 @@ class AIPromptComposer(BaseTranslationHandler):
             f'Mode: {mode_description}',
         ]
         if block_idx is not None:
-            block_label = self.mw.block_names.get(str(block_idx), f'Block {block_idx}')
+            block_label = self.mw.data_store.block_names.get(str(block_idx), f'Block {block_idx}')
             context_lines.append(f'Block: {block_label} (#{block_idx})')
 
         user_sections = [
@@ -191,7 +191,7 @@ class AIPromptComposer(BaseTranslationHandler):
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
         context_lines.append(f'Game: {game_name}')
         if block_idx is not None and block_idx != -1:
-            block_label = self.mw.block_names.get(str(block_idx), f'Block {block_idx}')
+            block_label = self.mw.data_store.block_names.get(str(block_idx), f'Block {block_idx}')
             context_lines.append(f'Block: {block_label} (#{block_idx})')
         if string_idx is not None and string_idx != -1:
             context_lines.append(f'Row: #{string_idx}')

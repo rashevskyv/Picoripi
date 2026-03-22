@@ -62,7 +62,7 @@ class CustomListWidget(QListWidget):
         block_idx = item.data(Qt.UserRole)
         block_name = item.text()
         if hasattr(main_window, 'block_names'):
-            block_name = main_window.block_names.get(str(block_idx), f"Block {block_idx}")
+            block_name = main_window.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
 
         rename_action = menu.addAction(f"Rename '{block_name}'")
         if hasattr(main_window, 'list_selection_handler') and hasattr(main_window.list_selection_handler, 'rename_block'):
@@ -145,11 +145,11 @@ class CustomListWidget(QListWidget):
                 return
 
             # Get all lines from the block
-            if not hasattr(main_window, 'data') or block_idx >= len(main_window.data):
+            if not hasattr(main_window, 'data') or block_idx >= len(main_window.data_store.data):
                 log_debug(f"CustomListWidget: Invalid block_idx or no data. has_data={hasattr(main_window, 'data')}, block_idx={block_idx}")
                 return
 
-            block_data = main_window.data[block_idx]
+            block_data = main_window.data_store.data[block_idx]
             log_debug(f"CustomListWidget: block_data type={type(block_data)}, len={len(block_data) if isinstance(block_data, list) else 'N/A'}")
 
             if not isinstance(block_data, list):
@@ -267,8 +267,8 @@ class CustomListWidget(QListWidget):
                         key = (block_idx, string_idx)  # Use tuple key!
                         if corrected_line != text_parts[i]:
                             edited_data[key] = corrected_line
-                            main_window.unsaved_changes = True
-                            main_window.unsaved_block_indices.add(block_idx)
+                            main_window.data_store.unsaved_changes = True
+                            main_window.data_store.unsaved_block_indices.add(block_idx)
                             log_debug(f"CustomListWidget: Updated line {string_idx} in edited_data")
 
                 # Refresh UI if this is the current block

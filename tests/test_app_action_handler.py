@@ -5,23 +5,13 @@ from handlers.app_action_handler import AppActionHandler
 
 class MockUIProvider:
     def __init__(self):
+        self.data_store = self
         self.block_list_widget = MagicMock()
-        self.statusBar = MagicMock()
-        self.ask_question = MagicMock(return_value="Save")
-        self.get_open_file_path = MagicMock(return_value="test.json")
-        self.get_save_file_path = MagicMock(return_value="saved.json")
-        self.show_message = MagicMock()
-        self.show_progress_dialog = MagicMock()
-        self.update_progress_value = MagicMock(return_value=False)
-        self.close_progress_dialog = MagicMock()
-        self.set_editor_text = MagicMock()
-        self.is_programmatically_changing = MagicMock(return_value=False)
-        self.set_programmatically_changing = MagicMock()
-
+...
 class MockContext(MagicMock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ui_provider = MockUIProvider()
+        self.data_store = self
         self.state = MagicMock()
         self.state.enter.return_value.__enter__ = lambda x: None
         self.state.enter.return_value.__exit__ = lambda x, y, z, w: None
@@ -73,12 +63,12 @@ class TestAppActionHandler(unittest.TestCase):
     def test_open_file_dialog_basic(self, mock_question, mock_get_open, mock_load):
         mock_load.return_value = ({}, None)
         mock_get_open.return_value = ("test.json", "Supported Files")
-        self.ctx.unsaved_changes = False
+        self.ctx.data_store.unsaved_changes = False
         
         self.handler.open_file_dialog_action()
         
         mock_get_open.assert_called_once()
-        self.assertEqual(self.ctx.json_path, "test.json")
+        self.assertEqual(self.ctx.data_store.json_path, "test.json")
 
     @patch('handlers.app_action_handler.QFileDialog.getSaveFileName')
     @patch('handlers.app_action_handler.QMessageBox.information')
@@ -89,7 +79,7 @@ class TestAppActionHandler(unittest.TestCase):
         self.handler.save_as_dialog_action()
         
         mock_get_save.assert_called_once()
-        self.assertEqual(self.ctx.edited_json_path, "new_save.json")
+        self.assertEqual(self.ctx.data_store.edited_json_path, "new_save.json")
         self.handler.save_data_action.assert_called_once()
 
     @patch('handlers.app_action_handler.QMessageBox')
@@ -99,8 +89,8 @@ class TestAppActionHandler(unittest.TestCase):
     def test_calculate_widths_progress(self, mock_remove, mock_calc, mock_progress, mock_qmsgbox):
         mock_warning = mock_qmsgbox.warning
         mock_info = mock_qmsgbox.information
-        self.ctx.data = [[ "line1", "line2" ]]
-        self.ctx.block_names = {"0": "TestBlock"}
+        self.ctx.data_store.data = [[ "line1", "line2" ]]
+        self.ctx.data_store.block_names = {"0": "TestBlock"}
         self.ctx.current_game_rules.get_problem_definitions.return_value = {}
         
         # Mock progress dialog instance

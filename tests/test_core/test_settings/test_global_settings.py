@@ -8,6 +8,7 @@ from core.settings.global_settings import GlobalSettings
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.current_font_size = 12
     mw.tree_font_size = 12
     mw.preview_font_size = 12
@@ -32,7 +33,7 @@ def mock_mw():
     mw.log_file_path = ""
     mw.enabled_log_categories = []
     
-    mw.edited_data = None
+    mw.data_store.edited_data = None
     mw.window_normal_geometry_on_close = None
     
     mw.main_splitter = None

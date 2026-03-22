@@ -5,6 +5,7 @@ from plugins.zelda_ww.rules import GameRules
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.line_width_warning_threshold_pixels = 200
     mw.font_map = {}
     mw.show_multiple_spaces_as_dots = False

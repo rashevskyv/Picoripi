@@ -68,10 +68,10 @@ def test_UIUpdater_highlight_glossary_occurrence(updater):
     updater.mw.original_text_edit.highlightManager.add_search_match_highlight.assert_called_with(5, 2, 4)
 
 def test_UIUpdater_get_aggregated_problems_for_block(updater):
-    updater.mw.data = [[]]
+    updater.mw.data_store.data = [[]]
     updater.mw.current_game_rules = MagicMock()
     updater.mw.current_game_rules.get_problem_definitions.return_value = {"prob1": {}, "prob2": {}}
-    updater.mw.problems_per_subline = {
+    updater.mw.data_store.problems_per_subline = {
         (0, 0, 0): {"prob1", "prob2"}
     }
     updater.mw.detection_enabled = {"prob1": True, "prob2": False}
@@ -84,8 +84,8 @@ def test_UIUpdater_create_block_tree_item(updater):
     updater.mw.block_list_widget = QTreeWidget()
     mock_item = QTreeWidgetItem([])
     updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
-    updater.mw.block_names = {"0": "Block Zero"}
-    updater.mw.problems_per_subline = {}
+    updater.mw.data_store.block_names = {"0": "Block Zero"}
+    updater.mw.data_store.problems_per_subline = {}
     updater.mw.current_game_rules = MagicMock()
     updater.mw.project_manager = None
     item = updater._create_block_tree_item(0, {})
@@ -110,7 +110,7 @@ def test_UIUpdater_populate_blocks(updater):
     updater.mw.block_list_widget = QTreeWidget()
     mock_item = QTreeWidgetItem([])
     updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
-    updater.mw.data = [[]]
+    updater.mw.data_store.data = [[]]
     updater.mw.current_game_rules = MagicMock()
     updater.mw.project_manager = None
     updater.mw.block_list_widget.clear = MagicMock()
@@ -481,8 +481,8 @@ def test_UIUpdater_update_status_bar(updater):
     mock_block.text.return_value = "Line text"
     mock_cursor.block.return_value = mock_block
     updater.mw.edited_text_edit.textCursor.return_value = mock_cursor
-    updater.mw.current_block_idx = 0
-    updater.mw.current_string_idx = 0
+    updater.mw.data_store.current_block_idx = 0
+    updater.mw.data_store.current_string_idx = 0
     updater.update_status_bar()
     updater.mw.status_label_part1.setText.assert_called_with("Pos: 5")
 
@@ -499,8 +499,8 @@ def test_UIUpdater_update_status_bar_selection(updater):
     
     mock_cursor.selectionStart.return_value = 0
     updater.mw.edited_text_edit.textCursor.return_value = mock_cursor
-    updater.mw.current_block_idx = 0
-    updater.mw.current_string_idx = 0
+    updater.mw.data_store.current_block_idx = 0
+    updater.mw.data_store.current_string_idx = 0
 
     updater.update_status_bar_selection()
     updater.mw.status_label_part1.setText.assert_called()
@@ -512,8 +512,8 @@ def test_UIUpdater_clear_status_bar(updater):
     updater.mw.status_label_part3.setText.assert_called_with("Width: 0px")
 
 def test_UIUpdater_synchronize_original_cursor(updater):
-    updater.mw.current_block_idx = 0
-    updater.mw.current_string_idx = 0
+    updater.mw.data_store.current_block_idx = 0
+    updater.mw.data_store.current_string_idx = 0
     updater.mw.edited_text_edit.document().toPlainText.return_value = "Non empty"
     updater.mw.original_text_edit.highlightManager = MagicMock()
 
@@ -538,12 +538,12 @@ def test_UIUpdater_clear_all_problem_block_highlights_and_text(updater):
     item.setData(0, Qt.UserRole + 4, "Block 0 Base")
     updater.mw.block_list_widget.addTopLevelItem(item)
     
-    updater.mw.block_names = {"0": "Block 0"}
+    updater.mw.data_store.block_names = {"0": "Block 0"}
     updater.clear_all_problem_block_highlights_and_text()
     assert item.text(0) == "Block 0 Base"
 
 def test_UIUpdater_update_title(updater):
-    updater.mw.unsaved_changes = True
+    updater.mw.data_store.unsaved_changes = True
     updater.mw.project_manager.project.name = "TestProj"
     updater.update_title()
     updater.mw.setWindowTitle.assert_called()
@@ -556,8 +556,8 @@ def test_UIUpdater_update_plugin_status_label(updater):
     updater.mw.plugin_status_label.setText.assert_called_with("Plugin: pokemon_fr")
 
 def test_UIUpdater_update_statusbar_paths(updater):
-    updater.mw.json_path = "some_orig.json"
-    updater.mw.edited_json_path = "some_edited.json"
+    updater.mw.data_store.json_path = "some_orig.json"
+    updater.mw.data_store.edited_json_path = "some_edited.json"
     updater.mw.original_path_label = MagicMock()
     updater.mw.edited_path_label = MagicMock()
     updater.update_statusbar_paths()
@@ -573,7 +573,7 @@ def test_UIUpdater_clear_highlights_no_base_name(updater):
     item.setData(0, Qt.UserRole, 0)
     # NOT setting UserRole+4, so base_display_name will be None -> falls back to block_names
     updater.mw.block_list_widget.addTopLevelItem(item)
-    updater.mw.block_names = {"0": "Block 0"}
+    updater.mw.data_store.block_names = {"0": "Block 0"}
     updater.clear_all_problem_block_highlights_and_text()
     # No error and item text restored
     assert item.text(0) == "Block 0"
@@ -581,8 +581,8 @@ def test_UIUpdater_clear_highlights_no_base_name(updater):
 def test_UIUpdater_update_title_json_path(updater):
     """Cover line 670: json_path branch."""
     updater.mw.project_manager = None  # no project
-    updater.mw.json_path = "some_file.json"
-    updater.mw.unsaved_changes = False
+    updater.mw.data_store.json_path = "some_file.json"
+    updater.mw.data_store.unsaved_changes = False
     updater.update_title()
     title_arg = updater.mw.setWindowTitle.call_args[0][0]
     assert "some_file.json" in title_arg
@@ -590,8 +590,8 @@ def test_UIUpdater_update_title_json_path(updater):
 def test_UIUpdater_update_title_no_file(updater):
     """Cover line 672-673: no file open branch."""
     updater.mw.project_manager = None
-    updater.mw.json_path = None
-    updater.mw.unsaved_changes = False
+    updater.mw.data_store.json_path = None
+    updater.mw.data_store.unsaved_changes = False
     updater.update_title()
     title_arg = updater.mw.setWindowTitle.call_args[0][0]
     assert "No File Open" in title_arg

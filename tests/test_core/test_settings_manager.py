@@ -11,6 +11,8 @@ def test_SettingsManager_init(mocker):
     mocker.patch('core.settings_manager.SessionStateManager')
     
     mw = MagicMock()
+    
+    mw.data_store = mw
     sm = SettingsManager(mw)
     
     assert sm.mw == mw
@@ -38,6 +40,8 @@ def test_SettingsManager_set(mocker):
     mocker.patch('core.settings_manager.SessionStateManager')
     
     mw = MagicMock()
+    
+    mw.data_store = mw
     # Ensure mw.some_attr is a plain attribute, not a property
     mw.some_attr = "old"
     
@@ -60,6 +64,8 @@ def test_SettingsManager_load_settings(mocker):
     mocker.patch('utils.logging_utils.update_logger_handlers')
 
     mw = MagicMock()
+
+    mw.data_store = mw
     mw.restore_unsaved_on_startup = False
     sm = SettingsManager(mw)
     
@@ -99,6 +105,8 @@ def test_SettingsManager_load_unsaved_session(mocker):
     mocker.patch('core.settings_manager.SessionStateManager')
     
     mw = MagicMock()
+    
+    mw.data_store = mw
     mw.restore_unsaved_on_startup = True
     sm = SettingsManager(mw)
     
@@ -107,7 +115,7 @@ def test_SettingsManager_load_unsaved_session(mocker):
     mocker.patch("core.settings_manager.Path.exists", return_value=True)
     
     sm.load_unsaved_session()
-    assert mw.edited_data == {(0, 0): "test"}
+    assert mw.data_store.edited_data == {(0, 0): "test"}
 
 def test_SettingsManager_load_all_font_maps(mocker):
     mocker.patch('core.settings_manager.GlobalSettings')

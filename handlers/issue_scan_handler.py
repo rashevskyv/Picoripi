@@ -9,17 +9,17 @@ class IssueScanHandler(BaseHandler):
         super().__init__(main_window, data_processor, ui_updater)
 
     def _perform_issues_scan_for_block(self, block_idx: int, is_single_block_scan: bool = False, use_default_mappings_in_scan: bool = False):
-        if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data)):
+        if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
         log_debug(f"Scanning block {block_idx} for issues...")
         
         # Clear existing problems for this block
-        keys_to_remove = [k for k in self.mw.problems_per_subline if k[0] == block_idx]
+        keys_to_remove = [k for k in self.mw.data_store.problems_per_subline if k[0] == block_idx]
         for key in keys_to_remove:
-            del self.mw.problems_per_subline[key]
+            del self.mw.data_store.problems_per_subline[key]
         
-        block_data = self.mw.data[block_idx]
+        block_data = self.mw.data_store.data[block_idx]
         if not isinstance(block_data, list):
             return
 
@@ -55,19 +55,19 @@ class IssueScanHandler(BaseHandler):
             
             for i, problem_set in enumerate(all_problems_for_string):
                 if problem_set:
-                    self.mw.problems_per_subline[(block_idx, string_idx, i)] = problem_set
+                    self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
                     log_debug(f"  Found problems in block {block_idx}, string {string_idx}, subline {i}: {problem_set}")
 
     def _perform_initial_silent_scan_all_issues(self):
-        self.mw.problems_per_subline.clear()
-        if not self.mw.data:
+        self.mw.data_store.problems_per_subline.clear()
+        if not self.mw.data_store.data:
             return
         
-        for block_idx in range(len(self.mw.data)):
+        for block_idx in range(len(self.mw.data_store.data)):
             self._perform_issues_scan_for_block(block_idx)
 
     def rescan_issues_for_single_block(self, block_idx: int = -1, show_message_on_completion: bool = True, use_default_mappings: bool = True):
-        target_block_idx = block_idx if block_idx != -1 else self.mw.current_block_idx
+        target_block_idx = block_idx if block_idx != -1 else self.mw.data_store.current_block_idx
         if target_block_idx == -1: return
         
         self._perform_issues_scan_for_block(target_block_idx)

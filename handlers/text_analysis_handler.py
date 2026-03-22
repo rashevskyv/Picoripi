@@ -150,8 +150,8 @@ class TextAnalysisHandler(BaseHandler):
         if hasattr(self.mw, 'list_selection_handler'):
             self.mw.list_selection_handler.string_selected_from_preview(string_idx)
         else:
-            self.mw.current_block_idx = block_idx
-            self.mw.current_string_idx = string_idx
+            self.mw.data_store.current_block_idx = block_idx
+            self.mw.data_store.current_string_idx = string_idx
             self.ui_updater.populate_strings_for_block(block_idx)
             self.mw.ui_updater.update_text_views()
 

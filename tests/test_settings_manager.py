@@ -5,6 +5,7 @@ from core.settings_manager import SettingsManager
 
 class MockMainWindow:
     def __init__(self):
+        self.data_store = self
         self.active_game_plugin = "zelda_mc"
         self.current_font_size = 10
         self.theme = "auto"

@@ -346,7 +346,7 @@ class CustomTreeWidget(QTreeWidget):
         if block_idx is not None:
             block_name = item.text(0)
             if hasattr(main_window, 'block_names'):
-                 block_name = main_window.block_names.get(str(block_idx), f"Block {block_idx}")
+                 block_name = main_window.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
 
             # For Folder/Block compaction, add a header for the block part
             if compaction_type == 2:
@@ -1100,7 +1100,7 @@ class CustomTreeWidget(QTreeWidget):
         main_window = self.window()
         if not hasattr(main_window, 'project_manager') or not main_window.project_manager:
             # Fallback for single file mode
-            path_to_reveal = main_window.edited_json_path if is_translation else main_window.json_path
+            path_to_reveal = main_window.data_store.edited_json_path if is_translation else main_window.data_store.json_path
             if path_to_reveal and Path(path_to_reveal).exists():
                 self._open_explorer_at_path(path_to_reveal)
             return
@@ -1151,10 +1151,10 @@ class CustomTreeWidget(QTreeWidget):
             if not spellchecker_manager:
                 return
 
-            if not hasattr(main_window, 'data') or block_idx >= len(main_window.data):
+            if not hasattr(main_window, 'data') or block_idx >= len(main_window.data_store.data):
                 return
 
-            block_data = main_window.data[block_idx]
+            block_data = main_window.data_store.data[block_idx]
 
             if not isinstance(block_data, list):
                 return
@@ -1238,9 +1238,9 @@ class CustomTreeWidget(QTreeWidget):
                         key = (block_idx, string_idx)
                         if corrected_line != text_parts[i]:
                             edited_data[key] = corrected_line
-                            main_window.unsaved_changes = True
+                            main_window.data_store.unsaved_changes = True
                             if hasattr(main_window, 'unsaved_block_indices'):
-                                main_window.unsaved_block_indices.add(block_idx)
+                                main_window.data_store.unsaved_block_indices.add(block_idx)
 
                 current_block_idx = getattr(main_window, 'current_block_idx', -1)
                 if current_block_idx == block_idx and hasattr(main_window, 'ui_updater'):

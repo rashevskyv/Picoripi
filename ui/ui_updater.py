@@ -63,7 +63,7 @@ class UIUpdater:
             "expanded_ids": expanded_ids,
             "selected_id": selected_id,
             "selected_type": selected_type,
-            "selected_string_idx": self.mw.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1
+            "selected_string_idx": self.mw.data_store.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1
         }
         from utils.logging_utils import log_info
         log_info(f"UIUpdater: Captured tree state: selected={selected_id}, string_idx={result['selected_string_idx']}")
@@ -161,7 +161,7 @@ class UIUpdater:
 
     def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None) -> dict:
         problem_counts = {}
-        if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data)):
+        if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data_store.data)):
             return problem_counts
         
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
@@ -188,7 +188,7 @@ class UIUpdater:
                     if category:
                         target_indices = set(category.line_indices)
 
-        for (b_idx, s_idx, subline_idx), problems in self.mw.problems_per_subline.items():
+        for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
             if b_idx == block_idx:
                 if target_indices is not None and s_idx not in target_indices:
                     continue
@@ -233,7 +233,7 @@ class UIUpdater:
 
     def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
         """Helper to create a single block tree item with issue counts and tooltips."""
-        base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
+        base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
         block_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts)
         
         item = self.mw.block_list_widget.create_item(base_display_name, block_idx, Qt.UserRole)
@@ -291,7 +291,7 @@ class UIUpdater:
                 b_id = curr_for_children.block_ids[0]
                 idx = id_to_idx.get(b_id)
                 if idx is not None:
-                    block_name = self.mw.block_names.get(str(idx), f"Block {idx}")
+                    block_name = self.mw.data_store.block_names.get(str(idx), f"Block {idx}")
                     display_name += f" / {block_name}"
                     compaction_type = 2
                     block_idx_for_icon = idx
@@ -380,7 +380,7 @@ class UIUpdater:
         
         try:
             self.mw.block_list_widget.clear()
-            if not self.mw.data: 
+            if not self.mw.data_store.data: 
                 return
             
             problem_definitions = {}
@@ -405,7 +405,7 @@ class UIUpdater:
             # Compute aggregated problems for ALL blocks once (O(M) complexity instead of O(N*M))
             pre_aggregated_counts = {}
             detection_config = getattr(self.mw, 'detection_enabled', {})
-            for (b_idx, _, _), problems in self.mw.problems_per_subline.items():
+            for (b_idx, _, _), problems in self.mw.data_store.problems_per_subline.items():
                 if b_idx not in pre_aggregated_counts:
                     pre_aggregated_counts[b_idx] = {}
                 filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
@@ -438,7 +438,7 @@ class UIUpdater:
                 # Legacy / Physical structure fallback
                 dir_nodes = {"": self.mw.block_list_widget.invisibleRootItem()}
 
-                for i in range(len(self.mw.data)):
+                for i in range(len(self.mw.data_store.data)):
                     block_item = self._create_block_tree_item(i, problem_definitions, pre_aggregated_counts)
                     
                     if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project and i < len(self.mw.project_manager.project.blocks):
@@ -505,7 +505,7 @@ class UIUpdater:
                 # Try to use stored base name to preserve folder path in compacted view
                 base_display_name = item.data(0, Qt.UserRole + 4)
                 if base_display_name is None:
-                    base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
+                    base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                     
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name)
                 
@@ -553,7 +553,7 @@ class UIUpdater:
         editor = self.mw.edited_text_edit
         cursor = editor.textCursor()
         
-        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.current_block_idx, self.mw.current_string_idx)
+        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
 
         if cursor.hasSelection():
@@ -588,7 +588,7 @@ class UIUpdater:
         editor = self.mw.edited_text_edit
         cursor = editor.textCursor()
         
-        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.current_block_idx, self.mw.current_string_idx)
+        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
 
         if not cursor.hasSelection():
@@ -634,7 +634,7 @@ class UIUpdater:
            not self.mw.edited_text_edit or not self.mw.original_text_edit:
             return
         
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1 or \
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1 or \
            not self.mw.edited_text_edit.document().toPlainText(): 
             if hasattr(self.mw.original_text_edit, 'highlightManager'):
                 self.mw.original_text_edit.highlightManager.setLinkedCursorPosition(-1, -1) 
@@ -662,7 +662,7 @@ class UIUpdater:
             if block_idx is not None:
                 base_display_name = item.data(0, Qt.UserRole + 4)
                 if base_display_name is None:
-                    base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
+                    base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                 
                 if item.text(0) != base_display_name: 
                     item.setText(0, base_display_name) 
@@ -676,11 +676,11 @@ class UIUpdater:
         title = f"Picoripi v{APP_VERSION}"
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and hasattr(self.mw.project_manager, 'project') and self.mw.project_manager.project:
             title += f" - [{self.mw.project_manager.project.name}]"
-        elif self.mw.json_path: 
-            title += f" - [{Path(self.mw.json_path).name}]"
+        elif self.mw.data_store.json_path: 
+            title += f" - [{Path(self.mw.data_store.json_path).name}]"
         else: 
             title += " - [No File Open]"
-        if self.mw.unsaved_changes: 
+        if self.mw.data_store.unsaved_changes: 
             title += " *"
         self.mw.setWindowTitle(title)
 
@@ -694,13 +694,13 @@ class UIUpdater:
 
     def update_statusbar_paths(self):
         if hasattr(self.mw, 'original_path_label') and self.mw.original_path_label:
-            orig_filename = Path(self.mw.json_path).name if self.mw.json_path else "[not specified]"
+            orig_filename = Path(self.mw.data_store.json_path).name if self.mw.data_store.json_path else "[not specified]"
             self.mw.original_path_label.setText(f"Original: {orig_filename}")
-            self.mw.original_path_label.setToolTip(self.mw.json_path if self.mw.json_path else "Path to original file")
+            self.mw.original_path_label.setToolTip(self.mw.data_store.json_path if self.mw.data_store.json_path else "Path to original file")
         if hasattr(self.mw, 'edited_path_label') and self.mw.edited_path_label:
-            edited_filename = Path(self.mw.edited_json_path).name if self.mw.edited_json_path else "[not specified]"
+            edited_filename = Path(self.mw.data_store.edited_json_path).name if self.mw.data_store.edited_json_path else "[not specified]"
             self.mw.edited_path_label.setText(f"Changes: {edited_filename}")
-            self.mw.edited_path_label.setToolTip(self.mw.edited_json_path if self.mw.edited_json_path else "Path to changes file")
+            self.mw.edited_path_label.setToolTip(self.mw.data_store.edited_json_path if self.mw.data_store.edited_json_path else "Path to changes file")
 
     def _apply_highlights_for_block(self, block_idx: int):
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
@@ -709,20 +709,20 @@ class UIUpdater:
 
         preview_edit.highlightManager.clearAllProblemHighlights()
         
-        if not (0 <= block_idx < len(self.mw.data)):
+        if not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
         displayed_indices = getattr(self.mw, 'displayed_string_indices', [])
         if not displayed_indices:
              # If no filtering is active, use all
-             displayed_indices = list(range(len(self.mw.data[block_idx])))
+             displayed_indices = list(range(len(self.mw.data_store.data[block_idx])))
 
         for preview_idx, real_idx in enumerate(displayed_indices):
             if self.mw.list_selection_handler._data_string_has_any_problem(block_idx, real_idx):
                 preview_edit.addProblemLineHighlight(preview_idx)
         
         # Highlight categorized strings if enabled
-        if getattr(self.mw, 'highlight_categorized', False) and not self.mw.current_category_name:
+        if getattr(self.mw, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
             categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
             if categorized_indices:
                 preview_indices = []
@@ -747,8 +747,8 @@ class UIUpdater:
         doc = editor.document()
         for i in range(doc.blockCount()):
             problem_key = (block_idx, string_idx, i)
-            if problem_key in self.mw.problems_per_subline:
-                problems = self.mw.problems_per_subline[problem_key]
+            if problem_key in self.mw.data_store.problems_per_subline:
+                problems = self.mw.data_store.problems_per_subline[problem_key]
                 if problems:
                     # Determine if critical or warning
                     is_critical = False; warning_color = None
@@ -766,8 +766,8 @@ class UIUpdater:
                         editor.highlightManager.addWarningLineHighlight(i, warning_color)
                         
             # Also check for specific highlights that have their own methods in HighlightManager
-            if problem_key in self.mw.problems_per_subline:
-                 problems = self.mw.problems_per_subline[problem_key]
+            if problem_key in self.mw.data_store.problems_per_subline:
+                 problems = self.mw.data_store.problems_per_subline[problem_key]
                  if hasattr(self.mw.current_game_rules, 'problem_ids') and hasattr(self.mw.current_game_rules.problem_ids, 'PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY'):
                      if self.mw.current_game_rules.problem_ids.PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY in problems:
                          editor.highlightManager.addEmptyOddSublineHighlight(i)
@@ -799,7 +799,7 @@ class UIUpdater:
         old_preview_scrollbar_value = preview_edit.verticalScrollBar().value() if preview_edit else 0
         
         self.mw.is_programmatically_changing_text = True
-        self.mw.current_category_name = category_name
+        self.mw.data_store.current_category_name = category_name
 
         # Show "Highlight moved" / "Hide moved" only when this block has categories
         block_has_categories = False
@@ -828,8 +828,8 @@ class UIUpdater:
             self._last_populated_block_idx = block_idx
             self._last_populated_category_name = category_name
 
-        if block_idx < 0 or not self.mw.data or block_idx >= len(self.mw.data) or not isinstance(self.mw.data[block_idx], list):
-            self.mw.displayed_string_indices = []
+        if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
+            self.mw.data_store.displayed_string_indices = []
             if preview_edit: preview_edit.setPlainText("")
             if original_edit: original_edit.setPlainText("")
             if edited_edit: edited_edit.setPlainText("")
@@ -852,20 +852,20 @@ class UIUpdater:
                         target_indices = category.line_indices
 
             if not target_indices and not category_name:
-                target_indices = list(range(len(self.mw.data[block_idx])))
+                target_indices = list(range(len(self.mw.data_store.data[block_idx])))
                 # Filter out categorized if "Hide moved" is enabled
                 if getattr(self.mw, 'hide_categorized', False):
                     categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
                     target_indices = [idx for idx in target_indices if idx not in categorized_indices]
             
             # Re-verify indices are within bounds
-            target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data[block_idx])]
+            target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data_store.data[block_idx])]
             
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw, 'displayed_string_indices', [])
             displayed_indices_changed = (target_indices != old_indices)
             
-            self.mw.displayed_string_indices = target_indices
+            self.mw.data_store.displayed_string_indices = target_indices
 
             # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
             if block_changed or displayed_indices_changed or force:
@@ -884,8 +884,8 @@ class UIUpdater:
 
             # Map current_string_idx to preview index if possible
             preview_idx_to_select = -1
-            if self.mw.current_string_idx in target_indices:
-                preview_idx_to_select = target_indices.index(self.mw.current_string_idx)
+            if self.mw.data_store.current_string_idx in target_indices:
+                preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
 
             if preview_idx_to_select != -1 and \
                hasattr(preview_edit, 'set_selected_lines') and \
@@ -894,7 +894,7 @@ class UIUpdater:
 
             # Only restore scroll value if block changed AND we are NOT intentionally selecting a string
             # (If we are selecting a string, ensureCursorVisible will be called later in string_selected_from_preview)
-            if block_changed and self.mw.current_string_idx == -1:
+            if block_changed and self.mw.data_store.current_string_idx == -1:
                 preview_edit.verticalScrollBar().setValue(old_preview_scrollbar_value)
         
         self.update_text_views() 
@@ -909,13 +909,13 @@ class UIUpdater:
 
         original_text_raw = ""
         edited_text_raw = ""
-        if self.mw.current_block_idx != -1 and self.mw.current_string_idx != -1:
+        if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
             original_text_raw = self.data_processor._get_string_from_source(
-                self.mw.current_block_idx, self.mw.current_string_idx, self.mw.data, 
+                self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx, self.mw.data_store.data, 
                 "original_data_for_readonly_view"
             )
             if original_text_raw is None: original_text_raw = ""
-            edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.current_block_idx, self.mw.current_string_idx)
+            edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
             if edited_text_raw is None: edited_text_raw = ""
         
         if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
@@ -960,8 +960,8 @@ class UIUpdater:
             
         # Optional: Calculate original strictly (without fallback char width) width
         if hasattr(self.mw, 'original_width_label'):
-            if self.mw.current_block_idx != -1 and self.mw.current_string_idx != -1:
-                font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.current_block_idx, self.mw.current_string_idx)
+            if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+                font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
                 icon_sequences = getattr(self.mw, 'icon_sequences', [])
                 strict_width = calculate_strict_string_width(str(original_text_raw), font_map_for_string, icon_sequences=icon_sequences)
                 if strict_width is not None:
@@ -977,8 +977,8 @@ class UIUpdater:
         self.mw.is_programmatically_changing_text = is_programmatic_call_flag_original
 
         # Apply highlights to editors
-        if self.mw.current_block_idx != -1 and self.mw.current_string_idx != -1:
-             self._apply_highlights_to_editor(self.mw.edited_text_edit, self.mw.current_block_idx, self.mw.current_string_idx)
-             self._apply_highlights_to_editor(self.mw.original_text_edit, self.mw.current_block_idx, self.mw.current_string_idx)
+        if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+             self._apply_highlights_to_editor(self.mw.edited_text_edit, self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+             self._apply_highlights_to_editor(self.mw.original_text_edit, self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         else: 
             self.clear_status_bar()

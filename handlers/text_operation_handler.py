@@ -21,9 +21,9 @@ class TextOperationHandler(BaseHandler):
         if not self.mw.current_game_rules:
             return
 
-        keys_to_remove = [k for k in self.mw.problems_per_subline if k[0] == block_idx and k[1] == string_idx]
+        keys_to_remove = [k for k in self.mw.data_store.problems_per_subline if k[0] == block_idx and k[1] == string_idx]
         for key in keys_to_remove:
-            del self.mw.problems_per_subline[key]
+            del self.mw.data_store.problems_per_subline[key]
             
         # Use problem_analyzer if it exists, otherwise use the game rules object itself
         analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules)
@@ -50,7 +50,7 @@ class TextOperationHandler(BaseHandler):
 
         for i, problem_set in enumerate(problems_in_string):
              if problem_set:
-                 self.mw.problems_per_subline[(block_idx, string_idx, i)] = problem_set
+                 self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
 
 
     def _log_undo_state(self, editor, context_message):
@@ -58,10 +58,10 @@ class TextOperationHandler(BaseHandler):
 
     def _update_preview_content(self) -> None:
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
-        if not preview_edit or self.mw.current_block_idx == -1:
+        if not preview_edit or self.mw.data_store.current_block_idx == -1:
             return
 
-        block_idx = self.mw.current_block_idx
+        block_idx = self.mw.data_store.current_block_idx
         old_scrollbar_value = preview_edit.verticalScrollBar().value()
         
         main_window_ref = self.mw
@@ -70,14 +70,14 @@ class TextOperationHandler(BaseHandler):
         
         if self.mw.current_game_rules:
             preview_lines = []
-            if 0 <= block_idx < len(self.mw.data) and isinstance(self.mw.data[block_idx], list):
+            if 0 <= block_idx < len(self.mw.data_store.data) and isinstance(self.mw.data_store.data[block_idx], list):
                 # USE displayed_string_indices to respect categories/filters
                 target_indices = getattr(self.mw, 'displayed_string_indices', [])
                 if not target_indices:
-                    target_indices = list(range(len(self.mw.data[block_idx])))
+                    target_indices = list(range(len(self.mw.data_store.data[block_idx])))
                 
                 for real_idx in target_indices:
-                    if 0 <= real_idx < len(self.mw.data[block_idx]):
+                    if 0 <= real_idx < len(self.mw.data_store.data[block_idx]):
                         text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
                         preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                         preview_lines.append(preview_line_text)
@@ -91,8 +91,8 @@ class TextOperationHandler(BaseHandler):
             preview_edit.highlightManager.clearAllProblemHighlights()
             self.ui_updater._apply_highlights_for_block(block_idx)
 
-            if self.mw.current_string_idx != -1 and 0 <= self.mw.current_string_idx < preview_edit.document().blockCount():
-                preview_edit.set_selected_lines([self.mw.current_string_idx])
+            if self.mw.data_store.current_string_idx != -1 and 0 <= self.mw.data_store.current_string_idx < preview_edit.document().blockCount():
+                preview_edit.set_selected_lines([self.mw.data_store.current_string_idx])
             else:
                 preview_edit.clear_selection()
 
@@ -106,11 +106,11 @@ class TextOperationHandler(BaseHandler):
         if self.mw.is_programmatically_changing_text:
             return
         
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
         
-        block_idx = self.mw.current_block_idx
-        string_idx_in_block = self.mw.current_string_idx
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx_in_block = self.mw.data_store.current_string_idx
         
         edited_edit = self.mw.edited_text_edit
         
@@ -122,19 +122,19 @@ class TextOperationHandler(BaseHandler):
         actual_text_with_spaces = convert_dots_to_spaces_from_editor(actual_text)
 
         # Determine which sublines differ from the saved baseline
-        text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.edited_file_data, "edited_file_data")
+        text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.data_store.edited_file_data, "edited_file_data")
         if text_from_saved_file is None:
-            text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.data, "original_data")
+            text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.data_store.data, "original_data")
         if text_from_saved_file is None:
             text_from_saved_file = ""
             
         saved_lines = str(text_from_saved_file).split('\n')
         curr_lines = actual_text_with_spaces.split('\n')
         
-        self.mw.edited_sublines.clear()
+        self.mw.data_store.edited_sublines.clear()
         for i, curr_line in enumerate(curr_lines):
             if i >= len(saved_lines) or curr_line != saved_lines[i]:
-                self.mw.edited_sublines.add(i)
+                self.mw.data_store.edited_sublines.add(i)
         
         self._rescan_issues_for_current_string(block_idx, string_idx_in_block, actual_text_with_spaces)
 
@@ -160,46 +160,46 @@ class TextOperationHandler(BaseHandler):
     def sync_subline_asterisks(self, block_idx: int, string_idx: int, current_text: str) -> None:
         """
         Compares the current text of a string with its original version from the file 
-        and updates mw.edited_sublines to show asterisks (*) on modified sublines in the editor.
+        and updates mw.data_store.edited_sublines to show asterisks (*) on modified sublines in the editor.
         """
         if not hasattr(self.mw, 'edited_sublines'):
             return
 
         # Determine the baseline (original) text for comparison
         text_from_saved_file = self.data_processor._get_string_from_source(
-            block_idx, string_idx, self.mw.edited_file_data, "edited_file_data"
+            block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data"
         )
         if text_from_saved_file is None:
             text_from_saved_file = self.data_processor._get_string_from_source(
-                block_idx, string_idx, self.mw.data, "original_data"
+                block_idx, string_idx, self.mw.data_store.data, "original_data"
             )
         
         if text_from_saved_file is None:
-            self.mw.edited_sublines.clear()
+            self.mw.data_store.edited_sublines.clear()
             return
 
         saved_lines = str(text_from_saved_file).split('\n')
         curr_lines = str(current_text).split('\n')
         
-        self.mw.edited_sublines.clear()
+        self.mw.data_store.edited_sublines.clear()
         for i, curr_line in enumerate(curr_lines):
             # If current line differs OR it's a new line (beyond saved lines), mark as edited
             if i >= len(saved_lines) or curr_line != saved_lines[i]:
-                self.mw.edited_sublines.add(i)
+                self.mw.data_store.edited_sublines.add(i)
 
     def paste_block_text(self) -> None:
         log_debug(f"--> TextOperationHandler: paste_block_text triggered.")
-        if self.mw.current_block_idx == -1:
+        if self.mw.data_store.current_block_idx == -1:
             QMessageBox.warning(self.mw, "Paste Error", "Please select a block.")
             return
         if not self.mw.current_game_rules:
             QMessageBox.warning(self.mw, "Paste Error", "Game rules not loaded.")
             return
             
-        block_idx: int = self.mw.current_block_idx
+        block_idx: int = self.mw.data_store.current_block_idx
         
         self.mw.before_paste_edited_data_snapshot = {
-            k: v for k,v in self.mw.edited_data.items() if k[0] == block_idx
+            k: v for k,v in self.mw.data_store.edited_data.items() if k[0] == block_idx
         }
         self.mw.before_paste_block_idx_affected = block_idx
         
@@ -217,7 +217,7 @@ class TextOperationHandler(BaseHandler):
         self.ui_updater.update_block_item_text_with_problem_count(block_idx)
 
             
-        start_string_idx = self.mw.current_string_idx if self.mw.current_string_idx != -1 else 0
+        start_string_idx = self.mw.data_store.current_string_idx if self.mw.data_store.current_string_idx != -1 else 0
         pasted_text_raw = QApplication.clipboard().text()
         if not pasted_text_raw: QMessageBox.information(self.mw, "Paste", "Clipboard empty."); return
         
@@ -234,7 +234,7 @@ class TextOperationHandler(BaseHandler):
             
         if not parsed_strings: QMessageBox.information(self.mw, "Paste", "No valid segments found."); return
         
-        original_block_len = len(self.mw.data[block_idx])
+        original_block_len = len(self.mw.data_store.data[block_idx])
         successfully_processed_count = 0
         any_change_applied_to_data = False
         
@@ -245,7 +245,7 @@ class TextOperationHandler(BaseHandler):
                     QMessageBox.warning(self.mw, "Paste Error", f"Cannot paste starting at line {start_string_idx + 1}. Block has {original_block_len} lines.")
                 break
             
-            original_text_for_tags = self.mw.data[block_idx][current_target_string_idx]
+            original_text_for_tags = self.mw.data_store.data[block_idx][current_target_string_idx]
             
             processed_text, _, _ = self.mw.current_game_rules.process_pasted_segment(
                 segment_to_insert_raw, original_text_for_tags, self.mw.EDITOR_PLAYER_TAG
@@ -264,7 +264,7 @@ class TextOperationHandler(BaseHandler):
             successfully_processed_count += 1
         
         self.mw.ui_updater.populate_blocks()
-        self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
         self.mw.ui_updater.update_text_views()
         
 
@@ -282,11 +282,11 @@ class TextOperationHandler(BaseHandler):
 
 
     def revert_single_line(self, line_index: int) -> None:
-        block_idx = self.mw.current_block_idx
+        block_idx = self.mw.data_store.current_block_idx
         if block_idx == -1:
              return
              
-        original_text = self.data_processor._get_string_from_source(block_idx, line_index, self.mw.data, "original_for_revert")
+        original_text = self.data_processor._get_string_from_source(block_idx, line_index, self.mw.data_store.data, "original_for_revert")
         
         if original_text is None:
             QMessageBox.warning(self.mw, "Revert Error", f"Could not find original text for data line {line_index + 1}.")
@@ -304,14 +304,14 @@ class TextOperationHandler(BaseHandler):
                 self.ui_updater.update_title()
 
         self.mw.ui_updater.populate_blocks()
-        self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
         self.mw.ui_updater.update_text_views()
         
 
         if hasattr(self.mw, 'statusBar'):
              self.mw.statusBar.showMessage(f"Data line {line_index + 1} reverted to original.", 2000)
         
-        if self.mw.current_string_idx == line_index:
+        if self.mw.data_store.current_string_idx == line_index:
             original_edit = getattr(self.mw, 'original_text_edit', None)
             edited_edit = getattr(self.mw, 'edited_text_edit', None)
             if original_edit and hasattr(original_edit, 'lineNumberArea'): original_edit.lineNumberArea.update()
@@ -319,12 +319,12 @@ class TextOperationHandler(BaseHandler):
 
 
     def calculate_width_for_data_line_action(self, data_line_idx: int) -> None:
-        if self.mw.current_block_idx == -1 or data_line_idx < 0:
+        if self.mw.data_store.current_block_idx == -1 or data_line_idx < 0:
             QMessageBox.warning(self.mw, "Calculate Width Error", "No block or data line selected.")
             return
 
-        current_text_data_line, source = self.data_processor.get_current_string_text(self.mw.current_block_idx, data_line_idx)
-        original_text_data_line = self.data_processor._get_string_from_source(self.mw.current_block_idx, data_line_idx, self.mw.data, "width_calc_original_data_line")
+        current_text_data_line, source = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, data_line_idx)
+        original_text_data_line = self.data_processor._get_string_from_source(self.mw.data_store.current_block_idx, data_line_idx, self.mw.data_store.data, "width_calc_original_data_line")
 
         if current_text_data_line is None and original_text_data_line is None:
             QMessageBox.warning(self.mw, "Calculate Width Error", f"Could not retrieve text for data line {data_line_idx + 1}.")
@@ -339,12 +339,12 @@ class TextOperationHandler(BaseHandler):
 
         max_allowed_width = self.mw.game_dialog_max_width_pixels
         
-        string_meta = self.mw.string_metadata.get((self.mw.current_block_idx, data_line_idx), {})
+        string_meta = self.mw.string_metadata.get((self.mw.data_store.current_block_idx, data_line_idx), {})
         warning_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
 
-        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.current_block_idx, data_line_idx)
+        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, data_line_idx)
         
-        info_parts = [f"Data Line {data_line_idx + 1} (Block {self.mw.current_block_idx}):\nMax Allowed Width (Game Dialog): {max_allowed_width}px\nWidth Warning Threshold (Editor): {warning_threshold}px\n"]
+        info_parts = [f"Data Line {data_line_idx + 1} (Block {self.mw.data_store.current_block_idx}):\nMax Allowed Width (Game Dialog): {max_allowed_width}px\nWidth Warning Threshold (Editor): {warning_threshold}px\n"]
         
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         
@@ -415,7 +415,7 @@ class TextOperationHandler(BaseHandler):
         result_dialog.exec_()
         
     def auto_fix_current_string(self) -> None:
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
         if not self.mw.current_game_rules:
@@ -427,9 +427,9 @@ class TextOperationHandler(BaseHandler):
         text_with_spaces = convert_dots_to_spaces_from_editor(raw_text)
         data_to_fix = self.mw.current_game_rules.convert_editor_text_to_data(text_with_spaces)
         
-        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.current_block_idx, self.mw.current_string_idx)
+        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         
-        string_meta = self.mw.string_metadata.get((self.mw.current_block_idx, self.mw.current_string_idx), {})
+        string_meta = self.mw.string_metadata.get((self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx), {})
         width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
         
         fixed_data, changed = self.mw.current_game_rules.autofix_data_string(
@@ -472,7 +472,7 @@ class TextOperationHandler(BaseHandler):
                 self.mw.undo_manager.end_group("AUTOFIX")
             
             # Явно оновлюємо інші елементи UI
-            self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
             self.mw.ui_updater.update_text_views()
 
             if hasattr(self.mw, 'statusBar'):

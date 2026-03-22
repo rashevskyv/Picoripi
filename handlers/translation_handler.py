@@ -97,7 +97,7 @@ class TranslationHandler(BaseHandler):
         start_line = min(selected_lines)
         end_line = max(selected_lines)
         
-        block_idx = self.mw.current_block_idx
+        block_idx = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
 
@@ -111,7 +111,7 @@ class TranslationHandler(BaseHandler):
             return
 
         term_to_add = "\n".join(selected_lines)
-        self.glossary_handler.add_glossary_entry(term_to_add)
+        self.add_glossary_entry(term_to_add)
 
 
     def _prepare_provider(self, provider_key_override: Optional[str] = None) -> Optional[BaseTranslationProvider]:
@@ -279,20 +279,20 @@ class TranslationHandler(BaseHandler):
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1: return
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1: return
         self._translate_and_apply(
-            source_text=str(self.glossary_handler._get_original_string(self.mw.current_block_idx, self.mw.current_string_idx)),
-            expected_lines=len(str(self.glossary_handler._get_original_string(self.mw.current_block_idx, self.mw.current_string_idx)).split("\n")),
+            source_text=str(self.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)),
+            expected_lines=len(str(self.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)).split("\n")),
             mode_description="current row",
-            block_idx=self.mw.current_block_idx,
-            string_idx=self.mw.current_string_idx
+            block_idx=self.mw.data_store.current_block_idx,
+            string_idx=self.mw.data_store.current_string_idx
         )
 
     def translate_preview_selection(self, context_menu_pos: QPoint) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        block_idx = self.mw.current_block_idx
+        block_idx = self.mw.data_store.current_block_idx
         if block_idx == -1: return
 
         preview_edit = self.mw.preview_text_edit
@@ -366,7 +366,7 @@ class TranslationHandler(BaseHandler):
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        target_block_idx = self.mw.current_block_idx if block_idx is None else block_idx
+        target_block_idx = self.mw.data_store.current_block_idx if block_idx is None else block_idx
         if target_block_idx is None or target_block_idx == -1:
             QMessageBox.information(self.mw, "AI Translation", "Select a block to translate.")
             return
@@ -680,7 +680,7 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         self.ui_handler.apply_full_translation(trimmed_translation)
         self.ui_handler.finish_ai_operation()
-        self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+        self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
         self.ai_lifecycle_manager.on_task_finished(context)
@@ -710,9 +710,9 @@ class TranslationHandler(BaseHandler):
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1: return
-        original_text = str(self.glossary_handler._get_original_string(self.mw.current_block_idx, self.mw.current_string_idx))
-        current_translation, _ = self.data_processor.get_current_string_text(self.mw.current_block_idx, self.mw.current_string_idx)
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1: return
+        original_text = str(self.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx))
+        current_translation, _ = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         if not current_translation:
             QMessageBox.information(self.mw, "AI Variation", "There is no current translation to vary.")
             return
@@ -729,7 +729,7 @@ class TranslationHandler(BaseHandler):
         composer_args = {
             'system_prompt': system_prompt,
             'source_text': original_text,
-            'block_idx': self.mw.current_block_idx, 'string_idx': self.mw.current_string_idx,
+            'block_idx': self.mw.data_store.current_block_idx, 'string_idx': self.mw.data_store.current_string_idx,
             'expected_lines': len(original_text.split('\n')), 'current_translation': str(current_translation),
             'request_type': 'variation_list',
             'session_state': session_state,

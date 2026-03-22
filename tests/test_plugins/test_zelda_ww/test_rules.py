@@ -5,6 +5,7 @@ from plugins.base_game_rules import BaseGameRules
 
 class MockMainWindow:
     def __init__(self):
+        self.data_store = self
         self.show_multiple_spaces_as_dots = False
         self.default_tag_mappings = {}
         self.newline_display_symbol = "↵"

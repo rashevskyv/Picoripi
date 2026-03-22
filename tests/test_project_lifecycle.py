@@ -22,6 +22,7 @@ class MockMainWindow(MagicMock):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.data_store = self
         from PyQt5.QtWidgets import QTreeWidget, QTextEdit, QLabel, QLineEdit
         self.is_loading_data = False
         self.data = []
@@ -166,12 +167,12 @@ class TestProjectLifecycle(unittest.TestCase):
         self.handler._populate_blocks_from_project()
         
         # 4. Verify results
-        self.assertGreater(len(self.mw.data), 0, "mw.data should not be empty after population")
-        self.assertEqual(len(self.mw.data), len(self.mw.block_to_project_file_map), "Data size mismatch")
+        self.assertGreater(len(self.mw.data_store.data), 0, "mw.data_store.data should not be empty after population")
+        self.assertEqual(len(self.mw.data_store.data), len(self.mw.block_to_project_file_map), "Data size mismatch")
         
         # Check first block
-        if len(self.mw.data) > 0:
-             self.assertTrue(isinstance(self.mw.data[0], (str, list)), "Data entries should be strings or lists")
+        if len(self.mw.data_store.data) > 0:
+             self.assertTrue(isinstance(self.mw.data_store.data[0], (str, list)), "Data entries should be strings or lists")
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,7 +10,7 @@ class StringSettingsHandler(BaseHandler):
     def _apply_and_rescan(self) -> None:
         log_debug("--- Applying string settings and performing full block refresh ---")
         
-        current_block_idx: int = self.mw.current_block_idx
+        current_block_idx: int = self.mw.data_store.current_block_idx
 
         if current_block_idx != -1:
             log_debug(f"Refreshing UI for block {current_block_idx}")
@@ -27,10 +27,10 @@ class StringSettingsHandler(BaseHandler):
                 self.mw.string_settings_updater.update_string_settings_panel()
 
     def on_font_changed(self, index: int) -> None:
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
 
-        key: Tuple[int, int] = (self.mw.current_block_idx, self.mw.current_string_idx)
+        key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         current_meta: Dict[str, Any] = self.mw.string_metadata.get(key, {})
         current_font: Optional[str] = current_meta.get("font_file")
 
@@ -50,10 +50,10 @@ class StringSettingsHandler(BaseHandler):
                 self.mw.apply_width_button.setEnabled(False)
 
     def on_width_changed(self, value: int) -> None:
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
 
-        key: Tuple[int, int] = (self.mw.current_block_idx, self.mw.current_string_idx)
+        key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         current_meta: Dict[str, Any] = self.mw.string_metadata.get(key, {})
         current_width: Optional[int] = current_meta.get("width")
 
@@ -79,10 +79,10 @@ class StringSettingsHandler(BaseHandler):
 
 
     def apply_settings_change(self) -> None:
-        if self.mw.current_block_idx == -1 or self.mw.current_string_idx == -1:
+        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
 
-        key: Tuple[int, int] = (self.mw.current_block_idx, self.mw.current_string_idx)
+        key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         
         # Застосовуємо шрифт
         selected_font_data: Any = self.mw.font_combobox.currentData()
@@ -109,14 +109,14 @@ class StringSettingsHandler(BaseHandler):
             
         log_debug(f"Applied and updated string_metadata for {key}: {self.mw.string_metadata.get(key)}")
         
-        current_string_idx_before_rescan: int = self.mw.current_string_idx
+        current_string_idx_before_rescan: int = self.mw.data_store.current_string_idx
         self._apply_and_rescan()
         if hasattr(self.mw, 'list_selection_handler'):
             self.mw.list_selection_handler.string_selected_from_preview(current_string_idx_before_rescan)
 
 
     def apply_font_to_range(self, start_line: int, end_line: int, font_file: str) -> None:
-        block_idx: int = self.mw.current_block_idx
+        block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
             
@@ -139,7 +139,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_font_to_lines(self, line_indices: List[int], font_file: str) -> None:
-        block_idx: int = self.mw.current_block_idx
+        block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
             
@@ -162,7 +162,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_width_to_lines(self, line_indices: List[int], width: int) -> None:
-        block_idx: int = self.mw.current_block_idx
+        block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
 
@@ -187,7 +187,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_width_to_range(self, start_line: int, end_line: int, width: int) -> None:
-        block_idx: int = self.mw.current_block_idx
+        block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
 

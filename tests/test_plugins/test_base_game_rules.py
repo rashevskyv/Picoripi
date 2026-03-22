@@ -5,6 +5,7 @@ from plugins.base_game_rules import BaseGameRules
 @pytest.fixture
 def base_rules():
     mw = MagicMock()
+    mw.data_store = mw
     return BaseGameRules(mw)
 
 def test_BaseGameRules_load_data_list(base_rules):

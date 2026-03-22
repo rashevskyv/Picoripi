@@ -8,6 +8,7 @@ from core.settings.font_map_loader import FontMapLoader
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.active_game_plugin = "test_plugin"
     mw.default_font_file = "default.json"
     mw.all_font_maps = {}

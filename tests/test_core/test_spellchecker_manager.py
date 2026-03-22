@@ -6,6 +6,7 @@ from core.spellchecker_manager import SpellcheckerManager, LOCAL_DICT_PATH, CUST
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.edited_text_edit = MagicMock()
     mw.edited_text_edit.highlighter = MagicMock()
     mw.translation_handler = MagicMock()

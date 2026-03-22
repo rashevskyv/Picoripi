@@ -7,10 +7,11 @@ from ui.updaters.block_list_updater import BlockListUpdater
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     pw = QTreeWidget()
     mw.block_list_widget = pw
-    mw.block_names = {"0": "Block Zero", "1": "Block One"}
-    mw.data = [["Str0"], ["Str1", "Str2"]]
+    mw.data_store.block_names = {"0": "Block Zero", "1": "Block One"}
+    mw.data_store.data = [["Str0"], ["Str1", "Str2"]]
     
     pm = MagicMock()
     pm.project.blocks = []
@@ -20,7 +21,7 @@ def mock_mw():
     pm.SOURCES_DIR = "src"
     mw.project_manager = pm
     
-    mw.problems_per_subline = {
+    mw.data_store.problems_per_subline = {
         (0, 0, 0): {"prob1"},
         (1, 0, 0): {"prob1", "prob2"},
     }

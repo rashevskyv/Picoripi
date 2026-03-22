@@ -50,25 +50,25 @@ class TextEditEventFilter(QObject):
                 
                 if not is_ctrl_pressed and not is_alt_pressed and not is_shift_pressed and not is_multi_selection_active:
                     if event.key() == Qt.Key_Up:
-                        current_row = self.mw.current_string_idx
+                        current_row = self.mw.data_store.current_string_idx
                         if current_row > 0:
                             self.mw.list_selection_handler.string_selected_from_preview(current_row - 1)
                         return True
                     elif event.key() == Qt.Key_Down:
-                        current_row = self.mw.current_string_idx
-                        if self.mw.current_block_idx != -1 and current_row < len(self.mw.data[self.mw.current_block_idx]) - 1:
+                        current_row = self.mw.data_store.current_string_idx
+                        if self.mw.data_store.current_block_idx != -1 and current_row < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]) - 1:
                             self.mw.list_selection_handler.string_selected_from_preview(current_row + 1)
                         return True
 
             if is_alt_pressed and not is_ctrl_pressed and not is_shift_pressed:
                 if event.key() == Qt.Key_Up:
-                    current_row = self.mw.current_string_idx
+                    current_row = self.mw.data_store.current_string_idx
                     if current_row > 0:
                         self.mw.list_selection_handler.string_selected_from_preview(current_row - 1)
                     return True
                 elif event.key() == Qt.Key_Down:
-                    current_row = self.mw.current_string_idx
-                    if self.mw.current_block_idx != -1 and self.mw.data and current_row < len(self.mw.data[self.mw.current_block_idx]) - 1:
+                    current_row = self.mw.data_store.current_string_idx
+                    if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.data and current_row < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]) - 1:
                         self.mw.list_selection_handler.string_selected_from_preview(current_row + 1)
                     return True
 

@@ -19,7 +19,7 @@ class LNETTooltipLogic:
         if not hasattr(main_window, 'current_block_idx'):
             return None
             
-        block_idx = main_window.current_block_idx
+        block_idx = main_window.data_store.current_block_idx
         problems = set()
         
         is_preview = self.editor.objectName() == "preview_text_edit"
@@ -27,9 +27,9 @@ class LNETTooltipLogic:
 
         if is_preview:
             string_idx = line_idx_in_widget
-            if hasattr(main_window, 'displayed_string_indices') and main_window.displayed_string_indices:
-                if 0 <= line_idx_in_widget < len(main_window.displayed_string_indices):
-                    string_idx = main_window.displayed_string_indices[line_idx_in_widget]
+            if hasattr(main_window, 'displayed_string_indices') and main_window.data_store.displayed_string_indices:
+                if 0 <= line_idx_in_widget < len(main_window.data_store.displayed_string_indices):
+                    string_idx = main_window.data_store.displayed_string_indices[line_idx_in_widget]
                 else:
                     string_idx = -1
 
@@ -40,7 +40,7 @@ class LNETTooltipLogic:
         else:
             if not hasattr(main_window, 'current_string_idx'):
                 return None
-            string_idx = main_window.current_string_idx
+            string_idx = main_window.data_store.current_string_idx
             problems = getattr(main_window, 'problems_per_subline', {}).get((block_idx, string_idx, line_idx_in_widget), set())
         
         tooltip_lines = []

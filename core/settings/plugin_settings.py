@@ -71,7 +71,7 @@ class PluginSettings:
         ]:
             if not hasattr(self.mw, field): setattr(self.mw, field, default)
         
-        if not hasattr(self.mw, 'block_names'): self.mw.block_names = {}
+        if not hasattr(self.mw, 'block_names'): self.mw.data_store.block_names = {}
         if not hasattr(self.mw, 'block_color_markers'): self.mw.block_color_markers = {}
         if not hasattr(self.mw, 'default_tag_mappings'): self.mw.default_tag_mappings = {}
         if not hasattr(self.mw, 'string_metadata'): self.mw.string_metadata = {}
@@ -88,7 +88,7 @@ class PluginSettings:
                 plugin_data = json.load(f)
 
             plugin_data = self._substitute_env_vars(plugin_data)
-            self.mw.block_names.update({str(k): v for k, v in plugin_data.get("block_names", {}).items()})
+            self.mw.data_store.block_names.update({str(k): v for k, v in plugin_data.get("block_names", {}).items()})
             self.mw.block_color_markers.update({k: set(v) for k, v in plugin_data.get("block_color_markers", {}).items()})
             self.mw.default_tag_mappings.update(plugin_data.get("default_tag_mappings", {}))
             
@@ -165,7 +165,7 @@ class PluginSettings:
 
         plugin_data_to_save = {
             "default_tag_mappings": self.mw.default_tag_mappings,
-            "block_names": self.mw.block_names,
+            "block_names": self.mw.data_store.block_names,
             "block_color_markers": {k: list(v) for k, v in self.mw.block_color_markers.items()},
             "string_metadata": {str(k): v for k, v in self.mw.string_metadata.items()},
             "default_font_file": self.mw.default_font_file,
@@ -183,10 +183,10 @@ class PluginSettings:
             "game_dialog_max_width_pixels": self.mw.game_dialog_max_width_pixels,
             "line_width_warning_threshold_pixels": self.mw.line_width_warning_threshold_pixels,
             "lines_per_page": getattr(self.mw, 'lines_per_page', 4),
-            "original_file_path": self.mw.json_path,
-            "edited_file_path": self.mw.edited_json_path,
-            "last_selected_block_index": self.mw.last_selected_block_index,
-            "last_selected_string_index": self.mw.last_selected_string_index,
+            "original_file_path": self.mw.data_store.json_path,
+            "edited_file_path": self.mw.data_store.edited_json_path,
+            "last_selected_block_index": self.mw.data_store.last_selected_block_index,
+            "last_selected_string_index": self.mw.data_store.last_selected_string_index,
             "last_cursor_position_in_edited": self.mw.last_cursor_position_in_edited,
             "last_edited_text_edit_scroll_value_v": self.mw.last_edited_text_edit_scroll_value_v,
             "last_edited_text_edit_scroll_value_h": self.mw.last_edited_text_edit_scroll_value_h,
@@ -222,7 +222,7 @@ class PluginSettings:
         except Exception as e:
             log_error(f"Error reading plugin config for block names: {e}", exc_info=True)
 
-        plugin_data["block_names"] = self.mw.block_names
+        plugin_data["block_names"] = self.mw.data_store.block_names
         try:
             with plugin_config_path.open('w', encoding='utf-8') as f:
                 json.dump(plugin_data, f, indent=4, ensure_ascii=False)

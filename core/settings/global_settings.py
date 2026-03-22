@@ -134,8 +134,8 @@ class GlobalSettings:
             "enabled_log_categories": getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"])
         })
 
-        if self.mw.restore_unsaved_on_startup and self.mw.edited_data:
-            serializable_edited_data = {str(k): v for k, v in self.mw.edited_data.items()}
+        if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:
+            serializable_edited_data = {str(k): v for k, v in self.mw.data_store.edited_data.items()}
             global_data["unsaved_session_data"] = serializable_edited_data
         elif "unsaved_session_data" in global_data:
             del global_data["unsaved_session_data"]

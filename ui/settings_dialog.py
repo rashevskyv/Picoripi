@@ -142,7 +142,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         for cat_id, chk in self.log_categories_checkboxes.items():
             chk.setChecked(cat_id in enabled_cats)
         
-        self.original_path_edit.setText(self.mw.json_path or ""); self.edited_path_edit.setText(self.mw.edited_json_path or "")
+        self.original_path_edit.setText(self.mw.data_store.json_path or ""); self.edited_path_edit.setText(self.mw.data_store.edited_json_path or "")
         
         self.preview_wrap_checkbox.setChecked(self.mw.preview_wrap_lines); self.editors_wrap_checkbox.setChecked(self.mw.editors_wrap_lines)
         self.newline_symbol_edit.setText(self.mw.newline_display_symbol)

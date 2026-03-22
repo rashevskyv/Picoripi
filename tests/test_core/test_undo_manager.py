@@ -7,8 +7,9 @@ from core.undo_manager import UndoManager, UndoAction, GroupAction, StructuralAc
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
-    mw.current_block_idx = 0
-    mw.current_string_idx = 0
+    mw.data_store = mw
+    mw.data_store.current_block_idx = 0
+    mw.data_store.current_string_idx = 0
     mw.is_programmatically_changing_text = False
     
     # Mock editor
@@ -20,7 +21,7 @@ def mock_mw():
     mw.data_processor._get_string_from_source.return_value = "old\ntext"
     
     # Mock project & structure
-    mw.block_names = {0: "Block0"}
+    mw.data_store.block_names = {0: "Block0"}
     mw.project_manager = MagicMock()
     mw.project_manager.project.virtual_folders = []
     mw.project_manager.project.metadata = {}

@@ -133,7 +133,7 @@ class GlossaryHandler(BaseTranslationHandler):
             QMessageBox.information(self.mw, "Glossary", "Glossary is empty or not loaded.")
             return
 
-        data_source = getattr(self.mw, "data", None)
+        data_source = self.mw.data_store.data
         if not isinstance(data_source, list):
             QMessageBox.information(self.mw, "Glossary", "No data is loaded for analysis.")
             return

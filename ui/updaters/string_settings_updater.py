@@ -36,8 +36,8 @@ class StringSettingsUpdater(BaseUIUpdater):
     def update_string_settings_panel(self):
         default_style_sheet = self.mw.styleSheet() 
 
-        block_idx = self.mw.current_block_idx
-        string_idx = self.mw.current_string_idx
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
 
         if block_idx == -1 or string_idx == -1:
             self.mw.font_combobox.setEnabled(False)

@@ -28,14 +28,14 @@ class DataStateProcessor:
 
     def get_current_string_text(self, block_idx: int, string_idx: int) -> Tuple[str, str]:
         edit_key = (block_idx, string_idx)
-        if edit_key in self.mw.edited_data:
-            return self.mw.edited_data[edit_key], "edited_data (in-memory)"
+        if edit_key in self.mw.data_store.edited_data:
+            return self.mw.data_store.edited_data[edit_key], "edited_data (in-memory)"
         
-        text_from_file = self._get_string_from_source(block_idx, string_idx, self.mw.edited_file_data, "edited_file_data")
+        text_from_file = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
         if text_from_file is not None: 
             return text_from_file, "edited_file_data"
             
-        text_from_original = self._get_string_from_source(block_idx, string_idx, self.mw.data, "original_data")
+        text_from_original = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data")
         if text_from_original is not None:
             return text_from_original, "original_data"
             
@@ -43,14 +43,14 @@ class DataStateProcessor:
         if block_idx < 0 or string_idx < 0:
             return "", "loading"
             
-        log_debug(f"!!! DSP: Index ({block_idx}, {string_idx}) not ready or missing (data length: {len(self.mw.data) if self.mw.data else 0}).")
+        log_debug(f"!!! DSP: Index ({block_idx}, {string_idx}) not ready or missing (data length: {len(self.mw.data_store.data) if self.mw.data_store.data else 0}).")
         return "", "initial_load" 
 
     def get_block_texts(self, block_idx: int) -> List[str]:
-        if not self.mw.data or not (0 <= block_idx < len(self.mw.data)):
+        if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return []
         
-        num_strings = len(self.mw.data[block_idx])
+        num_strings = len(self.mw.data_store.data[block_idx])
         return [self.get_current_string_text(block_idx, i)[0] for i in range(num_strings)]
 
     def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT") -> bool:
@@ -59,38 +59,38 @@ class DataStateProcessor:
         # Get old text for undo
         old_text, _ = self.get_current_string_text(block_idx, string_idx)
 
-        original_text = self._get_string_from_source(block_idx, string_idx, self.mw.data, "original_data_for_update_check")
+        original_text = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data_for_update_check")
         
-        text_from_saved_file = self._get_string_from_source(block_idx, string_idx, self.mw.edited_file_data, "edited_file_data")
+        text_from_saved_file = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
         if text_from_saved_file is None:
             text_from_saved_file = original_text
             
-        old_unsaved_changes = self.mw.unsaved_changes
+        old_unsaved_changes = self.mw.data_store.unsaved_changes
 
         if new_text == text_from_saved_file:
-            if edit_key in self.mw.edited_data:
-                del self.mw.edited_data[edit_key]
+            if edit_key in self.mw.data_store.edited_data:
+                del self.mw.data_store.edited_data[edit_key]
         else:
-            self.mw.edited_data[edit_key] = new_text
+            self.mw.data_store.edited_data[edit_key] = new_text
 
         # Update unsaved block indices for the indicator (asterisk)
-        if edit_key in self.mw.edited_data:
-            self.mw.unsaved_block_indices.add(block_idx)
+        if edit_key in self.mw.data_store.edited_data:
+            self.mw.data_store.unsaved_block_indices.add(block_idx)
         else:
             # Check if any other edits remain in this block
-            has_other_edits = any(b == block_idx for b, s in self.mw.edited_data.keys())
+            has_other_edits = any(b == block_idx for b, s in self.mw.data_store.edited_data.keys())
             if not has_other_edits:
-                self.mw.unsaved_block_indices.discard(block_idx)
+                self.mw.data_store.unsaved_block_indices.discard(block_idx)
 
         # Record in undo manager if it exists and text actually changed
         if hasattr(self.mw, 'undo_manager') and old_text != new_text:
             self.mw.undo_manager.record_action(action_type, block_idx, string_idx, old_text, new_text)
 
-        self.mw.unsaved_changes = bool(self.mw.edited_data)
+        self.mw.data_store.unsaved_changes = bool(self.mw.data_store.edited_data)
         
-        unsaved_status_actually_changed = self.mw.unsaved_changes != old_unsaved_changes
+        unsaved_status_actually_changed = self.mw.data_store.unsaved_changes != old_unsaved_changes
         if unsaved_status_actually_changed:
-            log_debug(f"DSP.update_edited_data: Unsaved changes status changed to {self.mw.unsaved_changes}")
+            log_debug(f"DSP.update_edited_data: Unsaved changes status changed to {self.mw.data_store.unsaved_changes}")
         
         # Explicitly trigger tree item refresh to show/hide asterisk
         if hasattr(self.mw, 'ui_updater'):
@@ -108,8 +108,8 @@ class DataStateProcessor:
             
         try:
             for s_idx in string_indices:
-                # We specifically use self.mw.data here because "Original" refers to the source text (left panel)
-                original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data, "original_source_data")
+                # We specifically use self.mw.data_store.data here because "Original" refers to the source text (left panel)
+                original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data_store.data, "original_source_data")
                 
                 if original_text is not None:
                     # Recording this as a REVERT action
@@ -146,7 +146,7 @@ class DataStateProcessor:
 
     def revert_blocks_to_original(self, block_indices: List[int]) -> None:
         """Reverts entire blocks to their state from the loaded edited file (or original)."""
-        if not hasattr(self.mw, 'data') or not self.mw.data: return
+        if not hasattr(self.mw, 'data') or not self.mw.data_store.data: return
         
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:
@@ -154,10 +154,10 @@ class DataStateProcessor:
             
         try:
             for b_idx in block_indices:
-                if 0 <= b_idx < len(self.mw.data):
-                    num_strings = len(self.mw.data[b_idx])
+                if 0 <= b_idx < len(self.mw.data_store.data):
+                    num_strings = len(self.mw.data_store.data[b_idx])
                     for s_idx in range(num_strings):
-                        original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data, "original_source_data")
+                        original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
                         if original_text is not None:
                             self.update_edited_data(b_idx, s_idx, original_text, action_type="REVERT")
         finally:
@@ -165,8 +165,8 @@ class DataStateProcessor:
                 self.mw.undo_manager.end_group("REVERT_BLOCKS")
             
         if hasattr(self.mw, 'ui_updater'):
-            if self.mw.current_block_idx in block_indices:
-                self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+            if self.mw.data_store.current_block_idx in block_indices:
+                self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
                 self.mw.ui_updater.update_text_views()
             else:
                 for b_idx in block_indices:
@@ -174,36 +174,36 @@ class DataStateProcessor:
 
 
     def save_current_edits(self, ask_confirmation: bool = True) -> bool:
-        log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.unsaved_changes}")
-        if self.mw.json_path and not self.mw.edited_json_path:
-            self.mw.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.json_path) 
-        if not self.mw.edited_json_path:
+        log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}")
+        if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
+            self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
+        if not self.mw.data_store.edited_json_path:
             QMessageBox.warning(self.mw, "Save Error", "Edited file path is not set. Cannot save.")
             return False
         if not self.mw.current_game_rules: 
             QMessageBox.critical(self.mw, "Save Error", "No game plugin active to format the save file.")
             return False
         
-        if not self.mw.unsaved_changes:
+        if not self.mw.data_store.unsaved_changes:
             log_debug("Save called but no unsaved changes detected. Skipping file write.")
             if ask_confirmation:
                 QMessageBox.information(self.mw, "Save", "No changes to save.")
             return True
 
         if ask_confirmation:
-            reply = QMessageBox.question(self.mw, 'Save Changes', f"Save changes to '{Path(self.mw.edited_json_path).name}'?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            reply = QMessageBox.question(self.mw, 'Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
             if reply == QMessageBox.No: return False
         
         try:
-            if not self.mw.data: QMessageBox.critical(self.mw, "Save Error", "Original data not loaded. Cannot save."); return False
+            if not self.mw.data_store.data: QMessageBox.critical(self.mw, "Save Error", "Original data not loaded. Cannot save."); return False
             
-            output_data_list = json.loads(json.dumps(self.mw.data)) 
-            if self.mw.edited_file_data:
-                output_data_list = json.loads(json.dumps(self.mw.edited_file_data))
+            output_data_list = json.loads(json.dumps(self.mw.data_store.data)) 
+            if self.mw.data_store.edited_file_data:
+                output_data_list = json.loads(json.dumps(self.mw.data_store.edited_file_data))
 
-            if self.mw.edited_data:
-                log_debug(f"Applying {len(self.mw.edited_data)} in-memory edits before saving...")
-            for (b_idx, s_idx), edited_text_from_memory in self.mw.edited_data.items():
+            if self.mw.data_store.edited_data:
+                log_debug(f"Applying {len(self.mw.data_store.edited_data)} in-memory edits before saving...")
+            for (b_idx, s_idx), edited_text_from_memory in self.mw.data_store.edited_data.items():
                 if 0 <= b_idx < len(output_data_list) and isinstance(output_data_list[b_idx], list) and \
                    0 <= s_idx < len(output_data_list[b_idx]):
                     output_data_list[b_idx][s_idx] = edited_text_from_memory
@@ -243,7 +243,7 @@ class DataStateProcessor:
                     for d_idx in data_indices:
                         if isinstance(output_data_list[d_idx], list):
                             for s_idx in range(len(output_data_list[d_idx])):
-                                if (d_idx, s_idx) in self.mw.edited_data:
+                                if (d_idx, s_idx) in self.mw.data_store.edited_data:
                                     has_edits = True
                                     break
                         if has_edits: break
@@ -257,7 +257,7 @@ class DataStateProcessor:
                     
                     # Extract sublists and names for this specific file
                     file_data_list = [output_data_list[d_idx] for d_idx in data_indices]
-                    file_block_names = {str(i): self.mw.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
+                    file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
 
                     # Override the plugins 'original_keys' array to only include keys for this specific file
                     if global_keys_backup is not None:
@@ -287,14 +287,14 @@ class DataStateProcessor:
                         break
                 
                 if success_all:
-                    self.mw.unsaved_changes = False
-                    self.mw.edited_data = {}
-                    self.mw.edited_sublines.clear()
+                    self.mw.data_store.unsaved_changes = False
+                    self.mw.data_store.edited_data = {}
+                    self.mw.data_store.edited_sublines.clear()
                     if global_keys_backup is not None:
                         self.mw.current_game_rules.original_keys = global_keys_backup
                         
                     # Don't reload entire project to avoid freezing on full issue recalculation
-                    self.mw.edited_file_data = output_data_list
+                    self.mw.data_store.edited_file_data = output_data_list
 
                     if ask_confirmation: QMessageBox.information(self.mw, "Project Saved", "All project translation files saved successfully.")
                     return True
@@ -306,25 +306,25 @@ class DataStateProcessor:
                 
             else:
                 # Normal single-file save mode
-                final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(output_data_list, self.mw.block_names)
+                final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(output_data_list, self.mw.data_store.block_names)
     
                 save_file_success = False
-                file_extension = Path(self.mw.edited_json_path).suffix.lower()
+                file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
                 
                 if file_extension == '.json':
-                    save_file_success = save_json_file(self.mw.edited_json_path, final_obj_to_save)
+                    save_file_success = save_json_file(self.mw.data_store.edited_json_path, final_obj_to_save)
                 elif file_extension == '.txt':
                     if isinstance(final_obj_to_save, str):
-                        save_file_success = save_text_file(self.mw.edited_json_path, final_obj_to_save)
+                        save_file_success = save_text_file(self.mw.data_store.edited_json_path, final_obj_to_save)
                     else:
                         log_debug("Save Error: Plugin for .txt file did not return a string for saving.")
                         QMessageBox.critical(self.mw, "Save Error", "Plugin save format error: expected a string for .txt file.")
                         return False
                 
                 if save_file_success:
-                    self.mw.unsaved_changes = False
-                    self.mw.edited_data = {} 
-                    self.mw.edited_sublines.clear()
+                    self.mw.data_store.unsaved_changes = False
+                    self.mw.data_store.edited_data = {} 
+                    self.mw.data_store.edited_sublines.clear()
                     
                     # Backup and restore keys since we are just re-parsing to update UI data
                     plugin_keys_backup = None
@@ -336,9 +336,9 @@ class DataStateProcessor:
                     if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
                         self.mw.current_game_rules.original_keys = plugin_keys_backup
                         
-                    self.mw.edited_file_data = reloaded_edited_data
+                    self.mw.data_store.edited_file_data = reloaded_edited_data
     
-                    if ask_confirmation: QMessageBox.information(self.mw, "Saved", f"Changes saved to\n'{Path(self.mw.edited_json_path).name}'.")
+                    if ask_confirmation: QMessageBox.information(self.mw, "Saved", f"Changes saved to\n'{Path(self.mw.data_store.edited_json_path).name}'.")
                     return True
                 else: return False
         except Exception as e:
@@ -350,30 +350,30 @@ class DataStateProcessor:
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
 
         if not is_project_mode:
-            if not self.mw.json_path or not self.mw.edited_json_path: QMessageBox.warning(self.mw, "Revert Error", "Original or Changes file path is not set."); return False
-            if not self.mw.data: QMessageBox.warning(self.mw, "Revert Error", "Original data is not loaded."); return False
+            if not self.mw.data_store.json_path or not self.mw.data_store.edited_json_path: QMessageBox.warning(self.mw, "Revert Error", "Original or Changes file path is not set."); return False
+            if not self.mw.data_store.data: QMessageBox.warning(self.mw, "Revert Error", "Original data is not loaded."); return False
             if not self.mw.current_game_rules: QMessageBox.critical(self.mw, "Revert Error", "No game plugin active to format the save file."); return False
     
-            reply = QMessageBox.question(self.mw, 'Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.edited_json_path).name}\nwith the content from:\n{Path(self.mw.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            reply = QMessageBox.question(self.mw, 'Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.No: return False
             try:
-                output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data, self.mw.block_names)
+                output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data_store.data, self.mw.data_store.block_names)
     
                 save_file_success = False
-                file_extension = Path(self.mw.edited_json_path).suffix.lower()
+                file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
     
                 if file_extension == '.json':
-                    save_file_success = save_json_file(self.mw.edited_json_path, output_data)
+                    save_file_success = save_json_file(self.mw.data_store.edited_json_path, output_data)
                 elif file_extension == '.txt':
                     if isinstance(output_data, str):
-                        save_file_success = save_text_file(self.mw.edited_json_path, output_data)
+                        save_file_success = save_text_file(self.mw.data_store.edited_json_path, output_data)
                     else:
                         log_debug("Revert Error: Plugin for .txt file did not return a string for saving.")
                         QMessageBox.critical(self.mw, "Revert Error", "Plugin save format error: expected a string for .txt file.")
                         return False
     
                 if save_file_success:
-                    self.mw.unsaved_changes = False; self.mw.edited_data = {}; self.mw.edited_sublines.clear(); 
+                    self.mw.data_store.unsaved_changes = False; self.mw.data_store.edited_data = {}; self.mw.data_store.edited_sublines.clear(); 
                     
                     # Backup and restore keys since we are reading translation data
                     plugin_keys_backup = None
@@ -385,11 +385,11 @@ class DataStateProcessor:
                     if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
                         self.mw.current_game_rules.original_keys = plugin_keys_backup
                         
-                    self.mw.edited_file_data = reverted_data_list
+                    self.mw.data_store.edited_file_data = reverted_data_list
     
-                    QMessageBox.information(self.mw, "Reverted", f"Changes file '{Path(self.mw.edited_json_path).name}' has been reverted to match the original.")
+                    QMessageBox.information(self.mw, "Reverted", f"Changes file '{Path(self.mw.data_store.edited_json_path).name}' has been reverted to match the original.")
                     self.mw.ui_updater.update_title(); 
-                    self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx) 
+                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx) 
                     return True
                 else: return False
             except Exception as e:
@@ -422,9 +422,9 @@ class DataStateProcessor:
                     block = blocks[p_b_idx]
                     trans_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
                     
-                    # Extract original self.mw.data
-                    file_data_list = [self.mw.data[d_idx] for d_idx in data_indices]
-                    file_block_names = {str(i): self.mw.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
+                    # Extract original self.mw.data_store.data
+                    file_data_list = [self.mw.data_store.data[d_idx] for d_idx in data_indices]
+                    file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
 
                     if global_keys_backup is not None:
                         sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
@@ -448,8 +448,8 @@ class DataStateProcessor:
                         break
                         
                 if success_all:
-                    self.mw.unsaved_changes = False
-                    self.mw.edited_data = {}
+                    self.mw.data_store.unsaved_changes = False
+                    self.mw.data_store.edited_data = {}
                     if global_keys_backup is not None:
                         self.mw.current_game_rules.original_keys = global_keys_backup
                         

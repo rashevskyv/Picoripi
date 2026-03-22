@@ -117,7 +117,7 @@ class MainWindowUIHandler:
 
         self.mw.ui_updater.update_text_views()
         self.mw.ui_updater.populate_blocks()
-        self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
 
     def apply_text_wrap_settings(self):
         if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:

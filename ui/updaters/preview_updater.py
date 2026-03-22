@@ -10,7 +10,7 @@ class PreviewUpdater(BaseUIUpdater):
         super().__init__(main_window, data_processor)
 
     def populate_strings_for_block(self, block_idx: int):
-        log_debug(f"[PreviewUpdater] populate_strings_for_block for block_idx: {block_idx}. Current string_idx: {self.mw.current_string_idx}")
+        log_debug(f"[PreviewUpdater] populate_strings_for_block for block_idx: {block_idx}. Current string_idx: {self.mw.data_store.current_string_idx}")
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit:
             log_debug("[PreviewUpdater] preview_text_edit not found.")
@@ -22,14 +22,14 @@ class PreviewUpdater(BaseUIUpdater):
             preview_edit.highlightManager.clearAllProblemHighlights()
 
         preview_lines = []
-        if block_idx < 0 or not self.mw.data or block_idx >= len(self.mw.data) or not isinstance(self.mw.data[block_idx], list):
+        if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
             if preview_edit.toPlainText() != "":
                  preview_edit.setPlainText("")
             if hasattr(preview_edit, 'lineNumberArea'): 
                 preview_edit.lineNumberArea.update()
             return
         
-        for i in range(len(self.mw.data[block_idx])):
+        for i in range(len(self.mw.data_store.data[block_idx])):
             text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, i)
             if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_preview'):
                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
@@ -42,11 +42,11 @@ class PreviewUpdater(BaseUIUpdater):
         if preview_edit.toPlainText() != current_preview_text:
              preview_edit.setPlainText(current_preview_text)
         
-        if self.mw.current_string_idx != -1 and \
+        if self.mw.data_store.current_string_idx != -1 and \
            hasattr(preview_edit, 'highlightManager') and \
-           0 <= self.mw.current_string_idx < preview_edit.document().blockCount(): 
+           0 <= self.mw.data_store.current_string_idx < preview_edit.document().blockCount(): 
             # Use -2 or something to indicate "preserve existing origin"
-            preview_edit.highlightManager.setPreviewSelectedLineHighlight([self.mw.current_string_idx], -2)
+            preview_edit.highlightManager.setPreviewSelectedLineHighlight([self.mw.data_store.current_string_idx], -2)
         elif hasattr(preview_edit, 'highlightManager'):
              preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
 

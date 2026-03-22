@@ -115,7 +115,7 @@ class MainWindowEventHandler:
             self.mw.navigate_down_button.clicked.connect(lambda: self.mw.list_selection_handler.navigate_to_problem_string(direction_down=True))
         
         if hasattr(self.mw, 'revert_string_button'):
-            self.mw.revert_string_button.clicked.connect(lambda: self.mw.data_processor.perform_revert_strings(self.mw.current_block_idx, [self.mw.current_string_idx]) if self.mw.current_block_idx != -1 and self.mw.current_string_idx != -1 else None)
+            self.mw.revert_string_button.clicked.connect(lambda: self.mw.data_processor.perform_revert_strings(self.mw.data_store.current_block_idx, [self.mw.data_store.current_string_idx]) if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1 else None)
         
         
         if hasattr(self.mw, 'font_combobox'):

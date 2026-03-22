@@ -132,101 +132,6 @@ class MainWindow(QMainWindow):
     def is_auto_fixing(self, v): self.state.set_active(AppState.AUTO_FIXING, v)
 
 
-    # --- Data Properties (Proxy to AppDataStore) ---
-    @property
-    def json_path(self): return self.data_store.json_path
-    @json_path.setter
-    def json_path(self, v): self.data_store.json_path = v
-
-    @property
-    def edited_json_path(self): return self.data_store.edited_json_path
-    @edited_json_path.setter
-    def edited_json_path(self, v): self.data_store.edited_json_path = v
-
-    @property
-    def data(self): return self.data_store.data
-    @data.setter
-    def data(self, v): self.data_store.data = v
-
-    @property
-    def edited_data(self): return self.data_store.edited_data
-    @edited_data.setter
-    def edited_data(self, v): self.data_store.edited_data = v
-
-    @property
-    def edited_file_data(self): return self.data_store.edited_file_data
-    @edited_file_data.setter
-    def edited_file_data(self, v): self.data_store.edited_file_data = v
-
-    @property
-    def block_names(self): return self.data_store.block_names
-    @block_names.setter
-    def block_names(self, v): self.data_store.block_names = v
-
-    @property
-    def current_block_idx(self): return self.data_store.current_block_idx
-    @current_block_idx.setter
-    def current_block_idx(self, v): self.data_store.current_block_idx = v
-
-    @property
-    def current_string_idx(self): return self.data_store.current_string_idx
-    @current_string_idx.setter
-    def current_string_idx(self, v): self.data_store.current_string_idx = v
-
-    @property
-    def selected_string_indices(self): return self.data_store.selected_string_indices
-    @selected_string_indices.setter
-    def selected_string_indices(self, v): self.data_store.selected_string_indices = v
-
-    @property
-    def displayed_string_indices(self): return self.data_store.displayed_string_indices
-    @displayed_string_indices.setter
-    def displayed_string_indices(self, v): self.data_store.displayed_string_indices = v
-
-    @property
-    def current_category_name(self): return self.data_store.current_category_name
-    @current_category_name.setter
-    def current_category_name(self, v): self.data_store.current_category_name = v
-
-    @property
-    def highlight_categorized(self): return self.data_store.highlight_categorized
-    @highlight_categorized.setter
-    def highlight_categorized(self, v): self.data_store.highlight_categorized = v
-
-    @property
-    def hide_categorized(self): return self.data_store.hide_categorized
-    @hide_categorized.setter
-    def hide_categorized(self, v): self.data_store.hide_categorized = v
-
-    @property
-    def unsaved_changes(self): return self.data_store.unsaved_changes
-    @unsaved_changes.setter
-    def unsaved_changes(self, v): self.data_store.unsaved_changes = v
-
-    @property
-    def unsaved_block_indices(self): return self.data_store.unsaved_block_indices
-    @unsaved_block_indices.setter
-    def unsaved_block_indices(self, v): self.data_store.unsaved_block_indices = v
-
-    @property
-    def problems_per_subline(self): return self.data_store.problems_per_subline
-    @problems_per_subline.setter
-    def problems_per_subline(self, v): self.data_store.problems_per_subline = v
-
-    @property
-    def edited_sublines(self): return self.data_store.edited_sublines
-    @edited_sublines.setter
-    def edited_sublines(self, v): self.data_store.edited_sublines = v
-
-    @property
-    def last_selected_block_index(self): return self.data_store.last_selected_block_index
-    @last_selected_block_index.setter
-    def last_selected_block_index(self, v): self.data_store.last_selected_block_index = v
-
-    @property
-    def last_selected_string_index(self): return self.data_store.last_selected_string_index
-    @last_selected_string_index.setter
-    def last_selected_string_index(self, v): self.data_store.last_selected_string_index = v
 
     @property
     def ui_provider(self) -> UIProvider:
@@ -567,7 +472,7 @@ class MainWindow(QMainWindow):
         log_info(f"Build Glossary with AI action triggered. Category: {category_name}")
         from handlers.translation.glossary_builder_handler import GlossaryBuilderHandler
 
-        target_block_idx = block_idx if block_idx is not None else self.current_block_idx
+        target_block_idx = block_idx if block_idx is not None else self.data_store.current_block_idx
 
         if target_block_idx == -1:
             QMessageBox.information(self, "Build Glossary", "Please select a block first.")

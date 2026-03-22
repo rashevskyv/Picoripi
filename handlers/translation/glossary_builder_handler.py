@@ -90,8 +90,8 @@ class GlossaryBuilderHandler:
 
         # 1. Get all text from the block
         target_strings = []
-        if self.mw.data and block_id < len(self.mw.data):
-            block_data = self.mw.data[block_id]
+        if self.mw.data_store.data and block_id < len(self.mw.data_store.data):
+            block_data = self.mw.data_store.data[block_id]
             
             # Determine target indices
             target_indices = range(len(block_data))

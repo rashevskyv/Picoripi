@@ -10,19 +10,20 @@ from ui.updaters.preview_updater import PreviewUpdater
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
-    mw.json_path = None
-    mw.edited_json_path = None
-    mw.unsaved_changes = False
+    mw.data_store = mw
+    mw.data_store.json_path = None
+    mw.data_store.edited_json_path = None
+    mw.data_store.unsaved_changes = False
     mw.project_manager = None
     mw.active_game_plugin = None
     mw.default_font_file = None
-    mw.current_block_idx = -1
-    mw.current_string_idx = -1
+    mw.data_store.current_block_idx = -1
+    mw.data_store.current_string_idx = -1
     mw.string_metadata = {}
     mw.show_multiple_spaces_as_dots = False
     mw.newline_display_symbol = "↵"
     mw.current_game_rules = None
-    mw.data = []
+    mw.data_store.data = []
     mw.line_width_warning_threshold_pixels = 100
     return mw
 
@@ -42,13 +43,13 @@ class TestTitleStatusBarUpdater:
         return TitleStatusBarUpdater(mock_mw, mock_dp)
 
     def test_title_no_file_open(self, updater):
-        updater.mw.json_path = None
+        updater.mw.data_store.json_path = None
         updater.mw.project_manager = None
         updater.update_title()
         updater.mw.setWindowTitle.assert_called_once_with("Picoripi - [No File Open]")
 
     def test_title_with_json_path(self, updater):
-        updater.mw.json_path = "/some/path/myfile.json"
+        updater.mw.data_store.json_path = "/some/path/myfile.json"
         updater.mw.project_manager = None
         updater.update_title()
         updater.mw.setWindowTitle.assert_called_once_with("Picoripi - [myfile.json]")
@@ -61,22 +62,22 @@ class TestTitleStatusBarUpdater:
         updater.mw.setWindowTitle.assert_called_once_with("Picoripi - [MyProject]")
 
     def test_title_with_unsaved_changes(self, updater):
-        updater.mw.json_path = "/path/file.json"
+        updater.mw.data_store.json_path = "/path/file.json"
         updater.mw.project_manager = None
-        updater.mw.unsaved_changes = True
+        updater.mw.data_store.unsaved_changes = True
         updater.update_title()
         updater.mw.setWindowTitle.assert_called_once_with("Picoripi - [file.json] *")
 
     def test_update_statusbar_paths_with_both_paths(self, updater):
-        updater.mw.json_path = "/path/to/src.json"
-        updater.mw.edited_json_path = "/path/to/edit.json"
+        updater.mw.data_store.json_path = "/path/to/src.json"
+        updater.mw.data_store.edited_json_path = "/path/to/edit.json"
         updater.update_statusbar_paths()
         updater.mw.original_path_label.setText.assert_called_once_with("Original: src.json")
         updater.mw.edited_path_label.setText.assert_called_once_with("Changes: edit.json")
 
     def test_update_statusbar_paths_no_paths(self, updater):
-        updater.mw.json_path = None
-        updater.mw.edited_json_path = None
+        updater.mw.data_store.json_path = None
+        updater.mw.data_store.edited_json_path = None
         updater.update_statusbar_paths()
         updater.mw.original_path_label.setText.assert_called_once_with("Original: [not specified]")
         updater.mw.edited_path_label.setText.assert_called_once_with("Changes: [not specified]")
@@ -90,16 +91,16 @@ class TestStringSettingsUpdater:
         return StringSettingsUpdater(mock_mw, mock_dp)
 
     def test_update_string_settings_panel_no_selection(self, updater):
-        updater.mw.current_block_idx = -1
-        updater.mw.current_string_idx = -1
+        updater.mw.data_store.current_block_idx = -1
+        updater.mw.data_store.current_string_idx = -1
         updater.update_string_settings_panel()
 
         updater.mw.font_combobox.setEnabled.assert_called_with(False)
         updater.mw.width_spinbox.setEnabled.assert_called_with(False)
 
     def test_update_string_settings_panel_default_meta(self, updater):
-        updater.mw.current_block_idx = 0
-        updater.mw.current_string_idx = 0
+        updater.mw.data_store.current_block_idx = 0
+        updater.mw.data_store.current_string_idx = 0
         updater.mw.string_metadata = {}  # No custom meta
         updater.mw.line_width_warning_threshold_pixels = 200
 
@@ -112,8 +113,8 @@ class TestStringSettingsUpdater:
         updater.mw.width_spinbox.setStyleSheet.assert_called_with("")
 
     def test_update_string_settings_panel_custom_width(self, updater):
-        updater.mw.current_block_idx = 0
-        updater.mw.current_string_idx = 0
+        updater.mw.data_store.current_block_idx = 0
+        updater.mw.data_store.current_string_idx = 0
         updater.mw.string_metadata = {(0, 0): {"width": 150}}
         updater.mw.line_width_warning_threshold_pixels = 200
 
@@ -147,7 +148,7 @@ class TestPreviewUpdater:
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = ""
         updater.mw.preview_text_edit = preview_edit
-        updater.mw.data = []
+        updater.mw.data_store.data = []
         
         updater.populate_strings_for_block(0)
         # Should not crash, and not set any text (already empty)
@@ -158,8 +159,8 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 2
         updater.mw.preview_text_edit = preview_edit
-        updater.mw.data = [["line0", "line1"]]
-        updater.mw.current_string_idx = 0
+        updater.mw.data_store.data = [["line0", "line1"]]
+        updater.mw.data_store.current_string_idx = 0
 
         mock_dp.get_current_string_text.side_effect = [
             ("Hello", None),

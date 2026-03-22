@@ -6,6 +6,7 @@ from handlers.search_handler import SearchHandler
 class MockUIProvider:
 
     def __init__(self):
+        self.data_store = self
         self.preview_text_edit = MagicMock()
         self.original_text_edit = MagicMock()
         self.edited_text_edit = MagicMock()
@@ -22,6 +23,7 @@ class MockUIProvider:
 class MockContext(MagicMock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.data_store = self
         self.data = [["Hello world", "Test string"], ["Second block"]]
         self.current_block_idx = 0
         self.current_string_idx = 0
@@ -46,7 +48,7 @@ class TestSearchHandler(unittest.TestCase):
 
         self.ctx = MockContext()
         self.data_processor = MagicMock()
-        self.data_processor.get_current_string_text.side_effect = lambda b, s: (self.ctx.data[b][s], None)
+        self.data_processor.get_current_string_text.side_effect = lambda b, s: (self.ctx.data_store.data[b][s], None)
         self.ui_updater = MagicMock()
         self.handler = SearchHandler(self.ctx, self.data_processor, self.ui_updater)
 

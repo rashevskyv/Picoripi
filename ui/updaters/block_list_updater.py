@@ -17,7 +17,7 @@ class BlockListUpdater(BaseUIUpdater):
             current_selection_block_idx = current_item.data(0, Qt.UserRole)
 
         self.mw.block_list_widget.clear()
-        if not self.mw.data: 
+        if not self.mw.data_store.data: 
             log_debug("[BlockListUpdater] populate_blocks: No original data.")
             return
         
@@ -29,20 +29,20 @@ class BlockListUpdater(BaseUIUpdater):
 
         # Compute aggregated problems for ALL blocks once (O(M) complexity)
         pre_aggregated_counts = {}
-        for (b_idx, _, _), problems in self.mw.problems_per_subline.items():
+        for (b_idx, _, _), problems in self.mw.data_store.problems_per_subline.items():
             if b_idx not in pre_aggregated_counts:
                 pre_aggregated_counts[b_idx] = {}
             for p_id in problems:
                 pre_aggregated_counts[b_idx][p_id] = pre_aggregated_counts[b_idx].get(p_id, 0) + 1
 
-        for i in range(len(self.mw.data)):
-            base_display_name = self.mw.block_names.get(str(i), f"Block {i}")
+        for i in range(len(self.mw.data_store.data)):
+            base_display_name = self.mw.data_store.block_names.get(str(i), f"Block {i}")
             
             block_problem_counts = {pid: 0 for pid in problem_definitions.keys()}
             
             string_count = 0
-            if isinstance(self.mw.data[i], list):
-                string_count = len(self.mw.data[i])
+            if isinstance(self.mw.data_store.data[i], list):
+                string_count = len(self.mw.data_store.data[i])
                 block_counts = pre_aggregated_counts.get(i, {})
                 for pid in problem_definitions.keys():
                     block_problem_counts[pid] = block_counts.get(pid, 0)
@@ -129,7 +129,7 @@ class BlockListUpdater(BaseUIUpdater):
             
         if not item: return
 
-        base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
+        base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
         
         problem_definitions = {}
         if self.mw.current_game_rules:
@@ -137,15 +137,15 @@ class BlockListUpdater(BaseUIUpdater):
         
         block_problem_counts = {pid: 0 for pid in problem_definitions.keys()}
 
-        if block_idx < len(self.mw.data) and isinstance(self.mw.data[block_idx], list):
-            string_count = len(self.mw.data[block_idx])
-            for data_string_idx in range(len(self.mw.data[block_idx])):
+        if block_idx < len(self.mw.data_store.data) and isinstance(self.mw.data_store.data[block_idx], list):
+            string_count = len(self.mw.data_store.data[block_idx])
+            for data_string_idx in range(len(self.mw.data_store.data[block_idx])):
                 data_string_text, _ = self.data_processor.get_current_string_text(block_idx, data_string_idx)
                 if data_string_text is not None:
                     logical_sublines = str(data_string_text).split('\n')
                     for subline_local_idx in range(len(logical_sublines)):
                         problem_key = (block_idx, data_string_idx, subline_local_idx)
-                        subline_problems = self.mw.problems_per_subline.get(problem_key, set())
+                        subline_problems = self.mw.data_store.problems_per_subline.get(problem_key, set())
                         for problem_id in subline_problems:
                             if problem_id in block_problem_counts:
                                 block_problem_counts[problem_id] += 1
@@ -192,7 +192,7 @@ class BlockListUpdater(BaseUIUpdater):
             item = iterator.value()
             block_idx = item.data(0, Qt.UserRole)
             if block_idx is not None:
-                base_display_name = self.mw.block_names.get(str(block_idx), f"Block {block_idx}")
+                base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                 if item.text(0) != base_display_name: 
                     item.setText(0, base_display_name)
             iterator += 1

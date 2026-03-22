@@ -101,7 +101,7 @@ class TranslationUIHandler(BaseTranslationHandler):
         self.mw.editor_operation_handler.text_edited()
 
     def apply_partial_translation(self, translated_segment: str, start_line: int, end_line: int):
-        current_text, _ = self.data_processor.get_current_string_text(self.mw.current_block_idx, self.mw.current_string_idx)
+        current_text, _ = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         current_lines = str(current_text).split('\n')
         translated_lines = translated_segment.split('\n') if translated_segment else []
         

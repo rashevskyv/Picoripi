@@ -203,10 +203,10 @@ class LNETContextMenuLogic:
                     menu.addAction(tag_widget_action)
 
             # Revert to Original option for edited_text_edit
-            if main_window.current_block_idx != -1 and main_window.current_string_idx != -1:
+            if main_window.data_store.current_block_idx != -1 and main_window.data_store.current_string_idx != -1:
                 menu.addSeparator()
                 revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), "Revert String to Original")
-                revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, [main_window.current_string_idx]))
+                revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [main_window.data_store.current_string_idx]))
         
         if self.editor.objectName() == "preview_text_edit":
             if not custom_actions_added: menu.addSeparator(); custom_actions_added = True
@@ -260,19 +260,19 @@ class LNETContextMenuLogic:
 
                 # Revert to Original
                 menu.addSeparator()
-                real_indices = [main_window.displayed_string_indices[i] for i in selected_lines if i < len(main_window.displayed_string_indices)]
+                real_indices = [main_window.data_store.displayed_string_indices[i] for i in selected_lines if i < len(main_window.data_store.displayed_string_indices)]
                 if real_indices:
                     revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
-                    revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, real_indices))
+                    revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, real_indices))
             else:
                 # No lines selected, try the line under cursor
                 cursor = self.editor.cursorForPosition(position_in_widget_coords)
                 line_val = cursor.blockNumber()
-                if hasattr(main_window, 'displayed_string_indices') and line_val < len(main_window.displayed_string_indices):
-                    real_idx = main_window.displayed_string_indices[line_val]
+                if hasattr(main_window, 'displayed_string_indices') and line_val < len(main_window.data_store.displayed_string_indices):
+                    real_idx = main_window.data_store.displayed_string_indices[line_val]
                     menu.addSeparator()
                     revert_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
-                    revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.current_block_idx, [real_idx]))
+                    revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [real_idx]))
 
         prettify_standard_context_menu(menu, main_window.style())
 

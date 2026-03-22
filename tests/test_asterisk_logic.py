@@ -9,7 +9,7 @@ from handlers.text_operation_handler import TextOperationHandler
 class MockMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.data_store = AppDataStore()
+        self.data_store = self
         # Initial data with 2 strings, the first one having sublines
         self.data = [["Original Line 1\nSubline 2", "Original Line 2"]]
         self.edited_file_data = [["Original Line 1\nSubline 2", "Original Line 2"]]
@@ -56,26 +56,26 @@ def test_asterisk_persistence_on_navigation():
     mw.edited_text_edit.toPlainText.return_value = "Edited Line 1\nSubline 2"
     
     # This call should: 
-    # - Update mw.edited_data[(0, 0)]
-    # - Set mw.edited_sublines to {0}
+    # - Update mw.data_store.edited_data[(0, 0)]
+    # - Set mw.data_store.edited_sublines to {0}
     toh.text_edited()
     
-    assert (0, 0) in mw.edited_data
-    assert mw.edited_data[(0, 0)] == "Edited Line 1\nSubline 2"
-    assert 0 in mw.edited_sublines
+    assert (0, 0) in mw.data_store.edited_data
+    assert mw.data_store.edited_data[(0, 0)] == "Edited Line 1\nSubline 2"
+    assert 0 in mw.data_store.edited_sublines
     
     # 2. Navigate away to string 1
-    # This calls mw.edited_sublines.clear()
+    # This calls mw.data_store.edited_sublines.clear()
     lsh.select_string_by_absolute_index(1)
-    assert mw.current_string_idx == 1
-    assert len(mw.edited_sublines) == 0
+    assert mw.data_store.current_string_idx == 1
+    assert len(mw.data_store.edited_sublines) == 0
     
     # 3. Navigate back to string 0
     # EXPECTED: edited_sublines should be restored to {0}
     lsh.select_string_by_absolute_index(0)
-    assert mw.current_string_idx == 0
-    assert 0 in mw.edited_sublines, "Subline asterisk (index 0) was lost after navigation back to Edited string"
-    assert len(mw.edited_sublines) == 1
+    assert mw.data_store.current_string_idx == 0
+    assert 0 in mw.data_store.edited_sublines, "Subline asterisk (index 0) was lost after navigation back to Edited string"
+    assert len(mw.data_store.edited_sublines) == 1
 
 def test_folder_asterisk_propagation():
     from components.custom_list_item_delegate import CustomListItemDelegate
@@ -102,7 +102,7 @@ def test_folder_asterisk_propagation():
     index.data = mock_data
     
     # 1. Initially, no unsaved changes
-    mw.unsaved_block_indices = set()
+    mw.data_store.unsaved_block_indices = set()
     
     # We can't easily call paint() without a real painter, 
     # but we can look at the logic inside paint() if we extracted it, 
@@ -115,16 +115,16 @@ def test_folder_asterisk_propagation():
     mw.block_to_project_file_map = {5: 5}
     
     # Initially:
-    mw.unsaved_block_indices = set()
+    mw.data_store.unsaved_block_indices = set()
     # Check logic manually (simulating the paint() logic)
-    has_star = any(mw.block_to_project_file_map.get(idx) in {5} for idx in mw.unsaved_block_indices)
+    has_star = any(mw.block_to_project_file_map.get(idx) in {5} for idx in mw.data_store.unsaved_block_indices)
     assert not has_star
     
     # 2. Mark block 5 as unsaved
-    mw.unsaved_block_indices.add(5)
+    mw.data_store.unsaved_block_indices.add(5)
     
     # Re-check logic
-    has_star = any(mw.block_to_project_file_map.get(idx) in {5} for idx in mw.unsaved_block_indices)
+    has_star = any(mw.block_to_project_file_map.get(idx) in {5} for idx in mw.data_store.unsaved_block_indices)
     assert has_star, "Folder should show star if block under it is unsaved"
 
 if __name__ == "__main__":

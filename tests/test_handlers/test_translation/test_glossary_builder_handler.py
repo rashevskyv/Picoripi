@@ -9,10 +9,11 @@ from utils.utils import ALL_TAGS_PATTERN
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.translation_config = {}
     mw.glossary_ai = {}
-    mw.data = [["Line 1", "Line 2"], ["Line 3"]]
-    mw.block_names = {"0": "Block 0"}
+    mw.data_store.data = [["Line 1", "Line 2"], ["Line 3"]]
+    mw.data_store.block_names = {"0": "Block 0"}
     return mw
 
 @pytest.fixture
@@ -65,7 +66,7 @@ def test_gbh_resolve_translation_credentials(gbh):
 
 @patch('handlers.translation.glossary_builder_handler.QMessageBox')
 def test_gbh_build_glossary_for_block_empty(mock_box, gbh):
-    gbh.mw.data = [[]] # block 0 is empty
+    gbh.mw.data_store.data = [[]] # block 0 is empty
     gbh.build_glossary_for_block(0)
     mock_box.information.assert_called_once()
 

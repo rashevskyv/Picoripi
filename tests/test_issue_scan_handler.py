@@ -4,6 +4,7 @@ from handlers.issue_scan_handler import IssueScanHandler
 
 class MockContext:
     def __init__(self):
+        self.data_store = self
         self.data = [["Line 1", "Line 2"]]
         self.problems_per_subline = {}
         self.string_metadata = {}
@@ -33,12 +34,12 @@ def test_issue_scan_basic_isolation():
     analyzer.analyze_data_string.side_effect = [[{"Width"}], []]
     
     # Pre-fill with some old garbage
-    ctx.problems_per_subline[(0, 0, 0)] = {"OldError"}
-    ctx.problems_per_subline[(0, 1, 0)] = {"OldError"}
+    ctx.data_store.problems_per_subline[(0, 0, 0)] = {"OldError"}
+    ctx.data_store.problems_per_subline[(0, 1, 0)] = {"OldError"}
     
     handler._perform_issues_scan_for_block(0)
     
     # Check if old problems were cleared and new ones recorded
-    assert (0, 0, 0) in ctx.problems_per_subline
-    assert ctx.problems_per_subline[(0, 0, 0)] == {"Width"} # Replaced OldError
-    assert (0, 1, 0) not in ctx.problems_per_subline # Cleared and not re-added because text was None
+    assert (0, 0, 0) in ctx.data_store.problems_per_subline
+    assert ctx.data_store.problems_per_subline[(0, 0, 0)] == {"Width"} # Replaced OldError
+    assert (0, 1, 0) not in ctx.data_store.problems_per_subline # Cleared and not re-added because text was None

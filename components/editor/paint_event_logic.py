@@ -104,7 +104,7 @@ class LNETPaintEventLogic:
                     block = block.next()
                     continue
                 
-                string_meta = main_window.string_metadata.get((main_window.current_block_idx, main_window.current_string_idx), {})
+                string_meta = main_window.string_metadata.get((main_window.data_store.current_block_idx, main_window.data_store.current_string_idx), {})
                 current_threshold_game_px = string_meta.get("width", self.editor.line_width_warning_threshold_pixels)
 
                 q_block_text_raw_dots = block.text() 
@@ -121,7 +121,7 @@ class LNETPaintEventLogic:
                     if not line_text_no_tags_for_width_calc:
                         continue
                     
-                    font_map_for_line = main_window.helper.get_font_map_for_string(main_window.current_block_idx, main_window.current_string_idx)
+                    font_map_for_line = main_window.helper.get_font_map_for_string(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx)
                     visual_line_width_game_px = calculate_string_width(line_text_no_tags_for_width_calc, font_map_for_line)
                     
                     if visual_line_width_game_px > current_threshold_game_px:

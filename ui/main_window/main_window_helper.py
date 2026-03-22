@@ -33,9 +33,9 @@ class MainWindowHelper:
         QProcess.startDetached(sys.executable, sys.argv)
 
     def rebuild_unsaved_block_indices(self):
-        self.mw.unsaved_block_indices.clear()
-        for block_idx, _ in self.mw.edited_data.keys():
-            self.mw.unsaved_block_indices.add(block_idx)
+        self.mw.data_store.unsaved_block_indices.clear()
+        for block_idx, _ in self.mw.data_store.edited_data.keys():
+            self.mw.data_store.unsaved_block_indices.add(block_idx)
         if hasattr(self.mw, 'block_list_widget'):
              self.mw.block_list_widget.viewport().update()
 
@@ -158,8 +158,8 @@ class MainWindowHelper:
                 text_edit.highlighter.rehighlight()
 
     def prepare_to_close(self):
-        self.mw.last_selected_block_index = self.mw.current_block_idx
-        self.mw.last_selected_string_index = self.mw.current_string_idx
+        self.mw.data_store.last_selected_block_index = self.mw.data_store.current_block_idx
+        self.mw.data_store.last_selected_string_index = self.mw.data_store.current_string_idx
         
         if self.mw.edited_text_edit:
             self.mw.last_cursor_position_in_edited = self.mw.edited_text_edit.textCursor().position()
@@ -179,8 +179,8 @@ class MainWindowHelper:
         current_path = None
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_file_path:
             current_path = self.mw.project_manager.project_file_path
-        elif self.mw.json_path:
-            current_path = self.mw.json_path
+        elif self.mw.data_store.json_path:
+            current_path = self.mw.data_store.json_path
             
         if current_path:
             state = self.mw.ui_updater.get_tree_state()

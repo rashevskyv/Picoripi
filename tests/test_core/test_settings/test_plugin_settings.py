@@ -9,7 +9,8 @@ from core.settings.plugin_settings import PluginSettings
 @pytest.fixture
 def dummy_mw():
     class Dummy:
-        pass
+        def __init__(self):
+            self.data_store = self
     mw = Dummy()
     mw.active_game_plugin = "test_plugin"
     mw.block_names = {}

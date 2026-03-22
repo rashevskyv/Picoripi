@@ -8,25 +8,26 @@ from core.data_state_processor import DataStateProcessor
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
-    mw.data = [
+    mw.data_store = mw
+    mw.data_store.data = [
         ["original_0_0", "original_0_1"],
         ["original_1_0"]
     ]
-    mw.edited_file_data = [] # By default same as data or empty
-    mw.edited_data = {}
-    mw.block_names = {0: "Block0", 1: "Block1"}
-    mw.unsaved_changes = False
-    mw.unsaved_block_indices = set()
-    mw.current_block_idx = 0
-    mw.current_string_idx = 0
+    mw.data_store.edited_file_data = [] # By default same as data or empty
+    mw.data_store.edited_data = {}
+    mw.data_store.block_names = {0: "Block0", 1: "Block1"}
+    mw.data_store.unsaved_changes = False
+    mw.data_store.unsaved_block_indices = set()
+    mw.data_store.current_block_idx = 0
+    mw.data_store.current_string_idx = 0
     
-    mw.json_path = "original.json"
-    mw.edited_json_path = "edited.json"
+    mw.data_store.json_path = "original.json"
+    mw.data_store.edited_json_path = "edited.json"
     
     mw.project_manager = None
     mw.current_game_rules = MagicMock()
     mw.current_game_rules.save_data_to_json_obj.return_value = {"saved": "data"}
-    mw.current_game_rules.load_data_from_json_obj.return_value = (mw.data, None)
+    mw.current_game_rules.load_data_from_json_obj.return_value = (mw.data_store.data, None)
     
     mw.ui_updater = MagicMock()
     mw.undo_manager = MagicMock()

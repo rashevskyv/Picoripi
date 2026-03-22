@@ -6,10 +6,11 @@ from handlers.app_action_handler import AppActionHandler
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.state.enter.return_value.__enter__.return_value = MagicMock()
     mw.current_game_rules = MagicMock()
-    mw.data = []
-    mw.block_names = {}
+    mw.data_store.data = []
+    mw.data_store.block_names = {}
     return mw
 
 @pytest.fixture

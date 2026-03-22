@@ -36,8 +36,8 @@ class ListSelectionHandler(BaseHandler):
         if not current_item:
             return
 
-        old_block = self.mw.current_block_idx
-        old_string = self.mw.current_string_idx
+        old_block = self.mw.data_store.current_block_idx
+        old_string = self.mw.data_store.current_string_idx
         old_category = getattr(self.mw, 'current_category_name', None)
 
         self.mw.is_programmatically_changing_text = True
@@ -46,18 +46,18 @@ class ListSelectionHandler(BaseHandler):
             category_name = current_item.data(0, Qt.UserRole + 10)
             
             if block_index is None:
-                self.mw.current_block_idx = -1
-                self.mw.current_string_idx = -1
-                self.mw.current_category_name = None
+                self.mw.data_store.current_block_idx = -1
+                self.mw.data_store.current_string_idx = -1
+                self.mw.data_store.current_category_name = None
                 self.ui_updater.populate_strings_for_block(-1)
                 if hasattr(self.mw, 'string_settings_updater'):
                     self.mw.string_settings_updater.update_string_settings_panel()
                 self._update_block_toolbar_button_states(-1)
                 return
 
-            if self.mw.current_block_idx != block_index or self.mw.current_category_name != category_name:
-                self.mw.current_block_idx = block_index
-                self.mw.current_category_name = category_name
+            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name:
+                self.mw.data_store.current_block_idx = block_index
+                self.mw.data_store.current_category_name = category_name
                 
                 # Restore selection logic
                 target_string_idx = -1
@@ -68,7 +68,7 @@ class ListSelectionHandler(BaseHandler):
                          if project_block_idx is not None and project_block_idx < len(project.blocks):
                              target_string_idx = project.blocks[project_block_idx].last_selected_string_idx
                 
-                self.mw.current_string_idx = target_string_idx
+                self.mw.data_store.current_string_idx = target_string_idx
                 
                 if hasattr(self.mw, 'undo_manager'):
                     # Navigation recording
@@ -82,8 +82,8 @@ class ListSelectionHandler(BaseHandler):
                 
                 if target_string_idx != -1:
                     rel_idx = -1
-                    if hasattr(self.mw, 'displayed_string_indices') and target_string_idx in self.mw.displayed_string_indices:
-                        rel_idx = self.mw.displayed_string_indices.index(target_string_idx)
+                    if hasattr(self.mw, 'displayed_string_indices') and target_string_idx in self.mw.data_store.displayed_string_indices:
+                        rel_idx = self.mw.data_store.displayed_string_indices.index(target_string_idx)
                     
                     if rel_idx != -1:
                         # Schedule selection to avoid recursion issues
@@ -106,10 +106,10 @@ class ListSelectionHandler(BaseHandler):
             self.mw.is_programmatically_changing_text = False
 
     def _restore_block_selection(self) -> None:
-        if self.mw.current_block_idx != -1:
+        if self.mw.data_store.current_block_idx != -1:
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
-                if iterator.value().data(0, Qt.UserRole) == self.mw.current_block_idx:
+                if iterator.value().data(0, Qt.UserRole) == self.mw.data_store.current_block_idx:
                     self.mw.block_list_widget.setCurrentItem(iterator.value())
                     break
                 iterator += 1
@@ -158,8 +158,8 @@ class ListSelectionHandler(BaseHandler):
         if absolute_idx == -1: return
 
         rel_idx: int = -1
-        if hasattr(self.mw, 'displayed_string_indices') and absolute_idx in self.mw.displayed_string_indices:
-            rel_idx = self.mw.displayed_string_indices.index(absolute_idx)
+        if hasattr(self.mw, 'displayed_string_indices') and absolute_idx in self.mw.data_store.displayed_string_indices:
+            rel_idx = self.mw.data_store.displayed_string_indices.index(absolute_idx)
         else:
             rel_idx = absolute_idx # Fallback if no mapping exists
 
@@ -175,14 +175,14 @@ class ListSelectionHandler(BaseHandler):
 
         # Translate relative preview line_number to absolute data index
         real_idx = line_number
-        if hasattr(self.mw, 'displayed_string_indices') and self.mw.displayed_string_indices:
-            if 0 <= line_number < len(self.mw.displayed_string_indices):
-                real_idx = self.mw.displayed_string_indices[line_number]
+        if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.displayed_string_indices:
+            if 0 <= line_number < len(self.mw.data_store.displayed_string_indices):
+                real_idx = self.mw.data_store.displayed_string_indices[line_number]
             else:
                 real_idx = -1
 
-        if self.mw.current_block_idx == -1 or real_idx == -1:
-            self.mw.current_string_idx = -1
+        if self.mw.data_store.current_block_idx == -1 or real_idx == -1:
+            self.mw.data_store.current_string_idx = -1
             if preview_edit and hasattr(preview_edit, 'highlightManager'):
                  preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
             self.ui_updater.update_text_views()
@@ -192,47 +192,47 @@ class ListSelectionHandler(BaseHandler):
             return
 
         is_valid_line = False
-        if 0 <= self.mw.current_block_idx < len(self.mw.data) and \
-           isinstance(self.mw.data[self.mw.current_block_idx], list) and \
-           0 <= real_idx < len(self.mw.data[self.mw.current_block_idx]):
+        if 0 <= self.mw.data_store.current_block_idx < len(self.mw.data_store.data) and \
+           isinstance(self.mw.data_store.data[self.mw.data_store.current_block_idx], list) and \
+           0 <= real_idx < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]):
             is_valid_line = True
         
-        previous_string_idx = self.mw.current_string_idx
+        previous_string_idx = self.mw.data_store.current_string_idx
         
         if not is_valid_line:
-            self.mw.current_string_idx = -1
+            self.mw.data_store.current_string_idx = -1
             if preview_edit and hasattr(preview_edit, 'highlightManager'):
                 preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
         else:
-            self.mw.current_string_idx = real_idx
-            self.mw.edited_sublines.clear() # Clear editor sublines on line change
+            self.mw.data_store.current_string_idx = real_idx
+            self.mw.data_store.edited_sublines.clear() # Clear editor sublines on line change
             
             # Restore subline asterisks if the selected line has unsaved changes in memory
-            if (self.mw.current_block_idx, real_idx) in self.mw.edited_data:
-                current_text = self.mw.edited_data[(self.mw.current_block_idx, real_idx)]
+            if (self.mw.data_store.current_block_idx, real_idx) in self.mw.data_store.edited_data:
+                current_text = self.mw.data_store.edited_data[(self.mw.data_store.current_block_idx, real_idx)]
                 if hasattr(self.mw, 'text_operation_handler'):
                     self.mw.text_operation_handler.sync_subline_asterisks(
-                        self.mw.current_block_idx, real_idx, current_text
+                        self.mw.data_store.current_block_idx, real_idx, current_text
                     )
 
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
                 cat = getattr(self.mw, 'current_category_name', None)
                 self.mw.undo_manager.record_navigation(
-                    self.mw.current_block_idx, real_idx, 
-                    self.mw.current_block_idx, previous_string_idx,
+                    self.mw.data_store.current_block_idx, real_idx, 
+                    self.mw.data_store.current_block_idx, previous_string_idx,
                     cat, cat
                 )
 
-            if previous_string_idx != self.mw.current_string_idx and previous_string_idx != -1:
-                self.ui_updater.update_block_item_text_with_problem_count(self.mw.current_block_idx)
+            if previous_string_idx != self.mw.data_store.current_string_idx and previous_string_idx != -1:
+                self.ui_updater.update_block_item_text_with_problem_count(self.mw.data_store.current_block_idx)
             
-            self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, getattr(self.mw, 'current_category_name', None)) 
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None)) 
             
             # Save selection to project
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                 project = self.mw.project_manager.project
                 if hasattr(self.mw, 'block_to_project_file_map'):
-                    project_block_idx = self.mw.block_to_project_file_map.get(self.mw.current_block_idx)
+                    project_block_idx = self.mw.block_to_project_file_map.get(self.mw.data_store.current_block_idx)
                     if project_block_idx is not None and project_block_idx < len(project.blocks):
                         project.blocks[project_block_idx].last_selected_string_idx = real_idx
 
@@ -242,13 +242,13 @@ class ListSelectionHandler(BaseHandler):
 
         self.mw.is_programmatically_changing_text = original_programmatic_state
 
-        if preview_edit and self.mw.current_string_idx != -1 and \
-           0 <= self.mw.current_string_idx < len(self.mw.data[self.mw.current_block_idx]):
+        if preview_edit and self.mw.data_store.current_string_idx != -1 and \
+           0 <= self.mw.data_store.current_string_idx < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]):
             
             # Find relative index for preview
             rel_idx = -1
-            if hasattr(self.mw, 'displayed_string_indices') and self.mw.current_string_idx in self.mw.displayed_string_indices:
-                rel_idx = self.mw.displayed_string_indices.index(self.mw.current_string_idx)
+            if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.current_string_idx in self.mw.data_store.displayed_string_indices:
+                rel_idx = self.mw.data_store.displayed_string_indices.index(self.mw.data_store.current_string_idx)
 
             if rel_idx != -1 and hasattr(preview_edit, 'set_selected_lines'): 
                 preview_edit.set_selected_lines([rel_idx])
@@ -264,7 +264,7 @@ class ListSelectionHandler(BaseHandler):
         elif preview_edit and hasattr(preview_edit, 'highlightManager'): 
             preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
             
-        if self.mw.current_string_idx != -1 and hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+        if self.mw.data_store.current_string_idx != -1 and hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             self.mw.edited_text_edit.setFocus()
             cursor = self.mw.edited_text_edit.textCursor()
             cursor.movePosition(QTextCursor.End)
@@ -304,7 +304,7 @@ class ListSelectionHandler(BaseHandler):
                 if merged_ids and " / " in new_text:
                     parts = new_text.split(" / ")
                     actual_block_name = parts[-1].strip()
-                    self.mw.block_names[block_index_str] = actual_block_name
+                    self.mw.data_store.block_names[block_index_str] = actual_block_name
                     
                     # Rename parent folders in the chain
                     folder_names = parts[:-1]
@@ -336,7 +336,7 @@ class ListSelectionHandler(BaseHandler):
                                 else:
                                     folder_obj.name = new_name
                 else:
-                    self.mw.block_names[block_index_str] = new_text
+                    self.mw.data_store.block_names[block_index_str] = new_text
                 
                 self.mw.settings_manager.save_block_names()
                 log_debug(f"Block {block_index_from_data} renamed to '{new_text}'")
@@ -424,24 +424,24 @@ class ListSelectionHandler(BaseHandler):
         
         for i in range(num_sublines):
             key = (block_idx, string_idx, i)
-            if key in self.mw.problems_per_subline:
-                problems = self.mw.problems_per_subline[key]
+            if key in self.mw.data_store.problems_per_subline:
+                problems = self.mw.data_store.problems_per_subline[key]
                 if any(detection_config.get(p_id, True) for p_id in problems):
                     return True
                     
         return False
 
     def navigate_to_problem_string(self, direction_down: bool):
-        if self.mw.current_block_idx == -1 or not self.mw.data or \
-           not (0 <= self.mw.current_block_idx < len(self.mw.data)):
+        if self.mw.data_store.current_block_idx == -1 or not self.mw.data_store.data or \
+           not (0 <= self.mw.data_store.current_block_idx < len(self.mw.data_store.data)):
             return
 
-        current_block_data = self.mw.data[self.mw.current_block_idx]
+        current_block_data = self.mw.data_store.data[self.mw.data_store.current_block_idx]
         if not isinstance(current_block_data, list) or not current_block_data:
             return
 
         num_strings_in_block = len(current_block_data)
-        start_scan_idx = self.mw.current_string_idx
+        start_scan_idx = self.mw.data_store.current_string_idx
         log_debug(f"[NAV] Start navigation. Direction down: {direction_down}, current_string_idx: {start_scan_idx}")
         
         current_check_idx = -1
@@ -457,22 +457,22 @@ class ListSelectionHandler(BaseHandler):
 
         if direction_down:
             for s_idx in range(current_check_idx, num_strings_in_block):
-                if self._data_string_has_any_problem(self.mw.current_block_idx, s_idx):
+                if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                     found_target_s_idx = s_idx
                     break
             if found_target_s_idx == -1: 
                 for s_idx in range(0, current_check_idx if start_scan_idx != -1 else num_strings_in_block): 
-                    if self._data_string_has_any_problem(self.mw.current_block_idx, s_idx):
+                    if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                         found_target_s_idx = s_idx
                         break
         else: 
             for s_idx in range(current_check_idx, -1, -1):
-                if self._data_string_has_any_problem(self.mw.current_block_idx, s_idx):
+                if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                     found_target_s_idx = s_idx
                     break
             if found_target_s_idx == -1: 
                 for s_idx in range(num_strings_in_block - 1, current_check_idx if start_scan_idx != -1 else -1, -1): 
-                    if self._data_string_has_any_problem(self.mw.current_block_idx, s_idx):
+                    if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                         found_target_s_idx = s_idx
                         break
         
@@ -481,7 +481,7 @@ class ListSelectionHandler(BaseHandler):
             self.string_selected_from_preview(found_target_s_idx)
         else:
             log_debug("[NAV] No problem string found in current search.")
-            if start_scan_idx != -1 and self._data_string_has_any_problem(self.mw.current_block_idx, start_scan_idx):
+            if start_scan_idx != -1 and self._data_string_has_any_problem(self.mw.data_store.current_block_idx, start_scan_idx):
                  self.string_selected_from_preview(start_scan_idx)
 
             self.mw.is_programmatically_changing_text = original_programmatic_state
@@ -494,9 +494,9 @@ class ListSelectionHandler(BaseHandler):
         if selected_lines is None:
             cursor = preview_edit.textCursor()
             if not cursor.hasSelection():
-                if self.mw.current_string_idx != -1:
+                if self.mw.data_store.current_string_idx != -1:
                     if hasattr(preview_edit, 'set_selected_lines'):
-                        preview_edit.set_selected_lines([self.mw.current_string_idx])
+                        preview_edit.set_selected_lines([self.mw.data_store.current_string_idx])
                 return
 
             start_pos = cursor.selectionStart()
@@ -518,22 +518,22 @@ class ListSelectionHandler(BaseHandler):
         
         # Translate rel to abs
         abs_indices = []
-        if hasattr(self.mw, 'displayed_string_indices') and self.mw.displayed_string_indices:
+        if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.displayed_string_indices:
             for rel in selected_lines:
-                if 0 <= rel < len(self.mw.displayed_string_indices):
-                    abs_indices.append(self.mw.displayed_string_indices[rel])
+                if 0 <= rel < len(self.mw.data_store.displayed_string_indices):
+                    abs_indices.append(self.mw.data_store.displayed_string_indices[rel])
         else:
             abs_indices = selected_lines
             
         # Save to app state
-        self.mw.selected_string_indices = abs_indices
+        self.mw.data_store.selected_string_indices = abs_indices
         
         # If only one selected, update current_string_idx
         if len(abs_indices) == 1:
             target_idx = abs_indices[0]
-            if self.mw.current_string_idx != target_idx:
+            if self.mw.data_store.current_string_idx != target_idx:
                 # Update current_string_idx so other views follow
-                self.mw.current_string_idx = target_idx
+                self.mw.data_store.current_string_idx = target_idx
                 self.ui_updater.update_text_views()
                 if hasattr(self.mw, 'string_settings_updater'):
                     self.mw.string_settings_updater.update_string_settings_panel()
@@ -549,7 +549,7 @@ class ListSelectionHandler(BaseHandler):
             QMessageBox.warning(self.mw, "Move to Virtual Block", "No strings selected in preview.")
             return
         
-        if self.mw.current_block_idx == -1:
+        if self.mw.data_store.current_block_idx == -1:
             return
             
         pm = self.mw.project_manager
@@ -559,7 +559,7 @@ class ListSelectionHandler(BaseHandler):
              
         # Find the project block index
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        proj_b_idx = block_map.get(self.mw.current_block_idx, self.mw.current_block_idx)
+        proj_b_idx = block_map.get(self.mw.data_store.current_block_idx, self.mw.data_store.current_block_idx)
         if proj_b_idx >= len(pm.project.blocks):
             return
             
@@ -578,7 +578,7 @@ class ListSelectionHandler(BaseHandler):
         
         # Update UI
         self.ui_updater.populate_blocks()
-        self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, self.mw.current_category_name)
+        self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
         
         # Re-select the block to show the new category (if we implement category display)
         # For now, just logging
@@ -624,12 +624,12 @@ class ListSelectionHandler(BaseHandler):
 
     def toggle_highlight_categorized(self, checked: bool) -> None:
         """Toggle highlighting of categorized strings in parent block."""
-        self.mw.highlight_categorized = checked
-        if self.mw.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, self.mw.current_category_name)
+        self.mw.data_store.highlight_categorized = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
 
     def toggle_hide_categorized(self, checked: bool) -> None:
         """Toggle hiding of categorized strings in parent block."""
-        self.mw.hide_categorized = checked
-        if self.mw.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.current_block_idx, self.mw.current_category_name)
+        self.mw.data_store.hide_categorized = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)

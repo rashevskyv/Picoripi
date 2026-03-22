@@ -4,6 +4,7 @@ from handlers.text_operation_handler import TextOperationHandler
 
 class MockUIProvider:
     def __init__(self):
+        self.data_store = self
         self._programmatically_changing = False
         self._texts = {"edited_text_edit": "Initial text"}
         self._cursor_pos = 0
@@ -19,6 +20,7 @@ class MockUIProvider:
 class MockContext(MagicMock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.data_store = self
         self.current_block_idx = 0
         self.current_string_idx = 0
         self.data = [["Original line 1"]]
@@ -57,7 +59,7 @@ def test_text_edited_basic():
     handler.text_edited()
     
     # Verify edited_sublines contains index 0
-    assert 0 in ctx.edited_sublines
+    assert 0 in ctx.data_store.edited_sublines
     # Verify data_processor.update_edited_data was called
     data_processor.update_edited_data.assert_called()
 

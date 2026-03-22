@@ -64,7 +64,7 @@ class MainWindowActions:
         else:
             log_info("Settings changed without restart. Applying settings.")
             
-            initial_paths = (self.mw.json_path, self.mw.edited_json_path)
+            initial_paths = (self.mw.data_store.json_path, self.mw.data_store.edited_json_path)
             restore_session_before = self.mw.restore_unsaved_on_startup
 
             for key, value in new_settings.items():
@@ -72,18 +72,18 @@ class MainWindowActions:
             
             restore_session_after = self.mw.restore_unsaved_on_startup
             
-            if restore_session_before and not restore_session_after and self.mw.unsaved_changes:
+            if restore_session_before and not restore_session_after and self.mw.data_store.unsaved_changes:
                 reply = QMessageBox.question(self.mw, "Discard Unsaved Changes?",
                                              "You have disabled session restore.\nDo you want to discard the current unsaved changes now?",
                                              QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if reply == QMessageBox.Yes:
-                    self.mw.edited_data.clear()
-                    self.mw.unsaved_changes = False
+                    self.mw.data_store.edited_data.clear()
+                    self.mw.data_store.unsaved_changes = False
                     self.mw.helper.rebuild_unsaved_block_indices()
                     if hasattr(self.mw, 'ui_updater'):
                         self.mw.ui_updater.update_title()
                         self.mw.ui_updater.populate_blocks()
-                        self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+                        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
                     if hasattr(self.mw, 'preview_text_edit'):
                         self.mw.preview_text_edit.viewport().update()
                     if hasattr(self.mw, 'edited_text_edit'):
@@ -144,20 +144,20 @@ class MainWindowActions:
 
         block_to_refresh_ui_for = self.mw.before_paste_block_idx_affected
 
-        keys_to_remove_from_edited_data = [k for k in self.mw.edited_data.keys() if k[0] == block_to_refresh_ui_for]
+        keys_to_remove_from_edited_data = [k for k in self.mw.data_store.edited_data.keys() if k[0] == block_to_refresh_ui_for]
         for key_to_remove in keys_to_remove_from_edited_data:
-            del self.mw.edited_data[key_to_remove]
+            del self.mw.data_store.edited_data[key_to_remove]
         for key_snapshot, value_snapshot in self.mw.before_paste_edited_data_snapshot.items():
-            self.mw.edited_data[key_snapshot] = value_snapshot
+            self.mw.data_store.edited_data[key_snapshot] = value_snapshot
         
-        keys_to_remove_from_problems = [k for k in self.mw.problems_per_subline.keys() if k[0] == block_to_refresh_ui_for]
+        keys_to_remove_from_problems = [k for k in self.mw.data_store.problems_per_subline.keys() if k[0] == block_to_refresh_ui_for]
         for key_to_remove in keys_to_remove_from_problems:
-            del self.mw.problems_per_subline[key_to_remove]
+            del self.mw.data_store.problems_per_subline[key_to_remove]
         for key_snapshot, value_snapshot in self.mw.before_paste_problems_per_subline_snapshot.items():
-            self.mw.problems_per_subline[key_snapshot] = value_snapshot.copy() 
+            self.mw.data_store.problems_per_subline[key_snapshot] = value_snapshot.copy() 
 
         self.helper.rebuild_unsaved_block_indices() 
-        self.mw.unsaved_changes = bool(self.mw.edited_data) 
+        self.mw.data_store.unsaved_changes = bool(self.mw.data_store.edited_data) 
         
         if hasattr(self.mw, 'title_status_bar_updater'):
             self.mw.title_status_bar_updater.update_title()
@@ -176,16 +176,16 @@ class MainWindowActions:
             self.mw.ui_updater.update_block_item_text_with_problem_count(block_to_refresh_ui_for)
 
         if hasattr(self.mw, 'preview_updater') and hasattr(self.mw.preview_updater, 'update_preview_for_block'):
-            self.mw.preview_updater.update_preview_for_block(self.mw.current_block_idx)
+            self.mw.preview_updater.update_preview_for_block(self.mw.data_store.current_block_idx)
         elif hasattr(self.mw.ui_updater, 'populate_strings_for_block'):
-            self.mw.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
         
         if hasattr(self.mw, 'editor_state_updater') and hasattr(self.mw.editor_state_updater, 'update_editor_content'):
              self.mw.editor_state_updater.update_editor_content()
         elif hasattr(self.mw.ui_updater, 'update_text_views'):
             self.mw.ui_updater.update_text_views()
         
-        if self.mw.current_block_idx != block_to_refresh_ui_for:
+        if self.mw.data_store.current_block_idx != block_to_refresh_ui_for:
             if hasattr(self.mw, 'block_list_updater'):
                 self.mw.block_list_updater.update_block_item_text_with_problem_count(block_to_refresh_ui_for)
             elif hasattr(self.mw.ui_updater, 'update_block_item_text_with_problem_count'):
@@ -212,9 +212,9 @@ class MainWindowActions:
             if "default_tag_mappings" in plugin_data:
                 self.mw.default_tag_mappings = plugin_data["default_tag_mappings"]
                 QMessageBox.information(self.mw, "Tag Mappings Reloaded", f"Default tag mappings reloaded from\n{Path(plugin_config_path).name}.")
-                if self.mw.current_block_idx != -1:
+                if self.mw.data_store.current_block_idx != -1:
                     if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mappings?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
-                        self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.current_block_idx, use_default_mappings=True)
+                        self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)
             else:
                 QMessageBox.warning(self.mw, "Reload Error", "'default_tag_mappings' not found in plugin config.")
 
@@ -242,9 +242,9 @@ class MainWindowActions:
             QMessageBox.information(self.mw, "Tag Mapping Added",
                                     f"Mapping '{bracket_tag}' -> '{curly_tag}' has been added/updated.\n"
                                     "This change will be saved to the plugin's config file when settings are saved.")
-            if self.mw.current_block_idx != -1:
+            if self.mw.data_store.current_block_idx != -1:
                 if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mapping now?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
-                    self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.current_block_idx, use_default_mappings=True)
+                    self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)
         else: log_info("User cancelled overwrite or no action taken.")
 
     def show_shortcuts_help(self):

@@ -66,7 +66,7 @@ class UndoManager:
         now = time.time()
         
         cursor_pos = None
-        if self.mw.current_block_idx == block_idx and self.mw.current_string_idx == string_idx:
+        if self.mw.data_store.current_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
             cursor_pos = self.mw.edited_text_edit.textCursor().position()
 
         action = UndoAction(
@@ -145,7 +145,7 @@ class UndoManager:
     def get_project_snapshot(self) -> dict:
         """Capture current project + block_names structure for undo purposes."""
         import copy
-        snapshot = {'block_names': copy.deepcopy(self.mw.block_names)}
+        snapshot = {'block_names': copy.deepcopy(self.mw.data_store.block_names)}
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
             project = self.mw.project_manager.project
             snapshot['virtual_folders'] = [vf.to_dict() for vf in project.virtual_folders]
@@ -177,7 +177,7 @@ class UndoManager:
         from core.project_models import VirtualFolder
         import copy
         if 'block_names' in snapshot:
-            self.mw.block_names = copy.deepcopy(snapshot['block_names'])
+            self.mw.data_store.block_names = copy.deepcopy(snapshot['block_names'])
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_block_names()
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
@@ -301,8 +301,8 @@ class UndoManager:
     def _navigate_to(self, block_idx: int, string_idx: int, category: str = None):
         if block_idx == -1: return
 
-        current_block = self.mw.current_block_idx
-        current_string = self.mw.current_string_idx
+        current_block = self.mw.data_store.current_block_idx
+        current_string = self.mw.data_store.current_string_idx
         
         needs_string_refresh = False
         
@@ -335,7 +335,7 @@ class UndoManager:
             self.mw.data_processor.update_edited_data(block_idx, string_idx, text)
             
             # Update editor text if it's currently showing this string
-            if self.mw.current_block_idx == block_idx and self.mw.current_string_idx == string_idx:
+            if self.mw.data_store.current_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
                 editor_text = self.mw.current_game_rules.get_text_representation_for_editor(text)
                 self.mw.edited_text_edit.setPlainText(editor_text)
                 
@@ -359,9 +359,9 @@ class UndoManager:
                 self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
 
                 # Dynamically calculate which sublines remain edited relative to saved file
-                text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.edited_file_data, "edited_file_data")
+                text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
                 if text_from_saved_file is None:
-                    text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data, "original_data")
+                    text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data")
                 if text_from_saved_file is None:
                     text_from_saved_file = ""
                     
@@ -372,10 +372,10 @@ class UndoManager:
                 # Actually 'text' parameter in _apply_data is ALREADY the raw actual_text_with_spaces
                 curr_lines = text.split('\n')
                 
-                self.mw.edited_sublines.clear()
+                self.mw.data_store.edited_sublines.clear()
                 for i, curr_line in enumerate(curr_lines):
                     if i >= len(saved_lines) or curr_line != saved_lines[i]:
-                        self.mw.edited_sublines.add(i)
+                        self.mw.data_store.edited_sublines.add(i)
                 
                 # Re-apply highlights
                 self.mw.ui_updater._apply_highlights_to_editor(self.mw.edited_text_edit, block_idx, string_idx)

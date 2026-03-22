@@ -8,6 +8,7 @@ from core.glossary_manager import GlossaryMatch
 @pytest.fixture
 def mock_mw():
     mw = MagicMock()
+    mw.data_store = mw
     mw.theme = 'light'
     mw.current_game_rules = MagicMock()
     mw.current_game_rules.get_syntax_highlighting_rules.return_value = [
@@ -158,6 +159,7 @@ def test_JsonTagHighlighter_spellcheck(highlighter, mock_mw):
 def test_JsonTagHighlighter_theme_dark(qapp):
     doc = QTextDocument()
     mw = MagicMock()
+    mw.data_store = mw
     mw.theme = 'dark'
     hl = JsonTagHighlighter(doc, main_window_ref=mw)
     assert hl.default_text_color.name().upper() == "#E0E0E0"

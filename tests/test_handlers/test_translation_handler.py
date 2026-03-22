@@ -10,9 +10,10 @@ from core.translation.providers import ProviderResponse
 @pytest.fixture
 def mock_deps():
     mw = MagicMock()
+    mw.data_store = mw
     mw.translation_config = {}
-    mw.current_block_idx = 1
-    mw.current_string_idx = 2
+    mw.data_store.current_block_idx = 1
+    mw.data_store.current_string_idx = 2
     mw.preview_text_edit = MagicMock()
     dp = MagicMock()
     ui = MagicMock()
@@ -54,10 +55,10 @@ def test_th_glossary_delegation(th):
     th.glossary_handler.glossary_manager.get_entry.assert_called_with("term")
     
     th.add_glossary_entry("term", "ctx")
-    th.glossary_handler.add_glossary_entry.assert_called_with("term", "ctx")
+    th.glossary_handler.add_glossary_entry.assert_called_with("term", "ctx", "")
     
     th.edit_glossary_entry("term")
-    th.glossary_handler.edit_glossary_entry.assert_called_with("term")
+    th.glossary_handler.edit_glossary_entry.assert_called_with("term", translation="")
 
 def test_th_append_selection_to_glossary(th):
     # No selection
@@ -71,7 +72,7 @@ def test_th_append_selection_to_glossary(th):
     th.glossary_handler._get_original_string.side_effect = lambda b, idx: f"line {idx}"
     th.append_selection_to_glossary()
     
-    th.glossary_handler.add_glossary_entry.assert_called_with("line 0\nline 1")
+    th.glossary_handler.add_glossary_entry.assert_called_with("line 0\nline 1", None, "")
 
 @patch('handlers.translation_handler.GeminiProvider')
 def test_th_reset_translation_session(mock_gemini, th):
@@ -191,7 +192,7 @@ def test_th_translate_preview_selection(mock_box, th):
 @patch('handlers.translation_handler.QMessageBox')
 def test_th_translate_current_block(mock_box, th):
     th.is_ai_running = False
-    th.mw.data = [["s1", "s2"], ["s3"]]
+    th.mw.data_store.data = [["s1", "s2"], ["s3"]]
     th.glossary_handler._get_original_block.return_value = ["s1", "s2"]
     
     provider = MagicMock()

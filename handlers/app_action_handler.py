@@ -21,7 +21,7 @@ class AppActionHandler(BaseHandler):
             self.mw.issue_scan_handler.rescan_all_tags()
 
     def handle_close_event(self, event: QEvent) -> None:
-        if self.mw.unsaved_changes:
+        if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(
                 self.mw, 'Unsaved Changes',
                 "Save changes before closing?",
@@ -45,7 +45,7 @@ class AppActionHandler(BaseHandler):
 
     def open_file_dialog_action(self) -> None:
         log_info("Open File Dialog action triggered.")
-        if self.mw.unsaved_changes:
+        if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel)
             if reply == QMessageBox.Save:
                 if not self.save_data_action(ask_confirmation=True):
@@ -54,8 +54,8 @@ class AppActionHandler(BaseHandler):
                 return
         
         start_dir = ""
-        if self.mw.json_path:
-            start_dir = str(Path(self.mw.json_path).parent)
+        if self.mw.data_store.json_path:
+            start_dir = str(Path(self.mw.data_store.json_path).parent)
             
         path, _ = QFileDialog.getOpenFileName(self.mw, "Open Original File", start_dir, "Supported Files (*.json *.txt);;JSON (*.json);;Text files (*.txt);;All (*)")
         if path:
@@ -63,19 +63,19 @@ class AppActionHandler(BaseHandler):
 
     def open_changes_file_dialog_action(self) -> None:
         log_info("Open Changes File Dialog action triggered.")
-        if not self.mw.json_path:
+        if not self.mw.data_store.json_path:
             QMessageBox.warning(self.mw, "Open Changes File", "Please open an original file first.")
             return
             
         start_dir = ""
-        if self.mw.edited_json_path:
-            start_dir = str(Path(self.mw.edited_json_path).parent)
-        elif self.mw.json_path:
-            start_dir = str(Path(self.mw.json_path).parent)
+        if self.mw.data_store.edited_json_path:
+            start_dir = str(Path(self.mw.data_store.edited_json_path).parent)
+        elif self.mw.data_store.json_path:
+            start_dir = str(Path(self.mw.data_store.json_path).parent)
             
         path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
         if path:
-            if self.mw.unsaved_changes:
+            if self.mw.data_store.unsaved_changes:
                  reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Loading a new changes file will discard current unsaved edits. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                  if reply == QMessageBox.No:
                      return
@@ -111,21 +111,21 @@ class AppActionHandler(BaseHandler):
             if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
                 self.mw.current_game_rules.original_keys = plugin_keys_backup
             
-            self.mw.edited_json_path = path
-            self.mw.edited_file_data = new_edited_data
-            self.mw.edited_data = {}
-            self.mw.unsaved_changes = False
+            self.mw.data_store.edited_json_path = path
+            self.mw.data_store.edited_file_data = new_edited_data
+            self.mw.data_store.edited_data = {}
+            self.mw.data_store.unsaved_changes = False
             
             self._perform_initial_silent_scan_all_issues()
             self.ui_updater.update_title()
             self.ui_updater.update_statusbar_paths()
             self.ui_updater.populate_blocks()
-            if self.mw.block_list_widget.count() > 0 and self.mw.current_block_idx == -1:
+            if self.mw.block_list_widget.count() > 0 and self.mw.data_store.current_block_idx == -1:
                  custom_tree = getattr(self.mw, 'block_list_widget', None)
                  if custom_tree and hasattr(custom_tree, 'select_block_by_index'):
                      custom_tree.select_block_by_index(0)
             else:
-                 self.ui_updater.populate_strings_for_block(self.mw.current_block_idx)
+                 self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
 
     def save_data_action(self, ask_confirmation: bool = True) -> bool:
         """
@@ -136,25 +136,25 @@ class AppActionHandler(BaseHandler):
 
     def save_as_dialog_action(self) -> None:
         log_info("Save As Dialog action triggered.")
-        if not self.mw.json_path:
+        if not self.mw.data_store.json_path:
             QMessageBox.warning(self.mw, "Save As Error", "No original file open.")
             return
             
-        current_edited_path = self.mw.edited_json_path if self.mw.edited_json_path else self._derive_edited_path(self.mw.json_path)
+        current_edited_path = self.mw.data_store.edited_json_path if self.mw.data_store.edited_json_path else self._derive_edited_path(self.mw.data_store.json_path)
         if not current_edited_path: 
-            current_edited_path = str(Path(self.mw.json_path).parent / "untitled_edited.json") if self.mw.json_path else "untitled_edited.json"
+            current_edited_path = str(Path(self.mw.data_store.json_path).parent / "untitled_edited.json") if self.mw.data_store.json_path else "untitled_edited.json"
             
         new_edited_path, _ = QFileDialog.getSaveFileName(self.mw, "Save Changes As...", current_edited_path, "Supported Files (*.json *.txt);;JSON (*.json);;All (*)")
         if new_edited_path:
-            original_edited_path_backup = self.mw.edited_json_path
-            self.mw.edited_json_path = new_edited_path
+            original_edited_path_backup = self.mw.data_store.edited_json_path
+            self.mw.data_store.edited_json_path = new_edited_path
             save_success = self.save_data_action(ask_confirmation=False)
             if save_success:
-                QMessageBox.information(self.mw, "Saved As", f"Changes saved to:\n{self.mw.edited_json_path}")
+                QMessageBox.information(self.mw, "Saved As", f"Changes saved to:\n{self.mw.data_store.edited_json_path}")
                 self.ui_updater.update_statusbar_paths()
             else:
-                QMessageBox.critical(self.mw, "Save As Error", f"Failed to save to:\n{self.mw.edited_json_path}")
-                self.mw.edited_json_path = original_edited_path_backup
+                QMessageBox.critical(self.mw, "Save As Error", f"Failed to save to:\n{self.mw.data_store.edited_json_path}")
+                self.mw.data_store.edited_json_path = original_edited_path_backup
                 self.ui_updater.update_statusbar_paths()
 
     def load_all_data_for_path(self, original_file_path: Union[str, Path], manually_set_edited_path: Optional[Union[str, Path]] = None, is_initial_load_from_settings: bool = False) -> None:
@@ -178,12 +178,12 @@ class AppActionHandler(BaseHandler):
                 error = f"Unsupported file type: {file_extension}"
 
             if error:
-                self.mw.json_path = None
-                self.mw.edited_json_path = None
-                self.mw.data = []
-                self.mw.edited_data = {}
-                self.mw.edited_file_data = []
-                self.mw.unsaved_changes = False
+                self.mw.data_store.json_path = None
+                self.mw.data_store.edited_json_path = None
+                self.mw.data_store.data = []
+                self.mw.data_store.edited_data = {}
+                self.mw.data_store.edited_file_data = []
+                self.mw.data_store.unsaved_changes = False
                 self.ui_updater.update_title()
                 self.ui_updater.update_statusbar_paths()
                 self.ui_updater.populate_blocks()
@@ -198,26 +198,26 @@ class AppActionHandler(BaseHandler):
             data, block_names_from_plugin = self.mw.current_game_rules.load_data_from_json_obj(file_content)
             if not data and file_content is not None:
                 QMessageBox.critical(self.mw, "Plugin Error", f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
-                self.mw.json_path = None
-                self.mw.data = []
+                self.mw.data_store.json_path = None
+                self.mw.data_store.data = []
                 self.ui_updater.populate_blocks()
                 self.ui_updater.populate_strings_for_block(-1)
                 return
 
-            self.mw.json_path = str(original_file_path)
-            self.mw.data = data
+            self.mw.data_store.json_path = str(original_file_path)
+            self.mw.data_store.data = data
             if block_names_from_plugin:
-                self.mw.block_names.update(block_names_from_plugin)
+                self.mw.data_store.block_names.update(block_names_from_plugin)
             
-            self.mw.edited_data = {}
-            self.mw.unsaved_changes = False
+            self.mw.data_store.edited_data = {}
+            self.mw.data_store.unsaved_changes = False
             
-            self.mw.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(self.mw.json_path)
-            self.mw.edited_file_data = []
-            if self.mw.edited_json_path and Path(self.mw.edited_json_path).exists():
+            self.mw.data_store.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(self.mw.data_store.json_path)
+            self.mw.data_store.edited_file_data = []
+            if self.mw.data_store.edited_json_path and Path(self.mw.data_store.edited_json_path).exists():
                 edited_file_content = None
                 edit_error = None
-                edited_path_obj = Path(self.mw.edited_json_path)
+                edited_path_obj = Path(self.mw.data_store.edited_json_path)
                 edited_file_extension = edited_path_obj.suffix.lower()
 
                 if edited_file_extension == '.json':
@@ -226,7 +226,7 @@ class AppActionHandler(BaseHandler):
                     edited_file_content, edit_error = load_text_file(edited_path_obj, parent_widget=self.mw)
 
                 if edit_error:
-                    QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.edited_json_path}\n{edit_error}")
+                    QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")
                 else:
                     plugin_keys_backup = None
                     if hasattr(self.mw.current_game_rules, 'original_keys'):
@@ -237,10 +237,10 @@ class AppActionHandler(BaseHandler):
                     if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
                         self.mw.current_game_rules.original_keys = plugin_keys_backup
                         
-                    self.mw.edited_file_data = edited_data_from_file
+                    self.mw.data_store.edited_file_data = edited_data_from_file
             
-            self.mw.current_block_idx = -1
-            self.mw.current_string_idx = -1
+            self.mw.data_store.current_block_idx = -1
+            self.mw.data_store.current_string_idx = -1
             
             if hasattr(self.mw, 'undo_paste_action') and self.mw.undo_paste_action:
                 self.mw.can_undo_paste = False
@@ -270,20 +270,20 @@ class AppActionHandler(BaseHandler):
 
     def reload_original_data_action(self) -> None:
         log_info("Reload Original action triggered.")
-        if not self.mw.json_path:
+        if not self.mw.data_store.json_path:
             QMessageBox.information(self.mw, "Reload", "No file open.")
             return
             
-        if self.mw.unsaved_changes:
+        if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Reloading will discard current unsaved edits in memory. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.No:
                 return
                 
-        current_edited_path_before_reload = self.mw.edited_json_path
-        self.load_all_data_for_path(self.mw.json_path, manually_set_edited_path=current_edited_path_before_reload, is_initial_load_from_settings=False)
+        current_edited_path_before_reload = self.mw.data_store.edited_json_path
+        self.load_all_data_for_path(self.mw.data_store.json_path, manually_set_edited_path=current_edited_path_before_reload, is_initial_load_from_settings=False)
 
     def calculate_widths_for_block_action(self, block_idx: int) -> None:
-        if block_idx < 0 or not self.mw.data or block_idx >= len(self.mw.data) or not isinstance(self.mw.data[block_idx], list):
+        if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
             QMessageBox.warning(self.mw, "Calculate Widths Error", "Invalid block selected or no data.")
             return
 
@@ -294,12 +294,12 @@ class AppActionHandler(BaseHandler):
             QMessageBox.warning(self.mw, "Calculate Widths Error", "Game rules plugin not loaded.")
             return
 
-        num_strings = len(self.mw.data[block_idx])
+        num_strings = len(self.mw.data_store.data[block_idx])
         if num_strings == 0:
-            QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {self.mw.block_names.get(str(block_idx),str(block_idx))} is empty.")
+            QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {self.mw.data_store.block_names.get(str(block_idx),str(block_idx))} is empty.")
             return
 
-        progress = QProgressDialog(f"Calculating widths for block {self.mw.block_names.get(str(block_idx),str(block_idx))}...", "Cancel", 0, num_strings, self.mw)
+        progress = QProgressDialog(f"Calculating widths for block {self.mw.data_store.block_names.get(str(block_idx),str(block_idx))}...", "Cancel", 0, num_strings, self.mw)
         progress.setWindowModality(Qt.WindowModal)
         progress.setMinimumDuration(0)
 
@@ -316,7 +316,7 @@ class AppActionHandler(BaseHandler):
                 return
 
             current_text_data_line, source = self.data_processor.get_current_string_text(block_idx, data_str_idx)
-            original_text_data_line = self.data_processor._get_string_from_source(block_idx, data_str_idx, self.mw.data, "width_calc_block_original_data")
+            original_text_data_line = self.data_processor._get_string_from_source(block_idx, data_str_idx, self.mw.data_store.data, "width_calc_block_original_data")
             
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, data_str_idx)
             string_meta = self.mw.string_metadata.get((block_idx, data_str_idx), {})
@@ -377,10 +377,10 @@ class AppActionHandler(BaseHandler):
         progress.setValue(num_strings)
 
         if not results:
-            QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {self.mw.block_names.get(str(block_idx),str(block_idx))} processed. No lines found or calculation error.")
+            QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {self.mw.data_store.block_names.get(str(block_idx),str(block_idx))} processed. No lines found or calculation error.")
             return
             
-        result_text_title = (f"Widths for Block {self.mw.block_names.get(str(block_idx), str(block_idx))}\n"
+        result_text_title = (f"Widths for Block {self.mw.data_store.block_names.get(str(block_idx), str(block_idx))}\n"
                              f"(Editor Warning Threshold: {self.mw.line_width_warning_threshold_pixels}px - can be overridden per string)\n"
                              f"(Game Dialog Max Width (for total only): {self.mw.game_dialog_max_width_pixels}px)\n")
         result_text = result_text_title + "\n" + "\n\n".join(results)

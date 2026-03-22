@@ -28,10 +28,10 @@ class SearchHandler(BaseHandler):
     def _get_text_for_search(self, block_idx: int, string_idx: int, search_in_original_flag: bool, ignore_tags_flag: bool) -> str:
         text_to_process = ""
         if search_in_original_flag:
-            if 0 <= block_idx < len(self.mw.data) and \
-               isinstance(self.mw.data[block_idx], list) and \
-               0 <= string_idx < len(self.mw.data[block_idx]):
-                text_to_process = self.mw.data[block_idx][string_idx]
+            if 0 <= block_idx < len(self.mw.data_store.data) and \
+               isinstance(self.mw.data_store.data[block_idx], list) and \
+               0 <= string_idx < len(self.mw.data_store.data[block_idx]):
+                text_to_process = self.mw.data_store.data[block_idx][string_idx]
         else:
             text_to_process, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         
@@ -134,17 +134,17 @@ class SearchHandler(BaseHandler):
         self.ignore_tags_newlines = ignore_tags
         self.is_fuzzy = is_fuzzy
 
-        if not self.mw.data: return False
+        if not self.mw.data_store.data: return False
         
         start_block_data_idx = self.last_found_block if self.last_found_block != -1 else 0
         start_string_data_idx = self.last_found_string if self.last_found_string != -1 else 0
         start_char_offset = self.last_found_char_pos_raw + 1 if self.last_found_char_pos_raw != -1 else 0
         
-        for b_idx in range(start_block_data_idx, len(self.mw.data)):
-            if not isinstance(self.mw.data[b_idx], list): continue
+        for b_idx in range(start_block_data_idx, len(self.mw.data_store.data)):
+            if not isinstance(self.mw.data_store.data[b_idx], list): continue
             
             s_idx_start_loop_offset = start_string_data_idx if b_idx == start_block_data_idx else 0
-            for s_idx in range(s_idx_start_loop_offset, len(self.mw.data[b_idx])):
+            for s_idx in range(s_idx_start_loop_offset, len(self.mw.data_store.data[b_idx])):
                 current_char_search_offset = start_char_offset if b_idx == start_block_data_idx and s_idx == start_string_data_idx else 0
                 
                 text_for_search = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
@@ -199,17 +199,17 @@ class SearchHandler(BaseHandler):
         self.ignore_tags_newlines = ignore_tags
         self.is_fuzzy = is_fuzzy
             
-        if not self.mw.data: return False
+        if not self.mw.data_store.data: return False
 
-        start_block_data_idx: int = self.last_found_block if self.last_found_block != -1 else len(self.mw.data) - 1
+        start_block_data_idx: int = self.last_found_block if self.last_found_block != -1 else len(self.mw.data_store.data) - 1
         start_string_data_idx: int = self.last_found_string if self.last_found_string != -1 else -1
         start_char_search_from: int = self.last_found_char_pos_raw -1 if self.last_found_char_pos_raw != -1 else -1
         
         for b_idx in range(start_block_data_idx, -1, -1):
-            if not isinstance(self.mw.data[b_idx], list): continue
+            if not isinstance(self.mw.data_store.data[b_idx], list): continue
             
             s_idx_start_loop_offset: int = (start_string_data_idx if b_idx == start_block_data_idx and start_string_data_idx != -1
-                                   else len(self.mw.data[b_idx]) - 1)
+                                   else len(self.mw.data_store.data[b_idx]) - 1)
             
             for s_idx in range(s_idx_start_loop_offset, -1, -1):
                 text_for_search: str = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
@@ -276,7 +276,7 @@ class SearchHandler(BaseHandler):
                            was_search_tagless_and_newline_agnostic: bool) -> None:
         log_debug(f"Navigating. Data: B:{block_idx_match_in_data}, S:{string_idx_match_in_data}. SearchTextPos:{char_pos_in_search_text}, SearchTextLen:{match_len_in_search_text}, TaglessNLSearch:{was_search_tagless_and_newline_agnostic}")
         self.clear_all_search_highlights()
-        if self.mw.current_block_idx != block_idx_match_in_data:
+        if self.mw.data_store.current_block_idx != block_idx_match_in_data:
             from PyQt5.QtWidgets import QTreeWidgetItemIterator
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
@@ -286,7 +286,7 @@ class SearchHandler(BaseHandler):
                     break
                 iterator += 1
         
-        if self.mw.current_string_idx != string_idx_match_in_data or self.mw.current_block_idx != block_idx_match_in_data:
+        if self.mw.data_store.current_string_idx != string_idx_match_in_data or self.mw.data_store.current_block_idx != block_idx_match_in_data:
              self.mw.list_selection_handler.string_selected_from_preview(string_idx_match_in_data)
         QApplication.processEvents()
 
@@ -301,7 +301,7 @@ class SearchHandler(BaseHandler):
                 if not editor or not hasattr(editor, 'highlightManager'): continue
                 
                 if (editor == self.mw.original_text_edit or editor == self.mw.edited_text_edit) and \
-                   string_idx_match_in_data != self.mw.current_string_idx:
+                   string_idx_match_in_data != self.mw.data_store.current_string_idx:
                     log_debug(f"TaglessSearch: Skipping {editor_name}, string mismatch for original/edited.")
                     continue
 
@@ -427,7 +427,7 @@ class SearchHandler(BaseHandler):
                 editor_name_precise = editor_precise.objectName();
                 if not editor_precise or not hasattr(editor_precise, 'highlightManager'): continue
                 if (editor_precise == self.mw.original_text_edit or editor_precise == self.mw.edited_text_edit) and \
-                   string_idx_match_in_data != self.mw.current_string_idx:
+                   string_idx_match_in_data != self.mw.data_store.current_string_idx:
                     log_debug(f"PreciseSearch: Skipping {editor_name_precise}, string mismatch for original/edited.")
                     continue
                 
@@ -438,7 +438,7 @@ class SearchHandler(BaseHandler):
                 query_for_this_editor_raw_precise = self.current_query # Start with the original query
 
                 # For original_text_edit, if we are searching IN original, the query should match the text in original_text_edit's document.
-                # original_text_edit's document contains text with "{Player}" etc. (raw from self.mw.data)
+                # original_text_edit's document contains text with "{Player}" etc. (raw from self.mw.data_store.data)
                 # and its JsonTagHighlighter handles visual replacement of {Player} but document still has {Player}
                 # So, if searching in original, query_for_this_editor_raw_precise should be self.current_query.
                 # If searching in EDITED text (self.search_in_original is False), and we are now highlighting in original_text_edit,
@@ -449,8 +449,8 @@ class SearchHandler(BaseHandler):
 
                 if editor_precise == self.mw.original_text_edit:
                     # If searching in original, the query should match the raw text in original_text_edit's document.
-                    # If search_in_original is True, self.current_query is what was found in self.mw.data.
-                    # original_text_edit.toPlainText() should be very close to self.mw.data.
+                    # If search_in_original is True, self.current_query is what was found in self.mw.data_store.data.
+                    # original_text_edit.toPlainText() should be very close to self.mw.data_store.data.
                     # So, no modification to query_for_this_editor_raw_precise needed here if search_in_original is True.
                     if not self.search_in_original:
                         # This case is complex: searched in edited, highlighting in original.

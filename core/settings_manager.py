@@ -67,7 +67,7 @@ class SettingsManager:
         if self.mw.restore_unsaved_on_startup:
             self.load_unsaved_session()
 
-        if not self.mw.initial_load_path and not self.mw.json_path:
+        if not self.mw.initial_load_path and not self.mw.data_store.json_path:
             log_debug("SettingsManager: No initial_load_path, ensuring UI is cleared.")
             if hasattr(self.mw, 'ui_updater'):
                 self.mw.ui_updater.populate_blocks()
@@ -93,10 +93,10 @@ class SettingsManager:
                 session_data_str_keys = settings_data.get("unsaved_session_data")
                 if session_data_str_keys and isinstance(session_data_str_keys, dict):
                     deserialized_data = {eval(k): v for k, v in session_data_str_keys.items()}
-                    self.mw.edited_data = deserialized_data
-                    self.mw.unsaved_changes = bool(self.mw.edited_data)
-                    log_info(f"Successfully loaded {len(self.mw.edited_data)} unsaved items from session.")
-                    if self.mw.unsaved_changes:
+                    self.mw.data_store.edited_data = deserialized_data
+                    self.mw.data_store.unsaved_changes = bool(self.mw.data_store.edited_data)
+                    log_info(f"Successfully loaded {len(self.mw.data_store.edited_data)} unsaved items from session.")
+                    if self.mw.data_store.unsaved_changes:
                         if hasattr(self.mw, 'helper'):
                             QTimer.singleShot(0, self.mw.helper.rebuild_unsaved_block_indices)
                         if hasattr(self.mw, 'ui_updater'):

@@ -25,6 +25,7 @@ def mock_project_manager():
 def mock_ui_provider():
     """Mocks the UI Provider for handlers."""
     ui_mock = MagicMock()
+    ui_mock.data_store = ui_mock
     ui_mock.edited_text_edit = MagicMock()
     ui_mock.original_text_edit = MagicMock()
     ui_mock.block_list_widget = MagicMock()
@@ -57,7 +58,8 @@ def cleanup_qt(qapp):
 def mock_mw(qapp):
     """Provides a mocked MainWindow instance."""
     mw = MagicMock()
-    mw.unsaved_changes = False
+    mw.data_store = mw
+    mw.data_store.unsaved_changes = False
     # Common UI elements
     mw.block_list_widget = MagicMock()
     mw.edited_text_edit = MagicMock()
@@ -71,8 +73,8 @@ def mock_mw(qapp):
     # Helper and font map
     mw.helper = MagicMock()
     mw.font_map = {}
-    mw.data = []
-    mw.problems_per_subline = {}
+    mw.data_store.data = []
+    mw.data_store.problems_per_subline = {}
     mw.string_metadata = {}
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 240

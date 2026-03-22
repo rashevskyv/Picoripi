@@ -189,7 +189,7 @@ class ProjectActionHandler(BaseHandler):
     def close_project_action(self) -> None:
         log_info("Close Project action triggered.")
 
-        if self.mw.unsaved_changes:
+        if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(
                 self.mw,
                 'Unsaved Changes',
@@ -208,12 +208,12 @@ class ProjectActionHandler(BaseHandler):
         self.mw.project_manager = None
 
         # Clear UI
-        self.mw.data = []
-        self.mw.edited_data = {}
-        self.mw.block_names = {}
-        self.mw.current_block_idx = -1
-        self.mw.current_string_idx = -1
-        self.mw.unsaved_changes = False
+        self.mw.data_store.data = []
+        self.mw.data_store.edited_data = {}
+        self.mw.data_store.block_names = {}
+        self.mw.data_store.current_block_idx = -1
+        self.mw.data_store.current_string_idx = -1
+        self.mw.data_store.unsaved_changes = False
 
         # Disable project-specific actions
         if hasattr(self.mw, 'close_project_action'):
@@ -549,9 +549,9 @@ class ProjectActionHandler(BaseHandler):
 
         # Clear current data
         self.mw.block_list_widget.clear()
-        self.mw.data = []
-        self.mw.edited_data = {}
-        self.mw.block_names = {}
+        self.mw.data_store.data = []
+        self.mw.data_store.edited_data = {}
+        self.mw.data_store.block_names = {}
         self.mw.block_to_project_file_map = {} # Mapping data_block_idx -> project_block_idx
         
         # Reset plugin state if it tracks keys (like pokemon_fr)
@@ -589,46 +589,46 @@ class ProjectActionHandler(BaseHandler):
                                 break
                         
                         if sub_idx != -1 and sub_idx < len(parsed_data):
-                            data_block_idx = len(self.mw.data)
-                            self.mw.data.append(parsed_data[sub_idx])
+                            data_block_idx = len(self.mw.data_store.data)
+                            self.mw.data_store.data.append(parsed_data[sub_idx])
                             self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                            self.mw.block_names[str(data_block_idx)] = block.name
+                            self.mw.data_store.block_names[str(data_block_idx)] = block.name
                             source_parsed_counts.append(1)
                         else:
                             # Not found or error loading sub-block
                             source_parsed_counts.append(1)
-                            data_block_idx = len(self.mw.data)
-                            self.mw.data.append([])
+                            data_block_idx = len(self.mw.data_store.data)
+                            self.mw.data_store.data.append([])
                             self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                            self.mw.block_names[str(data_block_idx)] = f"{block.name} (Missing)"
+                            self.mw.data_store.block_names[str(data_block_idx)] = f"{block.name} (Missing)"
                     else:
                         # Fallback for old projects or non-exploded files: load everything
                         count = len(parsed_data) if parsed_data else 1
                         source_parsed_counts.append(count)
                         
                         for sub_block_idx, block_content in enumerate(parsed_data):
-                            data_block_idx = len(self.mw.data)
-                            self.mw.data.append(block_content)
+                            data_block_idx = len(self.mw.data_store.data)
+                            self.mw.data_store.data.append(block_content)
                             self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
                             
                             # Handle block names
                             if count > 1:
                                 p_name = names.get(str(sub_block_idx), f"{block.name} (Part {sub_block_idx+1})")
-                                self.mw.block_names[str(data_block_idx)] = p_name
+                                self.mw.data_store.block_names[str(data_block_idx)] = p_name
                             else:
-                                self.mw.block_names[str(data_block_idx)] = block.name
+                                self.mw.data_store.block_names[str(data_block_idx)] = block.name
                 else:
                     source_parsed_counts.append(1)
-                    data_block_idx = len(self.mw.data)
-                    self.mw.data.append([])
+                    data_block_idx = len(self.mw.data_store.data)
+                    self.mw.data_store.data.append([])
                     self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                    self.mw.block_names[str(data_block_idx)] = block.name
+                    self.mw.data_store.block_names[str(data_block_idx)] = block.name
             else:
                 source_parsed_counts.append(1)
-                data_block_idx = len(self.mw.data)
-                self.mw.data.append([])
+                data_block_idx = len(self.mw.data_store.data)
+                self.mw.data_store.data.append([])
                 self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                self.mw.block_names[str(data_block_idx)] = block.name
+                self.mw.data_store.block_names[str(data_block_idx)] = block.name
 
         # Backup authoritative original keys from source files
         plugin_keys_backup = None
@@ -636,7 +636,7 @@ class ProjectActionHandler(BaseHandler):
             plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
 
         # Load edited_file_data
-        self.mw.edited_file_data = []
+        self.mw.data_store.edited_file_data = []
         for project_block_idx, block in enumerate(self.mw.project_manager.project.blocks):
             translation_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
             
@@ -656,25 +656,25 @@ class ProjectActionHandler(BaseHandler):
                     # Force match the number of blocks to the source structure
                     for i in range(expected_count):
                         if i < len(parsed_edited_data):
-                            self.mw.edited_file_data.append(parsed_edited_data[i])
+                            self.mw.data_store.edited_file_data.append(parsed_edited_data[i])
                         else:
-                            self.mw.edited_file_data.append([]) # Pad if translation has fewer blocks
+                            self.mw.data_store.edited_file_data.append([]) # Pad if translation has fewer blocks
                 else:
                     for _ in range(expected_count):
-                        self.mw.edited_file_data.append([])
+                        self.mw.data_store.edited_file_data.append([])
             else:
                 for _ in range(expected_count):
-                    self.mw.edited_file_data.append([])
+                    self.mw.data_store.edited_file_data.append([])
 
         # Restore authoritative original keys
         if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
             self.mw.current_game_rules.original_keys = plugin_keys_backup
 
         # Update paths for old-style save/load compatibility
-        if self.mw.data:
+        if self.mw.data_store.data:
             first_block = self.mw.project_manager.project.blocks[0]
-            self.mw.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
-            self.mw.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
+            self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
+            self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
 
         # Perform initial scan
         if hasattr(self.mw, 'app_action_handler'):
@@ -811,7 +811,7 @@ class ProjectActionHandler(BaseHandler):
             self.ui_updater.update_title()
             self._populate_blocks_from_project()
             
-            log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data)}")
+            log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
 
             # 6. Final UI polish: select the last block/category after QTreeWidget has settled
             def restore_view():

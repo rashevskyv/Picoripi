@@ -319,8 +319,8 @@ class CustomListItemDelegate(QStyledItemDelegate):
                     category = next((c for c in block.categories if c.name == category_name), None)
                     if category:
                         count = len(category.line_indices)
-            elif 0 <= block_idx_data < len(main_window.data):
-                block_data = main_window.data[block_idx_data]
+            elif 0 <= block_idx_data < len(main_window.data_store.data):
+                block_data = main_window.data_store.data[block_idx_data]
                 if isinstance(block_data, list):
                     count = len(block_data)
 

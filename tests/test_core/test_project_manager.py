@@ -125,6 +125,7 @@ def test_ProjectManager_move_strings_to_category(pm):
 
 class MockMainWindow:
     def __init__(self):
+        self.data_store = self
         self.font_size = 14
         self.autofix_enabled = True
 

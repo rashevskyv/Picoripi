@@ -7,6 +7,7 @@ from core.settings.recent_projects_manager import RecentProjectsManager
 
 def test_RecentProjectsManager_add_remove():
     mw = MagicMock()
+    mw.data_store = mw
     mw.recent_projects = []
     rpm = RecentProjectsManager(mw)
     rpm.add_recent_project("proj1", 2)
