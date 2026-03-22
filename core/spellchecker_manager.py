@@ -34,12 +34,17 @@ class SpellSuggestionWorker(QObject):
                     try:
                         # Use the same iterative approach to avoid blocking too long
                         suggestions = []
-                        gen = self.sm.hunspell.suggest(word)
-                        for _ in range(SUGGESTION_LIMIT):
-                            try:
-                                suggestions.append(next(gen))
-                            except StopIteration:
-                                break
+                        res = self.sm.hunspell.suggest(word)
+                        if hasattr(res, '__next__') or hasattr(res, '__iter__') and not isinstance(res, list):
+                            gen = iter(res)
+                            for _ in range(SUGGESTION_LIMIT):
+                                try:
+                                    suggestions.append(next(gen))
+                                except StopIteration:
+                                    break
+                        else:
+                            # It's already a list or other sequence
+                            suggestions = list(res)[:SUGGESTION_LIMIT]
                         
                         if suggestions:
                             self.suggestion_ready.emit(word, suggestions)
@@ -304,12 +309,17 @@ class SpellcheckerManager:
         # Iterative approach: take only first SUGGESTION_LIMIT to avoid long freezes
         suggestions = []
         try:
-            gen = self.hunspell.suggest(cleaned_word.lower())
-            for _ in range(SUGGESTION_LIMIT):
-                try:
-                    suggestions.append(next(gen))
-                except StopIteration:
-                    break
+            res = self.hunspell.suggest(cleaned_word.lower())
+            if hasattr(res, '__next__') or hasattr(res, '__iter__') and not isinstance(res, list):
+                gen = iter(res)
+                for _ in range(SUGGESTION_LIMIT):
+                    try:
+                        suggestions.append(next(gen))
+                    except StopIteration:
+                        break
+            else:
+                # It's already a list or other sequence (e.g. in tests)
+                suggestions = list(res)[:SUGGESTION_LIMIT]
         except Exception as e:
             log_error(f"Spellchecker error during suggest for '{cleaned_word}': {e}")
 
