@@ -1,4 +1,4 @@
-# Picoripi v0.2.28
+# Picoripi v0.2.38
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
@@ -34,10 +34,10 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - Configurable AI prompts for fine-tuning translation quality.
 
 ### Glossary Management
-- Intelligent recognition and highlighting of glossary terms throughout the entire text.
-- **Translation Glossary Bridge**: Automatic highlighting of glossary terms in the translation field.
+- Intelligent recognition and highlighting of glossary terms throughout the entire text using high-performance **Aho-Corasick** algorithm.
+- **Translation Glossary Bridge**: Automatic highlighting of glossary terms in the translation field, now supporting **multi-line matching** and **multiple translation variations** (separated by `;`).
 - **Slavic Morphology Support**: Intelligent matching of inflected word forms (like "Меча", "Мечем") for Slavic languages using localized stemming.
-- **Interactive Tooltips**: Hovering over terms in either editor shows a tooltip with original/translation and dictionary notes.
+- **Interactive Tooltips**: Hovering over terms in either editor shows a tooltip with original/translation and dictionary notes. Responsive tooltips correctly track position even for multi-line terms.
 - Quick access to notes and contextual explanations for specific terms.
 - Full CRUD operations: create, edit, search, and delete glossary entries.
 - **AI-powered glossary fill**: Automatically suggest translations for glossary terms using AI.
@@ -45,6 +45,7 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 
 ### Integrated Spellchecker
 - Built-in Hunspell spellchecking via the `spylls` library.
+- **High-Performance Caching**: Uses both in-memory and **persistent disk-based caching** (`spell_cache.json`) to skip redundant checks for known words, ensuring smooth UI performance even with large dictionaries.
 - **Global Background Prefetching**: Dictionaries and suggestions are loaded entirely in the background, ensuring instant context menu suggestions without UI freezes.
 - Underlines errors and provides quick replacement suggestions from the context menu.
 - Built-in dictionary manager: download required languages directly from the app.
