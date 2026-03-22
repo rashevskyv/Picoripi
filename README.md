@@ -1,4 +1,4 @@
-# Picoripi v0.2.23
+# Picoripi v0.2.28
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
@@ -35,6 +35,9 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 
 ### Glossary Management
 - Intelligent recognition and highlighting of glossary terms throughout the entire text.
+- **Translation Glossary Bridge**: Automatic highlighting of glossary terms in the translation field.
+- **Slavic Morphology Support**: Intelligent matching of inflected word forms (like "Меча", "Мечем") for Slavic languages using localized stemming.
+- **Interactive Tooltips**: Hovering over terms in either editor shows a tooltip with original/translation and dictionary notes.
 - Quick access to notes and contextual explanations for specific terms.
 - Full CRUD operations: create, edit, search, and delete glossary entries.
 - **AI-powered glossary fill**: Automatically suggest translations for glossary terms using AI.
