@@ -198,3 +198,39 @@ def test_SpellcheckerManager_get_suggestions(mock_mw):
     assert suggestions == ["test1", "test2"]
     sm.hunspell.suggest.assert_called_with("hello")
 
+@patch('core.spellchecker_manager.Dictionary.from_files')
+def test_SpellcheckerManager_caching(mock_from_files, mock_mw):
+    # side_effect ensures we get a NEW mock every time from_files is called
+    mock_from_files.side_effect = lambda *args, **kwargs: MagicMock()
+    
+    sm = SpellcheckerManager(mock_mw)
+    sm.enabled = True
+    sm.hunspell.lookup.return_value = True
+    
+    # 1. Normal lookup - should call hunspell
+    assert sm.is_misspelled("Apple") is False
+    assert sm.hunspell.lookup.call_count == 1
+    
+    # 2. Second lookup - should use cache (call_count stays 1)
+    assert sm.is_misspelled("Apple") is False
+    assert sm.hunspell.lookup.call_count == 1
+    
+    # 3. Case sensitivity in cache
+    assert sm.is_misspelled("apple") is False
+    assert sm.hunspell.lookup.call_count == 1 
+    
+    # 4. Custom word - should NOT call hunspell after being added
+    sm.custom_words.add("banana")
+    assert sm.is_misspelled("Banana") is False
+    assert sm.hunspell.lookup.call_count == 1
+    
+    # 5. Reset cache on reinit
+    sm._initialize_spellchecker()
+    # Now sm.hunspell is a NEW MagicMock because side_effect created a new one
+    sm.hunspell.lookup.return_value = True
+    assert sm.is_misspelled("Apple") is False
+    assert sm.hunspell.lookup.call_count == 1 # New mock, first call
+
+
+
+

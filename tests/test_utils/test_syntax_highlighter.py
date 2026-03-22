@@ -152,9 +152,8 @@ def test_JsonTagHighlighter_spellcheck(highlighter, mock_mw):
     text = "MisspelledWord"
     hl.highlightBlock(text)
     
-    # Set format should be called for each character in the word (14 chars)
-    # plus the basic format at the start
-    assert hl.setFormat.call_count >= 14
+    # Set format should be called once for the whole word plus the basic format at the start
+    assert hl.setFormat.call_count >= 2
 
 def test_JsonTagHighlighter_theme_dark(qapp):
     doc = QTextDocument()

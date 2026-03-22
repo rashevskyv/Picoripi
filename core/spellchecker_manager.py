@@ -19,6 +19,7 @@ class SpellcheckerManager:
         self.hunspell: Optional['Dictionary'] = None
         self.enabled = False
         self.custom_words = set()
+        self._spell_cache: Dict[str, bool] = {}
 
         self._initialize_spellchecker()
 
@@ -41,6 +42,7 @@ class SpellcheckerManager:
 
             self.hunspell = Dictionary.from_files(str(dictionary_basename))
             log_debug(f"spylls Dictionary object created successfully for language '{dictionary_name}'.")
+            self._spell_cache.clear()
             self._load_user_dictionary()
             self._load_glossary_words()
 
@@ -145,6 +147,7 @@ class SpellcheckerManager:
                 cleaned_word = word.strip("'").lower()
                 if len(cleaned_word) >= MIN_WORD_LENGTH and cleaned_word not in self.custom_words:
                     self.custom_words.add(cleaned_word)
+                    self._spell_cache[cleaned_word] = False
                     glossary_words_count += 1
 
         log_debug(f"Loaded {glossary_words_count} words from glossary into spellchecker dictionary.")
@@ -157,6 +160,7 @@ class SpellcheckerManager:
         normalized_word = cleaned_word.lower()
         if normalized_word not in self.custom_words:
             self.custom_words.add(normalized_word)
+            self._spell_cache[normalized_word] = False
 
             custom_dict_path = LOCAL_DICT_PATH / CUSTOM_DICT_FILENAME
             try:
@@ -172,10 +176,8 @@ class SpellcheckerManager:
 
     def is_misspelled(self, word: str) -> bool:
         if not self.enabled:
-            log_debug(f"-> is_misspelled for '{word}': returning False (spellchecker is globally disabled).")
             return False
         if not self.hunspell:
-            log_debug(f"-> is_misspelled for '{word}': returning False (hunspell object not initialized).")
             return False
 
         # Strip apostrophes and middle dot (·) which represents spaces in editor
@@ -188,14 +190,20 @@ class SpellcheckerManager:
         if not WORD_PATTERN.match(cleaned_word):
             return False
 
+        # Check memory cache first
+        lower_word = cleaned_word.lower()
+        if lower_word in self._spell_cache:
+            return self._spell_cache[lower_word]
+
         # Check if word is in custom dictionary (includes glossary words)
-        if cleaned_word.lower() in self.custom_words:
-            log_debug(f"Spellchecking word '{cleaned_word}': Found in custom dictionary. Misspelled = False")
+        if lower_word in self.custom_words:
+            self._spell_cache[lower_word] = False
             return False
 
         is_correct = self.hunspell.lookup(cleaned_word)
-        log_debug(f"Spellchecking word '{cleaned_word}': Correct = {is_correct}. Misspelled = {not is_correct}")
-        return not is_correct
+        is_misspelled = not is_correct
+        self._spell_cache[lower_word] = is_misspelled
+        return is_misspelled
 
     def get_suggestions(self, word: str) -> List[str]:
         if not self.enabled or not self.hunspell:
