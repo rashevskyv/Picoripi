@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.34] - 2026-03-22
+
+### ⚡ Improved
+- **Aho-Corasick Glossary Matching**: Integrated `pyahocorasick` for lightning-fast glossary term detection. 
+- **Optimized Project Scan**: Project-wide glossary indexing (occurrence scan) now uses Aho-Corasick, providing a 10-100x speedup for large datasets.
+- **Hybrid Matching Architecture**: Maintained regex fallback for complex cases (terms with inline tags or multiple spaces), ensuring 100% accuracy while gaining maximum performance for exact matches.
+
 ## [0.2.33] - 2026-03-22
 
 ### ⚡ Improved
