@@ -36,7 +36,7 @@ class BaseTranslationProvider:
         if response.text:
             yield response.text
 
-class OpenAIChatProvider(BaseTranslationProvider):
+class OpenAIProvider(BaseTranslationProvider):
     supports_sessions = True
     """Provider for OpenAI-compatible chat completion APIs."""
     def __init__(self, settings: Dict[str, Any]) -> None:
@@ -148,6 +148,7 @@ class OpenAIChatProvider(BaseTranslationProvider):
         except requests.RequestException as e:
             raise TranslationProviderError(f"API stream request failed: {e}")
 
+
 class OllamaChatProvider(BaseTranslationProvider):
     supports_sessions = True
     """Provider for Ollama chat APIs."""
@@ -214,9 +215,7 @@ class OllamaChatProvider(BaseTranslationProvider):
 
 
 
-class DeepLProvider(BaseTranslationProvider):
-    def translate(self, messages: list, session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
-        raise NotImplementedError("DeepL provider is not yet implemented.")
+
 
 class GeminiProvider(BaseTranslationProvider):
     supports_sessions = True
@@ -307,7 +306,7 @@ class GeminiProvider(BaseTranslationProvider):
         try:
             if self._use_openai_compat:
                 # Assuming the compatible endpoint also supports OpenAI's stream format
-                compat_provider = OpenAIChatProvider(self.settings)
+                compat_provider = OpenAIProvider(self.settings)
                 yield from compat_provider.translate_stream(messages, session, settings_override)
             else:
                 yield from self._translate_via_native_stream(messages, headers, current_settings, timeout)
@@ -421,18 +420,16 @@ class GeminiProvider(BaseTranslationProvider):
 
 def create_translation_provider(provider_key: str, settings: Dict[str, Any]) -> BaseTranslationProvider:
     """Factory function to create a translation provider instance."""
-    if provider_key == 'openai_chat':
-        return OpenAIChatProvider(settings)
+    if provider_key == 'openai':
+        return OpenAIProvider(settings)
 
     if provider_key == 'ollama_chat':
         return OllamaChatProvider(settings)
 
-    if provider_key == 'deepl':
-        return DeepLProvider(settings)
     if provider_key == 'gemini':
         return GeminiProvider(settings)
     if provider_key == 'perplexity':
-        return OpenAIChatProvider(settings)
+        return OpenAIProvider(settings)
     raise TranslationProviderError(f"Unknown provider key: {provider_key}")
 
 def get_provider_for_config(config: Dict[str, Any]) -> BaseTranslationProvider:
@@ -446,7 +443,7 @@ def get_provider_for_config(config: Dict[str, Any]) -> BaseTranslationProvider:
     # e.g., mw.glossary_ai, which already contains api_key, model, etc.
     
     if provider_name == 'openai':
-        return OpenAIChatProvider(config)
+        return OpenAIProvider(config)
     elif provider_name == 'ollama':
         # Ollama provider expects 'base_url' and 'model' in its settings,
         # which should be present in the passed config.

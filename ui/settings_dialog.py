@@ -44,11 +44,10 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         self.provider_page_map = {
             "disabled": 0,
-            "openai_chat": 1,
+            "openai": 1,
             "ollama_chat": 2,
-            "deepl": 3,
-            "gemini": 4,
-            "perplexity": 5
+            "gemini": 3,
+            "perplexity": 4
         }
 
         main_layout = QVBoxLayout(self)
@@ -170,7 +169,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         providers_cfg = self.translation_config_snapshot.get('providers', {})
         
-        openai_cfg = providers_cfg.get('openai_chat', {})
+        openai_cfg = providers_cfg.get('openai', {})
         active_openai_cfg = openai_cfg
         self.openai_api_key_edit.setText(active_openai_cfg.get('api_key', '')); self.openai_api_key_env_edit.setText(active_openai_cfg.get('api_key_env', ''))
         self.openai_base_url_edit.setText(active_openai_cfg.get('base_url', '')); self.openai_model_edit.setText(active_openai_cfg.get('model', ''))
@@ -190,7 +189,6 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         except (TypeError, ValueError): self.ollama_timeout_spin.setValue(120)
         self.ollama_keep_alive_edit.setText(ollama_cfg.get('keep_alive', ''))
 
-        deepl_cfg = providers_cfg.get('deepl', {}); self.deepl_api_key_edit.setText(deepl_cfg.get('api_key', '')); self.deepl_server_url_edit.setText(deepl_cfg.get('server_url', ''))
         gemini_cfg = providers_cfg.get('gemini', {}); self.gemini_api_key_edit.setText(gemini_cfg.get('api_key', '')); self.gemini_model_edit.setText(gemini_cfg.get('model', '')); self.gemini_base_url_edit.setText(gemini_cfg.get('base_url', ''))
 
         perplexity_cfg = providers_cfg.get('perplexity', {})
@@ -266,7 +264,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         translation_config_to_save['provider'] = provider_key
         providers_cfg = translation_config_to_save.setdefault('providers', {})
         
-        openai_cfg = providers_cfg.setdefault('openai_chat', {})
+        openai_cfg = providers_cfg.setdefault('openai', {})
         openai_values = {
             'api_key': self.openai_api_key_edit.text().strip(), 'api_key_env': self.openai_api_key_env_edit.text().strip(),
             'base_url': self.openai_base_url_edit.text().strip(), 'model': self.openai_model_edit.text().strip(),
@@ -282,7 +280,6 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'keep_alive': self.ollama_keep_alive_edit.text().strip()
         })
 
-        deepl_cfg = providers_cfg.setdefault('deepl', {}); deepl_cfg.update({'api_key': self.deepl_api_key_edit.text().strip(), 'server_url': self.deepl_server_url_edit.text().strip()})
         gemini_cfg = providers_cfg.setdefault('gemini', {}); gemini_cfg.update({'api_key': self.gemini_api_key_edit.text().strip(), 'model': self.gemini_model_edit.text().strip(), 'base_url': self.gemini_base_url_edit.text().strip()})
         
         perplexity_cfg = providers_cfg.setdefault('perplexity', {}); perplexity_cfg.update({

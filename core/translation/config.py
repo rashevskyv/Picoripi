@@ -24,7 +24,7 @@ def build_default_translation_config() -> dict:
         "provider": "disabled",
         "session_mode": "auto",
         "providers": {
-            "openai_chat": {
+            "openai": {
                 "api_key": "",
                 "api_key_env": "OPENAI_API_KEY",
                 "base_url": "",
@@ -44,12 +44,6 @@ def build_default_translation_config() -> dict:
                 "extra_headers": {},
             },
 
-            "deepl": {
-                "api_key": "",
-                "api_key_env": "DEEPL_API_KEY",
-                "server_url": "",
-                "timeout": 60,
-            },
             "gemini": {
                 "api_key": "",
                 "api_key_env": "GEMINI_API_KEY",

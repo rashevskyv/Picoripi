@@ -46,9 +46,11 @@ def test_IssueScanHandler_perform_issues_scan_for_block_sublines(handler, mock_m
     assert (0, 0, 0) in mock_mw.problems_per_subline
     assert (0, 0, 1) not in mock_mw.problems_per_subline
 
-def test_IssueScanHandler_initial_silent_scan(handler, mock_mw):
+def test_IssueScanHandler_initial_silent_scan(handler, mock_mw, qapp):
     with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:
         handler._perform_initial_silent_scan_all_issues()
+        # The scan is now async (QTimer), so process events to drain the queue
+        qapp.processEvents()
         mock_scan.assert_called_with(0)
 
 @patch('PyQt5.QtWidgets.QMessageBox.information')

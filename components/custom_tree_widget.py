@@ -396,7 +396,7 @@ class CustomTreeWidget(QTreeWidget):
 
             if hasattr(main_window, 'app_action_handler') and hasattr(main_window.app_action_handler, 'calculate_widths_for_block_action'):
                 calc_widths_action = menu.addAction(self.style().standardIcon(QStyle.SP_ComputerIcon), f"Calculate Line Widths")
-                calc_widths_action.triggered.connect(lambda checked=False, idx=block_idx: main_window.app_action_handler.calculate_widths_for_block_action(idx))
+                calc_widths_action.triggered.connect(lambda checked=False, idx=block_idx, cname=category_name: main_window.app_action_handler.calculate_widths_for_block_action(idx, cname))
 
             # Spellcheck action
             spellchecker_manager = getattr(main_window, 'spellchecker_manager', None)

@@ -163,3 +163,31 @@ class TextAnalysisHandler(BaseHandler):
                 cursor.setPosition(block_obj.position())
                 original_editor.setTextCursor(cursor)
                 original_editor.ensureCursorVisible()
+
+    def show_diagnostic_analysis(self, entries: List[Dict[str, Any]], title: str, 
+                               all_fonts_top_entries: Optional[Dict[str, List[dict]]] = None) -> None:
+        """Show the analysis dialog with pre-calculated results for a block or fragment."""
+        if not entries:
+            return
+
+        font_maps: Dict[str, dict] = getattr(self.mw, 'all_font_maps', {}) or {}
+        initial_font: Optional[str] = getattr(self.mw, 'default_font_file', None)
+        if not initial_font or initial_font not in font_maps:
+            initial_font = next(iter(font_maps)) if font_maps else ""
+
+        # Use the provided widths for sorting the top 100 for THE INITIAL FONT
+        scored_entries = sorted(entries, key=lambda x: x.get('width_pixels', 0.0), reverse=True)
+        top_entries = scored_entries[:100]
+
+        if self._dialog is None:
+            self._dialog = OriginalTextAnalysisDialog(self.mw)
+            self._dialog.on_entry_activated = self._activate_entry
+
+        self._dialog.show_entries(
+            entries,
+            font_maps,
+            initial_font,
+            precomputed_entries=top_entries,
+            title=title,
+            all_fonts_top_entries=all_fonts_top_entries
+        )

@@ -141,3 +141,34 @@ def test_AIWorker_run_cancelled(worker_deps):
     # is_cancelled=True перед запуском - iteration відразу emits cancelled
     mock_cancel.assert_called()
 
+def test_AIWorker_run_chat_message_stream(worker_deps):
+    provider, prompt_composer = worker_deps
+    
+    state_mock = MagicMock()
+    state_mock.prepare_request.return_value = ([{"role": "user", "content": "hi"}], None)
+    
+    task_details = {
+        'type': 'chat_message_stream',
+        'session_state': state_mock,
+        'session_user_message': 'hello'
+    }
+    worker = AIWorker(provider, prompt_composer, task_details)
+    
+    mock_chunk = MagicMock()
+    mock_success = MagicMock()
+    worker.chunk_received.connect(mock_chunk)
+    worker.success.connect(mock_success)
+    
+    provider.translate_stream.return_value = ["res", "ponse"]
+    
+    worker.run()
+    
+    assert mock_chunk.call_count == 2
+    mock_chunk.assert_any_call(task_details, "res")
+    mock_chunk.assert_any_call(task_details, "ponse")
+    
+    assert mock_success.called
+    emitted_response = mock_success.call_args[0][0]
+    assert emitted_response.text == "response"
+
+

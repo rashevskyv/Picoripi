@@ -26,26 +26,26 @@
     "last_original_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_h": 0,
     "search_history": [
-        "острів",
-        "Оcтов",
-        "Sturgeon",
-        "осетр",
-        "orca",
-        "під час руху,",
-        "величезний вихор",
-        "Прошу ласкаво\\",
-        "Прошу ласкаво",
-        "ще вище лізти",
-        "Відомий по всьому",
-        "новий будинок",
-        "наршті можу",
-        "нарешті можу",
-        "мене викрив",
-        "суперництвом",
-        "Він грубо говорить та",
-        "початок підземелля",
+        "Скаржиться, що через зайнятість",
         "Любить тікати з замку",
-        "Скаржиться, що через зайнятість"
+        "початок підземелля",
+        "Він грубо говорить та",
+        "суперництвом",
+        "мене викрив",
+        "нарешті можу",
+        "наршті можу",
+        "новий будинок",
+        "Відомий по всьому",
+        "ще вище лізти",
+        "Прошу ласкаво",
+        "Прошу ласкаво\\",
+        "величезний вихор",
+        "під час руху,",
+        "orca",
+        "осетр",
+        "Sturgeon",
+        "Оcтов",
+        "острів"
     ],
     "autofix_enabled": {
         "ZWW_TAG_WARNING": false,
@@ -83,11 +83,11 @@
         "provider": "openai_chat",
         "session_mode": "auto",
         "providers": {
-            "openai_chat": {
+            "openai": {
                 "api_key": "",
                 "api_key_env": "OPENAI_API_KEY",
                 "base_url": "",
-                "model": "gpt-5.4-nano",
+                "model": "gpt-4o-mini",
                 "temperature": 0.0,
                 "max_output_tokens": 0,
                 "timeout": 60,
@@ -101,12 +101,6 @@
                 "keep_alive": "",
                 "extra_headers": {}
             },
-            "deepl": {
-                "api_key": "",
-                "api_key_env": "DEEPL_API_KEY",
-                "server_url": "",
-                "timeout": 60
-            },
             "gemini": {
                 "api_key": "",
                 "api_key_env": "GEMINI_API_KEY",
@@ -114,6 +108,22 @@
                 "temperature": 0.0,
                 "timeout": 120,
                 "base_url": "http://127.0.0.1:2048/"
+            },
+            "openai_chat": {
+                "api_key": "",
+                "api_key_env": "OPENAI_API_KEY",
+                "base_url": "",
+                "model": "gpt-5.4-nano",
+                "temperature": 0.0,
+                "max_output_tokens": 0,
+                "timeout": 60,
+                "extra_headers": {}
+            },
+            "deepl": {
+                "api_key": "",
+                "api_key_env": "DEEPL_API_KEY",
+                "server_url": "",
+                "timeout": 60
             },
             "perplexity": {
                 "api_key": "",

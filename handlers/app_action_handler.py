@@ -10,6 +10,8 @@ from core.tag_utils import apply_default_mappings_only
 from core.data_manager import load_json_file, load_text_file
 from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
+from .width_calculation_worker import WidthCalculationWorker
+from components.report_dialog import LargeTextReportDialog
 
 class AppActionHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any, game_rules_plugin: Optional[BaseGameRules]):
@@ -282,7 +284,7 @@ class AppActionHandler(BaseHandler):
         current_edited_path_before_reload = self.mw.data_store.edited_json_path
         self.load_all_data_for_path(self.mw.data_store.json_path, manually_set_edited_path=current_edited_path_before_reload, is_initial_load_from_settings=False)
 
-    def calculate_widths_for_block_action(self, block_idx: int) -> None:
+    def calculate_widths_for_block_action(self, block_idx: int, category_name: Optional[str] = None) -> None:
         if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
             QMessageBox.warning(self.mw, "Calculate Widths Error", "Invalid block selected or no data.")
             return
@@ -294,109 +296,94 @@ class AppActionHandler(BaseHandler):
             QMessageBox.warning(self.mw, "Calculate Widths Error", "Game rules plugin not loaded.")
             return
 
-        num_strings = len(self.mw.data_store.data[block_idx])
-        if num_strings == 0:
-            QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {self.mw.data_store.block_names.get(str(block_idx),str(block_idx))} is empty.")
+        # Handle "virtual block" (category) logic
+        target_indices = None
+        if category_name:
+            pm = getattr(self.mw, 'project_manager', None)
+            if pm and pm.project:
+                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(block_idx, block_idx)
+                if proj_b_idx < len(pm.project.blocks):
+                    block_obj = pm.project.blocks[proj_b_idx]
+                    category = next((c for c in block_obj.categories if c.name == category_name), None)
+                    if category:
+                        target_indices = set(category.line_indices)
+
+        all_strings_in_block = self.mw.data_store.data[block_idx]
+        num_strings_total = len(all_strings_in_block)
+        
+        # If category is selected, use filtered count for progress bar
+        num_to_process = len(target_indices) if target_indices is not None else num_strings_total
+
+        if num_to_process == 0:
+            QMessageBox.information(self.mw, "Calculate Line Widths", f"Target is empty.")
             return
 
-        progress = QProgressDialog(f"Calculating widths for block {self.mw.data_store.block_names.get(str(block_idx),str(block_idx))}...", "Cancel", 0, num_strings, self.mw)
+        block_data = list(all_strings_in_block) # snapshot
+        block_name = self.mw.data_store.block_names.get(str(block_idx), str(block_idx))
+        if category_name:
+            block_name = f"{block_name} ({category_name})"
+        
+        # Prepare settings snapshot for thread-safety
+        mw_settings = {
+            'string_metadata': self.mw.string_metadata.copy(),
+            'line_width_warning_threshold_pixels': self.mw.line_width_warning_threshold_pixels,
+            'game_dialog_max_width_pixels': self.mw.game_dialog_max_width_pixels
+        }
+        
+        self.width_worker = WidthCalculationWorker(
+            block_idx, block_data, block_name, 
+            self.mw.helper, self.data_processor, 
+            self.game_rules_plugin, mw_settings, 
+            all_font_maps=getattr(self.mw, 'all_font_maps', {}),
+            target_indices=target_indices, parent=self.mw
+        )
+        
+        progress = QProgressDialog(f"Calculating widths for {block_name}...", "Cancel", 0, num_to_process, self.mw)
         progress.setWindowModality(Qt.WindowModal)
         progress.setMinimumDuration(0)
-
-        results: List[str] = []
-        problem_definitions = self.game_rules_plugin.get_problem_definitions()
         
-        # Use problem_analyzer if it exists, otherwise use the game rules object itself
-        analyzer = getattr(self.game_rules_plugin, 'problem_analyzer', self.game_rules_plugin)
+        def on_finished(result_dict):
+            if progress.isVisible():
+                progress.close()
+            
+            report_text = result_dict.get('report_text', '')
+            entries = result_dict.get('entries', [])
+            all_fonts_top_entries = result_dict.get('all_fonts_top_entries', {})
 
-        for data_str_idx in range(num_strings):
-            progress.setValue(data_str_idx)
-            if progress.wasCanceled():
-                log_info("Width calculation for block cancelled by user.")
+            if not report_text and not entries:
+                QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {block_name} processed. No lines found.")
                 return
 
-            current_text_data_line, source = self.data_processor.get_current_string_text(block_idx, data_str_idx)
-            original_text_data_line = self.data_processor._get_string_from_source(block_idx, data_str_idx, self.mw.data_store.data, "width_calc_block_original_data")
-            
-            font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, data_str_idx)
-            string_meta = self.mw.string_metadata.get((block_idx, data_str_idx), {})
-            editor_warning_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
-
-            line_report_parts = [f"Data Line {data_str_idx + 1}:"]
-            
-            sources_to_check = [
-                ("Current", str(current_text_data_line), source),
-                ("Original", str(original_text_data_line), "original_data")
-            ]
-
-            for title_prefix, text_to_analyze, text_source_info in sources_to_check:
-                line_report_parts.append(f"  {title_prefix} (src:{text_source_info}):")
+            if hasattr(self.mw, 'text_analysis_handler') and entries:
+                # Restore visual report with charts as requested by user
+                self.mw.text_analysis_handler.show_diagnostic_analysis(
+                    entries, 
+                    title=f"Block Width Analysis: {block_name}",
+                    all_fonts_top_entries=all_fonts_top_entries
+                )
+            else:
+                # Fallback to text report if analysis handler is not available
+                report_title = (f"Widths for Block {block_name}\n"
+                                f"(Editor Threshold: {mw_settings['line_width_warning_threshold_pixels']}px)\n"
+                                f"(Game Dialog Limit: {mw_settings['game_dialog_max_width_pixels']}px)\n")
+                full_report = report_title + "\n" + report_text
                 
-                logical_sublines: List[str] = []
-                if hasattr(analyzer, '_get_sublines_from_data_string'):
-                    logical_sublines = analyzer._get_sublines_from_data_string(text_to_analyze)
-                else:
-                    logical_sublines = text_to_analyze.split('\n')
-                
-                game_like_text_no_newlines_rstripped = remove_all_tags(text_to_analyze.replace('\\n','').replace('\\p','').replace('\\l','')).rstrip()
-                total_game_width = calculate_string_width(game_like_text_no_newlines_rstripped, font_map_for_string)
-                game_status = "OK"
-                if total_game_width > self.mw.game_dialog_max_width_pixels:
-                    game_status = f"EXCEEDS GAME DIALOG LIMIT ({total_game_width - self.mw.game_dialog_max_width_pixels}px)"
-                line_report_parts.append(f"    Total (game dialog, rstripped): {total_game_width}px ({game_status})")
-
-                for subline_idx, sub_line_text in enumerate(logical_sublines):
-                    sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
-                    width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
-                    
-                    current_subline_problems: set = set()
-                    if hasattr(analyzer, 'analyze_data_string'):
-                        problems_per_subline_list = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold)
-                        current_subline_problems = problems_per_subline_list[subline_idx] if subline_idx < len(problems_per_subline_list) else set()
-                    elif hasattr(analyzer, 'analyze_subline'):
-                        next_subline = logical_sublines[subline_idx+1] if subline_idx + 1 < len(logical_sublines) else None
-                        current_subline_problems = analyzer.analyze_subline(
-                            text=sub_line_text, next_text=next_subline, subline_number_in_data_string=subline_idx, qtextblock_number_in_editor=subline_idx,
-                            is_last_subline_in_data_string=(subline_idx == len(logical_sublines) - 1), editor_font_map=font_map_for_string,
-                            editor_line_width_threshold=editor_warning_threshold,
-                            full_data_string_text_for_logical_check=text_to_analyze
-                        )
-                    
-                    statuses: List[str] = []
-                    for prob_id in current_subline_problems:
-                        if prob_id in problem_definitions:
-                            statuses.append(problem_definitions[prob_id]['name'])
-                    
-                    status_str = ", ".join(statuses) if statuses else "OK"
-                    line_report_parts.append(f"    Sub {subline_idx+1} (rstripped): {width_px}px ({status_str}) '{sub_line_no_tags_rstripped[:30]}...'")
-                if title_prefix == "Current":
-                    line_report_parts.append("")
-
-            results.append("\n".join(line_report_parts))
+                from components.report_dialog import LargeTextReportDialog
+                result_dialog = LargeTextReportDialog("Line Widths Report", full_report, self.mw)
+                result_dialog.show()
         
-        progress.setValue(num_strings)
+        def on_cancelled():
+            log_info("Width calculation worker cancelled.")
+            progress.close()
 
-        if not results:
-            QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {self.mw.data_store.block_names.get(str(block_idx),str(block_idx))} processed. No lines found or calculation error.")
-            return
-            
-        result_text_title = (f"Widths for Block {self.mw.data_store.block_names.get(str(block_idx), str(block_idx))}\n"
-                             f"(Editor Warning Threshold: {self.mw.line_width_warning_threshold_pixels}px - can be overridden per string)\n"
-                             f"(Game Dialog Max Width (for total only): {self.mw.game_dialog_max_width_pixels}px)\n")
-        result_text = result_text_title + "\n" + "\n\n".join(results)
+        self.width_worker.progress_updated.connect(progress.setValue)
+        self.width_worker.calculation_finished.connect(on_finished)
+        self.width_worker.cancelled.connect(on_cancelled)
+        progress.canceled.connect(self.width_worker.cancel)
         
-        result_dialog = QMessageBox(self.mw)
-        result_dialog.setWindowTitle("Line Widths Report")
-        result_dialog.setTextFormat(Qt.PlainText)
-        result_dialog.setText(result_text)
-        result_dialog.setIcon(QMessageBox.Information)
-        result_dialog.setStandardButtons(QMessageBox.Ok)
-        result_dialog.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
-        text_edit_for_size = result_dialog.findChild(QPlainTextEdit)
-        if text_edit_for_size:
-            text_edit_for_size.setMinimumWidth(700)
-            text_edit_for_size.setMinimumHeight(500)
-        result_dialog.exec_()
+        self.width_worker.start()
+        progress.exec_()
 
     def _perform_initial_silent_scan_all_issues(self) -> None:
         if hasattr(self.mw, 'issue_scan_handler'):

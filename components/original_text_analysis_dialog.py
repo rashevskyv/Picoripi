@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QHeaderView,
     QLabel,
     QScrollBar,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -202,51 +203,39 @@ class OriginalTextAnalysisDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Original Text Width Analysis")
-        self.resize(960, 640)
+        self.resize(1100, 750)
 
         layout = QVBoxLayout(self)
 
         selector_layout = QHBoxLayout()
         selector_layout.addWidget(QLabel("Font map:"))
         self._font_combo = QComboBox(self)
+        self._font_combo.setMinimumWidth(200)
         selector_layout.addWidget(self._font_combo)
         selector_layout.addStretch(1)
         layout.addLayout(selector_layout)
 
-        self._chart_view = _AnalysisBarView(self)
-        layout.addWidget(self._chart_view)
+        # Use stacks for instant switching
+        self._chart_stack = QStackedWidget(self)
+        layout.addWidget(self._chart_stack)
 
         self._summary_label = QLabel("Ready")
         self._summary_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._summary_label)
 
-        self._table = QTableWidget(self)
-        self._table.setColumnCount(6)
-        self._table.setHorizontalHeaderLabels(
-            ["#", "Width (px)", "Block", "String", "Line", "Text"]
-        )
-        header = self._table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(5, QHeaderView.Stretch)
-        self._table.setSelectionBehavior(QTableWidget.SelectRows)
-        self._table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self._table.setAlternatingRowColors(True)
-        self._table.setMinimumHeight(220)
-        layout.addWidget(self._table)
+        self._table_stack = QStackedWidget(self)
+        self._table_stack.setMinimumHeight(250)
+        layout.addWidget(self._table_stack)
+
+        # Resource management: {font_name: {"chart": view, "table": table}}
+        self._font_views: Dict[str, Dict[str, Any]] = {}
 
         self._hint_label = QLabel(
-            "Mouse wheel - zoom, middle button - pan; hover bars for details."
+            "Scroll: zoom, Middle: pan; Hover for details. Click on bar/row to sync."
         )
         self._hint_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._hint_label)
 
-        self._chart_view.on_bar_selected = self._handle_bar_selected
-        self._table.itemSelectionChanged.connect(self._handle_table_selection)
-        self._table.itemDoubleClicked.connect(self._handle_table_double_click)
         self._font_combo.currentTextChanged.connect(self._on_font_changed)
 
         self._entries: List[dict] = []
@@ -257,6 +246,11 @@ class OriginalTextAnalysisDialog(QDialog):
         self._default_char_width = DEFAULT_CHAR_WIDTH_FALLBACK
         self._max_entries = 100
         self._entries_cache: Dict[str, List[dict]] = {}
+        self._custom_title: Optional[str] = None
+
+    def set_custom_title(self, title: str) -> None:
+        self._custom_title = title
+        self.setWindowTitle(title)
 
     def show_entries(
         self,
@@ -264,20 +258,60 @@ class OriginalTextAnalysisDialog(QDialog):
         font_maps: dict,
         initial_font: Optional[str],
         precomputed_entries: Optional[Sequence[dict]] = None,
+        title: Optional[str] = None,
+        all_fonts_top_entries: Optional[Dict[str, List[dict]]] = None
     ) -> None:
+        if title:
+            self.set_custom_title(title)
+        elif not self._custom_title:
+            self.setWindowTitle("Original Text Width Analysis")
+            
         self._raw_entries = [dict(entry) for entry in raw_entries]
         self._font_maps = font_maps or {}
         self._entries_cache.clear()
 
-        if precomputed_entries and initial_font:
-            cached: List[dict] = []
-            for entry in precomputed_entries:
-                new_entry = dict(entry)
-                width_val = float(new_entry.get('width_pixels', 0.0) or 0.0)
-                new_entry['width_pixels'] = width_val
-                cached.append(new_entry)
-            cached.sort(key=lambda item: item.get('width_pixels', 0.0), reverse=True)
-            self._entries_cache[initial_font] = cached[: self._max_entries]
+        # Clear existing stacked views
+        self._font_views.clear()
+        while self._chart_stack.count():
+            w = self._chart_stack.widget(0)
+            self._chart_stack.removeWidget(w)
+            w.deleteLater()
+        while self._table_stack.count():
+            w = self._table_stack.widget(0)
+            self._table_stack.removeWidget(w)
+            w.deleteLater()
+
+        # CASE 1: Worker provided pre-sorted top entries for EACH font (OPTIMIZED)
+        if all_fonts_top_entries:
+            for f_name, sorted_top_list in all_fonts_top_entries.items():
+                self._entries_cache[f_name] = [dict(e) for e in sorted_top_list]
+                # Ensure width_pixels is correctly set for the specific font in cache
+                for e in self._entries_cache[f_name]:
+                    if 'widths' in e and f_name in e['widths']:
+                         e['width_pixels'] = float(e['widths'][f_name])
+
+        # CASE 2: Legacy fallback
+        if precomputed_entries:
+            has_multi_font = any('widths' in (e or {}) for e in precomputed_entries)
+            if has_multi_font:
+                for font_name in self._font_maps.keys():
+                    if font_name in self._entries_cache: continue
+                    cached: List[dict] = []
+                    for entry in precomputed_entries:
+                        new_entry = dict(entry)
+                        if 'widths' in new_entry and font_name in new_entry['widths']:
+                            new_entry['width_pixels'] = float(new_entry['widths'][font_name])
+                        cached.append(new_entry)
+                    cached.sort(key=lambda item: item.get('width_pixels', 0.0), reverse=True)
+                    self._entries_cache[font_name] = cached[: self._max_entries]
+            elif initial_font and initial_font not in self._entries_cache:
+                cached: List[dict] = []
+                for entry in precomputed_entries:
+                    new_entry = dict(entry)
+                    new_entry['width_pixels'] = float(new_entry.get('width_pixels', 0.0) or 0.0)
+                    cached.append(new_entry)
+                cached.sort(key=lambda item: item.get('width_pixels', 0.0), reverse=True)
+                self._entries_cache[initial_font] = cached[: self._max_entries]
 
         self._font_combo.blockSignals(True)
         self._font_combo.clear()
@@ -291,138 +325,120 @@ class OriginalTextAnalysisDialog(QDialog):
         self._font_combo.blockSignals(False)
 
         if not self._raw_entries:
-            self._entries = []
-            self._render_entries([])
+            self._summary_label.setText("No data")
+            self.show(); self.raise_(); self.activateWindow()
             return
 
         target_font = initial_font if initial_font in self._font_maps else None
-        if target_font is None and self._font_combo.count() > 0 and self._font_combo.isEnabled():
+        if target_font is None and self._font_combo.count() > 0:
             target_font = self._font_combo.itemText(0)
 
         if target_font:
             index = self._font_combo.findText(target_font)
             if index >= 0:
-                self._font_combo.blockSignals(True)
                 self._font_combo.setCurrentIndex(index)
-                self._font_combo.blockSignals(False)
             self._apply_font(target_font)
         else:
-            # Fallback: show provided entries without recalculating
-            self._entries = [dict(entry) for entry in self._raw_entries]
-            self._render_entries(self._entries)
+            self._summary_label.setText("No font selected")
+            self.show(); self.raise_(); self.activateWindow()
 
     def _apply_font(self, font_name: str) -> None:
         self._current_font_name = font_name
+        
+        # If already rendered for this font, just switch
+        if font_name in self._font_views:
+            views = self._font_views[font_name]
+            self._chart_stack.setCurrentWidget(views['chart'])
+            self._table_stack.setCurrentWidget(views['table'])
+            self._update_summary(self._entries_cache.get(font_name, []))
+            self.show(); self.raise_(); self.activateWindow()
+            return
+
+        # Prepare entries
         cached_entries = self._entries_cache.get(font_name)
-        if cached_entries is not None:
-            self._entries = list(cached_entries)
-            self._render_entries(self._entries)
-            return
+        if cached_entries is None:
+            # Recalculate if not in worker result
+            font_map = self._font_maps.get(font_name, {})
+            computed: List[dict] = []
+            for entry in self._raw_entries:
+                text = entry.get('text', '') or ''
+                width = calculate_string_width(text, font_map, self._default_char_width)
+                new_entry = dict(entry)
+                new_entry['width_pixels'] = float(width)
+                computed.append(new_entry)
+            computed.sort(key=lambda item: item.get('width_pixels', 0.0), reverse=True)
+            cached_entries = computed[: self._max_entries]
+            self._entries_cache[font_name] = cached_entries
 
-        if not self._raw_entries:
-            self._entries = []
-            self._render_entries([])
-            return
+        # Create new widgets for this font
+        chart_view = _AnalysisBarView(self)
+        table = QTableWidget(self)
+        table.setColumnCount(6)
+        table.setHorizontalHeaderLabels(["#", "Width (px)", "Block", "String", "Line", "Text"])
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setAlternatingRowColors(True)
+        h = table.horizontalHeader()
+        for i in range(5): h.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+        h.setSectionResizeMode(5, QHeaderView.Stretch)
 
-        font_map = self._font_maps.get(font_name, {})
-        computed: List[dict] = []
-        for entry in self._raw_entries:
-            text = entry.get('text', '') or ''
-            width = calculate_string_width(text, font_map, self._default_char_width)
-            new_entry = dict(entry)
-            new_entry['width_pixels'] = float(width)
-            computed.append(new_entry)
+        # Connect signals
+        chart_view.on_bar_selected = lambda idx, t=table, cv=chart_view: self._handle_bar_selected_for_table(idx, t, cv)
+        table.itemSelectionChanged.connect(lambda t=table, cv=chart_view: self._handle_table_selection_for_chart(t, cv))
+        table.itemDoubleClicked.connect(lambda item, entries=cached_entries: self._handle_table_double_click_ext(item, entries))
 
-        computed.sort(key=lambda item: item.get('width_pixels', 0.0), reverse=True)
-        top_entries = computed[: self._max_entries]
-        self._entries_cache[font_name] = list(top_entries)
-        self._entries = list(top_entries)
-        self._render_entries(self._entries)
+        # Render data
+        chart_view.set_entries(cached_entries)
+        table.setUpdatesEnabled(False)
+        table.setRowCount(len(cached_entries))
+        for row, entry in enumerate(cached_entries):
+            vals = [str(row+1), f"{entry['width_pixels']:.1f}", str(entry.get('block_idx','-')), 
+                    str(entry.get('string_idx','-')), str(entry.get('line_idx','-')), entry.get('text','')]
+            for col, val in enumerate(vals):
+                item = QTableWidgetItem(val)
+                if col == 1: item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                table.setItem(row, col, item)
+        table.setUpdatesEnabled(True)
 
-    def _render_entries(self, entries: Sequence[dict]) -> None:
-        self._chart_view.set_entries(entries)
+        # Add to stacks
+        self._chart_stack.addWidget(chart_view)
+        self._table_stack.addWidget(table)
+        self._font_views[font_name] = {'chart': chart_view, 'table': table}
 
+        # Switch to new widgets
+        self._chart_stack.setCurrentWidget(chart_view)
+        self._table_stack.setCurrentWidget(table)
+        self._update_summary(cached_entries)
+        
+        self.show(); self.raise_(); self.activateWindow()
+
+    def _update_summary(self, entries: List[dict]) -> None:
         if not entries:
-            self._summary_label.setText("No data")
-            self._table.setRowCount(0)
-            self.show()
-            self.raise_()
-            self.activateWindow()
+            self._summary_label.setText("No entries")
             return
+        top = entries[0]
+        self._summary_label.setText(
+            f"Max: {top['width_pixels']:.1f} px | B:{top.get('block_idx','-')} S:{top.get('string_idx','-')} L:{top.get('line_idx','-')} | Font: {self._current_font_name}"
+        )
 
-        self._table.setRowCount(len(entries))
-        for row, entry in enumerate(entries):
-            width = float(entry.get('width_pixels', 0.0))
-            block = entry.get('block_idx')
-            string = entry.get('string_idx')
-            line_idx = entry.get('line_idx')
-            text = entry.get('text', '') or ''
+    def _handle_bar_selected_for_table(self, index: int, table: QTableWidget, chart_view: _AnalysisBarView) -> None:
+        table.blockSignals(True)
+        table.selectRow(index)
+        table.blockSignals(False)
+        chart_view.highlight_bar(index)
+        item = table.item(index, 0)
+        if item: table.scrollToItem(item)
 
-            values = [
-                str(row + 1),
-                f"{width:.1f}",
-                str(block) if block is not None else '-',
-                str(string) if string is not None else '-',
-                str(line_idx) if line_idx is not None else '-',
-                text,
-            ]
-            for col, value in enumerate(values):
-                item = QTableWidgetItem(value)
-                if col == 1:
-                    item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self._table.setItem(row, col, item)
+    def _handle_table_selection_for_chart(self, table: QTableWidget, chart_view: _AnalysisBarView) -> None:
+        rows = table.selectionModel().selectedRows()
+        if rows: chart_view.highlight_bar(rows[0].row())
 
-        top_entry = entries[0]
-        font_hint = f"Font: {self._current_font_name}" if self._current_font_name else ""
-        summary_parts = [f"Max width: {float(top_entry.get('width_pixels', 0.0)):.1f} px"]
-        if top_entry.get('block_idx') is not None:
-            summary_parts.append(
-                (
-                    f"Block {top_entry['block_idx']} / String {top_entry['string_idx']} / "
-                    f"Line {top_entry['line_idx']}"
-                )
-            )
-        if font_hint:
-            summary_parts.append(font_hint)
-        self._summary_label.setText(" - ".join(summary_parts))
-
-        self._table.blockSignals(True)
-        self._table.selectRow(0)
-        self._table.blockSignals(False)
-        self._chart_view.highlight_bar(0)
-
-        self.show()
-        self.raise_()
-        self.activateWindow()
-
-    def _handle_bar_selected(self, index: int) -> None:
-        if not self._entries:
-            return
-        index = max(0, min(index, len(self._entries) - 1))
-        self._table.blockSignals(True)
-        self._table.selectRow(index)
-        self._table.blockSignals(False)
-        self._chart_view.highlight_bar(index)
-        item = self._table.item(index, 0)
-        if item:
-            self._table.scrollToItem(item)
-
-    def _handle_table_selection(self) -> None:
-        if not self._entries:
-            return
-        selected = self._table.selectionModel().selectedRows()
-        if not selected:
-            return
-        row = selected[0].row()
-        self._chart_view.highlight_bar(row)
-
-    def _handle_table_double_click(self, item) -> None:
+    def _handle_table_double_click_ext(self, item, entries: List[dict]) -> None:
         row = item.row()
-        if 0 <= row < len(self._entries) and self.on_entry_activated:
-            self.on_entry_activated(self._entries[row])
+        if 0 <= row < len(entries) and self.on_entry_activated:
+            self.on_entry_activated(entries[row])
         self.accept()
 
     def _on_font_changed(self, font_name: str) -> None:
-        if not font_name or font_name not in self._font_maps:
-            return
-        self._apply_font(font_name)
+        if font_name and font_name in self._font_maps:
+            self._apply_font(font_name)

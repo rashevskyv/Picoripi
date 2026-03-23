@@ -1,6 +1,7 @@
 # --- START OF FILE handlers/issue_scan_handler.py ---
 # handlers/issue_scan_handler.py
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import QTimer
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug
 
@@ -58,13 +59,55 @@ class IssueScanHandler(BaseHandler):
                     self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
                     log_debug(f"  Found problems in block {block_idx}, string {string_idx}, subline {i}: {problem_set}")
 
+    # -----------------------------------------------------------------------
+    # Async batched initial scan – runs in chunks so the UI never freezes
+    # -----------------------------------------------------------------------
+    _SCAN_BATCH_SIZE = 20   # blocks per timer tick
+
     def _perform_initial_silent_scan_all_issues(self):
+        """Start (or restart) an async batched scan of all blocks."""
         self.mw.data_store.problems_per_subline.clear()
         if not self.mw.data_store.data:
             return
-        
-        for block_idx in range(len(self.mw.data_store.data)):
-            self._perform_issues_scan_for_block(block_idx)
+
+        # Cancel any in-progress scan
+        if hasattr(self, '_scan_timer') and self._scan_timer is not None:
+            self._scan_timer.stop()
+            self._scan_timer = None
+
+        self._scan_pending_indices = list(range(len(self.mw.data_store.data)))
+        self._scan_timer = QTimer()
+        self._scan_timer.setSingleShot(True)
+        self._scan_timer.timeout.connect(self._scan_next_batch)
+        self._scan_timer.start(0)   # start immediately, but after current event loop tick
+
+    def _scan_next_batch(self):
+        """Process one batch of blocks and schedule the next batch."""
+        if not hasattr(self, '_scan_pending_indices') or not self._scan_pending_indices:
+            self._scan_timer = None
+            return
+
+        batch = self._scan_pending_indices[:self._SCAN_BATCH_SIZE]
+        self._scan_pending_indices = self._scan_pending_indices[self._SCAN_BATCH_SIZE:]
+
+        for block_idx in batch:
+            if block_idx < len(self.mw.data_store.data):
+                self._perform_issues_scan_for_block(block_idx)
+
+        # Refresh problem counts in the tree for processed blocks
+        if hasattr(self.mw, 'ui_updater'):
+            for block_idx in batch:
+                self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+
+        if self._scan_pending_indices:
+            # Schedule next batch
+            self._scan_timer = QTimer()
+            self._scan_timer.setSingleShot(True)
+            self._scan_timer.timeout.connect(self._scan_next_batch)
+            self._scan_timer.start(0)
+        else:
+            self._scan_timer = None
+            log_debug("Initial silent issue scan complete.")
 
     def rescan_issues_for_single_block(self, block_idx: int = -1, show_message_on_completion: bool = True, use_default_mappings: bool = True):
         target_block_idx = block_idx if block_idx != -1 else self.mw.data_store.current_block_idx

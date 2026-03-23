@@ -430,10 +430,9 @@ class SettingsDialogUiMixin:
         provider_form = QFormLayout()
         self.translation_provider_combo = QComboBox(self)
         self.translation_provider_combo.addItem("Disabled", "disabled")
-        self.translation_provider_combo.addItem("OpenAI", "openai_chat")
+        self.translation_provider_combo.addItem("OpenAI", "openai")
 
         self.translation_provider_combo.addItem("Ollama Chat", "ollama_chat")
-        self.translation_provider_combo.addItem("DeepL", "deepl")
         self.translation_provider_combo.addItem("Gemini", "gemini")
         self.translation_provider_combo.addItem("Perplexity", "perplexity")
         provider_form.addRow("Active Provider:", self.translation_provider_combo)
@@ -482,11 +481,6 @@ class SettingsDialogUiMixin:
         self.ollama_keep_alive_edit = QLineEdit(self); self.ollama_keep_alive_edit.setPlaceholderText("e.g. 5m or leave blank"); ollama_layout.addRow("Keep Alive:", self.ollama_keep_alive_edit)
         self.ai_provider_pages.addWidget(ollama_group)
 
-        deepl_group = QGroupBox("DeepL API", self.ai_translation_tab)
-        deepl_layout = QFormLayout(deepl_group)
-        self.deepl_api_key_edit = QLineEdit(self); self.deepl_api_key_edit.setEchoMode(QLineEdit.Password); self.deepl_api_key_edit.setPlaceholderText("DeepL API Key"); deepl_layout.addRow("API Key:", self.deepl_api_key_edit)
-        self.deepl_server_url_edit = QLineEdit(self); self.deepl_server_url_edit.setPlaceholderText("e.g. https://api.deepl.com (Pro)"); deepl_layout.addRow("Server URL (Pro):", self.deepl_server_url_edit)
-        self.ai_provider_pages.addWidget(deepl_group)
 
         gemini_group = QGroupBox("Google Gemini API", self.ai_translation_tab)
         gemini_layout = QFormLayout(gemini_group)
@@ -573,11 +567,11 @@ class SettingsDialogUiMixin:
         if provider_name == 'OpenAI':
             api_key = self.openai_api_key_edit.text().strip()
             if not api_key:
-                api_key = providers_cfg.get('openai_chat', {}).get('api_key', '')
+                api_key = providers_cfg.get('openai', {}).get('api_key', '')
 
             api_key_env = self.openai_api_key_env_edit.text().strip()
             if not api_key_env:
-                api_key_env = providers_cfg.get('openai_chat', {}).get('api_key_env', '')
+                api_key_env = providers_cfg.get('openai', {}).get('api_key_env', '')
 
             return {
                 'api_key': api_key,

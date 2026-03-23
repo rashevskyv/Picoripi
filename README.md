@@ -1,4 +1,4 @@
-# Picoripi v0.2.39
+# Picoripi v0.2.46
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
@@ -53,7 +53,7 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - Add game-specific slang to personal or project-level custom dictionaries.
 
 ### Analysis, Navigation & Safety
-- **Analysis Tool**: Histograms and visualizations for text sizes and problem counts.
+- **Analysis Tool**: Histograms and visualizations for text sizes and problem counts with **multi-font support** and **instant font switching** using a stacked-view architecture. Features background processing via `WidthCalculationWorker` to prevent UI freezes. 
 - **Undo / Redo**: Comprehensive undo system covering text edits, folder structure changes, reverts, and even tree navigation.
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
 - **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
