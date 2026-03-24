@@ -156,7 +156,7 @@ class TextAutofixLogic:
                     merged_line = current_line_for_width_calc
                     
                     if current_line_for_width_calc and first_word_next_raw:
-                        # Перевіряємо, чи потрібен пробіл
+                        # Check if space is needed
                         needs_space = False
                         if not current_line_for_width_calc.endswith(" ") and not first_word_next_raw.startswith(" "):
                             last_char_current = current_line_for_width_calc[-1]
@@ -166,13 +166,13 @@ class TextAutofixLogic:
                             is_next_starts_tag = first_char_next in ['{', '[']
                             is_next_starts_word_char = WORD_CHAR_PATTERN.match(first_char_next) is not None
 
-                            if is_current_ends_tag and is_next_starts_word_char: # тег + слово
+                            if is_current_ends_tag and is_next_starts_word_char: # tag + word
                                 needs_space = True
-                            elif not is_current_ends_tag and not is_next_starts_tag: # слово + слово
+                            elif not is_current_ends_tag and not is_next_starts_tag: # word + word
                                 needs_space = True
-                            elif not is_current_ends_tag and is_next_starts_tag: # слово + тег
+                            elif not is_current_ends_tag and is_next_starts_tag: # word + tag
                                 needs_space = True
-                            # Випадок тег + тег: пробіл не потрібен (needs_space = False)
+                            # tag + tag case: space not needed (needs_space = False)
                         
                         if needs_space:
                             log_debug(f"Auto-fix (_fix_short_lines): Adding space when merging. Current ends: '{current_line_for_width_calc[-5:]}', Next starts: '{first_word_next_raw[:5]}'")
@@ -379,17 +379,17 @@ class TextAutofixLogic:
             if not should_remove_space:
                 result_parts.append(space_content) 
             else:
-                if not text_changed_this_function_call: # Логуємо тільки першу зміну
+                if not text_changed_this_function_call: # Log only the first change
                     text_changed_this_function_call = True
             
             last_processed_end = match.start("after_space") if char_after_space_content else match.end("space")
             current_pos = last_processed_end
-            # Символ char_after_space_content буде доданий на наступній ітерації як частина text[last_processed_end:...]
-            # або в кінці, якщо більше немає збігів.
+            # Character char_after_space_content will be added on next iteration as part of text[last_processed_end:...]
+            # or at the end if no more matches.
 
         final_text = "".join(result_parts)
 
-        if final_text != original_text : # Порівнюємо фінальний результат з оригіналом
+        if final_text != original_text : # Compare final result with original
             log_debug(f"Auto-fix (_cleanup_spaces_around_tags): Text changed. Original: '{original_text}', Final: '{final_text}'")
             return final_text
         return original_text

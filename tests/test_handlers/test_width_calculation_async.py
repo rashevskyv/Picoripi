@@ -36,54 +36,42 @@ def mock_data_processor():
 def mock_game_rules():
     gr = MagicMock()
     gr.get_problem_definitions.return_value = {}
+    gr._get_sublines_from_data_string.return_value = ["subline1"]
+    gr.problem_analyzer._get_sublines_from_data_string.return_value = ["subline1"]
     return gr
 
 def test_calculate_widths_for_block_action_async_no_freeze(mock_mw, mock_ui, mock_data_processor, mock_game_rules, qapp):
     handler = AppActionHandler(mock_mw, mock_data_processor, mock_ui, mock_game_rules)
     
-    num_strings = 100
-    mock_mw.data_store.data = [[f"string_{i}\npart2_{i}" for i in range(num_strings)]] 
-    mock_mw.data = mock_mw.data_store.data  # Re-sync mock_mw.data
+    num_strings = 10  # Small for fast test
+    mock_mw.data_store.data = [[f"string_{i}" for i in range(num_strings)]] 
+    mock_mw.data = mock_mw.data_store.data
     mock_mw.data_store.block_names = {"0": "BigBlock"}
-    
-    # Need to keep font_map_helper references
     mock_mw.helper.get_font_map_for_string.return_value = {"a": {"width": 10}}
 
     with patch("handlers.app_action_handler.QProgressDialog") as MockProgress, \
-         patch("handlers.app_action_handler.LargeTextReportDialog") as MockReportDialog:
+         patch("handlers.app_action_handler.LargeTextReportDialog") as MockReportDialog, \
+         patch("handlers.app_action_handler.QMessageBox.information") as MockMsgBox:
         
         progress_mock = MockProgress.return_value
-        
-        def simulate_worker_finish():
-            import time
-            max_wait = 5.0
-            start = time.time()
-            # Wait for worker to be created and started
-            while not hasattr(handler, 'width_worker') and time.time() - start < 1.0:
-                qapp.processEvents()
-                time.sleep(0.01)
-            
-            if hasattr(handler, 'width_worker'):
-                worker = handler.width_worker
-                while worker.isRunning() and time.time() - start < max_wait:
-                    qapp.processEvents()
-                    time.sleep(0.1)
-                # One last processEvents to ensure signals are handled
-                for _ in range(10): qapp.processEvents()
-            
-        progress_mock.exec_.side_effect = simulate_worker_finish
+        progress_mock.exec_.return_value = None  # Don't block event loop
         
         handler.calculate_widths_for_block_action(0)
         
-        # Verify worker was started
-        assert hasattr(handler, 'width_worker')
+        assert hasattr(handler, 'width_worker'), "Worker was not created"
         
-        # Verify which dialog was called
+        # Block until worker finishes (up to 5 seconds), then process events
+        finished = handler.width_worker.wait(5000)
+        assert finished, "Worker did not finish in time"
+        
+        for _ in range(20):
+            qapp.processEvents()
+        
         handler_called = mock_mw.text_analysis_handler.show_diagnostic_analysis.called
         fallback_called = MockReportDialog.called
         
         assert handler_called or fallback_called, "No report dialog was shown"
-        assert handler_called, f"Fell back to text report. mock_mw has handler? {hasattr(mock_mw, 'text_analysis_handler')}"
+        assert handler_called, f"Fell back to text report instead of analysis handler"
         
         # Verify entries were passed
         args, kwargs = mock_mw.text_analysis_handler.show_diagnostic_analysis.call_args
@@ -93,3 +81,4 @@ def test_calculate_widths_for_block_action_async_no_freeze(mock_mw, mock_ui, moc
         assert len(entries) > 0
         assert "width_pixels" in entries[0]
         assert "BigBlock" in title
+

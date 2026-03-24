@@ -49,6 +49,7 @@ def test_BlockListUpdater_populate_blocks(updater):
     # Mock create_item because it's a custom method on main window's block list widget
     mock_item = QTreeWidgetItem()
     updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
+    updater.mw.project_manager = None # Force fallback legacy mode
     
     updater.populate_blocks()
     
@@ -64,9 +65,11 @@ def test_BlockListUpdater_update_block_item_text_with_problem_count(updater):
     item.setData(0, Qt.UserRole, 0)
     updater.mw.block_list_widget.addTopLevelItem(item)
     
+    updater.mw.current_game_rules.get_short_problem_name.side_effect = lambda p: "width" if p == "prob1" else "empty"
+
     updater.update_block_item_text_with_problem_count(0)
     
-    expected_text = "Block Zero [1] (1 width)"
+    expected_text = "Block Zero (1 width)"
     assert item.text(0) == expected_text
 
     item1 = QTreeWidgetItem(["Block 1Base"])
@@ -74,12 +77,12 @@ def test_BlockListUpdater_update_block_item_text_with_problem_count(updater):
     updater.mw.block_list_widget.addTopLevelItem(item1)
     
     updater.update_block_item_text_with_problem_count(1)
-    expected_text1 = "Block One [2] (1 width, 1 empty)"
+    expected_text1 = "Block One (1 width, 1 empty)"
     assert item1.text(0) == expected_text1
 
 def test_BlockListUpdater_clear_all_problem_block_highlights_and_text(updater):
     # Setup tree item
-    item = QTreeWidgetItem(["Block Zero [1] (1 width)"])
+    item = QTreeWidgetItem(["Block Zero (1 width)"])
     item.setData(0, Qt.UserRole, 0)
     updater.mw.block_list_widget.addTopLevelItem(item)
     

@@ -180,3 +180,7 @@ class BaseGameRules:
             self.mw.context_menu_tags = tags_data
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_settings()
+
+    def get_font_for_block(self, block_idx: int) -> Optional[Dict[str, str]]:
+        """Returns a dict with 'original_font_name' and 'font_name' if block has specific font overrides."""
+        return None

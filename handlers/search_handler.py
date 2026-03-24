@@ -65,7 +65,7 @@ class SearchHandler(BaseHandler):
         """Returns (match_position, matched_length) or (-1, 0) if not found."""
         if not query_to_find: return -1, 0
         
-        # 1. Звичайний пошук (точний)
+        # 1. Standard search (exact)
         if not is_fuzzy:
             compare_text = text_to_search_in
             compare_query = query_to_find
@@ -79,7 +79,7 @@ class SearchHandler(BaseHandler):
                 pos = compare_text.find(compare_query, start_offset)
             return (pos, len(query_to_find)) if pos != -1 else (-1, 0)
         
-        # 2. Нечіткий пошук
+        # 2. Fuzzy search
         else:
             word_iter = re.finditer(r'\w+', text_to_search_in)
             matches = []  # (start, length)
@@ -466,7 +466,7 @@ class SearchHandler(BaseHandler):
                 
                 # The text_in_widget_qtextblock_precise is what's actually in the editor's document line
                 # For original_text_edit, this should include curly tags like {Player}
-                # For edited_text_edit, this includes [ІМ'Я ГРАВЦЯ]
+                # For edited_text_edit, this includes [PLAYER]
                 # For preview_text_edit, this includes {Player} and newline symbols
 
                 match_pos_in_widget_qtextblock_precise, match_len_in_widget_qtextblock_precise = \

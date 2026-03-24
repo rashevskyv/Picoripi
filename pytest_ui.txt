@@ -1,0 +1,91 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- D:\git\dev\Picoripi\venv\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt5 5.15.11 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2
+rootdir: D:\git\dev\Picoripi
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.0.0, mock-3.15.1, qt-4.5.0
+collecting ... collected 67 items
+
+tests/test_ui/test_glossary_ui_logic.py::test_glossary_highlighting_updates_all_editors PASSED [  1%]
+tests/test_ui/test_glossary_ui_logic.py::test_glossary_entry_finding_uses_correct_attributes PASSED [  2%]
+tests/test_ui/test_glossary_ui_logic.py::test_glossary_tooltip_shows_correct_text PASSED [  4%]
+tests/test_ui/test_glossary_ui_logic.py::test_glossary_highlighted_after_set_plain_text PASSED [  5%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_init PASSED             [  7%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_get_tree_state PASSED   [  8%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_tree_state PASSED [ 10%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_get_item_id PASSED      [ 11%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_highlight_glossary_occurrence PASSED [ 13%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_get_aggregated_problems_for_block PASSED [ 14%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_create_block_tree_item PASSED [ 16%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_add_virtual_folder_to_tree PASSED [ 17%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_populate_blocks PASSED  [ 19%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_block_item_text_with_problem_count PASSED [ 20%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_synchronize_original_cursor PASSED [ 22%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_for_block PASSED [ 23%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_to_editor PASSED [ 25%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_for_block_no_edit PASSED [ 26%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_for_block_no_rules PASSED [ 28%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_for_block_out_of_range PASSED [ 29%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_for_block_with_no_displayed_indices PASSED [ 31%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_for_block_with_categorized PASSED [ 32%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_to_editor_no_editor PASSED [ 34%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_to_editor_negative_idx PASSED [ 35%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_apply_highlights_to_editor_with_empty_subline_problem PASSED [ 37%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_get_all_categorized_indices_for_block PASSED [ 38%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_populate_strings_for_block PASSED [ 40%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_populate_strings_for_block_invalid PASSED [ 41%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_text_views PASSED [ 43%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_text_views_no_selection PASSED [ 44%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_populate_strings_with_project_manager PASSED [ 46%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_populate_strings_hide_categorized_from_data_store PASSED [ 47%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_text_views_with_width_label PASSED [ 49%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_populate_strings_with_category PASSED [ 50%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_status_bar PASSED [ 52%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_status_bar_selection PASSED [ 53%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_clear_status_bar PASSED [ 55%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_highlight_problem_block PASSED [ 56%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_clear_all_problem_block_highlights_and_text PASSED [ 58%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_title PASSED     [ 59%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_plugin_status_label PASSED [ 61%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_statusbar_paths PASSED [ 62%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_clear_highlights_no_base_name PASSED [ 64%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_title_json_path PASSED [ 65%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_title_no_file PASSED [ 67%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_update_plugin_status_label_no_rules PASSED [ 68%]
+tests/test_ui/test_ui_updater.py::test_UIUpdater_synchronize_original_cursor_no_text PASSED [ 70%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestTitleStatusBarUpdater::test_title_no_file_open PASSED [ 71%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestTitleStatusBarUpdater::test_title_with_json_path PASSED [ 73%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestTitleStatusBarUpdater::test_title_with_project PASSED [ 74%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestTitleStatusBarUpdater::test_title_with_unsaved_changes PASSED [ 76%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestTitleStatusBarUpdater::test_update_statusbar_paths_with_both_paths PASSED [ 77%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestTitleStatusBarUpdater::test_update_statusbar_paths_no_paths PASSED [ 79%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestStringSettingsUpdater::test_update_string_settings_panel_no_selection PASSED [ 80%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestStringSettingsUpdater::test_update_string_settings_panel_default_meta PASSED [ 82%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestStringSettingsUpdater::test_update_string_settings_panel_custom_width PASSED [ 83%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestPreviewUpdater::test_populate_strings_no_preview_edit PASSED [ 85%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestPreviewUpdater::test_populate_strings_negative_block_idx PASSED [ 86%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestPreviewUpdater::test_populate_strings_no_data PASSED [ 88%]
+tests/test_ui/test_updaters/test_small_updaters.py::TestPreviewUpdater::test_populate_strings_basic PASSED [ 89%]
+tests/test_ui/updaters/test_block_list_updater.py::test_BlockListUpdater_populate_blocks PASSED [ 91%]
+tests/test_ui/updaters/test_block_list_updater.py::test_BlockListUpdater_update_block_item_text_with_problem_count PASSED [ 92%]
+tests/test_ui/updaters/test_block_list_updater.py::test_BlockListUpdater_clear_all_problem_block_highlights_and_text PASSED [ 94%]
+tests/test_app_action_handler.py::TestAppActionHandler::test_calculate_widths_progress FAILED [ 95%]
+tests/test_app_action_handler.py::TestAppActionHandler::test_open_file_dialog_basic PASSED [ 97%]
+tests/test_app_action_handler.py::TestAppActionHandler::test_save_as_dialog PASSED [ 98%]
+tests/test_handlers/test_width_calculation_async.py::test_calculate_widths_for_block_action_async_no_freeze FAILED [100%]
+
+================================== FAILURES ===================================
+_____________ TestAppActionHandler.test_calculate_widths_progress _____________
+tests\test_app_action_handler.py:104: in test_calculate_widths_progress
+    self.assertGreaterEqual(mock_pd_inst.setValue.call_count, 2)
+E   AssertionError: 0 not greater than or equal to 2
+___________ test_calculate_widths_for_block_action_async_no_freeze ____________
+tests\test_handlers\test_width_calculation_async.py:85: in test_calculate_widths_for_block_action_async_no_freeze
+    assert handler_called or fallback_called, "No report dialog was shown"
+E   AssertionError: No report dialog was shown
+E   assert (False or False)
+=========================== short test summary info ===========================
+FAILED tests/test_app_action_handler.py::TestAppActionHandler::test_calculate_widths_progress
+FAILED tests/test_handlers/test_width_calculation_async.py::test_calculate_widths_for_block_action_async_no_freeze
+======================== 2 failed, 65 passed in 1.16s =========================

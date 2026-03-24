@@ -190,7 +190,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._translation_edit.setPlainText(suggested)
         self._status_label.clear()
         
-        # Оновлюємо підсвітку після завантаження тексту
+        # Update highlights after loading text
         self._update_text_highlights()
 
     # ------------------------------------------------------------------
@@ -218,7 +218,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
             QMessageBox.warning(self, "Update", "Translation cannot be empty.")
             return
         
-        # Застосовуємо зміни
+        # Apply changes
         self._apply_translation_cb(occ, candidate)
         
         self._status[id(occ)] = 'applied'
@@ -228,7 +228,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         if next_item:
             self._select_next()
         else:
-            # Якщо залишаємося на тому ж елементі, оновлюємо підсвітку
+            # If staying on the same item, update highlight
             self._update_text_highlights()
 
     def _update_text_highlights(self) -> None:
@@ -247,31 +247,31 @@ class GlossaryTranslationUpdateDialog(QDialog):
             
             text = editor.toPlainText()
             
-            # Розбиваємо шукану фразу на окремі слова, ігноруючи короткі (сполучники тощо)
-            # Якщо слово коротше 3 букв, воно має збігатися точно, тому fuzzy не застосовуємо
+            # Split target phrase into words, ignoring short ones (conjunctions etc.)
+            # If word is shorter than 4 chars, it must match exactly, so fuzzy is not applied
             search_tokens = [t for t in re.split(r'\W+', term_phrase) if t]
             
             if not search_tokens:
                 return selections
 
-            # Знаходимо всі слова в тексті редактора
-            # Використовуємо ітератор, щоб отримати позиції
+            # Find all words in editor's text
+            # Use iterator to get positions
             word_iter = re.finditer(r'\w+', text)
             
             for match in word_iter:
                 word_in_text = match.group(0)
                 
-                # Перевіряємо, чи це слово схоже на будь-яке слово з шуканої фрази
+                # Check if this word is similar to any word from target phrase
                 is_match = False
                 for token in search_tokens:
-                    # Якщо слово коротке, вимагаємо точного збігу (ігноруючи регістр)
+                    # If word is short, require exact match (case-insensitive)
                     if len(token) < 4:
                         if token.lower() == word_in_text.lower():
                             is_match = True
                             break
-                    # Для довших слів використовуємо нечіткий пошук
+                    # For longer words use fuzzy search
                     else:
-                        # Поріг 0.75 дозволяє "Острови" (7) і "Островів" (8) вважатися схожими
+                        # Threshold 0.75 allows "Islands" and "Island" to be similar enough
                         if is_fuzzy_match(token, word_in_text, threshold=0.75):
                             is_match = True
                             break

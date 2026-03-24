@@ -123,13 +123,13 @@ class SearchPanelWidget(QWidget):
         is_fuzzy = self.fuzzy_search_checkbox.isChecked()
         if query:
             self._add_to_history(query)
-            # Передаємо is_fuzzy через emit не вийде без зміни сигналу, 
-            # але ми можемо змінити сигнатуру або просто викликати публічний метод хендлера, 
-            # якщо сигнал підключений до нього. 
-            # Однак сигнал визначений як (str, bool, bool, bool). Додамо ще один bool.
-            # Оскільки ми змінюємо і клас сигналу, краще оновити сигнал.
-            # АЛЕ, щоб не ламати сумісність з ui_setup.py, де підключення йде через connect,
-            # ми оновимо definition сигналу нагорі файлу (див. нижче).
+            # Emitting is_fuzzy via signal might require signal change, 
+            # but we can change the signature or just call a public handler method 
+            # if the signal is connected to it. 
+            # However, the signal is defined as (str, bool, bool, bool). Adding another bool.
+            # Since we are changing the signal class, it's better to update the definition.
+            # BUT, to not break compatibility with ui_setup.py where connection is via connect,
+            # we update the signal definition at the top of the file (see above).
             self.find_next_requested.emit(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def _on_find_previous(self):

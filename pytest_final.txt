@@ -1,0 +1,137 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- D:\git\dev\Picoripi\venv\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt5 5.15.11 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2
+rootdir: D:\git\dev\Picoripi
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.0.0, mock-3.15.1, qt-4.5.0
+collecting ... collected 4 items
+
+tests/test_app_action_handler.py::TestAppActionHandler::test_calculate_widths_progress FAILED [ 25%]
+tests/test_app_action_handler.py::TestAppActionHandler::test_open_file_dialog_basic PASSED [ 50%]
+tests/test_app_action_handler.py::TestAppActionHandler::test_save_as_dialog PASSED [ 75%]
+tests/test_handlers/test_width_calculation_async.py::test_calculate_widths_for_block_action_async_no_freeze FAILED [100%]
+
+================================== FAILURES ===================================
+_____________ TestAppActionHandler.test_calculate_widths_progress _____________
+
+self = <test_app_action_handler.TestAppActionHandler testMethod=test_calculate_widths_progress>
+mock_worker_cls = <MagicMock name='WidthCalculationWorker' id='2701523484752'>
+mock_progress = <MagicMock name='QProgressDialog' id='2701523485088'>
+
+    @patch('handlers.app_action_handler.QProgressDialog')
+    @patch('handlers.app_action_handler.WidthCalculationWorker')
+    def test_calculate_widths_progress(self, mock_worker_cls, mock_progress):
+        # Setup mw.data_store properly (handler uses self.mw not self.ctx)
+        self.mw.data_store = MagicMock()
+        self.mw.data_store.data = [["line1", "line2"]]
+        self.mw.data_store.block_names = {"0": "TestBlock"}
+        self.mw.font_map = {"a": {"width": 5}}
+        self.mw.string_metadata = {}
+        self.mw.line_width_warning_threshold_pixels = 200
+        self.mw.game_dialog_max_width_pixels = 240
+        self.mw.helper = MagicMock()
+        self.mw.helper.get_font_map_for_string.return_value = {"a": {"width": 5}}
+    
+        # Mock progress dialog instance
+        mock_pd_inst = mock_progress.return_value
+        mock_pd_inst.wasCanceled.return_value = False
+        mock_pd_inst.exec_.return_value = None  # Don't block
+    
+        # Mock worker: don't actually run the thread
+        mock_worker_inst = mock_worker_cls.return_value
+        mock_worker_inst.isRunning.return_value = False
+    
+>       self.handler.calculate_widths_for_block_action(0)
+
+tests\test_app_action_handler.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <handlers.app_action_handler.AppActionHandler object at 0x00000274FF4D7E00>
+block_idx = 0, category_name = None
+
+    def calculate_widths_for_block_action(self, block_idx: int, category_name: Optional[str] = None) -> None:
+        if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
+            QMessageBox.warning(self.mw, "Calculate Widths Error", "Invalid block selected or no data.")
+            return
+    
+        if not self.mw.font_map:
+             QMessageBox.warning(self.mw, "Calculate Widths Error", "Font map is not loaded. Cannot calculate widths.")
+             return
+        if not self.game_rules_plugin:
+            QMessageBox.warning(self.mw, "Calculate Widths Error", "Game rules plugin not loaded.")
+            return
+    
+        # Handle "virtual block" (category) logic
+        target_indices = None
+        if category_name:
+            pm = getattr(self.mw, 'project_manager', None)
+            if pm and pm.project:
+                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(block_idx, block_idx)
+                if proj_b_idx < len(pm.project.blocks):
+                    block_obj = pm.project.blocks[proj_b_idx]
+                    category = next((c for c in block_obj.categories if c.name == category_name), None)
+                    if category:
+                        target_indices = set(category.line_indices)
+    
+        all_strings_in_block = self.mw.data_store.data[block_idx]
+        num_strings_total = len(all_strings_in_block)
+    
+        # If category is selected, use filtered count for progress bar
+        num_to_process = len(target_indices) if target_indices is not None else num_strings_total
+    
+        if num_to_process == 0:
+>           QMessageBox.information(self.mw, "Calculate Line Widths", f"Target is empty.")
+E           TypeError: information(parent: Optional[QWidget], title: Optional[str], text: Optional[str], buttons: Union[QMessageBox.StandardButtons, QMessageBox.StandardButton] = QMessageBox.Ok, defaultButton: QMessageBox.StandardButton = QMessageBox.NoButton): argument 1 has unexpected type 'MockContext'
+
+handlers\app_action_handler.py:319: TypeError
+___________ test_calculate_widths_for_block_action_async_no_freeze ____________
+
+mock_mw = <MagicMock id='2701523499872'>
+mock_ui = <MagicMock id='2701523498192'>
+mock_data_processor = <MagicMock id='2701523497856'>
+mock_game_rules = <MagicMock id='2701523496848'>
+qapp = <PyQt5.QtWidgets.QApplication object at 0x00000274FF3B0440>
+
+    def test_calculate_widths_for_block_action_async_no_freeze(mock_mw, mock_ui, mock_data_processor, mock_game_rules, qapp):
+        handler = AppActionHandler(mock_mw, mock_data_processor, mock_ui, mock_game_rules)
+    
+        num_strings = 10  # Small for fast test
+        mock_mw.data_store.data = [[f"string_{i}" for i in range(num_strings)]]
+        mock_mw.data = mock_mw.data_store.data
+        mock_mw.data_store.block_names = {"0": "BigBlock"}
+        mock_mw.helper.get_font_map_for_string.return_value = {"a": {"width": 10}}
+    
+        with patch("handlers.app_action_handler.QProgressDialog") as MockProgress, \
+             patch("handlers.app_action_handler.LargeTextReportDialog") as MockReportDialog:
+    
+            progress_mock = MockProgress.return_value
+            progress_mock.exec_.return_value = None  # Don't block event loop
+    
+            handler.calculate_widths_for_block_action(0)
+    
+            # Verify worker was created and started
+            assert hasattr(handler, 'width_worker'), "Worker was not created"
+    
+            # Block until worker finishes (up to 5 seconds), then process events
+            finished = handler.width_worker.wait(5000)
+            assert finished, "Worker did not finish in time"
+    
+            # Deliver queued signals to main thread
+            for _ in range(20):
+                qapp.processEvents()
+    
+            # Verify which dialog was called
+            handler_called = mock_mw.text_analysis_handler.show_diagnostic_analysis.called
+            fallback_called = MockReportDialog.called
+    
+>           assert handler_called or fallback_called, "No report dialog was shown"
+E           AssertionError: No report dialog was shown
+E           assert (False or False)
+
+tests\test_handlers\test_width_calculation_async.py:73: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_app_action_handler.py::TestAppActionHandler::test_calculate_widths_progress
+FAILED tests/test_handlers/test_width_calculation_async.py::test_calculate_widths_for_block_action_async_no_freeze
+========================= 2 failed, 2 passed in 0.31s =========================

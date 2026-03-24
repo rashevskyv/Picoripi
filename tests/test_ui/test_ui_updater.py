@@ -3,6 +3,7 @@ import pytest
 
 from unittest.mock import MagicMock, patch
 from ui.ui_updater import UIUpdater
+from ui.updaters.preview_updater import PreviewUpdater
 from utils.constants import APP_VERSION
 
 @pytest.fixture
@@ -130,7 +131,7 @@ def test_UIUpdater_update_block_item_text_with_problem_count(updater):
     updater.mw.current_game_rules = MagicMock()
     updater.mw.current_game_rules.get_problem_definitions.return_value = {"prob1": {"priority": 1}}
     updater.mw.current_game_rules.get_short_problem_name.return_value = "P1"
-    updater._get_aggregated_problems_for_block = MagicMock(return_value={"prob1": 2})
+    updater.block_list_updater._get_aggregated_problems_for_block = MagicMock(return_value={"prob1": 2})
     
     updater.update_block_item_text_with_problem_count(0)
     assert item.text(0) == "Block 0 Base (2 P1)"
@@ -300,8 +301,8 @@ def test_UIUpdater_get_all_categorized_indices_for_block(updater, mock_mw):
     
     assert updater._get_all_categorized_indices_for_block(0) == {0, 1, 2}
 
-@patch.object(UIUpdater, 'update_text_views')
-@patch.object(UIUpdater, '_apply_highlights_for_block')
+@patch.object(PreviewUpdater, 'update_text_views')
+@patch.object(PreviewUpdater, '_apply_highlights_for_block')
 def test_UIUpdater_populate_strings_for_block(mock_hl, mock_ut, updater, mock_mw):
     mock_mw.data = [["s1", "s2", "s3"]]
     mock_mw.current_game_rules = MagicMock()
@@ -322,10 +323,11 @@ def test_UIUpdater_populate_strings_for_block(mock_hl, mock_ut, updater, mock_mw
     mock_ut.assert_called_once()
     assert mock_mw.displayed_string_indices == [0, 1, 2]
 
-@patch.object(UIUpdater, 'synchronize_original_cursor')
-@patch.object(UIUpdater, 'update_text_views')
+@patch.object(PreviewUpdater, 'synchronize_original_cursor')
+@patch.object(PreviewUpdater, 'update_text_views')
 def test_UIUpdater_populate_strings_for_block_invalid(mock_ut, mock_sync, updater, mock_mw):
     """Test populate_strings_for_block w/ invalid block_idx -> clears state."""
+    mock_mw.current_game_rules = MagicMock()
     mock_mw.data = []
     mock_mw.project_manager = None
     mock_mw.displayed_string_indices = [5, 6]
@@ -389,8 +391,8 @@ def test_UIUpdater_update_text_views_no_selection(updater, mock_mw):
     # With empty string, setPlainText is not called (no diff)
     mock_mw.original_text_edit.setPlainText.assert_not_called()
 
-@patch.object(UIUpdater, 'update_text_views')
-@patch.object(UIUpdater, '_apply_highlights_for_block')
+@patch.object(PreviewUpdater, 'update_text_views')
+@patch.object(PreviewUpdater, '_apply_highlights_for_block')
 def test_UIUpdater_populate_strings_with_project_manager(mock_hl, mock_ut, updater, mock_mw):
     """Populate with real project_manager so category logic is exercised."""
     pm = MagicMock()
@@ -418,8 +420,8 @@ def test_UIUpdater_populate_strings_with_project_manager(mock_hl, mock_ut, updat
     # Verify that the full string set is displayed
     assert mock_mw.displayed_string_indices == [0, 1]
 
-@patch.object(UIUpdater, 'update_text_views')
-@patch.object(UIUpdater, '_apply_highlights_for_block')
+@patch.object(PreviewUpdater, 'update_text_views')
+@patch.object(PreviewUpdater, '_apply_highlights_for_block')
 def test_UIUpdater_populate_strings_hide_categorized_from_data_store(mock_hl, mock_ut, updater, mock_mw):
     """hide_categorized must be read from data_store, not mw directly."""
     from core.data_store import AppDataStore
@@ -468,8 +470,8 @@ def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
     mock_mw.data = [["orig"]]
-    updater.data_processor._get_string_from_source.return_value = "orig"
-    updater.data_processor.get_current_string_text.return_value = ("orig", False)
+    updater.preview_updater.data_processor._get_string_from_source.return_value = "orig"
+    updater.preview_updater.data_processor.get_current_string_text.return_value = ("orig", False)
     mock_mw.current_game_rules = None
     mock_mw.show_multiple_spaces_as_dots = False
     mock_mw.original_text_edit = MagicMock()
@@ -488,15 +490,15 @@ def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.icon_sequences = []
     
-    with patch('ui.ui_updater.calculate_strict_string_width', return_value=42):
+    with patch('ui.updaters.preview_updater.calculate_strict_string_width', return_value=42):
         updater.update_text_views()
     
     mock_mw.original_width_label.setText.assert_called_with("Width: 42px")
     mock_mw.original_width_label.show.assert_called()
 
 
-@patch.object(UIUpdater, 'update_text_views')
-@patch.object(UIUpdater, '_apply_highlights_for_block')
+@patch.object(PreviewUpdater, 'update_text_views')
+@patch.object(PreviewUpdater, '_apply_highlights_for_block')
 def test_UIUpdater_populate_strings_with_category(mock_hl, mock_ut, updater, mock_mw):
     """Populate with category_name so lines 833-840 are covered."""
     pm = MagicMock()

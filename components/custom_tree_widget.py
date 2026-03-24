@@ -1181,15 +1181,8 @@ class CustomTreeWidget(QTreeWidget):
                 if valid_indices is not None and string_idx not in valid_indices:
                     continue
 
-                key = (block_idx, string_idx)
-                text = None
-
-                if key in edited_data:
-                    text = edited_data[key]
-                elif edited_file_data and block_idx < len(edited_file_data):
-                    edited_block = edited_file_data[block_idx]
-                    if isinstance(edited_block, list) and string_idx < len(edited_block):
-                        text = edited_block[string_idx]
+                # Get text using standard priority logic (edits -> saved edits -> original)
+                text, _ = main_window.data_processor.get_current_string_text(block_idx, string_idx)
 
                 if text and text.strip():
                     all_translated_lines.append((string_idx, text))
@@ -1219,9 +1212,9 @@ class CustomTreeWidget(QTreeWidget):
             if not text_to_check.strip():
                 from PyQt5.QtWidgets import QMessageBox
                 if len(all_translated_lines) == 0:
-                    QMessageBox.information(self, "Spellcheck", "Немає перекладеного тексту для перевірки.\nСпочатку перекладіть текст у цьому блоці.")
+                    QMessageBox.information(self, "Spellcheck", "No text found to check in this block.")
                 else:
-                    QMessageBox.information(self, "Spellcheck", f"Орфографічні помилки не знайдено!\nПеревірено {len(all_translated_lines)} перекладених рядків.")
+                    QMessageBox.information(self, "Spellcheck", f"No spelling errors found!\nChecked {len(all_translated_lines)} lines.")
                 return
 
             from dialogs.spellcheck_dialog import SpellcheckDialog

@@ -42,7 +42,7 @@ class StringSettingsHandler(BaseHandler):
         if current_font != new_font:
             self.mw.apply_width_button.setEnabled(True)
         else:
-            # Якщо повернули до того ж значення, що і було, кнопка стає неактивною
+            # If reverted to the same value as before, the button becomes inactive
             current_width: Optional[int] = current_meta.get("width")
             spinbox_width: int = self.mw.width_spinbox.value()
             if (not current_width and spinbox_width == self.mw.line_width_warning_threshold_pixels) or \
@@ -60,17 +60,17 @@ class StringSettingsHandler(BaseHandler):
         new_width: int = value
         
         is_width_changed: bool = False
-        if current_width is None: # Було дефолтне значення
+        if current_width is None: # Was default value
             if new_width != self.mw.line_width_warning_threshold_pixels:
                 is_width_changed = True
-        else: # Було кастомне значення
+        else: # Was custom value
             if new_width != current_width:
                 is_width_changed = True
 
         if is_width_changed:
             self.mw.apply_width_button.setEnabled(True)
         else:
-            # Якщо ширину повернули до початкового стану, перевіряємо стан шрифту
+            # If width reverted to initial state, check font state
             current_font: Optional[str] = current_meta.get("font_file")
             selected_font_data: Any = self.mw.font_combobox.currentData()
             new_font: Optional[str] = selected_font_data if selected_font_data != "default" else None
@@ -84,7 +84,7 @@ class StringSettingsHandler(BaseHandler):
 
         key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         
-        # Застосовуємо шрифт
+        # Apply font
         selected_font_data: Any = self.mw.font_combobox.currentData()
         if key not in self.mw.string_metadata:
             self.mw.string_metadata[key] = {}
@@ -95,7 +95,7 @@ class StringSettingsHandler(BaseHandler):
         else:
             self.mw.string_metadata[key]["font_file"] = selected_font_data
 
-        # Застосовуємо ширину
+        # Apply width
         new_width: int = self.mw.width_spinbox.value()
         if new_width == 0 or new_width == self.mw.line_width_warning_threshold_pixels:
             if "width" in self.mw.string_metadata[key]:
@@ -103,7 +103,7 @@ class StringSettingsHandler(BaseHandler):
         else:
             self.mw.string_metadata[key]["width"] = new_width
             
-        # Очищуємо порожні метадані
+        # Clear empty metadata
         if not self.mw.string_metadata[key]:
             del self.mw.string_metadata[key]
             

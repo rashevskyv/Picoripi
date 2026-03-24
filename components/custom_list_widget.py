@@ -22,7 +22,7 @@ class CustomListWidget(QListWidget):
             "red": QColor(Qt.red),
             "green": QColor(Qt.green),
             "blue": QColor(Qt.blue),
-            # Можна додати більше кольорів тут
+            # More colors can be added here
         }
 
     def _create_color_icon(self, color: QColor, size: int = 12) -> QIcon:
@@ -185,19 +185,9 @@ class CustomListWidget(QListWidget):
                 if valid_indices is not None and string_idx not in valid_indices:
                     continue
 
-                key = (block_idx, string_idx)
-                text = None
+                # Get text using standard priority logic (edits -> saved edits -> original)
+                text, _ = main_window.data_processor.get_current_string_text(block_idx, string_idx)
 
-                # Priority 1: Check in-memory edits
-                if key in edited_data:
-                    text = edited_data[key]
-                # Priority 2: Check saved translation file
-                elif edited_file_data and block_idx < len(edited_file_data):
-                    edited_block = edited_file_data[block_idx]
-                    if isinstance(edited_block, list) and string_idx < len(edited_block):
-                        text = edited_block[string_idx]
-
-                # Collect if we found a translation (don't fall back to original)
                 if text and text.strip():
                     all_translated_lines.append((string_idx, text))
 
@@ -241,9 +231,9 @@ class CustomListWidget(QListWidget):
                 log_debug("CustomListWidget: No lines with misspellings found")
                 from PyQt5.QtWidgets import QMessageBox
                 if len(all_translated_lines) == 0:
-                    QMessageBox.information(self, "Spellcheck", "Немає перекладеного тексту для перевірки.\nСпочатку перекладіть текст у цьому блоці.")
+                    QMessageBox.information(self, "Spellcheck", "No text found to check in this block.")
                 else:
-                    QMessageBox.information(self, "Spellcheck", f"Орфографічні помилки не знайдено!\nПеревірено {len(all_translated_lines)} перекладених рядків.")
+                    QMessageBox.information(self, "Spellcheck", f"No spelling errors found!\nChecked {len(all_translated_lines)} lines.")
                 return
 
             log_debug(f"CustomListWidget: Opening SpellcheckDialog with {len(line_numbers)} lines")

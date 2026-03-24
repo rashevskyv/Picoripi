@@ -12,6 +12,10 @@ class TextHighlightManager:
     def __init__(self, editor):
         self.editor = editor
         
+        # State trackers to prevent infinite recursion
+        self._last_active_line_block = None
+        self._last_linked_cursor_params = None
+        
         self._active_line_selections = [] 
         self._linked_cursor_selections = []
         self._critical_problem_selections = []
@@ -97,25 +101,42 @@ class TextHighlightManager:
 
 
     def updateCurrentLineHighlight(self): 
+        if self.editor.isReadOnly():
+            if getattr(self, '_last_active_line_block', None) is not None:
+                self._last_active_line_block = None
+                self._active_line_selections = []
+                self.applyHighlights()
+            return
+
+        cursor = self.editor.textCursor()
+        current_block_idx = cursor.blockNumber()
+        if getattr(self, '_last_active_line_block', None) == current_block_idx:
+            return
+
+        self._last_active_line_block = current_block_idx
+        
         new_selections = [] 
-        if not self.editor.isReadOnly():
-            selection = QTextEdit.ExtraSelection()
-            selection.format.setBackground(self.editor.current_line_color) 
-            selection.format.setProperty(QTextFormat.FullWidthSelection, True) 
-            selection.cursor = self.editor.textCursor()
-            selection.cursor.clearSelection()
-            new_selections.append(selection)
+        selection = QTextEdit.ExtraSelection()
+        selection.format.setBackground(self.editor.current_line_color) 
+        selection.format.setProperty(QTextFormat.FullWidthSelection, True) 
+        selection.cursor = cursor
+        selection.cursor.clearSelection()
+        new_selections.append(selection)
             
-        if list(self._active_line_selections) != list(new_selections):
-            self._active_line_selections = new_selections
-            self.applyHighlights()
+        self._active_line_selections = new_selections
+        self.applyHighlights()
 
     def clearCurrentLineHighlight(self):
+        self._last_active_line_block = None
         if self._active_line_selections:
              self._active_line_selections = []
              self.applyHighlights()
 
     def setLinkedCursorPosition(self, line_number: int, column_number: int): 
+        if getattr(self, '_last_linked_cursor_params', None) == (line_number, column_number):
+            return
+        self._last_linked_cursor_params = (line_number, column_number)
+
         new_linked_selections = [] 
         doc = self.editor.document()
         if line_number >= 0 and line_number < doc.blockCount():
@@ -143,11 +164,11 @@ class TextHighlightManager:
                 elif actual_column == 0 and line_text_length == 0:
                      pass 
 
-        if list(self._linked_cursor_selections) != list(new_linked_selections):
-            self._linked_cursor_selections = new_linked_selections
-            self.applyHighlights()
+        self._linked_cursor_selections = new_linked_selections
+        self.applyHighlights()
 
     def clearLinkedCursorPosition(self):
+         self._last_linked_cursor_params = None
          if self._linked_cursor_selections:
               self._linked_cursor_selections = []
               self.applyHighlights()
@@ -354,6 +375,8 @@ class TextHighlightManager:
         if needs_update: self.applyHighlights()
         
     def clearAllHighlights(self):
+        self._last_active_line_block = None
+        self._last_linked_cursor_params = None
         self._active_line_selections = [] 
         self._linked_cursor_selections = []
         self._critical_problem_selections = []

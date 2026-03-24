@@ -105,7 +105,7 @@ class TextOperationHandler(BaseHandler):
     def text_edited(self) -> None:
         if self.mw.is_programmatically_changing_text:
             return
-        
+            
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
         
@@ -441,11 +441,11 @@ class TextOperationHandler(BaseHandler):
         if changed:
             visual_text_for_editor = self.mw.current_game_rules.get_text_representation_for_editor(fixed_data)
             
-            # Зберігаємо позицію курсору
+            # Save cursor position
             original_cursor = edited_text_edit.textCursor()
             original_cursor_pos = original_cursor.position()
             
-            # Вставляємо текст, зберігаючи історію undo
+            # Insert text, preserving undo history
             self.mw.is_programmatically_changing_text = True
             cursor = edited_text_edit.textCursor()
             cursor.beginEditBlock()
@@ -453,14 +453,14 @@ class TextOperationHandler(BaseHandler):
             cursor.insertText(visual_text_for_editor)
             cursor.endEditBlock()
             
-            # Відновлюємо позицію курсору
+            # Restore cursor position
             new_doc_len = edited_text_edit.document().characterCount() -1
             final_cursor_pos = min(original_cursor_pos, new_doc_len if new_doc_len >= 0 else 0)
             restored_cursor = edited_text_edit.textCursor()
             restored_cursor.setPosition(final_cursor_pos)
             edited_text_edit.setTextCursor(restored_cursor)
             
-            # Викликаємо text_edited вручну, щоб оновити дані
+            # Call text_edited manually to update data
             self.mw.is_programmatically_changing_text = False
             
             if hasattr(self.mw, 'undo_manager'):
@@ -471,7 +471,7 @@ class TextOperationHandler(BaseHandler):
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("AUTOFIX")
             
-            # Явно оновлюємо інші елементи UI
+            # Explicitly update other UI elements
             self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
             self.mw.ui_updater.update_text_views()
 

@@ -55,7 +55,7 @@ class StringSettingsUpdater(BaseUIUpdater):
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})
 
-        # Оновлення шрифту
+        # Update font
         font_file = string_meta.get("font_file")
         if font_file and font_file != self.mw.default_font_file:
             index = self.mw.font_combobox.findData(font_file)
@@ -69,7 +69,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             self.mw.font_combobox.setCurrentIndex(0)
             self.mw.font_combobox.setStyleSheet("")
 
-        # Оновлення ширини
+        # Update width
         width = string_meta.get("width")
         self.mw.width_spinbox.blockSignals(True)
         if width and width != self.mw.line_width_warning_threshold_pixels:

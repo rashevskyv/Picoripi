@@ -357,8 +357,6 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if hasattr(self, 'lineNumberArea'): 
             if dy: self.lineNumberArea.scroll(0, dy)
             else: self.lineNumberArea.update(0, 0, self.lineNumberArea.width(), self.lineNumberArea.height())
-        if self.isVisible():
-            self.updateLineNumberAreaWidth(0)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

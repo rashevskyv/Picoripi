@@ -18,7 +18,7 @@ class MockContext(MagicMock):
         self.json_path = "orig.json"
         self.edited_json_path = None
         self.unsaved_changes = False
-        self.data = [[]]
+        self.data = [["string_default"]]
         self.block_names = {}
         self.edited_data = {}
         self.edited_file_data = []
@@ -44,18 +44,13 @@ class MockContext(MagicMock):
 class TestAppActionHandler(unittest.TestCase):
     def setUp(self):
         self.ctx = MockContext()
-        # We need to mock MainWindow for BaseHandler init if it's still used there, 
-        # but our goal was to use ctx.
-        self.mw = MagicMock() 
+        # Use ctx as the main_window (where test data is stored via data_store=self)
         self.handler = AppActionHandler(
-            self.mw, 
+            self.ctx,
             self.ctx.data_processor, 
             self.ctx.ui_updater, 
             self.ctx.current_game_rules
         )
-        self.handler.ctx = self.ctx
-        self.handler.ui_updater = self.ctx.ui_updater
-        self.handler.data_processor = self.ctx.data_processor
 
     @patch('handlers.app_action_handler.load_json_file')
     @patch('handlers.app_action_handler.QFileDialog.getOpenFileName')
@@ -68,7 +63,7 @@ class TestAppActionHandler(unittest.TestCase):
         self.handler.open_file_dialog_action()
         
         mock_get_open.assert_called_once()
-        self.assertEqual(self.ctx.data_store.json_path, "test.json")
+        self.assertEqual(self.handler.mw.json_path, "test.json")
 
     @patch('handlers.app_action_handler.QFileDialog.getSaveFileName')
     @patch('handlers.app_action_handler.QMessageBox.information')
@@ -79,29 +74,39 @@ class TestAppActionHandler(unittest.TestCase):
         self.handler.save_as_dialog_action()
         
         mock_get_save.assert_called_once()
-        self.assertEqual(self.ctx.data_store.edited_json_path, "new_save.json")
+        self.assertEqual(self.handler.mw.data_store.edited_json_path, "new_save.json")
         self.handler.save_data_action.assert_called_once()
 
-    @patch('handlers.app_action_handler.QMessageBox')
     @patch('handlers.app_action_handler.QProgressDialog')
-    @patch('handlers.app_action_handler.calculate_string_width', return_value=10)
-    @patch('handlers.app_action_handler.remove_all_tags', side_effect=lambda x: x)
-    def test_calculate_widths_progress(self, mock_remove, mock_calc, mock_progress, mock_qmsgbox):
-        mock_warning = mock_qmsgbox.warning
-        mock_info = mock_qmsgbox.information
-        self.ctx.data_store.data = [[ "line1", "line2" ]]
+    @patch('handlers.app_action_handler.WidthCalculationWorker')
+    def test_calculate_widths_progress(self, mock_worker_cls, mock_progress):
+        # Data stored on ctx (ctx IS self.handler.mw)
+        self.ctx.data_store.data = [["line1", "line2"]]
         self.ctx.data_store.block_names = {"0": "TestBlock"}
+        self.ctx.font_map = {"a": {"width": 5}}
+        self.ctx.string_metadata = {}
+        self.ctx.line_width_warning_threshold_pixels = 200
+        self.ctx.game_dialog_max_width_pixels = 240
+        self.ctx.helper = MagicMock()
+        self.ctx.helper.get_font_map_for_string.return_value = {"a": {"width": 5}}
         self.ctx.current_game_rules.get_problem_definitions.return_value = {}
         
         # Mock progress dialog instance
         mock_pd_inst = mock_progress.return_value
         mock_pd_inst.wasCanceled.return_value = False
+        mock_pd_inst.exec_.return_value = None  # Don't block
+
+        # Mock worker: don't actually run the thread
+        mock_worker_inst = mock_worker_cls.return_value
+        mock_worker_inst.isRunning.return_value = False
         
         self.handler.calculate_widths_for_block_action(0)
         
+        # Verify progress dialog was created
         mock_progress.assert_called_once()
-        # update_progress_value is not used in modern version, it's progress.setValue
-        self.assertGreaterEqual(mock_pd_inst.setValue.call_count, 2)
+        # Verify worker was created and started
+        mock_worker_cls.assert_called_once()
+        mock_worker_inst.start.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
