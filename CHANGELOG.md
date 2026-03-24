@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.48] - 2026-03-24
+
+### ⚡ Improved
+- **High-Performance Spellchecker**: Eliminated severe UI lag during text entry. The spellchecker now uses a synchronous, cache-backed `lookup` for immediate feedback while offloading expensive suggestion generation to a non-blocking background `QThread`.
+- **Eliminated Redundant Rehighlighting**: Removed document-wide `rehighlight()` calls from the real-time UI update cycle. The syntax highlighter now relies on Qt's native incremental block updates, drastically reducing CPU load during typing.
+- **Optimized Background Prefetching**: Disabled automatic background prefetching for the entire document, which was previously causing GIL (Global Interpreter Lock) congestion and UI stuttering. Suggestions are now fetched on-demand for the active word.
+- **Non-Blocking Context Menus**: The editor context menu now displays a "Loading suggestions..." state while the background worker processes the request, ensuring the UI remains responsive.
+
+### 🐛 Fixed
+- **GIL Congestion**: Fixed a performance regression introduced in `v0.2.23` where high-frequency background `suggest` calls were blocking the main UI thread's event loop.
+- **Syntax Highlighter Stability**: Resolved an `AttributeError` in the highlighter by correctly mapping removed prefetch methods to the new asynchronous worker architecture.
+
 ## [0.2.47] - 2026-03-24
 
 ### 🐛 Fixed

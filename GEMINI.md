@@ -5,7 +5,7 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 ## Project Overview
 
-The "Picoripi" (v0.2.48-dev) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.2.48) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -18,7 +18,7 @@ The application is designed to be highly versatile, with features tailored to ha
 - **Glossary System**: Full CRUD glossary management with intelligent, high-performance highlighting of glossary terms using the **Aho-Corasick** algorithm. Supports Slavic-friendly morphological matching, **multiple translation variations** (semicolon-separated), multi-line Bridge Highlighting, AI-powered term filling, batch occurrence updates, and interactive tooltips.
 - **Specialized UI Components**: Custom widgets like `LineNumberedTextEdit` that calculates pixel-perfect character widths using game-specific font maps, provides line numbers, shows visual warnings (colored markers) for text exceeding display limits, and provides contextual tooltips for glossary and issues.
 - **Tag Management**: Recognizes and provides syntax highlighting for special in-game control codes (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
-- **Integrated Spellchecker**: Uses `spylls` (Hunspell implementation) for spellchecking with **persistent disk-based caching** for optimized performance. Supports custom dictionaries, built-in dictionary manager for language downloads, and integration with the glossary to avoid false positives on game-specific terms.
+- **Integrated Spellchecker**: Uses `spylls` (Hunspell implementation) for spellchecking with an **asynchronous background worker** for non-blocking suggestions and **persistent disk-based caching** for optimized performance. Supports custom dictionaries and glossary integration.
 - **Analysis & Safety**: Built-in Analysis Tool for visualizing text sizes and problem counts with **multi-font support** and **instant font switching** using a stacked-view architecture. Features background processing via `WidthCalculationWorker` to prevent UI freezes. Project-wide Issue Scan for width violations and tag errors. Text Autofix engine for automatic correction of common problems.
 - **Comprehensive Undo/Redo**: Multi-level undo system (`UndoManager`) that covers text edits, folder structure changes, block reverts, paste operations, and navigation history.
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.

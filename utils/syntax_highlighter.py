@@ -681,7 +681,6 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 words = self._extract_words_from_text(text)
                 for start, end, word in words:
                     if spellchecker_manager.is_misspelled(word):
-                        spellchecker_manager.enqueue_word(word)
                         word_length = end - start
                         existing_format = self.format(start)
                         existing_format.setFontUnderline(True)

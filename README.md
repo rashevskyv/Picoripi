@@ -1,4 +1,4 @@
-# Picoripi v0.2.46
+# Picoripi v0.2.48
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
@@ -46,9 +46,10 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 
 ### Integrated Spellchecker
 - Built-in Hunspell spellchecking via the `spylls` library.
-- **High-Performance Caching**: Uses both in-memory and **persistent disk-based caching** (`spell_cache.json`) to skip redundant checks for known words, ensuring smooth UI performance even with large dictionaries.
-- **Global Background Prefetching**: Dictionaries and suggestions are loaded entirely in the background, ensuring instant context menu suggestions without UI freezes.
-- Underlines errors and provides quick replacement suggestions from the context menu.
+- **High-Performance Architecture**: Uses a synchronous, cache-backed `lookup` for immediate feedback during typing, combined with a **background QThread worker** for non-blocking suggestion generation.
+- **Efficient Caching**: Implements both in-memory and **persistent disk-based caching** (`spell_cache.json`) to skip redundant checks, ensuring smooth UI performance even with 10k+ word dictionaries.
+- **Optimized Resource Usage**: Automatically disables heavy background prefetching during active typing to prevent GIL congestion, keeping the editor perfectly responsive.
+- Underlines errors and provides quick replacement suggestions from the context menu with a "Loading..." state for background lookups.
 - Built-in dictionary manager: download required languages directly from the app.
 - Add game-specific slang to personal or project-level custom dictionaries.
 

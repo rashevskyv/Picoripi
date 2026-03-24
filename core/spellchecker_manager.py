@@ -375,10 +375,16 @@ class SpellcheckerManager:
         if lower_word in self._spell_cache:
             return self._spell_cache[lower_word]
 
-        # NON-BLOCKING: If word is unknown, assume correct for UI speed,
-        # but enqueue it into the background worker for real check.
-        self.enqueue_word(lower_word)
-        return False
+        # Use synchronous lookup for immediate results in highlighter.
+        # This was fast enough in v0.2.17 and avoids complex async UI updates.
+        try:
+            is_correct = self.hunspell.lookup(cleaned_word)
+            is_misspelled = not is_correct
+            self._spell_cache[lower_word] = is_misspelled
+            return is_misspelled
+        except Exception as e:
+            log_debug(f"Spellchecker: lookup error for '{cleaned_word}': {e}")
+            return False
 
     def get_suggestions(self, word: str) -> List[str]:
         if not self.enabled or not self.hunspell:
@@ -389,6 +395,8 @@ class SpellcheckerManager:
         if cleaned_word in self._suggestions_cache:
             return self._suggestions_cache[cleaned_word]
 
-        # If it's not in cache, request it asynchronously and return empty
+        # If it's not in cache, request it asynchronously.
+        # This will populate the cache eventually for the context menu.
+        # We don't block here.
         self.enqueue_word(cleaned_word)
         return []

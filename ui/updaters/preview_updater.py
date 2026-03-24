@@ -371,11 +371,8 @@ class PreviewUpdater(BaseUIUpdater):
              self._apply_highlights_to_editor(self.mw.edited_text_edit, self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
              self._apply_highlights_to_editor(self.mw.original_text_edit, self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
 
-             # Reapply syntax highlighting if applicable
-             if hasattr(self.mw.original_text_edit, 'highlighter') and self.mw.original_text_edit.highlighter:
-                  self.mw.original_text_edit.highlighter.rehighlight()
-             if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
-                  self.mw.edited_text_edit.highlighter.rehighlight()
+             # Reapply syntax highlighting if applicable (Removed manual rehighlight calls as they are redundant and slow)
+             pass
 
              # Apply font based on exact logic
              if self.mw.current_game_rules:
