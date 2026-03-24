@@ -179,9 +179,13 @@ def test_SpellcheckerManager_is_misspelled(mock_mw):
     # Test custom word
     assert sm.is_misspelled("CustomWord") is False 
     
-    # Test hunspell lookup (mocked to false -> so misspelled is True)
+    # Test hunspell lookup (it's async now, so it returns False and enqueues)
+    assert sm.is_misspelled("WrongWord") is False
+    assert "wrongword" in getattr(sm, 'worker', MagicMock())._queue or "wrongword" in sm.worker._queue
+    
+    # Simulate worker finishing
+    sm._spell_cache["wrongword"] = True
     assert sm.is_misspelled("WrongWord") is True
-    sm.hunspell.lookup.assert_called_with("WrongWord")
     
     # Disabled check
     sm.enabled = False
@@ -195,9 +199,14 @@ def test_SpellcheckerManager_get_suggestions(mock_mw):
     # Returns an iterator/generator in real life, so mock a list
     sm.hunspell.suggest.return_value = ["test1", "test2"]
     
+    # It's async now, so it enqueues and returns empty
     suggestions = sm.get_suggestions("'hello·") # strip dots and quotes
-    assert suggestions == ["test1", "test2"]
-    sm.hunspell.suggest.assert_called_with("hello")
+    assert suggestions == []
+    assert "hello" in sm.worker._queue
+    
+    # Simulate cache
+    sm._suggestions_cache["hello"] = ["test1", "test2"]
+    assert sm.get_suggestions("hello") == ["test1", "test2"]
 
 @patch('core.spellchecker_manager.Dictionary.from_files')
 def test_SpellcheckerManager_caching(mock_from_files, mock_mw):
@@ -208,29 +217,31 @@ def test_SpellcheckerManager_caching(mock_from_files, mock_mw):
     sm.enabled = True
     sm.hunspell.lookup.return_value = True
     
-    # 1. Normal lookup - should call hunspell
+    # 1. Normal lookup - should place in queue, return False
     assert sm.is_misspelled("Apple") is False
-    assert sm.hunspell.lookup.call_count == 1
+    assert "apple" in sm.worker._queue
     
-    # 2. Second lookup - should use cache (call_count stays 1)
+    # Simulate worker processing
+    sm._spell_cache["apple"] = False
+    
+    # 2. Second lookup - should return from cache
     assert sm.is_misspelled("Apple") is False
-    assert sm.hunspell.lookup.call_count == 1
     
     # 3. Case sensitivity in cache
     assert sm.is_misspelled("apple") is False
-    assert sm.hunspell.lookup.call_count == 1 
     
-    # 4. Custom word - should NOT call hunspell after being added
+    # 4. Custom word - should NOT enqueue
+    sm.worker._queue.clear()
     sm.custom_words.add("banana")
     assert sm.is_misspelled("Banana") is False
-    assert sm.hunspell.lookup.call_count == 1
+    assert "banana" not in sm.worker._queue
     
     # 5. Reset cache on reinit
     sm._initialize_spellchecker()
-    # Now sm.hunspell is a NEW MagicMock because side_effect created a new one
-    sm.hunspell.lookup.return_value = True
+    sm.worker._queue.clear()
+    sm.worker._queue_set.clear()
     assert sm.is_misspelled("Apple") is False
-    assert sm.hunspell.lookup.call_count == 1 # New mock, first call
+    assert "apple" in sm.worker._queue
 
 
 

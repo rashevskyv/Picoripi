@@ -1,19 +1,56 @@
-# --- START OF FILE core/undo_manager.py ---
 import time
+import zlib
+import pickle
 from dataclasses import dataclass
 from typing import List, Optional, Any
 from utils.logging_utils import log_debug
 
-@dataclass
+def _compress_any(data: Any) -> Any:
+    """Compress data if it's large (strings or dicts)."""
+    if data is None: return None
+    if isinstance(data, str):
+        if len(data) < 500: return data
+        return zlib.compress(data.encode('utf-8'))
+    # For snapshots (dicts)
+    packed = pickle.dumps(data)
+    if len(packed) < 500: return data
+    return zlib.compress(packed)
+
+def _decompress_any(data: Any, is_snapshot: bool = False) -> Any:
+    """Decompress data back to its original form."""
+    if data is None: return None
+    if not isinstance(data, bytes): return data
+    decompressed = zlib.decompress(data)
+    if is_snapshot:
+        return pickle.loads(decompressed)
+    return decompressed.decode('utf-8')
+
 class UndoAction:
-    action_type: str # 'TEXT_EDIT', 'PASTE', 'AUTOFIX', 'TRANSLATE', 'REVERT'
-    block_idx: int
-    string_idx: int
-    old_text: str
-    new_text: str
-    timestamp: float
-    cursor_pos: Optional[int] = None
-    metadata: Optional[dict] = None
+    def __init__(self, action_type: str, block_idx: int, string_idx: int, old_text: str, new_text: str, timestamp: float, cursor_pos: Optional[int] = None, metadata: Optional[dict] = None):
+        self.action_type = action_type
+        self.block_idx = block_idx
+        self.string_idx = string_idx
+        self._old_data = _compress_any(old_text)
+        self._new_data = _compress_any(new_text)
+        self.timestamp = timestamp
+        self.cursor_pos = cursor_pos
+        self.metadata = metadata
+
+    @property
+    def old_text(self) -> str:
+        return _decompress_any(self._old_data)
+    
+    @old_text.setter
+    def old_text(self, value: str):
+        self._old_data = _compress_any(value)
+    
+    @property
+    def new_text(self) -> str:
+        return _decompress_any(self._new_data)
+
+    @new_text.setter
+    def new_text(self, value: str):
+        self._new_data = _compress_any(value)
 
 @dataclass
 class GroupAction:
@@ -21,14 +58,21 @@ class GroupAction:
     action_type: str
     timestamp: float
 
-@dataclass
 class StructuralAction:
-    """Snapshot-based undo for block structure operations (rename, move, folder ops)."""
-    action_type: str  # 'RENAME_BLOCK', 'RENAME_FOLDER', 'MOVE_BLOCK', 'ADD_FOLDER', 'DELETE_FOLDER', 'DRAG_DROP'
-    before_snapshot: dict
-    after_snapshot: dict
-    label: str
-    timestamp: float
+    def __init__(self, action_type: str, before_snapshot: dict, after_snapshot: dict, label: str, timestamp: float):
+        self.action_type = action_type
+        self._before_data = _compress_any(before_snapshot)
+        self._after_data = _compress_any(after_snapshot)
+        self.label = label
+        self.timestamp = timestamp
+
+    @property
+    def before_snapshot(self) -> dict:
+        return _decompress_any(self._before_data, is_snapshot=True)
+    
+    @property
+    def after_snapshot(self) -> dict:
+        return _decompress_any(self._after_data, is_snapshot=True)
 
 class UndoManager:
     def __init__(self, main_window):

@@ -14,52 +14,76 @@ MIN_WORD_LENGTH = 3
 WORD_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
 SUGGESTION_LIMIT = 7
 
-class SpellSuggestionWorker(QObject):
+class SpellcheckWorker(QObject):
     finished = pyqtSignal()
-    suggestion_ready = pyqtSignal(str, list)
+    spellcheck_results_ready = pyqtSignal(dict, dict) # word -> is_misspelled, word -> suggestions
 
     def __init__(self, spellchecker_manager):
         super().__init__()
         self.sm = spellchecker_manager
         self._queue = []
+        self._queue_set = set() # For O(1) checks
         self._is_running = True
-        self._processing = False
 
     @pyqtSlot()
     def process_queue(self):
         while self._is_running:
             if self._queue:
-                word = self._queue.pop(0)
-                if word not in self.sm._suggestions_cache:
-                    try:
-                        # Use the same iterative approach to avoid blocking too long
-                        suggestions = []
-                        res = self.sm.hunspell.suggest(word)
-                        if hasattr(res, '__next__') or hasattr(res, '__iter__') and not isinstance(res, list):
-                            gen = iter(res)
-                            for _ in range(SUGGESTION_LIMIT):
-                                try:
-                                    suggestions.append(next(gen))
-                                except StopIteration:
-                                    break
-                        else:
-                            # It's already a list or other sequence
-                            suggestions = list(res)[:SUGGESTION_LIMIT]
+                batch_size = min(len(self._queue), 20)
+                results_spell = {}
+                results_sugg = {}
+                
+                for _ in range(batch_size):
+                    word = self._queue.pop(0)
+                    self._queue_set.discard(word)
+                    
+                    if not self.sm.hunspell:
+                        continue
                         
-                        if suggestions:
-                            self.suggestion_ready.emit(word, suggestions)
-                    except Exception as e:
-                        log_debug(f"SpellSuggestionWorker: Error suggesting for '{word}': {e}")
+                    # 1. Check spelling
+                    is_misspelled = False
+                    if word not in self.sm._spell_cache:
+                        try:
+                            is_correct = self.sm.hunspell.lookup(word)
+                            is_misspelled = not is_correct
+                            results_spell[word] = is_misspelled
+                        except Exception as e:
+                            log_debug(f"SpellcheckWorker: Error checking '{word}': {e}")
+                            continue
+                    else:
+                        is_misspelled = self.sm._spell_cache.get(word, False)
+                    
+                    # 2. Fetch suggestions if misspelled
+                    if is_misspelled and word not in self.sm._suggestions_cache:
+                        try:
+                            suggestions = []
+                            res = self.sm.hunspell.suggest(word)
+                            if hasattr(res, '__next__') or (hasattr(res, '__iter__') and not isinstance(res, list)):
+                                gen = iter(res)
+                                for _ in range(SUGGESTION_LIMIT):
+                                    try:
+                                        suggestions.append(next(gen))
+                                    except StopIteration:
+                                        break
+                            else:
+                                suggestions = list(res)[:SUGGESTION_LIMIT]
+                            results_sugg[word] = suggestions
+                        except Exception as e:
+                            log_debug(f"SpellcheckWorker: Error suggesting for '{word}': {e}")
+                            
+                if results_spell or results_sugg:
+                    self.spellcheck_results_ready.emit(results_spell, results_sugg)
             else:
-                time.sleep(0.1)
+                time.sleep(0.05)
         self.finished.emit()
 
     def stop(self):
         self._is_running = False
 
     def enqueue(self, word):
-        if word not in self._queue and word not in self.sm._suggestions_cache:
+        if word not in self._queue_set:
             self._queue.append(word)
+            self._queue_set.add(word)
 
 class SpellcheckerManager:
     def __init__(self, main_window, language='uk', custom_dict_path=None):
@@ -83,27 +107,45 @@ class SpellcheckerManager:
         except:
             pass
             
-        if hasattr(self, 'thread') and self.thread.isRunning():
-            if hasattr(self, 'worker'):
-                self.worker.stop()
-            self.thread.quit()
-            self.thread.wait()
+        try:
+            if hasattr(self, 'thread') and self.thread.isRunning():
+                if hasattr(self, 'worker'):
+                    self.worker.stop()
+                self.thread.quit()
+                self.thread.wait()
+        except Exception:
+            pass
 
     def _setup_prefetch_worker(self):
         if not self.hunspell:
             return
         self.thread = QThread()
-        self.worker = SpellSuggestionWorker(self)
+        self.worker = SpellcheckWorker(self)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.process_queue)
-        self.worker.suggestion_ready.connect(self._on_suggestion_ready)
+        self.worker.spellcheck_results_ready.connect(self._on_spellcheck_results_ready)
         self.thread.start()
 
-    def _on_suggestion_ready(self, word, suggestions):
-        if word not in self._suggestions_cache:
-            self._suggestions_cache[word] = suggestions
+    def _on_spellcheck_results_ready(self, spell_results: dict, sugg_results: dict):
+        cache_updated = False
+        for word, is_misspelled in spell_results.items():
+            if word not in self._spell_cache:
+                self._spell_cache[word] = is_misspelled
+                if is_misspelled:
+                    cache_updated = True
+                
+        for word, suggestions in sugg_results.items():
+            if word not in self._suggestions_cache:
+                self._suggestions_cache[word] = suggestions
+                
+        if cache_updated:
+            # Do NOT call rehighlight() here. It processes every block in the
+            # document and freezes the UI for large files. Instead, misspelled
+            # words will be underlined naturally on the next highlightBlock pass
+            # (next keystroke, scroll, or focus change).
+            pass
 
-    def enqueue_suggestion_prefetch(self, word):
+    def enqueue_word(self, word):
         if not self.enabled or not self.hunspell:
             return
         
@@ -111,9 +153,8 @@ class SpellcheckerManager:
         if len(cleaned_word) < MIN_WORD_LENGTH:
             return
             
-        if cleaned_word not in self._suggestions_cache:
-            if hasattr(self, 'worker'):
-                self.worker.enqueue(cleaned_word)
+        if hasattr(self, 'worker'):
+            self.worker.enqueue(cleaned_word)
 
     def _initialize_spellchecker(self):
         log_debug("Attempting to initialize spellchecker...")
@@ -325,47 +366,29 @@ class SpellcheckerManager:
 
         # Check memory cache first
         lower_word = cleaned_word.lower()
-        if lower_word in self._spell_cache:
-            return self._spell_cache[lower_word]
 
         # Check if word is in custom dictionary (includes glossary words)
         if lower_word in self.custom_words:
             self._spell_cache[lower_word] = False
             return False
 
-        is_correct = self.hunspell.lookup(cleaned_word)
-        is_misspelled = not is_correct
-        self._spell_cache[lower_word] = is_misspelled
-        return is_misspelled
+        if lower_word in self._spell_cache:
+            return self._spell_cache[lower_word]
+
+        # NON-BLOCKING: If word is unknown, assume correct for UI speed,
+        # but enqueue it into the background worker for real check.
+        self.enqueue_word(lower_word)
+        return False
 
     def get_suggestions(self, word: str) -> List[str]:
         if not self.enabled or not self.hunspell:
             return []
 
-        # Strip apostrophes and middle dot (·) before getting suggestions
-        cleaned_word = word.strip("'·")
+        cleaned_word = word.strip("'·").lower()
+        
+        if cleaned_word in self._suggestions_cache:
+            return self._suggestions_cache[cleaned_word]
 
-        # Convert generator to list
-        if cleaned_word.lower() in self._suggestions_cache:
-            return self._suggestions_cache[cleaned_word.lower()]
-
-        # Iterative approach: take only first SUGGESTION_LIMIT to avoid long freezes
-        suggestions = []
-        try:
-            res = self.hunspell.suggest(cleaned_word.lower())
-            if hasattr(res, '__next__') or hasattr(res, '__iter__') and not isinstance(res, list):
-                gen = iter(res)
-                for _ in range(SUGGESTION_LIMIT):
-                    try:
-                        suggestions.append(next(gen))
-                    except StopIteration:
-                        break
-            else:
-                # It's already a list or other sequence (e.g. in tests)
-                suggestions = list(res)[:SUGGESTION_LIMIT]
-        except Exception as e:
-            log_error(f"Spellchecker error during suggest for '{cleaned_word}': {e}")
-
-        self._suggestions_cache[cleaned_word.lower()] = suggestions
-        log_debug(f"Spellchecker: Got {len(suggestions)} (limited) suggestions for '{word}' (cleaned: '{cleaned_word}'): {suggestions[:5]}")
-        return suggestions
+        # If it's not in cache, request it asynchronously and return empty
+        self.enqueue_word(cleaned_word)
+        return []

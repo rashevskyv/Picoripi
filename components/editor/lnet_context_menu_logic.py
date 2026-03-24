@@ -121,7 +121,7 @@ class LNETContextMenuLogic:
                             )
                         menu.addSeparator()
                     else:
-                        no_suggestions_action = menu.addAction("(No suggestions)")
+                        no_suggestions_action = menu.addAction("(Loading suggestions...)")
                         no_suggestions_action.setEnabled(False)
                         menu.addSeparator()
 
