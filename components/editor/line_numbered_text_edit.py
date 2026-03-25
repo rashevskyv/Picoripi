@@ -126,6 +126,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.hi_wrappers = LNETHighlightWrappers(self)
         self.keyboard_handler = LNETKeyboardHandler(self)
 
+        self.custom_line_numbers = None
+        self.custom_subline_numbers = None
+
         lnet_editor_setup.update_auxiliary_widths(self)
         self.highlightManager.update_zebra_stripes()
 
@@ -315,6 +318,12 @@ class LineNumberedTextEdit(QPlainTextEdit):
                 main_window.handle_zoom(event.angleDelta().y(), target=target)
                 event.accept()
                 return
+            else:
+                # Default zoom for non-main windows (e.g. Review Dialog)
+                super().wheelEvent(event)
+                self.updateLineNumberAreaWidth(0)
+                return
+
         super().wheelEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent):
@@ -329,15 +338,22 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if not ro:
              self.highlightManager.updateCurrentLineHighlight()
              self.setUndoRedoEnabled(False)
-        self.viewport().update()
-
     def lineNumberAreaWidth(self):
         digits = 1; max_val = max(1, self.blockCount())
         while max_val >= 10: max_val //= 10; digits += 1
+        
+        # In review dialog, we have dual columns
+        is_dual = hasattr(self, 'custom_subline_numbers') and self.custom_subline_numbers is not None
+        if is_dual:
+            # Add room for second column + separator
+            digits += 4
+
         current_font_metrics = self.fontMetrics()
         # Account for potential "* " prefix for unsaved changes
         asterisk_width = current_font_metrics.horizontalAdvance('* ')
-        base_width = asterisk_width + current_font_metrics.horizontalAdvance('9') * (digits) + 15
+        # Add extra padding for dual column
+        padding = 15 if not is_dual else 25
+        base_width = asterisk_width + current_font_metrics.horizontalAdvance('9') * (digits) + padding
         additional_width = 0
         if self.objectName() in ["original_text_edit", "edited_text_edit"] and hasattr(self.window(), 'font_map') and self.window().font_map:
             additional_width = self.pixel_width_display_area_width

@@ -64,10 +64,24 @@ class LNETPaintEventLogic:
                         continue
 
                     # Check if we should draw separator line
-                    # Don't draw lines if custom line numbers are set (e.g., spellcheck dialog)
-                    if not is_preview and not (hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers):
-                        # Default behavior: draw line every page_size lines
-                        if (doc_visual_line_index + 1) % page_size == 0:
+                    draw_separator = False
+                    if not is_preview:
+                        if hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers:
+                            # In Review Dialog: Draw separator AFTER a block that has a custom number, 
+                            # ONLY if the next block is a spacer (None)
+                            if doc_visual_line_index < len(self.editor.custom_line_numbers):
+                                current_custom_num = self.editor.custom_line_numbers[doc_visual_line_index]
+                                if current_custom_num is not None:
+                                    next_idx = doc_visual_line_index + 1
+                                    if next_idx < len(self.editor.custom_line_numbers):
+                                        if self.editor.custom_line_numbers[next_idx] is None:
+                                            draw_separator = True
+                        else:
+                            # Default behavior: draw line every page_size lines
+                            if (doc_visual_line_index + 1) % page_size == 0:
+                                draw_separator = True
+
+                    if draw_separator:
                          line_bottom_y_in_viewport = block_rect.top() + line.rect().bottom()
 
                          has_next_line_in_block = (i < layout.lineCount() - 1)

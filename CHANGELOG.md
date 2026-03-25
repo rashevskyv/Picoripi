@@ -1,5 +1,19 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.49] - 2026-03-25
+
+### Added
+- Unified Review Dialog Architecture: Created `BaseTextReviewDialog` to consolidate shared UI logic (layout, navigation, zebra striping).
+- Dual-column line numbering in Review Dialogs (Global String Index + Relative Subline Index).
+- Independent zebra striping for dual columns in the line number area.
+- Font-aware dynamic column splitting in the line number area to prevent overlaps during zoom.
+- Restored visual string separators (horizontal lines) in the unified review window.
+
+### Fixed
+- Visual regressions in the spellcheck dialog following the refactoring.
+- Line number area margin issues and overlapping elements during font scaling/zoom.
+- Corrected NameError and indentation issues in the shared editor paint logic.
+
 ## [0.2.48] - 2026-03-24
 
 ### ⚡ Improved
