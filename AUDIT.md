@@ -1,7 +1,7 @@
-# Аудит кодової бази — Picoripi v0.2.50-dev
+# Аудит кодової бази — Picoripi
 
-> Дата: 2026-03-26
-> Проведено: повний незалежний аналіз архітектури, якості коду, дублювань, зв'язності та можливостей оптимізації.
+> **Первинний аудит:** 2026-03-26
+> **Повторний аудит:** 2026-04-01 — проведено з урахуванням паттернів аналізу Claude Code (god-objects, defensive access, dead comments, leaked TODO, import всередині методів).
 
 ---
 
@@ -15,7 +15,8 @@
 6. [Порушення поділу відповідальності (SRP)](#6-порушення-поділу-відповідальності-srp)
 7. [Типізація та безпека типів](#7-типізація-та-безпека-типів)
 8. [Тестування та покриття](#8-тестування-та-покриття)
-9. [Зведена таблиця рекомендацій](#9-зведена-таблиця-рекомендацій)
+9. [Нові знахідки (2026-04-01)](#9-нові-знахідки-2026-04-01)
+10. [Зведена таблиця рекомендацій](#10-зведена-таблиця-рекомендацій)
 
 ---
 
@@ -457,30 +458,159 @@ class BaseHandler:
 
 ---
 
-## 9. Зведена таблиця рекомендацій
+## 9. Нові знахідки (2026-04-01)
 
-| # | Пріоритет | Проблема | Тип | Складність | Вплив |
-|---|---|---|---|---|---|
-| 1 | 🔴 | `custom_tree_widget.py` — 1246 рядків God-object | Архітектура | Висока | Підтримка |
-| 2 | 🔴 | Незавершений `self.mw` → `self.ctx` рефакторинг | Техн. борг | Середня | Чистота |
-| 3 | 🔴 | `ProjectContext` повністю на `Any` | Типізація | Низька | Безпека |
-| 4 | 🔴 | `QMessageBox` у `core/` модулях | SRP | Середня | Тестованість |
-| 5 | 🟡 | `translation_handler.py` — 836 рядків | Архітектура | Висока | Підтримка |
-| 6 | 🟡 | `project_action_handler.py` — 899 рядків | Архітектура | Висока | Підтримка |
-| 7 | 🟡 | `UIUpdater` — порожній проксі з `_private` делегуванням | Архітектура | Середня | Чистота |
-| 8 | 🟡 | `main_window_helper.py` — catch-all helper | Архітектура | Середня | Чистота |
-| 9 | 🟡 | `editor/` — 19 файлів, надмірна фрагментація | Архітектура | Середня | Навігація |
-| 10 | 🟡 | Дублювання find_next/find_previous | Дублювання | Низька | Чистота |
-| 11 | 🟡 | Дублювання move_up/move_down | Дублювання | Низька | Чистота |
-| 12 | 🟡 | 22 property-проксі у main.py (93 рядки) | Boilerplate | Низька | Чистота |
-| 13 | 🟡 | Подвійне створення `HotkeyManager` | Баг | Мінімальна | Коректність |
-| 14 | 🟡 | `DataStateProcessor` / `UndoManager` → UI coupling | SRP | Висока | Тестованість |
-| 15 | 🟡 | `BaseHandler` — `Any` типи | Типізація | Низька | Безпека |
-| 16 | 🟡 | Dialog state persistence дублювання | Дублювання | Низька | Чистота |
-| 17 | 🟡 | Тести для translation subsystem | Тестування | Висока | Надійність |
-| 18 | 🟢 | `handle_zoom` — дублювання гілок | Дублювання | Мінімальна | Чистота |
-| 19 | 🟢 | Інтеграційні тести | Тестування | Висока | Надійність |
+> Повторний аудит з фокусом на паттернах, що описані в аналізі Claude Code: defensive access, dead comments, import-всередині-методів, дублювання заголовків, залишки TODO.
 
 ---
 
-> **Висновок v0.2.50-dev:** Продуктивність проєкту оптимізована добре (всі hot-path закриті). Основні проблеми зосереджені на **архітектурній чистоті**: God-objects (`custom_tree_widget`, `project_action_handler`), незавершений рефакторинг (`self.mw`, `ProjectContext` типи), порушення SRP (`QMessageBox` у core, UI coupling в `UndoManager`), та надмірність (`UIUpdater` проксі, property boilerplate). Жодна з цих проблем не є блокуючою функціонально, але їх усунення значно покращить підтримуваність, тестованість та безпечність рефакторингу кодової бази.
+### 9.1. 🔴 Defensive Access — `hasattr`/`getattr(self.mw)` замість Protocol
+
+**Файли:** `translation_handler.py`, `text_operation_handler.py`, `glossary_handler.py`, `glossary_builder_handler.py`, `translation_ui_handler.py`, `ai_lifecycle_manager.py` та інші
+
+**Проблема:** Знайдено **142+ виклики** `hasattr(self.mw, ...)` і `getattr(self.mw, ..., None)` у хендлерах:
+
+```python
+# translation_handler.py
+if hasattr(self.mw, 'undo_manager'):
+    self.mw.undo_manager.begin_group()
+
+# glossary_builder_handler.py
+translation_handler = getattr(self.mw, 'translation_handler', None)
+self._glossary_manager = getattr(self.mw, 'glossary_manager', None)
+
+# text_operation_handler.py
+if not hasattr(self.mw, 'edited_sublines'):
+    return
+```
+
+Це **defensive access pattern** — код захищається від можливого відсутності атрибутів на `MainWindow`. Але якщо `Protocol ProjectContext` описує контракт, ці атрибути або є завжди, або їх немає і код не повинен мовчки ігнорувати це.
+
+**Чому це проблема:**
+- `getattr(self.mw, 'undo_manager', None)` приховує справжню помилку: або атрибут завжди є (тоді захищатися не треба), або він не завжди є (тоді Protocol неповний).
+- `hasattr` перевірки роблять код **функціонально схожим** на той, що в аналізі Claude Code критикують: умовна логіка замість контракту.
+- 142 виклики — ознака того, що `ProjectContext` Protocol фактично не використовується як гарантія.
+
+**Рекомендація:** Розділити на два кроки:
+1. Зафіксувати стан: які атрибути `MainWindow` гарантовано присутні після ініціалізації → внести до `ProjectContext` Protocol.
+2. Усунути `hasattr`/`getattr` перевірки там, де атрибути гарантовані. Залишити тільки там, де атрибут опціональний за природою (і задокументувати це).
+
+---
+
+### 9.2. 🟡 Дублювання заголовків `# --- START OF FILE` у `components/editor/`
+
+**Директорія:** `components/editor/`
+
+**Проблема:** Кілька файлів у `editor/` мають **3 заголовки-дублікати** з різними (старими) шляхами рефакторингу:
+
+```python
+# line_numbered_text_edit.py
+# --- START OF FILE components/editor/line_numbered_text_edit.py ---
+# --- START OF FILE components/line_numbered_text_edit.py ---
+# --- START OF FILE components/LineNumberedTextEdit.py ---
+
+# text_highlight_manager.py
+# --- START OF FILE components/editor/text_highlight_manager.py ---
+# --- START OF FILE components/text_highlight_manager.py ---
+# --- START OF FILE components/TextHighlightManager.py ---
+
+# line_number_area.py
+# --- START OF FILE components/editor/line_number_area.py ---
+# --- START OF FILE components/line_number_area.py ---
+# --- START OF FILE components/LineNumberArea.py ---
+```
+
+Кожен такий файл несе три заголовки (поточний + два застарілі шляхи від часів рефакторингу). Це **артефакт рефакторингу** — файли були переміщені двічі і приносять з собою сліди попередніх місцезнаходжень.
+
+Аналогічно до того, що в аналізі Claude Code описано на прикладі `REPL.tsx` ("three duplicate header lines"), ці мертві коментарі засмічують код і дезорієнтують розробника.
+
+**Рекомендація:** Видалити другий і третій заголовки з усіх файлів у `components/editor/`. Залишити лише актуальний шлях або взагалі відмовитися від цього шаблону.
+
+---
+
+### 9.3. 🟡 `import json` всередині методу у `project_dialogs.py`
+
+**Файл:** [`project_dialogs.py`](file:///d:/git/dev/Picoripi/components/project_dialogs.py) — рядок 162
+
+**Проблема:**
+```python
+def _scan_plugins(self):
+    for item_path in plugins_dir.iterdir():
+        try:
+            import json  # ← імпорт всередині методу!
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+```
+
+`import json` викликається в циклі `for item_path in plugins_dir.iterdir()`. Хоча Python кешує імпорти і це не є критичною помилкою продуктивності, це порушує конвенцію PEP 8 (всі імпорти — на початку файлу) та вказує на те, що код додавали поспіхом.
+
+**Рекомендація:** Перемістити `import json` на початок файлу `project_dialogs.py`.
+
+---
+
+### 9.4. 🟡 `TODO` у `OpenProjectDialog` — залишений dead comment
+
+**Файл:** [`project_dialogs.py`](file:///d:/git/dev/Picoripi/components/project_dialogs.py) — рядки 387–389
+
+**Проблема:**
+```python
+# TODO: Add recent projects list here
+# recent_group = QGroupBox("Recent Projects", self)
+# ...
+```
+
+`OpenProjectDialog` залишився закоментований блок коду з TODO. `RecentProjectsManager` (`core/settings/recent_projects_manager.py`) вже існує та підтримується. Функціонал "Recent Projects" реалізований у головному меню, але не підключений до `OpenProjectDialog`.
+
+**Рекомендація:** Або реалізувати список останніх проєктів у `OpenProjectDialog` (використовуючи вже існуючий `RecentProjectsManager`), або видалити за непотрібністю мертвий коментар.
+
+---
+
+### 9.5. 🟢 `is_programmatically_changing_text` — boolean flag замість StateManager
+
+**Файли:** `translation_ui_handler.py` рядки 73, 78, 95, 99
+
+**Проблема:**
+```python
+self.mw.is_programmatically_changing_text = True
+# ... операції ...
+self.mw.is_programmatically_changing_text = False
+```
+
+Цей прапор встановлюється безпосередньо на `self.mw` у чотирьох місцях `translation_ui_handler.py`. `StateManager` (`core/state_manager.py`) вже має систему `AppState` для таких станів, але цей конкретний прапор обходить її.
+
+**Рекомендація:** Замінити `self.mw.is_programmatically_changing_text = True/False` на `with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):` або еквівалентний існуючий стан.
+
+---
+
+## 10. Зведена таблиця рекомендацій
+
+| # | Пріоритет | Проблема | Тип | Складність | Вплив |
+|---|---|---|---|---|---|
+| 1 | ✅ | `custom_tree_widget.py` — декомпозовано на 5 міксинів (227 рядків → orchestrator) | Архітектура | Висока | Підтримка |
+| 2 | 🔴 | Незавершений `self.mw` → `self.ctx` рефакторинг | Техн. борг | Середня | Чистота |
+| 3 | 🔴 | `ProjectContext` повністю на `Any` | Типізація | Низька | Безпека |
+| 4 | 🔴 | `QMessageBox` у `core/` модулях | SRP | Середня | Тестованість |
+| 5 | 🔴 | 142+ defensive `hasattr`/`getattr(self.mw)` замість Protocol | Техн. борг | Середня | Безпека+Чистота |
+| 6 | 🟡 | `translation_handler.py` — 836 рядків | Архітектура | Висока | Підтримка |
+| 7 | 🟡 | `project_action_handler.py` — 899 рядків | Архітектура | Висока | Підтримка |
+| 8 | 🟡 | `UIUpdater` — порожній проксі з `_private` делегуванням | Архітектура | Середня | Чистота |
+| 9 | 🟡 | `main_window_helper.py` — catch-all helper | Архітектура | Середня | Чистота |
+| 10 | 🟡 | `editor/` — 19 файлів, надмірна фрагментація | Архітектура | Середня | Навігація |
+| 11 | 🟡 | Дублювання `# --- START OF FILE` заголовків в `editor/` | Dead code | Мінімальна | Чистота |
+| 12 | 🟡 | `TODO` + dead comment у `OpenProjectDialog` | Dead code | Мінімальна | Чистота |
+| 13 | 🟡 | Дублювання find_next/find_previous | Дублювання | Низька | Чистота |
+| 14 | 🟡 | Дублювання move_up/move_down | Дублювання | Низька | Чистота |
+| 15 | 🟡 | 22 property-проксі у main.py (93 рядки) | Boilerplate | Низька | Чистота |
+| 16 | 🟡 | Подвійне створення `HotkeyManager` | Баг | Мінімальна | Коректність |
+| 17 | 🟡 | `DataStateProcessor` / `UndoManager` → UI coupling | SRP | Висока | Тестованість |
+| 18 | 🟡 | `BaseHandler` — `Any` типи | Типізація | Низька | Безпека |
+| 19 | 🟡 | Dialog state persistence дублювання | Дублювання | Низька | Чистота |
+| 20 | 🟡 | `is_programmatically_changing_text` — boolean flag замість StateManager | Техн. борг | Низька | Чистота |
+| 21 | 🟡 | Тести для translation subsystem | Тестування | Висока | Надійність |
+| 22 | 🟡 | `import json` всередині методу (`project_dialogs.py`) | Code style | Мінімальна | Чистота |
+| 23 | 🟢 | `handle_zoom` — дублювання гілок | Дублювання | Мінімальна | Чистота |
+| 24 | 🟢 | Інтеграційні тести | Тестування | Висока | Надійність |
+
+---
+
+> **Висновок v0.2.50-dev (оновлено 2026-04-01):** Продуктивність проєкту оптимізована добре. Нові знахідки підсилюють попередній висновок: найкритичніший незавершений рефакторинг — це gap між `ProjectContext` Protocol та реальним `hasattr`/`getattr` defensive access (142+ місця). Це означає, що Protocol не виконує свою захисну функцію. Другорядні: dead comments (3 дублі заголовків на файл в `editor/`), TODO у `OpenProjectDialog`, boolean flag поза `StateManager`. Жодна з нових проблем не є блокуючою функціонально, але їх усунення суттєво покращить узгодженість архітектурного дизайну.

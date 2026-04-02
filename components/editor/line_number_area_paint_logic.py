@@ -171,9 +171,15 @@ class LNETLineNumberAreaPaintLogic:
 
                     # Problem markers
                     problem_ids = set()
-                    problem_key = (current_block_idx_data_mw, current_string_idx_data_mw if is_editor else real_idx, current_q_block_number_in_editor_doc)
                     if isinstance(main_window_ref, QMainWindow) and hasattr(main_window_ref, 'data_store') and hasattr(main_window_ref.data_store, 'problems_per_subline'):
-                        problem_ids = main_window_ref.data_store.problems_per_subline.get(problem_key, set())
+                        probs_dict = main_window_ref.data_store.problems_per_subline
+                        if is_editor:
+                            problem_key = (current_block_idx_data_mw, current_string_idx_data_mw, current_q_block_number_in_editor_doc)
+                            problem_ids = probs_dict.get(problem_key, set())
+                        elif is_preview:
+                            for key, p_set in probs_dict.items():
+                                if key[0] == current_block_idx_data_mw and key[1] == real_idx:
+                                    problem_ids.update(p_set)
 
                     filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
                     if is_editor and filtered_problems:

@@ -117,5 +117,39 @@ def test_tooltip_returns_none_when_no_problems(app):
 
     logic = LNETTooltipLogic(editor)
     tooltip = logic.find_warning_tooltip_at(QPoint(5, 5))
-    assert tooltip is None, f"Expected None when no problems, got: {tooltip!r}"
+    mw.close()
+
+def test_tooltip_preview_text_edit_sums_sublines(app):
+    """
+    REGRESSION: For 'preview_text_edit', the tooltip logic must sum up problems
+    across all sublines for a given string_idx, regardless of line_idx_in_widget.
+    """
+    mw, editor = _make_real_main_window(app)
+    editor.setObjectName("preview_text_edit")
+
+    mw.data_store.current_block_idx = 0
+    # In preview mode, string_idx is determined by displayed_string_indices
+    mw.data_store.displayed_string_indices = [5] # Line 0 -> Real idx 5
+
+    # Suppose string 5 has two sublines, each with a problem
+    mw.data_store.problems_per_subline = {
+        (0, 5, 0): {"PROBLEM_A"},
+        (0, 5, 1): {"PROBLEM_B"}
+    }
+    
+    from unittest.mock import MagicMock
+    mw.current_game_rules = MagicMock()
+    mw.current_game_rules.get_problem_definitions.return_value = {
+        "PROBLEM_A": {"name": "Problem A", "description": ""},
+        "PROBLEM_B": {"name": "Problem B", "description": ""}
+    }
+    mw.detection_enabled = {"PROBLEM_A": True, "PROBLEM_B": True}
+
+    logic = LNETTooltipLogic(editor)
+    # Cursor at top, so blockNumber() == 0. Mapped to real idx 5
+    tooltip = logic.find_warning_tooltip_at(QPoint(5, 5))
+
+    assert tooltip is not None
+    assert "Problem A" in tooltip
+    assert "Problem B" in tooltip
     mw.close()
