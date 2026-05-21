@@ -138,17 +138,20 @@ class LayoutBuilder:
         bottom_left_panel = QWidget()
         bottom_left_layout = QVBoxLayout(bottom_left_panel)
 
+        self.mw.left_header_container = QWidget()
+        left_header_layout = QVBoxLayout(self.mw.left_header_container)
+        left_header_layout.setContentsMargins(0, 0, 0, 0)
+        left_header_layout.setSpacing(0)
+
         original_header_layout = QHBoxLayout()
         original_header_layout.addWidget(QLabel("Original (Read-Only):"))
         self.mw.original_width_label = QLabel("")
         original_header_layout.addWidget(self.mw.original_width_label)
         original_header_layout.addStretch(1)
-        bottom_left_layout.addLayout(original_header_layout)
-
-        self.mw.original_editor_top_spacer = QWidget()
-        self.mw.original_editor_top_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.mw.original_editor_top_spacer.setFixedHeight(0)
-        bottom_left_layout.addWidget(self.mw.original_editor_top_spacer)
+        
+        left_header_layout.addLayout(original_header_layout)
+        left_header_layout.addStretch(1)
+        bottom_left_layout.addWidget(self.mw.left_header_container)
 
         self.mw.original_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.original_text_edit.setObjectName("original_text_edit")
@@ -161,6 +164,11 @@ class LayoutBuilder:
         bottom_right_panel = QWidget()
         bottom_right_layout = QVBoxLayout(bottom_right_panel)
         
+        self.mw.right_header_container = QWidget()
+        right_header_layout = QVBoxLayout(self.mw.right_header_container)
+        right_header_layout.setContentsMargins(0, 0, 0, 0)
+        right_header_layout.setSpacing(0)
+
         # Tools Header
         editable_text_header_layout = QHBoxLayout()
         editable_text_header_layout.addWidget(QLabel("Editable Text:"))
@@ -196,7 +204,7 @@ class LayoutBuilder:
         self.mw.revert_string_button.setToolTip("Revert current string to original file content")
         editable_text_header_layout.addWidget(self.mw.revert_string_button)
         
-        bottom_right_layout.addLayout(editable_text_header_layout)
+        right_header_layout.addLayout(editable_text_header_layout)
 
         # String Settings Panel
         string_settings_panel = QWidget()
@@ -227,27 +235,41 @@ class LayoutBuilder:
         self.mw.apply_width_button.setEnabled(False)
         string_settings_layout.addWidget(self.mw.apply_width_button)
         string_settings_layout.addStretch(1)
-        bottom_right_layout.addWidget(string_settings_panel)
+        right_header_layout.addWidget(string_settings_panel)
+        bottom_right_layout.addWidget(self.mw.right_header_container)
 
-        # Sync top spacer
-        header_heights = [
-            self.mw.ai_translate_button.sizeHint().height(),
-            self.mw.ai_variation_button.sizeHint().height(),
-            self.mw.navigate_up_button.sizeHint().height(),
-            self.mw.navigate_down_button.sizeHint().height(),
-            self.mw.auto_fix_button.sizeHint().height(),
-        ]
-        placeholder_height = max(header_heights) + string_settings_panel.sizeHint().height()
-        self.mw.original_editor_top_spacer.setFixedHeight(placeholder_height)
+        # Sync heights using event filter
+        from PyQt5.QtCore import QObject, QEvent
+        class HeaderSyncFilter(QObject):
+            def __init__(self, source, target):
+                super().__init__(source)
+                self.source = source
+                self.target = target
+                if self.source.height() > 0:
+                    self.target.setFixedHeight(self.source.height())
+
+            def eventFilter(self, obj, event):
+                if obj is self.source and event.type() == QEvent.Resize:
+                    self.target.setFixedHeight(self.source.height())
+                return super().eventFilter(obj, event)
+
+        self.mw.header_sync_filter = HeaderSyncFilter(self.mw.right_header_container, self.mw.left_header_container)
+        self.mw.right_header_container.installEventFilter(self.mw.header_sync_filter)
 
         self.mw.edited_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.edited_text_edit.setObjectName("edited_text_edit")
-        bottom_right_layout.addWidget(self.mw.edited_text_edit)
         
         # BFN Visual Preview Widget
         from ui.components.bfn_preview_widget import BfnPreviewWidget
         self.mw.bfn_preview_widget = BfnPreviewWidget(self.mw)
-        bottom_right_layout.addWidget(self.mw.bfn_preview_widget)
+        
+        # Vertical splitter for editor and visual preview
+        self.mw.editor_preview_splitter = QSplitter(Qt.Vertical)
+        self.mw.editor_preview_splitter.addWidget(self.mw.edited_text_edit)
+        self.mw.editor_preview_splitter.addWidget(self.mw.bfn_preview_widget)
+        self.mw.editor_preview_splitter.setSizes([350, 130])
+        
+        bottom_right_layout.addWidget(self.mw.editor_preview_splitter)
         
         self.mw.bottom_right_splitter.addWidget(bottom_right_panel)
 

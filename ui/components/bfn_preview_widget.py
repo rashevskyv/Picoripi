@@ -12,7 +12,7 @@ class BfnPreviewWidget(QWidget):
         self.active_font_name = None
         self.translation_map = None
         
-        self.setFixedHeight(130) # standard height matching dialogue UI box
+        self.setMinimumHeight(50)
         self.setStyleSheet("background-color: #111111; border: 1px solid #333333; border-radius: 6px;")
         
         # Load translation map if available
@@ -54,7 +54,15 @@ class BfnPreviewWidget(QWidget):
 
         # 3. Retrieve from core settings
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
-        return all_bfn_fonts.get(font_file)
+        if font_file in all_bfn_fonts:
+            return all_bfn_fonts[font_file]
+            
+        # Fallback search matching end of key (e.g. "archive.arc/font.bfn" matching "font.bfn")
+        for key, bfn in all_bfn_fonts.items():
+            if key.endswith("/" + font_file):
+                return bfn
+
+        return None
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -78,11 +86,24 @@ class BfnPreviewWidget(QWidget):
         # Reload translation map to ensure dynamic updates
         self.load_translation_map()
 
-        # Translate Ukranian text to CP1252 mapped counterparts (e.g. 'і' to 'ì')
-        encoded_text = self.text
-        if self.translation_map:
-            for ukr_char, cp1252_char in self.translation_map.items():
-                encoded_text = encoded_text.replace(ukr_char, cp1252_char)
+        # Clean tags from text before rendering
+        cleaned_text = self.text
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules:
+            if hasattr(rules, 'get_spellcheck_ignore_pattern'):
+                pattern = rules.get_spellcheck_ignore_pattern()
+                if pattern:
+                    try:
+                        import re
+                        cleaned_text = re.sub(pattern, "", cleaned_text)
+                    except Exception:
+                        pass
+        # Fallback to remove basic curly and square bracket tags
+        import re
+        cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
+        cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
+
+        encoded_text = cleaned_text
 
         # Extract glyph metrics
         gly = bfn.gly1[0]
@@ -92,6 +113,13 @@ class BfnPreviewWidget(QWidget):
         rows = gly["glyph_vertical_count"]
         start_glyph = gly["start_glyph"]
         end_glyph = gly["end_glyph"]
+
+        # Helper to decode character code based on CP1252 to match translation map
+        def code_to_char(code):
+            try:
+                return bytes([code]).decode('cp1252')
+            except Exception:
+                return chr(code)
 
         # Parse MAP1 map
         char_to_glyph = {}
@@ -104,16 +132,16 @@ class BfnPreviewWidget(QWidget):
             
             if m_type == 0:
                 for idx in range(m_first, m_last + 1):
-                    char_to_glyph[chr(idx)] = idx
+                    char_to_glyph[code_to_char(idx)] = idx
             elif m_type == 2:
                 for idx, code in enumerate(entries):
-                    char_to_glyph[chr(m_first + idx)] = code
+                    char_to_glyph[code_to_char(code)] = idx
             elif m_type == 3:
                 half = len(entries) // 2
                 for k in range(half):
                     code = entries[k]
                     g_idx = entries[half + k]
-                    char_to_glyph[chr(code)] = g_idx
+                    char_to_glyph[code_to_char(code)] = g_idx
 
         # Extract width packets
         wid = bfn.wid1[0]
@@ -135,6 +163,12 @@ class BfnPreviewWidget(QWidget):
                     continue
 
                 glyph_idx = char_to_glyph.get(char, -1)
+                if glyph_idx == -1 and self.translation_map:
+                    # Fallback to translation map if this character is not directly mapped in BFN
+                    fallback_char = self.translation_map.get(char)
+                    if fallback_char:
+                        glyph_idx = char_to_glyph.get(fallback_char, -1)
+
                 if glyph_idx == -1 or glyph_idx > end_glyph:
                     # Draw fallback dark gray outline box for missing glyphs
                     painter.setPen(QColor("#444444"))

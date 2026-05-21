@@ -183,7 +183,7 @@ class BfnIoMixin:
         h = self.cols * self.real_h
         self.scene.setSceneRect(QtCore.QRectF(0, 0, max(w, qimg.width()), max(h, qimg.height())))
 
-    def save_changes(self):
+    def save_changes(self, silent=False):
         self.status.showMessage("Saving changes...")
         
         target_dir = self.folder_path
@@ -217,7 +217,7 @@ class BfnIoMixin:
                 # Якщо це файл з архіву, то викличемо колбек для збереження назад в Picoripi
                 if hasattr(self, "archive_save_callback") and self.archive_save_callback:
                     self.archive_save_callback(self.current_bfn_name, saved_bytes)
-
+ 
                 # Update our font sources cache for this file to avoid out-of-sync
                 key = self.archive_name if self.archive_name else self.current_bfn_name
                 if key in self.font_sources:
@@ -248,7 +248,8 @@ class BfnIoMixin:
                     print(f"Failed to auto-generate or save translation map: {ex}")
                 
             self._set_dirty(False)
-            QtWidgets.QMessageBox.information(self, 'Success', 'All changes saved successfully!')
+            if not silent:
+                QtWidgets.QMessageBox.information(self, 'Success', 'All changes saved successfully!')
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', f'Failed to save changes: {e}')
             self.status.showMessage("Failed to save changes.")

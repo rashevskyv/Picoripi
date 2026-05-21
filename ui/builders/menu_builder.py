@@ -128,6 +128,12 @@ class MenuBuilder:
 
         self.mw.rescan_all_tags_action = QAction(QIcon.fromTheme("system-search"), 'Rescan All Issues', self.mw)
         edit_menu.addAction(self.mw.rescan_all_tags_action)
+        edit_menu.addSeparator()
+
+        self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.SP_BrowserReload), 'Recalculate Font Widths', self.mw)
+        self.mw.recalculate_widths_action.setToolTip("Force recalculate widths and issues for all strings in the project")
+        self.mw.recalculate_widths_action.setShortcut('Ctrl+Shift+R')
+        edit_menu.addAction(self.mw.recalculate_widths_action)
 
     def _build_tools_menu(self, menubar):
         tools_menu = menubar.addMenu('&Tools')

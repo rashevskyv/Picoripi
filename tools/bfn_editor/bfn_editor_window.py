@@ -64,6 +64,10 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
 
         self.undo_stack = QtWidgets.QUndoStack(self)
         self.undo_stack.cleanChanged.connect(lambda clean: self._set_dirty(not clean))
+        
+        self.auto_sync_timer = QtCore.QTimer(self)
+        self.auto_sync_timer.setSingleShot(True)
+        self.auto_sync_timer.timeout.connect(self.auto_sync_and_recalculate)
 
         self.cell_w = 24
         self.cell_h = 24
@@ -192,6 +196,24 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.action_redo.changed.connect(lambda: self.btn_redo.setEnabled(self.action_redo.isEnabled()))
         self.action_redo.changed.connect(lambda: self.btn_redo.setText(self.action_redo.text()))
         toolbar.addWidget(self.btn_redo)
+
+        toolbar.addSpacing(10)
+
+        self.chk_auto_sync = QtWidgets.QCheckBox('Auto-sync')
+        self.chk_auto_sync.setToolTip('Automatically save and recalculate all text widths in Picoripi in real-time')
+        
+        auto_sync_val = False
+        sm = self.get_settings_manager()
+        if sm:
+            auto_sync_val = sm.get("bfn_auto_sync_enabled", False)
+        self.chk_auto_sync.setChecked(auto_sync_val)
+        self.chk_auto_sync.stateChanged.connect(self.on_auto_sync_toggled)
+        toolbar.addWidget(self.chk_auto_sync)
+
+        self.btn_sync_recalculate = QtWidgets.QPushButton('Sync & Recalculate')
+        self.btn_sync_recalculate.setToolTip('Force save changes and recalculate all text widths and issues in Picoripi')
+        self.btn_sync_recalculate.clicked.connect(self.force_sync_and_recalculate)
+        toolbar.addWidget(self.btn_sync_recalculate)
 
         toolbar.addStretch()
         editor_layout.addLayout(toolbar)
@@ -530,7 +552,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
     # Override save_changes to also call Picoripi sync callbacks
     # ------------------------------------------------------------------
 
-    def save_changes(self):
+    def save_changes(self, silent=False):
         # Call the mixin implementation (defined in BfnIoMixin)
         super_save = None
         for cls in type(self).__mro__:
@@ -540,7 +562,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                 super_save = cls.__dict__['save_changes']
                 break
         if super_save:
-            super_save(self)
+            super_save(self, silent=silent)
 
         # After successful save, trigger Picoripi font sync
         if not self._dirty and self.font_sync_callback:
@@ -929,6 +951,32 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                     break
             if first_sheet:
                 self.list_sheets.setCurrentItem(first_sheet)
+
+    def on_auto_sync_toggled(self, state):
+        is_checked = (state == QtCore.Qt.Checked)
+        sm = self.get_settings_manager()
+        if sm:
+            sm.set("bfn_auto_sync_enabled", is_checked)
+            sm.save_settings()
+            
+        if is_checked and self._dirty:
+            self.schedule_auto_sync()
+
+    def schedule_auto_sync(self):
+        self.auto_sync_timer.start(300)
+
+    def auto_sync_and_recalculate(self):
+        if self._dirty:
+            self.save_changes(silent=True)
+
+    def force_sync_and_recalculate(self):
+        self.save_changes(silent=True)
+        if not self._dirty and self.font_sync_callback:
+            try:
+                self.font_sync_callback()
+            except Exception:
+                pass
+        self.status.showMessage("Force recalculation complete. Picoripi widths updated.")
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Escape:

@@ -22,8 +22,12 @@ class MainWindowHelper:
         string_meta = self.mw.string_metadata.get(metadata_key, {})
         
         custom_font_file = string_meta.get("font_file")
-        if custom_font_file and custom_font_file in self.mw.all_font_maps:
-            return self.mw.all_font_maps[custom_font_file]
+        if custom_font_file:
+            if custom_font_file in self.mw.all_font_maps:
+                return self.mw.all_font_maps[custom_font_file]
+            for key, font_map in self.mw.all_font_maps.items():
+                if key.endswith("/" + custom_font_file):
+                    return font_map
             
         return self.mw.font_map
 
