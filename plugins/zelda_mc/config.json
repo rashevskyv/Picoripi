@@ -43,5 +43,7 @@
         "wrap_tags": []
     },
     "is_directory_mode": false,
-    "auto_generate_translation_path": false
+    "auto_generate_translation_path": false,
+    "fonts_dir_path": "",
+    "orig_fonts_dir_path": ""
 }

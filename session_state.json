@@ -1,6 +1,8 @@
 {
     "D:\\git\\WW\\Cemu_2.6\\Wind_Waker_Wii_U\\project.uiproj": {
-        "expanded_ids": [],
+        "expanded_ids": [
+            "block_0"
+        ],
         "selected_id": "block_0",
         "selected_type": "block",
         "selected_string_idx": -1,
@@ -304,6 +306,40 @@
         "v_scroll": 0,
         "h_scroll": 0,
         "preview_v_scroll": 0,
+        "original_v_scroll": 0
+    },
+    "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\TwilightPrinzess\\project.uiproj": {
+        "expanded_ids": [
+            "block_0"
+        ],
+        "selected_id": "block_4",
+        "selected_type": "block",
+        "selected_string_idx": -1,
+        "cursor_pos": 0,
+        "v_scroll": 0,
+        "h_scroll": 0,
+        "preview_v_scroll": 42,
+        "original_v_scroll": 0
+    },
+    "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\TwilightPrincess\\project.uiproj": {
+        "expanded_ids": [
+            "folder_87298246-36a9-4942-accd-59d50947882f",
+            "folder_f82ba24c-33e7-4e39-992c-f46107cb9510",
+            "folder_cd27408e-2297-40fa-90d8-79c7cd3fec67",
+            "folder_9ee06595-ccbc-4a4f-9acd-ad1d2bab1fd2",
+            "folder_11594053-720e-4bb8-bf54-c4ca5895c93c",
+            "folder_7bc45a6a-882e-4ed5-8c0f-2115566f15d8",
+            "folder_593fd4ec-2594-40f2-abbe-95e0a76ac1c8",
+            "folder_7fb14935-0f7e-440a-9100-473d75fc4ae7",
+            "folder_a43c999d-ab33-4ece-84cd-c56e54cf8e9e"
+        ],
+        "selected_id": "block_0",
+        "selected_type": "block",
+        "selected_string_idx": -1,
+        "cursor_pos": 12,
+        "v_scroll": 0,
+        "h_scroll": 0,
+        "preview_v_scroll": 66,
         "original_v_scroll": 0
     }
 }
