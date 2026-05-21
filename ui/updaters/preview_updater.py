@@ -5,6 +5,10 @@ from core.glossary_manager import GlossaryOccurrence
 from .base_ui_updater import BaseUIUpdater
 
 class PreviewUpdater(BaseUIUpdater):
+    def __init__(self, main_window, data_processor):
+        super().__init__(main_window, data_processor)
+        self._preview_cache = {}
+
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         """Highlights a glossary occurrence in the original_text_edit."""
         if not hasattr(self.mw, 'original_text_edit'):
@@ -55,9 +59,17 @@ class PreviewUpdater(BaseUIUpdater):
              # If no filtering is active, use all
              displayed_indices = list(range(len(self.mw.data_store.data[block_idx])))
 
+        # OPTIMIZATION: Collect only strings with problems to avoid scanning 5000+ items
+        problem_string_indices = set()
+        if hasattr(self.mw.data_store, 'problems_per_subline'):
+            for key in self.mw.data_store.problems_per_subline:
+                if key[0] == block_idx:
+                    problem_string_indices.add(key[1])
+
         for preview_idx, real_idx in enumerate(displayed_indices):
-            if self.mw.list_selection_handler._data_string_has_any_problem(block_idx, real_idx):
-                preview_edit.addProblemLineHighlight(preview_idx)
+            if real_idx in problem_string_indices:
+                if self.mw.list_selection_handler._data_string_has_any_problem(block_idx, real_idx):
+                    preview_edit.addProblemLineHighlight(preview_idx)
         
         # Highlight categorized strings if enabled
         if getattr(self.mw.data_store, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
@@ -190,7 +202,7 @@ class PreviewUpdater(BaseUIUpdater):
             pm = self.mw.project_manager
             block_map = getattr(self.mw, 'block_to_project_file_map', {})
             proj_b_idx = block_map.get(block_idx, block_idx)
-            if proj_b_idx < len(pm.project.blocks):
+            if 0 <= proj_b_idx < len(pm.project.blocks):
                 block_has_categories = bool(pm.project.blocks[proj_b_idx].categories)
         show_cat_toggles = block_has_categories and not category_name
         if hasattr(self.mw, 'highlight_categorized_checkbox'):
@@ -201,9 +213,8 @@ class PreviewUpdater(BaseUIUpdater):
         # Use a local cache of the last populated block to avoid redundant full resets
         last_block_idx = getattr(self, '_last_populated_block_idx', -999)
         last_category_name = getattr(self, '_last_populated_category_name', None)
-        
         block_changed = (block_idx != last_block_idx) or (category_name != last_category_name)
-        
+
         if block_changed:
             if preview_edit: preview_edit.reset_selection_state()
             if original_edit: original_edit.reset_selection_state()
@@ -212,8 +223,12 @@ class PreviewUpdater(BaseUIUpdater):
             self._last_populated_category_name = category_name
 
         if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
+            self._preview_cache.clear()
             self.mw.data_store.displayed_string_indices = []
-            if preview_edit and preview_edit.toPlainText() != "": preview_edit.setPlainText("")
+            if preview_edit:
+                preview_edit.override_total_lines = None
+                preview_edit.updateLineNumberAreaWidth(0)
+                if preview_edit.toPlainText() != "": preview_edit.setPlainText("")
             if original_edit and original_edit.toPlainText() != "": original_edit.setPlainText("")
             if edited_edit and edited_edit.toPlainText() != "": edited_edit.setPlainText("")
             self.update_text_views(); self.synchronize_original_cursor() 
@@ -245,30 +260,107 @@ class PreviewUpdater(BaseUIUpdater):
             target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data_store.data[block_idx])]
             
             # Check if displayed indices actually changed (for "Hide moved" toggle)
-            old_indices = getattr(self.mw, 'displayed_string_indices', [])
+            old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+            if not old_indices and hasattr(self.mw, 'displayed_string_indices'):
+                old_indices = self.mw.displayed_string_indices
             displayed_indices_changed = (target_indices != old_indices)
             
             self.mw.data_store.displayed_string_indices = target_indices
 
-            # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
-            if block_changed or displayed_indices_changed or force:
-                preview_lines = []
-                for real_idx in target_indices:
-                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                    preview_lines.append(preview_line_text)
+            # Initialize lazy load timer if not exists
+            if not hasattr(self, '_lazy_load_timer'):
+                from PyQt5.QtCore import QObject
+                timer_parent = self.mw if isinstance(self.mw, QObject) else None
+                self._lazy_load_timer = QTimer(timer_parent)
+                self._lazy_load_timer.timeout.connect(self._load_next_preview_chunk)
 
-                preview_full_text = "\n".join(preview_lines)
-                if preview_edit.toPlainText() != preview_full_text:
-                    preview_edit.setPlainText(preview_full_text)
-
-            # Apply highlights based on NEW displayed_string_indices (MUST be after setPlainText)
-            self._apply_highlights_for_block(block_idx)
+            if self._lazy_load_timer.isActive():
+                self._lazy_load_timer.stop()
 
             # Map current_string_idx to preview index if possible
             preview_idx_to_select = -1
             if self.mw.data_store.current_string_idx in target_indices:
                 preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+
+            # Set override_total_lines to prevent dynamic width change
+            if len(target_indices) > 0:
+                preview_edit.override_total_lines = len(target_indices)
+            else:
+                preview_edit.override_total_lines = None
+            preview_edit.updateLineNumberAreaWidth(0)
+
+            # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
+            if block_changed or displayed_indices_changed or force:
+                cache_key = (block_idx, category_name)
+                if force and cache_key in self._preview_cache:
+                    del self._preview_cache[cache_key]
+
+                initial_chunk_size = max(200, preview_idx_to_select + 50)
+                
+                use_cache = False
+                if cache_key in self._preview_cache:
+                    cache = self._preview_cache[cache_key]
+                    if cache.get('target_indices') == target_indices:
+                        use_cache = True
+                
+                if use_cache:
+                    cache = self._preview_cache[cache_key]
+                    self._lazy_load_block_idx = block_idx
+                    self._lazy_load_target_indices = target_indices
+                    self._lazy_load_next_index = cache['next_index']
+                    
+                    preview_full_text = "\n".join(cache['lines'])
+                    preview_edit.setPlainText(preview_full_text)
+                    
+                    if self._lazy_load_next_index < len(target_indices):
+                        self._lazy_load_timer.start(15)
+                    else:
+                        if self._lazy_load_timer.isActive():
+                            self._lazy_load_timer.stop()
+                else:
+                    if len(target_indices) > initial_chunk_size:
+                        self._lazy_load_block_idx = block_idx
+                        self._lazy_load_target_indices = target_indices
+                        self._lazy_load_next_index = initial_chunk_size
+                        
+                        preview_lines = [""] * len(target_indices)
+                        chunk_indices = target_indices[:initial_chunk_size]
+                        for idx_offset, real_idx in enumerate(chunk_indices):
+                            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                            preview_lines[idx_offset] = preview_line_text
+                        
+                        # Save to cache
+                        self._preview_cache[cache_key] = {
+                            'lines': preview_lines,
+                            'next_index': initial_chunk_size,
+                            'target_indices': target_indices
+                        }
+                        
+                        preview_full_text = "\n".join(preview_lines)
+                        preview_edit.setPlainText(preview_full_text)
+                        self._lazy_load_timer.start(15)
+                    else:
+                        self._lazy_load_next_index = len(target_indices)
+                        preview_lines = []
+                        for real_idx in target_indices:
+                            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                            preview_lines.append(preview_line_text)
+                        
+                        # Save to cache
+                        self._preview_cache[cache_key] = {
+                            'lines': preview_lines,
+                            'next_index': len(target_indices),
+                            'target_indices': target_indices
+                        }
+                        
+                        preview_full_text = "\n".join(preview_lines)
+                        if preview_edit.toPlainText() != preview_full_text:
+                            preview_edit.setPlainText(preview_full_text)
+
+            # Apply highlights based on NEW displayed_string_indices (MUST be after setPlainText)
+            self._apply_highlights_for_block(block_idx)
 
             if preview_idx_to_select != -1 and \
                hasattr(preview_edit, 'set_selected_lines') and \
@@ -283,6 +375,72 @@ class PreviewUpdater(BaseUIUpdater):
         self.update_text_views() 
         self.synchronize_original_cursor() 
         self.mw.is_programmatically_changing_text = _saved_programmatic_flag
+
+    def _load_next_preview_chunk(self):
+        preview_edit = getattr(self.mw, 'preview_text_edit', None)
+        if not preview_edit or not hasattr(self, '_lazy_load_next_index') or not hasattr(self, '_lazy_load_target_indices'):
+            if hasattr(self, '_lazy_load_timer'):
+                self._lazy_load_timer.stop()
+            return
+
+        block_idx = self._lazy_load_block_idx
+        target_indices = self._lazy_load_target_indices
+        start_idx = self._lazy_load_next_index
+        end_idx = min(start_idx + 500, len(target_indices))
+        
+        if start_idx >= len(target_indices):
+            self._lazy_load_timer.stop()
+            return
+            
+        chunk_indices = target_indices[start_idx:end_idx]
+        preview_lines = []
+        for real_idx in chunk_indices:
+            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+            preview_lines.append(preview_line_text)
+            
+        _saved_programmatic_flag = self.mw.is_programmatically_changing_text
+        self.mw.is_programmatically_changing_text = True
+        
+        try:
+            cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+            cache = self._preview_cache.get(cache_key)
+            
+            doc = preview_edit.document()
+            cursor = QTextCursor(doc)
+            cursor.beginEditBlock()
+            for offset, preview_line_text in enumerate(preview_lines):
+                line_idx = start_idx + offset
+                if cache and line_idx < len(cache['lines']):
+                    cache['lines'][line_idx] = preview_line_text
+                
+                block = doc.findBlockByNumber(line_idx)
+                if block.isValid():
+                    cursor.setPosition(block.position())
+                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                    cursor.insertText(preview_line_text)
+            cursor.endEditBlock()
+            
+            if cache:
+                cache['next_index'] = end_idx
+        finally:
+            self.mw.is_programmatically_changing_text = _saved_programmatic_flag
+            
+        self._lazy_load_next_index = end_idx
+        
+        self._apply_highlights_for_block(block_idx)
+        
+        preview_idx_to_select = -1
+        if self.mw.data_store.current_string_idx in target_indices:
+            preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+
+        if preview_idx_to_select != -1 and \
+           hasattr(preview_edit, 'set_selected_lines') and \
+           0 <= preview_idx_to_select < preview_edit.document().blockCount():
+            preview_edit.set_selected_lines([preview_idx_to_select])
+            
+        if end_idx >= len(target_indices):
+            self._lazy_load_timer.stop()
 
     def update_text_views(self): 
         if getattr(self, '_in_update_text_views', False):
@@ -392,6 +550,10 @@ class PreviewUpdater(BaseUIUpdater):
              self.mw.ui_updater.update_status_bar()
         else: 
             self.mw.ui_updater.clear_status_bar()
+
+        # Update BFN visual preview
+        if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+            self.mw.bfn_preview_widget.update_preview_text(edited_text_raw)
 
         if hasattr(self.mw, 'dictionary_tooltip') and self.mw.dictionary_tooltip:
              self.mw.dictionary_tooltip.hide()

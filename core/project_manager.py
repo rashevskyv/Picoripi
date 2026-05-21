@@ -15,6 +15,7 @@ from pathlib import Path
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
 from .project_models import Category, Block, Project, VirtualFolder
+from core.containers import ContainerManager
 
 
 class ProjectManager:
@@ -74,6 +75,7 @@ class ProjectManager:
         self.project: Optional[Project] = None
         self.project_dir: Optional[str] = None
         self.project_file_path: Optional[str] = None
+        self._archive_cache = {}
 
         if project_path:
             self.load(str(project_path))
@@ -169,7 +171,7 @@ class ProjectManager:
             self.project = Project.from_dict(data)
             
             # Migration: if no virtual folders exist (or version < 1.1), create them from file structure
-            if self.project.version < "1.1" and self.project.blocks:
+            if (self.project.version < "1.1" or not self.project.virtual_folders) and self.project.blocks:
                 self._migrate_file_structure_to_virtual_folders()
 
             log_info(f"Loaded project '{self.project.name}' from {self.project_dir}")
@@ -243,14 +245,40 @@ class ProjectManager:
 
             self.project.add_block(block)
             
-            # Ensure it's tracked in virtual structure
-            if 'root_block_ids' not in self.project.metadata:
-                self.project.metadata['root_block_ids'] = []
+            # Determine virtual path parts
+            rel_path = source_rel_path
+            if rel_path.startswith('.extracted/sources/'):
+                rel_path = rel_path[len('.extracted/sources/'):]
+            elif rel_path.startswith(self.SOURCES_DIR + '/'):
+                rel_path = rel_path[len(self.SOURCES_DIR) + 1:]
             
-            if block.id not in self.project.metadata['root_block_ids']:
-                # Only add to root if it's not already in some virtual folder
-                # For simplicity in add_block, we assume it goes to root unless moved later
-                self.project.metadata['root_block_ids'].append(block.id)
+            path_parts = Path(rel_path).parent.as_posix().split('/')
+            if path_parts == ['.'] or path_parts == ['']:
+                path_parts = []
+            
+            if block.internal_key:
+                path_parts.append(Path(rel_path).name)
+                internal_parts = block.internal_key.replace('\\', '/').split('/')
+                if len(internal_parts) > 1:
+                    path_parts.extend(internal_parts[:-1])
+
+            # Ensure it's tracked in virtual structure
+            if path_parts:
+                current_parent_id = None
+                for part in path_parts:
+                    if not part: continue
+                    folder = self.create_virtual_folder(part, current_parent_id)
+                    current_parent_id = folder.id
+                
+                if current_parent_id:
+                    last_folder = self.find_virtual_folder(current_parent_id)
+                    if last_folder and block.id not in last_folder.block_ids:
+                        last_folder.block_ids.append(block.id)
+            else:
+                if 'root_block_ids' not in self.project.metadata:
+                    self.project.metadata['root_block_ids'] = []
+                if block.id not in self.project.metadata['root_block_ids']:
+                    self.project.metadata['root_block_ids'].append(block.id)
 
             self.save()
             log_info(f"Registered block '{block.name}' loosely linked at {source_rel_path}")
@@ -270,63 +298,57 @@ class ProjectManager:
         source_path = self.project.metadata.get('source_path', '')
         translation_path = self.project.metadata.get('translation_path')
         is_directory_mode = self.project.metadata.get('is_directory_mode', True)
-        # auto_create = self.project.metadata.get('auto_create_translations', False) # Reserved for later
         
         if not source_path or not Path(source_path).exists():
             log_warning("Source path is invalid or missing during sync.")
             return
 
-        supported_extensions = {'.json', '.txt'}
+        supported_extensions = {'.json', '.txt', '.bmg', '.arc', '.rarc', '.ark', '.bfn'}
         existing_blocks = {b.source_file: b for b in self.project.blocks}
         found_sources = set()
+        
+        import shutil
 
-        if is_directory_mode:
-            root_path = Path(source_path)
-            for filepath in root_path.rglob('*'):
-                if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
-                    rel_path = filepath.relative_to(root_path).as_posix()
-                    found_sources.add(rel_path)
-                    
-                    if rel_path not in existing_blocks:
-                        added_sub_blocks = False
-                        if plugin and filepath.suffix.lower() == '.json':
-                            try:
-                                with filepath.open('r', encoding='utf-8') as f:
-                                    content = json.load(f)
-                                parsed, names = plugin.load_data_from_json_obj(content)
-                                if parsed and len(parsed) > 1:
-                                    for i in range(len(parsed)):
-                                        full_sub_name = names.get(str(i), f"Block {i}")
-                                        # Use only the last part of the path as the display name
-                                        display_name = full_sub_name.replace('\\', '/').split('/')[-1]
-                                        self.add_block(
-                                            name=display_name,
-                                            source_file_path=rel_path,
-                                            translation_file_path=rel_path,
-                                            internal_key=full_sub_name # The full key name from JSON
-                                        )
-                                    added_sub_blocks = True
-                            except Exception as e:
-                                log_debug(f"Sync: Failed to explode {rel_path}: {e}")
+        def process_source_file(filepath: Path, rel_path: str):
+            if filepath.suffix.lower() in {'.arc', '.rarc', '.ark'}:
+                archive_rel_path = rel_path
+                try:
+                    raw = filepath.read_bytes()
+                    container = ContainerManager.open(raw)
+                    if container is None:
+                        log_warning(f"Unsupported archive format during sync: {filepath}")
+                        return
 
-                        if not added_sub_blocks:
-                            self.add_block(
-                                name=filepath.stem,
-                                source_file_path=rel_path,
-                                translation_file_path=rel_path
-                            )
-        else:
-            # File mode
-            filepath = Path(source_path)
-            if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
-                rel_path = filepath.name
+                    inner_extensions = {'.json', '.txt', '.bmg', '.bfn'}
+                    for inner_path in container.list_files():
+                        if Path(inner_path).suffix.lower() in inner_extensions:
+                            block_src_rel = f".extracted/sources/{archive_rel_path}/{inner_path}"
+                            block_trans_rel = f".extracted/translation/{archive_rel_path}/{inner_path}"
+                            found_sources.add(block_src_rel)
+
+                            if block_src_rel not in existing_blocks:
+                                block = self.add_block(
+                                    name=Path(inner_path).stem,
+                                    source_file_path=block_src_rel,
+                                    translation_file_path=block_trans_rel
+                                )
+                                if block:
+                                    block.metadata['is_archive_member'] = True
+                                    block.metadata['archive_rel_path'] = archive_rel_path
+                                    block.metadata['archive_file_name'] = inner_path
+                            else:
+                                block = existing_blocks[block_src_rel]
+                                block.metadata['is_archive_member'] = True
+                                block.metadata['archive_rel_path'] = archive_rel_path
+                                block.metadata['archive_file_name'] = inner_path
+                except Exception as e:
+                    log_error(f"Failed to process archive {filepath}: {e}", exc_info=True)
+            else:
                 found_sources.add(rel_path)
                 if rel_path not in existing_blocks:
-                    trans_rel_path: str = Path(translation_path).name if translation_path else rel_path
-                    
                     added_sub_blocks = False
                     if plugin and filepath.suffix.lower() == '.json':
-                         try:
+                        try:
                             with filepath.open('r', encoding='utf-8') as f:
                                 content = json.load(f)
                             parsed, names = plugin.load_data_from_json_obj(content)
@@ -337,19 +359,34 @@ class ProjectManager:
                                     self.add_block(
                                         name=display_name,
                                         source_file_path=rel_path,
-                                        translation_file_path=trans_rel_path,
+                                        translation_file_path=rel_path,
                                         internal_key=full_sub_name
                                     )
                                 added_sub_blocks = True
-                         except Exception as e:
+                        except Exception as e:
                             log_debug(f"Sync: Failed to explode {rel_path}: {e}")
 
                     if not added_sub_blocks:
+                        trans_rel_path = rel_path
+                        if not is_directory_mode and translation_path:
+                            trans_rel_path = Path(translation_path).name
                         self.add_block(
                             name=filepath.stem,
                             source_file_path=rel_path,
                             translation_file_path=trans_rel_path
                         )
+
+        if is_directory_mode:
+            root_path = Path(source_path)
+            for filepath in root_path.rglob('*'):
+                if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
+                    rel_path = filepath.relative_to(root_path).as_posix()
+                    process_source_file(filepath, rel_path)
+        else:
+            filepath = Path(source_path)
+            if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
+                rel_path = filepath.name
+                process_source_file(filepath, rel_path)
                     
         # Remove blocks that no longer exist
         blocks_to_remove = [b.id for b in self.project.blocks if b.source_file not in found_sources]
@@ -399,7 +436,17 @@ class ProjectManager:
             Absolute file path
         """
         if not self.project:
-            return relative_path
+            return str(relative_path)
+
+        # SPECIAL CASE: if path starts with '.extracted/', it is located inside the temporary directory!
+        rel_str = str(relative_path).replace('\\', '/')
+        if rel_str.startswith('.extracted/'):
+            if self.project:
+                import tempfile
+                temp_dir = Path(tempfile.gettempdir()) / "picoripi" / self.project.id
+                return str(temp_dir / relative_path)
+            else:
+                return str(Path(self.project_dir) / relative_path) if self.project_dir else str(relative_path)
             
         is_directory_mode = self.project.metadata.get('is_directory_mode', True)
         base_path = self.project.metadata.get('translation_path') if is_translation else self.project.metadata.get('source_path')
@@ -416,6 +463,38 @@ class ProjectManager:
             return str(Path(base_path) / relative_path)
         else:
             return str(base_path)
+
+    def cleanup_temp_dir(self) -> None:
+        """Clean up temporary resources (no-op since we use in-memory containers)."""
+        self.clear_archive_cache()
+
+    def get_archive_container(self, archive_rel_path: str, is_translation: bool = False) -> ContainerManager:
+        """
+        Get or open an archive container from cache or file.
+        """
+        archive_abs_path = self.get_absolute_path(archive_rel_path, is_translation=is_translation)
+        
+        # Fallback to source if translation doesn't exist yet
+        if is_translation and not Path(archive_abs_path).exists():
+            archive_abs_path = self.get_absolute_path(archive_rel_path, is_translation=False)
+            
+        if not Path(archive_abs_path).exists():
+            raise FileNotFoundError(f"Archive not found: {archive_abs_path}")
+            
+        cache_key = (archive_rel_path, is_translation)
+        if cache_key in self._archive_cache:
+            return self._archive_cache[cache_key]
+            
+        raw_archive = Path(archive_abs_path).read_bytes()
+        container = ContainerManager.open(raw_archive)
+        if not container:
+            raise ValueError(f"Failed to open archive: {archive_abs_path}")
+            
+        self._archive_cache[cache_key] = container
+        return container
+
+    def clear_archive_cache(self) -> None:
+        self._archive_cache.clear()
 
     def get_relative_path(self, absolute_path: Union[str, Path], is_translation: bool = False) -> str:
         """
@@ -523,7 +602,9 @@ class ProjectManager:
 
         for block in sorted_blocks:
             rel_path = block.source_file
-            if rel_path.startswith(self.SOURCES_DIR + '/'):
+            if rel_path.startswith('.extracted/sources/'):
+                rel_path = rel_path[len('.extracted/sources/'):]
+            elif rel_path.startswith(self.SOURCES_DIR + '/'):
                 rel_path = rel_path[len(self.SOURCES_DIR) + 1:]
                 
             path_parts = Path(rel_path).parent.as_posix().split('/')
@@ -568,7 +649,9 @@ class ProjectManager:
         root_block_ids = []
         for b in sorted_blocks:
             rel_p = b.source_file
-            if rel_p.startswith(self.SOURCES_DIR + '/'):
+            if rel_p.startswith('.extracted/sources/'):
+                rel_p = rel_p[len('.extracted/sources/'):]
+            elif rel_p.startswith(self.SOURCES_DIR + '/'):
                 rel_p = rel_p[len(self.SOURCES_DIR) + 1:]
             parent_p = Path(rel_p).parent.as_posix()
             if parent_p == '.' or not parent_p:

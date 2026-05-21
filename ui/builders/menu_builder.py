@@ -134,6 +134,14 @@ class MenuBuilder:
         tools_menu.setObjectName('&Tools')
         self.mw.tools_menu = tools_menu
 
+        self.mw.bfn_editor_action = QAction(
+            self.style.standardIcon(QStyle.SP_DesktopIcon),
+            'BFN &Font Editor...',
+            self.mw
+        )
+        self.mw.bfn_editor_action.setToolTip('Open the BFN Font Editor (Nintendo binary font)')
+        tools_menu.addAction(self.mw.bfn_editor_action)
+
     def _build_navigation_menu(self, menubar):
         self.mw.navigation_menu = menubar.addMenu('&Navigation')
         

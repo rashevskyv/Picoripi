@@ -69,30 +69,77 @@ class TextOperationHandler(BaseHandler):
         main_window_ref.is_programmatically_changing_text = True
         
         if self.mw.current_game_rules:
-            preview_lines = []
-            if 0 <= block_idx < len(self.mw.data_store.data) and isinstance(self.mw.data_store.data[block_idx], list):
-                # USE displayed_string_indices to respect categories/filters
-                target_indices = getattr(self.mw, 'displayed_string_indices', [])
-                if not target_indices:
+            # USE displayed_string_indices to respect categories/filters
+            target_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+            if not target_indices:
+                if 0 <= block_idx < len(self.mw.data_store.data) and isinstance(self.mw.data_store.data[block_idx], list):
                     target_indices = list(range(len(self.mw.data_store.data[block_idx])))
+                else:
+                    target_indices = []
+
+            current_string_idx = self.mw.data_store.current_string_idx
+            
+            # Check if we can perform a partial (single-line) update
+            can_do_partial_update = False
+            preview_idx = -1
+            if current_string_idx != -1 and target_indices and current_string_idx in target_indices:
+                preview_idx = target_indices.index(current_string_idx)
+                if 0 <= preview_idx < preview_edit.document().blockCount():
+                    can_do_partial_update = True
+
+            if can_do_partial_update:
+                # Update only the current edited line in the preview
+                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, current_string_idx)
+                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                 
+                block = preview_edit.document().findBlockByNumber(preview_idx)
+                if block.isValid() and block.text() != preview_line_text:
+                    cursor = QTextCursor(block)
+                    cursor.setPosition(block.position())
+                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                    cursor.insertText(preview_line_text)
+                    
+                    # Update cache
+                    preview_updater = getattr(self.ui_updater, 'preview_updater', None)
+                    if preview_updater and hasattr(preview_updater, '_preview_cache'):
+                        cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                        if cache_key in preview_updater._preview_cache:
+                            cache = preview_updater._preview_cache[cache_key]
+                            if 0 <= preview_idx < len(cache['lines']):
+                                cache['lines'][preview_idx] = preview_line_text
+            else:
+                # Fallback to full update (same as before)
+                preview_lines = []
                 for real_idx in target_indices:
                     if 0 <= real_idx < len(self.mw.data_store.data[block_idx]):
                         text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
                         preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                         preview_lines.append(preview_line_text)
 
-            preview_full_text = "\n".join(preview_lines)
-            
-            if preview_edit.toPlainText() != preview_full_text:
-                preview_edit.setPlainText(preview_full_text)
+                preview_full_text = "\n".join(preview_lines)
+                if preview_edit.toPlainText() != preview_full_text:
+                    preview_edit.setPlainText(preview_full_text)
+                
+                # Update cache
+                preview_updater = getattr(self.ui_updater, 'preview_updater', None)
+                if preview_updater and hasattr(preview_updater, '_preview_cache'):
+                    cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                    preview_updater._preview_cache[cache_key] = {
+                        'lines': preview_lines,
+                        'next_index': len(target_indices),
+                        'target_indices': target_indices
+                    }
         
         if hasattr(preview_edit, 'highlightManager'):
             preview_edit.highlightManager.clearAllProblemHighlights()
             self.ui_updater._apply_highlights_for_block(block_idx)
 
-            if self.mw.data_store.current_string_idx != -1 and 0 <= self.mw.data_store.current_string_idx < preview_edit.document().blockCount():
-                preview_edit.set_selected_lines([self.mw.data_store.current_string_idx])
+            if self.mw.data_store.current_string_idx != -1 and target_indices and self.mw.data_store.current_string_idx in target_indices:
+                preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+                if 0 <= preview_idx_to_select < preview_edit.document().blockCount():
+                    preview_edit.set_selected_lines([preview_idx_to_select])
+                else:
+                    preview_edit.clear_selection()
             else:
                 preview_edit.clear_selection()
 

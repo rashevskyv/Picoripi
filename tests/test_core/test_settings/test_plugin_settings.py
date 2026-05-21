@@ -18,6 +18,7 @@ def dummy_mw():
     mw.default_tag_mappings = {}
     mw.string_metadata = {}
     mw.default_font_file = ""
+    mw.fonts_dir_path = ""
     mw.newline_display_symbol = "N"
     mw.preview_wrap_lines = True
     mw.editors_wrap_lines = False
@@ -129,3 +130,24 @@ def test_PluginSettings_save_block_names(dummy_mw, tmp_path):
     saved = json.loads(f.read_text())
     assert saved["some_key"] == "val"
     assert saved["block_names"]["3"] == "Block3"
+
+def test_PluginSettings_load_save_fonts_dir_path(dummy_mw, tmp_path):
+    f = tmp_path / "config.json"
+    f.write_text(json.dumps({
+        "display_name": "Test Loaded Fonts",
+        "fonts_dir_path": "C:/custom/fonts/dir"
+    }))
+    
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = MagicMock(return_value=f)
+    
+    d = {}
+    ps.load(d)
+    
+    assert dummy_mw.fonts_dir_path == "C:/custom/fonts/dir"
+    
+    dummy_mw.fonts_dir_path = "D:/another/fonts/dir"
+    ps.save()
+    
+    saved = json.loads(f.read_text())
+    assert saved["fonts_dir_path"] == "D:/another/fonts/dir"

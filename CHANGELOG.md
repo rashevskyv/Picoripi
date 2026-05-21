@@ -1,5 +1,217 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.79] - 2026-05-21
+
+### Added
+- **BFN Font Editor Toolbar Access**: Added a dedicated "BFN Font Editor" shortcut button with a custom desktop icon to the main application toolbar (located next to the AI Chat button), allowing users to launch the standalone Nintendo BFN Font Editor with a single click.
+
+### Fixed
+- **Font & Icon Clipping in BFN Editor**:
+  - Fixed a visual issue where the first letter in the "Glyph Table" tab title (the letter 'G') was cropped vertically. Removed dynamic bold font scaling (`font-weight: bold`) from selected tabs inside the premium stylesheet, ensuring stable, pixel-perfect tab rendering.
+  - Resolved a horizontal text-clipping bug where column headers in the Glyph Table (such as "Character" starting with 'C') were clipped by cell grid lines. Replaced the generic `padding: 6px;` inside `QHeaderView::section` with a generous horizontal padding of `6px 12px;`.
+  - Implemented smart table column resizing: set the default resizing mode of the Glyph Table to `ResizeToContents` so that short metadata columns are automatically sized perfectly without clipping headers, while allowing "Texture Sheet" and "Tile Position" to `Stretch` and gracefully occupy all residual width.
+- **Tree-View Collapse Bug**: Resolved a navigation bug where expanding one archive tree node, expanding another, and then selecting a sheet inside one of the trees would cause the other tree node to collapse. Upgraded `load_from_extracted_dir` inside `bfn_io.py` to collect and preserve the hierarchy's expanded node states *before* clearing and rebuilding the `QTreeWidget` structure.
+
+## [0.2.78] - 2026-05-21
+
+### Added
+- **Permanent Black Backgrounds for Glyph Table Renders**: Updated cell label stylesheets inside `populate_glyph_table` and `refresh_table_row` in `bfn_navigation.py` to always utilize a solid black background (`#000000`) for the "Glyph Render" column in the Glyph Table tab, keeping white or transparent glyphs completely visible across all theme configurations.
+
+## [0.2.77] - 2026-05-21
+
+### Added
+- **Persistent Font Tree Expansion State**: Upgraded `rebuild_tree_widget` inside `BfnEditorWindow` to preserve the user's manual expand/collapse states for archives and files in the tree view during active font transitions or metadata saves, avoiding disruptive tree resets.
+- **Permanent Black Canvas Backgrounds for BFN Views**: Configured both `ImageView` and `SimImageView` in `bfn_widgets.py` to always render with a rich black background brush and viewport style, ensuring light-colored (white/transparent) font glyphs are clearly visible and legible, regardless of whether the light or dark app theme is selected.
+
+## [0.2.76] - 2026-05-21
+
+### Added
+- **Automatic Font Tree Scan on Window Show**: Integrated the directory font scanning and hierarchical tree rebuilding directly into the `showEvent` of `BfnEditorWindow`. Opening the BFN Editor in standalone mode or switching settings will now instantly reload all available loose fonts and decompressed archives, automatically filling the tree layout with the correct hierarchy (Archive -> Font -> Sheets) without manual user action.
+
+### Removed
+- **Streamlined Font Management Interface**: Removed the manual "Open BFN / Folder..." button from the BFN Font Editor layout. Since all fonts from local folders and game archives are now scanned, decompressed, and populated automatically via the plugin settings, manual file-based opening is no longer required, creating a cleaner and fully-automated visual translation workflow.
+
+## [0.2.75] - 2026-05-21
+
+### Added
+- **Global Font Maps Integration**: Integrated all custom and archive-extracted font maps directly into the main window font selector (`font_combobox`) and the mass font assignment dialog (`MassFontDialog`), making every single parsed font immediately available.
+- **Hierarchical Font & Archive Scan inside BFN Font Editor**: BFN Font Editor now scans the active plugin and the custom fonts directory upon launching, automatically building a comprehensive hierarchy tree of all archives, files, and texture sheets.
+- **Dynamic Save callbacks for Disk Assets**: Implemented smart saving for disk-based loose files and game archives. Modifying and saving files in BFN Font Editor dynamically repackages disk `.arc`/`.rarc`/`.u8` archives and updates the memory cache.
+- **Real-Time Font Synchronization**: Changes saved in BFN Font Editor are instantly reloaded across the entire workbench, refreshing all text views and layout warnings immediately.
+
+## [0.2.74] - 2026-05-21
+
+### Added
+- **Automatic In-Memory Archive Font Scan**: Added background scanning and decompression of game archives (`.arc`, `.rarc`, `.u8`) inside the user-specified Fonts Directory. Picoripi automatically unpacks these archives in memory and extracts BFN and JSON font maps, registering them as select-able fonts under `{archive}/{font_name}` for real-time text layout.
+- **Dynamic BFN Font Metrics & Preview Support**: All fonts found in the archives of the fonts directory are now fully supported for pixel-perfect letter width calculation in Picoripi's main text view and dynamically rendered inside the bottom preview widget.
+- **Tree-Based Layout in BFN Editor (QTreeWidget)**: Upgraded the sheet navigation in BFN Font Editor from a flat `QListWidget` to a structured `QTreeWidget`. It represents an intuitive hierarchy: **Archive** -> **Font Files** -> **Texture Sheets** inside each font.
+- **Seamless Archive Font Switching**: Allows the user to switch active BFN fonts inside the same archive seamlessly in real-time from the tree navigation. Includes a dirty-check warning to save any pending changes before switching.
+- **Dynamic Save Callbacks**: Refactored saving in BFN Font Editor to utilize dynamic save callbacks, allowing individual fonts to be packed directly back into RAM-based container archives and instantly updating the main Picoripi UI.
+
+## [0.2.73] - 2026-05-21
+
+### Added
+- **Plugin Fonts Directory Path Configuration**: Added the ability to specify a custom fonts directory path (`fonts_dir_path`) in **Plugin -> File Paths** tab (labeled as **Fonts Directory Path**). This allows loading external fonts (both `.json` and `.bfn` files) dynamically from any local directory.
+- **Dynamic Font Map Merging**: Fonts found in the user-specified directory are seamlessly loaded and merged with the active plugin's default fonts. Custom fonts of the same filename elegantly override built-in ones, offering maximum flexibility.
+- **Dynamic Font List Reloading**: Modifying the fonts directory path instantly refreshes the default font selection list under the **Plugin -> Display** tab without requiring a restart.
+- **Config Persistence**: The custom fonts directory path is saved persistently in the active plugin's `config.json` configuration file, ensuring the settings remain intact across sessions.
+- **Comprehensive Unit Testing**: Added robust unit tests verifying the persistence of the new `fonts_dir_path` setting during load and save operations under `PluginSettings`.
+
+## [0.2.72] - 2026-05-21
+
+### Added
+- **Dynamic Theme Inheritance for BFN Font Editor**: Added complete support for dynamic dark and light theme inheritance. BFN Font Editor now automatically syncs its UI appearance with the main Picoripi settings (`settings.json`).
+- **Premium Light Theme**: Designed and implemented a custom light theme palette and QSS stylesheet specifically tailored for BFN Font Editor, using harmonized HSL-based colors (clean light gray windows, dark text, clean slate buttons, and elegant blue highlights).
+- **Theme-Adaptive Glyph Previews**: Configured the glyph character table to dynamically switch background colors depending on the active theme (white background for light theme, dark for dark theme) to maintain pristine visual contrast and readability of glyph texture sheets.
+- **Adaptive Context Menus**: The glyph table context menus now fully inherit the active theme stylesheet.
+
+## [0.2.71] - 2026-05-21
+
+### Fixed
+- **Theme Isolation in BFN Tool**: Resolved an issue where opening the BFN Font Editor would leak its custom dark color palette (`QPalette`) to the entire QApplication, inadvertently breaking the main Picoripi window style and dialogues. The palette is now properly localized and scoped strictly to the BFN Font Editor window (`widget.setPalette`).
+
+## [0.2.70] - 2026-05-21
+
+### Fixed
+- **Light Theme Restoration**: Fully restored and polished the visual design of the Light Theme. Explicitly defined all color palette entries (Window, Base, WindowText, Buttons, etc.) to prevent layout degradation and accidental fallback to dark system colors on Windows operating systems running in dark mode.
+- **Unit Tests TypeError Fix**: Fixed unit test failures (`TypeError: '<' not supported...`) within `BlockListUpdater` under mock environments by safeguarding the project blocks validation check against Mock objects.
+
+## [0.2.69] - 2026-05-21
+
+### Added
+- **Nintendo Binary Font (BFN) Editor**: Integrated a visual editor and compiler for Nintendo GC/Wii binary fonts (`.bfn` format) as an embedded tool.
+- **PyQt5 Adaptation**: Converted the BFN-editor from PySide6 to PyQt5, resolving Process-level Qt runtime conflicts.
+- **In-Memory Archive Integration**: Added context menu action "Edit BFN Font..." for `.bfn` files, including those located inside RAM-based `.arc` and `.rarc` archives, allowing in-place edits and instant RAM repacking.
+- **Real-Time Font Metrics Sync**: Configured the editor to automatically trigger `FontMapLoader` updates in Picoripi on save, immediately refreshing pixel-perfect line-width calculation and WYSIWYG font preview.
+- **Automatic Test Coverage**: Created `tests/test_ui/test_bfn_editor.py` verifying editor initialization and RAM-based font loading.
+
+## [0.2.68] - 2026-05-21
+
+
+### Fixed
+- **Wrapped Logical Block Selection**: Fixed a UI issue in the "Strings in block" list (`preview_text_edit`) where selecting a logical block that spans multiple visual lines (due to word wrap) via clicking or Shift+clicking would only highlight the first physical line or highlight only the text characters without extending to the full width. Now, the background selection is dynamically split into individual full-width highlights for each visual line layout belonging to the wrapped block, ensuring perfect full-width highlights with zero border bleeding.
+
+## [0.2.66] - 2026-05-21
+
+### Added
+- **Block Properties Dialog**: Added a comprehensive "Properties..." action to the block tree context menu. It opens a detailed dialog displaying block/file metadata, including original name, container archive details, modified state, internal indices, absolute/relative paths, and physical file sizes on disk with easy path copying.
+- **File Extensions in Archive Blocks**: Added original file extension rendering (e.g. `.bmg`) for blocks located inside archive containers (like `.arc`, `.rarc`, `.ark`) within the project tree. During inline renaming, users edit the clean name without extension, which is then dynamically re-appended for display.
+
+## [0.2.65] - 2026-05-21
+
+### Fixed
+- **Archive Path Compaction Support**: Allowed single-child archive folders (e.g., `.arc`, `.rarc`, `.ark` containing exactly one block/file) to undergo Type 2 path compaction. Archive files with a single member (like `bmgres1.arc / zel_01`) now display compactly as a single leaf node, while archive folders containing multiple files (like `bmgres.arc` with two blocks) correctly remain uncompacted to show all their nested members.
+
+## [0.2.64] - 2026-05-21
+
+### Fixed
+- **Virtual Folder Path Compaction (GitHub-style)**: Fixed a bug where single-child virtual folder path chains would uncompact and show as separate nested items when folders were expanded in the tree. Chains now remain compacted (e.g., `A / B / C`) regardless of the folder's expansion state.
+- **Type 2 Compaction File Duplication**: Completely eliminated file duplication under compacted Type 2 nodes (folder containing a single block/file). The parent compacted node now directly represents the block and behaves as a leaf node in the tree without rendering redundant nested files. Also added correct programmatic selection focusing for compacted Type 2 nodes.
+
+## [0.2.63] - 2026-05-21
+
+### Added
+- **Native In-Memory Archive Support**: Replaced external dependency executables `ArcExtract.exe` and `ArcPack.exe` with a native Python-based parser system for Nintendo GC/Wii archives. 
+- **In-Memory Writing & Yaz0 Compression**: Implemented fully virtualized container saving and repacking routines (supporting RARC and U8 formats, including Yaz0-compressed archives) that compile and write final data bytes directly to disk without spawning temp directories or executing sub-processes.
+- **Robust Archive Test Coverage**: Added a comprehensive suite of unit tests in `tests/test_core/test_containers.py` verifying Yaz0 decompression/compression and RARC/U8 read/write/pack round-tripping.
+- **Zero Disk Pollution**: Eliminated `.extracted/` folder generation entirely, keeping files virtualized in RAM during both read and save operations.
+
+## [0.2.62] - 2026-05-21
+
+### Added
+- **System Temp-Dir Extraction**: Archives (`.arc`, `.rarc`, `.ark`) are now extracted into a private temporary directory under the OS `Temp` path (`tempfile.gettempdir()/picoripi/<project_id>`) instead of the `.extracted/` folder inside the project directory. This prevents polluting the user's workspace when opening or creating projects in place.
+- **Full `.ark` Archive Support**: Integrated `.ark` files into the automatic archive extraction and packing pipelines. They are now automatically detected during project sync, unpacked using `ArcExtract`, displayed as virtual subfolders in the block tree, and repacked using `ArcPack` upon saving edits.
+- **Automatic Temp Directory Cleanup**: Implemented automatic cleanup of the project's temporary directory when a project is closed or when the application is exited, ensuring no orphan extracted files are left behind.
+
+## [0.2.61] - 2026-05-21
+
+### Fixed
+- **Virtual Block (Category) Shows All Strings**: Fixed a critical bug where navigating to a virtual block (category) would display all strings of the parent block instead of only the strings belonging to that category. Root cause: `string_selected_from_preview` was reading `category_name` from `self.mw` (which never has this attribute) instead of `self.mw.data_store`. This caused a second `populate_strings_for_block(block_idx, None)` call that overrode the category filter and reloaded all 5000+ strings.
+- **~1 Second Block Navigation Lag**: Eliminated the ~1 second freeze when switching between blocks. The lag was caused by a redundant second call to `populate_strings_for_block` inside `string_selected_from_preview` — which, combined with the wrong `category_name=None`, triggered a full `setPlainText` of 5000+ lines even after the block preview was already correctly rendered. Removing the redundant call fixes both the lag and the category display bug simultaneously.
+- **Archive Files Not Nested Under Archive Folder**: Fixed Type 2 folder compaction incorrectly merging an archive folder (e.g. `my_archive.arc`) containing a single file into one compacted item `my_archive.arc / filename`. Archive folders (`.arc`, `.rarc`, `.ark`) now always display as proper parent folders with their files nested as children, matching the expected tree hierarchy.
+
+### Added
+- **`.ark` Archive Icon Support**: Extended archive folder icon detection to include `.ark` extension in addition to `.arc` and `.rarc`. Folders whose name ends with `.ark` now also display the archive link icon (`SP_DirLinkIcon`).
+
+## [0.2.60] - 2026-05-21
+
+### Fixed
+- **Move to Virtual Block Dialog**: Fixed a bug where clicking "Move to Virtual Block" threw a "No strings selected in preview" warning even when strings were highlighted. Corrected the code to retrieve the selected indices from `data_store.selected_string_indices` instead of the deprecated `mw.selected_string_indices` attribute.
+
+### Added
+- **Smart Archive Member Auto-Grouping**: Enhanced `ProjectManager.add_block` to automatically detect if a block belongs to an archive path structure (e.g. `.extracted/sources/my_archive.arc/inner_folder/file.txt`). It now automatically builds and nests the block within the corresponding virtual folder hierarchy (including parent directories and nested sub-folders), rather than placing it in the flat root block layout.
+- **RARC Archive Folder Support**: Added support for `.rarc` archives to be automatically recognized in the block list tree view, styling them with the archive link icon (`SP_DirLinkIcon`) identical to `.arc` directories.
+- **Virtual Structure Self-Healing**: Modified the project loading routine so that projects of version `1.1` without an active `virtual_folders` configuration will automatically undergo a structure rebuild migration, resolving instances of empty project trees in newly converted projects.
+
+## [0.2.59] - 2026-05-21
+
+### Fixed
+- **Scroll Jumping in Large Block Previews**: Fixed scrollbar jumping to line 1 on clicking a string inside large block previews by referencing `displayed_string_indices` through `data_store` safely, avoiding incorrect dirty-checks that caused unnecessary full page resets via `setPlainText`.
+- **Row Selection Bleed**: Replaced `QTextCursor.BlockUnderCursor` with `QTextCursor.EndOfBlock` keep-anchor selection in `TextHighlightManager` for row selection. This excludes the `\n` line boundary from the background format, ensuring only the target row is highlighted and preventing selection color bleed on adjacent rows under `FullWidthSelection`.
+
+### Optimized
+- **Instant Row Clicking with Prioritized Scan**: Optimized the block highlight update process in `_apply_highlights_for_block`. It now scans and calls problem analysis only for lines registered in `problems_per_subline`, removing the lag when selecting rows in blocks with 5000+ lines.
+
+## [0.2.58] - 2026-05-21
+
+### Added
+- **Preview Cache System**: Added a caching mechanism (`_preview_cache`) in `PreviewUpdater` that stores the loaded lines and loading state of blocks. Switching between blocks now restores the preview instantly from the cache, eliminating any reload latency.
+- **Cache Synchronization**: Tied preview cache lifecycle to project changes. The cache updates dynamically when editing lines and clears automatically during structural Undo/Redo operations or when closing/switching projects.
+
+### Improved
+- **Correct Scrollbar Proportions from Start**: The document structure is pre-populated with empty lines (`\n`) for the entire block size on initial load. This sets the scrollbar to the exact correct height instantly, enabling scrolling through the entire 5000+ line block immediately.
+- **Background Loading via QTextCursor**: Switched from `appendPlainText` to in-place block updates using `QTextCursor` wrapped in `beginEditBlock()` and `endEditBlock()`. This avoids document height recalculations, eliminating rendering lag and freezing during scrolling.
+- **Static Line Number Area Width**: Added `override_total_lines` to `LineNumberedTextEdit` to reserve the correct horizontal width for line numbers beforehand, preventing layout twitching as background loading proceeds.
+
+## [0.2.57] - 2026-05-21
+
+### Optimized
+- **Lazy Chunked Loading for Block Previews**: Introduced an asynchronous chunked loading system for the preview panel in `PreviewUpdater`. When a block is selected, the first chunk of 200 lines (or enough to cover the active string) is loaded instantly. The remaining lines are loaded incrementally in the background using a 15ms `QTimer` in chunks of 500 lines. This ensures instant GUI responsiveness and eliminates the 2-3 second freeze on large blocks (5000+ lines).
+- **Single-Line Preview Updates**: Optimized `TextOperationHandler._update_preview_content` to perform partial single-line preview updates via `QTextCursor` instead of fully rebuilding the document via `setPlainText` on every character stroke. This reduces text-entry latency to zero even inside blocks containing thousands of lines.
+
+### Added
+- **Chunked Loading Verification Tests**: Added comprehensive unit tests (`test_populate_strings_chunked` and `test_TextOperationHandler_update_preview_content_partial`) to guarantee correctness of both lazy loading and partial updates.
+
+## [0.2.56] - 2026-05-21
+
+### Added
+- **Directory Mode (Folder) / File Mode Switcher in File Paths**: Added a dedicated `Directory Mode (Load from folder)` toggle directly in the Settings -> Plugin -> File Paths dialog. This allows switching the current workspace loading between single-file and directory-based structures dynamically, applying to both project and standalone configurations.
+- **Auto-Generate Translation Path**: Integrated an `Auto-generate translation path` feature. When enabled, it locks the changes path field and dynamically constructs the translation file or directory path on-the-fly based on the original path input:
+  - **Directory Mode**: Appends `_translation` to the directory name (e.g. `parent/folder` -> `parent/folder_translation`).
+  - **File Mode**: Appends `_translation` to the file stem while preserving the extension (e.g. `parent/file.json` -> `parent/file_translation.json`).
+- **Dynamic Browse Sensitivity**: The `...` browse button dynamically adapts its behavior to open either folder selection (`QFileDialog.getExistingDirectory`) or file selection (`QFileDialog.getOpenFileName`) instantly based on the state of the Directory Mode checkbox, without requiring a project reload.
+
+## [0.2.55] - 2026-05-20
+
+### Improved
+- **Dynamic Path Settings in Project Mode**: Replaced path field locking with fully dynamic and interactive path settings. Users can now view and edit the project's source and translation folders/files directly from the Settings dialog while a project is active.
+- **Adaptive Settings UI Labels**: The Path sub-tab in Settings dynamically checks the project's `is_directory_mode` and updates labels automatically (e.g. "Original Directory Path" instead of "Original File Path").
+- **Adaptive Browse Mode**: The "Browse (...)" button automatically invokes `QFileDialog.getExistingDirectory` when the project is folder-based, and uses the correct multi-format file selector (supporting JSON, ARC, RARC, BMG, BFN) when it is file-based.
+- **Auto-Sync & Reload on Path Settings Edit**: Modifying paths in Settings automatically updates project metadata, triggers project file re-syncing, and refreshes the project blocks tree immediately. If not in project mode, changing paths automatically reloads the new translation files.
+
+### Fixed
+- **PyQt5 Startup Crashes**: Resolved potential `IndexError` on startup during UI initialization by securing index validation inside `preview_updater.py` and resetting stale block indices properly.
+
+## [0.2.54] - 2026-05-20
+
+### Added
+- **RARC Archive Support (.rarc)**: Extended archive support to include `.rarc` format alongside `.arc`. Both formats are now transparently extracted and packed using `ArcExtract.exe` / `ArcPack.exe`.
+- **BFN File Support (.bfn)**: Added `.bfn` to supported file extensions for both project syncing and inner-archive scanning, enabling font files to be tracked and edited within a project.
+- **BMG / BFN Binary Reading in Project Mode**: Project block loading now reads `.bmg`, `.bfn`, `.arc`, and `.rarc` files as raw binary (`bytes`) instead of text, matching the expected input format for binary-aware plugins (e.g., `zelda_bmg`).
+- **Expanded File Dialogs**: All file selection dialogs (new project, import block, open original/changes file) now include filters for `*.arc`, `*.rarc`, `*.bfn`, and `*.bmg` formats in addition to existing `*.json` and `*.txt` filters.
+
+### Fixed
+- **Settings dialog path fields locked in project mode**: The "Original File Path" and "Changes File Path" fields in the Settings dialog are now read-only (with tooltip explanation) whenever a project is active. Previously these fields showed stale standalone-mode paths and could cause confusion or overwrite project-managed paths on save.
+- **Project path initialization when data is empty**: `data_store.json_path` and `data_store.edited_json_path` are now initialized from the first project block regardless of whether any data was actually parsed. This ensures the status bar shows correct paths even when all blocks are missing/empty.
+
+## [0.2.53] - 2026-05-20
+
+### Added
+- **ARC Archives Support (.arc)**: Added full support for ARC/RARC archives within projects.
+- **Automated Extraction and Packing**: Integrated tools `ArcExtract.exe` and `ArcPack.exe` to handle transparent extraction of archives into `.extracted/` workspace folder on project load, and automated packing back into destination `.arc` files upon saving edits.
+- **Archive Visual Folder Representation**: Archive folders are now clearly distinguished in the block tree widget using the `SP_DirLinkIcon` icon.
+- **Extracted Path Routing**: Updated file path resolving in `ProjectManager` and `DataStateProcessor` to correctly route `.extracted/` virtual paths within the project directory.
+
 ## [0.2.49] - 2026-03-25
 
 ### Added

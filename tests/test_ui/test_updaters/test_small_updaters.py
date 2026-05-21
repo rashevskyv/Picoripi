@@ -183,3 +183,62 @@ class TestPreviewUpdater:
         updater.populate_strings_for_block(0, force=True)
 
         preview_edit.setPlainText.assert_called_once_with("Hello\nWorld")
+
+    @patch('ui.updaters.preview_updater.QTextCursor')
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_chunked(self, mock_hl, mock_ut, mock_cursor, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 250
+        
+        # Mock document structure for findBlockByNumber
+        mock_blocks = {}
+        def mock_find_block(num):
+            block = MagicMock()
+            block.isValid.return_value = True
+            block.position.return_value = num * 10
+            block.text.return_value = ""
+            mock_blocks[num] = block
+            return block
+        
+        preview_edit.document().findBlockByNumber.side_effect = mock_find_block
+        updater.mw.preview_text_edit = preview_edit
+        
+        updater.mw.data_store.data = [["line" + str(i) for i in range(300)]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+        updater.mw.data_store.current_category_name = None
+
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"Hello {r}", None)
+
+        updater.populate_strings_for_block(0, force=True)
+
+        assert preview_edit.setPlainText.called
+        called_arg = preview_edit.setPlainText.call_args[0][0]
+        lines = called_arg.split('\n')
+        assert len(lines) == 300
+        assert lines[0] == "Hello 0"
+        assert lines[199] == "Hello 199"
+        assert lines[200] == ""
+
+        assert hasattr(updater, '_lazy_load_timer')
+        assert updater._lazy_load_timer.isActive()
+
+        # Mock the cursor instance returned by QTextCursor constructor
+        cursor_instance = MagicMock()
+        mock_cursor.return_value = cursor_instance
+
+        updater._load_next_preview_chunk()
+
+        assert cursor_instance.beginEditBlock.called
+        assert cursor_instance.endEditBlock.called
+        assert cursor_instance.insertText.called
+        
+        # First insertion in this chunk should be Hello 200
+        first_insert_arg = cursor_instance.insertText.call_args_list[0][0][0]
+        assert first_insert_arg == "Hello 200"
+
+        assert not updater._lazy_load_timer.isActive()

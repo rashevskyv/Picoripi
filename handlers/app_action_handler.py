@@ -38,6 +38,8 @@ class AppActionHandler(BaseHandler):
                 event.ignore()
                 return
         event.accept()
+        if event.isAccepted() and self.mw.project_manager:
+            self.mw.project_manager.cleanup_temp_dir()
             
     def _derive_edited_path(self, original_path: Union[str, Path]) -> Optional[str]:
         if not original_path:
@@ -59,7 +61,7 @@ class AppActionHandler(BaseHandler):
         if self.mw.data_store.json_path:
             start_dir = str(Path(self.mw.data_store.json_path).parent)
             
-        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Original File", start_dir, "Supported Files (*.json *.txt);;JSON (*.json);;Text files (*.txt);;All (*)")
+        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Original File", start_dir, "Supported Files (*.json *.txt *.bmg *.bfn *.arc *.rarc);;BMG (*.bmg);;BFN (*.bfn);;ARC (*.arc *.rarc);;JSON (*.json);;Text files (*.txt);;All (*)")
         if path:
             self.load_all_data_for_path(path, manually_set_edited_path=None, is_initial_load_from_settings=False)
 
@@ -75,7 +77,7 @@ class AppActionHandler(BaseHandler):
         elif self.mw.data_store.json_path:
             start_dir = str(Path(self.mw.data_store.json_path).parent)
             
-        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
+        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt *.bmg *.bfn *.arc *.rarc);;BMG Files (*.bmg);;BFN Files (*.bfn);;ARC Files (*.arc *.rarc);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
         if path:
             if self.mw.data_store.unsaved_changes:
                  reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Loading a new changes file will discard current unsaved edits. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
@@ -91,6 +93,12 @@ class AppActionHandler(BaseHandler):
                 file_content, error = load_json_file(path_obj)
             elif file_extension == '.txt':
                 file_content, error = load_text_file(path_obj)
+            elif file_extension == '.bmg':
+                try:
+                    with path_obj.open('rb') as f:
+                        file_content = f.read()
+                except Exception as e:
+                    error = f"Failed to read BMG file: {e}"
             else:
                 error = f"Unsupported file type: {file_extension}"
 
@@ -146,7 +154,7 @@ class AppActionHandler(BaseHandler):
         if not current_edited_path: 
             current_edited_path = str(Path(self.mw.data_store.json_path).parent / "untitled_edited.json") if self.mw.data_store.json_path else "untitled_edited.json"
             
-        new_edited_path, _ = QFileDialog.getSaveFileName(self.mw, "Save Changes As...", current_edited_path, "Supported Files (*.json *.txt);;JSON (*.json);;All (*)")
+        new_edited_path, _ = QFileDialog.getSaveFileName(self.mw, "Save Changes As...", current_edited_path, "Supported Files (*.json *.txt *.bmg);;BMG (*.bmg);;JSON (*.json);;All (*)")
         if new_edited_path:
             original_edited_path_backup = self.mw.data_store.edited_json_path
             self.mw.data_store.edited_json_path = new_edited_path
@@ -176,6 +184,12 @@ class AppActionHandler(BaseHandler):
                 file_content, error = load_json_file(path_obj, parent_widget=self.mw)
             elif file_extension == '.txt':
                 file_content, error = load_text_file(path_obj, parent_widget=self.mw)
+            elif file_extension == '.bmg':
+                try:
+                    with path_obj.open('rb') as f:
+                        file_content = f.read()
+                except Exception as e:
+                    error = f"Failed to read BMG file: {e}"
             else:
                 error = f"Unsupported file type: {file_extension}"
 
@@ -226,6 +240,12 @@ class AppActionHandler(BaseHandler):
                     edited_file_content, edit_error = load_json_file(edited_path_obj, parent_widget=self.mw)
                 elif edited_file_extension == '.txt':
                     edited_file_content, edit_error = load_text_file(edited_path_obj, parent_widget=self.mw)
+                elif edited_file_extension == '.bmg':
+                    try:
+                        with edited_path_obj.open('rb') as f:
+                            edited_file_content = f.read()
+                    except Exception as e:
+                        edit_error = f"Failed to read BMG changes file: {e}"
 
                 if edit_error:
                     QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")

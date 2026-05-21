@@ -41,5 +41,7 @@
     "context_menu_tags": {
         "single_tags": [],
         "wrap_tags": []
-    }
+    },
+    "is_directory_mode": false,
+    "auto_generate_translation_path": false
 }

@@ -179,13 +179,15 @@ def test_SpellcheckerManager_is_misspelled(mock_mw):
     # Test custom word
     assert sm.is_misspelled("CustomWord") is False 
     
-    # Test hunspell lookup (it's async now, so it returns False and enqueues)
-    assert sm.is_misspelled("WrongWord") is False
-    assert "wrongword" in getattr(sm, 'worker', MagicMock())._queue or "wrongword" in sm.worker._queue
-    
-    # Simulate worker finishing
-    sm._spell_cache["wrongword"] = True
+    # Test hunspell lookup (it's synchronous, so it returns True because lookup returned False)
     assert sm.is_misspelled("WrongWord") is True
+    
+    # Verify that the result was cached
+    assert sm._spell_cache["wrongword"] is True
+    
+    # Test cached value
+    sm._spell_cache["wrongword"] = False
+    assert sm.is_misspelled("WrongWord") is False
     
     # Disabled check
     sm.enabled = False
@@ -215,33 +217,28 @@ def test_SpellcheckerManager_caching(mock_from_files, mock_mw):
     
     sm = SpellcheckerManager(mock_mw)
     sm.enabled = True
+    sm.hunspell.lookup.return_value = False # Let's say it's misspelled
+    
+    # 1. Normal lookup - should query hunspell, populate cache and return True
+    assert sm.is_misspelled("Apple") is True
+    assert sm._spell_cache["apple"] is True
+    
+    # 2. Second lookup - should return from cache directly
     sm.hunspell.lookup.return_value = True
-    
-    # 1. Normal lookup - should place in queue, return False
-    assert sm.is_misspelled("Apple") is False
-    assert "apple" in sm.worker._queue
-    
-    # Simulate worker processing
-    sm._spell_cache["apple"] = False
-    
-    # 2. Second lookup - should return from cache
-    assert sm.is_misspelled("Apple") is False
+    assert sm.is_misspelled("Apple") is True # still True because it's cached as True
     
     # 3. Case sensitivity in cache
-    assert sm.is_misspelled("apple") is False
+    assert sm.is_misspelled("apple") is True
     
-    # 4. Custom word - should NOT enqueue
-    sm.worker._queue.clear()
+    # 4. Custom word - should return False and not query hunspell
+    sm.hunspell.lookup.reset_mock()
     sm.custom_words.add("banana")
     assert sm.is_misspelled("Banana") is False
-    assert "banana" not in sm.worker._queue
+    sm.hunspell.lookup.assert_not_called()
     
     # 5. Reset cache on reinit
     sm._initialize_spellchecker()
-    sm.worker._queue.clear()
-    sm.worker._queue_set.clear()
-    assert sm.is_misspelled("Apple") is False
-    assert "apple" in sm.worker._queue
+    assert "apple" not in sm._spell_cache
 
 
 

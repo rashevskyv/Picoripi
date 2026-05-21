@@ -24,6 +24,8 @@ class ToolBarBuilder:
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.open_ai_chat_action)
         self.mw.main_toolbar.addSeparator()
+        self.mw.main_toolbar.addAction(self.mw.bfn_editor_action)
+        self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.open_settings_action)
         
         # Push Help to the far right

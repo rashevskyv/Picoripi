@@ -230,7 +230,7 @@ class NewProjectDialog(QDialog):
         else:
             file_path, _ = QFileDialog.getOpenFileName(
                 self, "Select Source File", start_dir,
-                "Supported Files (*.txt *.json);;All Files (*)"
+                "Supported Files (*.txt *.json *.arc *.rarc *.bfn *.bmg);;JSON Files (*.json);;Text Files (*.txt);;ARC Files (*.arc *.rarc);;BFN Files (*.bfn);;BMG Files (*.bmg);;All Files (*)"
             )
             if file_path: 
                 self.source_edit.setText(file_path)
@@ -249,7 +249,7 @@ class NewProjectDialog(QDialog):
         else:
             file_path, _ = QFileDialog.getOpenFileName(
                 self, "Select Translation File", start_dir,
-                "Supported Files (*.txt *.json);;All Files (*)"
+                "Supported Files (*.txt *.json *.arc *.rarc *.bfn *.bmg);;JSON Files (*.json);;Text Files (*.txt);;ARC Files (*.arc *.rarc);;BFN Files (*.bfn);;BMG Files (*.bmg);;All Files (*)"
             )
             if file_path: 
                 self.trans_edit.setText(file_path)
@@ -584,7 +584,7 @@ class ImportBlockDialog(QDialog):
             self,
             "Select Source File",
             start_dir,
-            "Supported Files (*.txt *.json);;Text Files (*.txt);;JSON Files (*.json);;All Files (*)"
+            "Supported Files (*.txt *.json *.arc *.rarc *.bfn *.bmg);;Text Files (*.txt);;JSON Files (*.json);;ARC Files (*.arc *.rarc);;BFN Files (*.bfn);;BMG Files (*.bmg);;All Files (*)"
         )
 
         if file_path:
@@ -607,7 +607,7 @@ class ImportBlockDialog(QDialog):
             self,
             "Select Translation File (Optional)",
             start_dir,
-            "Supported Files (*.txt *.json);;Text Files (*.txt);;JSON Files (*.json);;All Files (*)"
+            "Supported Files (*.txt *.json *.arc *.rarc *.bfn *.bmg);;Text Files (*.txt);;JSON Files (*.json);;ARC Files (*.arc *.rarc);;BFN Files (*.bfn);;BMG Files (*.bmg);;All Files (*)"
         )
 
         if file_path:

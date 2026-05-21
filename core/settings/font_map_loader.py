@@ -11,6 +11,7 @@ class FontMapLoader:
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         self.mw.font_map = {}
         self.mw.all_font_maps = {}
+        self.mw.all_bfn_fonts = {}
         self.mw.font_map_overrides = {}
         self.mw.icon_sequences = []
 
@@ -18,23 +19,103 @@ class FontMapLoader:
             log_warning("No active plugin. Character width calculations will use fallback.")
             return
 
-        fonts_dir = Path("plugins") / plugin_name / "fonts"
-        if not fonts_dir.is_dir():
-            log_warning(f"Fonts directory not found at '{fonts_dir}'. Skipping JSON font files loading.")
-        else:
+        fonts_dirs = [Path("plugins") / plugin_name / "fonts"]
+        custom_fonts_path = getattr(self.mw, 'fonts_dir_path', None)
+        if custom_fonts_path:
+            custom_dir = Path(custom_fonts_path)
+            if custom_dir.is_dir():
+                fonts_dirs.append(custom_dir)
+
+        loaded_any = False
+        for fonts_dir in fonts_dirs:
+            if not fonts_dir.is_dir():
+                continue
             log_debug(f"Loading all font maps from: {fonts_dir}")
+            loaded_any = True
             for font_file in fonts_dir.iterdir():
-                if not font_file.is_file() or not font_file.suffix.lower() == ".json":
+                if not font_file.is_file():
+                    continue
+                suffix = font_file.suffix.lower()
+
+                # Check for archives containing fonts
+                if suffix in (".arc", ".rarc", ".u8"):
+                    try:
+                        from core.containers import ContainerManager
+                        archive_data = font_file.read_bytes()
+                        if ContainerManager.is_supported(archive_data):
+                            container = ContainerManager.open(archive_data)
+                            if container:
+                                for inner_path in container.list_files():
+                                    inner_suffix = Path(inner_path).suffix.lower()
+                                    if inner_suffix not in (".json", ".bfn"):
+                                        continue
+                                    try:
+                                        inner_bytes = container.read_file(inner_path)
+                                        font_key = f"{font_file.name}/{Path(inner_path).name}"
+                                        
+                                        parsed_map = None
+                                        if inner_suffix == ".json":
+                                            parsed_map = json.loads(inner_bytes.decode('utf-8'))
+                                            if "signature" in parsed_map and parsed_map["signature"] == "FFNT":
+                                                parsed_map = self._parse_new_font_format(parsed_map)
+                                        elif inner_suffix == ".bfn":
+                                            from core.bfn_core import BfnCore
+                                            bfn = BfnCore()
+                                            bfn.load(inner_bytes)
+                                            self.mw.all_bfn_fonts[font_key] = bfn
+                                            
+                                            # Load translation_map from active plugin if available
+                                            translation_map = None
+                                            plugin_dir = Path("plugins") / plugin_name
+                                            mapping_path = plugin_dir / 'translation_map.json'
+                                            if mapping_path.exists():
+                                                try:
+                                                    with mapping_path.open('r', encoding='utf-8') as f:
+                                                        translation_map = json.load(f)
+                                                except Exception as e:
+                                                    log_warning(f"Could not load translation mapping for BFN metrics: {e}")
+                                                    
+                                            parsed_map = bfn.to_font_map(translation_map)
+                                            
+                                        if parsed_map is not None:
+                                            self.mw.all_font_maps[font_key] = parsed_map
+                                            log_debug(f"Successfully loaded font map '{font_key}' from archive '{font_file.name}'.")
+                                    except Exception as e:
+                                        log_error(f"Error reading or parsing font map '{inner_path}' from archive '{font_file.name}': {e}", exc_info=True)
+                    except Exception as e:
+                        log_error(f"Error processing archive file '{font_file.name}': {e}", exc_info=True)
+                    continue
+
+                if suffix not in (".json", ".bfn"):
                     continue
     
                 try:
-                    with font_file.open('r', encoding='utf-8') as f:
-                        raw_font_data = json.load(f)
-    
-                    if "signature" in raw_font_data and raw_font_data["signature"] == "FFNT":
-                        parsed_map = self._parse_new_font_format(raw_font_data)
-                    else:
-                        parsed_map = raw_font_data
+                    if suffix == ".json":
+                        with font_file.open('r', encoding='utf-8') as f:
+                            raw_font_data = json.load(f)
+        
+                        if "signature" in raw_font_data and raw_font_data["signature"] == "FFNT":
+                            parsed_map = self._parse_new_font_format(raw_font_data)
+                        else:
+                            parsed_map = raw_font_data
+                    elif suffix == ".bfn":
+                        from core.bfn_core import BfnCore
+                        bfn = BfnCore()
+                        bfn.load_file(str(font_file))
+                        self.mw.all_bfn_fonts[font_file.name] = bfn
+                        
+                        # Load translation_map from active plugin if available
+                        translation_map = None
+                        plugin_dir = Path("plugins") / plugin_name
+                        mapping_path = plugin_dir / 'translation_map.json'
+                        if mapping_path.exists():
+                            try:
+                                with mapping_path.open('r', encoding='utf-8') as f:
+                                    translation_map = json.load(f)
+                            except Exception as e:
+                                log_warning(f"Could not load translation mapping for BFN metrics: {e}")
+                                
+                        parsed_map = bfn.to_font_map(translation_map)
                     
                     self.mw.all_font_maps[font_file.name] = parsed_map
                     log_debug(f"Successfully loaded font map '{font_file.name}'.")

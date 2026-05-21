@@ -161,6 +161,9 @@ def test_UIUpdater_apply_highlights_for_block(updater, mock_mw):
     mock_mw.current_game_rules = MagicMock()
     mock_mw.data = [["s1", "s2"]]
     mock_mw.displayed_string_indices = [0, 1]
+    mock_mw.data_store.problems_per_subline = {
+        (0, 1, 0): {"P1"}
+    }
     
     mock_mw.list_selection_handler._data_string_has_any_problem.side_effect = lambda b, r: r == 1
     updater._apply_highlights_for_block(0)

@@ -34,19 +34,38 @@ class TextHighlightManager:
         
         self._current_selected_lines = []
 
-    def _create_block_background_selection(self, block: QTextBlock, color: QColor, use_full_width: bool = False) -> Optional[QTextEdit.ExtraSelection]:
-        if not block.isValid(): return None
-        selection = QTextEdit.ExtraSelection()
-        selection.format.setBackground(color)
-        cursor = QTextCursor(block)
-        if use_full_width: 
-            selection.format.setProperty(QTextFormat.FullWidthSelection, True)
-            selection.cursor = cursor 
-            selection.cursor.clearSelection() 
-        else: 
-            cursor.select(QTextCursor.BlockUnderCursor) 
+    def _create_block_background_selection(self, block: QTextBlock, color: QColor, use_full_width: bool = False) -> List[QTextEdit.ExtraSelection]:
+        if not block.isValid(): return []
+        
+        layout = block.layout()
+        if not use_full_width or not layout or layout.lineCount() <= 1:
+            selection = QTextEdit.ExtraSelection()
+            selection.format.setBackground(color)
+            cursor = QTextCursor(block)
+            cursor.setPosition(block.position())
+            cursor.clearSelection()
+            if use_full_width:
+                selection.format.setProperty(QTextFormat.FullWidthSelection, True)
             selection.cursor = cursor
-        return selection
+            return [selection]
+            
+        selections = []
+        for i in range(layout.lineCount()):
+            text_line = layout.lineAt(i)
+            if not text_line.isValid():
+                continue
+            selection = QTextEdit.ExtraSelection()
+            selection.format.setBackground(color)
+            selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+            
+            cursor = QTextCursor(block)
+            cursor.setPosition(block.position() + text_line.textStart())
+            cursor.clearSelection()
+            
+            selection.cursor = cursor
+            selections.append(selection)
+            
+        return selections
 
     def _create_search_match_selection(self, block_number: int, start_char_in_block: int, length: int, color: QColor) -> Optional[QTextEdit.ExtraSelection]:
         doc = self.editor.document()
@@ -142,8 +161,8 @@ class TextHighlightManager:
         if line_number >= 0 and line_number < doc.blockCount():
             block = doc.findBlockByNumber(line_number)
             if block.isValid():
-                line_sel = self._create_block_background_selection(block, self.editor.linked_cursor_block_color, use_full_width=True) 
-                if line_sel: new_linked_selections.append(line_sel)
+                line_sels = self._create_block_background_selection(block, self.editor.linked_cursor_block_color, use_full_width=True) 
+                new_linked_selections.extend(line_sels)
                 
                 line_text_length = len(block.text()); actual_column = min(column_number, line_text_length)
                 pos_sel_obj = QTextEdit.ExtraSelection()
@@ -181,9 +200,8 @@ class TextHighlightManager:
         for line_number in line_numbers:
             if line_number >= 0 and line_number < doc.blockCount():
                 block = doc.findBlockByNumber(line_number)
-                selection = self._create_block_background_selection(block, self.editor.preview_selected_line_color, use_full_width=True)
-                if selection:
-                    new_selections.append(selection)
+                selections = self._create_block_background_selection(block, self.editor.preview_selected_line_color, use_full_width=True)
+                new_selections.extend(selections)
 
         self._preview_selected_line_selections = new_selections
         self.applyHighlights()
@@ -201,9 +219,8 @@ class TextHighlightManager:
         for line_number in lines_to_highlight:
             if 0 <= line_number < doc.blockCount():
                 block = doc.findBlockByNumber(line_number)
-                selection = self._create_block_background_selection(block, self.editor.preview_selected_line_color, use_full_width=True)
-                if selection:
-                    new_selections.append(selection)
+                selections = self._create_block_background_selection(block, self.editor.preview_selected_line_color, use_full_width=True)
+                new_selections.extend(selections)
 
         self._preview_selected_line_selections = new_selections
         self.applyHighlights()
@@ -219,9 +236,8 @@ class TextHighlightManager:
         for line_number in line_numbers:
             if 0 <= line_number < doc.blockCount():
                 block = doc.findBlockByNumber(line_number)
-                selection = self._create_block_background_selection(block, color, use_full_width=True)
-                if selection:
-                    new_selections.append(selection)
+                selections = self._create_block_background_selection(block, color, use_full_width=True)
+                new_selections.extend(selections)
         self._categorized_line_selections = new_selections
         self.applyHighlights()
 
@@ -409,9 +425,8 @@ class TextHighlightManager:
             # Only add if the line is not currently selected by preview_selected_line_highlight
             # and if the color is valid (not transparent or fully opaque alpha 0)
             if color and color != Qt.transparent and color.alpha() != 0 and i not in self._current_selected_lines:
-                selection = self._create_block_background_selection(block, color, use_full_width=True)
-                if selection:
-                    new_selections.append(selection)
+                selections = self._create_block_background_selection(block, color, use_full_width=True)
+                new_selections.extend(selections)
 
         self._zebra_selections = new_selections
         self.applyHighlights()

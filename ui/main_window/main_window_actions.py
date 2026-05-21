@@ -49,13 +49,20 @@ class MainWindowActions:
             self.mw.theme = new_settings.get('theme')
             log_info(f"Set new active plugin: {self.mw.active_game_plugin}, theme: {self.mw.theme}, font file: {self.mw.default_font_file}")
 
-            # Update plugin in current project if project is open
+            # Update plugin and paths in current project if project is open
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and \
                hasattr(self.mw.project_manager, 'current_project') and self.mw.project_manager.current_project:
-                self.mw.project_manager.current_project.plugin_name = self.mw.active_game_plugin
+                proj = self.mw.project_manager.current_project
+                proj.plugin_name = self.mw.active_game_plugin
+                proj.metadata['source_path'] = new_settings.get('original_file_path')
+                proj.metadata['translation_path'] = new_settings.get('edited_file_path')
+                proj.metadata['is_directory_mode'] = new_settings.get('is_directory_mode', False)
+                proj.metadata['auto_generate_translation_path'] = new_settings.get('auto_generate_translation_path', False)
+                
                 # Save project-specific settings to metadata
                 self.mw.project_manager.save_settings_to_project(self.mw)
-                log_info(f"Updated project plugin to '{self.mw.active_game_plugin}' and saved project with settings")
+                self.mw.project_manager.save()
+                log_info(f"Updated project plugin to '{self.mw.active_game_plugin}', paths, and saved project with settings")
 
             self.mw.settings_manager._save_global_settings()
             
@@ -103,11 +110,51 @@ class MainWindowActions:
 
             self.mw.settings_manager.save_settings()
 
-            # Save project-specific settings to metadata if project is open
-            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and \
-               hasattr(self.mw.project_manager, 'current_project') and self.mw.project_manager.current_project:
+            # Handle path changes
+            is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and \
+                               self.mw.project_manager.current_project is not None
+            
+            new_orig = new_settings.get('original_file_path')
+            new_edited = new_settings.get('edited_file_path')
+            new_is_dir = new_settings.get('is_directory_mode', False)
+            new_auto_gen = new_settings.get('auto_generate_translation_path', False)
+
+            if is_project_active:
+                proj = self.mw.project_manager.current_project
+                old_source = proj.metadata.get('source_path', '')
+                old_translation = proj.metadata.get('translation_path', '')
+                old_is_dir = proj.metadata.get('is_directory_mode', False)
+                old_auto_gen = proj.metadata.get('auto_generate_translation_path', False)
+                
+                paths_changed = (new_orig != old_source or 
+                                 new_edited != old_translation or 
+                                 new_is_dir != old_is_dir or
+                                 new_auto_gen != old_auto_gen)
+                
+                if paths_changed:
+                    log_info(f"Project paths/mode updated: source='{new_orig}', translation='{new_edited}', is_dir={new_is_dir}, auto_gen={new_auto_gen}")
+                    proj.metadata['source_path'] = new_orig
+                    proj.metadata['translation_path'] = new_edited
+                    proj.metadata['is_directory_mode'] = new_is_dir
+                    proj.metadata['auto_generate_translation_path'] = new_auto_gen
+                
                 self.mw.project_manager.save_settings_to_project(self.mw)
+                self.mw.project_manager.save()
                 log_info("Saved project-specific settings to project metadata")
+                
+                if paths_changed:
+                    # Re-sync files because paths changed!
+                    self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
+                    # Re-populate blocks
+                    if hasattr(self.mw, 'project_action_handler'):
+                        self.mw.project_action_handler._populate_blocks_from_project()
+            else:
+                self.mw.is_directory_mode = new_is_dir
+                self.mw.auto_generate_translation_path = new_auto_gen
+                if new_orig != initial_paths[0] or new_edited != initial_paths[1]:
+                    if new_orig and Path(new_orig).exists():
+                        log_info(f"File paths changed in settings. Loading new data from: {new_orig}")
+                        self.mw.helper.load_all_data_for_path(new_orig, new_edited, is_initial_load_from_settings=False)
 
             self.mw.ui_handler.apply_font_size()
             self.mw.helper.reconfigure_all_highlighters()
@@ -119,6 +166,10 @@ class MainWindowActions:
                 QMessageBox.information(self.mw, "Settings Changed", "Rules have been updated. Rescanning all issues...")
                 if hasattr(self.mw, 'app_action_handler'):
                     self.mw.app_action_handler.rescan_all_tags()
+
+            # Reload font maps and update combobox in case custom font dir changed
+            self.mw.settings_manager.load_all_font_maps()
+            self.mw.string_settings_updater.update_font_combobox()
 
 
     def trigger_save_action(self):
@@ -250,3 +301,104 @@ class MainWindowActions:
     def show_shortcuts_help(self):
         from components.help_dialog import show_shortcuts_dialog
         show_shortcuts_dialog(self.mw)
+
+    # ------------------------------------------------------------------
+    # BFN Font Editor integration
+    # ------------------------------------------------------------------
+
+    def open_bfn_editor_standalone(self):
+        """Open BFN Font Editor as a standalone window (no archive binding)."""
+        from tools.bfn_editor import BfnEditorWindow
+        if not hasattr(self.mw, '_bfn_editor_window') or self.mw._bfn_editor_window is None:
+            self.mw._bfn_editor_window = BfnEditorWindow(parent=self.mw)
+        self.mw._bfn_editor_window.show()
+        self.mw._bfn_editor_window.raise_()
+        self.mw._bfn_editor_window.activateWindow()
+
+    def open_bfn_editor_for_block(self, block_idx: int):
+        """
+        Open BFN Font Editor bound to a specific .bfn block (may be inside an archive).
+        After saving, updates the archive in RAM and reloads font metrics.
+        """
+        from tools.bfn_editor import BfnEditorWindow
+        from PyQt5.QtWidgets import QMessageBox
+        from pathlib import Path
+
+        pm = getattr(self.mw, 'project_manager', None)
+        ds = getattr(self.mw, 'data_store', None)
+        if not pm or not pm.project:
+            QMessageBox.warning(self.mw, 'BFN Editor', 'No project is open.')
+            return
+
+        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        proj_b_idx = block_map.get(block_idx, block_idx)
+        if proj_b_idx >= len(pm.project.blocks):
+            QMessageBox.warning(self.mw, 'BFN Editor', 'Could not resolve block file.')
+            return
+
+        block = pm.project.blocks[proj_b_idx]
+        is_archive_member = block.metadata.get('is_archive_member', False)
+
+        editor = BfnEditorWindow(parent=self.mw)
+
+        if is_archive_member:
+            archive_rel_path = block.metadata.get('archive_rel_path', '')
+            inner_file_name = block.metadata.get('archive_file_name', '')
+            try:
+                container = pm.get_archive_container(archive_rel_path, is_translation=False)
+                bfn_bytes = container.read_file(inner_file_name)
+                
+                # Collect all BFN files from the archive
+                archive_files = {}
+                for path in container.list_files():
+                    if path.lower().endswith(".bfn"):
+                        try:
+                            archive_files[path] = container.read_file(path)
+                        except Exception:
+                            pass
+            except Exception as e:
+                QMessageBox.critical(self.mw, 'BFN Editor', f'Failed to read .bfn from archive:\n{e}')
+                return
+
+            def save_callback(filename: str, new_bytes: bytes):
+                """Write updated BFN back into the in-memory archive and persist to disk."""
+                try:
+                    container.write_file(filename, new_bytes)
+                    archive_abs = pm.get_absolute_path(archive_rel_path, is_translation=False)
+                    Path(archive_abs).write_bytes(container.pack())
+                    log_info(f"BFN Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
+                except Exception as ex:
+                    QMessageBox.critical(editor, 'BFN Editor', f'Failed to write back to archive:\n{ex}')
+
+            editor.open_from_bytes(
+                bfn_bytes,
+                bfn_name=inner_file_name,
+                save_callback=save_callback,
+                font_sync_callback=self._bfn_font_sync,
+                archive_name=Path(archive_rel_path).name,
+                archive_files=archive_files
+            )
+        else:
+            # Regular file on disk
+            src_abs = pm.get_absolute_path(block.source_file, is_translation=False)
+            editor.open_from_path(src_abs, font_sync_callback=self._bfn_font_sync)
+
+        editor.show()
+        editor.raise_()
+
+    def _bfn_font_sync(self):
+        """Reload font metrics in Picoripi after BFN editor saves changes."""
+        sm = getattr(self.mw, 'settings_manager', None)
+        if sm and hasattr(sm, 'load_all_font_maps'):
+            sm.load_all_font_maps()
+        elif hasattr(self.mw, 'font_map_loader'):
+            self.mw.font_map_loader.load_all_font_maps()
+        if hasattr(self.mw, 'string_settings_updater'):
+            self.mw.string_settings_updater.update_font_combobox()
+        # Trigger UI refresh of text editors (width warnings)
+        ui = getattr(self.mw, 'ui_updater', None)
+        if ui and hasattr(ui, 'refresh_all_views'):
+            ui.refresh_all_views()
+        elif ui and hasattr(ui, 'update_text_views'):
+            ui.update_text_views()
+        log_info("BFN Editor: font metrics reloaded after save.")

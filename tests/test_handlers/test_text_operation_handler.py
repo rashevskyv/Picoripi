@@ -114,6 +114,7 @@ def test_TextOperationHandler_rescan_issues_no_rules(handler, mock_mw):
 def test_TextOperationHandler_update_preview_content(handler, mock_mw):
     mock_mw.data = [["str0", "str1"]]
     mock_mw.displayed_string_indices = [0, 1]
+    mock_mw.current_string_idx = -1
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"prev_{x}"
     
     handler._update_preview_content()
@@ -197,3 +198,35 @@ def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
     handler.auto_fix_current_string()
     # verify status bar updated instead of a change applied
     mock_mw.statusBar.showMessage.assert_called_with("Auto-fix: No changes made.", 2000)
+
+from PyQt5.QtGui import QTextCursor
+
+@patch('handlers.text_operation_handler.QTextCursor')
+def test_TextOperationHandler_update_preview_content_partial(mock_cursor_cls, handler, mock_mw):
+    mock_mw.data = [["str0", "str1"]]
+    mock_mw.displayed_string_indices = [0, 1]
+    mock_mw.current_string_idx = 1
+    mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"prev_{x}"
+    
+    mock_block = MagicMock()
+    mock_block.isValid.return_value = True
+    mock_block.text.return_value = "prev_old"
+    mock_block.position.return_value = 10
+    
+    mock_doc = MagicMock()
+    mock_doc.blockCount.return_value = 2
+    mock_doc.findBlockByNumber.return_value = mock_block
+    mock_mw.preview_text_edit.document.return_value = mock_doc
+    
+    mock_mw.preview_text_edit.reset_mock()
+    
+    mock_cursor = MagicMock()
+    mock_cursor_cls.return_value = mock_cursor
+    
+    handler._update_preview_content()
+    
+    mock_mw.preview_text_edit.setPlainText.assert_not_called()
+    mock_doc.findBlockByNumber.assert_called_with(1)
+    mock_cursor.setPosition.assert_any_call(10)
+    mock_cursor.setPosition.assert_any_call(10 + len("prev_old"), mock_cursor_cls.KeepAnchor)
+    mock_cursor.insertText.assert_called_once_with("prev_current")

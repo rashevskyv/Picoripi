@@ -1,8 +1,6 @@
-# Picoripi v0.2.50-dev
+# Picoripi v0.2.79-dev
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
-
-
 
 ## Features
 
@@ -11,6 +9,9 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - Organize strings into **virtual folders (categories)** for logical grouping of translated texts.
 - **Visual Status Tracking**: Unsaved changes propagate via clear asterisk (*) indicators up the project tree. Virtual folders display their own specialized error counts and custom cloud icons for easy identification.
 - **Robust Tree Interaction**: Support for **inline renaming** of both blocks and virtual folders, with advanced data role handling to prevent UI metadata from interfering with raw names.
+- **Transparent Archive Support (.arc, .rarc, .ark)**: Fully native, in-memory archive management. Automatically parses, edits, and packs RARC and U8 archive containers (including Yaz0 compressed archives) directly in RAM. Zero temporary folder creation and no external executable dependencies, keeping files completely virtualized until final save.
+- **Archive Block Extensions**: Archive blocks automatically display their original file extensions (e.g. `.bmg`) in the project tree. Inline renaming dynamically strips the extension for clean editing and restores it afterwards.
+- **Block Properties**: Access a detailed "Properties..." window from the context menu to inspect metadata, original/translation paths, modified state, internal data/project indices, and disk file sizes.
 - Automatic synchronization of local files with project data during work.
 - Move files or individual text blocks between categories with drag-and-drop support.
 
@@ -25,6 +26,9 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - Game-specific logic handled by a robust plugin system in the `plugins/` directory.
 - Each plugin defines its own rules for text parsing, tag handling, font metrics, and problem analysis.
 - Custom font maps (`font_map.json`) for pixel-perfect character width calculation.
+- **Fonts Directory Path**: Ability to specify a custom local directory path (`fonts_dir_path`) under the **Plugin -> File Paths** tab. Fonts inside this folder (both `.json` and `.bfn` files) are dynamically loaded and merged with the active plugin's defaults.
+- **Background Archive Extractor**: Automatically scans game archives (`.arc`, `.rarc`, `.u8`) inside the user-specified Fonts Directory. Unpacks these containers in memory and dynamically registers their nested fonts under `{archive}/{font_name}` for real-time width calculation and text layout rendering.
+- **Dynamic Override & Reloading**: Custom fonts elegantly override defaults with the same filename. Modifying this path immediately refreshes the font list in settings without requiring an application restart.
 - Currently supported games: **Zelda: Minish Cap**, **Zelda: The Wind Waker**, **Pokemon FireRed**, **Plain Text** (generic).
 
 ### AI-Assisted Translation
@@ -54,6 +58,7 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - Add game-specific slang to personal or project-level custom dictionaries.
 
 ### Analysis, Navigation & Safety
+- **High-Performance Large Block Handling**: Instant UI responsiveness on blocks with 5000+ lines using asynchronous chunked preview loading (`QTimer`-based) and surgical single-line preview updates via `QTextCursor` during editing, reducing typing latency to zero.
 - **Analysis Tool**: Histograms and visualizations for text sizes and problem counts with **multi-font support** and **instant font switching** using a stacked-view architecture. Features background processing via `WidthCalculationWorker` to prevent UI freezes. 
 - **Undo / Redo**: Comprehensive undo system covering text edits, folder structure changes, reverts, and even tree navigation.
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
@@ -61,11 +66,20 @@ A PyQt5-based translation workbench designed for simple, visual, and convenient 
 - **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
 - **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).
 
+### Nintendo Binary Font (BFN) Editor
+- **Integrated Font Editor**: Create, view, and modify Nintendo binary fonts (`.bfn` files) directly inside the Picoripi workspace.
+- **Archive Integration**: Edit `.bfn` files nested inside `.arc` and `.rarc` archives. The editor extracts the font, allows visual adjustments, and compiles it back into the in-memory archive seamlessly.
+- **Tree-Based Sheet Navigation**: Upgraded the left navigation panel to an interactive `QTreeWidget` hierarchy (`Archive` -> `Font Files` -> `Texture Sheets`). Allows easy browsing of multi-font archives and direct selection of specific sheets.
+- **Seamless Font Switching**: Instantly switch the active edited BFN font from the tree hierarchy without reopening the tool, complete with automatic unsaved changes checks.
+- **Glyph Table**: Filter, search, and edit character mapping, Unicode codes, width, and kerning parameters in a spreadsheet-like view.
+- **Texture Sheet Operations**: Import and export individual glyphs or entire sheet PNGs with alpha channel preservation.
+- **Real-time Metrics Synchronization**: Save changes to automatically reload font maps (`FontMapLoader`) and refresh width warning highlights in Picoripi text editors instantly.
+- **Interactive Simulator**: Test font rendering, custom kerning, and width spacing with real-time text rendering simulation.
+
 ## Visual Problem Markers
 
 The application uses colored markers in the line numbers area to indicate structural or length issues in the text.
 Some markers might be rendered at **half-height**, which visually signifies that the problem is not critical and relates to an empty line meant for spacing.
-
 ### Default Plugin Warning Markers
 - **Red (Width Exceeded)**: The subline is too wide for the in-game text box bounds.
 - **Green (Short Line)**: The subline is too short — there is enough space to fit the first word of the following line.

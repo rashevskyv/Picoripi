@@ -106,10 +106,50 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         return widget
 
     def _browse_for_file(self, line_edit: QLineEdit):
-        start_dir = Path(line_edit.text()).parent.as_posix() if line_edit.text() else ""
-        path, _ = QFileDialog.getOpenFileName(self, "Select File", start_dir, "JSON Files (*.json);;All Files (*)")
+        is_dir_mode = self.dir_mode_checkbox.isChecked()
+
+        start_dir = line_edit.text() if line_edit.text() else ""
+        if not is_dir_mode and start_dir:
+            try:
+                start_dir = str(Path(start_dir).parent.as_posix())
+            except Exception:
+                start_dir = ""
+
+        if is_dir_mode:
+            path = QFileDialog.getExistingDirectory(self, "Select Directory", start_dir)
+        else:
+            filter_str = "Supported Files (*.json *.arc *.rarc *.bfn *.bmg);;JSON Files (*.json);;Archive Files (*.arc *.rarc);;Font Files (*.bfn);;BMG Files (*.bmg);;All Files (*)"
+            path, _ = QFileDialog.getOpenFileName(self, "Select File", start_dir, filter_str)
+
         if path:
             line_edit.setText(path)
+
+    def _create_dir_selector(self, line_edit: QLineEdit):
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0,0,0,0)
+        
+        layout.addWidget(line_edit)
+        
+        browse_button = QPushButton("...")
+        browse_button.setFixedSize(24, 24)
+        browse_button.clicked.connect(lambda: self._browse_for_directory(line_edit))
+        layout.addWidget(browse_button)
+        
+        return widget
+
+    def _browse_for_directory(self, line_edit: QLineEdit):
+        start_dir = line_edit.text().strip() if line_edit.text() else ""
+        path = QFileDialog.getExistingDirectory(self, "Select Fonts Directory", start_dir)
+        if path:
+            line_edit.setText(path)
+
+    def _on_fonts_dir_changed(self):
+        self.mw.fonts_dir_path = self.fonts_path_edit.text().strip()
+        selected_display_name = self.plugin_combo.currentText()
+        selected_dir_name = self.plugin_map.get(selected_display_name)
+        if selected_dir_name:
+            self._populate_font_list(selected_dir_name)
 
     def load_initial_settings(self):
         current_theme = getattr(self.mw, 'theme', 'auto')
@@ -123,6 +163,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
                 self.plugin_combo.blockSignals(True); self.plugin_combo.setCurrentText(display_name); self.plugin_combo.blockSignals(False)
                 break
         
+        self.fonts_path_edit.setText(getattr(self.mw, 'fonts_dir_path', ""))
         self._populate_font_list(current_plugin_dir_name)
         
         self.font_size_spinbox.setValue(self.mw.current_font_size)
@@ -139,7 +180,26 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         for cat_id, chk in self.log_categories_checkboxes.items():
             chk.setChecked(cat_id in enabled_cats)
         
-        self.original_path_edit.setText(self.mw.data_store.json_path or ""); self.edited_path_edit.setText(self.mw.data_store.edited_json_path or "")
+        is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
+        
+        is_dir_mode = False
+        auto_gen = False
+        if is_project_active:
+            proj = self.mw.project_manager.project
+            is_dir_mode = proj.metadata.get('is_directory_mode', False)
+            auto_gen = proj.metadata.get('auto_generate_translation_path', False)
+            self.original_path_edit.setText(proj.metadata.get('source_path', ''))
+            self.edited_path_edit.setText(proj.metadata.get('translation_path', ''))
+        else:
+            is_dir_mode = getattr(self.mw, 'is_directory_mode', False)
+            auto_gen = getattr(self.mw, 'auto_generate_translation_path', False)
+            self.original_path_edit.setText(self.mw.data_store.json_path or "")
+            self.edited_path_edit.setText(self.mw.data_store.edited_json_path or "")
+            
+        self.dir_mode_checkbox.setChecked(is_dir_mode)
+        self.auto_generate_checkbox.setChecked(auto_gen)
+        self._on_dir_mode_changed(Qt.Checked if is_dir_mode else Qt.Unchecked)
+        self._on_auto_generate_changed(Qt.Checked if auto_gen else Qt.Unchecked)
         
         self.preview_wrap_checkbox.setChecked(self.mw.preview_wrap_lines); self.editors_wrap_checkbox.setChecked(self.mw.editors_wrap_lines)
         self.newline_symbol_edit.setText(self.mw.newline_display_symbol)
@@ -313,6 +373,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'space_dot_color_hex': self.space_dot_color_picker.color().name(), 'restore_unsaved_on_startup': self.restore_session_checkbox.isChecked(),
             'prompt_editor_enabled': self.prompt_editor_checkbox.isChecked(),
             'original_file_path': self.original_path_edit.text(), 'edited_file_path': self.edited_path_edit.text(),
+            'is_directory_mode': self.dir_mode_checkbox.isChecked(),
+            'auto_generate_translation_path': self.auto_generate_checkbox.isChecked(),
+            'fonts_dir_path': self.fonts_path_edit.text().strip(),
             'default_font_file': self.font_file_combo.currentData(), 'preview_wrap_lines': self.preview_wrap_checkbox.isChecked(),
             'editors_wrap_lines': self.editors_wrap_checkbox.isChecked(), 'newline_display_symbol': self.newline_symbol_edit.text(),
             'newline_color_rgba': self.newline_color_picker.color().name(QColor.HexArgb) if hasattr(QColor, 'HexArgb') else self.newline_color_picker.color().name(),

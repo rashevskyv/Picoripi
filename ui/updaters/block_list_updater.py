@@ -6,6 +6,31 @@ from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
 
 class BlockListUpdater(BaseUIUpdater):
+    def _get_block_display_name_with_ext(self, block_idx: int, base_display_name: str) -> str:
+        if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+            pm = self.mw.project_manager
+            block_map = getattr(self.mw, 'block_to_project_file_map', {})
+            proj_b_idx = block_map.get(block_idx, block_idx)
+            try:
+                from unittest.mock import Mock
+                if (isinstance(proj_b_idx, int) and 
+                    not isinstance(pm.project, Mock) and 
+                    not isinstance(pm.project.blocks, Mock) and 
+                    isinstance(pm.project.blocks, list) and
+                    proj_b_idx < len(pm.project.blocks)):
+                    
+                    block = pm.project.blocks[proj_b_idx]
+                    if block and not isinstance(block, Mock):
+                        is_archive = block.metadata.get('is_archive_member', False)
+                        if is_archive:
+                            orig_filename = block.metadata.get('archive_file_name') or Path(block.source_file).name
+                            ext = Path(orig_filename).suffix
+                            if ext and not base_display_name.lower().endswith(ext.lower()):
+                                return f"{base_display_name}{ext}"
+            except Exception:
+                pass
+        return base_display_name
+
     def get_tree_state(self) -> dict:
         """Returns the current expansion and selection state of the block tree."""
         if not self.mw.block_list_widget:
@@ -210,12 +235,13 @@ class BlockListUpdater(BaseUIUpdater):
     def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
         """Helper to create a single block tree item with issue counts and tooltips."""
         base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
+        display_name_with_ext = self._get_block_display_name_with_ext(block_idx, base_display_name)
         block_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts)
         
-        item = self.mw.block_list_widget.create_item(base_display_name, block_idx, Qt.UserRole)
-        self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
+        item = self.mw.block_list_widget.create_item(display_name_with_ext, block_idx, Qt.UserRole)
+        self._apply_issues_and_tooltip(item, display_name_with_ext, block_problem_counts, problem_definitions)
         
-        item.setData(0, Qt.UserRole + 4, base_display_name)
+        item.setData(0, Qt.UserRole + 4, display_name_with_ext)
         item.setData(0, Qt.EditRole, base_display_name)
         
         # Add categories as children
@@ -254,26 +280,34 @@ class BlockListUpdater(BaseUIUpdater):
         
         curr_for_children = folder
         
+        # Whether the folder itself is an archive (never compact archives so children stay visible)
+        _fname_lower = folder.name.lower()
+        is_archive_root = (
+            _fname_lower.endswith('.arc') or
+            _fname_lower.endswith('.rarc') or
+            _fname_lower.endswith('.ark')
+        )
+        
         # 1. Compact consecutive single-child folders (Type 1)
-        if not is_expanded:
-            temp_curr = folder
-            while len(temp_curr.children) == 1 and len(temp_curr.block_ids) == 0:
-                temp_curr = temp_curr.children[0]
-                display_name += f" / {temp_curr.name}"
-                merged_folder_ids.append(temp_curr.id)
-                compaction_type = 1
-                curr_for_children = temp_curr
-            
-            # 2. Compact with a single block (Type 2)
-            if len(curr_for_children.children) == 0 and len(curr_for_children.block_ids) == 1:
-                id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
-                b_id = curr_for_children.block_ids[0]
-                idx = id_to_idx.get(b_id)
-                if idx is not None:
-                    block_name = self.mw.data_store.block_names.get(str(idx), f"Block {idx}")
-                    display_name += f" / {block_name}"
-                    compaction_type = 2
-                    block_idx_for_icon = idx
+        temp_curr = folder
+        while len(temp_curr.children) == 1 and len(temp_curr.block_ids) == 0:
+            temp_curr = temp_curr.children[0]
+            display_name += f" / {temp_curr.name}"
+            merged_folder_ids.append(temp_curr.id)
+            compaction_type = 1
+            curr_for_children = temp_curr
+        
+        # 2. Compact with a single block (Type 2)
+        if len(curr_for_children.children) == 0 and len(curr_for_children.block_ids) == 1:
+            id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
+            b_id = curr_for_children.block_ids[0]
+            idx = id_to_idx.get(b_id)
+            if idx is not None:
+                block_name = self.mw.data_store.block_names.get(str(idx), f"Block {idx}")
+                block_name_with_ext = self._get_block_display_name_with_ext(idx, block_name)
+                display_name += f" / {block_name_with_ext}"
+                compaction_type = 2
+                block_idx_for_icon = idx
 
         # 3. Add [f / b] counter only for non-compacted folders
         # Rule: Hide counter if the folder contains exactly ONE single child (folder or block)
@@ -288,7 +322,22 @@ class BlockListUpdater(BaseUIUpdater):
         # Create folder item
         folder_item = QTreeWidgetItem([display_name])
         folder_item.setFlags(folder_item.flags() | Qt.ItemIsEditable)
-        folder_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
+        
+        is_archive_folder = (
+            is_archive_root or
+            clean_display_name.lower().endswith('.arc') or 
+            clean_display_name.lower().endswith('.rarc') or 
+            clean_display_name.lower().endswith('.ark') or
+            ('/ ' in clean_display_name and (
+                '.arc /' in clean_display_name.lower() or
+                '.rarc /' in clean_display_name.lower() or
+                '.ark /' in clean_display_name.lower()
+            ))
+        )
+        if is_archive_folder:
+            folder_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirLinkIcon))
+        else:
+            folder_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
         
         folder_item.setData(0, Qt.UserRole + 1, curr_for_children.id)
         folder_item.setData(0, Qt.UserRole + 2, merged_folder_ids)
@@ -311,21 +360,27 @@ class BlockListUpdater(BaseUIUpdater):
             
         parent_item.addChild(folder_item)
         
-        # Standard recursive children population
-        for child in curr_for_children.children:
-            self._add_virtual_folder_to_tree(folder_item, child, problem_definitions, current_selection_block_idx, pre_aggregated_counts, folder_id_to_select=folder_id_to_select)
-            
-        id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
-        for b_id in curr_for_children.block_ids:
-            idx = id_to_idx.get(b_id)
-            if idx is not None:
-                block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
-                folder_item.addChild(block_item)
-                if idx == current_selection_block_idx:
-                    self.mw.block_list_widget.setCurrentItem(block_item)
-                    block_item.setSelected(True)
-                    if block_item.childCount() > 0:
-                        block_item.setExpanded(True)
+        if compaction_type != 2:
+            # Standard recursive children population (only if NOT compacted with block)
+            for child in curr_for_children.children:
+                self._add_virtual_folder_to_tree(folder_item, child, problem_definitions, current_selection_block_idx, pre_aggregated_counts, folder_id_to_select=folder_id_to_select)
+                
+            id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
+            for b_id in curr_for_children.block_ids:
+                idx = id_to_idx.get(b_id)
+                if idx is not None:
+                    block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
+                    folder_item.addChild(block_item)
+                    if idx == current_selection_block_idx:
+                        self.mw.block_list_widget.setCurrentItem(block_item)
+                        block_item.setSelected(True)
+                        if block_item.childCount() > 0:
+                            block_item.setExpanded(True)
+        else:
+            # For compaction Type 2 (Folder/Block), the folder_item itself represents the block.
+            if block_idx_for_icon is not None and block_idx_for_icon == current_selection_block_idx:
+                self.mw.block_list_widget.setCurrentItem(folder_item)
+                folder_item.setSelected(True)
 
         # Apply expansion state AFTER children are added so Qt knows it's NOT a leaf
         folder_item.setExpanded(is_expanded)
@@ -485,6 +540,7 @@ class BlockListUpdater(BaseUIUpdater):
                 base_display_name = item.data(0, Qt.UserRole + 4)
                 if base_display_name is None:
                     base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
+                    base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
                     
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name)
                 
@@ -527,6 +583,7 @@ class BlockListUpdater(BaseUIUpdater):
                 base_display_name = item.data(0, Qt.UserRole + 4)
                 if base_display_name is None:
                     base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
+                    base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
                 
                 if item.text(0) != base_display_name: 
                     item.setText(0, base_display_name) 

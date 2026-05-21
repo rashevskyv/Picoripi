@@ -1,19 +1,19 @@
-# --- START OF FILE GEMINI.md ---
-# GEMINI.md - Project Context for Gemini
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
 ## Project Overview
 
-The "Picoripi" (v0.2.52-dev) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.2.78-dev) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
-The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
+The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
 ### Core Features
 
 - **Project Management**: A fully project-based workflow. A "project" (`.uiproj` file) encapsulates all files and settings for a specific translation effort. Supports virtual "categories" (folders) for logical grouping, **robust inline renaming**, and persistent selection state.
+
 - **Visual Feedback System**: Automatic file synchronization, clear problem counts and warning indicators across the project tree with **recursive asterisk propagation for unsaved changes**.
 - **Plugin-Based Architecture**: Game-specific logic is handled by a robust plugin system located in the `plugins/` directory. Each plugin (e.g., `zelda_mc`, `zelda_ww`, `pokemon_fr`, `plain_text`) defines its own rules for text parsing, tag handling, font metrics for width calculation, problem analysis, and autofix behavior. Plugins inherit from `BaseGameRules` (`plugins/base_game_rules.py`).
+- **Archive Support**: Fully native, in-memory archive management. Automatically detects, parses, edits, and packs RARC and U8 archive containers (including Yaz0 compressed formats) directly in RAM. Eliminates the need for external executables like `ArcExtract.exe` or `ArcPack.exe` and prevents any disk space pollution.
 - **AI-Assisted Translation**: Integrates with external AI services (OpenAI, Gemini, DeepL) for translation. Features include: batch translation, translation variations for long sentences, AI-powered glossary fill, glossary occurrence batch-update, and a dedicated AI Chat window. The system uses configurable prompts (`AIPromptComposer`) and a full lifecycle manager (`AILifecycleManager`) for reliable async operations.
 - **Glossary System**: Full CRUD glossary management with intelligent, high-performance highlighting of glossary terms using the **Aho-Corasick** algorithm. Supports Slavic-friendly morphological matching, **multiple translation variations** (semicolon-separated), multi-line Bridge Highlighting, AI-powered term filling, batch occurrence updates, and interactive tooltips.
 - **Specialized UI Components**: Custom widgets like `LineNumberedTextEdit` that calculates pixel-perfect character widths using game-specific font maps, provides line numbers, shows visual warnings (colored markers) for text exceeding display limits, and provides contextual tooltips for glossary and issues.
@@ -121,11 +121,12 @@ The project follows a well-organized, modular structure with clear separation of
     -   `builders/`: UI construction modules (`layout_builder.py`, `menu_builder.py`, `toolbar_builder.py`, `statusbar_builder.py`).
     -   `updaters/`: Decomposed UI updaters: `block_list_updater.py`, `preview_updater.py`, `string_settings_updater.py`, `title_status_bar_updater.py`.
     -   `main_window/`: MainWindow event handling and actions.
--   `components/`: Reusable PyQt5 widgets (text editors, tree widgets, dialogs, glossary edit dialog).
+-   `components/`: Reusable PyQt5 widgets (text editors, tree widgets, dialogs, glossary edit dialog). Contains `block_properties_dialog.py` for displaying file metadata.
 -   `plugins/`: Game-specific plugin modules:
     -   `base_game_rules.py`: Abstract base class for all plugins.
     -   `common/`: Shared markers and utilities (`markers.py`).
     -   `zelda_mc/`, `zelda_ww/`, `pokemon_fr/`, `plain_text/`: Individual game plugins.
+-   `tools/`: Helper utilities and embedded tools, including `bfn_editor/` (Nintendo Binary Font visual editor and compiler converted to PyQt5).
 -   `utils/`: Utility functions (`utils.py`), constants (`constants.py`), syntax highlighter (`syntax_highlighter.py`), and logging (`logging_utils.py`).
 -   `tests/`: 600+ unit tests organized by module (pytest).
 
@@ -137,10 +138,12 @@ The project follows a well-organized, modular structure with clear separation of
 -   **Decoupling**: Handlers use `ProjectContext` (Protocol, defined in `core/context.py`) instead of direct `MainWindow` references, enabling unit testing with mocks.
 -   **Logging**: All diagnostic output is managed by `utils/logging_utils.py` using `RotatingFileHandler` (2 MB limit, 5 backups). Written to `app_debug.txt`. Use `log_info()`, `log_warning()`, `log_error(msg, exc_info=True)` for logging.
 -   **Plugin Interface**: `plugins/base_game_rules.py` defines the abstract base class. Plugins must implement: `load_data_from_json_obj`, `save_data_to_json_obj`, `get_enter_char`, `analyze_subline`, and optionally `autofix_data_string`, `process_pasted_segment`.
--   **Testing**: All tests use `pytest` with fixtures defined in `tests/conftest.py`. Mock-based unit tests for handlers use `unittest.mock.MagicMock` for `MainWindow` and Qt widgets.
+-   **Testing**: All tests use `pytest` with fixtures defined in `tests/conftest.py`. Mock-based unit tests for handlers use `unittest.mock.MagicMock` for `MainWindow` and Qt widgets. Не тестуй самостійнол. Я сам запускатим тести за потреби
 
-Розмовляй та пиши волксру та плани kbit українською
+Розмовляй та пиши волксру та плани лише українською
 
 Весь текст в програмі має бути англійською мовою
 
 Середовище виконання - powershell, то ж використовуй відповідні команди 
+
+Коли кажу коммітити - обов'язково піднімай версію. Обов'язково актуалізовуй файли аудиту, джемінай, рідмі та чейнджлог.
