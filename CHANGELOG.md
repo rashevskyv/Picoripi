@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.81] - 2026-05-22
+
+### Fixed
+- **Cyrillic Rendering in BFN Preview**: Corrected the glyph mapping logic for `mapping_type == 2` in `BfnPreviewWidget`. This aligns preview rendering with the BFN simulation, correctly rendering Cyrillic characters instead of empty boxes or `NNN` placeholders.
+
 ## [0.2.80] - 2026-05-22
 
 ### Added

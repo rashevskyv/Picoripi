@@ -211,5 +211,7 @@ class BfnViewMixin:
         self.btn_save.setEnabled(val)
         if val:
             self.status.showMessage("Unsaved changes pending. Click Save or press Ctrl+S to apply.")
+            if hasattr(self, 'chk_auto_sync') and self.chk_auto_sync.isChecked():
+                self.schedule_auto_sync()
         else:
             self.status.showMessage("All changes saved.")

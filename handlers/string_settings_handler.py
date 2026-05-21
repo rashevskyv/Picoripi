@@ -161,6 +161,33 @@ class StringSettingsHandler(BaseHandler):
         
         self._apply_and_rescan()
 
+    def apply_font_to_block(self, block_idx: int, font_file: str) -> None:
+        if block_idx == -1:
+            return
+
+        if not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data):
+            return
+
+        total_lines = len(self.mw.data_store.data[block_idx])
+        log_debug(f"Applying font '{font_file}' to all {total_lines} lines in block {block_idx}")
+        for line_idx in range(total_lines):
+            key: Tuple[int, int] = (block_idx, line_idx)
+            if key not in self.mw.string_metadata:
+                if font_file == "default":
+                    continue
+                self.mw.string_metadata[key] = {}
+
+            if font_file == "default":
+                if "font_file" in self.mw.string_metadata[key]:
+                    del self.mw.string_metadata[key]["font_file"]
+            else:
+                self.mw.string_metadata[key]["font_file"] = font_file
+
+            if not self.mw.string_metadata[key]:
+                del self.mw.string_metadata[key]
+
+        self._apply_and_rescan()
+
     def apply_width_to_lines(self, line_indices: List[int], width: int) -> None:
         block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:

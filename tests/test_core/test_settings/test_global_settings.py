@@ -32,6 +32,8 @@ def mock_mw():
     mw.settings_window_width = 800
     mw.log_file_path = ""
     mw.enabled_log_categories = []
+    mw.bfn_glyph_table_column_widths = []
+    mw.bfn_auto_sync_enabled = False
     
     mw.data_store.edited_data = None
     mw.window_normal_geometry_on_close = None

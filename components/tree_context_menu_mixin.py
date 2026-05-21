@@ -204,6 +204,28 @@ class TreeContextMenuMixin:
                     menu.addAction(action)
             menu.addSeparator()
 
+            # Set Default Font
+            ssh = getattr(main_window, 'string_settings_handler', None)
+            if ssh:
+                font_menu = menu.addMenu(self.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Set Default Font")
+                
+                # Default option
+                default_font_display_text = f"Default ({main_window.default_font_file or 'None'})"
+                def_act = font_menu.addAction(default_font_display_text)
+                def_act.triggered.connect(
+                    lambda checked=False, idx=block_idx: ssh.apply_font_to_block(idx, "default")
+                )
+                
+                all_fonts = getattr(main_window, 'all_font_maps', {})
+                if all_fonts:
+                    for font_key in sorted(all_fonts.keys()):
+                        if font_key != main_window.default_font_file:
+                            font_act = font_menu.addAction(font_key)
+                            font_act.triggered.connect(
+                                lambda checked=False, idx=block_idx, fk=font_key: ssh.apply_font_to_block(idx, fk)
+                            )
+                menu.addSeparator()
+
             # Rescan / Calculate widths
             aah = getattr(main_window, 'app_action_handler', None)
             ish = getattr(main_window, 'issue_scan_handler', None)

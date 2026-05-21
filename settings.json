@@ -3,14 +3,14 @@
     "active_game_plugin": "zelda_bmg",
     "window_was_maximized": false,
     "window_normal_geometry": {
-        "x": 479,
-        "y": 50,
+        "x": 527,
+        "y": 85,
         "width": 2061,
         "height": 1276
     },
     "main_splitter_state": "AAAA/wAAAAEAAAACAAAA/QAAAyAB/////wEAAAABAA==",
-    "right_splitter_state": "AAAA/wAAAAEAAAACAAAAlgAAAcIB/////wEAAAACAA==",
-    "bottom_right_splitter_state": "AAAA/wAAAAEAAAACAAABkAAAAdAB/////wEAAAABAA==",
+    "right_splitter_state": "AAAA/wAAAAEAAAACAAAAlgAAAjUB/////wEAAAACAA==",
+    "bottom_right_splitter_state": "AAAA/wAAAAEAAAACAAABkAAAAaYB/////wEAAAABAA==",
     "show_multiple_spaces_as_dots": true,
     "space_dot_color_hex": "#808080",
     "theme": "light",
@@ -78,5 +78,6 @@
         118,
         52,
         52
-    ]
+    ],
+    "bfn_auto_sync_enabled": false
 }

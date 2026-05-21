@@ -460,6 +460,68 @@ def test_bfn_editor_window_column_widths_persistence(qapp, dummy_bfn_bytes):
     editor.close()
 
 
+def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_bytes):
+    """Test that Auto-sync and Force Recalculation features in BFN Editor window work correctly."""
+    from PyQt5 import QtCore
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
+    
+    # 1. Setup mock callbacks and settings manager
+    mock_settings = {}
+    mock_sm = MagicMock()
+    mock_sm.get.side_effect = lambda key, default=None: mock_settings.get(key, default)
+    mock_sm.set.side_effect = lambda key, val: mock_settings.__setitem__(key, val)
+    mock_sm.mw = MagicMock()
+    editor.get_settings_manager = lambda: mock_sm
+    
+    save_called = False
+    def save_cb(bfn_name, bfn_bytes):
+        nonlocal save_called
+        save_called = True
+        
+    sync_called = False
+    def sync_cb():
+        nonlocal sync_called
+        sync_called = True
+        
+    editor.archive_save_callback = save_cb
+    editor.font_sync_callback = sync_cb
+    
+    # 2. Test manual force recalculation
+    editor._dirty = True
+    editor.force_sync_and_recalculate()
+    assert save_called, "save_changes should be called on force_sync_and_recalculate"
+    assert sync_called, "font_sync_callback should be called on force_sync_and_recalculate"
+    
+    # 3. Test Auto-sync toggling saves to settings
+    editor.chk_auto_sync.setChecked(True)
+    editor.on_auto_sync_toggled(QtCore.Qt.Checked)
+    assert mock_settings.get("bfn_auto_sync_enabled") is True
+    
+    editor.chk_auto_sync.setChecked(False)
+    editor.on_auto_sync_toggled(QtCore.Qt.Unchecked)
+    assert mock_settings.get("bfn_auto_sync_enabled") is False
+    
+    # 4. Test Auto-sync triggers timer on dirty state
+    save_called = False
+    sync_called = False
+    editor._dirty = False
+    editor.chk_auto_sync.setChecked(True)
+    
+    # Trigger dirty state change via _set_dirty(True)
+    editor._set_dirty(True)
+    assert editor.auto_sync_timer.isActive(), "auto_sync_timer should be started when Auto-sync is checked and window becomes dirty"
+    
+    # 5. Verify timer timeout triggers save
+    # Let's fire the timeout signal manually
+    editor.auto_sync_timer.timeout.emit()
+    assert save_called, "save_changes should be triggered when auto_sync_timer fires"
+    
+    editor.clear_temp()
+    editor.close()
+
+
+
 
 
 

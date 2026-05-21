@@ -260,6 +260,7 @@ class MainWindow(QMainWindow):
         self.undo_typing_action = None; self.redo_typing_action = None;
         self.undo_paste_action = None
         self.rescan_all_tags_action = None
+        self.recalculate_widths_action = None
         self.find_action = None
         self.auto_fix_action = None
         self.open_ai_chat_action = None

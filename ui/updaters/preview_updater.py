@@ -513,7 +513,18 @@ class PreviewUpdater(BaseUIUpdater):
             if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
                 font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
                 icon_sequences = getattr(self.mw, 'icon_sequences', [])
-                strict_width = calculate_strict_string_width(str(original_text_raw), font_map_for_string, icon_sequences=icon_sequences)
+                
+                original_lines = str(original_text_raw).split('\n')
+                widths = []
+                for line in original_lines:
+                    w = calculate_strict_string_width(line, font_map_for_string, icon_sequences=icon_sequences)
+                    if w is None:
+                        widths = None
+                        break
+                    widths.append(w)
+                
+                strict_width = max(widths) if widths is not None and widths else None
+                
                 if strict_width is not None:
                     self.mw.original_width_label.setText(f"Width: {strict_width}px")
                     self.mw.original_width_label.show()

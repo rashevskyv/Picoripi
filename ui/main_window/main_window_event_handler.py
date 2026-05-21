@@ -91,6 +91,8 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'revert_action'): self.mw.revert_action.triggered.connect(self.mw.actions.trigger_revert_action)
         if hasattr(self.mw, 'undo_paste_action'): self.mw.undo_paste_action.triggered.connect(self.mw.actions.trigger_undo_paste_action)
         if hasattr(self.mw, 'rescan_all_tags_action'): self.mw.rescan_all_tags_action.triggered.connect(self.mw.app_action_handler.rescan_all_tags)
+        if hasattr(self.mw, 'recalculate_widths_action'):
+            self.mw.recalculate_widths_action.triggered.connect(self.mw.actions.trigger_recalculate_widths)
         if hasattr(self.mw, 'reload_tag_mappings_action'):
             self.mw.reload_tag_mappings_action.triggered.connect(self.mw.actions.trigger_reload_tag_mappings)
         if hasattr(self.mw, 'find_action'):

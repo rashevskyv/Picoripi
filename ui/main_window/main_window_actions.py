@@ -395,10 +395,46 @@ class MainWindowActions:
             self.mw.font_map_loader.load_all_font_maps()
         if hasattr(self.mw, 'string_settings_updater'):
             self.mw.string_settings_updater.update_font_combobox()
-        # Trigger UI refresh of text editors (width warnings)
+        
+        # Trigger UI refresh of text editors and preview widget
         ui = getattr(self.mw, 'ui_updater', None)
-        if ui and hasattr(ui, 'refresh_all_views'):
-            ui.refresh_all_views()
-        elif ui and hasattr(ui, 'update_text_views'):
-            ui.update_text_views()
-        log_info("BFN Editor: font metrics reloaded after save.")
+        if ui:
+            if hasattr(ui, 'update_text_views'):
+                ui.update_text_views()
+            if hasattr(ui, 'populate_strings_for_block'):
+                # Force refresh preview text lines cache
+                ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
+        
+        # Proactively trigger silent project-wide recalculation after changes in glyphs
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+            
+        log_info("BFN Editor: font metrics reloaded and silent full project recalculation started.")
+
+    def trigger_recalculate_widths(self):
+        """Force recalculate text widths and issues for the entire project."""
+        from PyQt5.QtWidgets import QMessageBox
+        
+        # 1. Reload font metrics
+        sm = getattr(self.mw, 'settings_manager', None)
+        if sm and hasattr(sm, 'load_all_font_maps'):
+            sm.load_all_font_maps()
+        elif hasattr(self.mw, 'font_map_loader'):
+            self.mw.font_map_loader.load_all_font_maps()
+            
+        if hasattr(self.mw, 'string_settings_updater'):
+            self.mw.string_settings_updater.update_font_combobox()
+            
+        # 2. Perform full silent scan of all issues (which recalculates all widths)
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+            
+        # 3. Refresh text views and preview cache
+        ui = getattr(self.mw, 'ui_updater', None)
+        if ui:
+            if hasattr(ui, 'update_text_views'):
+                ui.update_text_views()
+            if hasattr(ui, 'populate_strings_for_block'):
+                ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
+                
+        QMessageBox.information(self.mw, "Recalculation Complete", "All text widths and issues have been successfully recalculated!")
