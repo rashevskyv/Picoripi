@@ -231,6 +231,12 @@ class UndoManager:
             if 'root_block_ids' in snapshot:
                 project.metadata['root_block_ids'] = list(snapshot['root_block_ids'])
             self.mw.project_manager.save()
+        
+        # Clear preview cache since project structure changed
+        preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None) if hasattr(self.mw, 'ui_updater') else None
+        if preview_updater and hasattr(preview_updater, '_preview_cache'):
+            preview_updater._preview_cache.clear()
+
         if hasattr(self.mw, 'ui_updater'):
             self.mw.ui_updater.populate_blocks()
             self.mw.ui_updater.update_title()

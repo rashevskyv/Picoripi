@@ -54,6 +54,10 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._previously_selected_lines = set()
         self.drag_start_pos = None
 
+        self.custom_line_numbers = None
+        self.custom_subline_numbers = None
+        self.override_total_lines = None
+
         self.editor_player_tag = EDITOR_PLAYER_TAG_CONST
         self.original_player_tag = ORIGINAL_PLAYER_TAG_CONST
         self.font_map = {}
@@ -125,9 +129,6 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.tag_helpers = LNETTagHelpers(self)
         self.hi_wrappers = LNETHighlightWrappers(self)
         self.keyboard_handler = LNETKeyboardHandler(self)
-
-        self.custom_line_numbers = None
-        self.custom_subline_numbers = None
 
         lnet_editor_setup.update_auxiliary_widths(self)
         self.highlightManager.update_zebra_stripes()
@@ -339,7 +340,8 @@ class LineNumberedTextEdit(QPlainTextEdit):
              self.highlightManager.updateCurrentLineHighlight()
              self.setUndoRedoEnabled(False)
     def lineNumberAreaWidth(self):
-        digits = 1; max_val = max(1, self.blockCount())
+        total_blocks = self.override_total_lines if self.override_total_lines is not None else self.blockCount()
+        digits = 1; max_val = max(1, total_blocks)
         while max_val >= 10: max_val //= 10; digits += 1
         
         # In review dialog, we have dual columns

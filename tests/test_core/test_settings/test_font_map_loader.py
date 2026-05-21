@@ -92,3 +92,46 @@ def test_FontMapLoader_update_icon_sequences(mock_mw):
     assert "[Tag]" in mock_mw.icon_sequences
     assert "{Icon}" in mock_mw.icon_sequences
     assert "A" not in mock_mw.icon_sequences
+
+def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path):
+    # Setup dummy plugin dir
+    plugin_dir = tmp_path / "plugins" / "test_plugin"
+    fonts_dir = plugin_dir / "fonts"
+    fonts_dir.mkdir(parents=True)
+    
+    # Create dummy BFN via BfnCore
+    from core.bfn_core import BfnCore
+    bfn = BfnCore()
+    bfn.signature = "FFNT1bnd"
+    bfn.inf1 = [{"encoding": 0, "ascent": 20, "descent": 2, "width": 12, "leading": 2, "fallback_code": 63, "unk1": 0}]
+    bfn.map1 = [{"mapping_type": 2, "first_char": 32, "last_char": 34, "mapping_entry_count": 2, "entries": [0, 1]}]
+    bfn.wid1 = [{"first_code_included": 32, "last_code_included": 34, "packets": [{"kerning": 0, "width": 8}, {"kerning": 1, "width": 10}]}]
+    
+    bfn_file = fonts_dir / "test_font.bfn"
+    with open(bfn_file, 'wb') as f:
+        f.write(bfn.save())
+        
+    loader = FontMapLoader(mock_mw)
+    
+    # We must patch Path so it looks in tmp_path
+    import core.settings.font_map_loader
+    original_path = core.settings.font_map_loader.Path
+    
+    def mock_path(*args, **kwargs):
+        if args and args[0] == "plugins":
+            return tmp_path / "plugins"
+        return original_path(*args, **kwargs)
+        
+    core.settings.font_map_loader.Path = mock_path
+    
+    try:
+        loader.load_all_font_maps()
+    finally:
+        core.settings.font_map_loader.Path = original_path
+        
+    assert "test_font.bfn" in mock_mw.all_font_maps
+    # 32 (space) must have width 8
+    assert mock_mw.all_font_maps["test_font.bfn"][" "]["width"] == 8
+    # 33 (exclamation mark) must have width 10
+    assert mock_mw.all_font_maps["test_font.bfn"]["!"]["width"] == 10
+

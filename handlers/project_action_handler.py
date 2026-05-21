@@ -205,6 +205,8 @@ class ProjectActionHandler(BaseHandler):
                 return
 
         # Clear project
+        if self.mw.project_manager:
+            self.mw.project_manager.cleanup_temp_dir()
         self.mw.project_manager = None
 
         # Clear UI
@@ -547,6 +549,12 @@ class ProjectActionHandler(BaseHandler):
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
 
+        self.mw.project_manager.clear_archive_cache()
+
+        # Reset block/string selection state to avoid stale index issues
+        self.mw.data_store.current_block_idx = -1
+        self.mw.data_store.current_string_idx = -1
+
         # Clear current data
         self.mw.block_list_widget.clear()
         self.mw.data_store.data = []
@@ -563,66 +571,97 @@ class ProjectActionHandler(BaseHandler):
         source_parsed_counts: List[int] = []
         
         for project_block_idx, block in enumerate(self.mw.project_manager.project.blocks):
-            source_path = self.mw.project_manager.get_absolute_path(block.source_file)
-            
-            if Path(source_path).exists():
-                file_extension = Path(source_path).suffix.lower()
-                if file_extension == '.json':
-                    file_content, error = load_json_file(source_path)
-                else:
-                    # Try loading as text for any other extension
-                    file_content, error = load_text_file(source_path)
+            is_archive = block.metadata.get('is_archive_member', False)
+            archive_rel_path = block.metadata.get('archive_rel_path')
+            inner_path = block.metadata.get('archive_file_name')
 
-                if not error:
-                    if not self.mw.current_game_rules:
-                        log_error(f"Cannot load data for block '{block.name}': current_game_rules is None! Using empty data fallback.")
-                        parsed_data, names = [], {}
+            # Fallback for old projects where metadata isn't set, but path points to .extracted
+            if not is_archive and '.extracted/sources/' in block.source_file:
+                parts = block.source_file.split('.extracted/sources/')
+                if len(parts) > 1:
+                    sub_path = parts[1]
+                    for ext in ['.arc/', '.rarc/', '.ark/']:
+                        if ext in sub_path:
+                            idx = sub_path.find(ext)
+                            archive_rel_path = sub_path[:idx + len(ext) - 1]
+                            inner_path = sub_path[idx + len(ext):]
+                            is_archive = True
+                            block.metadata['is_archive_member'] = True
+                            block.metadata['archive_rel_path'] = archive_rel_path
+                            block.metadata['archive_file_name'] = inner_path
+                            break
+
+            file_content = None
+            error = None
+
+            if is_archive:
+                try:
+                    container = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=False)
+                    file_content = container.read_file(inner_path)
+                except Exception as e:
+                    error = f"Failed to read archive member {archive_rel_path}/{inner_path}: {e}"
+            else:
+                source_path = self.mw.project_manager.get_absolute_path(block.source_file)
+                if Path(source_path).exists():
+                    file_extension = Path(source_path).suffix.lower()
+                    if file_extension == '.json':
+                        file_content, error = load_json_file(source_path)
+                    elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
+                        try:
+                            file_content = Path(source_path).read_bytes()
+                            error = None
+                        except Exception as e:
+                            file_content = None
+                            error = f"Failed to read binary file: {e}"
                     else:
-                        parsed_data, names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-                    
-                    if block.internal_key:
-                        # Find the specific sub-block
-                        sub_idx = -1
-                        for i, name in names.items():
-                            if name == block.internal_key:
-                                sub_idx = int(i)
-                                break
-                        
-                        if sub_idx != -1 and sub_idx < len(parsed_data):
-                            data_block_idx = len(self.mw.data_store.data)
-                            self.mw.data_store.data.append(parsed_data[sub_idx])
-                            self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                            self.mw.data_store.block_names[str(data_block_idx)] = block.name
-                            source_parsed_counts.append(1)
-                        else:
-                            # Not found or error loading sub-block
-                            source_parsed_counts.append(1)
-                            data_block_idx = len(self.mw.data_store.data)
-                            self.mw.data_store.data.append([])
-                            self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                            self.mw.data_store.block_names[str(data_block_idx)] = f"{block.name} (Missing)"
-                    else:
-                        # Fallback for old projects or non-exploded files: load everything
-                        count = len(parsed_data) if parsed_data else 1
-                        source_parsed_counts.append(count)
-                        
-                        for sub_block_idx, block_content in enumerate(parsed_data):
-                            data_block_idx = len(self.mw.data_store.data)
-                            self.mw.data_store.data.append(block_content)
-                            self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                            
-                            # Handle block names
-                            if count > 1:
-                                p_name = names.get(str(sub_block_idx), f"{block.name} (Part {sub_block_idx+1})")
-                                self.mw.data_store.block_names[str(data_block_idx)] = p_name
-                            else:
-                                self.mw.data_store.block_names[str(data_block_idx)] = block.name
+                        file_content, error = load_text_file(source_path)
                 else:
-                    source_parsed_counts.append(1)
-                    data_block_idx = len(self.mw.data_store.data)
-                    self.mw.data_store.data.append([])
-                    self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                    self.mw.data_store.block_names[str(data_block_idx)] = block.name
+                    error = "File does not exist"
+
+            if not error and file_content is not None:
+                if not self.mw.current_game_rules:
+                    log_error(f"Cannot load data for block '{block.name}': current_game_rules is None! Using empty data fallback.")
+                    parsed_data, names = [], {}
+                else:
+                    parsed_data, names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+                
+                if block.internal_key:
+                    # Find the specific sub-block
+                    sub_idx = -1
+                    for i, name in names.items():
+                        if name == block.internal_key:
+                            sub_idx = int(i)
+                            break
+                    
+                    if sub_idx != -1 and sub_idx < len(parsed_data):
+                        data_block_idx = len(self.mw.data_store.data)
+                        self.mw.data_store.data.append(parsed_data[sub_idx])
+                        self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
+                        self.mw.data_store.block_names[str(data_block_idx)] = block.name
+                        source_parsed_counts.append(1)
+                    else:
+                        # Not found or error loading sub-block
+                        source_parsed_counts.append(1)
+                        data_block_idx = len(self.mw.data_store.data)
+                        self.mw.data_store.data.append([])
+                        self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
+                        self.mw.data_store.block_names[str(data_block_idx)] = f"{block.name} (Missing)"
+                else:
+                    # Fallback for old projects or non-exploded files: load everything
+                    count = len(parsed_data) if parsed_data else 1
+                    source_parsed_counts.append(count)
+                    
+                    for sub_block_idx, block_content in enumerate(parsed_data):
+                        data_block_idx = len(self.mw.data_store.data)
+                        self.mw.data_store.data.append(block_content)
+                        self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
+                        
+                        # Handle block names
+                        if count > 1:
+                            p_name = names.get(str(sub_block_idx), f"{block.name} (Part {sub_block_idx+1})")
+                            self.mw.data_store.block_names[str(data_block_idx)] = p_name
+                        else:
+                            self.mw.data_store.block_names[str(data_block_idx)] = block.name
             else:
                 source_parsed_counts.append(1)
                 data_block_idx = len(self.mw.data_store.data)
@@ -638,30 +677,48 @@ class ProjectActionHandler(BaseHandler):
         # Load edited_file_data
         self.mw.data_store.edited_file_data = []
         for project_block_idx, block in enumerate(self.mw.project_manager.project.blocks):
-            translation_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
+            is_archive = block.metadata.get('is_archive_member', False)
+            archive_rel_path = block.metadata.get('archive_rel_path')
+            inner_path = block.metadata.get('archive_file_name')
             
             # How many blocks did the source file produce?
             expected_count = source_parsed_counts[project_block_idx]
+            file_content = None
+            error = None
 
-            if Path(translation_path).exists():
-                file_extension = Path(translation_path).suffix.lower()
-                if file_extension == '.json':
-                    file_content, error = load_json_file(translation_path)
+            if is_archive:
+                try:
+                    container = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=True)
+                    file_content = container.read_file(inner_path)
+                except Exception as e:
+                    error = f"Failed to read translation archive member {archive_rel_path}/{inner_path}: {e}"
+            else:
+                translation_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
+                if Path(translation_path).exists():
+                    file_extension = Path(translation_path).suffix.lower()
+                    if file_extension == '.json':
+                        file_content, error = load_json_file(translation_path)
+                    elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
+                        try:
+                            file_content = Path(translation_path).read_bytes()
+                            error = None
+                        except Exception as e:
+                            file_content = None
+                            error = f"Failed to read binary file: {e}"
+                    else:
+                        file_content, error = load_text_file(translation_path)
                 else:
-                    file_content, error = load_text_file(translation_path)
+                    error = "Translation file does not exist"
 
-                if not error and self.mw.current_game_rules:
-                    parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-                    
-                    # Force match the number of blocks to the source structure
-                    for i in range(expected_count):
-                        if i < len(parsed_edited_data):
-                            self.mw.data_store.edited_file_data.append(parsed_edited_data[i])
-                        else:
-                            self.mw.data_store.edited_file_data.append([]) # Pad if translation has fewer blocks
-                else:
-                    for _ in range(expected_count):
-                        self.mw.data_store.edited_file_data.append([])
+            if not error and file_content is not None and self.mw.current_game_rules:
+                parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+                
+                # Force match the number of blocks to the source structure
+                for i in range(expected_count):
+                    if i < len(parsed_edited_data):
+                        self.mw.data_store.edited_file_data.append(parsed_edited_data[i])
+                    else:
+                        self.mw.data_store.edited_file_data.append([]) # Pad if translation has fewer blocks
             else:
                 for _ in range(expected_count):
                     self.mw.data_store.edited_file_data.append([])
@@ -671,10 +728,12 @@ class ProjectActionHandler(BaseHandler):
             self.mw.current_game_rules.original_keys = plugin_keys_backup
 
         # Update paths for old-style save/load compatibility
-        if self.mw.data_store.data:
+        if self.mw.project_manager.project.blocks:
             first_block = self.mw.project_manager.project.blocks[0]
             self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
             self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
+
+        self.mw.project_manager.clear_archive_cache()
 
         # Perform initial scan
         if hasattr(self.mw, 'app_action_handler'):
@@ -807,7 +866,10 @@ class ProjectActionHandler(BaseHandler):
             # 4. Enable project-related UI elements
             self._set_project_actions_enabled(True)
 
-            # 5. Populate UI components with the new project data
+            # 5. Sync project files (extract archives, discover new blocks)
+            self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
+
+            # 6. Populate UI components with the new project data
             self.ui_updater.update_title()
             self._populate_blocks_from_project()
             

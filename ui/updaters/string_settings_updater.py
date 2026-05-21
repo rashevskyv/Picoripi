@@ -14,22 +14,14 @@ class StringSettingsUpdater(BaseUIUpdater):
         self.mw.font_combobox.blockSignals(True)
         self.mw.font_combobox.clear()
 
-        plugin_dir_name = self.mw.active_game_plugin
-        
         default_font_display_text = f"Default ({self.mw.default_font_file or 'None'})"
         self.mw.font_combobox.addItem(default_font_display_text, "default")
 
-        if not plugin_dir_name:
-            self.mw.font_combobox.blockSignals(False)
-            return
-        
-        fonts_dir = Path("plugins") / plugin_dir_name / "fonts"
-        if fonts_dir.is_dir():
-            for font_file in sorted(fonts_dir.iterdir()):
-                if font_file.is_file() and font_file.suffix.lower() == ".json":
-                    filename = font_file.name
-                    if filename != self.mw.default_font_file:
-                        self.mw.font_combobox.addItem(filename, filename)
+        all_fonts = getattr(self.mw, 'all_font_maps', {})
+        if all_fonts:
+            for font_key in sorted(all_fonts.keys()):
+                if font_key != self.mw.default_font_file:
+                    self.mw.font_combobox.addItem(font_key, font_key)
         
         self.mw.font_combobox.blockSignals(False)
 

@@ -278,6 +278,14 @@ class DataStateProcessor:
                         else:
                             log_debug(f"Save Error: Plugin for .txt file {trans_path} did not return a string.")
                             save_file_success = False
+                    elif file_extension == '.bmg':
+                        try:
+                            with Path(trans_path).open('wb') as f:
+                                f.write(final_obj_to_save)
+                            save_file_success = True
+                        except Exception as e:
+                            log_debug(f"Failed to write BMG: {e}")
+                            save_file_success = False
                     else:
                         # Fallback for unknown extensions
                         save_file_success = save_text_file(trans_path, str(final_obj_to_save))
@@ -287,6 +295,65 @@ class DataStateProcessor:
                         break
                 
                 if success_all:
+                    # Collect unique modified archives
+                    modified_archives = set()
+                    for trans_file_rel in file_to_data_indices.keys():
+                        # Check if it has pending edits
+                        has_edits = False
+                        for d_idx in file_to_data_indices[trans_file_rel]:
+                            if isinstance(output_data_list[d_idx], list):
+                                for s_idx in range(len(output_data_list[d_idx])):
+                                    if (d_idx, s_idx) in self.mw.data_store.edited_data:
+                                        has_edits = True
+                                        break
+                            if has_edits: break
+                        
+                        if not has_edits: continue
+
+                        prefix = ".extracted/translation/"
+                        if trans_file_rel.startswith(prefix):
+                            sub_path = trans_file_rel[len(prefix):]
+                            arc_idx = sub_path.lower().find('.arc')
+                            rarc_idx = sub_path.lower().find('.rarc')
+                            ark_idx = sub_path.lower().find('.ark')
+                            if arc_idx != -1:
+                                archive_rel_path = sub_path[:arc_idx + 4]
+                                modified_archives.add(archive_rel_path)
+                            elif rarc_idx != -1:
+                                archive_rel_path = sub_path[:rarc_idx + 5]
+                                modified_archives.add(archive_rel_path)
+                            elif ark_idx != -1:
+                                archive_rel_path = sub_path[:ark_idx + 4]
+                                modified_archives.add(archive_rel_path)
+
+                    # Pack each modified archive back
+                    if modified_archives:
+                        import subprocess
+                        exe_path = Path("tools/ArcPack.exe").absolute()
+                        if exe_path.exists():
+                            for archive_rel_path in modified_archives:
+                                ext_trans_dir = Path(self.mw.project_manager.get_absolute_path(f".extracted/translation/{archive_rel_path}"))
+                                is_directory_mode = self.mw.project_manager.project.metadata.get('is_directory_mode', True)
+                                translation_path = self.mw.project_manager.project.metadata.get('translation_path')
+                                
+                                if translation_path:
+                                    if is_directory_mode:
+                                        dest_archive_path = Path(translation_path) / archive_rel_path
+                                    else:
+                                        dest_archive_path = Path(translation_path)
+                                        
+                                    log_debug(f"Packing archive from {ext_trans_dir} to {dest_archive_path}")
+                                    dest_archive_path.parent.mkdir(parents=True, exist_ok=True)
+                                    result = subprocess.run([str(exe_path), str(ext_trans_dir), str(dest_archive_path)], capture_output=True, text=True)
+                                    if result.returncode != 0:
+                                        log_error(f"ArcPack failed with code {result.returncode}: {result.stderr}")
+                                        QMessageBox.warning(self.mw, "Archive Pack Warning", f"Failed to pack archive '{archive_rel_path}':\n{result.stderr}")
+                                    else:
+                                        log_debug(f"Successfully packed archive {archive_rel_path}")
+                        else:
+                            log_error(f"ArcPack.exe not found at {exe_path}")
+                            QMessageBox.warning(self.mw, "Archive Pack Error", "ArcPack.exe not found. Translation archives were not updated.")
+
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
                     self.mw.data_store.edited_sublines.clear()
@@ -320,6 +387,15 @@ class DataStateProcessor:
                         log_debug("Save Error: Plugin for .txt file did not return a string for saving.")
                         QMessageBox.critical(self.mw, "Save Error", "Plugin save format error: expected a string for .txt file.")
                         return False
+                elif file_extension == '.bmg':
+                    try:
+                        with Path(self.mw.data_store.edited_json_path).open('wb') as f:
+                            f.write(final_obj_to_save)
+                        save_file_success = True
+                    except Exception as e:
+                        log_debug(f"Failed to write BMG: {e}")
+                        QMessageBox.critical(self.mw, "Save Error", f"Failed to save BMG file: {e}")
+                        save_file_success = False
                 
                 if save_file_success:
                     self.mw.data_store.unsaved_changes = False
@@ -371,6 +447,14 @@ class DataStateProcessor:
                         log_debug("Revert Error: Plugin for .txt file did not return a string for saving.")
                         QMessageBox.critical(self.mw, "Revert Error", "Plugin save format error: expected a string for .txt file.")
                         return False
+                elif file_extension == '.bmg':
+                    try:
+                        with Path(self.mw.data_store.edited_json_path).open('wb') as f:
+                            f.write(output_data)
+                        save_file_success = True
+                    except Exception as e:
+                        log_debug(f"Failed to write BMG: {e}")
+                        save_file_success = False
     
                 if save_file_success:
                     self.mw.data_store.unsaved_changes = False; self.mw.data_store.edited_data = {}; self.mw.data_store.edited_sublines.clear(); 
@@ -439,6 +523,13 @@ class DataStateProcessor:
                         if isinstance(final_obj_to_save, str):
                             save_file_success = save_text_file(trans_path, final_obj_to_save)
                         else:
+                            save_file_success = False
+                    elif file_extension == '.bmg':
+                        try:
+                            with Path(trans_path).open('wb') as f:
+                                f.write(final_obj_to_save)
+                            save_file_success = True
+                        except Exception as e:
                             save_file_success = False
                     else:
                         save_file_success = save_text_file(trans_path, str(final_obj_to_save))

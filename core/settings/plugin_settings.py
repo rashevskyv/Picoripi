@@ -39,7 +39,7 @@ class PluginSettings:
         """Loads plugin-specific settings."""
         defaults = {
             "display_name": "Unknown Plugin", "default_tag_mappings": {}, "block_names": {}, "block_color_markers": {},
-            "string_metadata": {}, "default_font_file": "",
+            "string_metadata": {}, "default_font_file": "", "fonts_dir_path": "",
             "newline_display_symbol": "↵", "newline_css": "color: #A020F0; font-weight: bold;",
             "tag_css": "color: #808080; font-style: italic;",
             "bracket_tag_color_hex": "#FF8C00",
@@ -48,6 +48,7 @@ class PluginSettings:
             "line_width_warning_threshold_pixels": DEFAULT_LINE_WIDTH_WARNING_THRESHOLD,
             "lines_per_page": 4,
             "original_file_path": None, "edited_file_path": None,
+            "is_directory_mode": False, "auto_generate_translation_path": False,
             "last_selected_block_index": -1, "last_selected_string_index": -1,
             "last_cursor_position_in_edited": 0, "last_edited_text_edit_scroll_value_v": 0,
             "last_edited_text_edit_scroll_value_h": 0, "last_preview_text_edit_scroll_value_v": 0,
@@ -169,6 +170,7 @@ class PluginSettings:
             "block_color_markers": {k: list(v) for k, v in self.mw.block_color_markers.items()},
             "string_metadata": {str(k): v for k, v in self.mw.string_metadata.items()},
             "default_font_file": self.mw.default_font_file,
+            "fonts_dir_path": getattr(self.mw, 'fonts_dir_path', ""),
             "newline_display_symbol": self.mw.newline_display_symbol,
             "tag_color_rgba": getattr(self.mw, 'tag_color_rgba', "#FF8C00"),
             "tag_bold": getattr(self.mw, 'tag_bold', True),
@@ -185,6 +187,8 @@ class PluginSettings:
             "lines_per_page": getattr(self.mw, 'lines_per_page', 4),
             "original_file_path": self.mw.data_store.json_path,
             "edited_file_path": self.mw.data_store.edited_json_path,
+            "is_directory_mode": getattr(self.mw, 'is_directory_mode', False),
+            "auto_generate_translation_path": getattr(self.mw, 'auto_generate_translation_path', False),
             "last_selected_block_index": self.mw.data_store.last_selected_block_index,
             "last_selected_string_index": self.mw.data_store.last_selected_string_index,
             "last_cursor_position_in_edited": self.mw.last_cursor_position_in_edited,

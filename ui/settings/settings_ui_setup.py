@@ -116,11 +116,38 @@ class SettingsDialogUiMixin:
         if not plugin_dir_name:
             return
             
-        fonts_dir = Path("plugins") / plugin_dir_name / "fonts"
-        if fonts_dir.is_dir():
-            for font_path in sorted(fonts_dir.iterdir()):
-                if font_path.suffix.lower() == ".json":
-                    self.font_file_combo.addItem(font_path.name, font_path.name)
+        fonts_dirs = [Path("plugins") / plugin_dir_name / "fonts"]
+        custom_fonts_path = getattr(self.mw, 'fonts_dir_path', None)
+        if custom_fonts_path:
+            custom_dir = Path(custom_fonts_path)
+            if custom_dir.is_dir():
+                fonts_dirs.append(custom_dir)
+
+        seen_fonts = set()
+        for fonts_dir in fonts_dirs:
+            if fonts_dir.is_dir():
+                for font_path in sorted(fonts_dir.iterdir()):
+                    suffix = font_path.suffix.lower()
+                    if suffix in (".arc", ".rarc", ".u8"):
+                        try:
+                            from core.containers import ContainerManager
+                            archive_data = font_path.read_bytes()
+                            if ContainerManager.is_supported(archive_data):
+                                container = ContainerManager.open(archive_data)
+                                if container:
+                                    for inner_path in sorted(container.list_files()):
+                                        inner_suffix = Path(inner_path).suffix.lower()
+                                        if inner_suffix in (".json", ".bfn"):
+                                            font_key = f"{font_path.name}/{Path(inner_path).name}"
+                                            if font_key not in seen_fonts:
+                                                seen_fonts.add(font_key)
+                                                self.font_file_combo.addItem(font_key, font_key)
+                        except Exception:
+                            pass
+                    elif suffix in (".json", ".bfn"):
+                        if font_path.name not in seen_fonts:
+                            seen_fonts.add(font_path.name)
+                            self.font_file_combo.addItem(font_path.name, font_path.name)
 
     def _setup_display_subtab(self, tab):
         layout = QFormLayout(tab)
@@ -353,12 +380,79 @@ class SettingsDialogUiMixin:
 
     def _setup_paths_subtab(self, tab):
         layout = QFormLayout(tab)
-        self.original_path_edit = QLineEdit(self)
+        
+        self.dir_mode_checkbox = QCheckBox("Directory Mode (Load from folder)", tab)
+        self.auto_generate_checkbox = QCheckBox("Auto-generate translation path", tab)
+        
+        layout.addRow(self.dir_mode_checkbox)
+        layout.addRow(self.auto_generate_checkbox)
+        
+        self.original_path_edit = QLineEdit(tab)
         self.original_path_edit.setObjectName("PathLineEdit")
-        self.edited_path_edit = QLineEdit(self)
+        self.edited_path_edit = QLineEdit(tab)
         self.edited_path_edit.setObjectName("PathLineEdit")
-        layout.addRow("Original File Path:", self._create_path_selector(self.original_path_edit))
-        layout.addRow("Changes File Path:", self._create_path_selector(self.edited_path_edit))
+
+        self.orig_label_widget = QLabel("Original File Path:")
+        self.changes_label_widget = QLabel("Changes File Path:")
+
+        layout.addRow(self.orig_label_widget, self._create_path_selector(self.original_path_edit))
+        layout.addRow(self.changes_label_widget, self._create_path_selector(self.edited_path_edit))
+
+        # Fonts Directory Path Selection
+        self.fonts_path_edit = QLineEdit(tab)
+        self.fonts_path_edit.setObjectName("PathLineEdit")
+        self.fonts_path_edit.setPlaceholderText("Optional path to fonts folder")
+        layout.addRow(QLabel("Fonts Directory Path:"), self._create_dir_selector(self.fonts_path_edit))
+
+        # Signals
+        self.dir_mode_checkbox.stateChanged.connect(self._on_dir_mode_changed)
+        self.auto_generate_checkbox.stateChanged.connect(self._on_auto_generate_changed)
+        self.original_path_edit.textChanged.connect(self._update_auto_changes_path)
+        self.fonts_path_edit.textChanged.connect(self._on_fonts_dir_changed)
+
+    def _on_dir_mode_changed(self, state):
+        is_dir = (state == Qt.Checked)
+        if is_dir:
+            self.orig_label_widget.setText("Original Directory Path:")
+            self.changes_label_widget.setText("Changes Directory Path:")
+        else:
+            self.orig_label_widget.setText("Original File Path:")
+            self.changes_label_widget.setText("Changes File Path:")
+        self._update_auto_changes_path()
+
+    def _on_auto_generate_changed(self, state):
+        is_auto = (state == Qt.Checked)
+        self.edited_path_edit.setEnabled(not is_auto)
+        self._update_auto_changes_path()
+
+    def _update_auto_changes_path(self):
+        if not hasattr(self, 'auto_generate_checkbox') or not self.auto_generate_checkbox.isChecked():
+            return
+        
+        orig_path = self.original_path_edit.text().strip()
+        if not orig_path:
+            self.edited_path_edit.setText("")
+            return
+
+        is_dir = self.dir_mode_checkbox.isChecked()
+        try:
+            path_obj = Path(orig_path)
+            if is_dir:
+                parent = path_obj.parent
+                name = path_obj.name
+                if name:
+                    new_path = (parent / f"{name}_translation").as_posix()
+                else:
+                    new_path = f"{orig_path}_translation"
+            else:
+                parent = path_obj.parent
+                stem = path_obj.stem
+                suffix = path_obj.suffix
+                new_path = (parent / f"{stem}_translation{suffix}").as_posix()
+                
+            self.edited_path_edit.setText(new_path)
+        except Exception:
+            self.edited_path_edit.setText(f"{orig_path}_translation")
 
     def _populate_checkbox_subtab(self, tab, checkbox_dict, title):
         layout = QFormLayout(tab)

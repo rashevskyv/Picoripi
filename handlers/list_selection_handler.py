@@ -38,7 +38,7 @@ class ListSelectionHandler(BaseHandler):
 
         old_block = self.mw.data_store.current_block_idx
         old_string = self.mw.data_store.current_string_idx
-        old_category = getattr(self.mw, 'current_category_name', None)
+        old_category = getattr(self.mw.data_store, 'current_category_name', None)
 
         self.mw.is_programmatically_changing_text = True
         try:
@@ -82,8 +82,9 @@ class ListSelectionHandler(BaseHandler):
                 
                 if target_string_idx != -1:
                     rel_idx = -1
-                    if hasattr(self.mw, 'displayed_string_indices') and target_string_idx in self.mw.data_store.displayed_string_indices:
-                        rel_idx = self.mw.data_store.displayed_string_indices.index(target_string_idx)
+                    displayed_indices = self._get_displayed_indices()
+                    if target_string_idx in displayed_indices:
+                        rel_idx = displayed_indices.index(target_string_idx)
                     
                     if rel_idx != -1:
                         # Schedule selection to avoid recursion issues
@@ -158,8 +159,9 @@ class ListSelectionHandler(BaseHandler):
         if absolute_idx == -1: return
 
         rel_idx: int = -1
-        if hasattr(self.mw, 'displayed_string_indices') and absolute_idx in self.mw.data_store.displayed_string_indices:
-            rel_idx = self.mw.data_store.displayed_string_indices.index(absolute_idx)
+        displayed_indices = self._get_displayed_indices()
+        if absolute_idx in displayed_indices:
+            rel_idx = displayed_indices.index(absolute_idx)
         else:
             rel_idx = absolute_idx # Fallback if no mapping exists
 
@@ -175,9 +177,10 @@ class ListSelectionHandler(BaseHandler):
 
         # Translate relative preview line_number to absolute data index
         real_idx = line_number
-        if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.displayed_string_indices:
-            if 0 <= line_number < len(self.mw.data_store.displayed_string_indices):
-                real_idx = self.mw.data_store.displayed_string_indices[line_number]
+        displayed_indices = self._get_displayed_indices()
+        if displayed_indices:
+            if 0 <= line_number < len(displayed_indices):
+                real_idx = displayed_indices[line_number]
             else:
                 real_idx = -1
 
@@ -216,7 +219,7 @@ class ListSelectionHandler(BaseHandler):
                     )
 
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
-                cat = getattr(self.mw, 'current_category_name', None)
+                cat = getattr(self.mw.data_store, 'current_category_name', None)
                 self.mw.undo_manager.record_navigation(
                     self.mw.data_store.current_block_idx, real_idx, 
                     self.mw.data_store.current_block_idx, previous_string_idx,
@@ -225,8 +228,6 @@ class ListSelectionHandler(BaseHandler):
 
             if previous_string_idx != self.mw.data_store.current_string_idx and previous_string_idx != -1:
                 self.ui_updater.update_block_item_text_with_problem_count(self.mw.data_store.current_block_idx)
-            
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None)) 
             
             # Save selection to project
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
@@ -247,8 +248,9 @@ class ListSelectionHandler(BaseHandler):
             
             # Find relative index for preview
             rel_idx = -1
-            if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.current_string_idx in self.mw.data_store.displayed_string_indices:
-                rel_idx = self.mw.data_store.displayed_string_indices.index(self.mw.data_store.current_string_idx)
+            displayed_indices = self._get_displayed_indices()
+            if self.mw.data_store.current_string_idx in displayed_indices:
+                rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
 
             if rel_idx != -1 and hasattr(preview_edit, 'set_selected_lines'): 
                 preview_edit.set_selected_lines([rel_idx])
@@ -542,8 +544,9 @@ class ListSelectionHandler(BaseHandler):
                     if hasattr(preview_edit, 'set_selected_lines'):
                         # Find the relative index for the current string to highlight it
                         rel_idx = -1
-                        if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.current_string_idx in self.mw.data_store.displayed_string_indices:
-                            rel_idx = self.mw.data_store.displayed_string_indices.index(self.mw.data_store.current_string_idx)
+                        displayed_indices = self._get_displayed_indices()
+                        if self.mw.data_store.current_string_idx in displayed_indices:
+                            rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
                         if rel_idx != -1:
                             preview_edit.set_selected_lines([rel_idx])
                 return
@@ -567,10 +570,11 @@ class ListSelectionHandler(BaseHandler):
         
         # Translate rel to abs
         abs_indices = []
-        if hasattr(self.mw, 'displayed_string_indices') and self.mw.data_store.displayed_string_indices:
+        displayed_indices = self._get_displayed_indices()
+        if displayed_indices:
             for rel in selected_lines:
-                if 0 <= rel < len(self.mw.data_store.displayed_string_indices):
-                    abs_indices.append(self.mw.data_store.displayed_string_indices[rel])
+                if 0 <= rel < len(displayed_indices):
+                    abs_indices.append(displayed_indices[rel])
         else:
             abs_indices = selected_lines
             
@@ -592,7 +596,7 @@ class ListSelectionHandler(BaseHandler):
 
     def move_selection_to_category(self) -> None:
         """Move selected strings to a virtual block (Category)."""
-        selected_indices = getattr(self.mw, 'selected_string_indices', [])
+        selected_indices = getattr(self.mw.data_store, 'selected_string_indices', [])
         if not selected_indices:
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.warning(self.mw, "Move to Virtual Block", "No strings selected in preview.")
@@ -682,3 +686,9 @@ class ListSelectionHandler(BaseHandler):
         self.mw.data_store.hide_categorized = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+
+    def _get_displayed_indices(self) -> list:
+        indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+        if not indices and hasattr(self.mw, 'displayed_string_indices'):
+            indices = self.mw.displayed_string_indices
+        return indices

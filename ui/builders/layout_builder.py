@@ -243,6 +243,12 @@ class LayoutBuilder:
         self.mw.edited_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.edited_text_edit.setObjectName("edited_text_edit")
         bottom_right_layout.addWidget(self.mw.edited_text_edit)
+        
+        # BFN Visual Preview Widget
+        from ui.components.bfn_preview_widget import BfnPreviewWidget
+        self.mw.bfn_preview_widget = BfnPreviewWidget(self.mw)
+        bottom_right_layout.addWidget(self.mw.bfn_preview_widget)
+        
         self.mw.bottom_right_splitter.addWidget(bottom_right_panel)
 
     def _create_header_button(self, icon, tooltip, text=None):

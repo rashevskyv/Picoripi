@@ -23,13 +23,11 @@ class MassFontDialog(QDialog):
         default_font = getattr(main_window, 'default_font_file', 'None')
         self.font_combo.addItem(f"Plugin Default ({default_font})", "default")
         
-        plugin_dir_name = getattr(main_window, 'active_game_plugin', None)
-        if plugin_dir_name:
-            fonts_dir = Path("plugins") / plugin_dir_name / "fonts"
-            if fonts_dir.is_dir():
-                for font_file in sorted(fonts_dir.iterdir()):
-                    if font_file.suffix.lower() == ".json":
-                        self.font_combo.addItem(font_file.name, font_file.name)
+        all_fonts = getattr(main_window, 'all_font_maps', {})
+        if all_fonts:
+            for font_key in sorted(all_fonts.keys()):
+                if font_key != default_font:
+                    self.font_combo.addItem(font_key, font_key)
 
     def get_selected_font(self):
         return self.font_combo.currentData()

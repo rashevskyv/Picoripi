@@ -277,6 +277,35 @@ class TreeContextMenuMixin:
                 )
                 rv.triggered.connect(lambda: self._revert_blocks_to_original([block_idx]))
 
+            # BFN Editor for .bfn files
+            is_bfn = False
+            if pm and pm.project:
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(block_idx, block_idx)
+                if proj_b_idx < len(pm.project.blocks):
+                    block = pm.project.blocks[proj_b_idx]
+                    fn = block.metadata.get('archive_file_name', '') if block.metadata.get('is_archive_member', False) else block.source_file
+                    if fn.lower().endswith('.bfn'):
+                        is_bfn = True
+
+            if is_bfn:
+                actions = getattr(main_window, 'actions', None)
+                if actions and hasattr(actions, 'open_bfn_editor_for_block'):
+                    bfn_act = menu.addAction(
+                        self.style().standardIcon(QStyle.SP_FileDialogDetailedView),
+                        "Edit BFN Font..."
+                    )
+                    bfn_act.triggered.connect(lambda checked=False, idx=block_idx: actions.open_bfn_editor_for_block(idx))
+                    menu.addSeparator()
+
+            # Properties action
+            menu.addSeparator()
+            prop_act = menu.addAction(
+                self.style().standardIcon(QStyle.SP_MessageBoxInformation),
+                "Properties..."
+            )
+            prop_act.triggered.connect(lambda checked=False, idx=block_idx: self._show_block_properties(idx))
+
         menu.exec_(self.mapToGlobal(pos))
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -296,3 +325,8 @@ class TreeContextMenuMixin:
         if reply == QMessageBox.No:
             return
         main_window.data_processor.revert_blocks_to_original(block_indices)
+
+    def _show_block_properties(self, block_idx: int):
+        from .block_properties_dialog import BlockPropertiesDialog
+        dialog = BlockPropertiesDialog(self.window(), block_idx)
+        dialog.exec_()

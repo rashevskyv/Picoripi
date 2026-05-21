@@ -161,3 +161,62 @@ def test_ProjectManager_migrate_file_structure(pm):
     assert folders[0].name == "folder1"
     assert len(folders[0].children) == 1
     assert folders[0].children[0].name == "sub"
+
+def test_ProjectManager_get_absolute_path_extracted(pm):
+    pm.project_dir = "C:/my_project"
+    abs_path = pm.get_absolute_path(".extracted/sources/test.txt")
+    import tempfile
+    expected = Path(tempfile.gettempdir()) / "picoripi" / pm.project.id / ".extracted/sources/test.txt"
+    assert Path(abs_path) == expected
+
+def test_ProjectManager_migrate_file_structure_extracted(pm):
+    pm.project.blocks.append(Block(id="b1", name="B1", source_file=".extracted/sources/archive.arc/file1.txt"))
+    
+    pm._migrate_file_structure_to_virtual_folders()
+    
+    folders = pm.project.virtual_folders
+    assert len(folders) == 1
+    assert folders[0].name == "archive.arc"
+    assert len(folders[0].block_ids) == 1
+
+@patch('core.project_manager.ContainerManager.open')
+def test_ProjectManager_sync_arc_files(mock_open, pm, tmp_path):
+    class DummyContainer:
+        def list_files(self):
+            return ["file1.bmg"]
+    mock_open.return_value = DummyContainer()
+    
+    # Create a dummy .arc file in source path
+    src_dir = Path(pm.project.metadata["source_path"])
+    src_dir.mkdir(parents=True, exist_ok=True)
+    arc_file = src_dir / "my_archive.arc"
+    arc_file.write_text("dummy arc content")
+    
+    pm.sync_project_files()
+    
+    # Check if a block was created representing the inner BMG file
+    assert len(pm.project.blocks) == 1
+    block = pm.project.blocks[0]
+    assert block.source_file == ".extracted/sources/my_archive.arc/file1.bmg"
+    assert block.translation_file == ".extracted/translation/my_archive.arc/file1.bmg"
+    assert block.metadata.get('is_archive_member') is True
+    assert block.metadata.get('archive_rel_path') == "my_archive.arc"
+    assert block.metadata.get('archive_file_name') == "file1.bmg"
+
+def test_ProjectManager_add_block_archive_grouping(pm):
+    # Test that adding an archive block automatically places it in the virtual folder
+    b = pm.add_block(
+        name="InnerBlock",
+        source_file_path=".extracted/sources/my_archive.arc/inner_folder/file1.txt"
+    )
+    assert b is not None
+    assert len(pm.project.blocks) == 1
+    
+    # Check that virtual folders were created
+    folders = pm.project.virtual_folders
+    assert len(folders) == 1
+    assert folders[0].name == "my_archive.arc"
+    assert len(folders[0].children) == 1
+    assert folders[0].children[0].name == "inner_folder"
+    assert b.id in folders[0].children[0].block_ids
+    assert b.id not in pm.project.metadata.get('root_block_ids', [])
