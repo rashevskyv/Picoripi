@@ -53,11 +53,53 @@ class BfnNavigationMixin:
                             break
             glyph_to_char[idx] = (char_val, uni_val)
             
+        orig_glyph_to_char = {}
+        if self.original_font_metadata:
+            orig_maps = self.original_font_metadata.get("MAP1", [])
+            for idx in range(self.start_glyph, self.end_glyph + 1):
+                orig_char_val = ""
+                orig_uni_val = ""
+                for m in orig_maps:
+                    m_type = m.get("mapping_type", 0)
+                    m_first = m.get("first_char", 0)
+                    m_last = m.get("last_char", 0)
+                    
+                    if m_type == 0:
+                        if m_first <= idx <= m_last:
+                            try:
+                                orig_char_val = chr(idx)
+                                orig_uni_val = f"U+{idx:04X}"
+                            except Exception:
+                                pass
+                    elif m_type == 2:
+                        entries = m.get("entries", [])
+                        if idx < len(entries):
+                            code = entries[idx]
+                            try:
+                                orig_char_val = chr(code)
+                                orig_uni_val = f"U+{code:04X}"
+                            except Exception:
+                                pass
+                    elif m_type == 3:
+                        entries = m.get("entries", [])
+                        half = len(entries) // 2
+                        for k in range(half):
+                            if entries[half + k] == idx:
+                                code = entries[k]
+                                try:
+                                    orig_char_val = chr(code)
+                                    orig_uni_val = f"U+{code:04X}"
+                                except Exception:
+                                    pass
+                                break
+                orig_glyph_to_char[idx] = (orig_char_val, orig_uni_val)
+            
         search_query = self.table_search.text().lower()
         
         rows_data = []
         for idx in range(self.start_glyph, self.end_glyph + 1):
             char_val, uni_val = glyph_to_char.get(idx, ("", ""))
+            orig_char_val, _ = orig_glyph_to_char.get(idx, ("", ""))
             
             rem = idx - self.start_glyph
             sheet_idx = rem // (self.rows * self.cols)
@@ -76,21 +118,24 @@ class BfnNavigationMixin:
                 match = (
                     search_query in str(idx) or
                     search_query in char_val.lower() or
+                    search_query in orig_char_val.lower() or
                     search_query in uni_val.lower() or
                     search_query in f"sheet_{sheet_idx}".lower()
                 )
                 if not match:
                     continue
                     
-            rows_data.append((idx, char_val, uni_val, sheet_idx, gx, gy, kerning, width))
+            rows_data.append((idx, char_val, uni_val, sheet_idx, gx, gy, kerning, width, orig_char_val))
             
         self.table_glyphs.setRowCount(len(rows_data))
         self.table_glyphs.verticalHeader().setDefaultSectionSize(36)
         
         for r_idx, data in enumerate(rows_data):
-            idx, char_val, uni_val, sheet_idx, gx, gy, kerning, width = data
+            idx, char_val, uni_val, sheet_idx, gx, gy, kerning, width, orig_char_val = data
             
-            item_idx = QtWidgets.QTableWidgetItem(str(idx))
+            self.table_glyphs.setVerticalHeaderItem(r_idx, QtWidgets.QTableWidgetItem(str(idx)))
+            
+            item_orig_char = QtWidgets.QTableWidgetItem(orig_char_val)
             item_char = QtWidgets.QTableWidgetItem(char_val)
             item_uni = QtWidgets.QTableWidgetItem(uni_val)
             item_sheet = QtWidgets.QTableWidgetItem(f"Sheet {sheet_idx}")
@@ -98,21 +143,43 @@ class BfnNavigationMixin:
             item_kern = QtWidgets.QTableWidgetItem(str(kerning))
             item_width = QtWidgets.QTableWidgetItem(str(width))
             
-            for item in (item_idx, item_uni, item_sheet, item_tile):
+            for item in (item_orig_char, item_uni, item_sheet, item_tile):
                 item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
                 
             item_char.setFlags(item_char.flags() | QtCore.Qt.ItemIsEditable)
             item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemIsEditable)
             item_width.setFlags(item_width.flags() | QtCore.Qt.ItemIsEditable)
             
-            self.table_glyphs.setItem(r_idx, 0, item_idx)
-            self.table_glyphs.setItem(r_idx, 2, item_char)
-            self.table_glyphs.setItem(r_idx, 3, item_uni)
-            self.table_glyphs.setItem(r_idx, 4, item_sheet)
-            self.table_glyphs.setItem(r_idx, 5, item_tile)
-            self.table_glyphs.setItem(r_idx, 6, item_kern)
-            self.table_glyphs.setItem(r_idx, 7, item_width)
+            self.table_glyphs.setItem(r_idx, 1, item_orig_char)
+            self.table_glyphs.setItem(r_idx, 3, item_char)
+            self.table_glyphs.setItem(r_idx, 4, item_uni)
+            self.table_glyphs.setItem(r_idx, 5, item_sheet)
+            self.table_glyphs.setItem(r_idx, 6, item_tile)
+            self.table_glyphs.setItem(r_idx, 7, item_kern)
+            self.table_glyphs.setItem(r_idx, 8, item_width)
             
+            # Original Render
+            if self.original_sheet_images and 0 <= sheet_idx < len(self.original_sheet_images):
+                orig_sheet_img = self.original_sheet_images[sheet_idx]
+                cell_x = gx * self.cell_w
+                cell_y = gy * self.cell_h
+                
+                orig_crop = orig_sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
+                orig_pixmap = QtGui.QPixmap.fromImage(orig_crop)
+                
+                orig_lbl = QtWidgets.QLabel()
+                orig_lbl.setPixmap(orig_pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                orig_lbl.setAlignment(QtCore.Qt.AlignCenter)
+                bg_color = "#000000"
+                orig_lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
+                self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
+            else:
+                orig_lbl = QtWidgets.QLabel()
+                bg_color = "#000000"
+                orig_lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
+                self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
+            
+            # Translated Render
             if 0 <= sheet_idx < len(self.sheet_images):
                 sheet_img = self.sheet_images[sheet_idx]
                 cell_x = gx * self.cell_w
@@ -126,8 +193,28 @@ class BfnNavigationMixin:
                 lbl.setAlignment(QtCore.Qt.AlignCenter)
                 bg_color = "#000000"
                 lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
-                self.table_glyphs.setCellWidget(r_idx, 1, lbl)
+                self.table_glyphs.setCellWidget(r_idx, 2, lbl)
                 
+        if not getattr(self, "_table_headers_resized", False):
+            # Try to restore column widths from settings
+            sm = getattr(self, "get_settings_manager", lambda: None)()
+            restored = False
+            if sm:
+                widths = sm.get("bfn_glyph_table_column_widths")
+                if widths and len(widths) == self.table_glyphs.columnCount():
+                    for col, w in enumerate(widths):
+                        self.table_glyphs.setColumnWidth(col, w)
+                    restored = True
+            
+            if not restored:
+                if hasattr(self, "on_header_handle_double_clicked"):
+                    for col in range(self.table_glyphs.columnCount()):
+                        self.on_header_handle_double_clicked(col)
+                else:
+                    self.table_glyphs.resizeColumnsToContents()
+            
+            self._table_headers_resized = True
+            
         self.table_glyphs.blockSignals(False)
         
     def refresh_table_row(self, glyph_idx):
@@ -136,8 +223,8 @@ class BfnNavigationMixin:
             
         found_row = -1
         for row in range(self.table_glyphs.rowCount()):
-            item_idx = self.table_glyphs.item(row, 0)
-            if item_idx and int(item_idx.text()) == glyph_idx:
+            v_header = self.table_glyphs.verticalHeaderItem(row)
+            if v_header and int(v_header.text()) == glyph_idx:
                 found_row = row
                 break
                 
@@ -183,10 +270,10 @@ class BfnNavigationMixin:
                             pass
                         break
                         
-        item_char = self.table_glyphs.item(found_row, 2)
+        item_char = self.table_glyphs.item(found_row, 3)
         if item_char:
             item_char.setText(char_val)
-        item_uni = self.table_glyphs.item(found_row, 3)
+        item_uni = self.table_glyphs.item(found_row, 4)
         if item_uni:
             item_uni.setText(uni_val)
             
@@ -199,10 +286,10 @@ class BfnNavigationMixin:
             kerning = packets[wid_idx]["kerning"]
             width = packets[wid_idx]["width"]
             
-        item_kern = self.table_glyphs.item(found_row, 6)
+        item_kern = self.table_glyphs.item(found_row, 7)
         if item_kern:
             item_kern.setText(str(kerning))
-        item_width = self.table_glyphs.item(found_row, 7)
+        item_width = self.table_glyphs.item(found_row, 8)
         if item_width:
             item_width.setText(str(width))
             
@@ -225,7 +312,7 @@ class BfnNavigationMixin:
             lbl.setAlignment(QtCore.Qt.AlignCenter)
             bg_color = "#000000"
             lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
-            self.table_glyphs.setCellWidget(found_row, 1, lbl)
+            self.table_glyphs.setCellWidget(found_row, 2, lbl)
             
         self.table_glyphs.blockSignals(False)
 
@@ -236,16 +323,16 @@ class BfnNavigationMixin:
         row = item.row()
         col = item.column()
         
-        item_idx = self.table_glyphs.item(row, 0)
-        if not item_idx:
+        v_header = self.table_glyphs.verticalHeaderItem(row)
+        if not v_header:
             return
-        glyph_idx = int(item_idx.text())
+        glyph_idx = int(v_header.text())
         
         val_str = item.text()
         self.table_glyphs.blockSignals(True)
         
         try:
-            if col == 2:
+            if col == 3:
                 # Find old mapping code
                 old_code = 0
                 maps = self.metadata.get("MAP1", [])
@@ -277,7 +364,7 @@ class BfnNavigationMixin:
                 self.undo_stack.push(cmd)
                 self._set_dirty(True)
                     
-            elif col == 6:
+            elif col == 7:
                 try:
                     new_kern = int(val_str)
                     new_kern = max(-128, min(127, new_kern))
@@ -302,7 +389,7 @@ class BfnNavigationMixin:
                 except ValueError:
                     pass
                     
-            elif col == 7:
+            elif col == 8:
                 try:
                     new_width = int(val_str)
                     
@@ -349,13 +436,13 @@ class BfnNavigationMixin:
                         break
 
     def on_table_cell_double_clicked(self, row, col):
-        if col in (2, 6, 7):
+        if col in (3, 7, 8):
             return
             
-        item_idx = self.table_glyphs.item(row, 0)
-        if not item_idx:
+        v_header = self.table_glyphs.verticalHeaderItem(row)
+        if not v_header:
             return
-        glyph_idx = int(item_idx.text())
+        glyph_idx = int(v_header.text())
         
         rem = glyph_idx - self.start_glyph
         sheet_idx = rem // (self.rows * self.cols)
@@ -447,10 +534,10 @@ class BfnNavigationMixin:
             
         changes = []
         for row in selected_rows:
-            item_idx = self.table_glyphs.item(row, 0)
-            if not item_idx:
+            v_header = self.table_glyphs.verticalHeaderItem(row)
+            if not v_header:
                 continue
-            glyph_idx = int(item_idx.text())
+            glyph_idx = int(v_header.text())
             
             # Find old code
             old_code = 0
@@ -506,10 +593,10 @@ class BfnNavigationMixin:
             changes = []
             for i in range(items_to_fill):
                 row = start_row + i
-                item_idx = self.table_glyphs.item(row, 0)
-                if not item_idx:
+                v_header = self.table_glyphs.verticalHeaderItem(row)
+                if not v_header:
                     continue
-                glyph_idx = int(item_idx.text())
+                glyph_idx = int(v_header.text())
                 
                 # Find old code
                 old_code = 0
@@ -544,3 +631,64 @@ class BfnNavigationMixin:
                 "Success", 
                 f"Successfully filled {items_to_fill} symbols sequentially!"
             )
+
+    def generate_translation_map(self) -> dict:
+        """
+        Generate a translation mapping dictionary {trans_char: orig_char} 
+        by comparing translated and original MAP1 characters for each glyph.
+        """
+        translation_map = {}
+        if not self.original_font_metadata:
+            return translation_map
+
+        maps = self.metadata.get("MAP1", [])
+        orig_maps = self.original_font_metadata.get("MAP1", [])
+
+        def get_char_for_glyph(glyph_idx, map_blocks):
+            for m in map_blocks:
+                m_type = m.get("mapping_type", 0)
+                m_first = m.get("first_char", 0)
+                m_last = m.get("last_char", 0)
+                if m_type == 0:
+                    if m_first <= glyph_idx <= m_last:
+                        try:
+                            return chr(glyph_idx)
+                        except Exception:
+                            pass
+                elif m_type == 2:
+                    entries = m.get("entries", [])
+                    if glyph_idx < len(entries):
+                        code = entries[glyph_idx]
+                        if code > 0:
+                            try:
+                                return chr(code)
+                            except Exception:
+                                pass
+                elif m_type == 3:
+                    entries = m.get("entries", [])
+                    half = len(entries) // 2
+                    for k in range(half):
+                        if entries[half + k] == glyph_idx:
+                            code = entries[k]
+                            if code > 0:
+                                try:
+                                    return chr(code)
+                                except Exception:
+                                    pass
+            return ""
+
+        for idx in range(self.start_glyph, self.end_glyph + 1):
+            try:
+                trans_char = get_char_for_glyph(idx, maps)
+                orig_char = get_char_for_glyph(idx, orig_maps)
+                
+                if trans_char and orig_char and trans_char != orig_char:
+                    if len(trans_char) == 1 and len(orig_char) == 1:
+                        # Skip control characters or nul
+                        if ord(trans_char) >= 32 and ord(orig_char) >= 32:
+                            translation_map[trans_char] = orig_char
+            except Exception:
+                pass
+
+        return translation_map
+

@@ -39,7 +39,7 @@ class PluginSettings:
         """Loads plugin-specific settings."""
         defaults = {
             "display_name": "Unknown Plugin", "default_tag_mappings": {}, "block_names": {}, "block_color_markers": {},
-            "string_metadata": {}, "default_font_file": "", "fonts_dir_path": "",
+            "string_metadata": {}, "default_font_file": "", "fonts_dir_path": "", "orig_fonts_dir_path": "",
             "newline_display_symbol": "↵", "newline_css": "color: #A020F0; font-weight: bold;",
             "tag_css": "color: #808080; font-style: italic;",
             "bracket_tag_color_hex": "#FF8C00",
@@ -171,6 +171,7 @@ class PluginSettings:
             "string_metadata": {str(k): v for k, v in self.mw.string_metadata.items()},
             "default_font_file": self.mw.default_font_file,
             "fonts_dir_path": getattr(self.mw, 'fonts_dir_path', ""),
+            "orig_fonts_dir_path": getattr(self.mw, 'orig_fonts_dir_path', ""),
             "newline_display_symbol": self.mw.newline_display_symbol,
             "tag_color_rgba": getattr(self.mw, 'tag_color_rgba', "#FF8C00"),
             "tag_bold": getattr(self.mw, 'tag_bold', True),

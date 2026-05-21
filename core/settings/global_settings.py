@@ -48,7 +48,8 @@ class GlobalSettings:
                 "use_translation_api_key": False,
                 "model": "gpt-4o",
                 "chunk_size": 8000
-            }
+            },
+            "bfn_glyph_table_column_widths": []
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -131,7 +132,8 @@ class GlobalSettings:
             "enable_file_logging": getattr(self.mw, 'enable_file_logging', True),
             "settings_window_width": getattr(self.mw, 'settings_window_width', 800),
             "log_file_path": getattr(self.mw, 'log_file_path', ""),
-            "enabled_log_categories": getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"])
+            "enabled_log_categories": getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"]),
+            "bfn_glyph_table_column_widths": getattr(self.mw, 'bfn_glyph_table_column_widths', [])
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

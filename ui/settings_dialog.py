@@ -151,6 +151,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         if selected_dir_name:
             self._populate_font_list(selected_dir_name)
 
+    def _on_orig_fonts_dir_changed(self):
+        self.mw.orig_fonts_dir_path = self.orig_fonts_path_edit.text().strip()
+
     def load_initial_settings(self):
         current_theme = getattr(self.mw, 'theme', 'auto')
         if current_theme == 'dark': self.theme_combo.setCurrentIndex(2)
@@ -164,6 +167,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
                 break
         
         self.fonts_path_edit.setText(getattr(self.mw, 'fonts_dir_path', ""))
+        self.orig_fonts_path_edit.setText(getattr(self.mw, 'orig_fonts_dir_path', ""))
         self._populate_font_list(current_plugin_dir_name)
         
         self.font_size_spinbox.setValue(self.mw.current_font_size)
@@ -376,6 +380,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'is_directory_mode': self.dir_mode_checkbox.isChecked(),
             'auto_generate_translation_path': self.auto_generate_checkbox.isChecked(),
             'fonts_dir_path': self.fonts_path_edit.text().strip(),
+            'orig_fonts_dir_path': self.orig_fonts_path_edit.text().strip(),
             'default_font_file': self.font_file_combo.currentData(), 'preview_wrap_lines': self.preview_wrap_checkbox.isChecked(),
             'editors_wrap_lines': self.editors_wrap_checkbox.isChecked(), 'newline_display_symbol': self.newline_symbol_edit.text(),
             'newline_color_rgba': self.newline_color_picker.color().name(QColor.HexArgb) if hasattr(QColor, 'HexArgb') else self.newline_color_picker.color().name(),

@@ -404,11 +404,18 @@ class SettingsDialogUiMixin:
         self.fonts_path_edit.setPlaceholderText("Optional path to fonts folder")
         layout.addRow(QLabel("Fonts Directory Path:"), self._create_dir_selector(self.fonts_path_edit))
 
+        # Original Fonts Directory Path Selection
+        self.orig_fonts_path_edit = QLineEdit(tab)
+        self.orig_fonts_path_edit.setObjectName("PathLineEdit")
+        self.orig_fonts_path_edit.setPlaceholderText("Optional path to original fonts folder")
+        layout.addRow(QLabel("Original Fonts Directory Path:"), self._create_dir_selector(self.orig_fonts_path_edit))
+
         # Signals
         self.dir_mode_checkbox.stateChanged.connect(self._on_dir_mode_changed)
         self.auto_generate_checkbox.stateChanged.connect(self._on_auto_generate_changed)
         self.original_path_edit.textChanged.connect(self._update_auto_changes_path)
         self.fonts_path_edit.textChanged.connect(self._on_fonts_dir_changed)
+        self.orig_fonts_path_edit.textChanged.connect(self._on_orig_fonts_dir_changed)
 
     def _on_dir_mode_changed(self, state):
         is_dir = (state == Qt.Checked)

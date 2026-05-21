@@ -43,6 +43,9 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.temp_dir = ''
         self.metadata = {}
         self.sheet_images = []
+        self.original_font_metadata = None
+        self.original_sheet_images = []
+        self._table_headers_resized = False
         self.current_sheet_index = -1
         self.selected_cell = None  # (gx, gy)
         self.selected_sim_item = None
@@ -247,15 +250,27 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         table_layout.addLayout(search_layout)
 
         self.table_glyphs = QtWidgets.QTableWidget()
-        self.table_glyphs.setColumnCount(8)
-        self.table_glyphs.setHorizontalHeaderLabels([
-            'Glyph Index', 'Glyph Render', 'Character', 'Unicode',
+        headers = [
+            'Original Render', 'Original Char',
+            'Glyph Render', 'Character', 'Unicode',
             'Texture Sheet', 'Tile Position', 'Kerning', 'Width'
-        ])
+        ]
+        self.table_glyphs.setColumnCount(len(headers))
+        self.table_glyphs.setHorizontalHeaderLabels(headers)
+        for col_idx, header_text in enumerate(headers):
+            item = self.table_glyphs.horizontalHeaderItem(col_idx)
+            if item:
+                item.setToolTip(header_text)
         header = self.table_glyphs.horizontalHeader()
-        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QtWidgets.QHeaderView.Stretch)
-        header.setSectionResizeMode(5, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+        header.installEventFilter(self)
+        
+        # Connect double-click on header boundary to auto-resize column to fit contents
+        header.sectionHandleDoubleClicked.connect(self.on_header_handle_double_clicked)
+        
+        # Ensure that during interactive drag-resizing, cell widgets update dynamically in real time
+        header.sectionResized.connect(lambda *args: self.table_glyphs.updateGeometries())
+        
         self.table_glyphs.cellDoubleClicked.connect(self.on_table_cell_double_clicked)
         self.table_glyphs.itemChanged.connect(self.on_table_item_changed)
         self.table_glyphs.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -287,7 +302,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                                QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter,
                                QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
                     current = self.table_glyphs.currentIndex()
-                    if current.isValid() and current.column() in (2, 6, 7):
+                    if current.isValid() and current.column() in (3, 7, 8):
                         self.table_glyphs.edit(current)
             original_table_keyPress(event)
 
@@ -414,6 +429,102 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.sc_up.activated.connect(lambda: self.navigate_grid(0, -1))
         self.sc_down = QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self)
         self.sc_down.activated.connect(lambda: self.navigate_grid(0, 1))
+
+        self.sc_close = QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self)
+        self.sc_close.activated.connect(self.on_esc_pressed)
+
+    def on_esc_pressed(self):
+        focus_w = self.focusWidget()
+        if hasattr(self, 'table_glyphs') and self.table_glyphs:
+            if self.table_glyphs.state() == QtWidgets.QAbstractItemView.EditingState:
+                if focus_w:
+                    self.sc_close.setEnabled(False)
+                    event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_Escape, QtCore.Qt.NoModifier)
+                    QtWidgets.QApplication.sendEvent(focus_w, event)
+                    self.sc_close.setEnabled(True)
+                return
+        self.close()
+
+    def eventFilter(self, source, event):
+        if (hasattr(self, 'table_glyphs') and self.table_glyphs and
+            source == self.table_glyphs.horizontalHeader() and
+            event.type() == QtCore.QEvent.MouseButtonDblClick):
+            
+            pos = event.pos()
+            x = pos.x()
+            header = self.table_glyphs.horizontalHeader()
+            count = header.count()
+            
+            for i in range(count):
+                if header.isSectionHidden(i):
+                    continue
+                section_start = header.sectionViewportPosition(i)
+                section_end = section_start + header.sectionSize(i)
+                
+                # Check if double click was on the resize boundary (within 5 pixels)
+                if abs(x - section_end) <= 5:
+                    self.on_header_handle_double_clicked(i)
+                    event.accept()
+                    return True
+        return super().eventFilter(source, event)
+
+    def on_header_handle_double_clicked(self, logical_index):
+        # Calculate maximum width of this column manually based ONLY on row content (excluding header text)
+        col = logical_index
+        
+        # Start with a minimum base width for cell margins
+        max_w = 35
+        
+        # Iterate over all rows to find the max width of cell contents
+        row_count = self.table_glyphs.rowCount()
+        table_font = self.table_glyphs.font()
+        
+        for row in range(row_count):
+            widget = self.table_glyphs.cellWidget(row, col)
+            if widget:
+                # If it's a QLabel with a pixmap, use the pixmap width plus margins
+                if isinstance(widget, QtWidgets.QLabel) and widget.pixmap() and not widget.pixmap().isNull():
+                    max_w = max(max_w, widget.pixmap().width() + 16)
+                else:
+                    max_w = max(max_w, widget.sizeHint().width())
+            else:
+                item = self.table_glyphs.item(row, col)
+                if item and item.text():
+                    # Check if item has custom font
+                    item_font = item.font() if item.font().family() else table_font
+                    item_fm = QtGui.QFontMetrics(item_font)
+                    text_w = item_fm.horizontalAdvance(item.text())
+                    max_w = max(max_w, text_w + 24)
+                    
+        # Apply limits (between 35 and 600)
+        max_w = max(35, min(max_w, 600))
+        
+        # Set the column width
+        self.table_glyphs.setColumnWidth(col, max_w)
+
+    def get_settings_manager(self):
+        curr = self.parent()
+        while curr:
+            if hasattr(curr, "settings_manager") and curr.settings_manager:
+                return curr.settings_manager
+            curr = curr.parent()
+        
+        from PyQt5.QtWidgets import QApplication
+        for w in QApplication.topLevelWidgets():
+            if hasattr(w, "settings_manager") and w.settings_manager:
+                return w.settings_manager
+        return None
+
+    def save_column_widths(self):
+        sm = self.get_settings_manager()
+        if sm:
+            widths = []
+            for col in range(self.table_glyphs.columnCount()):
+                widths.append(self.table_glyphs.columnWidth(col))
+            sm.set("bfn_glyph_table_column_widths", widths)
+            if hasattr(sm.mw, "bfn_glyph_table_column_widths"):
+                sm.mw.bfn_glyph_table_column_widths = widths
+            sm.save_settings()
 
     # ------------------------------------------------------------------
     # Override save_changes to also call Picoripi sync callbacks
@@ -656,11 +767,18 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
             return
             
         sheet_idx = current.data(0, ROLE_SHEET_IDX)
-        if sheet_idx is None:
-            # Not a sheet item
-            return
-            
         bfn_name = current.data(0, ROLE_FONT_NAME)
+        
+        if sheet_idx is None:
+            if bfn_name:
+                if current.childCount() > 0:
+                    self.list_sheets.setCurrentItem(current.child(0))
+                    return
+                sheet_idx = 0
+            else:
+                # Not a sheet item
+                return
+                
         archive_name = current.data(0, ROLE_ARCHIVE_NAME) or ""
         source_type = current.data(0, ROLE_SOURCE_TYPE)
         disk_path = current.data(0, ROLE_DISK_PATH) or ""
@@ -740,6 +858,48 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         # Temporarily clear undo stack to avoid cross-font undoing
         self.undo_stack.clear()
         
+        # Спробуємо завантажити оригінальний шрифт для порівняння
+        self.original_font_metadata = None
+        self.original_sheet_images = []
+        
+        parent = self.parent()
+        if parent:
+            orig_fonts_path = getattr(parent, 'orig_fonts_dir_path', None)
+            if orig_fonts_path:
+                from pathlib import Path
+                orig_dir = Path(orig_fonts_path)
+                if orig_dir.is_dir():
+                    orig_bytes = None
+                    if self.archive_name:
+                        orig_archive_path = orig_dir / self.archive_name
+                        if orig_archive_path.is_file():
+                            try:
+                                from core.containers import ContainerManager
+                                archive_data = orig_archive_path.read_bytes()
+                                if ContainerManager.is_supported(archive_data):
+                                    container = ContainerManager.open(archive_data)
+                                    if container:
+                                        for inner_path in container.list_files():
+                                            if Path(inner_path).name == bfn_name:
+                                                orig_bytes = container.read_file(inner_path)
+                                                break
+                            except Exception as ex:
+                                print(f"Error loading original font from archive: {ex}")
+                    else:
+                        orig_file_path = orig_dir / bfn_name
+                        if orig_file_path.is_file():
+                            try:
+                                orig_bytes = orig_file_path.read_bytes()
+                            except Exception as ex:
+                                print(f"Error loading loose original font: {ex}")
+                                
+                    if orig_bytes:
+                        try:
+                            self.load_original_bfn_bytes(orig_bytes, bfn_name)
+                            print(f"BFN Editor: Successfully loaded original comparison font '{bfn_name}'.")
+                        except Exception as ex:
+                            print(f"Failed to parse original font: {ex}")
+        
         self.load_bfn_bytes(bfn_bytes, bfn_name)
         self.set_current_sheet_row(target_sheet_idx)
 
@@ -748,3 +908,31 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.scan_fonts_directories()
         sheet_count = len(self.sheet_images)
         self.rebuild_tree_widget(sheet_count)
+        
+        if self.current_bfn_name:
+            self.set_current_sheet_row(self.current_sheet_index if self.current_sheet_index >= 0 else 0)
+        else:
+            # Standalone mode: auto-select first sheet of first font to avoid empty table
+            def find_first_sheet(parent_item):
+                if parent_item.data(0, ROLE_SHEET_IDX) is not None:
+                    return parent_item
+                for i in range(parent_item.childCount()):
+                    res = find_first_sheet(parent_item.child(i))
+                    if res:
+                        return res
+                return None
+                
+            first_sheet = None
+            for i in range(self.list_sheets.topLevelItemCount()):
+                first_sheet = find_first_sheet(self.list_sheets.topLevelItem(i))
+                if first_sheet:
+                    break
+            if first_sheet:
+                self.list_sheets.setCurrentItem(first_sheet)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.close()
+            event.accept()
+        else:
+            super().keyPressEvent(event)

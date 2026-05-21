@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.80] - 2026-05-22
+
+### Added
+- **Glyph Editor Column Width Persistence**: Implemented automatic saving of user-configured column widths inside the Glyph Table of the BFN Font Editor.
+  - The columns width configuration is saved inside `settings.json` under the key `"bfn_glyph_table_column_widths"` upon closing the BFN Font Editor window or exiting the main program.
+  - The saved column widths are automatically restored upon opening or reloading BFN fonts in the Glyph Table.
+  - If no widths are saved yet, the table defaults to a smart auto-fitting mode that resizes columns according to cell contents while completely excluding long column headers, ensuring optimal visual density without unnecessary blank space.
+
 ## [0.2.79] - 2026-05-21
 
 ### Added

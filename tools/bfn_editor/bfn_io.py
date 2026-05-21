@@ -225,6 +225,28 @@ class BfnIoMixin:
             else:
                 self.status.showMessage(f"Successfully saved files in folder: {os.path.basename(target_dir)}")
                 
+            # Automatically generate and save translation map if original font is loaded
+            if self.original_font_metadata:
+                try:
+                    translation_map = self.generate_translation_map()
+                    parent_win = self.parent()
+                    active_plugin = None
+                    if parent_win:
+                        if hasattr(parent_win, "active_game_plugin"):
+                            active_plugin = parent_win.active_game_plugin
+                        elif hasattr(parent_win, "mw") and hasattr(parent_win.mw, "active_game_plugin"):
+                            active_plugin = parent_win.mw.active_game_plugin
+                    
+                    if active_plugin:
+                        plugin_dir = os.path.join("plugins", active_plugin)
+                        if os.path.exists(plugin_dir):
+                            mapping_path = os.path.join(plugin_dir, "translation_map.json")
+                            with open(mapping_path, "w", encoding="utf-8") as f:
+                                json.dump(translation_map, f, indent=4, ensure_ascii=False)
+                            self.status.showMessage(f"Successfully saved BFN and updated translation_map.json with {len(translation_map)} characters!")
+                except Exception as ex:
+                    print(f"Failed to auto-generate or save translation map: {ex}")
+                
             self._set_dirty(False)
             QtWidgets.QMessageBox.information(self, 'Success', 'All changes saved successfully!')
         except Exception as e:
@@ -232,6 +254,7 @@ class BfnIoMixin:
             self.status.showMessage("Failed to save changes.")
 
     def clear_temp(self):
+        self._table_headers_resized = False
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:
                 shutil.rmtree(self.temp_dir)
@@ -240,6 +263,12 @@ class BfnIoMixin:
             self.temp_dir = ''
 
     def closeEvent(self, event):
+        if hasattr(self, "save_column_widths"):
+            try:
+                self.save_column_widths()
+            except Exception as e:
+                print(f"Error saving column widths on close: {e}")
+
         if self._dirty:
             reply = QtWidgets.QMessageBox.question(
                 self, 
@@ -393,3 +422,53 @@ class BfnIoMixin:
                 
         detected_width = max(1, max_x_with_alpha + 1)
         self.spin_width.setValue(detected_width)
+
+    def load_original_bfn_bytes(self, bfn_bytes, bfn_name="fontres.bfn"):
+        import tempfile
+        import shutil
+        from tools.bfn_editor.bfn_engine import extract_bfn_logic
+        from PIL import Image
+        
+        orig_temp_dir = tempfile.mkdtemp(prefix="bfn_original_")
+        try:
+            temp_bfn_path = os.path.join(orig_temp_dir, bfn_name)
+            with open(temp_bfn_path, 'wb') as f:
+                f.write(bfn_bytes)
+                
+            extract_bfn_logic(temp_bfn_path, orig_temp_dir)
+            
+            # Тепер розпарсимо його метадані та картинки
+            json_path = os.path.join(orig_temp_dir, 'data.json')
+            if os.path.exists(json_path):
+                with open(json_path, 'r') as f:
+                    self.original_font_metadata = json.load(f)
+                    
+                # Нормалізуємо mapping так само як у load_from_extracted_dir
+                maps = self.original_font_metadata.get("MAP1", [])
+                for m in maps:
+                    if m.get("mapping_type", 0) == 0:
+                        m["mapping_type"] = 2
+                        first_char = m.get("first_char", 0)
+                        last_char = m.get("last_char", 0)
+                        m["mapping_entry_count"] = last_char - first_char + 1
+                        m["entries"] = [first_char + i for i in range(m["mapping_entry_count"])]
+                        
+                gly = self.original_font_metadata.get("GLY1", [{}])[0]
+                rows = int(gly.get("glyph_horizontal_count", 5))
+                cols = int(gly.get("glyph_vertical_count", 5))
+                start_glyph = int(gly.get("start_glyph", 0))
+                end_glyph = int(gly.get("end_glyph", 224))
+                
+                sheet_count = (end_glyph - start_glyph) // (rows * cols) + 1
+                self.original_sheet_images = []
+                for s in range(sheet_count):
+                    png_path = os.path.join(orig_temp_dir, f"sheet_{s}.png")
+                    if os.path.exists(png_path):
+                        qimg = QtGui.QImage(png_path)
+                        self.original_sheet_images.append(qimg)
+        finally:
+            # Очистимо тимчасову папку для оригінального шрифту
+            try:
+                shutil.rmtree(orig_temp_dir, ignore_errors=True)
+            except Exception:
+                pass
