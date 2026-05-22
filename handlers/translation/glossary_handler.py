@@ -187,7 +187,7 @@ class GlossaryHandler(BaseTranslationHandler):
         self._update_glossary_highlighting()
 
         if not is_new and updated_entry and old_translation and old_translation.strip() != new_translation.strip():
-            data_source = getattr(self.mw, "data", [])
+            data_source = getattr(self.mw.data_store, "data", [])
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             occurrences = occurrence_map.get(updated_entry.original, [])
             if occurrences:
@@ -285,7 +285,7 @@ class GlossaryHandler(BaseTranslationHandler):
             return
         dialog.set_ai_busy(False)
 
-        cleaned = self.main_handler._clean_model_output(response)
+        cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         translation_value = notes_value = None
         if cleaned:
             try:
@@ -340,7 +340,7 @@ class GlossaryHandler(BaseTranslationHandler):
         if not entry or not self.dialog:
             return
         context_line: Optional[str] = None
-        data_source = getattr(self.mw, "data", None)
+        data_source = getattr(self.mw.data_store, "data", None)
         if isinstance(data_source, list):
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             occ_list = occurrence_map.get(entry.original, [])
@@ -353,7 +353,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
     def _handle_glossary_notes_variation_success(self, response, context: dict) -> None:
         self.main_handler.ui_handler.finish_ai_operation()
-        cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(response)
+        cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         self.main_handler.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned, response=response)
 
         dialog = context.get("dialog")
@@ -380,11 +380,11 @@ class GlossaryHandler(BaseTranslationHandler):
 
     def _get_original_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         return self.data_processor._get_string_from_source(
-            block_idx, string_idx, getattr(self.mw, "data", None), "original_for_translation"
+            block_idx, string_idx, getattr(self.mw.data_store, "data", None), "original_for_translation"
         )
 
     def _get_original_block(self, block_idx: int) -> List[str]:
-        data_source = getattr(self.mw, "data", None)
+        data_source = getattr(self.mw.data_store, "data", None)
         if not isinstance(data_source, list) or not (0 <= block_idx < len(data_source)):
             return []
         block = data_source[block_idx]
@@ -412,7 +412,7 @@ class GlossaryHandler(BaseTranslationHandler):
         previous_translation = previous_entry.translation if previous_entry else None
 
         if self.glossary_manager.update_entry(original, translation, notes):
-            data_source = getattr(self.mw, "data", [])
+            data_source = getattr(self.mw.data_store, "data", [])
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._update_glossary_highlighting()
@@ -438,7 +438,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
     def _handle_glossary_entry_delete(self, original: str):
         if self.glossary_manager.delete_entry(original):
-            data_source = getattr(self.mw, "data", [])
+            data_source = getattr(self.mw.data_store, "data", [])
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._update_glossary_highlighting()

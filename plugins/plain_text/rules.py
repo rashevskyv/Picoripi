@@ -92,10 +92,11 @@ class GameRules(BaseGameRules):
         processed = str(data_string_subline)
         processed = processed.replace('\\n', '\n')
         processed = processed.replace('\\r', '\n')
-        return processed
+        return super().get_text_representation_for_editor(processed)
 
     def convert_editor_text_to_data(self, text: str) -> str:
-        return text.replace('\n', '\\n')
+        converted = super().convert_editor_text_to_data(text)
+        return converted.replace('\n', '\\n')
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         return self.tag_manager.get_syntax_highlighting_rules()

@@ -177,7 +177,7 @@ class TranslationHandler(BaseHandler):
     def _should_use_session(self, task_type: str) -> bool:
         if not self._provider_supports_sessions:
             return False
-        return True
+        return task_type in ('chat_message', 'chat_message_stream', 'translate_block_chunked')
 
     def _prepare_session_for_request(self, *, base_system_prompt: str, full_system_prompt: str, user_prompt: str, task_type: str) -> Optional[dict]:
         log_debug(f"Preparing session, start_new_session is {self.start_new_session}")
@@ -638,7 +638,7 @@ class TranslationHandler(BaseHandler):
 
     def _handle_preview_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        cleaned_text = self.ai_lifecycle_manager._clean_model_output(response)
+        cleaned_text = self.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         
         try:
             parsed_json = json.loads(cleaned_text)
@@ -669,11 +669,11 @@ class TranslationHandler(BaseHandler):
             self._handle_ai_error(f"Validation failed: {e}", context)
 
     def _handle_ai_error(self, error_msg: str, context: Dict[str, Any]) -> None:
-        self.ai_lifecycle_manager._handle_ai_error(error_msg, context)
+        self.ai_lifecycle_manager._handle_task_error(error_msg, context)
 
     def _handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response)
+        cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
         trimmed_translation = self.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(cleaned_translation)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
         
@@ -687,7 +687,7 @@ class TranslationHandler(BaseHandler):
 
     def _handle_variation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        cleaned = self.ai_lifecycle_manager._clean_model_output(response)
+        cleaned = self.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned, response=response)
         variants_raw = self.ui_handler.parse_variation_payload(cleaned)
         self.ui_handler.finish_ai_operation()

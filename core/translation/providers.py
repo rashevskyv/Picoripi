@@ -42,9 +42,12 @@ class OpenAIProvider(BaseTranslationProvider):
     def __init__(self, settings: Dict[str, Any]) -> None:
         super().__init__(settings)
         self.api_key = self.settings.get('api_key') or os.getenv(str(self.settings.get('api_key_env')))
-        self.base_url = (self.settings.get('base_url') or "https://api.openai.com/v1").rstrip('/')
+        endpoint_val = self.settings.get('endpoint') or self.settings.get('base_url') or ""
+        is_default_openai = not endpoint_val or endpoint_val.rstrip('/').lower() == "https://api.openai.com/v1"
+        
+        self.base_url = (endpoint_val or "https://api.openai.com/v1").rstrip('/')
         self.model = self.settings.get('model')
-        if not self.api_key:
+        if is_default_openai and not self.api_key:
             raise TranslationProviderError("OpenAI API key is not set.")
         if not self.model:
             raise TranslationProviderError("OpenAI model is not set.")
@@ -65,9 +68,10 @@ class OpenAIProvider(BaseTranslationProvider):
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
         endpoint = f"{self.base_url}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         
         current_settings = self.settings.copy()
         if settings_override:
@@ -86,7 +90,65 @@ class OpenAIProvider(BaseTranslationProvider):
         try:
             response = requests.post(endpoint, headers=headers, json=body, timeout=timeout)
             response.raise_for_status()
-            data = response.json()
+        except Timeout:
+            raise TranslationProviderError(f"Request timed out after {timeout} seconds.")
+        except requests.RequestException as e:
+            detail = ""
+            if hasattr(e, 'response') and e.response is not None:
+                detail = f" - {e.response.text[:200]}"
+            raise TranslationProviderError(f"API request failed: {e}{detail}")
+
+        is_sse = response.headers.get('content-type', '').startswith('text/event-stream')
+        if is_sse:
+            full_text = []
+            last_message_id = None
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8')
+                    if line_str.startswith('data: '):
+                        json_str = line_str[6:]
+                        if json_str.strip() == '[DONE]':
+                            break
+                        try:
+                            chunk_data = json.loads(json_str)
+                            if isinstance(chunk_data, dict):
+                                if 'id' in chunk_data:
+                                    last_message_id = chunk_data['id']
+                                if 'choices' in chunk_data and chunk_data['choices']:
+                                    choice = chunk_data['choices'][0]
+                                    if 'delta' in choice and 'content' in choice['delta']:
+                                        content = choice['delta']['content']
+                                        if content:
+                                            full_text.append(content)
+                                    elif 'message' in choice and 'content' in choice['message']:
+                                        content = choice['message']['content']
+                                        if content:
+                                            full_text.append(content)
+                                    elif 'text' in choice:
+                                        content = choice['text']
+                                        if content:
+                                            full_text.append(content)
+                        except json.JSONDecodeError:
+                            log_debug(f"SSE decode error for line in translate(): {json_str}")
+                            continue
+            text = "".join(full_text)
+            data = {
+                "choices": [{
+                    "message": {
+                        "role": "assistant",
+                        "content": text
+                    }
+                }]
+            }
+            if last_message_id:
+                data["id"] = last_message_id
+        else:
+            try:
+                data = response.json()
+            except ValueError:
+                raise TranslationProviderError(f"API returned non-JSON response (status {response.status_code}): {response.text[:200]}")
+
+        try:
             text = data['choices'][0]['message']['content'] if data.get('choices') else None
 
             message_id = None
@@ -106,14 +168,14 @@ class OpenAIProvider(BaseTranslationProvider):
                 )
 
             return ProviderResponse(text=text, raw_payload=data, message_id=message_id, conversation_id=conversation_id)
-        except Timeout:
-            raise TranslationProviderError(f"Request timed out after {timeout} seconds.")
-        except requests.RequestException as e:
-            raise TranslationProviderError(f"API request failed: {e}")
+        except Exception as e:
+            raise TranslationProviderError(f"Failed to parse provider response: {e}")
     
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
         endpoint = f"{self.base_url}/chat/completions"
-        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         current_settings = self.settings.copy()
         if settings_override:
             current_settings.update(settings_override)
@@ -420,7 +482,7 @@ class GeminiProvider(BaseTranslationProvider):
 
 def create_translation_provider(provider_key: str, settings: Dict[str, Any]) -> BaseTranslationProvider:
     """Factory function to create a translation provider instance."""
-    if provider_key == 'openai':
+    if provider_key in ('openai', 'openai compatible', 'openai_compatible'):
         return OpenAIProvider(settings)
 
     if provider_key == 'ollama_chat':
@@ -442,7 +504,7 @@ def get_provider_for_config(config: Dict[str, Any]) -> BaseTranslationProvider:
     # The config passed here is the specific config for the task,
     # e.g., mw.glossary_ai, which already contains api_key, model, etc.
     
-    if provider_name == 'openai':
+    if provider_name in ('openai', 'openai compatible', 'openai_compatible'):
         return OpenAIProvider(config)
     elif provider_name == 'ollama':
         # Ollama provider expects 'base_url' and 'model' in its settings,

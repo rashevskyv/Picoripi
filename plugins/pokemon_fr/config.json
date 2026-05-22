@@ -691,33 +691,33 @@
     "edited_file_path": "C:\\Users\\Administrator\\Desktop\\PokemonRS\\translation\\data_event_scripts.s.json",
     "last_selected_block_index": -1,
     "last_selected_string_index": -1,
-    "last_cursor_position_in_edited": 57,
+    "last_cursor_position_in_edited": 51,
     "last_edited_text_edit_scroll_value_v": 0,
     "last_edited_text_edit_scroll_value_h": 0,
     "last_preview_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_h": 0,
     "search_history": [
-        "Скаржиться, що через зайнятість",
-        "Любить тікати з замку",
-        "початок підземелля",
-        "Він грубо говорить та",
-        "суперництвом",
-        "мене викрив",
-        "нарешті можу",
-        "наршті можу",
-        "новий будинок",
-        "Відомий по всьому",
-        "ще вище лізти",
-        "Прошу ласкаво",
-        "Прошу ласкаво\\",
-        "величезний вихор",
-        "під час руху,",
-        "orca",
-        "осетр",
+        "острів",
+        "Оcтов",
         "Sturgeon",
-        "Осет",
-        "do"
+        "осетр",
+        "orca",
+        "під час руху,",
+        "величезний вихор",
+        "Прошу ласкаво\\",
+        "Прошу ласкаво",
+        "ще вище лізти",
+        "Відомий по всьому",
+        "новий будинок",
+        "наршті можу",
+        "нарешті можу",
+        "мене викрив",
+        "суперництвом",
+        "Він грубо говорить та",
+        "початок підземелля",
+        "Любить тікати з замку",
+        "Скаржиться, що через зайнятість"
     ],
     "autofix_enabled": {
         "PKFR_WIDTH_EXCEEDED": false,
@@ -751,7 +751,7 @@
         "provider": "gemini",
         "session_mode": "auto",
         "providers": {
-            "openai_chat": {
+            "openai": {
                 "api_key": "",
                 "api_key_env": "OPENAI_API_KEY",
                 "base_url": "",
@@ -769,12 +769,6 @@
                 "keep_alive": "",
                 "extra_headers": {}
             },
-            "deepl": {
-                "api_key": "",
-                "api_key_env": "DEEPL_API_KEY",
-                "server_url": "",
-                "timeout": 60
-            },
             "gemini": {
                 "api_key": "",
                 "api_key_env": "GEMINI_API_KEY",
@@ -782,6 +776,22 @@
                 "temperature": 0.0,
                 "timeout": 120,
                 "base_url": "http://127.0.0.1:2048/"
+            },
+            "openai_chat": {
+                "api_key": "",
+                "api_key_env": "OPENAI_API_KEY",
+                "base_url": "",
+                "model": "gpt-4o-mini",
+                "temperature": 0.0,
+                "max_output_tokens": 0,
+                "timeout": 60,
+                "extra_headers": {}
+            },
+            "deepl": {
+                "api_key": "",
+                "api_key_env": "DEEPL_API_KEY",
+                "server_url": "",
+                "timeout": 60
             },
             "perplexity": {
                 "api_key": "",
@@ -821,5 +831,9 @@
                 "close": "{Color:White}"
             }
         ]
-    }
+    },
+    "fonts_dir_path": "",
+    "orig_fonts_dir_path": "",
+    "is_directory_mode": false,
+    "auto_generate_translation_path": false
 }

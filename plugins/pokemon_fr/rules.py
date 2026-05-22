@@ -93,10 +93,11 @@ class GameRules(BaseGameRules):
         processed = str(data_string_subline).replace('\\p', f"{P_VISUAL_EDITOR_MARKER}\n")
         processed = processed.replace('\\l', f"{L_VISUAL_EDITOR_MARKER}\n")
         processed = processed.replace('\\n', '\n')
-        return processed
+        return super().get_text_representation_for_editor(processed)
 
     def convert_editor_text_to_data(self, text: str) -> str:
-        actual_text = text.replace(f"{P_VISUAL_EDITOR_MARKER}\n", '\\p')
+        converted = super().convert_editor_text_to_data(text)
+        actual_text = converted.replace(f"{P_VISUAL_EDITOR_MARKER}\n", '\\p')
         actual_text = actual_text.replace(f"{L_VISUAL_EDITOR_MARKER}\n", '\\l')
         actual_text = actual_text.replace('\n', '\\n')
         return actual_text

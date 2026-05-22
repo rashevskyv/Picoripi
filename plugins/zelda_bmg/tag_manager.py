@@ -62,6 +62,11 @@ class TagManager:
         return set(CONTROL_CODES)
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
+        # Check default_tag_mappings first
+        if self.mw and hasattr(self.mw, 'default_tag_mappings'):
+            if tag_to_check in self.mw.default_tag_mappings or tag_to_check in self.mw.default_tag_mappings.values():
+                return True
+
         if not re.fullmatch(r"\{[^}]+\}", tag_to_check):
             return False
         

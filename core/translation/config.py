@@ -27,7 +27,7 @@ def build_default_translation_config() -> dict:
             "openai": {
                 "api_key": "",
                 "api_key_env": "OPENAI_API_KEY",
-                "base_url": "",
+                "endpoint": "",
                 "model": "gpt-4o-mini",
                 "temperature": 0.0,
                 "max_output_tokens": 0,

@@ -56,7 +56,8 @@ class GlossaryBuilderHandler:
             providers_cfg = translation_config.get('providers', {}) or {}
 
         provider_key_map = {
-            'OpenAI': ['openai_chat', 'perplexity'],
+            'OpenAI': ['openai', 'openai_chat', 'perplexity'],
+            'OpenAI Compatible': ['openai', 'openai_chat', 'perplexity'],
             'Gemini': ['gemini'],
             'Ollama': ['ollama_chat']
         }
@@ -65,18 +66,20 @@ class GlossaryBuilderHandler:
         for key in provider_key_map.get(provider_name, []):
             cfg = providers_cfg.get(key, {}) or {}
 
-            if not base_url and cfg.get('base_url'):
-                base_url = cfg.get('base_url')
+            url_val = cfg.get('endpoint') or cfg.get('base_url')
+            if not base_url and url_val:
+                base_url = url_val
 
             api_key = cfg.get('api_key')
             api_key_env = cfg.get('api_key_env')
-            if api_key or api_key_env:
+            if api_key or api_key_env or base_url:
                 credentials = {
                     'api_key': api_key or '',
                     'api_key_env': api_key_env or ''
                 }
                 if base_url:
                     credentials['base_url'] = base_url
+                    credentials['endpoint'] = base_url
                 return credentials
 
         if provider_name == 'Ollama' and base_url:
@@ -122,7 +125,12 @@ class GlossaryBuilderHandler:
             provider_name = glossary_ai_config.get('provider', '')
             resolved_credentials = self._resolve_translation_credentials(provider_name)
 
-            if provider_name not in ('Ollama',) and not (resolved_credentials.get('api_key') or resolved_credentials.get('api_key_env')):
+            is_custom = False
+            if provider_name in ('OpenAI', 'OpenAI Compatible'):
+                url_val = resolved_credentials.get('endpoint') or resolved_credentials.get('base_url')
+                is_custom = bool(url_val) and url_val.rstrip('/').lower() != "https://api.openai.com/v1"
+
+            if provider_name not in ('Ollama',) and not is_custom and not (resolved_credentials.get('api_key') or resolved_credentials.get('api_key_env')):
                 QMessageBox.warning(
                     self.mw,
                     "AI Error",

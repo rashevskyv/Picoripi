@@ -264,7 +264,7 @@ class AILifecycleManager(BaseTranslationHandler):
             conversation_id=conversation_id,
         )
 
-    def _clean_model_output(self, raw_output: Union[str, ProviderResponse]) -> str:
+    def _clean_model_output(self, raw_output: Union[str, ProviderResponse], expect_json: bool = False) -> str:
         text = raw_output.text if isinstance(raw_output, ProviderResponse) else str(raw_output or '')
         if not text:
             return ""
@@ -275,12 +275,13 @@ class AILifecycleManager(BaseTranslationHandler):
         if code_block_match:
             return code_block_match.group(1).strip()
             
-        # 2. If no code blocks, look for the first '{' and last '}'
-        first_brace = text.find('{')
-        last_brace = text.rfind('}')
-        
-        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-            return text[first_brace:last_brace + 1].strip()
+        if expect_json:
+            # 2. If no code blocks, look for the first '{' and last '}'
+            first_brace = text.find('{')
+            last_brace = text.rfind('}')
+            
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                return text[first_brace:last_brace + 1].strip()
             
         return text.strip()
     def _trim_trailing_whitespace_from_lines(self, text: str) -> str:

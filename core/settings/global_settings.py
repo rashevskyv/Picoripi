@@ -50,7 +50,10 @@ class GlobalSettings:
                 "chunk_size": 8000
             },
             "bfn_glyph_table_column_widths": [],
-            "bfn_auto_sync_enabled": False
+            "bfn_auto_sync_enabled": False,
+            "preview_bg_image_path": "",
+            "preview_line_spacing": 10,
+            "preview_text_rect": [15, 15, 300, 120]
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -135,7 +138,10 @@ class GlobalSettings:
             "log_file_path": getattr(self.mw, 'log_file_path', ""),
             "enabled_log_categories": getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"]),
             "bfn_glyph_table_column_widths": getattr(self.mw, 'bfn_glyph_table_column_widths', []),
-            "bfn_auto_sync_enabled": getattr(self.mw, 'bfn_auto_sync_enabled', False)
+            "bfn_auto_sync_enabled": getattr(self.mw, 'bfn_auto_sync_enabled', False),
+            "preview_bg_image_path": getattr(self.mw, 'preview_bg_image_path', ""),
+            "preview_line_spacing": getattr(self.mw, 'preview_line_spacing', 10),
+            "preview_text_rect": getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120])
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

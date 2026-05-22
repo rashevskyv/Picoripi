@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.82] - 2026-05-22
+
+### Added
+- **AI Traffic Logging**: Implemented dedicated AI request/response traffic logging to both the main debug log (`app_debug.txt`) and a separate `ai_traffic.log` file in the project root for transparency and debugging of prompt data.
+
+### Fixed
+- **Translation Text Source in Glossary/AI Translation**: Fixed a bug where `None` was sent to the AI translator as original text due to referencing the deprecated `self.mw.data` field in `GlossaryHandler`. Updated the glossary handler to retrieve data from `self.mw.data_store.data`.
+
 ## [0.2.81] - 2026-05-22
 
 ### Fixed

@@ -155,13 +155,20 @@ def test_ailm_handle_task_error(mock_box, ailm):
 
 def test_ailm_clean_model_output(ailm):
     text = "```json\n{ \"a\": 1 }\n```"
-    assert ailm._clean_model_output(ProviderResponse(text=text)) == '{ "a": 1 }'
+    assert ailm._clean_model_output(ProviderResponse(text=text), expect_json=True) == '{ "a": 1 }'
+    assert ailm._clean_model_output(ProviderResponse(text=text), expect_json=False) == '{ "a": 1 }'
     
     text2 = "Some random { \"b\": 2 } text"
-    assert ailm._clean_model_output(text2) == '{ "b": 2 }'
+    assert ailm._clean_model_output(text2, expect_json=True) == '{ "b": 2 }'
+    assert ailm._clean_model_output(text2, expect_json=False) == "Some random { \"b\": 2 } text"
+    
+    tag_text = "{Color:Red}Hello!"
+    assert ailm._clean_model_output(tag_text, expect_json=False) == "{Color:Red}Hello!"
+    assert ailm._clean_model_output(tag_text, expect_json=True) == "Color:Red" # expected behavior when JSON is expected but not present, it strips braces
     
     text3 = "No braces here"
-    assert ailm._clean_model_output(text3) == "No braces here"
+    assert ailm._clean_model_output(text3, expect_json=False) == "No braces here"
+    assert ailm._clean_model_output(text3, expect_json=True) == "No braces here"
     
     assert ailm._trim_trailing_whitespace_from_lines("test  \nb  \n") == "test\nb\n"
 
