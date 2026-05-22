@@ -48,9 +48,17 @@ def test_gbh_resolve_translation_credentials(gbh):
             "openai_chat": {"api_key": "test_key", "base_url": "http://api"}
         }
     }
+    # Test OpenAI
     creds = gbh._resolve_translation_credentials("OpenAI")
     assert creds["api_key"] == "test_key"
     assert creds["base_url"] == "http://api"
+    assert creds["endpoint"] == "http://api"
+
+    # Test OpenAI Compatible
+    creds_compat = gbh._resolve_translation_credentials("OpenAI Compatible")
+    assert creds_compat["api_key"] == "test_key"
+    assert creds_compat["base_url"] == "http://api"
+    assert creds_compat["endpoint"] == "http://api"
 
     # Ollama special logic
     gbh.mw.translation_config = {
@@ -75,12 +83,29 @@ def test_gbh_build_glossary_for_block_empty(mock_box, gbh):
 def test_gbh_build_glossary_for_block_no_key(mock_box, mock_provider, gbh):
     gbh.mw.glossary_ai = {
         "use_translation_api_key": True,
-        "provider": "OpenAI"
+        "provider": "OpenAI Compatible"
     }
     gbh.mw.translation_config = {} # No keys
     
     gbh.build_glossary_for_block(0)
     mock_box.warning.assert_called_once()
+
+@patch('handlers.translation.glossary_builder_handler.get_provider_for_config')
+@patch('handlers.translation.glossary_builder_handler.QMessageBox')
+def test_gbh_build_glossary_for_block_no_key_but_custom_endpoint(mock_box, mock_provider, gbh):
+    gbh.mw.glossary_ai = {
+        "use_translation_api_key": True,
+        "provider": "OpenAI Compatible"
+    }
+    gbh.mw.translation_config = {
+        "providers": {
+            "openai": {"endpoint": "http://localhost:1234"}
+        }
+    }
+    with patch.object(gbh, '_start_async_glossary_task') as mock_start:
+        gbh.build_glossary_for_block(0)
+        mock_box.warning.assert_not_called()
+        mock_start.assert_called_once()
 
 @patch('handlers.translation.glossary_builder_handler.GlossaryBuilderHandler._start_async_glossary_task')
 @patch('handlers.translation.glossary_builder_handler.get_provider_for_config')

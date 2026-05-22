@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from PyQt5.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtCore import Qt, QPoint
@@ -11,6 +12,17 @@ class LNETContextMenuLogic:
     def __init__(self, editor):
         self.editor = editor
 
+    def _find_tag_at(self, position_in_widget_coords: QPoint) -> Optional[str]:
+        cursor = self.editor.cursorForPosition(position_in_widget_coords)
+        block_text = cursor.block().text()
+        pos_in_block = cursor.position() - cursor.block().position()
+        
+        pattern = re.compile(r'(\{[^}]*\}|\[[^\]]*\])')
+        for match in pattern.finditer(block_text):
+            if match.start() <= pos_in_block <= match.end():
+                return match.group(1)
+        return None
+
     def populate(self, menu: QMenu, position_in_widget_coords: QPoint):
         log_debug(f"LNET ({self.editor.objectName()}): populateContextMenu called (delegated).")
         main_window = self.editor.window()
@@ -19,6 +31,41 @@ class LNETContextMenuLogic:
 
         translator = getattr(main_window, 'translation_handler', None)
         custom_actions_added = False
+
+        if self.editor.objectName() in ("original_text_edit", "edited_text_edit"):
+            tag_under_cursor = self._find_tag_at(position_in_widget_coords)
+            if tag_under_cursor:
+                tag_mappings = getattr(main_window, 'default_tag_mappings', {})
+                
+                # Check if this tag is already an alias
+                if tag_under_cursor in tag_mappings:
+                    orig_tag = tag_mappings[tag_under_cursor]
+                    edit_act = menu.addAction(f"Edit Alias for '{orig_tag}'...")
+                    edit_act.triggered.connect(lambda checked=False, alias=tag_under_cursor, orig=orig_tag: main_window.actions.edit_tag_alias(alias, orig))
+                    
+                    remove_act = menu.addAction(f"Remove Alias '{tag_under_cursor}'")
+                    remove_act.triggered.connect(lambda checked=False, alias=tag_under_cursor, orig=orig_tag: main_window.actions.remove_tag_alias(alias, orig))
+                else:
+                    # Check if this tag has an alias already (but displayed as original tag)
+                    existing_alias = None
+                    for alias_key, orig_val in tag_mappings.items():
+                        if orig_val == tag_under_cursor:
+                            existing_alias = alias_key
+                            break
+                            
+                    if existing_alias:
+                        edit_act = menu.addAction(f"Edit Alias for '{tag_under_cursor}'...")
+                        edit_act.triggered.connect(lambda checked=False, alias=existing_alias, orig=tag_under_cursor: main_window.actions.edit_tag_alias(alias, orig))
+                        
+                        remove_act = menu.addAction(f"Remove Alias '{existing_alias}'")
+                        remove_act.triggered.connect(lambda checked=False, alias=existing_alias, orig=tag_under_cursor: main_window.actions.remove_tag_alias(alias, orig))
+                    else:
+                        # No alias exists for this tag
+                        add_act = menu.addAction(f"Add Alias for '{tag_under_cursor}'...")
+                        add_act.triggered.connect(lambda checked=False, orig=tag_under_cursor: main_window.actions.add_tag_alias(orig))
+                
+                menu.addSeparator()
+                custom_actions_added = True
 
         glossary_entry = None
         if self.editor.objectName() == "original_text_edit":

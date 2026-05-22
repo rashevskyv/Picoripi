@@ -24,6 +24,43 @@ class AIWorker(QObject):
         self.prompt_composer = prompt_composer
         self.task_details = task_details
         self.is_cancelled = False
+        self._last_messages = None
+
+    def _log_ai_traffic(self, messages: List[Dict[str, str]], response_text: Optional[str] = None, error: Optional[str] = None):
+        from utils.logging_utils import log_info
+        import datetime
+        import os
+        
+        task_type = self.task_details.get('type', 'unknown')
+        
+        # 1. Log to app_debug.txt via standard logger
+        log_msg = f"[AI Traffic] Task: {task_type}\n"
+        log_msg += f"--- MESSAGES SENT ---\n{json.dumps(messages, indent=2, ensure_ascii=False)}\n"
+        if response_text is not None:
+            log_msg += f"--- RESPONSE RECEIVED ---\n{response_text}\n"
+        if error is not None:
+            log_msg += f"--- ERROR ---\n{error}\n"
+        
+        log_info(log_msg, category="ai")
+        
+        # 2. Log to a separate file ai_traffic.log in workspace root
+        try:
+            log_file = os.path.join(os.getcwd(), "ai_traffic.log")
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"==================== {timestamp} ====================\n")
+                f.write(f"Task Type: {task_type}\n")
+                f.write("--- MESSAGES SENT ---\n")
+                f.write(json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
+                if response_text is not None:
+                    f.write("--- RESPONSE RECEIVED ---\n")
+                    f.write(response_text + "\n")
+                if error is not None:
+                    f.write("--- ERROR ---\n")
+                    f.write(error + "\n")
+                f.write("="*60 + "\n\n")
+        except Exception as e:
+            log_debug(f"AIWorker: Failed to write to ai_traffic.log: {e}")
 
     def cancel(self):
         log_debug("AIWorker: Cancellation requested.")
@@ -66,6 +103,9 @@ class AIWorker(QObject):
                 user_message = {"role": "user", "content": self.task_details.get('session_user_message')}
                 messages, session_payload = state.prepare_request(user_message)
 
+                self._last_messages = messages
+                self._log_ai_traffic(messages)
+
                 full_response_text = ""
                 for chunk in self.provider.translate_stream(messages, session=session_payload, settings_override=settings_override):
                     if self.is_cancelled:
@@ -74,6 +114,7 @@ class AIWorker(QObject):
                     self.chunk_received.emit(self.task_details, chunk)
                     full_response_text += chunk
                 
+                self._log_ai_traffic(messages, response_text=full_response_text)
                 final_response = ProviderResponse(text=full_response_text)
                 self.success.emit(final_response, self.task_details)
                 return
@@ -83,7 +124,10 @@ class AIWorker(QObject):
                 user_message = {"role": "user", "content": self.task_details.get('session_user_message')}
                 messages, session_payload = state.prepare_request(user_message)
                 
+                self._last_messages = messages
+                self._log_ai_traffic(messages)
                 response = self.provider.translate(messages, session=session_payload, settings_override=settings_override)
+                self._log_ai_traffic(messages, response_text=response.text)
                 self.success.emit(response, self.task_details)
                 return
 
@@ -116,7 +160,10 @@ class AIWorker(QObject):
                     ]
 
                     try:
+                        self._last_messages = messages
+                        self._log_ai_traffic(messages)
                         response = self.provider.translate(messages, session=None)
+                        self._log_ai_traffic(messages, response_text=response.text)
                         cleaned_text = self._clean_json_response(response.text)
                         parsed = json.loads(cleaned_text) if cleaned_text else []
                         if isinstance(parsed, list):
@@ -125,6 +172,7 @@ class AIWorker(QObject):
                             log_debug(f"AIWorker: Glossary chunk {idx + 1} returned non-list response: {parsed}")
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
                         log_debug(f"AIWorker: Error while building glossary chunk {idx + 1}: {exc}")
+                        self._log_ai_traffic(messages, error=str(exc))
                         if not self.is_cancelled:
                             self.task_details['raw_response_text'] = response.text if 'response' in locals() else ""
                             self.error.emit(str(exc), self.task_details)
@@ -200,12 +248,15 @@ class AIWorker(QObject):
                     self.step_updated.emit(1, f"Translating chunk {i + 1}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
 
                     try:
+                        self._last_messages = messages
+                        self._log_ai_traffic(messages)
                         response = self.provider.translate(messages, session=session_payload, settings_override=provider_override)
 
                         if self.is_cancelled:
                             log_debug("AIWorker: Translation cancelled during network request. Discarding response.")
                             break
 
+                        self._log_ai_traffic(messages, response_text=response.text)
                         cleaned_text = self._clean_json_response(response.text)
                         parsed_response = json.loads(cleaned_text)
                         translated_items = parsed_response.get('translated_strings', [])
@@ -229,6 +280,7 @@ class AIWorker(QObject):
 
                     except (TranslationProviderError, json.JSONDecodeError) as e:
                         log_debug(f"AIWorker: Error translating chunk {i}: {e}.")
+                        self._log_ai_traffic(messages, error=str(e))
                         self.task_details['raw_response_text'] = response.text if 'response' in locals() else ""
                         self.error.emit(str(e), self.task_details)
                         return
@@ -310,6 +362,8 @@ class AIWorker(QObject):
             provider_settings_override = self.task_details.get('provider_settings_override', {})
             provider_settings_override.update(settings_override)
 
+            self._last_messages = messages
+            self._log_ai_traffic(messages)
             response = self.provider.translate(messages, session=session_payload, settings_override=provider_settings_override)
 
             if self.is_cancelled:
@@ -317,12 +371,14 @@ class AIWorker(QObject):
                 self.translation_cancelled.emit()
                 return
             
+            self._log_ai_traffic(messages, response_text=response.text)
             self.success.emit(response, self.task_details)
 
 
         except (TranslationProviderError, ValueError, Exception) as e:
             log_debug(f"AIWorker: Exception caught in worker thread: {e}")
             if not self.is_cancelled:
+                self._log_ai_traffic(getattr(self, '_last_messages', None) or [], error=str(e))
                 self.error.emit(str(e), self.task_details)
         finally:
             log_debug("AIWorker: Task finished, emitting 'finished' signal.")

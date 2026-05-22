@@ -70,7 +70,7 @@ class BaseGameRules:
         return '\n'
 
     def convert_editor_text_to_data(self, text: str) -> str:
-        return text
+        return self.replace_aliases_with_tags(text)
 
     def get_display_name(self) -> str:
         if self.mw and hasattr(self.mw, 'display_name'):
@@ -149,7 +149,27 @@ class BaseGameRules:
         return []
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
-        return data_string_subline
+        return self.replace_tags_with_aliases(data_string_subline)
+
+    def replace_tags_with_aliases(self, text: str) -> str:
+        if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
+            return text
+        sorted_mappings = sorted(self.mw.default_tag_mappings.items(), key=lambda item: len(item[1]), reverse=True)
+        result = text
+        for alias, original_tag in sorted_mappings:
+            if original_tag:
+                result = result.replace(original_tag, alias)
+        return result
+
+    def replace_aliases_with_tags(self, text: str) -> str:
+        if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
+            return text
+        sorted_mappings = sorted(self.mw.default_tag_mappings.items(), key=lambda item: len(item[0]), reverse=True)
+        result = text
+        for alias, original_tag in sorted_mappings:
+            if alias:
+                result = result.replace(alias, original_tag)
+        return result
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
         newline_symbol = getattr(self.mw, "newline_display_symbol", "↵") if self.mw else "↵"

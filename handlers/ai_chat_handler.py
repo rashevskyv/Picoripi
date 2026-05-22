@@ -29,6 +29,8 @@ class AIChatHandler(BaseHandler):
         for key, info in config.items():
             if key != 'disabled':
                 display_name: str = key.replace('_', ' ').title()
+                if key == 'openai':
+                    display_name = 'OpenAI Compatible'
                 providers_data[key] = {
                     'display_name': display_name,
                     'model': info.get('model', 'default')

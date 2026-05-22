@@ -3,7 +3,7 @@
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog
 from utils.logging_utils import log_info
 import copy
 from pathlib import Path
@@ -438,3 +438,128 @@ class MainWindowActions:
                 ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
                 
         QMessageBox.information(self.mw, "Recalculation Complete", "All text widths and issues have been successfully recalculated!")
+
+    def add_tag_alias(self, original_tag: str):
+        alias, ok = QInputDialog.getText(
+            self.mw, 
+            "Add Tag Alias", 
+            f"Enter alias for tag '{original_tag}':\n(Will be displayed as [AliasName])"
+        )
+        if not ok:
+            return
+            
+        alias = alias.strip()
+        if not alias:
+            QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
+            return
+            
+        # Ensure it has brackets
+        if not alias.startswith('[') or not alias.endswith(']'):
+            alias = f"[{alias}]"
+            
+        if not hasattr(self.mw, 'default_tag_mappings'):
+            self.mw.default_tag_mappings = {}
+            
+        if alias in self.mw.default_tag_mappings:
+            QMessageBox.warning(
+                self.mw, 
+                "Duplicate Alias", 
+                f"Alias '{alias}' is already registered for tag '{self.mw.default_tag_mappings[alias]}'."
+            )
+            return
+            
+        self.mw.default_tag_mappings[alias] = original_tag
+        
+        # Save settings
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+            
+        self._refresh_editors_after_alias_change()
+
+    def edit_tag_alias(self, alias: str, original_tag: str):
+        new_alias, ok = QInputDialog.getText(
+            self.mw, 
+            "Edit Tag Alias", 
+            f"Edit alias for tag '{original_tag}':",
+            text=alias
+        )
+        if not ok:
+            return
+            
+        new_alias = new_alias.strip()
+        if not new_alias:
+            QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
+            return
+            
+        # Ensure it has brackets
+        if not new_alias.startswith('[') or not new_alias.endswith(']'):
+            new_alias = f"[{new_alias}]"
+            
+        if not hasattr(self.mw, 'default_tag_mappings'):
+            self.mw.default_tag_mappings = {}
+            
+        if new_alias != alias and new_alias in self.mw.default_tag_mappings:
+            QMessageBox.warning(
+                self.mw, 
+                "Duplicate Alias", 
+                f"Alias '{new_alias}' is already registered for tag '{self.mw.default_tag_mappings[new_alias]}'."
+            )
+            return
+            
+        self.mw.default_tag_mappings.pop(alias, None)
+        self.mw.default_tag_mappings[new_alias] = original_tag
+        
+        # Clean up stale alias from in-memory edits to prevent desync
+        if hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'edited_data'):
+            for key, val in list(self.mw.data_store.edited_data.items()):
+                if isinstance(val, str) and alias in val:
+                    self.mw.data_store.edited_data[key] = val.replace(alias, original_tag)
+        
+        # Save settings
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+            
+        self._refresh_editors_after_alias_change()
+
+    def remove_tag_alias(self, alias: str, original_tag: str):
+        reply = QMessageBox.question(
+            self.mw,
+            "Remove Tag Alias",
+            f"Are you sure you want to remove the alias '{alias}' for tag '{original_tag}'?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            if hasattr(self.mw, 'default_tag_mappings'):
+                self.mw.default_tag_mappings.pop(alias, None)
+                
+                # Clean up stale alias from in-memory edits to prevent desync
+                if hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'edited_data'):
+                    for key, val in list(self.mw.data_store.edited_data.items()):
+                        if isinstance(val, str) and alias in val:
+                            self.mw.data_store.edited_data[key] = val.replace(alias, original_tag)
+                
+                if hasattr(self.mw, 'settings_manager'):
+                    self.mw.settings_manager.save_settings()
+                self._refresh_editors_after_alias_change()
+
+    def _refresh_editors_after_alias_change(self):
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules:
+            if hasattr(rules, 'tag_manager') and rules.tag_manager:
+                if hasattr(rules.tag_manager, '_legitimate_exact_tags_cache'):
+                    rules.tag_manager._legitimate_exact_tags_cache = None
+                    
+        if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
+            self.mw.helper.reconfigure_all_highlighters()
+            
+        ui = getattr(self.mw, 'ui_updater', None)
+        if ui:
+            if hasattr(ui, 'update_text_views'):
+                ui.update_text_views()
+            if hasattr(ui, 'populate_strings_for_block'):
+                ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
+                
+        # Trigger silent project-wide scan so that problem counts update with new legitimate tags
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()

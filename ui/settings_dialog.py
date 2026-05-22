@@ -76,6 +76,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.setup_ai_glossary_tab()
         self.setup_logging_tab()
 
+        self.edit_prompts_btn.clicked.connect(self.on_edit_prompts_clicked)
+
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -236,7 +238,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         openai_cfg = providers_cfg.get('openai', {})
         active_openai_cfg = openai_cfg
         self.openai_api_key_edit.setText(active_openai_cfg.get('api_key', '')); self.openai_api_key_env_edit.setText(active_openai_cfg.get('api_key_env', ''))
-        self.openai_base_url_edit.setText(active_openai_cfg.get('base_url', '')); self.openai_model_edit.setText(active_openai_cfg.get('model', ''))
+        endpoint_val = active_openai_cfg.get('endpoint') or active_openai_cfg.get('base_url', '')
+        self.openai_endpoint_edit.setText(endpoint_val); self.openai_model_edit.setText(active_openai_cfg.get('model', ''))
         try: self.openai_temperature_spin.setValue(float(active_openai_cfg.get('temperature', 0.0)))
         except (TypeError, ValueError): self.openai_temperature_spin.setValue(0.0)
         try: self.openai_max_tokens_spin.setValue(int(active_openai_cfg.get('max_output_tokens', 0) or 0))
@@ -269,6 +272,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         # Load AI Glossary settings
         glossary_ai_cfg = getattr(self.mw, 'glossary_ai', {})
         glossary_provider = glossary_ai_cfg.get('provider', 'OpenAI')
+        if glossary_provider == 'OpenAI':
+            glossary_provider = 'OpenAI Compatible'
         provider_index = self.glossary_provider_combo.findText(glossary_provider)
         if provider_index >= 0:
             self.glossary_provider_combo.blockSignals(True)
@@ -279,6 +284,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         manual_key = glossary_ai_cfg.get('api_key', '')
         self._glossary_manual_api_keys[glossary_provider] = manual_key
+        self._glossary_manual_api_keys['OpenAI'] = manual_key
+        self._glossary_manual_api_keys['OpenAI Compatible'] = manual_key
 
         use_translation_key = glossary_ai_cfg.get('use_translation_api_key', False)
         self.glossary_use_translation_key_checkbox.blockSignals(True)
@@ -331,7 +338,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         openai_cfg = providers_cfg.setdefault('openai', {})
         openai_values = {
             'api_key': self.openai_api_key_edit.text().strip(), 'api_key_env': self.openai_api_key_env_edit.text().strip(),
-            'base_url': self.openai_base_url_edit.text().strip(), 'model': self.openai_model_edit.text().strip(),
+            'endpoint': self.openai_endpoint_edit.text().strip(), 'base_url': self.openai_endpoint_edit.text().strip(),
+            'model': self.openai_model_edit.text().strip(),
             'temperature': float(self.openai_temperature_spin.value()), 'max_output_tokens': int(self.openai_max_tokens_spin.value()),
             'timeout': int(self.openai_timeout_spin.value())
         }
@@ -423,3 +431,25 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
                 wrap_tags.append({"display": disp, "open": ot, "close": ct})
                 
         return {"single_tags": single_tags, "wrap_tags": wrap_tags}
+
+    def on_edit_prompts_clicked(self):
+        plugin_name = self.plugin_combo.currentData()
+        prompts_path = None
+        if hasattr(self.mw, 'translation_handler') and hasattr(self.mw.translation_handler, 'glossary_handler'):
+            prompts_path = self.mw.translation_handler.glossary_handler._prompt_manager._resolve_file("prompts.json", plugin_name)
+        
+        if not prompts_path:
+            # Fallback if resolving failed
+            from pathlib import Path
+            candidates = [
+                Path("plugins", plugin_name, "translation_prompts", "prompts.json") if plugin_name else None,
+                Path("translation_prompts", "prompts.json")
+            ]
+            prompts_path = next((p for p in candidates if p and p.exists()), None)
+
+        if prompts_path:
+            from PyQt5.QtGui import QDesktopServices
+            from PyQt5.QtCore import QUrl
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(prompts_path.resolve())))
+        else:
+            QMessageBox.warning(self, "Edit Prompts", "Could not find prompts.json file.")

@@ -1,6 +1,8 @@
 import pytest
-from unittest.mock import MagicMock
-from PyQt5.QtWidgets import QApplication
+from unittest.mock import MagicMock, patch
+from PyQt5.QtWidgets import QApplication, QMenu, QFileDialog, QInputDialog
+from PyQt5.QtCore import QPoint, Qt, QRect
+from PyQt5.QtGui import QMouseEvent
 from ui.components.bfn_preview_widget import BfnPreviewWidget
 from core.bfn_core import BfnCore
 
@@ -19,6 +21,7 @@ def test_bfn_preview_widget_init(qapp):
     assert widget.mw == mw_mock
     assert widget.text == ""
     assert widget.translation_map is None
+    assert "BfnPreviewWidget {" in widget.styleSheet()
 
 def test_bfn_preview_widget_update_text(qapp):
     mw_mock = MagicMock()
@@ -133,4 +136,109 @@ def test_bfn_preview_widget_paint_event_fallback(qapp):
     
     # Ensure no exception is raised
     widget.render(render_img)
+
+
+def test_bfn_preview_widget_drag_and_drop(qapp):
+    mw_mock = MagicMock()
+    widget = BfnPreviewWidget(mw_mock)
+    widget.setGeometry(0, 0, 500, 300)
+    widget.text_rect = QRect(10, 10, 100, 100)
+    
+    # Mouse press inside
+    press_event = QMouseEvent(QMouseEvent.MouseButtonPress, QPoint(20, 20), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    widget.mousePressEvent(press_event)
+    assert widget.drag_active is True
+    assert widget.drag_start_pos == QPoint(20, 20)
+    
+    # Mouse move to drag
+    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(40, 50), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+    
+    # self.text_rect should move by dx=20, dy=30
+    assert widget.text_rect == QRect(30, 40, 100, 100)
+    
+    # Mouse release
+    release_event = QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(40, 50), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    widget.mouseReleaseEvent(release_event)
+    assert widget.drag_active is False
+    # Check that settings_manager.save_settings was called
+    mw_mock.settings_manager.save_settings.assert_called_once()
+    assert mw_mock.preview_text_rect == [30, 40, 100, 100]
+
+
+def test_bfn_preview_widget_resize(qapp):
+    mw_mock = MagicMock()
+    widget = BfnPreviewWidget(mw_mock)
+    widget.setGeometry(0, 0, 500, 300)
+    widget.text_rect = QRect(10, 10, 100, 100)
+    
+    # Mouse press on 'bottom-right' handle.
+    # rx + rw = 10 + 100 = 110. ry + rh = 10 + 100 = 110.
+    # bottom-right handle center is at (110, 110)
+    press_event = QMouseEvent(QMouseEvent.MouseButtonPress, QPoint(110, 110), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    widget.mousePressEvent(press_event)
+    assert widget.resize_active is True
+    assert widget.resize_handle == 'bottom-right'
+    
+    # Drag to (130, 140) -> dx = 20, dy = 30
+    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(130, 140), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+    # bottom right moves: x2 becomes 110 + 20 = 130, y2 becomes 110 + 30 = 140
+    # QRect(QPoint(10, 10), QPoint(130, 140)) -> width = 130 - 10 + 1 = 121, height = 140 - 10 + 1 = 131
+    assert widget.text_rect.width() == 121
+    assert widget.text_rect.height() == 131
+    
+    # Release
+    widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(130, 140), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))
+    assert widget.resize_active is False
+
+
+def test_bfn_preview_widget_menu_actions(qapp):
+    mw_mock = MagicMock()
+    widget = BfnPreviewWidget(mw_mock)
+    
+    actions_created = {}
+    original_add_action = QMenu.addAction
+    
+    def spy_add_action(menu_obj, text):
+        action = original_add_action(menu_obj, text)
+        actions_created[text] = action
+        return action
+        
+    with patch.object(QMenu, 'addAction', spy_add_action), \
+         patch.object(QMenu, 'exec_') as mock_exec, \
+         patch.object(QFileDialog, 'getOpenFileName', return_value=("test_image.png", "Images")), \
+         patch.object(QInputDialog, 'getInt', return_value=(15, True)):
+         
+         # 1. Test Set Background Image
+         actions_created.clear()
+         mock_exec.side_effect = lambda *args: actions_created.get("Set Background Image...")
+         widget.show_context_menu(QPoint(0, 0))
+         
+         assert widget.bg_image_path == "test_image.png"
+         assert mw_mock.preview_bg_image_path == "test_image.png"
+         mw_mock.settings_manager.save_settings.assert_called()
+         
+         # 2. Test Clear Background Image
+         actions_created.clear()
+         mock_exec.side_effect = lambda *args: actions_created.get("Clear Background Image")
+         widget.show_context_menu(QPoint(0, 0))
+         
+         assert widget.bg_image_path == ""
+         assert widget.bg_image is None
+         assert mw_mock.preview_bg_image_path == ""
+         
+         # 3. Test Set Line Spacing
+         actions_created.clear()
+         mock_exec.side_effect = lambda *args: actions_created.get("Set Line Spacing...")
+         widget.show_context_menu(QPoint(0, 0))
+         
+         assert widget.line_spacing == 15
+         assert mw_mock.preview_line_spacing == 15
+         
+         # 4. Test Reset Text Area
+         actions_created.clear()
+         mock_exec.side_effect = lambda *args: actions_created.get("Reset Text Area")
+         widget.show_context_menu(QPoint(0, 0))
+         
+         assert widget.text_rect == QRect(15, 15, 300, 120)
+         assert mw_mock.preview_text_rect == [15, 15, 300, 120]
 

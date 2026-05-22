@@ -531,7 +531,7 @@ class SettingsDialogUiMixin:
         provider_form = QFormLayout()
         self.translation_provider_combo = QComboBox(self)
         self.translation_provider_combo.addItem("Disabled", "disabled")
-        self.translation_provider_combo.addItem("OpenAI", "openai")
+        self.translation_provider_combo.addItem("OpenAI Compatible", "openai")
 
         self.translation_provider_combo.addItem("Ollama Chat", "ollama_chat")
         self.translation_provider_combo.addItem("Gemini", "gemini")
@@ -545,7 +545,7 @@ class SettingsDialogUiMixin:
         disabled_page = QWidget()
         self.ai_provider_pages.addWidget(disabled_page)
 
-        openai_group = QGroupBox("OpenAI", self.ai_translation_tab)
+        openai_group = QGroupBox("OpenAI Compatible", self.ai_translation_tab)
         openai_layout = QFormLayout(openai_group)
         self.openai_api_key_edit = QLineEdit(self)
         self.openai_api_key_edit.setEchoMode(QLineEdit.Password)
@@ -554,9 +554,9 @@ class SettingsDialogUiMixin:
         self.openai_api_key_env_edit = QLineEdit(self)
         self.openai_api_key_env_edit.setPlaceholderText("OPENAI_API_KEY")
         openai_layout.addRow("API Key Env Var:", self.openai_api_key_env_edit)
-        self.openai_base_url_edit = QLineEdit(self)
-        self.openai_base_url_edit.setPlaceholderText("https://api.openai.com/v1 or http://127.0.0.1:8000")
-        openai_layout.addRow("Base URL:", self.openai_base_url_edit)
+        self.openai_endpoint_edit = QLineEdit(self)
+        self.openai_endpoint_edit.setPlaceholderText("https://api.openai.com/v1 or http://127.0.0.1:8000")
+        openai_layout.addRow("Endpoint:", self.openai_endpoint_edit)
         self.openai_model_edit = QLineEdit(self)
         self.openai_model_edit.setPlaceholderText("gpt-4o-mini")
         openai_layout.addRow("Model:", self.openai_model_edit)
@@ -620,6 +620,10 @@ class SettingsDialogUiMixin:
         self.openai_api_key_env_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
 
         self.gemini_api_key_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
+        
+        self.edit_prompts_btn = QPushButton("Edit Prompts JSON", self)
+        layout.addWidget(self.edit_prompts_btn)
+        
         layout.addStretch(1)
 
     def setup_ai_glossary_tab(self):
@@ -627,7 +631,7 @@ class SettingsDialogUiMixin:
 
         self.glossary_provider_combo = QComboBox(self)
         # For now, let's keep it simple. We can expand this later.
-        self.glossary_provider_combo.addItems(["OpenAI", "Ollama", "Gemini"])
+        self.glossary_provider_combo.addItems(["OpenAI Compatible", "Ollama", "Gemini"])
         layout.addRow("Provider:", self.glossary_provider_combo)
 
         self.glossary_api_key_edit = QLineEdit(self)
@@ -665,7 +669,7 @@ class SettingsDialogUiMixin:
         if isinstance(self.translation_config_snapshot, dict):
             providers_cfg = self.translation_config_snapshot.get('providers', {}) or {}
 
-        if provider_name == 'OpenAI':
+        if provider_name in ('OpenAI', 'OpenAI Compatible'):
             api_key = self.openai_api_key_edit.text().strip()
             if not api_key:
                 api_key = providers_cfg.get('openai', {}).get('api_key', '')
@@ -709,7 +713,7 @@ class SettingsDialogUiMixin:
         if not self.glossary_use_translation_key_checkbox.isChecked():
             return
         provider = self.glossary_provider_combo.currentText()
-        if provider in ("OpenAI", "Gemini"):
+        if provider in ("OpenAI", "OpenAI Compatible", "Gemini"):
             self._update_glossary_api_key_controls(provider)
 
     def _on_glossary_use_translation_key_changed(self, state):

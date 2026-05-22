@@ -257,7 +257,7 @@ class GameRules(BaseGameRules):
         return convert_spaces_to_dots_for_display(processed_string, self.mw.show_multiple_spaces_as_dots)
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
-        return str(data_string_subline)
+        return super().get_text_representation_for_editor(str(data_string_subline))
 
     def convert_editor_text_to_data(self, text: str) -> str:
-        return text
+        return super().convert_editor_text_to_data(text)

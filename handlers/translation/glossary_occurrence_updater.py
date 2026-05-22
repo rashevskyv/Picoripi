@@ -404,7 +404,7 @@ class GlossaryOccurrenceUpdater:
         composer_args = context.get("composer_args") or {}
 
         self._main_handler.ui_handler.finish_ai_operation()
-        cleaned = self._main_handler.ai_lifecycle_manager._clean_model_output(response)
+        cleaned = self._main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         try:
             payload = json.loads(cleaned) if cleaned else {}
         except json.JSONDecodeError as exc:
@@ -442,7 +442,7 @@ class GlossaryOccurrenceUpdater:
         occurrence_lookup = context.get("occurrence_lookup") or {}
 
         self._main_handler.ui_handler.finish_ai_operation()
-        cleaned = self._main_handler.ai_lifecycle_manager._clean_model_output(response)
+        cleaned = self._main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         try:
             payload = json.loads(cleaned) if cleaned else {}
         except json.JSONDecodeError as exc:

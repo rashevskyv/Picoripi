@@ -18,6 +18,7 @@ def test_AIChatHandler_get_available_providers(chat_handler, mock_mw):
     providers = chat_handler._get_available_providers()
     assert 'openai' in providers
     assert providers['openai']['model'] == 'gpt-4'
+    assert providers['openai']['display_name'] == 'OpenAI Compatible'
 
 @patch('handlers.ai_chat_handler.AIChatDialog')
 def test_AIChatHandler_show_chat_window(mock_dialog_class, chat_handler):
