@@ -218,9 +218,6 @@ class MainWindowHelper:
 
         # Determine which path to auto-open
         path_to_open = getattr(self.mw, 'last_opened_path', "")
-        if not path_to_open and hasattr(self.mw, 'recent_projects') and self.mw.recent_projects:
-            # Fallback to the most recent project if no specific last_opened_path
-            path_to_open = self.mw.recent_projects[0]
         
         if path_to_open and Path(path_to_open).exists():
             log_info(f"Auto-opening: {path_to_open}")

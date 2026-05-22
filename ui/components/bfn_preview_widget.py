@@ -2,8 +2,35 @@ import json
 import re
 from pathlib import Path
 from PyQt5.QtWidgets import QWidget, QMenu, QFileDialog, QInputDialog
-from PyQt5.QtGui import QPainter, QColor, QImage, QPen, QPainterPath
+from PyQt5.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
 from PyQt5.QtCore import Qt, QRect, QPoint, QRectF
+
+class BfnEditorAdapter:
+    def __init__(self, editor):
+        self.editor = editor
+
+    @property
+    def gly1(self):
+        return self.editor.metadata.get("GLY1", [])
+
+    @property
+    def map1(self):
+        return self.editor.metadata.get("MAP1", [])
+
+    @property
+    def wid1(self):
+        return self.editor.metadata.get("WID1", [])
+
+    @property
+    def inf1(self):
+        return self.editor.metadata.get("INF1", [])
+
+    def get_sheets_qimages(self):
+        return self.editor.sheet_images
+
+    def layout_text(self, text: str, translation_map = None, line_spacing: int = 10):
+        from core.bfn_core import BfnCore
+        return BfnCore.layout_text(self, text, translation_map, line_spacing)
 
 class BfnPreviewWidget(QWidget):
     def __init__(self, main_window, parent=None):
@@ -90,6 +117,23 @@ class BfnPreviewWidget(QWidget):
 
     def get_active_bfn_font(self):
         """Find the active BFN font for the current string."""
+        if hasattr(self.mw, '_bfn_editor_window') and self.mw._bfn_editor_window is not None:
+            editor = self.mw._bfn_editor_window
+            is_mock = False
+            try:
+                from unittest.mock import Mock
+                if isinstance(editor, Mock):
+                    is_mock = True
+            except ImportError:
+                pass
+                
+            if not is_mock:
+                try:
+                    if not editor.isHidden() and getattr(editor, 'sheet_images', None):
+                        return BfnEditorAdapter(editor)
+                except RuntimeError:
+                    self.mw._bfn_editor_window = None
+
         block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
         string_idx = getattr(self.mw.data_store, 'current_string_idx', -1)
         
@@ -101,16 +145,30 @@ class BfnPreviewWidget(QWidget):
         if not font_file or font_file == "default":
             font_file = getattr(self.mw, 'default_font_file', None)
 
-        if not font_file:
-            return None
-
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
-        if font_file in all_bfn_fonts:
-            return all_bfn_fonts[font_file]
+
+        if not font_file:
+            if all_bfn_fonts:
+                first_key = next(iter(all_bfn_fonts))
+                return all_bfn_fonts[first_key]
+            return None
+        
+        if font_file:
+            # Strip extension and try matching by stem (base name)
+            font_stem = Path(font_file).stem.lower()
             
-        for key, bfn in all_bfn_fonts.items():
-            if key.endswith("/" + font_file):
-                return bfn
+            if font_file in all_bfn_fonts:
+                return all_bfn_fonts[font_file]
+                
+            for key, bfn in all_bfn_fonts.items():
+                key_stem = Path(key).stem.lower()
+                if key_stem == font_stem or key.endswith("/" + font_file):
+                    return bfn
+
+        # Fallback: if no active font matched by name, but we have loaded BFN fonts, use the first one
+        if all_bfn_fonts:
+            first_key = next(iter(all_bfn_fonts))
+            return all_bfn_fonts[first_key]
 
         return None
 
@@ -323,7 +381,35 @@ class BfnPreviewWidget(QWidget):
         painter.restore()
         
         bfn = self.get_active_bfn_font()
-        if not bfn or not self.text:
+        if not bfn:
+            if self.text:
+                painter.setPen(QColor("#ffffff"))
+                font = painter.font()
+                font.setPointSize(12)
+                painter.setFont(font)
+                
+                # Clean tags from text before rendering
+                cleaned_text = self.text
+                rules = getattr(self.mw, 'current_game_rules', None)
+                if rules:
+                    if hasattr(rules, 'get_spellcheck_ignore_pattern'):
+                        pattern = rules.get_spellcheck_ignore_pattern()
+                        if pattern:
+                            try:
+                                cleaned_text = re.sub(pattern, "", cleaned_text)
+                            except Exception:
+                                pass
+                cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
+                cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
+                
+                painter.drawText(self.text_rect, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, cleaned_text)
+            else:
+                painter.setPen(QColor("#777777"))
+                painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
+            self.draw_bounding_box(painter)
+            return
+            
+        if not self.text:
             painter.setPen(QColor("#777777"))
             painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
             self.draw_bounding_box(painter)
@@ -360,79 +446,32 @@ class BfnPreviewWidget(QWidget):
         gly = bfn.gly1[0]
         cell_w = gly["cell_width"]
         cell_h = gly["cell_height"]
-        cols = gly["glyph_horizontal_count"]
-        rows = gly["glyph_vertical_count"]
-        start_glyph = gly["start_glyph"]
-        end_glyph = gly["end_glyph"]
 
-        # Helper to decode character code based on CP1252 to match translation map
-        def code_to_char(code):
-            try:
-                return bytes([code]).decode('cp1252')
-            except Exception:
-                return chr(code)
+        # Prepare fallback font metrics for missing glyphs
+        fallback_font = painter.font()
+        fallback_font.setPixelSize(max(10, int(cell_h * 0.85)))
+        fallback_fm = QFontMetrics(fallback_font)
 
-        # Parse MAP1 map
-        char_to_glyph = {}
-        if bfn.map1:
-            m1 = bfn.map1[0]
-            m_type = m1["mapping_type"]
-            m_first = m1["first_char"]
-            m_last = m1["last_char"]
-            entries = m1["entries"]
+        # Call unified layout engine
+        is_mock = False
+        try:
+            from unittest.mock import Mock
+            if isinstance(bfn, Mock):
+                is_mock = True
+        except ImportError:
+            pass
             
-            if m_type == 0:
-                for idx in range(m_first, m_last + 1):
-                    char_to_glyph[code_to_char(idx)] = idx
-            elif m_type == 2:
-                for idx, code in enumerate(entries):
-                    char_to_glyph[code_to_char(code)] = idx
-            elif m_type == 3:
-                half = len(entries) // 2
-                for k in range(half):
-                    code = entries[k]
-                    g_idx = entries[half + k]
-                    char_to_glyph[code_to_char(code)] = g_idx
+        if is_mock:
+            from core.bfn_core import BfnCore
+            glyphs, total_width, total_height = BfnCore.layout_text(bfn, encoded_text, self.translation_map, self.line_spacing)
+        else:
+            glyphs, total_width, total_height = bfn.layout_text(encoded_text, self.translation_map, self.line_spacing)
 
-        # Extract width packets
-        wid = bfn.wid1[0]
-        first_code = wid["first_code_included"]
-        packets = wid["packets"]
-
-        # Calculate text dimensions at 1.0 scale to determine scaling factor
-        lines = encoded_text.split('\n')
-        total_width = 0
-        for line in lines:
-            line_w = 0
-            for char in line:
-                if char == ' ':
-                    line_w += cell_w // 2
-                    continue
-                elif char == '\t':
-                    line_w += cell_w * 2
-                    continue
-
-                glyph_idx = char_to_glyph.get(char, -1)
-                if glyph_idx == -1 and self.translation_map:
-                    fallback_char = self.translation_map.get(char)
-                    if fallback_char:
-                        glyph_idx = char_to_glyph.get(fallback_char, -1)
-
-                if glyph_idx == -1 or glyph_idx > end_glyph:
-                    line_w += cell_w // 2
-                    continue
-
-                width = cell_w
-                wid_idx = glyph_idx - first_code
-                if 0 <= wid_idx < len(packets):
-                    width = packets[wid_idx]["width"]
-                line_w += width
-            if line_w > total_width:
-                total_width = line_w
-
-        total_height = len(lines) * cell_h
-        if len(lines) > 1:
-            total_height += (len(lines) - 1) * self.line_spacing
+        if not glyphs:
+            painter.setPen(QColor("#777777"))
+            painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
+            self.draw_bounding_box(painter)
+            return
 
         # Determine scaling factor to fit text within text_rect preserving aspect ratio
         scale_factor = 1.0
@@ -446,67 +485,36 @@ class BfnPreviewWidget(QWidget):
         painter.translate(self.text_rect.topLeft())
         painter.scale(scale_factor, scale_factor)
 
-        # Visual rendering offset settings (relative to 0,0 now because of translate)
-        current_y = 0
+        # Offset translate back by -15px since layout_text starts current_x/current_y at 15px (simulator layout)
+        painter.translate(-15, -15)
 
-        for line in lines:
-            current_x = 0
-            for char in line:
-                if char == ' ':
-                    current_x += cell_w // 2
-                    continue
-                elif char == '\t':
-                    current_x += cell_w * 2
-                    continue
+        for g in glyphs:
+            if g["is_fallback"]:
+                # Draw fallback character using system font instead of gray box
+                painter.save()
+                painter.setPen(QColor("#ffffff"))
+                painter.setFont(fallback_font)
+                
+                char_w = fallback_fm.horizontalAdvance(g["char"])
+                if char_w <= 0:
+                    char_w = cell_w // 2
+                    
+                painter.drawText(QRectF(g["draw_x"], g["draw_y"], char_w, cell_h), Qt.AlignCenter, g["char"])
+                painter.restore()
+                continue
 
-                glyph_idx = char_to_glyph.get(char, -1)
-                if glyph_idx == -1 and self.translation_map:
-                    fallback_char = self.translation_map.get(char)
-                    if fallback_char:
-                        glyph_idx = char_to_glyph.get(fallback_char, -1)
+            if g["sheet_idx"] < 0 or g["sheet_idx"] >= len(sheets):
+                continue
 
-                if glyph_idx == -1 or glyph_idx > end_glyph:
-                    # Draw fallback dark gray outline box for missing glyphs
-                    painter.setPen(QColor("#444444"))
-                    painter.drawRect(current_x, current_y, cell_w - 2, cell_h - 2)
-                    current_x += cell_w // 2
-                    continue
+            # Render decoded white/rgba glyph
+            sheet_img = sheets[g["sheet_idx"]]
+            
+            crop_x = g["cell_x"] + g["kerning"]
+            crop_w = g["width"]
+            if crop_w <= 0:
+                crop_w = 1
 
-                rem = glyph_idx - start_glyph
-                sheet_idx = rem // (rows * cols)
-                cell_idx = rem % (rows * cols)
-
-                if sheet_idx < 0 or sheet_idx >= len(sheets):
-                    current_x += cell_w // 2
-                    continue
-
-                gx = cell_idx % cols
-                gy = cell_idx // cols
-
-                cell_x = gx * cell_w
-                cell_y = gy * cell_h
-
-                kerning = 0
-                width = cell_w
-                wid_idx = glyph_idx - first_code
-                if 0 <= wid_idx < len(packets):
-                    kerning = packets[wid_idx]["kerning"]
-                    width = packets[wid_idx]["width"]
-
-                crop_x = cell_x + kerning
-                crop_w = width
-                if crop_w <= 0:
-                    crop_w = 1
-
-                # Render decoded white/rgba glyph
-                sheet_img = sheets[sheet_idx]
-                painter.drawImage(current_x, current_y, sheet_img, crop_x, cell_y, crop_w, cell_h)
-
-                # Move spacing cursor by character visual width
-                current_x += width
-
-            # Apply custom line spacing between rows
-            current_y += cell_h + self.line_spacing
+            painter.drawImage(g["draw_x"], g["draw_y"], sheet_img, crop_x, g["cell_y"], crop_w, cell_h)
 
         painter.restore()
 

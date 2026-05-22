@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.86] - 2026-05-23
+
+### Fixed
+- **BFN Preview Glyphs Rendering Consistency**: Resolved an issue where glyphs were loaded using a skewed character mapping table upon initial application startup.
+  - **Automatic Linear Mapping Conversion**: Integrated dynamic `mapping_type == 0` (linear map) conversion directly into the binary `BfnCore.load()` parser. It now converts linear mappings to index-based `mapping_type = 2` and generates a proper contiguous `entries` array on-the-fly, replicating BFN Editor's save-time behavior for out-of-the-box consistency.
+  - **Relatively Offset Indices in `layout_text`**: Corrected index calculations for `mapping_type == 0` within `BfnCore.layout_text()`, ensuring characters are mapped to `idx - m_first` (relative grid position) rather than their absolute character code `idx`.
+- **Permanent BFN Fonts Cache Persistence**: Modified `FontMapLoader.load_all_font_maps` to copy and preserve already loaded BFN fonts inside `mw.all_bfn_fonts` instead of completely clearing the dictionary. This prevents BFN fonts synchronized from BFN Editor from being lost when reloading plugin settings or closing the editor.
+- **Preview Standalone Fallback**: Enabled `BfnPreviewWidget.get_active_bfn_font` to fall back to the first available BFN font in the cache if the active block does not specify a font filename (e.g. when working outside a project context).
+
 ## [0.2.84] - 2026-05-23
 
 ### Added

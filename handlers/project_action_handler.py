@@ -177,6 +177,10 @@ class ProjectActionHandler(BaseHandler):
             # Load project-specific settings from metadata
             if self.mw.project_manager:
                 self.mw.project_manager.load_settings_from_project(self.mw)
+                if hasattr(self.mw, 'settings_manager'):
+                    self.mw.settings_manager.load_all_font_maps()
+                if hasattr(self.mw, 'string_settings_updater'):
+                    self.mw.string_settings_updater.update_font_combobox()
                 self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
 
             # Enable project-specific actions
@@ -220,8 +224,14 @@ class ProjectActionHandler(BaseHandler):
         self.mw.data_store.json_path = None
         self.mw.data_store.edited_json_path = None
         self.mw.last_opened_path = ""
+        
+        # Reset plugin
+        self.mw.active_game_plugin = ""
+        self.mw.load_game_plugin()
+
         if hasattr(self.mw, 'settings_manager'):
             self.mw.settings_manager.set("last_opened_path", "")
+            self.mw.settings_manager.set("active_game_plugin", "")
             self.mw.settings_manager.save_settings()
 
         # Reset plugin settings to defaults
@@ -245,6 +255,7 @@ class ProjectActionHandler(BaseHandler):
         self.ui_updater.update_text_views()
         self.ui_updater.update_title()
         self.ui_updater.update_statusbar_paths()
+        self.ui_updater.update_plugin_status_label()
 
         log_info("Project closed.")
 
@@ -872,6 +883,10 @@ class ProjectActionHandler(BaseHandler):
 
             # 3. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
             self.mw.project_manager.load_settings_from_project(self.mw)
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.load_all_font_maps()
+            if hasattr(self.mw, 'string_settings_updater'):
+                self.mw.string_settings_updater.update_font_combobox()
             
             # Fetch restored values for the timer
             restored_block = getattr(self.mw, 'last_block_idx', 0)

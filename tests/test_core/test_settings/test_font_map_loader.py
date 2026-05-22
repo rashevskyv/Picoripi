@@ -135,3 +135,55 @@ def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path):
     # 33 (exclamation mark) must have width 10
     assert mock_mw.all_font_maps["test_font.bfn"]["!"]["width"] == 10
 
+
+def test_FontMapLoader_load_bfn_from_project_blocks(mock_mw, tmp_path):
+    from core.bfn_core import BfnCore
+    
+    # 1. Create dummy BFN
+    bfn = BfnCore()
+    bfn.signature = "FFNT1bnd"
+    bfn.inf1 = [{"encoding": 0, "ascent": 20, "descent": 2, "width": 12, "leading": 2, "fallback_code": 63, "unk1": 0}]
+    bfn.map1 = [{"mapping_type": 2, "first_char": 32, "last_char": 34, "mapping_entry_count": 2, "entries": [0, 1]}]
+    bfn.wid1 = [{"first_code_included": 32, "last_code_included": 34, "packets": [{"kerning": 0, "width": 8}, {"kerning": 1, "width": 10}]}]
+    bfn_bytes = bfn.save()
+
+    # 2. Setup mock project structure
+    pm_mock = MagicMock()
+    mock_mw.project_manager = pm_mock
+    
+    # Mock blocks
+    block_disk = MagicMock()
+    block_disk.source_file = "test_disk_font.bfn"
+    block_disk.metadata = {"is_archive_member": False}
+    
+    block_archive = MagicMock()
+    block_archive.metadata = {
+        "is_archive_member": True,
+        "archive_rel_path": "test_archive.arc",
+        "archive_file_name": "test_archive_font.bfn"
+    }
+    
+    pm_mock.project.blocks = [block_disk, block_archive]
+    
+    # Write disk font
+    disk_font_path = tmp_path / "test_disk_font.bfn"
+    disk_font_path.write_bytes(bfn_bytes)
+    
+    pm_mock.get_absolute_path.return_value = str(disk_font_path)
+    
+    # Mock container for archive block
+    container_mock = MagicMock()
+    container_mock.read_file.return_value = bfn_bytes
+    pm_mock.get_archive_container.return_value = container_mock
+    
+    mock_mw.all_bfn_fonts = {}
+    
+    loader = FontMapLoader(mock_mw)
+    loader.load_all_font_maps()
+    
+    # Verify that fonts from blocks were successfully loaded
+    assert "test_disk_font.bfn" in mock_mw.all_bfn_fonts
+    assert "test_archive_font.bfn" in mock_mw.all_bfn_fonts
+    assert "test_archive.arc/test_archive_font.bfn" in mock_mw.all_bfn_fonts
+
+

@@ -47,6 +47,8 @@ class ProjectManager:
         'game_dialog_max_width_pixels',
         'line_width_warning_threshold_pixels',
         'default_font_file',
+        'fonts_dir_path',
+        'orig_fonts_dir_path',
         'newline_display_symbol',
         'newline_css',
         'tag_css',

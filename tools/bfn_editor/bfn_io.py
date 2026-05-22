@@ -157,11 +157,11 @@ class BfnIoMixin:
         
         self.btn_export_sheet.setEnabled(True)
         self.btn_import_sheet.setEnabled(True)
-        
         self.populate_glyph_table()
         self.update_simulation()
         
         self._set_dirty(False)
+        self._sync_with_global_preview_cache()
 
     def select_sheet(self, index):
         if index < 0 or index >= len(self.sheet_images):
@@ -261,12 +261,53 @@ class BfnIoMixin:
                 except Exception as ex:
                     print(f"Failed to auto-generate or save translation map: {ex}")
                 
+            self._sync_with_global_preview_cache()
             self._set_dirty(False)
             if not silent:
                 QtWidgets.QMessageBox.information(self, 'Success', 'All changes saved successfully!')
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', f'Failed to save changes: {e}')
             self.status.showMessage("Failed to save changes.")
+
+    def _sync_with_global_preview_cache(self):
+        """Sync the current font state with global Picoripi preview cache."""
+        parent_mw = None
+        if hasattr(self, 'parent') and callable(self.parent):
+            parent_mw = self.parent()
+        elif hasattr(self, 'mw'):
+            parent_mw = self.mw
+
+        if parent_mw:
+            try:
+                from core.bfn_core import BfnCore
+                bfn_cache = BfnCore()
+                bfn_cache.metadata = self.metadata
+                bfn_cache.gly1 = self.metadata.get("GLY1", [])
+                bfn_cache.map1 = self.metadata.get("MAP1", [])
+                bfn_cache.wid1 = self.metadata.get("WID1", [])
+                bfn_cache.inf1 = self.metadata.get("INF1", [])
+                
+                # Directly assign QImages list to the cache
+                bfn_cache._qimages_cache = list(self.sheet_images)
+                
+                if not hasattr(parent_mw, 'all_bfn_fonts') or parent_mw.all_bfn_fonts is None:
+                    parent_mw.all_bfn_fonts = {}
+                    
+                name = getattr(self, 'current_bfn_name', 'font.bfn') or 'font.bfn'
+                
+                parent_mw.all_bfn_fonts[name] = bfn_cache
+                parent_mw.all_bfn_fonts[os.path.basename(name)] = bfn_cache
+                parent_mw.all_bfn_fonts["default.bfn"] = bfn_cache
+                parent_mw.all_bfn_fonts["default"] = bfn_cache
+                
+                if getattr(self, 'archive_name', None):
+                    archive_key = f"{self.archive_name}/{os.path.basename(name)}"
+                    parent_mw.all_bfn_fonts[archive_key] = bfn_cache
+                
+                if hasattr(parent_mw, 'bfn_preview_widget') and parent_mw.bfn_preview_widget:
+                    parent_mw.bfn_preview_widget.update()
+            except Exception:
+                pass
 
     def clear_temp(self):
         self._table_headers_resized = False

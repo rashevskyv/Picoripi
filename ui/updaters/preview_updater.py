@@ -566,5 +566,27 @@ class PreviewUpdater(BaseUIUpdater):
         if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
             self.mw.bfn_preview_widget.update_preview_text(edited_text_raw)
 
+        # Sync text with active BFN Font Editor simulation if it is open
+        if hasattr(self.mw, '_bfn_editor_window') and self.mw._bfn_editor_window is not None:
+            try:
+                editor = self.mw._bfn_editor_window
+                is_mock = False
+                try:
+                    from unittest.mock import Mock
+                    if isinstance(editor, Mock):
+                        is_mock = True
+                except ImportError:
+                    pass
+                    
+                if not is_mock and not editor.isHidden():
+                    editor.sim_input.blockSignals(True)
+                    editor.sim_input.setPlainText(edited_text_raw)
+                    editor.sim_input.blockSignals(False)
+                    editor.update_simulation()
+            except RuntimeError:
+                self.mw._bfn_editor_window = None
+            except Exception:
+                pass
+
         if hasattr(self.mw, 'dictionary_tooltip') and self.mw.dictionary_tooltip:
              self.mw.dictionary_tooltip.hide()

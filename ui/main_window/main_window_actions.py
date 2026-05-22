@@ -29,10 +29,18 @@ class MainWindowActions:
 
         new_settings = dialog.get_settings()
         
-        font_file_changed = new_settings.get('default_font_file') != self.mw.default_font_file
+        new_font_file = new_settings.get('default_font_file') or ""
+        old_font_file = getattr(self.mw, 'default_font_file', '') or ""
+        font_file_changed = new_font_file != old_font_file
         
         spellchecker_lang_changed = new_settings.get('spellchecker_language') != self.mw.spellchecker_manager.language
         spellchecker_enabled_changed = new_settings.get('spellchecker_enabled') != self.mw.spellchecker_manager.enabled
+
+        restore_session_before = self.mw.restore_unsaved_on_startup
+
+        # Apply ALL new settings to self.mw immediately so they are captured by subsequent save_settings()
+        for key, value in new_settings.items():
+            setattr(self.mw, key, value)
 
         if dialog.plugin_changed_requires_restart or dialog.theme_changed_requires_restart or font_file_changed:
             log_info(f"Restart required. Plugin change: {dialog.plugin_changed_requires_restart}, Theme change: {dialog.theme_changed_requires_restart}, Font file change: {font_file_changed}")
@@ -64,7 +72,7 @@ class MainWindowActions:
                 self.mw.project_manager.save()
                 log_info(f"Updated project plugin to '{self.mw.active_game_plugin}', paths, and saved project with settings")
 
-            self.mw.settings_manager._save_global_settings()
+            self.mw.settings_manager.save_settings()
             
             self.mw.is_restart_in_progress = True
             self.helper.restart_application()
@@ -72,11 +80,6 @@ class MainWindowActions:
             log_info("Settings changed without restart. Applying settings.")
             
             initial_paths = (self.mw.data_store.json_path, self.mw.data_store.edited_json_path)
-            restore_session_before = self.mw.restore_unsaved_on_startup
-
-            for key, value in new_settings.items():
-                setattr(self.mw, key, value)
-            
             restore_session_after = self.mw.restore_unsaved_on_startup
             
             if restore_session_before and not restore_session_after and self.mw.data_store.unsaved_changes:
@@ -311,9 +314,22 @@ class MainWindowActions:
         from tools.bfn_editor import BfnEditorWindow
         if not hasattr(self.mw, '_bfn_editor_window') or self.mw._bfn_editor_window is None:
             self.mw._bfn_editor_window = BfnEditorWindow(parent=self.mw)
-        self.mw._bfn_editor_window.show()
-        self.mw._bfn_editor_window.raise_()
-        self.mw._bfn_editor_window.activateWindow()
+        
+        editor = self.mw._bfn_editor_window
+        
+        # Initialize simulation input with current text from Picoripi translation editor
+        current_text = ""
+        ds = getattr(self.mw, 'data_store', None)
+        if ds and ds.current_block_idx != -1 and ds.current_string_idx != -1:
+            current_text, _ = self.mw.data_processor.get_current_string_text(ds.current_block_idx, ds.current_string_idx)
+            if current_text is None:
+                current_text = ""
+        if current_text:
+            editor.sim_input.setPlainText(current_text)
+            
+        editor.show()
+        editor.raise_()
+        editor.activateWindow()
 
     def open_bfn_editor_for_block(self, block_idx: int):
         """
@@ -340,6 +356,7 @@ class MainWindowActions:
         is_archive_member = block.metadata.get('is_archive_member', False)
 
         editor = BfnEditorWindow(parent=self.mw)
+        self.mw._bfn_editor_window = editor
 
         if is_archive_member:
             archive_rel_path = block.metadata.get('archive_rel_path', '')
@@ -382,6 +399,16 @@ class MainWindowActions:
             # Regular file on disk
             src_abs = pm.get_absolute_path(block.source_file, is_translation=False)
             editor.open_from_path(src_abs, font_sync_callback=self._bfn_font_sync)
+
+        # Initialize simulation input with current text from Picoripi translation editor
+        current_text = ""
+        ds = getattr(self.mw, 'data_store', None)
+        if ds and ds.current_block_idx != -1 and ds.current_string_idx != -1:
+            current_text, _ = self.mw.data_processor.get_current_string_text(ds.current_block_idx, ds.current_string_idx)
+            if current_text is None:
+                current_text = ""
+        if current_text:
+            editor.sim_input.setPlainText(current_text)
 
         editor.show()
         editor.raise_()

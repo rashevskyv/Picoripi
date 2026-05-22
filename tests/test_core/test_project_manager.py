@@ -128,6 +128,8 @@ class MockMainWindow:
         self.data_store = self
         self.font_size = 14
         self.autofix_enabled = True
+        self.fonts_dir_path = "C:/path/to/fonts"
+        self.orig_fonts_dir_path = "C:/path/to/orig_fonts"
 
 def test_ProjectManager_save_load_settings(pm):
     mw = MockMainWindow()
@@ -136,11 +138,17 @@ def test_ProjectManager_save_load_settings(pm):
     assert pm.save_settings_to_project(mw) is True
     assert pm.project.metadata["settings"]["font_size"] == 14
     assert pm.project.metadata["settings"]["autofix_enabled"] is True
+    assert pm.project.metadata["settings"]["fonts_dir_path"] == "C:/path/to/fonts"
+    assert pm.project.metadata["settings"]["orig_fonts_dir_path"] == "C:/path/to/orig_fonts"
     
     # Load settings
     pm.project.metadata["settings"]["font_size"] = 16
+    pm.project.metadata["settings"]["fonts_dir_path"] = "D:/another/fonts"
+    pm.project.metadata["settings"]["orig_fonts_dir_path"] = "D:/another/orig_fonts"
     assert pm.load_settings_from_project(mw) is True
     assert mw.font_size == 16
+    assert mw.fonts_dir_path == "D:/another/fonts"
+    assert mw.orig_fonts_dir_path == "D:/another/orig_fonts"
 
 def test_ProjectManager_sync_project_files_empty(pm):
     # Smoke test, the real logic does actual filesystem operations

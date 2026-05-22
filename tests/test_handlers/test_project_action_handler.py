@@ -68,19 +68,28 @@ def test_ProjectActionHandler_open_project_action(mock_getOpen, mock_msg_box, mo
 
 @patch('handlers.project_action_handler.QMessageBox')
 def test_ProjectActionHandler_close_project_action(mock_msg_box, mock_mw):
+    mock_mw.settings_manager = MagicMock()
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.unsaved_changes = True
     mock_msg_box.question.return_value = QMessageBox.Discard
     
     mock_mw.data = ["something"]
+    mock_mw.active_game_plugin = "pokemon_fr"
+    
     h.close_project_action()
     
     assert mock_mw.data == []
     assert mock_mw.edited_data == {}
     assert mock_mw.project_manager is None
     assert mock_mw.unsaved_changes is False
+    assert mock_mw.active_game_plugin == ""
+    mock_mw.load_game_plugin.assert_called_once()
+    mock_mw.settings_manager.set.assert_any_call("last_opened_path", "")
+    mock_mw.settings_manager.set.assert_any_call("active_game_plugin", "")
+    mock_mw.settings_manager.save_settings.assert_called()
     mock_mw.block_list_widget.clear.assert_called_once()
     mock_mw.ui_updater.update_text_views.assert_called_once()
+    mock_mw.ui_updater.update_plugin_status_label.assert_called_once()
 
 from PyQt5.QtCore import Qt
 
