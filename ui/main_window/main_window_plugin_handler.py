@@ -48,6 +48,11 @@ class MainWindowPluginHandler:
                     self.mw.main_toolbar.addAction(action)
 
     def load_game_plugin(self):
+        if not self.mw.active_game_plugin:
+            log_info("No active game plugin specified. Loading base game rules.")
+            self._load_fallback_rules()
+            return
+
         log_info(f"Attempting to load plugin: '{self.mw.active_game_plugin}'")
 
         try:

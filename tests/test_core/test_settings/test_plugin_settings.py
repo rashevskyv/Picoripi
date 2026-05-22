@@ -206,3 +206,31 @@ def test_PluginSettings_load_save_orig_fonts_dir_path(dummy_mw, tmp_path):
     
     saved = json.loads(project_settings.read_text())
     assert saved["orig_fonts_dir_path"] == "D:/another/orig_fonts/dir"
+
+def test_PluginSettings_translation_config_loading(dummy_mw, tmp_path):
+    # Setup dummy_mw with translation_config
+    dummy_mw.translation_config = {"provider": "OpenAI", "providers": {"OpenAI": {"api_key": "global_key", "model": "gpt-4o"}}}
+    
+    # 1. No project loaded (project_settings.json does not exist)
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=None)
+    
+    d = {}
+    ps.load(d)
+    
+    # Should NOT overwrite the globally loaded translation_config with defaults
+    assert dummy_mw.translation_config == {"provider": "OpenAI", "providers": {"OpenAI": {"api_key": "global_key", "model": "gpt-4o"}}}
+    
+    # 2. Project loaded with project-specific translation_config
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({
+        "translation_config": {"provider": "Gemini", "providers": {"Gemini": {"api_key": "proj_key", "model": "gemini-1.5-pro"}}}
+    }))
+    
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
+    ps.load(d)
+    
+    # Should overwrite since it's explicitly present in project settings
+    assert dummy_mw.translation_config["provider"] == "Gemini"
+    assert dummy_mw.translation_config["providers"]["Gemini"]["api_key"] == "proj_key"

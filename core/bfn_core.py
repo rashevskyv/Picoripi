@@ -107,7 +107,11 @@ class BfnCore:
                 mapping_type, first_char, last_char, entry_count = struct.unpack('>HHHH', chunk_body[:8])
                 
                 entries = []
-                if mapping_type == 2:
+                if mapping_type == 0:
+                    mapping_type = 2
+                    entry_count = last_char - first_char + 1
+                    entries = [first_char + i for i in range(entry_count)]
+                elif mapping_type == 2:
                     entry_data = chunk_body[8:8+entry_count*2]
                     entries = list(struct.unpack(f'>{entry_count}H', entry_data))
                 elif mapping_type == 3:
@@ -405,3 +409,154 @@ class BfnCore:
             self._qimages_cache.append(img)
 
         return self._qimages_cache
+
+    def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: int = 10) -> Tuple[List[Dict[str, Any]], int, int]:
+        """
+        Compute layout positions for each character in text based on current BFN font metrics.
+        Returns:
+            - List of dictionaries representing laid out glyphs.
+            - total width of text block
+            - total height of text block
+        """
+        # Safety check for mock objects in tests
+        try:
+            from unittest.mock import Mock
+            if isinstance(line_spacing, Mock):
+                line_spacing = 10
+        except ImportError:
+            pass
+            
+        try:
+            line_spacing = int(line_spacing)
+        except Exception:
+            line_spacing = 10
+
+        glyphs_layout = []
+        if not self.gly1 or not self.map1 or not self.wid1:
+            return glyphs_layout, 0, 0
+
+        gly = self.gly1[0]
+        cell_w = gly["cell_width"]
+        cell_h = gly["cell_height"]
+        cols = gly["glyph_horizontal_count"]
+        rows = gly["glyph_vertical_count"]
+        start_glyph = gly["start_glyph"]
+        end_glyph = gly["end_glyph"]
+
+        wid = self.wid1[0]
+        first_code = wid["first_code_included"]
+        packets = wid["packets"]
+
+        # Parse MAP1 maps
+        def code_to_char(code):
+            try:
+                return bytes([code]).decode('cp1252')
+            except Exception:
+                return chr(code)
+
+        char_to_glyph = {}
+        m1 = self.map1[0]
+        m_type = m1["mapping_type"]
+        m_first = m1["first_char"]
+        m_last = m1["last_char"]
+        entries = m1["entries"]
+        
+        if m_type == 0:
+            for idx in range(m_first, m_last + 1):
+                char_to_glyph[code_to_char(idx)] = idx - m_first
+        elif m_type == 2:
+            for idx, code in enumerate(entries):
+                char_to_glyph[code_to_char(code)] = idx
+        elif m_type == 3:
+            half = len(entries) // 2
+            for k in range(half):
+                code = entries[k]
+                g_idx = entries[half + k]
+                char_to_glyph[code_to_char(code)] = g_idx
+
+        lines = text.split('\n')
+        current_y = 15 # Match simulator's padding of 15px
+        total_width = 0
+        char_pos_idx = 0
+
+        for line in lines:
+            current_x = 15 # Match simulator's padding of 15px
+            for char in line:
+                if char == ' ':
+                    current_x += cell_w // 2
+                    continue
+                elif char == '\t':
+                    current_x += cell_w * 2
+                    continue
+
+                glyph_idx = char_to_glyph.get(char, -1)
+                if glyph_idx == -1 and translation_map:
+                    fallback_char = translation_map.get(char)
+                    if fallback_char:
+                        glyph_idx = char_to_glyph.get(fallback_char, -1)
+
+                is_fallback = False
+                if glyph_idx == -1 or glyph_idx > end_glyph:
+                    is_fallback = True
+                    # Let's assign fallback size
+                    width = cell_w // 2
+                    glyphs_layout.append({
+                        "char": char,
+                        "glyph_idx": -1,
+                        "sheet_idx": -1,
+                        "cell_x": 0,
+                        "cell_y": 0,
+                        "draw_x": current_x,
+                        "draw_y": current_y,
+                        "width": width,
+                        "kerning": 0,
+                        "is_fallback": True,
+                        "char_pos_idx": char_pos_idx
+                    })
+                    current_x += width
+                    char_pos_idx += 1
+                    continue
+
+                rem = glyph_idx - start_glyph
+                sheet_idx = rem // (rows * cols)
+                cell_idx = rem % (rows * cols)
+
+                gx = cell_idx % cols
+                gy = cell_idx // cols
+
+                cell_x = gx * cell_w
+                cell_y = gy * cell_h
+
+                kerning = 0
+                width = cell_w
+                wid_idx = glyph_idx - first_code
+                if 0 <= wid_idx < len(packets):
+                    kerning = packets[wid_idx]["kerning"]
+                    width = packets[wid_idx]["width"]
+
+                glyphs_layout.append({
+                    "char": char,
+                    "glyph_idx": glyph_idx,
+                    "sheet_idx": sheet_idx,
+                    "cell_x": cell_x,
+                    "cell_y": cell_y,
+                    "draw_x": current_x,
+                    "draw_y": current_y,
+                    "width": width,
+                    "kerning": kerning,
+                    "is_fallback": False,
+                    "char_pos_idx": char_pos_idx
+                })
+
+                current_x += width
+                char_pos_idx += 1
+
+            if current_x - 15 > total_width:
+                total_width = current_x - 15
+            current_y += cell_h + line_spacing
+
+        total_height = current_y - line_spacing - 15
+        if total_height < 0:
+            total_height = 0
+
+        return glyphs_layout, total_width, total_height

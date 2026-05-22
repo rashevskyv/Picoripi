@@ -533,18 +533,27 @@ class SettingsDialogUiMixin:
         provider_key = self.translation_provider_combo.itemData(index)
         page_index = self.provider_page_map.get(provider_key, 0)
         self.ai_provider_pages.setCurrentIndex(page_index)
+        if hasattr(self, 'test_provider_btn'):
+            self.test_provider_btn.setEnabled(provider_key != 'disabled')
 
     def setup_ai_translation_tab(self):
         layout = QVBoxLayout(self.ai_translation_tab)
         provider_form = QFormLayout()
+        
+        provider_layout = QHBoxLayout()
         self.translation_provider_combo = QComboBox(self)
         self.translation_provider_combo.addItem("Disabled", "disabled")
         self.translation_provider_combo.addItem("OpenAI Compatible", "openai")
-
         self.translation_provider_combo.addItem("Ollama Chat", "ollama_chat")
         self.translation_provider_combo.addItem("Gemini", "gemini")
         self.translation_provider_combo.addItem("Perplexity", "perplexity")
-        provider_form.addRow("Active Provider:", self.translation_provider_combo)
+        provider_layout.addWidget(self.translation_provider_combo)
+
+        self.test_provider_btn = QPushButton("Test Provider", self)
+        self.test_provider_btn.setEnabled(False)
+        provider_layout.addWidget(self.test_provider_btn)
+
+        provider_form.addRow("Active Provider:", provider_layout)
         layout.addLayout(provider_form)
 
         self.ai_provider_pages = QStackedWidget(self)
@@ -767,6 +776,7 @@ class SettingsDialogUiMixin:
     def populate_plugin_list(self):
         self.plugin_map = self.find_plugins()
         self.plugin_combo.clear()
+        self.plugin_combo.addItem("None", "")
         for display_name, dir_name in self.plugin_map.items():
             self.plugin_combo.addItem(display_name, dir_name)
 

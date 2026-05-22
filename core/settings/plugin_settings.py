@@ -65,10 +65,17 @@ class PluginSettings:
             "context_menu_tags": {"single_tags": [], "wrap_tags": []}
         }
         for key, value in defaults.items():
-             settings_dict[key] = value
-             if key not in ["block_names", "block_color_markers", "default_tag_mappings", "string_metadata"]:
-                if not isinstance(getattr(type(self.mw), key, None), property):
-                    setattr(self.mw, key, value)
+            if key == "translation_config":
+                if key not in settings_dict:
+                    settings_dict[key] = value
+                if not hasattr(self.mw, key) or not getattr(self.mw, key, None):
+                    if not isinstance(getattr(type(self.mw), key, None), property):
+                        setattr(self.mw, key, value)
+            else:
+                settings_dict[key] = value
+                if key not in ["block_names", "block_color_markers", "default_tag_mappings", "string_metadata"]:
+                    if not isinstance(getattr(type(self.mw), key, None), property):
+                        setattr(self.mw, key, value)
         
         # Ensure new style fields exist on MainWindow
         for field, default in [
@@ -126,7 +133,7 @@ class PluginSettings:
                 self.mw.string_metadata = {}
             
             for key, value in combined_data.items():
-                if key in ["block_names", "block_color_markers", "default_tag_mappings", "string_metadata"]:
+                if key in ["block_names", "block_color_markers", "default_tag_mappings", "string_metadata", "translation_config"]:
                     continue
                 settings_dict[key] = value
                 if hasattr(self.mw, key) and not isinstance(getattr(type(self.mw), key, None), property):
@@ -139,10 +146,13 @@ class PluginSettings:
             self.mw.autofix_enabled = combined_data.get("autofix_enabled", {})
             self.mw.detection_enabled = combined_data.get("detection_enabled", {})
 
-            loaded_translation = combined_data.get("translation_config", {})
-            if isinstance(loaded_translation, dict):
-                self.mw.translation_config = merge_translation_config(build_default_translation_config(), loaded_translation)
-            else:
+            if "translation_config" in project_data and project_data["translation_config"]:
+                loaded_translation = project_data["translation_config"]
+                if isinstance(loaded_translation, dict):
+                    self.mw.translation_config = merge_translation_config(build_default_translation_config(), loaded_translation)
+                else:
+                    self.mw.translation_config = build_default_translation_config()
+            elif not hasattr(self.mw, "translation_config") or not self.mw.translation_config:
                 self.mw.translation_config = build_default_translation_config()
 
             log_debug("Merged settings loaded successfully.")

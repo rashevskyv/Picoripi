@@ -1,6 +1,6 @@
 # --- START OF FILE utils/constants.py ---
 from pathlib import Path
-APP_VERSION = "0.2.85-dev"
+APP_VERSION = "0.2.86-dev"
 
 # Player tags
 EDITOR_PLAYER_TAG = "player"

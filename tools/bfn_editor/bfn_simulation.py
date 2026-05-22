@@ -14,107 +14,52 @@ class BfnSimMixin:
         if not text:
             return
             
-        char_to_glyph = {}
-        maps = self.metadata.get("MAP1", [])
-        for m in maps:
-            m_type = m.get("mapping_type", 0)
-            m_first = m.get("first_char", 0)
-            m_last = m.get("last_char", 0)
-            entries = m.get("entries", [])
-            
-            if m_type == 0:
-                for idx in range(m_first, m_last + 1):
-                    try:
-                        char_to_glyph[chr(idx)] = idx
-                    except Exception:
-                        pass
-            elif m_type == 2:
-                for idx, code in enumerate(entries):
-                    try:
-                        char_to_glyph[chr(code)] = idx
-                    except Exception:
-                        pass
-            elif m_type == 3:
-                half = len(entries) // 2
-                for k in range(half):
-                    code = entries[k]
-                    g_idx = entries[half + k]
-                    try:
-                        char_to_glyph[chr(code)] = g_idx
-                    except Exception:
-                        pass
-                        
-        wid = self.metadata.get("WID1", [{}])[0]
-        packets = wid.get("packets", [])
+        from core.bfn_core import BfnCore
+        # Construct temporary BfnCore to execute layout calculations
+        bfn_temp = BfnCore()
+        bfn_temp.gly1 = self.metadata.get("GLY1", [])
+        bfn_temp.map1 = self.metadata.get("MAP1", [])
+        bfn_temp.wid1 = self.metadata.get("WID1", [])
+        bfn_temp.inf1 = self.metadata.get("INF1", [])
         
-        current_y = 15
-        lines = text.split('\n')
+        # Call unified layout engine (using line_spacing=10 like simulator does)
+        glyphs, total_w, total_h = bfn_temp.layout_text(text, line_spacing=10)
         
         active_idx = self.get_selected_glyph_index()
-        char_pos_idx = 0
         
-        for line in lines:
-            current_x = 15
-            for char in line:
-                if char == ' ':
-                    current_x += self.cell_w // 2
-                    continue
-                elif char == '\t':
-                    current_x += self.cell_w * 2
-                    continue
-                    
-                glyph_idx = char_to_glyph.get(char, -1)
-                if glyph_idx == -1 or glyph_idx > self.end_glyph:
-                    fallback_box = QtWidgets.QGraphicsRectItem(current_x, current_y, self.cell_w - 2, self.cell_h - 2)
-                    fallback_box.setPen(QtGui.QPen(QtGui.QColor('#555558'), 1))
-                    self.sim_scene.addItem(fallback_box)
-                    current_x += self.cell_w // 2
-                    continue
-                    
-                rem = glyph_idx - self.start_glyph
-                sheet_idx = rem // (self.rows * self.cols)
-                cell_idx = rem % (self.rows * self.cols)
+        for g in glyphs:
+            if g["is_fallback"]:
+                fallback_box = QtWidgets.QGraphicsRectItem(g["draw_x"], g["draw_y"], self.cell_w - 2, self.cell_h - 2)
+                fallback_box.setPen(QtGui.QPen(QtGui.QColor('#555558'), 1))
+                self.sim_scene.addItem(fallback_box)
+                continue
                 
-                if sheet_idx < 0 or sheet_idx >= len(self.sheet_images):
-                    current_x += self.cell_w // 2
-                    continue
-                    
-                gx = cell_idx % self.rows
-                gy = cell_idx // self.rows
-                
-                cell_x = gx * self.cell_w
-                cell_y = gy * self.cell_h
-                
-                glyph_item = SimGlyphItem(
-                    glyph_idx=glyph_idx,
-                    char_str=char,
-                    sheet_idx=sheet_idx,
-                    cell_x=cell_x,
-                    cell_y=cell_y,
-                    x_offset=current_x,
-                    y_offset=current_y,
-                    char_pos_idx=char_pos_idx,
-                    viewer=self
-                )
-                self.sim_scene.addItem(glyph_item)
-                
-                if self.selected_char_index == char_pos_idx:
-                    self.selected_sim_item = glyph_item
-                elif self.selected_char_index == -1 and active_idx == glyph_idx and self.selected_sim_item is None:
-                    self.selected_sim_item = glyph_item
-                    self.selected_char_index = char_pos_idx
-                    
-                width = self.cell_w
-                wid_idx = glyph_idx - self.first_code
-                if 0 <= wid_idx < len(packets):
-                    width = packets[wid_idx]["width"]
-                    
-                current_x += width
-                char_pos_idx += 1
-                
-            current_y += self.cell_h + 10
+            glyph_item = SimGlyphItem(
+                glyph_idx=g["glyph_idx"],
+                char_str=g["char"],
+                sheet_idx=g["sheet_idx"],
+                cell_x=g["cell_x"],
+                cell_y=g["cell_y"],
+                x_offset=g["draw_x"],
+                y_offset=g["draw_y"],
+                char_pos_idx=g["char_pos_idx"],
+                viewer=self
+            )
+            self.sim_scene.addItem(glyph_item)
             
+            if self.selected_char_index == g["char_pos_idx"]:
+                self.selected_sim_item = glyph_item
+            elif self.selected_char_index == -1 and active_idx == g["glyph_idx"] and self.selected_sim_item is None:
+                self.selected_sim_item = glyph_item
+                self.selected_char_index = g["char_pos_idx"]
+                
         self.sim_scene.setSceneRect(self.sim_scene.itemsBoundingRect())
+        
+        # Notify Picoripi preview widget to update in real-time
+        if hasattr(self, 'parent') and self.parent():
+            parent_mw = self.parent()
+            if hasattr(parent_mw, 'bfn_preview_widget') and parent_mw.bfn_preview_widget:
+                parent_mw.bfn_preview_widget.update()
 
     def select_sim_glyph(self, item):
         self.selected_sim_item = item

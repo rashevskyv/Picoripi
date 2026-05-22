@@ -242,3 +242,276 @@ def test_bfn_preview_widget_menu_actions(qapp):
          assert widget.text_rect == QRect(15, 15, 300, 120)
          assert mw_mock.preview_text_rect == [15, 15, 300, 120]
 
+
+def test_bfn_preview_widget_paint_event_no_bfn_fallback(qapp):
+    from PyQt5.QtGui import QImage
+    
+    # 1. Setup mocks with no BFN fonts
+    mw_mock = MagicMock()
+    mw_mock.active_game_plugin = "zelda_mc"
+    mw_mock.data_store.current_block_idx = 0
+    mw_mock.data_store.current_string_idx = 1
+    mw_mock.string_metadata = {}
+    mw_mock.default_font_file = None
+    mw_mock.all_bfn_fonts = {}
+    
+    # Setup spellcheck ignore pattern to test regex ignore
+    mock_rules = MagicMock()
+    mock_rules.get_spellcheck_ignore_pattern.return_value = r'\[\w+\]'
+    mw_mock.current_game_rules = mock_rules
+    
+    widget = BfnPreviewWidget(mw_mock)
+    widget.text_rect = QRect(15, 15, 300, 120)
+    widget.update_preview_text("Hello {Color:Red} world [PLAYER]!")
+    
+    # Render into a paint device
+    render_img = QImage(300, 130, QImage.Format_ARGB32)
+    render_img.fill(0)
+    
+    # Ensure no exception is raised and fallback paint branch is fully executed
+    widget.render(render_img)
+
+
+def test_bfn_preview_widget_paint_event_missing_glyph_fallback(qapp):
+    from PyQt5.QtGui import QImage
+    
+    # Setup mocks for a valid BFN font but missing glyph for specific character
+    mw_mock = MagicMock()
+    mw_mock.active_game_plugin = "zelda_mc"
+    mw_mock.data_store.current_block_idx = 0
+    mw_mock.data_store.current_string_idx = 1
+    mw_mock.string_metadata = {}
+    mw_mock.default_font_file = "test.bfn"
+    
+    bfn_mock = MagicMock()
+    bfn_mock.gly1 = [{
+        "cell_width": 16,
+        "cell_height": 16,
+        "glyph_horizontal_count": 8,
+        "glyph_vertical_count": 8,
+        "start_glyph": 0,
+        "end_glyph": 64
+    }]
+    
+    # Standard ASCII map
+    bfn_mock.map1 = [{
+        "mapping_type": 0,
+        "first_char": 0,
+        "last_char": 127,
+        "entries": []
+    }]
+    
+    bfn_mock.wid1 = [{
+        "first_code_included": 0,
+        "packets": [{"kerning": 0, "width": 12} for _ in range(128)]
+    }]
+    
+    sheet = QImage(128, 128, QImage.Format_ARGB32)
+    bfn_mock.get_sheets_qimages.return_value = [sheet]
+    mw_mock.all_bfn_fonts = {"test.bfn": bfn_mock}
+    
+    widget = BfnPreviewWidget(mw_mock)
+    widget.text_rect = QRect(10, 10, 200, 100)
+    
+    # "Hello" -> found in ASCII. "Ф" -> not in ASCII map, triggers fallback
+    widget.update_preview_text("HelloФ")
+    
+    render_img = QImage(200, 100, QImage.Format_ARGB32)
+    render_img.fill(0)
+    
+    # Should execute successfully without throwing exceptions
+    widget.render(render_img)
+
+
+def test_bfn_preview_widget_with_active_editor_adapter(qapp):
+    from PyQt5.QtGui import QImage
+    from ui.components.bfn_preview_widget import BfnEditorAdapter
+
+    class DummyBfnEditor:
+        def __init__(self):
+            self.metadata = {
+                "GLY1": [{
+                    "cell_width": 24,
+                    "cell_height": 24,
+                    "glyph_horizontal_count": 5,
+                    "glyph_vertical_count": 5,
+                    "start_glyph": 0,
+                    "end_glyph": 224,
+                    "texture_width": 128,
+                    "texture_height": 128
+                }],
+                "MAP1": [{
+                    "mapping_type": 2,
+                    "first_char": 0,
+                    "last_char": 127,
+                    "entries": [i for i in range(128)]
+                }],
+                "WID1": [{
+                    "first_code_included": 0,
+                    "packets": [{"kerning": 0, "width": 12} for _ in range(128)]
+                }],
+                "INF1": []
+            }
+            self.sheet_images = [QImage(128, 128, QImage.Format_ARGB32)]
+
+        def isHidden(self):
+            return False
+
+    mw_mock = MagicMock()
+    editor_dummy = DummyBfnEditor()
+    
+    mw_mock._bfn_editor_window = editor_dummy
+    
+    widget = BfnPreviewWidget(mw_mock)
+    active_font = widget.get_active_bfn_font()
+    
+    assert isinstance(active_font, BfnEditorAdapter)
+    assert active_font.gly1 == editor_dummy.metadata["GLY1"]
+    assert active_font.map1 == editor_dummy.metadata["MAP1"]
+    assert active_font.wid1 == editor_dummy.metadata["WID1"]
+    assert active_font.get_sheets_qimages() == editor_dummy.sheet_images
+    
+    # Verify that paintEvent renders successfully with adapter
+    widget.text_rect = QRect(10, 10, 200, 100)
+    widget.update_preview_text("Test text")
+    
+    render_img = QImage(200, 100, QImage.Format_ARGB32)
+    render_img.fill(0)
+    widget.render(render_img)
+
+
+def test_bfn_preview_widget_stem_matching_and_fallback(qapp):
+    # 1. Stem matching test
+    mw_mock = MagicMock()
+    mw_mock.data_store.current_block_idx = 0
+    mw_mock.data_store.current_string_idx = 1
+    mw_mock.string_metadata = {
+        (0, 1): {"font_file": "CKingMsg.json"}
+    }
+    
+    bfn_mock = MagicMock(spec=BfnCore)
+    mw_mock.all_bfn_fonts = {"CKingMsg.bfn": bfn_mock}
+    
+    widget = BfnPreviewWidget(mw_mock)
+    active_font = widget.get_active_bfn_font()
+    assert active_font == bfn_mock
+    
+    # 2. Fallback to first available BFN font when name does not match
+    mw_mock.string_metadata = {
+        (0, 1): {"font_file": "unknown_font.bfn"}
+    }
+    active_font_fallback = widget.get_active_bfn_font()
+    assert active_font_fallback == bfn_mock
+
+
+def test_bfn_editor_to_global_preview_cache_sync(qapp):
+    from tools.bfn_editor.bfn_io import BfnIoMixin
+    from PyQt5.QtGui import QImage
+    
+    # Create a mock window class that mixes in BfnIoMixin
+    class DummyEditor(BfnIoMixin):
+        def __init__(self, parent_mw):
+            self._parent_mw = parent_mw
+            self.metadata = {
+                "GLY1": [{"cell_width": 24, "cell_height": 24}],
+                "MAP1": [],
+                "WID1": [],
+                "INF1": []
+            }
+            self.sheet_images = [QImage(32, 32, QImage.Format_ARGB32)]
+            self.current_bfn_name = "test_sync_font.bfn"
+            self.archive_name = "test_sync_archive.arc"
+            
+        def parent(self):
+            return self._parent_mw
+            
+        def _set_dirty(self, state):
+            pass
+
+    mw_mock = MagicMock()
+    mw_mock.all_bfn_fonts = {}
+    preview_widget_mock = MagicMock()
+    mw_mock.bfn_preview_widget = preview_widget_mock
+    
+    editor = DummyEditor(mw_mock)
+    editor._sync_with_global_preview_cache()
+    
+    # Check that cache was populated with multiple fallback names
+    assert "test_sync_font.bfn" in mw_mock.all_bfn_fonts
+    assert "default.bfn" in mw_mock.all_bfn_fonts
+    assert "default" in mw_mock.all_bfn_fonts
+    assert "test_sync_archive.arc/test_sync_font.bfn" in mw_mock.all_bfn_fonts
+    
+    # Verify the cached object is a BfnCore instance with correct properties
+    cached_bfn = mw_mock.all_bfn_fonts["test_sync_font.bfn"]
+    assert isinstance(cached_bfn, BfnCore)
+    assert cached_bfn.gly1 == editor.metadata["GLY1"]
+    assert len(cached_bfn._qimages_cache) == 1
+    
+    # Verify widget refresh was triggered
+    preview_widget_mock.update.assert_called_once()
+
+
+def test_bfn_preview_widget_get_active_font_no_project_fallback(qapp):
+    # Setup mock main window with a populated BFN cache but no project/string metadata
+    mw_mock = MagicMock()
+    mw_mock.data_store.current_block_idx = -1
+    mw_mock.data_store.current_string_idx = -1
+    mw_mock.default_font_file = None
+    
+    bfn_mock = MagicMock(spec=BfnCore)
+    mw_mock.all_bfn_fonts = {"fallback_test.bfn": bfn_mock}
+    
+    widget = BfnPreviewWidget(mw_mock)
+    active_font = widget.get_active_bfn_font()
+    
+    # Even without a project (font_file is None), it should fallback to the first available BFN font in cache
+    assert active_font == bfn_mock
+
+
+def test_bfn_core_linear_mapping_type_0_conversion():
+    # Construct a raw binary BFN payload with a MAP1 chunk of type 0
+    # Header: 8 bytes signature, 4 bytes file size, 4 bytes chunk count, 16 bytes padding = 32 bytes
+    # INF1 chunk: 'INF1' (4 bytes), size 32 (4 bytes), body 24 bytes (encoding=1, ascent=24, descent=0, width=24, leading=0, fallback_code=0, unk1=0, 8 bytes padding)
+    # GLY1 chunk: 'GLY1' (4 bytes), size 32 (4 bytes), start_glyph=0, end_glyph=10, cell_width=24, cell_height=24, page_data_size=0, texture_format=0, h_count=5, v_count=5, texture_width=120, texture_height=120, 2 bytes padding
+    # MAP1 chunk: 'MAP1' (4 bytes), size 32 (4 bytes), mapping_type=0, first_char=32, last_char=42, entry_count=0, padded to 32 bytes
+    # WID1 chunk: 'WID1' (4 bytes), size 32 (4 bytes), first_code=32, last_code=42, 10 packets (kerning=0, width=20)
+    
+    import struct
+    header = struct.pack('>8sII', b'FFNT1bnd', 160, 4) + b'\x00' * 16 # 32 bytes
+    
+    inf1 = struct.pack('>4sI', b'INF1', 32) + struct.pack('>HHHHHH', 1, 24, 0, 24, 0, 0) + struct.pack('>I', 0) + b'\x00' * 8 # 32 bytes
+    
+    gly1 = struct.pack('>4sI', b'GLY1', 32) + struct.pack('>HHHHIHHHHH', 0, 10, 24, 24, 0, 0, 5, 5, 120, 120) + b'\x00' * 2 # 32 bytes
+    
+    map1 = struct.pack('>4sI', b'MAP1', 32) + struct.pack('>HHHH', 0, 32, 42, 0) + b'\x00' * 16 # 32 bytes
+    
+    wid1 = struct.pack('>4sI', b'WID1', 32) + struct.pack('>HH', 32, 42) + b'\x00' * 20 # 32 bytes
+    
+    bfn_data = header + inf1 + gly1 + map1 + wid1
+    
+    bfn = BfnCore()
+    bfn.load(bfn_data)
+    
+    # 1. Verify automatic type 0 to type 2 conversion in BfnCore.load()
+    assert bfn.map1[0]["mapping_type"] == 2
+    assert bfn.map1[0]["mapping_entry_count"] == 11
+    # entries should be [32, 33, 34, ..., 42]
+    assert bfn.map1[0]["entries"] == list(range(32, 43))
+    
+    # 2. Verify that layout_text successfully maps character with absolute code to relative index
+    # Char space ' ' has code 32, '!' has code 33
+    # With conversion, char '!' (code 33) maps to entries index 1 (relative glyph index 1)
+    glyphs, w, h = bfn.layout_text("!")
+    assert len(glyphs) == 1
+    assert glyphs[0]["char"] == "!"
+    assert glyphs[0]["glyph_idx"] == 1 # 33 - 32 = 1
+    assert glyphs[0]["is_fallback"] is False
+
+
+
+
+
+
+
+

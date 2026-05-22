@@ -11,7 +11,12 @@ class FontMapLoader:
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         self.mw.font_map = {}
         self.mw.all_font_maps = {}
-        self.mw.all_bfn_fonts = {}
+        
+        preserved_bfn = {}
+        if hasattr(self.mw, 'all_bfn_fonts') and isinstance(self.mw.all_bfn_fonts, dict):
+            preserved_bfn = dict(self.mw.all_bfn_fonts)
+        self.mw.all_bfn_fonts = preserved_bfn
+        
         self.mw.font_map_overrides = {}
         self.mw.icon_sequences = []
 
@@ -166,6 +171,43 @@ class FontMapLoader:
     
                 except Exception as e:
                     log_error(f"Error reading or parsing font map file '{font_file.name}': {e}.", exc_info=True)
+
+        # Dynamically load BFN fonts from all active project blocks (including inside archives)
+        pm = getattr(self.mw, 'project_manager', None)
+        if pm and pm.project:
+            for block in pm.project.blocks:
+                is_archive_member = block.metadata.get('is_archive_member', False)
+                if is_archive_member:
+                    archive_rel_path = block.metadata.get('archive_rel_path', '')
+                    inner_file_name = block.metadata.get('archive_file_name', '')
+                    if inner_file_name.lower().endswith(".bfn"):
+                        try:
+                            from core.containers import ContainerManager
+                            container = pm.get_archive_container(archive_rel_path, is_translation=False)
+                            if container:
+                                bfn_bytes = container.read_file(inner_file_name)
+                                if bfn_bytes:
+                                    from core.bfn_core import BfnCore
+                                    bfn = BfnCore()
+                                    bfn.load(bfn_bytes)
+                                    # Add to cache with both inner file name and archive-prefixed key
+                                    self.mw.all_bfn_fonts[inner_file_name] = bfn
+                                    font_key = f"{Path(archive_rel_path).name}/{inner_file_name}"
+                                    self.mw.all_bfn_fonts[font_key] = bfn
+                        except Exception:
+                            pass
+                else:
+                    source_file = getattr(block, 'source_file', '')
+                    if source_file and source_file.lower().endswith(".bfn"):
+                        try:
+                            src_abs = pm.get_absolute_path(source_file, is_translation=False)
+                            if Path(src_abs).is_file():
+                                from core.bfn_core import BfnCore
+                                bfn = BfnCore()
+                                bfn.load_file(str(src_abs))
+                                self.mw.all_bfn_fonts[Path(source_file).name] = bfn
+                        except Exception:
+                            pass
 
         default_font_filename = getattr(self.mw, 'default_font_file', None)
         if default_font_filename and default_font_filename in self.mw.all_font_maps:

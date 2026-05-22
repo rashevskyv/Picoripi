@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox, QSpinBox, QStackedWidget, QTableWidget, QTableWidgetItem, QMenu
 )
 from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QThread
 from utils.logging_utils import log_debug
 from components.labeled_spinbox import LabeledSpinBox
 from components.dictionary_manager_dialog import DictionaryManagerDialog
@@ -19,6 +19,29 @@ import pycountry
 
 from .settings.settings_widgets import ColorPickerButton, TagDisplayWidget
 from .settings.settings_ui_setup import SettingsDialogUiMixin
+
+class ProviderTestWorker(QThread):
+    finished_signal = pyqtSignal(bool, str)
+
+    def __init__(self, provider_key: str, provider_settings: dict):
+        super().__init__()
+        self.provider_key = provider_key
+        self.provider_settings = provider_settings
+
+    def run(self):
+        try:
+            from core.translation.providers import create_translation_provider
+            provider = create_translation_provider(self.provider_key, self.provider_settings)
+            messages = [
+                {"role": "user", "content": "Say the word \"Test\" and nothing else."}
+            ]
+            response = provider.translate(messages)
+            if response and response.text:
+                self.finished_signal.emit(True, response.text.strip())
+            else:
+                self.finished_signal.emit(False, "Received empty response from provider.")
+        except Exception as e:
+            self.finished_signal.emit(False, str(e))
 
 class SettingsDialog(QDialog, SettingsDialogUiMixin):
     def __init__(self, main_window):
@@ -342,6 +365,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.wrap_tags_table.setSortingEnabled(True)
 
         self.on_provider_changed(self.translation_provider_combo.currentIndex())
+        self.test_provider_btn.clicked.connect(self.on_test_provider_clicked)
         self.rules_changed_requires_rescan = False
 
 
@@ -476,3 +500,29 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(prompts_path.resolve())))
         else:
             QMessageBox.warning(self, "Edit Prompts", "Could not find prompts.json file.")
+
+    def on_test_provider_clicked(self):
+        settings = self.get_settings()
+        translation_config = settings.get('translation_config', {})
+        provider_key = translation_config.get('provider', 'disabled')
+        if provider_key == 'disabled':
+            QMessageBox.warning(self, "Test Provider", "Please select a provider first.")
+            return
+
+        provider_settings = translation_config.get('providers', {}).get(provider_key, {})
+        
+        self.test_provider_btn.setEnabled(False)
+        self.test_provider_btn.setText("Testing...")
+
+        self.test_worker = ProviderTestWorker(provider_key, provider_settings)
+        self.test_worker.finished_signal.connect(self.on_test_provider_finished)
+        self.test_worker.start()
+
+    def on_test_provider_finished(self, success, result):
+        self.test_provider_btn.setEnabled(True)
+        self.test_provider_btn.setText("Test Provider")
+
+        if success:
+            QMessageBox.information(self, "Test Provider Success", f"Connection successful!\nResponse from provider:\n\n{result}")
+        else:
+            QMessageBox.critical(self, "Test Provider Failure", f"Connection failed!\nError:\n\n{result}")

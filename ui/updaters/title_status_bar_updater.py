@@ -101,8 +101,8 @@ class TitleStatusBarUpdater(BaseUIUpdater):
 
     def update_plugin_status_label(self):
         if self.mw.plugin_status_label:
-            if self.mw.current_game_rules:
-                display_name = self.mw.current_game_rules.get_display_name()
+            if getattr(self.mw, 'active_game_plugin', None):
+                display_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else "Unknown"
                 self.mw.plugin_status_label.setText(f"Plugin: {display_name}")
             else:
                 self.mw.plugin_status_label.setText("Plugin: [None]")

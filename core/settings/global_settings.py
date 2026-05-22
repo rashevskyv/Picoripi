@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Any, Union, Optional
 from PyQt5.QtGui import QFont
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
+from core.translation.config import build_default_translation_config, merge_translation_config
 
 class GlobalSettings:
     def __init__(self, main_window: Any, settings_file_path: Union[str, Path] = "settings.json"):
@@ -42,6 +43,7 @@ class GlobalSettings:
             "translation_ai": {
                 "provider": "OpenAI", "api_key": "", "model": "gpt-4o"
             },
+            "translation_config": build_default_translation_config(),
             "glossary_ai": {
                 "provider": "OpenAI",
                 "api_key": "",
@@ -78,7 +80,12 @@ class GlobalSettings:
 
             for key, default_value in self.defaults.items():
                 loaded_value = settings_data.get(key, default_value)
-                if isinstance(default_value, dict):
+                if key == "translation_config":
+                    merged_value = merge_translation_config(default_value, loaded_value)
+                    settings_dict[key] = merged_value
+                    if not isinstance(getattr(type(self.mw), key, None), property):
+                        setattr(self.mw, key, merged_value)
+                elif isinstance(default_value, dict):
                     merged_value = default_value.copy()
                     if isinstance(loaded_value, dict):
                         merged_value.update(loaded_value)
@@ -113,6 +120,24 @@ class GlobalSettings:
         except Exception as e:
              log_error(f"Could not read existing global settings, will create a new one. Error: {e}", exc_info=True)
 
+        translation_config_to_save = getattr(self.mw, 'translation_config', {})
+        if not isinstance(translation_config_to_save, dict):
+            translation_config_to_save = {}
+
+        translation_ai_val = getattr(self.mw, 'translation_ai', {})
+        translation_ai_to_save = translation_ai_val.copy() if isinstance(translation_ai_val, dict) else {}
+
+        if translation_config_to_save:
+            provider = translation_config_to_save.get('provider', 'disabled')
+            if provider != 'disabled':
+                prov_cfg = translation_config_to_save.get('providers', {}).get(provider, {})
+                if isinstance(prov_cfg, dict):
+                    translation_ai_to_save['provider'] = provider
+                    if 'api_key' in prov_cfg:
+                        translation_ai_to_save['api_key'] = prov_cfg['api_key']
+                    if 'model' in prov_cfg:
+                        translation_ai_to_save['model'] = prov_cfg['model']
+
         global_data.update({
             "tree_font_size": getattr(self.mw, 'tree_font_size', self.mw.current_font_size),
             "preview_font_size": getattr(self.mw, 'preview_font_size', self.mw.current_font_size),
@@ -127,7 +152,8 @@ class GlobalSettings:
             "last_opened_path": getattr(self.mw, 'last_opened_path', ""),
             "prompt_editor_enabled": getattr(self.mw, 'prompt_editor_enabled', True),
             "recent_projects": getattr(self.mw, 'recent_projects', []),
-            "translation_ai": getattr(self.mw, 'translation_ai', {}),
+            "translation_ai": translation_ai_to_save,
+            "translation_config": translation_config_to_save,
             "glossary_ai": getattr(self.mw, 'glossary_ai', {}),
             "spellchecker_enabled": getattr(self.mw, 'spellchecker_enabled', False),
             "spellchecker_language": getattr(self.mw, 'spellchecker_language', 'uk'),

@@ -108,3 +108,42 @@ def test_GlobalSettings_save_unsaved_session(mock_mw, tmp_path):
     s.save({})
     saved_again = json.loads(f.read_text())
     assert "unsaved_session_data" not in saved_again
+
+def test_GlobalSettings_saves_and_loads_translation_config(mock_mw, tmp_path):
+    f = tmp_path / "settings.json"
+    s = GlobalSettings(mock_mw, f)
+    
+    # Setup mock config
+    mock_mw.translation_config = {
+        "provider": "gemini",
+        "providers": {
+            "gemini": {
+                "api_key": "test-key-123",
+                "model": "gemini-test-model"
+            }
+        }
+    }
+    
+    # Save settings
+    s.save({})
+    assert f.exists()
+    
+    saved_data = json.loads(f.read_text())
+    assert "translation_config" in saved_data
+    assert saved_data["translation_config"]["provider"] == "gemini"
+    assert saved_data["translation_config"]["providers"]["gemini"]["api_key"] == "test-key-123"
+    
+    # Also check legacy translation_ai sync
+    assert saved_data["translation_ai"]["provider"] == "gemini"
+    assert saved_data["translation_ai"]["api_key"] == "test-key-123"
+    assert saved_data["translation_ai"]["model"] == "gemini-test-model"
+    
+    # Load settings back
+    mock_mw.translation_config = None
+    settings_dict = {}
+    s.load(settings_dict)
+    
+    assert mock_mw.translation_config is not None
+    assert mock_mw.translation_config["provider"] == "gemini"
+    assert mock_mw.translation_config["providers"]["gemini"]["api_key"] == "test-key-123"
+    assert mock_mw.translation_config["providers"]["gemini"]["model"] == "gemini-test-model"
