@@ -5,7 +5,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QTextCursor
 
 from .base_translation_handler import BaseTranslationHandler
@@ -213,16 +213,41 @@ class TranslationUIHandler(BaseTranslationHandler):
         line_number = int(line_idx) if line_idx is not None else None
 
         block_widget = getattr(self.mw, 'block_list_widget', None)
+        current_block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
+        block_changed = (block_idx != current_block_idx)
+
         if block_widget and hasattr(block_widget, 'select_block_by_index'):
             block_widget.select_block_by_index(block_idx)
 
-        self.mw.list_selection_handler.string_selected_from_preview(string_idx)
+        def select_string_and_scroll():
+            if hasattr(self.mw, 'list_selection_handler'):
+                self.mw.list_selection_handler.select_string_by_absolute_index(string_idx)
+            else:
+                self.mw.data_store.current_block_idx = block_idx
+                self.mw.data_store.current_string_idx = string_idx
+                self.ui_updater.populate_strings_for_block(block_idx)
+                self.mw.ui_updater.update_text_views()
 
-        editor = getattr(self.mw, 'original_text_edit', None)
-        if editor and line_number is not None:
-            block_obj = editor.document().findBlockByNumber(line_number)
-            if block_obj.isValid():
-                cursor = editor.textCursor()
-                cursor.setPosition(block_obj.position())
-                editor.setTextCursor(cursor)
-                editor.ensureCursorVisible()
+            editor = getattr(self.mw, 'original_text_edit', None)
+            if editor and line_number is not None:
+                block_obj = editor.document().findBlockByNumber(line_number)
+                if block_obj.isValid():
+                    cursor = editor.textCursor()
+                    cursor.setPosition(block_obj.position())
+                    editor.setTextCursor(cursor)
+                    editor.ensureCursorVisible()
+
+            def apply_focus():
+                if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+                    self.mw.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                elif editor:
+                    editor.setFocus(Qt.OtherFocusReason)
+                self.mw.raise_()
+                self.mw.activateWindow()
+
+            QTimer.singleShot(100, apply_focus)
+
+        if block_changed:
+            QTimer.singleShot(200, select_string_and_scroll)
+        else:
+            select_string_and_scroll()

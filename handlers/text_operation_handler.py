@@ -15,7 +15,9 @@ class TextOperationHandler(BaseHandler):
         super().__init__(main_window, data_processor, ui_updater)
         self.preview_update_timer = QTimer()
         self.preview_update_timer.setSingleShot(True)
-        self.preview_update_timer.timeout.connect(self._update_preview_content)
+        self.preview_update_timer.timeout.connect(self._on_preview_update_timer_timeout)
+        self._debounce_block_idx = -1
+        self._debounce_string_idx = -1
 
     def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
         if not self.mw.current_game_rules:
@@ -182,27 +184,57 @@ class TextOperationHandler(BaseHandler):
         for i, curr_line in enumerate(curr_lines):
             if i >= len(saved_lines) or curr_line != saved_lines[i]:
                 self.mw.data_store.edited_sublines.add(i)
-        
-        self._rescan_issues_for_current_string(block_idx, string_idx_in_block, actual_text_with_spaces)
 
         needs_title_update = self.data_processor.update_edited_data(block_idx, string_idx_in_block, actual_text_with_spaces)
         
         if needs_title_update: 
             self.mw.ui_updater.update_title()
 
-        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+        # Set typing mode in the highlighter to suppress heavy calculations
+        if edited_edit and hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
+            edited_edit.highlighter.set_typing_mode(True)
+
+        # Queue visual changes using debounce
+        self._debounce_block_idx = block_idx
+        self._debounce_string_idx = string_idx_in_block
         self.preview_update_timer.start(PREVIEW_UPDATE_DELAY) 
-        self.mw.ui_updater.update_status_bar()
+        
         self.mw.ui_updater.synchronize_original_cursor()
-        
-        # Re-apply highlights to editor
-        self.mw.ui_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx_in_block)
-        
-        # Dynamically update the visual representation of spaces (dots)
-        self.mw.ui_updater.update_text_views()
         
         if edited_edit and hasattr(edited_edit, 'lineNumberArea'):
             edited_edit.lineNumberArea.update()
+
+    def _on_preview_update_timer_timeout(self) -> None:
+        block_idx = self._debounce_block_idx
+        string_idx = self._debounce_string_idx
+        
+        if block_idx == -1 or string_idx == -1:
+            block_idx = self.mw.data_store.current_block_idx
+            string_idx = self.mw.data_store.current_string_idx
+            
+        if block_idx == -1 or string_idx == -1:
+            return
+            
+        # Disable typing mode to restore spellchecking and glossary highlights
+        edited_edit = getattr(self.mw, 'edited_text_edit', None)
+        if edited_edit and hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
+            edited_edit.highlighter.set_typing_mode(False)
+            
+        current_text_raw, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
+        if current_text_raw is not None:
+            self._rescan_issues_for_current_string(block_idx, string_idx, str(current_text_raw))
+            
+        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+        self._update_preview_content()
+        self.mw.ui_updater.update_status_bar()
+        self.mw.ui_updater.update_text_views()
+        
+        if (self.mw.data_store.current_block_idx == block_idx and 
+            self.mw.data_store.current_string_idx == string_idx):
+            if edited_edit:
+                self.mw.ui_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx)
+                if hasattr(edited_edit, 'lineNumberArea'):
+                    edited_edit.lineNumberArea.update()
 
     def sync_subline_asterisks(self, block_idx: int, string_idx: int, current_text: str) -> None:
         """

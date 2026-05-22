@@ -455,8 +455,8 @@ class BfnPreviewWidget(QWidget):
                     current_x += cell_w // 2
                     continue
 
-                gx = cell_idx % rows
-                gy = cell_idx // rows
+                gx = cell_idx % cols
+                gy = cell_idx // cols
 
                 cell_x = gx * cell_w
                 cell_y = gy * cell_h

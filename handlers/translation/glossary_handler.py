@@ -129,10 +129,6 @@ class GlossaryHandler(BaseTranslationHandler):
         if system_prompt is None:
             return
 
-        if not self.glossary_manager.get_entries():
-            QMessageBox.information(self.mw, "Glossary", "Glossary is empty or not loaded.")
-            return
-
         data_source = self.mw.data_store.data
         if not isinstance(data_source, list):
             QMessageBox.information(self.mw, "Glossary", "No data is loaded for analysis.")
@@ -400,8 +396,6 @@ class GlossaryHandler(BaseTranslationHandler):
         }
         self.main_handler.ui_handler._activate_entry(entry)
         self.mw.ui_updater.highlight_glossary_occurrence(occurrence)
-        self.mw.activateWindow()
-        self.mw.raise_()
         if self.mw.statusBar:
             self.mw.statusBar.showMessage(f"Navigated to glossary term: {occurrence.entry.original}", 4000)
 

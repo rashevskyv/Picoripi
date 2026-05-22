@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 
 from PyQt5.QtWidgets import QAction, QMessageBox
+from PyQt5.QtCore import QTimer, Qt
 
 from handlers.base_handler import BaseHandler
 from components.original_text_analysis_dialog import OriginalTextAnalysisDialog
@@ -144,25 +145,44 @@ class TextAnalysisHandler(BaseHandler):
                 line_number = None
 
         block_widget: Any = getattr(self.mw, 'block_list_widget', None)
+        current_block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
+        block_changed = (block_idx != current_block_idx)
+
         if block_widget and hasattr(block_widget, 'select_block_by_index'):
             block_widget.select_block_by_index(block_idx)
 
-        if hasattr(self.mw, 'list_selection_handler'):
-            self.mw.list_selection_handler.string_selected_from_preview(string_idx)
-        else:
-            self.mw.data_store.current_block_idx = block_idx
-            self.mw.data_store.current_string_idx = string_idx
-            self.ui_updater.populate_strings_for_block(block_idx)
-            self.mw.ui_updater.update_text_views()
+        def select_string_and_scroll():
+            if hasattr(self.mw, 'list_selection_handler'):
+                self.mw.list_selection_handler.select_string_by_absolute_index(string_idx)
+            else:
+                self.mw.data_store.current_block_idx = block_idx
+                self.mw.data_store.current_string_idx = string_idx
+                self.ui_updater.populate_strings_for_block(block_idx)
+                self.mw.ui_updater.update_text_views()
 
-        original_editor: Any = getattr(self.mw, 'original_text_edit', None)
-        if original_editor and line_number is not None:
-            block_obj: Any = original_editor.document().findBlockByNumber(line_number)
-            if block_obj.isValid():
-                cursor: Any = original_editor.textCursor()
-                cursor.setPosition(block_obj.position())
-                original_editor.setTextCursor(cursor)
-                original_editor.ensureCursorVisible()
+            original_editor: Any = getattr(self.mw, 'original_text_edit', None)
+            if original_editor and line_number is not None:
+                block_obj: Any = original_editor.document().findBlockByNumber(line_number)
+                if block_obj.isValid():
+                    cursor: Any = original_editor.textCursor()
+                    cursor.setPosition(block_obj.position())
+                    original_editor.setTextCursor(cursor)
+                    original_editor.ensureCursorVisible()
+
+            def apply_focus():
+                if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+                    self.mw.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                elif original_editor:
+                    original_editor.setFocus(Qt.OtherFocusReason)
+                self.mw.raise_()
+                self.mw.activateWindow()
+
+            QTimer.singleShot(100, apply_focus)
+
+        if block_changed:
+            QTimer.singleShot(200, select_string_and_scroll)
+        else:
+            select_string_and_scroll()
 
     def show_diagnostic_analysis(self, entries: List[Dict[str, Any]], title: str, 
                                all_fonts_top_entries: Optional[Dict[str, List[dict]]] = None) -> None:
