@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -26,7 +27,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt5.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout
+from PyQt5.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
 class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
@@ -40,7 +41,10 @@ class _RichTextItemDelegate(QStyledItemDelegate):
         doc = QTextDocument()
         doc.setDefaultFont(option.font)
         doc.setHtml(str(text))
-        doc.setTextWidth(option.rect.width())
+        
+        # Add 6px padding on left/right
+        text_rect = option.rect.adjusted(6, 6, -6, -6)
+        doc.setTextWidth(text_rect.width())
 
         painter.save()
         paint_context = QAbstractTextDocumentLayout.PaintContext()
@@ -58,9 +62,15 @@ class _RichTextItemDelegate(QStyledItemDelegate):
                 option.palette.color(color_group, QPalette.Text),
             )
 
-        painter.translate(option.rect.topLeft())
-        painter.setClipRect(option.rect.translated(-option.rect.topLeft()))
+        painter.translate(text_rect.topLeft())
+        painter.setClipRect(text_rect.translated(-text_rect.topLeft()))
         doc.documentLayout().draw(painter, paint_context)
+        painter.restore()
+
+        # Draw light gray separating line at the bottom
+        painter.save()
+        painter.setPen(QColor(220, 220, 220))
+        painter.drawLine(option.rect.left(), option.rect.bottom(), option.rect.right(), option.rect.bottom())
         painter.restore()
 
     def sizeHint(self, option, index):  # type: ignore[override]
@@ -77,9 +87,9 @@ class _RichTextItemDelegate(QStyledItemDelegate):
             if callable(viewport):
                 width = viewport().width()
         if width > 0:
-            doc.setTextWidth(width)
+            doc.setTextWidth(width - 12) # Subtract 12px for padding (6px left, 6px right)
         size = doc.documentLayout().documentSize()
-        return QSize(int(size.width()), int(size.height()))
+        return QSize(int(size.width()), int(size.height()) + 14) # 6px top, 6px bottom + 2px line space
 
 
 class GlossaryDialog(QDialog):
@@ -149,6 +159,12 @@ class GlossaryDialog(QDialog):
         self._entry_table.setColumnCount(4)
         self._entry_table.setHorizontalHeaderLabels(["Term", "Translation", "Notes", "Count"])
         self._entry_table.setSelectionMode(QTableWidget.SingleSelection)
+        self._entry_table.setSelectionBehavior(QTableWidget.SelectRows)
+        header = self._entry_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Interactive)
+        header.setSectionResizeMode(1, QHeaderView.Interactive)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self._entry_table.cellClicked.connect(self._on_entry_selected)
         self._entry_table.currentCellChanged.connect(self._on_entry_current_changed)
         self._entry_table.setSortingEnabled(True)
@@ -240,7 +256,9 @@ class GlossaryDialog(QDialog):
                 if col == 3:
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 self._entry_table.setItem(row, col, item)
-        self._entry_table.resizeColumnsToContents()
+        self._entry_table.resizeColumnToContents(0)
+        self._entry_table.resizeColumnToContents(1)
+        self._entry_table.resizeColumnToContents(3)
         self._entry_table.setSortingEnabled(True)
         self._entry_table.blockSignals(False)
         self._is_populating = False
@@ -309,15 +327,16 @@ class GlossaryDialog(QDialog):
         self._is_populating = False
         if self._current_entry and self._current_entry.original == entry.original:
             self._populate_entry_details(entry)
-    def _activate_selected_occurrence(self) -> None:
-        current_item = self._occurrence_list.currentItem()
-        if not current_item:
+    def _activate_selected_occurrence(self, item: Optional[QListWidgetItem] = None) -> None:
+        if not item:
+            item = self._occurrence_list.currentItem()
+        if not item:
             if self._occurrence_list.count() == 1:
                 self._occurrence_list.setCurrentRow(0)
-                current_item = self._occurrence_list.currentItem()
+                item = self._occurrence_list.currentItem()
             else:
                 return
-        occurrence = current_item.data(Qt.UserRole)
+        occurrence = item.data(Qt.UserRole)
         if occurrence:
             self._jump_callback(occurrence)
 
@@ -492,6 +511,13 @@ class GlossaryDialog(QDialog):
     def closeEvent(self, event) -> None:
         self._save_dialog_state()
         super().closeEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Escape:
+            self.reject()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def _update_occurrences(self, entry: GlossaryEntry) -> None:
         occ_list = self._occurrences.get(entry.original, [])

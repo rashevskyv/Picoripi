@@ -63,6 +63,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Spellchecker support
         self._spellchecker_format = QTextCharFormat()
         self._spellchecker_enabled = False
+        self._typing_mode = False
 
         # Translation Glossary Bridge
         self._is_translation_mode = False
@@ -136,6 +137,13 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             self.rehighlight()
         else:
             log_debug(f"JsonTagHighlighter ({editor_name}): Spellchecker state unchanged, no rehighlight needed")
+
+    def set_typing_mode(self, enabled: bool) -> None:
+        """Enable or disable typing mode which suppresses heavy checks like glossary and spellchecking."""
+        if hasattr(self, '_typing_mode') and self._typing_mode != enabled:
+            self._typing_mode = enabled
+            if not enabled:
+                self.rehighlight()
 
     def set_translation_mode(self, enabled: bool, source_editor_ref: Optional[QWidget] = None) -> None:
         """Enable or disable translation-specific glossary highlighting."""
@@ -597,7 +605,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 self.setFormat(start, length, combined_format)
 
         glossary_matches_for_block: List[Tuple[int, int, GlossaryMatch]] = []
-        if self._glossary_enabled and self._glossary_manager:
+        if not self._typing_mode and self._glossary_enabled and self._glossary_manager:
             self._rebuild_glossary_cache()
             glossary_matches_for_block = self._glossary_matches_cache.get(
                 self.currentBlock().blockNumber(), []
@@ -618,7 +626,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
         # Translation Glossary Bridge highlighting
         translation_matches = []
-        if self._is_translation_mode and self._source_editor_ref and self._glossary_manager:
+        if not self._typing_mode and self._is_translation_mode and self._source_editor_ref and self._glossary_manager:
             try:
                 self._rebuild_translation_glossary_cache()
                 
@@ -675,7 +683,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             self.setCurrentBlockUserData(None)
 
         # Spellchecker highlighting
-        if self._should_check_spelling() and self.mw:
+        if not self._typing_mode and self._should_check_spelling() and self.mw:
             spellchecker_manager = getattr(self.mw, 'spellchecker_manager', None)
             if spellchecker_manager and spellchecker_manager.enabled:
                 words = self._extract_words_from_text(text)

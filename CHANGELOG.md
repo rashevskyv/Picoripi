@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.83] - 2026-05-22
+
+### Fixed
+- **BFN Preview Layout Coordinate Calculation**: Fixed coordinate grid calculations (`gx` and `gy`) in `BfnPreviewWidget` when mapping BFN font glyphs. Replaced vertical height references with horizontal width references, correcting skewed characters and preview misalignment for non-square font grids (such as the original game's `rodan_b_24_22.bfn` font layout).
+- **BFN Type-2 Character Mapping**: Reverted character mapping decoding changes for BFN type-2 formats to ensure the mapping index aligns correctly with the character codes defined in the font.
+
 ## [0.2.82] - 2026-05-22
 
 ### Added

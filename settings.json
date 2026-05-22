@@ -3,8 +3,8 @@
     "active_game_plugin": "zelda_bmg",
     "window_was_maximized": false,
     "window_normal_geometry": {
-        "x": 527,
-        "y": 85,
+        "x": 706,
+        "y": 110,
         "width": 2061,
         "height": 1276
     },
@@ -20,19 +20,19 @@
         "model": "gpt-4o"
     },
     "glossary_ai": {
-        "provider": "Gemini",
+        "provider": "OpenAI Compatible",
         "api_key": "",
         "use_translation_api_key": true,
-        "model": "gemini-3.5-pro",
+        "model": "kr/claude-sonnet-4.5",
         "chunk_size": 8000
     },
     "restore_unsaved_on_startup": true,
     "glossary_dialog_state": {
         "geometry": {
-            "x": 231,
-            "y": 138,
-            "width": 1593,
-            "height": 1182
+            "x": 987,
+            "y": 175,
+            "width": 1556,
+            "height": 1056
         },
         "is_fullscreen": false,
         "is_maximized": false
@@ -42,9 +42,9 @@
     "spellchecker_language": "uk",
     "recent_projects": [
         "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\TwilightPrincess\\project.uiproj",
+        "C:\\Users\\Administrator\\Desktop\\PokemonRS\\Pokemon\\project.uiproj",
         "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\TwilightPrinzess\\project.uiproj",
         "D:\\git\\WW\\Cemu_2.6\\Wind_Waker_Wii_U\\project.uiproj",
-        "C:\\Users\\Administrator\\Desktop\\PokemonRS\\Pokemon\\project.uiproj",
         "D:\\git\\WW\\WindWaker\\project.uiproj",
         "C:\\Users\\Administrator\\Desktop\\PokemonRS\\Pokemon\\Pokemon\\project.uiproj",
         "C:\\Users\\Administrator\\Desktop\\pokemon\\Pokemon\\project.uiproj",
@@ -63,7 +63,7 @@
         "plugins"
     ],
     "settings_window_width": 800,
-    "last_browse_dir": "E:/Emulators/RomHacking/ZELDA/TP_UA",
+    "last_browse_dir": "E:/Emulators/RomHacking/ZELDA/TP_UA/ISO/UA/root/res/Msgus",
     "tree_font_size": 12,
     "preview_font_size": 13,
     "editors_font_size": 13,
@@ -79,5 +79,13 @@
         52,
         52
     ],
-    "bfn_auto_sync_enabled": false
+    "bfn_auto_sync_enabled": false,
+    "preview_bg_image_path": "",
+    "preview_line_spacing": 3,
+    "preview_text_rect": [
+        147,
+        44,
+        447,
+        132
+    ]
 }

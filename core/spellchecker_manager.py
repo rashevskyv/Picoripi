@@ -131,19 +131,16 @@ class SpellcheckerManager:
         for word, is_misspelled in spell_results.items():
             if word not in self._spell_cache:
                 self._spell_cache[word] = is_misspelled
-                if is_misspelled:
-                    cache_updated = True
+                cache_updated = True
                 
         for word, suggestions in sugg_results.items():
             if word not in self._suggestions_cache:
                 self._suggestions_cache[word] = suggestions
                 
         if cache_updated:
-            # Do NOT call rehighlight() here. It processes every block in the
-            # document and freezes the UI for large files. Instead, misspelled
-            # words will be underlined naturally on the next highlightBlock pass
-            # (next keystroke, scroll, or focus change).
-            pass
+            if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+                if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
+                    self.mw.edited_text_edit.highlighter.rehighlight()
 
     def enqueue_word(self, word):
         if not self.enabled or not self.hunspell:
@@ -375,16 +372,9 @@ class SpellcheckerManager:
         if lower_word in self._spell_cache:
             return self._spell_cache[lower_word]
 
-        # Use synchronous lookup for immediate results in highlighter.
-        # This was fast enough in v0.2.17 and avoids complex async UI updates.
-        try:
-            is_correct = self.hunspell.lookup(cleaned_word)
-            is_misspelled = not is_correct
-            self._spell_cache[lower_word] = is_misspelled
-            return is_misspelled
-        except Exception as e:
-            log_debug(f"Spellchecker: lookup error for '{cleaned_word}': {e}")
-            return False
+        # Enqueue word for background spellcheck to avoid GUI thread lock
+        self.enqueue_word(cleaned_word)
+        return False
 
     def get_suggestions(self, word: str) -> List[str]:
         if not self.enabled or not self.hunspell:

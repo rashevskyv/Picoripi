@@ -195,10 +195,13 @@ class CustomTreeWidget(
             item = iterator.value()
             item_block_idx = item.data(0, Qt.UserRole)
             item_category = item.data(0, Qt.UserRole + 10)
-            match = (
-                item_block_idx == block_idx
-                and (item_category == category if category else item_category is None)
-            )
+            if category is not None:
+                match = (
+                    item_block_idx == block_idx
+                    and item_category == category
+                )
+            else:
+                match = (item_block_idx == block_idx)
             if match:
                 self.clearSelection()
                 self.setCurrentItem(item)

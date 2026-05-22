@@ -227,8 +227,16 @@ class BaseTextReviewDialog(QDialog):
             if hasattr(main_window, 'strings_list_widget'):
                 main_window.strings_list_widget.setCurrentRow(string_number)
             main_window.ui_updater.update_text_views()
-            main_window.raise_()
-            main_window.activateWindow()
+
+            def apply_focus():
+                if hasattr(main_window, 'edited_text_edit') and main_window.edited_text_edit:
+                    main_window.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                elif hasattr(main_window, 'original_text_edit') and main_window.original_text_edit:
+                    main_window.original_text_edit.setFocus(Qt.OtherFocusReason)
+                main_window.raise_()
+                main_window.activateWindow()
+
+            QTimer.singleShot(100, apply_focus)
 
     def _on_text_double_click(self, event):
         """Handle double-click on text to navigate to string in main window."""
