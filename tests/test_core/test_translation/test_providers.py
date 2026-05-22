@@ -32,6 +32,7 @@ def test_openai_provider_init_custom_url_allows_no_key():
 def test_openai_provider_translate_success(mock_post):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "application/json"}
     mock_resp.json.return_value = {
         "id": "chatcmpl-123",
         "choices": [{
@@ -56,6 +57,7 @@ def test_openai_provider_translate_success(mock_post):
 def test_openai_provider_translate_non_json(mock_post):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "application/json"}
     mock_resp.text = "Missing bearer token in the authorization header."
     mock_resp.json.side_effect = ValueError("Expecting value")
     mock_post.return_value = mock_resp
@@ -86,7 +88,7 @@ def test_openai_provider_translate_request_fail(mock_post):
 def test_openai_provider_translate_sse_stream(mock_post):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.headers = {"Content-Type": "text/event-stream"}
+    mock_resp.headers = {"content-type": "text/event-stream"}
     
     mock_resp.iter_lines.return_value = [
         b'data: {"id": "chatcmpl-sse-123", "choices": [{"delta": {"content": "Hello"}}]}',
@@ -102,4 +104,5 @@ def test_openai_provider_translate_sse_stream(mock_post):
     res = provider.translate([{"role": "user", "content": "Hello"}])
     assert res.text == "Hello SSE world"
     assert res.message_id == "chatcmpl-sse-123"
+
 

@@ -15,6 +15,9 @@ QMenuBar {
 QMenuBar::item:selected {
     background-color: #505050;
 }
+QMenuBar::item:disabled {
+    color: #707070;
+}
 QMenu {
     background-color: #383838;
     color: #E0E0E0;
@@ -22,6 +25,9 @@ QMenu {
 }
 QMenu::item:selected {
     background-color: #505050;
+}
+QMenu::item:disabled {
+    color: #707070;
 }
 QPlainTextEdit, QTextEdit {
     background-color: #252525;
@@ -58,6 +64,11 @@ QPushButton:hover {
 }
 QPushButton:pressed {
     background-color: #3A3A3A;
+}
+QPushButton:disabled {
+    background-color: #353535;
+    color: #707070;
+    border: 1px solid #444444;
 }
 QPushButton#close_search_panel_button {
     font-weight: bold;
@@ -107,6 +118,9 @@ QToolButton:hover {
 }
 QToolButton:pressed {
     background-color: #3A3A3A;
+}
+QToolButton:disabled {
+    color: #707070;
 }
 QSplitter::handle {
     background-color: #383838;
@@ -217,5 +231,27 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
     border: none;
     background: none;
     width: 0px;
+}
+QMenuBar {
+    background-color: #F0F0F0;
+    color: #000000;
+}
+QMenuBar::item:selected {
+    background-color: #E0E0E0;
+}
+QMenuBar::item:disabled {
+    color: #888888;
+}
+QMenu {
+    background-color: #F0F0F0;
+    color: #000000;
+    border: 1px solid #CCCCCC;
+}
+QMenu::item:selected {
+    background-color: #E0E0E0;
+    color: #000000;
+}
+QMenu::item:disabled {
+    color: #888888;
 }
 """

@@ -11,7 +11,7 @@ from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
 from PyQt5.QtCore import Qt, QSize, QEvent, QTimer, QRect, QPoint, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QPalette, QIcon, QKeyEvent
-from typing import Optional, Dict, Tuple, Set
+from typing import Optional, Dict, Tuple, Set, Any
 
 from ui.ui_setup import setup_main_window_ui
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
@@ -38,6 +38,7 @@ from core.settings_manager import SettingsManager
 from core.data_state_processor import DataStateProcessor
 from core.undo_manager import UndoManager
 from core.state_manager import StateManager, AppState
+from utils.constants import SETTINGS_FILE_PATH
 from core.data_store import AppDataStore
 from core.translation.config import build_default_translation_config
 from core.spellchecker_manager import SpellcheckerManager
@@ -173,6 +174,9 @@ class MainWindow(QMainWindow):
         self.initial_edited_load_path = None
         self.window_was_maximized_on_close = False
         self.window_normal_geometry_on_close: Optional[QRect] = None
+        self.current_game_rules: Optional[BaseGameRules] = None
+        self.tag_checker_handler = None
+        self.plugin_actions: Dict[str, Any] = {}
 
     def _init_visual_settings(self) -> None:
         # Style Settings
@@ -277,10 +281,6 @@ class MainWindow(QMainWindow):
         self.status_label_part3: Optional[QLabel] = None
         self.plugin_status_label: Optional[QLabel] = None
 
-        self.current_game_rules: Optional[BaseGameRules] = None 
-        self.tag_checker_handler = None 
-        self.plugin_actions: Dict[str, Any] = {}
-
         # Setup 
         setup_main_window_ui(self)
         self.ui_handler.force_focus()
@@ -355,7 +355,21 @@ class MainWindow(QMainWindow):
         self.hotkey_manager = HotkeyManager(self)
         self.hotkey_manager.register()
 
-        QTimer.singleShot(100, self.ui_handler.force_focus)
+        has_project = bool(self.project_manager and self.project_manager.project)
+        has_file = bool(self.data_store.json_path)
+
+        if has_project:
+            self.project_action_handler._set_project_actions_enabled(True)
+        elif has_file:
+            self.project_action_handler._set_project_actions_enabled(False)
+            if hasattr(self, 'close_project_action') and self.close_project_action:
+                self.close_project_action.setEnabled(True)
+                self.close_project_action.setToolTip("Close the current project or file")
+        else:
+            self.project_action_handler._set_project_actions_enabled(False)
+
+        current_block = self.data_store.current_block_idx
+        self.list_selection_handler._update_block_toolbar_button_states(current_block)
 
         self.ui_updater.update_title()
         log_info("Main window initialization complete.")
@@ -503,14 +517,43 @@ if __name__ == '__main__':
     if app_icon_path.exists():
         app.setWindowIcon(QIcon(str(app_icon_path)))
     
+    # Migrate old settings file if it exists
+    try:
+        import os
+        import shutil
+        old_local_settings = "settings.json"
+        if os.path.exists(old_local_settings):
+            os.makedirs(os.path.dirname(SETTINGS_FILE_PATH), exist_ok=True)
+            # Backup existing new settings if it exists just in case
+            if os.path.exists(SETTINGS_FILE_PATH):
+                backup_path = SETTINGS_FILE_PATH + ".bak"
+                try:
+                    if os.path.exists(backup_path):
+                        os.remove(backup_path)
+                    os.rename(SETTINGS_FILE_PATH, backup_path)
+                except Exception as backup_err:
+                    log_warning(f"Could not backup existing settings: {backup_err}")
+            shutil.copy2(old_local_settings, SETTINGS_FILE_PATH)
+            # Rename old local settings file to prevent repeated migration
+            migrated_old_path = old_local_settings + ".migrated"
+            try:
+                if os.path.exists(migrated_old_path):
+                    os.remove(migrated_old_path)
+                os.rename(old_local_settings, migrated_old_path)
+            except Exception as rename_err:
+                log_warning(f"Could not rename old settings file: {rename_err}")
+            log_info(f"Successfully migrated settings from {old_local_settings} to {SETTINGS_FILE_PATH}")
+    except Exception as e:
+        log_error(f"Error migrating settings: {e}", exc_info=True)
+
     temp_settings = {}
     try:
-        with open("settings.json", 'r', encoding='utf-8') as f:
+        with open(SETTINGS_FILE_PATH, 'r', encoding='utf-8') as f:
             temp_settings = json.load(f)
     except FileNotFoundError:
         pass
     except Exception as e:
-        log_error(f"Error reading settings.json for theme: {e}", exc_info=True)
+        log_error(f"Error reading {SETTINGS_FILE_PATH} for theme: {e}", exc_info=True)
         
     theme_to_apply = temp_settings.get("theme", "auto")
     MainWindowUIHandler.apply_theme(app, theme_to_apply)

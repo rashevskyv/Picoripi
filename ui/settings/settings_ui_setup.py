@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import pycountry
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -152,7 +153,7 @@ class SettingsDialogUiMixin:
     def _setup_display_subtab(self, tab):
         layout = QFormLayout(tab)
         self.font_file_combo = QComboBox(self)
-        layout.addRow("Default Font for Plugin:", self.font_file_combo)
+        layout.addRow("Default Font for Project:", self.font_file_combo)
         
         self.preview_wrap_checkbox = QCheckBox("Wrap lines in preview panel", self)
         layout.addRow(self.preview_wrap_checkbox)
@@ -395,20 +396,24 @@ class SettingsDialogUiMixin:
         self.orig_label_widget = QLabel("Original File Path:")
         self.changes_label_widget = QLabel("Changes File Path:")
 
-        layout.addRow(self.orig_label_widget, self._create_path_selector(self.original_path_edit))
-        layout.addRow(self.changes_label_widget, self._create_path_selector(self.edited_path_edit))
-
-        # Fonts Directory Path Selection
-        self.fonts_path_edit = QLineEdit(tab)
-        self.fonts_path_edit.setObjectName("PathLineEdit")
-        self.fonts_path_edit.setPlaceholderText("Optional path to fonts folder")
-        layout.addRow(QLabel("Fonts Directory Path:"), self._create_dir_selector(self.fonts_path_edit))
+        self.original_path_selector = self._create_path_selector(self.original_path_edit)
+        self.edited_path_selector = self._create_path_selector(self.edited_path_edit)
+        layout.addRow(self.orig_label_widget, self.original_path_selector)
+        layout.addRow(self.changes_label_widget, self.edited_path_selector)
 
         # Original Fonts Directory Path Selection
         self.orig_fonts_path_edit = QLineEdit(tab)
         self.orig_fonts_path_edit.setObjectName("PathLineEdit")
         self.orig_fonts_path_edit.setPlaceholderText("Optional path to original fonts folder")
-        layout.addRow(QLabel("Original Fonts Directory Path:"), self._create_dir_selector(self.orig_fonts_path_edit))
+        self.orig_fonts_path_selector = self._create_dir_selector(self.orig_fonts_path_edit)
+        layout.addRow(QLabel("Original Fonts Directory Path (original font):"), self.orig_fonts_path_selector)
+
+        # Fonts Directory Path Selection
+        self.fonts_path_edit = QLineEdit(tab)
+        self.fonts_path_edit.setObjectName("PathLineEdit")
+        self.fonts_path_edit.setPlaceholderText("Optional path to fonts folder")
+        self.fonts_path_selector = self._create_dir_selector(self.fonts_path_edit)
+        layout.addRow(QLabel("Fonts Directory Path (translated font):"), self.fonts_path_selector)
 
         # Signals
         self.dir_mode_checkbox.stateChanged.connect(self._on_dir_mode_changed)
@@ -429,7 +434,10 @@ class SettingsDialogUiMixin:
 
     def _on_auto_generate_changed(self, state):
         is_auto = (state == Qt.Checked)
-        self.edited_path_edit.setEnabled(not is_auto)
+        if hasattr(self, 'edited_path_selector'):
+            self.edited_path_selector.setEnabled(not is_auto)
+        else:
+            self.edited_path_edit.setEnabled(not is_auto)
         self._update_auto_changes_path()
 
     def _update_auto_changes_path(self):
@@ -758,7 +766,9 @@ class SettingsDialogUiMixin:
 
     def populate_plugin_list(self):
         self.plugin_map = self.find_plugins()
-        self.plugin_combo.addItems(self.plugin_map.keys())
+        self.plugin_combo.clear()
+        for display_name, dir_name in self.plugin_map.items():
+            self.plugin_combo.addItem(display_name, dir_name)
 
     def setup_logging_tab(self):
         layout = QVBoxLayout(self.logging_tab)
@@ -810,7 +820,7 @@ class SettingsDialogUiMixin:
 
     def on_plugin_changed(self, index):
         log_debug("SettingsDialog: Plugin changed in dropdown.")
-        selected_dir_name = self.plugin_map.get(self.plugin_combo.currentText())
+        selected_dir_name = self.plugin_combo.currentData()
         
         self._populate_font_list(selected_dir_name)
         

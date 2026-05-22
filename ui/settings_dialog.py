@@ -62,8 +62,11 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.ai_glossary_tab = QWidget()
         self.logging_tab = QWidget()
 
+        is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
+
         self.tabs.addTab(self.general_tab, "Global")
-        self.tabs.addTab(self.plugin_tab, "Plugin")
+        if is_project_active:
+            self.tabs.addTab(self.plugin_tab, "Project")
         self.tabs.addTab(self.spelling_tab, "Spelling")
         self.tabs.addTab(self.ai_translation_tab, "AI Translation")
         self.tabs.addTab(self.ai_glossary_tab, "AI Glossary")
@@ -148,8 +151,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
     def _on_fonts_dir_changed(self):
         self.mw.fonts_dir_path = self.fonts_path_edit.text().strip()
-        selected_display_name = self.plugin_combo.currentText()
-        selected_dir_name = self.plugin_map.get(selected_display_name)
+        selected_dir_name = self.plugin_combo.currentData()
         if selected_dir_name:
             self._populate_font_list(selected_dir_name)
 
@@ -163,13 +165,12 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         else: self.theme_combo.setCurrentIndex(0)
             
         current_plugin_dir_name = getattr(self.mw, 'active_game_plugin', 'zelda_mc')
-        for display_name, dir_name in self.plugin_map.items():
-            if dir_name == current_plugin_dir_name:
-                self.plugin_combo.blockSignals(True); self.plugin_combo.setCurrentText(display_name); self.plugin_combo.blockSignals(False)
-                break
+        idx = self.plugin_combo.findData(current_plugin_dir_name)
+        if idx != -1:
+            self.plugin_combo.blockSignals(True)
+            self.plugin_combo.setCurrentIndex(idx)
+            self.plugin_combo.blockSignals(False)
         
-        self.fonts_path_edit.setText(getattr(self.mw, 'fonts_dir_path', ""))
-        self.orig_fonts_path_edit.setText(getattr(self.mw, 'orig_fonts_dir_path', ""))
         self._populate_font_list(current_plugin_dir_name)
         
         self.font_size_spinbox.setValue(self.mw.current_font_size)
@@ -196,11 +197,31 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             auto_gen = proj.metadata.get('auto_generate_translation_path', False)
             self.original_path_edit.setText(proj.metadata.get('source_path', ''))
             self.edited_path_edit.setText(proj.metadata.get('translation_path', ''))
+            self.fonts_path_edit.setText(getattr(self.mw, 'fonts_dir_path', ""))
+            self.orig_fonts_path_edit.setText(getattr(self.mw, 'orig_fonts_dir_path', ""))
+            
+            # Enable controls
+            self.dir_mode_checkbox.setEnabled(True)
+            self.auto_generate_checkbox.setEnabled(True)
+            if hasattr(self, 'original_path_selector'): self.original_path_selector.setEnabled(True)
+            if hasattr(self, 'edited_path_selector'): self.edited_path_selector.setEnabled(not auto_gen)
+            if hasattr(self, 'fonts_path_selector'): self.fonts_path_selector.setEnabled(True)
+            if hasattr(self, 'orig_fonts_path_selector'): self.orig_fonts_path_selector.setEnabled(True)
         else:
             is_dir_mode = getattr(self.mw, 'is_directory_mode', False)
             auto_gen = getattr(self.mw, 'auto_generate_translation_path', False)
-            self.original_path_edit.setText(self.mw.data_store.json_path or "")
-            self.edited_path_edit.setText(self.mw.data_store.edited_json_path or "")
+            self.original_path_edit.setText("")
+            self.edited_path_edit.setText("")
+            self.fonts_path_edit.setText("")
+            self.orig_fonts_path_edit.setText("")
+            
+            # Disable controls
+            self.dir_mode_checkbox.setEnabled(False)
+            self.auto_generate_checkbox.setEnabled(False)
+            if hasattr(self, 'original_path_selector'): self.original_path_selector.setEnabled(False)
+            if hasattr(self, 'edited_path_selector'): self.edited_path_selector.setEnabled(False)
+            if hasattr(self, 'fonts_path_selector'): self.fonts_path_selector.setEnabled(False)
+            if hasattr(self, 'orig_fonts_path_selector'): self.orig_fonts_path_selector.setEnabled(False)
             
         self.dir_mode_checkbox.setChecked(is_dir_mode)
         self.auto_generate_checkbox.setChecked(auto_gen)
@@ -325,7 +346,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
 
     def get_settings(self) -> dict:
-        selected_display_name = self.plugin_combo.currentText(); selected_dir_name = self.plugin_map.get(selected_display_name)
+        selected_dir_name = self.plugin_combo.currentData()
         
         autofix_settings = {pid: cb.isChecked() for pid, cb in self.autofix_checkboxes.items()}
         detection_settings = {pid: cb.isChecked() for pid, cb in self.detection_checkboxes.items()}
@@ -379,16 +400,18 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'chunk_size': self.glossary_chunk_size_spin.value()
         }
 
+        is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
         return {
             'theme': self.theme_combo.currentText().lower(), 'active_game_plugin': selected_dir_name,
             'font_size': self.font_size_spinbox.value(), 'show_multiple_spaces_as_dots': self.show_spaces_checkbox.isChecked(),
             'space_dot_color_hex': self.space_dot_color_picker.color().name(), 'restore_unsaved_on_startup': self.restore_session_checkbox.isChecked(),
             'prompt_editor_enabled': self.prompt_editor_checkbox.isChecked(),
-            'original_file_path': self.original_path_edit.text(), 'edited_file_path': self.edited_path_edit.text(),
-            'is_directory_mode': self.dir_mode_checkbox.isChecked(),
-            'auto_generate_translation_path': self.auto_generate_checkbox.isChecked(),
-            'fonts_dir_path': self.fonts_path_edit.text().strip(),
-            'orig_fonts_dir_path': self.orig_fonts_path_edit.text().strip(),
+            'original_file_path': self.original_path_edit.text() if is_project_active else getattr(self.mw, 'original_file_path', ''),
+            'edited_file_path': self.edited_path_edit.text() if is_project_active else getattr(self.mw, 'edited_file_path', ''),
+            'is_directory_mode': self.dir_mode_checkbox.isChecked() if is_project_active else getattr(self.mw, 'is_directory_mode', False),
+            'auto_generate_translation_path': self.auto_generate_checkbox.isChecked() if is_project_active else getattr(self.mw, 'auto_generate_translation_path', False),
+            'fonts_dir_path': self.fonts_path_edit.text().strip() if is_project_active else getattr(self.mw, 'fonts_dir_path', ''),
+            'orig_fonts_dir_path': self.orig_fonts_path_edit.text().strip() if is_project_active else getattr(self.mw, 'orig_fonts_dir_path', ''),
             'default_font_file': self.font_file_combo.currentData(), 'preview_wrap_lines': self.preview_wrap_checkbox.isChecked(),
             'editors_wrap_lines': self.editors_wrap_checkbox.isChecked(), 'newline_display_symbol': self.newline_symbol_edit.text(),
             'newline_color_rgba': self.newline_color_picker.color().name(QColor.HexArgb) if hasattr(QColor, 'HexArgb') else self.newline_color_picker.color().name(),

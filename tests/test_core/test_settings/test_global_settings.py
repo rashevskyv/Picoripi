@@ -34,6 +34,9 @@ def mock_mw():
     mw.enabled_log_categories = []
     mw.bfn_glyph_table_column_widths = []
     mw.bfn_auto_sync_enabled = False
+    mw.preview_bg_image_path = ""
+    mw.preview_line_spacing = 10
+    mw.preview_text_rect = [15, 15, 300, 120]
     
     mw.data_store.edited_data = None
     mw.window_normal_geometry_on_close = None

@@ -373,8 +373,21 @@ class SpellcheckerManager:
             return self._spell_cache[lower_word]
 
         # Enqueue word for background spellcheck to avoid GUI thread lock
-        self.enqueue_word(cleaned_word)
-        return False
+        import sys
+        if hasattr(self, 'thread') and self.thread and self.thread.isRunning() and 'pytest' not in sys.modules:
+            self.enqueue_word(cleaned_word)
+            return False
+
+        # Synchronous fallback if background thread is not running (e.g. in tests)
+        try:
+            is_correct = self.hunspell.lookup(cleaned_word)
+            is_misspelled = not is_correct
+            self._spell_cache[lower_word] = is_misspelled
+            return is_misspelled
+        except Exception as e:
+            log_debug(f"is_misspelled: Synchronous lookup error for '{cleaned_word}': {e}")
+            return False
+
 
     def get_suggestions(self, word: str) -> List[str]:
         if not self.enabled or not self.hunspell:

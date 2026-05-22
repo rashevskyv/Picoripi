@@ -1,9 +1,7 @@
 {
     "display_name": "Zelda: The Wind Waker",
     "default_tag_mappings": {},
-    "block_names": {
-        "0": "message_orig"
-    },
+    "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",
     "newline_css": "color: #A020F0; font-weight: bold;",
@@ -15,38 +13,17 @@
     "editors_wrap_lines": false,
     "game_dialog_max_width_pixels": 869,
     "line_width_warning_threshold_pixels": 869,
-    "original_file_path": "D:\\git\\WW\\WindWaker\\sources\\message_orig.txt",
-    "edited_file_path": "D:\\git\\WW\\WindWaker\\translation\\message_orig.txt",
+    "original_file_path": null,
+    "edited_file_path": null,
     "last_selected_block_index": -1,
     "last_selected_string_index": -1,
-    "last_cursor_position_in_edited": 61,
+    "last_cursor_position_in_edited": 0,
     "last_edited_text_edit_scroll_value_v": 0,
     "last_edited_text_edit_scroll_value_h": 0,
     "last_preview_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_h": 0,
-    "search_history": [
-        "острів",
-        "Оcтов",
-        "Sturgeon",
-        "осетр",
-        "orca",
-        "під час руху,",
-        "величезний вихор",
-        "Прошу ласкаво\\",
-        "Прошу ласкаво",
-        "ще вище лізти",
-        "Відомий по всьому",
-        "новий будинок",
-        "наршті можу",
-        "нарешті можу",
-        "мене викрив",
-        "суперництвом",
-        "Він грубо говорить та",
-        "початок підземелля",
-        "Любить тікати з замку",
-        "Скаржиться, що через зайнятість"
-    ],
+    "search_history": [],
     "autofix_enabled": {
         "ZWW_TAG_WARNING": false,
         "ZWW_WIDTH_EXCEEDED": true,
@@ -66,11 +43,7 @@
         "ZWW_SHORT_LINE": true
     },
     "default_font_file": "",
-    "string_metadata": {
-        "(0, 134)": {
-            "font_file": "CKingMainL.json"
-        }
-    },
+    "string_metadata": {},
     "tag_color_rgba": "#ffa7a7b6",
     "tag_bold": false,
     "tag_italic": false,
@@ -79,62 +52,7 @@
     "newline_bold": true,
     "newline_italic": false,
     "newline_underline": false,
-    "translation_config": {
-        "provider": "openai_chat",
-        "session_mode": "auto",
-        "providers": {
-            "openai": {
-                "api_key": "",
-                "api_key_env": "OPENAI_API_KEY",
-                "base_url": "",
-                "model": "gpt-4o-mini",
-                "temperature": 0.0,
-                "max_output_tokens": 0,
-                "timeout": 60,
-                "extra_headers": {}
-            },
-            "ollama_chat": {
-                "base_url": "http://localhost:11434",
-                "model": "llama3",
-                "temperature": 0.0,
-                "timeout": 120,
-                "keep_alive": "",
-                "extra_headers": {}
-            },
-            "gemini": {
-                "api_key": "",
-                "api_key_env": "GEMINI_API_KEY",
-                "model": "gemini-3.1-flash-lite-preview",
-                "temperature": 0.0,
-                "timeout": 120,
-                "base_url": "http://127.0.0.1:2048/"
-            },
-            "openai_chat": {
-                "api_key": "",
-                "api_key_env": "OPENAI_API_KEY",
-                "base_url": "",
-                "model": "gpt-5.4-nano",
-                "temperature": 0.0,
-                "max_output_tokens": 0,
-                "timeout": 60,
-                "extra_headers": {}
-            },
-            "deepl": {
-                "api_key": "",
-                "api_key_env": "DEEPL_API_KEY",
-                "server_url": "",
-                "timeout": 60
-            },
-            "perplexity": {
-                "api_key": "",
-                "base_url": "",
-                "model": "",
-                "temperature": 0.0,
-                "max_output_tokens": 0,
-                "timeout": 60
-            }
-        }
-    },
+    "translation_config": {},
     "lines_per_page": 4,
     "context_menu_tags": {
         "single_tags": [],

@@ -20,6 +20,11 @@ class PluginSettings:
             return None
         return Path("plugins") / plugin_name / "config.json"
 
+    def _get_project_settings_path(self) -> Optional[Path]:
+        if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_dir:
+            return Path(self.mw.project_manager.project_dir) / "project_settings.json"
+        return None
+
     def _substitute_env_vars(self, data: Any) -> Any:
         """Recursively substitute environment variables in data structure."""
         import re
@@ -80,26 +85,47 @@ class PluginSettings:
         self.mw.search_history_to_save = []
 
         plugin_config_path = self._get_plugin_config_path()
-        if not plugin_config_path or not plugin_config_path.exists():
-            log_warning(f"Plugin config not found at '{plugin_config_path}'. Using defaults.")
+        plugin_data = {}
+        if plugin_config_path and plugin_config_path.exists():
+            try:
+                with plugin_config_path.open('r', encoding='utf-8') as f:
+                    plugin_data = json.load(f)
+                plugin_data = self._substitute_env_vars(plugin_data)
+                log_debug(f"Plugin default config loaded from '{plugin_config_path}'.")
+            except Exception as e:
+                log_error(f"Error loading plugin default config from '{plugin_config_path}': {e}", exc_info=True)
+
+        project_settings_path = self._get_project_settings_path()
+        project_data = {}
+        if project_settings_path and project_settings_path.exists():
+            try:
+                with project_settings_path.open('r', encoding='utf-8') as f:
+                    project_data = json.load(f)
+                project_data = self._substitute_env_vars(project_data)
+                log_info(f"Project settings loaded from '{project_settings_path}'.")
+            except Exception as e:
+                log_error(f"Error loading project settings from '{project_settings_path}': {e}", exc_info=True)
+
+        combined_data = {}
+        combined_data.update(plugin_data)
+        combined_data.update(project_data)
+
+        if not combined_data:
+            log_warning("No plugin defaults or project settings found. Using defaults.")
             return
 
         try:
-            with plugin_config_path.open('r', encoding='utf-8') as f:
-                plugin_data = json.load(f)
-
-            plugin_data = self._substitute_env_vars(plugin_data)
-            self.mw.data_store.block_names.update({str(k): v for k, v in plugin_data.get("block_names", {}).items()})
-            self.mw.block_color_markers.update({k: set(v) for k, v in plugin_data.get("block_color_markers", {}).items()})
-            self.mw.default_tag_mappings.update(plugin_data.get("default_tag_mappings", {}))
+            self.mw.data_store.block_names.update({str(k): v for k, v in combined_data.get("block_names", {}).items()})
+            self.mw.block_color_markers.update({k: set(v) for k, v in combined_data.get("block_color_markers", {}).items()})
+            self.mw.default_tag_mappings.update(combined_data.get("default_tag_mappings", {}))
             
             try:
-                self.mw.string_metadata = {eval(k): v for k, v in plugin_data.get("string_metadata", {}).items()}
+                self.mw.string_metadata = {eval(k): v for k, v in combined_data.get("string_metadata", {}).items()}
             except Exception as e:
                 log_error(f"Error deserializing string_metadata keys: {e}. Metadata will be empty.", exc_info=True)
                 self.mw.string_metadata = {}
             
-            for key, value in plugin_data.items():
+            for key, value in combined_data.items():
                 if key in ["block_names", "block_color_markers", "default_tag_mappings", "string_metadata"]:
                     continue
                 settings_dict[key] = value
@@ -107,21 +133,21 @@ class PluginSettings:
                     setattr(self.mw, key, value)
 
             # Legacy migration logic
-            self._migrate_legacy_styles(plugin_data)
+            self._migrate_legacy_styles(combined_data)
             
-            self.mw.search_history_to_save = plugin_data.get("search_history", [])
-            self.mw.autofix_enabled = plugin_data.get("autofix_enabled", {})
-            self.mw.detection_enabled = plugin_data.get("detection_enabled", {})
+            self.mw.search_history_to_save = combined_data.get("search_history", [])
+            self.mw.autofix_enabled = combined_data.get("autofix_enabled", {})
+            self.mw.detection_enabled = combined_data.get("detection_enabled", {})
 
-            loaded_translation = plugin_data.get("translation_config", {})
+            loaded_translation = combined_data.get("translation_config", {})
             if isinstance(loaded_translation, dict):
                 self.mw.translation_config = merge_translation_config(build_default_translation_config(), loaded_translation)
             else:
                 self.mw.translation_config = build_default_translation_config()
 
-            log_debug(f"Plugin settings loaded from '{plugin_config_path}'.")
+            log_debug("Merged settings loaded successfully.")
         except Exception as e:
-            log_error(f"Error loading plugin settings from '{plugin_config_path}': {e}", exc_info=True)
+            log_error(f"Error applying merged settings: {e}", exc_info=True)
 
     def _migrate_legacy_styles(self, plugin_data: Dict[str, Any]) -> None:
         # Implementation of style migration from SettingsManager
@@ -152,17 +178,19 @@ class PluginSettings:
             self.mw.newline_underline = 'underline' in legacy_nl_css.lower() if isinstance(legacy_nl_css, str) else False
 
     def save(self) -> None:
-        """Saves current plugin settings to plugin's config.json."""
-        plugin_config_path = self._get_plugin_config_path()
-        if not plugin_config_path: return
+        """Saves current settings to project_settings.json inside the project directory."""
+        project_settings_path = self._get_project_settings_path()
+        if not project_settings_path:
+            log_warning("No active project loaded. Project settings will not be saved.")
+            return
 
-        plugin_data = {}
+        project_data = {}
         try:
-            if plugin_config_path.exists():
-                with plugin_config_path.open('r', encoding='utf-8') as f:
-                    plugin_data = json.load(f)
+            if project_settings_path.exists():
+                with project_settings_path.open('r', encoding='utf-8') as f:
+                    project_data = json.load(f)
         except Exception as e:
-            log_error(f"Could not read existing plugin config, will create a new one. Error: {e}", exc_info=True)
+            log_error(f"Could not read existing project settings, will create a new one. Error: {e}", exc_info=True)
 
         plugin_data_to_save = {
             "default_tag_mappings": self.mw.default_tag_mappings,
@@ -205,32 +233,33 @@ class PluginSettings:
             "context_menu_tags": getattr(self.mw, 'context_menu_tags', {"single_tags": [], "wrap_tags": []})
         }
         
-        plugin_data.update(plugin_data_to_save)
+        project_data.update(plugin_data_to_save)
         
         try:
-            with plugin_config_path.open('w', encoding='utf-8') as f:
-                json.dump(plugin_data, f, indent=4, ensure_ascii=False)
-            log_debug(f"Plugin settings saved to '{plugin_config_path}'.")
+            project_settings_path.parent.mkdir(parents=True, exist_ok=True)
+            with project_settings_path.open('w', encoding='utf-8') as f:
+                json.dump(project_data, f, indent=4, ensure_ascii=False)
+            log_debug(f"Project settings saved to '{project_settings_path}'.")
         except Exception as e:
-            log_error(f"ERROR saving plugin settings to '{plugin_config_path}': {e}", exc_info=True)
-            QMessageBox.critical(self.mw, "Save Error", f"Could not save plugin configuration to\n{plugin_config_path}")
+            log_error(f"ERROR saving project settings to '{project_settings_path}': {e}", exc_info=True)
+            QMessageBox.critical(self.mw, "Save Error", f"Could not save project configuration to\n{project_settings_path}")
 
     def save_block_names(self) -> None:
-        plugin_config_path = self._get_plugin_config_path()
-        if not plugin_config_path: return
+        project_settings_path = self._get_project_settings_path()
+        if not project_settings_path: return
 
-        plugin_data = {}
+        project_data = {}
         try:
-            if plugin_config_path.exists():
-                with plugin_config_path.open('r', encoding='utf-8') as f:
-                    plugin_data = json.load(f)
+            if project_settings_path.exists():
+                with project_settings_path.open('r', encoding='utf-8') as f:
+                    project_data = json.load(f)
         except Exception as e:
-            log_error(f"Error reading plugin config for block names: {e}", exc_info=True)
+            log_error(f"Error reading project settings for block names: {e}", exc_info=True)
 
-        plugin_data["block_names"] = self.mw.data_store.block_names
+        project_data["block_names"] = self.mw.data_store.block_names
         try:
-            with plugin_config_path.open('w', encoding='utf-8') as f:
-                json.dump(plugin_data, f, indent=4, ensure_ascii=False)
-            log_debug(f"Block names saved successfully to '{plugin_config_path}'.")
+            with project_settings_path.open('w', encoding='utf-8') as f:
+                json.dump(project_data, f, indent=4, ensure_ascii=False)
+            log_debug(f"Block names saved successfully to '{project_settings_path}'.")
         except Exception as e:
             log_error(f"ERROR saving block names: {e}", exc_info=True)

@@ -10,6 +10,7 @@ from core.settings.plugin_settings import PluginSettings
 from core.settings.font_map_loader import FontMapLoader
 from core.settings.recent_projects_manager import RecentProjectsManager
 from core.settings.session_state_manager import SessionStateManager
+from utils.constants import SETTINGS_FILE_PATH, SETTINGS_DIR
 
 # Load environment variables from .env file
 try:
@@ -21,7 +22,8 @@ except ImportError:
 class SettingsManager:
     def __init__(self, main_window):
         self.mw = main_window
-        self.settings_file_path = "settings.json"
+        self.settings_file_path = SETTINGS_FILE_PATH
+        SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
         self._settings = {}
         
         # Initialize specialized managers

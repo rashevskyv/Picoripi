@@ -15,8 +15,9 @@ def test_SettingsManager_init(mocker):
     mw.data_store = mw
     sm = SettingsManager(mw)
     
+    from utils.constants import SETTINGS_FILE_PATH
     assert sm.mw == mw
-    assert sm.settings_file_path == "settings.json"
+    assert sm.settings_file_path == SETTINGS_FILE_PATH
     assert sm._settings == {}
 
 def test_SettingsManager_get(mocker):

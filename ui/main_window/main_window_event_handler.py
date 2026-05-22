@@ -51,6 +51,8 @@ class MainWindowEventHandler:
             self.mw.close_project_action.triggered.connect(self.mw.project_action_handler.close_project_action)
         if hasattr(self.mw, 'import_block_action'):
             self.mw.import_block_action.triggered.connect(self.mw.project_action_handler.import_block_action)
+        if hasattr(self.mw, 'import_directory_action'):
+            self.mw.import_directory_action.triggered.connect(self.mw.project_action_handler.import_directory_action)
         if hasattr(self.mw, 'add_block_button'):
             self.mw.add_block_button.clicked.connect(self.mw.project_action_handler.import_block_action)
 

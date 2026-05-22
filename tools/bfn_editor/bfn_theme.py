@@ -372,14 +372,15 @@ def apply_premium_light_theme(widget):
 def apply_theme_by_settings(widget):
     import json
     import os
+    from utils.constants import SETTINGS_FILE_PATH
     theme_name = "auto"
     try:
-        if os.path.exists("settings.json"):
-            with open("settings.json", "r", encoding="utf-8") as f:
+        if os.path.exists(SETTINGS_FILE_PATH):
+            with open(SETTINGS_FILE_PATH, "r", encoding="utf-8") as f:
                 settings = json.load(f)
                 theme_name = settings.get("theme", "auto")
     except Exception as e:
-        print(f"Error reading settings.json for BFN editor theme: {e}")
+        print(f"Error reading {SETTINGS_FILE_PATH} for BFN editor theme: {e}")
 
     if theme_name == "dark":
         apply_premium_dark_theme(widget)

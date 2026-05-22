@@ -1,5 +1,6 @@
 # --- START OF FILE utils/constants.py ---
-APP_VERSION = "0.2.83-dev"
+from pathlib import Path
+APP_VERSION = "0.2.85-dev"
 
 # Player tags
 EDITOR_PLAYER_TAG = "player"
@@ -17,3 +18,7 @@ DEFAULT_APP_FONT_SIZE = 10
 # Theme colors
 LT_PREVIEW_SELECTED_LINE_COLOR = "#AEC6E0"
 DT_PREVIEW_SELECTED_LINE_COLOR = "#003E6B"
+
+# Settings path in home directory
+SETTINGS_DIR = Path.home() / ".picoripi"
+SETTINGS_FILE_PATH = str(SETTINGS_DIR / "settings.json")

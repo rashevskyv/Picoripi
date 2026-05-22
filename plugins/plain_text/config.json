@@ -1,9 +1,7 @@
 {
     "display_name": "Zelda: The Wind Waker",
     "default_tag_mappings": {},
-    "block_names": {
-        "0": "0X777E3C87E77639C9"
-    },
+    "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",
     "newline_css": "color: #A020F0; font-weight: bold;",
@@ -17,12 +15,12 @@
     "line_width_warning_threshold_pixels": 600,
     "original_file_path": null,
     "edited_file_path": null,
-    "last_selected_block_index": 0,
-    "last_selected_string_index": 133,
-    "last_cursor_position_in_edited": 34,
+    "last_selected_block_index": -1,
+    "last_selected_string_index": -1,
+    "last_cursor_position_in_edited": 0,
     "last_edited_text_edit_scroll_value_v": 0,
     "last_edited_text_edit_scroll_value_h": 0,
-    "last_preview_text_edit_scroll_value_v": 126,
+    "last_preview_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_v": 0,
     "last_original_text_edit_scroll_value_h": 0,
     "search_history": [],
@@ -54,11 +52,7 @@
     },
     "lines_per_page": 4,
     "default_font_file": "",
-    "string_metadata": {
-        "(0, 416)": {
-            "font_file": "CKingMsg.json"
-        }
-    },
+    "string_metadata": {},
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,
     "tag_italic": false,
@@ -67,49 +61,5 @@
     "newline_bold": true,
     "newline_italic": false,
     "newline_underline": false,
-    "translation_config": {
-        "provider": "gemini",
-        "session_mode": "auto",
-        "providers": {
-            "openai_chat": {
-                "api_key": "",
-                "api_key_env": "",
-                "base_url": "",
-                "model": "gpt-4o-mini",
-                "temperature": 0.0,
-                "timeout": 120,
-                "extra_headers": {}
-            },
-            "ollama_chat": {
-                "base_url": "http://localhost:11434",
-                "model": "llama3",
-                "temperature": 0.0,
-                "timeout": 120,
-                "keep_alive": "",
-                "extra_headers": {}
-            },
-            "deepl": {
-                "api_key": "",
-                "api_key_env": "DEEPL_API_KEY",
-                "server_url": "",
-                "timeout": 60
-            },
-            "gemini": {
-                "api_key": "",
-                "api_key_env": "GEMINI_API_KEY",
-                "model": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "timeout": 120,
-                "base_url": "http://127.0.0.1:2048/"
-            },
-            "perplexity": {
-                "api_key": "",
-                "base_url": "",
-                "model": "",
-                "temperature": 0.0,
-                "max_output_tokens": 0,
-                "timeout": 60
-            }
-        }
-    }
+    "translation_config": {}
 }

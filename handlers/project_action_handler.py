@@ -21,16 +21,34 @@ class ProjectActionHandler(BaseHandler):
             self.mw.project_manager = ProjectManager()
 
     def _set_project_actions_enabled(self, enabled: bool):
-        """Enable or disable project-specific UI actions."""
-        actions = [
-            'close_project_action', 'import_block_action', 
-            'import_directory_action', 'add_block_button', 
-            'add_folder_button'
-        ]
-        for action_name in actions:
+        """Enable or disable project-specific UI actions and update their tooltips."""
+        actions_map = {
+            'close_project_action': {
+                'enabled_tip': "Close the current project or file",
+                'disabled_tip': "No project or file open to close"
+            },
+            'import_block_action': {
+                'enabled_tip': "Import Block...",
+                'disabled_tip': "This action is only available in Project mode (within a .uiproj project)."
+            },
+            'import_directory_action': {
+                'enabled_tip': "Import Directory...",
+                'disabled_tip': "This action is only available in Project mode (within a .uiproj project)."
+            },
+            'add_block_button': {
+                'enabled_tip': "Add new block (import file)",
+                'disabled_tip': "Adding blocks is only available in Project mode (within a .uiproj project)."
+            },
+            'add_folder_button': {
+                'enabled_tip': "Create new virtual folder",
+                'disabled_tip': "Creating folders is only available in Project mode (within a .uiproj project)."
+            }
+        }
+        for action_name, tips in actions_map.items():
             action = getattr(self.mw, action_name, None)
             if action:
                 action.setEnabled(enabled)
+                action.setToolTip(tips['enabled_tip'] if enabled else tips['disabled_tip'])
 
 
     def create_new_project_action(self) -> None:
@@ -99,14 +117,7 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
 
             # Enable project-specific actions
-            if hasattr(self.mw, 'close_project_action'):
-                self.mw.close_project_action.setEnabled(True)
-            if hasattr(self.mw, 'import_block_action'):
-                self.mw.import_block_action.setEnabled(True)
-            if hasattr(self.mw, 'import_directory_action'):
-                self.mw.import_directory_action.setEnabled(True)
-            if hasattr(self.mw, 'add_block_button'):
-                self.mw.add_block_button.setEnabled(True)
+            self._set_project_actions_enabled(True)
 
             # Update UI
             self.ui_updater.update_title()
@@ -159,20 +170,17 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.load_game_plugin()
                 self.ui_updater.update_plugin_status_label()
 
+            # Load project-specific settings
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
+
             # Load project-specific settings from metadata
             if self.mw.project_manager:
                 self.mw.project_manager.load_settings_from_project(self.mw)
                 self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
 
             # Enable project-specific actions
-            if hasattr(self.mw, 'close_project_action'):
-                self.mw.close_project_action.setEnabled(True)
-            if hasattr(self.mw, 'import_block_action'):
-                self.mw.import_block_action.setEnabled(True)
-            if hasattr(self.mw, 'import_directory_action'):
-                self.mw.import_directory_action.setEnabled(True)
-            if hasattr(self.mw, 'add_block_button'):
-                self.mw.add_block_button.setEnabled(True)
+            self._set_project_actions_enabled(True)
 
             # Update UI
             self.ui_updater.update_title()
@@ -209,6 +217,17 @@ class ProjectActionHandler(BaseHandler):
             self.mw.project_manager.cleanup_temp_dir()
         self.mw.project_manager = None
 
+        self.mw.data_store.json_path = None
+        self.mw.data_store.edited_json_path = None
+        self.mw.last_opened_path = ""
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.set("last_opened_path", "")
+            self.mw.settings_manager.save_settings()
+
+        # Reset plugin settings to defaults
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
+
         # Clear UI
         self.mw.data_store.data = []
         self.mw.data_store.edited_data = {}
@@ -218,16 +237,7 @@ class ProjectActionHandler(BaseHandler):
         self.mw.data_store.unsaved_changes = False
 
         # Disable project-specific actions
-        if hasattr(self.mw, 'close_project_action'):
-            self.mw.close_project_action.setEnabled(False)
-        if hasattr(self.mw, 'import_block_action'):
-            self.mw.import_block_action.setEnabled(False)
-        if hasattr(self.mw, 'import_directory_action'):
-            self.mw.import_directory_action.setEnabled(False)
-        if hasattr(self.mw, 'add_block_button'):
-            self.mw.add_block_button.setEnabled(False)
-        if hasattr(self.mw, 'add_folder_button'):
-            self.mw.add_folder_button.setEnabled(False)
+        self._set_project_actions_enabled(False)
 
         # Update UI
         self.mw.block_list_widget.clear()
@@ -855,6 +865,10 @@ class ProjectActionHandler(BaseHandler):
             self.mw.active_game_plugin = target_plugin
             self.mw.load_game_plugin() # SYNC CALL UPDATING current_game_rules
             self.ui_updater.update_plugin_status_label()
+
+            # Load project-specific settings
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
 
             # 3. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
             self.mw.project_manager.load_settings_from_project(self.mw)
