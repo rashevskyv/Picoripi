@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.84] - 2026-05-23
+
+### Added
+- **Premium Light Theme Menus**: Implemented dynamic HSL-based light stylesheet styling for `QMenuBar` and `QMenu` inside `LIGHT_THEME_STYLESHEET`. This forces Qt to use its internal stylesheet-based engine instead of native OS menu elements on Windows.
+
+### Fixed
+- **Disabled Menu Item Graying**: Resolved a visual issue in Light Theme where disabled menu items (such as "Import Block..." or "Import Directory...") were rendered with default dark system text color instead of being visibly grayed out. Disabled items now render beautifully in a muted gray color (`#888888`).
+- **Disabled Menu Tooltips**: Fixed standard Qt event routing for disabled menu items. Intercepting `QEvent.ToolTip` in `MenuToolTipEventFilter` now correctly retrieves and shows explanation tooltips (e.g. *"This action is only available in Project mode (within a .uiproj project)."*) when hovering over disabled elements.
+- **Import Directory Signal Binding**: Resolved a binding bug where clicking **File -> Import Directory...** when active did not trigger any handler action. Connected `triggered` signal of `import_directory_action` to `project_action_handler.import_directory_action`.
+- **Project Close State Sync**: Secured program startup logic to correctly determine and set the initial enabled state of `close_project_action` and block navigation toolbar buttons based on whether a project/file was loaded via auto-restore.
+
 ## [0.2.83] - 2026-05-22
 
 ### Fixed

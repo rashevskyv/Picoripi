@@ -41,6 +41,7 @@ def test_TextAnalysisHandler_activate_entry(handler, mock_mw):
     mock_mw.block_list_widget = MagicMock()
     mock_mw.list_selection_handler = MagicMock()
     mock_mw.original_text_edit = MagicMock()
+    mock_mw.data_store.current_block_idx = 0
     
     mock_block = MagicMock()
     mock_block.isValid.return_value = True
@@ -51,7 +52,7 @@ def test_TextAnalysisHandler_activate_entry(handler, mock_mw):
     handler._activate_entry(entry)
     
     mock_mw.block_list_widget.select_block_by_index.assert_called_with(0)
-    mock_mw.list_selection_handler.string_selected_from_preview.assert_called_with(1)
+    mock_mw.list_selection_handler.select_string_by_absolute_index.assert_called_with(1)
     mock_mw.original_text_edit.setTextCursor.assert_called()
 
 @patch('PyQt5.QtWidgets.QMessageBox.information')

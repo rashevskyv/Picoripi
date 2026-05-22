@@ -55,6 +55,22 @@ def test_PluginSettings_get_plugin_config_path(dummy_mw):
     ps.mw.active_game_plugin = ""
     assert ps._get_plugin_config_path() is None
 
+def test_PluginSettings_get_project_settings_path(dummy_mw):
+    ps = PluginSettings(dummy_mw)
+    
+    # Without project_manager
+    assert ps._get_project_settings_path() is None
+    
+    # With project_manager but no project_dir
+    dummy_mw.project_manager = MagicMock()
+    dummy_mw.project_manager.project_dir = None
+    assert ps._get_project_settings_path() is None
+    
+    # With project_manager and project_dir
+    dummy_mw.project_manager.project_dir = "C:/projects/my_project"
+    p = ps._get_project_settings_path()
+    assert str(p) == str(Path("C:/projects/my_project/project_settings.json"))
+
 def test_PluginSettings_substitute_env_vars(dummy_mw):
     ps = PluginSettings(dummy_mw)
     os.environ["TEST_ENV_VAR"] = "replaced_value"
@@ -65,16 +81,17 @@ def test_PluginSettings_substitute_env_vars(dummy_mw):
         "key3": "no_change"
     }
     
-    Substituted = ps._substitute_env_vars(data)
-    assert Substituted["key1"] == "replaced_value/path"
-    assert Substituted["key2"] == ["replaced_value"]
-    assert Substituted["key3"] == "no_change"
+    substituted = ps._substitute_env_vars(data)
+    assert substituted["key1"] == "replaced_value/path"
+    assert substituted["key2"] == ["replaced_value"]
+    assert substituted["key3"] == "no_change"
     
     os.environ.pop("TEST_ENV_VAR")
 
 def test_PluginSettings_load_no_file(dummy_mw):
     ps = PluginSettings(dummy_mw)
     ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=None)
     
     d = {}
     ps.load(d)
@@ -85,62 +102,78 @@ def test_PluginSettings_load_no_file(dummy_mw):
     assert dummy_mw.tag_color_rgba == "#FF8C00"
     assert dummy_mw.tag_bold is True
 
-def test_PluginSettings_load_with_file(dummy_mw, tmp_path):
-    f = tmp_path / "config.json"
-    f.write_text(json.dumps({
-        "display_name": "Test Loaded",
+def test_PluginSettings_load_with_files(dummy_mw, tmp_path):
+    plugin_config = tmp_path / "config.json"
+    plugin_config.write_text(json.dumps({
+        "display_name": "Test Loaded Plugin",
         "block_names": {"1": "Block1"},
         "tag_color_rgba": "#112233",
         "string_metadata": {"(0, 1)": {"state": "done"}}
     }))
     
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({
+        "block_names": {"1": "ProjectBlock1", "2": "ProjectBlock2"}
+    }))
+    
     ps = PluginSettings(dummy_mw)
-    ps._get_plugin_config_path = MagicMock(return_value=f)
+    ps._get_plugin_config_path = MagicMock(return_value=plugin_config)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
     
     d = {}
     ps.load(d)
     
-    assert d["display_name"] == "Test Loaded"
-    assert dummy_mw.block_names["1"] == "Block1"
-    # Legacy migration 
+    assert d["display_name"] == "Test Loaded Plugin"
+    # Project settings override plugin defaults
+    assert dummy_mw.block_names["1"] == "ProjectBlock1"
+    assert dummy_mw.block_names["2"] == "ProjectBlock2"
     assert dummy_mw.tag_color_rgba == "#112233"
     assert dummy_mw.string_metadata[(0, 1)]["state"] == "done"
 
-def test_PluginSettings_save(dummy_mw, tmp_path):
-    f = tmp_path / "config.json"
+def test_PluginSettings_save_no_project(dummy_mw):
     ps = PluginSettings(dummy_mw)
-    ps._get_plugin_config_path = MagicMock(return_value=f)
+    ps._get_project_settings_path = MagicMock(return_value=None)
+    
+    # Should log warning and not crash
+    ps.save()
+
+def test_PluginSettings_save(dummy_mw, tmp_path):
+    project_settings = tmp_path / "project_settings.json"
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
     
     dummy_mw.block_names = {"2": "Block2"}
     ps.save()
     
-    assert f.exists()
-    saved = json.loads(f.read_text())
+    assert project_settings.exists()
+    saved = json.loads(project_settings.read_text())
     assert saved["block_names"]["2"] == "Block2"
     assert "default_tag_mappings" in saved
 
 def test_PluginSettings_save_block_names(dummy_mw, tmp_path):
-    f = tmp_path / "config.json"
-    f.write_text(json.dumps({"some_key": "val"}))
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({"some_key": "val"}))
     ps = PluginSettings(dummy_mw)
-    ps._get_plugin_config_path = MagicMock(return_value=f)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
     
     dummy_mw.block_names = {"3": "Block3"}
     ps.save_block_names()
     
-    saved = json.loads(f.read_text())
+    saved = json.loads(project_settings.read_text())
     assert saved["some_key"] == "val"
     assert saved["block_names"]["3"] == "Block3"
 
 def test_PluginSettings_load_save_fonts_dir_path(dummy_mw, tmp_path):
-    f = tmp_path / "config.json"
-    f.write_text(json.dumps({
-        "display_name": "Test Loaded Fonts",
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({
         "fonts_dir_path": "C:/custom/fonts/dir"
     }))
     
     ps = PluginSettings(dummy_mw)
-    ps._get_plugin_config_path = MagicMock(return_value=f)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
     
     d = {}
     ps.load(d)
@@ -150,18 +183,18 @@ def test_PluginSettings_load_save_fonts_dir_path(dummy_mw, tmp_path):
     dummy_mw.fonts_dir_path = "D:/another/fonts/dir"
     ps.save()
     
-    saved = json.loads(f.read_text())
+    saved = json.loads(project_settings.read_text())
     assert saved["fonts_dir_path"] == "D:/another/fonts/dir"
 
 def test_PluginSettings_load_save_orig_fonts_dir_path(dummy_mw, tmp_path):
-    f = tmp_path / "config.json"
-    f.write_text(json.dumps({
-        "display_name": "Test Loaded Fonts",
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({
         "orig_fonts_dir_path": "C:/custom/orig_fonts/dir"
     }))
     
     ps = PluginSettings(dummy_mw)
-    ps._get_plugin_config_path = MagicMock(return_value=f)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
     
     d = {}
     ps.load(d)
@@ -171,5 +204,5 @@ def test_PluginSettings_load_save_orig_fonts_dir_path(dummy_mw, tmp_path):
     dummy_mw.orig_fonts_dir_path = "D:/another/orig_fonts/dir"
     ps.save()
     
-    saved = json.loads(f.read_text())
+    saved = json.loads(project_settings.read_text())
     assert saved["orig_fonts_dir_path"] == "D:/another/orig_fonts/dir"

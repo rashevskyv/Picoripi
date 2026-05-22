@@ -1,12 +1,25 @@
-from PyQt5.QtWidgets import QMenu, QAction, QStyle, QToolButton
+from PyQt5.QtWidgets import QMenu, QAction, QStyle, QToolButton, QToolTip
 from PyQt5.QtGui import QIcon, QKeySequence
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, QEvent
 from pathlib import Path
+
+class MenuToolTipEventFilter(QObject):
+    def eventFilter(self, watched, event):
+        if isinstance(watched, QMenu):
+            if event.type() == QEvent.ToolTip:
+                action = watched.actionAt(event.pos())
+                if action and not action.isEnabled():
+                    tooltip = action.toolTip()
+                    if tooltip:
+                        QToolTip.showText(event.globalPos(), tooltip, watched)
+                        return True
+        return super().eventFilter(watched, event)
 
 class MenuBuilder:
     def __init__(self, main_window):
         self.mw = main_window
         self.style = main_window.style()
+        self.tooltip_filter = MenuToolTipEventFilter(main_window)
 
     def build_all(self):
         menubar = self.mw.menuBar()
@@ -18,6 +31,8 @@ class MenuBuilder:
 
     def _build_file_menu(self, menubar):
         file_menu = menubar.addMenu('&File')
+        file_menu.setToolTipsVisible(True)
+        file_menu.installEventFilter(self.tooltip_filter)
         
         open_icon = self.style.standardIcon(QStyle.SP_DialogOpenButton)
         save_icon = self.style.standardIcon(QStyle.SP_DialogSaveButton)
@@ -36,6 +51,7 @@ class MenuBuilder:
 
         # Recent Projects submenu
         self.mw.recent_projects_menu = QMenu('Recent Projects', self.mw)
+        self.mw.recent_projects_menu.installEventFilter(self.tooltip_filter)
         file_menu.addMenu(self.mw.recent_projects_menu)
 
         self.mw.close_project_action = QAction('&Close Project', self.mw)
@@ -46,10 +62,12 @@ class MenuBuilder:
         # Block actions
         self.mw.import_block_action = QAction(QIcon.fromTheme("document-import"), '&Import Block...', self.mw)
         self.mw.import_block_action.setEnabled(False)
+        self.mw.import_block_action.setToolTip("This action is only available in Project mode (within a .uiproj project).")
         file_menu.addAction(self.mw.import_block_action)
 
         self.mw.import_directory_action = QAction(QIcon.fromTheme("folder-open"), 'Import &Directory...', self.mw)
         self.mw.import_directory_action.setEnabled(False)
+        self.mw.import_directory_action.setToolTip("This action is only available in Project mode (within a .uiproj project).")
         file_menu.addAction(self.mw.import_directory_action)
         file_menu.addSeparator()
 
@@ -84,6 +102,8 @@ class MenuBuilder:
     def _build_edit_menu(self, menubar):
         edit_menu = menubar.addMenu('&Edit')
         edit_menu.setObjectName('&Edit')
+        edit_menu.setToolTipsVisible(True)
+        edit_menu.installEventFilter(self.tooltip_filter)
 
         def _icon_path(file_name: str) -> str:
             project_root = Path(__file__).resolve().parent.parent.parent
@@ -138,6 +158,8 @@ class MenuBuilder:
     def _build_tools_menu(self, menubar):
         tools_menu = menubar.addMenu('&Tools')
         tools_menu.setObjectName('&Tools')
+        tools_menu.setToolTipsVisible(True)
+        tools_menu.installEventFilter(self.tooltip_filter)
         self.mw.tools_menu = tools_menu
 
         self.mw.bfn_editor_action = QAction(
@@ -150,6 +172,8 @@ class MenuBuilder:
 
     def _build_navigation_menu(self, menubar):
         self.mw.navigation_menu = menubar.addMenu('&Navigation')
+        self.mw.navigation_menu.setToolTipsVisible(True)
+        self.mw.navigation_menu.installEventFilter(self.tooltip_filter)
         
         self.mw.next_block_nav_action = QAction('Next Block Nav', self.mw)
         self.mw.next_block_nav_action.setShortcut(QKeySequence('Alt+Shift+Down'))
@@ -176,6 +200,8 @@ class MenuBuilder:
         self.mw.help_shortcuts_action.setShortcut('F1')
 
         help_menu = QMenu('&Help', menubar)
+        help_menu.setToolTipsVisible(True)
+        help_menu.installEventFilter(self.tooltip_filter)
         help_menu.addAction(self.mw.help_shortcuts_action)
         
         help_button = QToolButton()

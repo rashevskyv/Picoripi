@@ -48,15 +48,40 @@ class BfnPreviewWidget(QWidget):
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     def load_translation_map(self):
-        plugin_name = getattr(self.mw, 'active_game_plugin', None)
-        if plugin_name:
-            mapping_path = Path("plugins") / plugin_name / 'translation_map.json'
-            if mapping_path.exists():
-                try:
-                    with mapping_path.open('r', encoding='utf-8') as f:
-                        self.translation_map = json.load(f)
-                except Exception:
-                    self.translation_map = None
+        project_dir = None
+        if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
+            project_dir = self.mw.project_manager.project_dir
+            
+        mapping_path = None
+        if project_dir:
+            proj_map_path = Path(project_dir) / 'translation_map.json'
+            if not proj_map_path.exists():
+                plugin_name = getattr(self.mw, 'active_game_plugin', None)
+                if plugin_name:
+                    plugin_map = Path("plugins") / plugin_name / 'translation_map.json'
+                    try:
+                        if plugin_map.exists():
+                            import shutil
+                            shutil.copy2(plugin_map, proj_map_path)
+                        else:
+                            with proj_map_path.open('w', encoding='utf-8') as f:
+                                f.write("{}")
+                    except Exception:
+                        pass
+            mapping_path = proj_map_path
+        else:
+            plugin_name = getattr(self.mw, 'active_game_plugin', None)
+            if plugin_name:
+                mapping_path = Path("plugins") / plugin_name / 'translation_map.json'
+                
+        if mapping_path and mapping_path.exists():
+            try:
+                with mapping_path.open('r', encoding='utf-8') as f:
+                    self.translation_map = json.load(f)
+            except Exception:
+                self.translation_map = None
+        else:
+            self.translation_map = None
 
     def update_preview_text(self, text: str):
         """Update the text and request redraw."""

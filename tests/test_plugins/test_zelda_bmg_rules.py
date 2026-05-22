@@ -2,8 +2,23 @@ import pytest
 from plugins.zelda_bmg.rules import GameRules
 from bmg_tool import BMGFile, BMGMessage
 
+def setup_test_mappings(rules):
+    # Setup dummy mapping for Ukrainian characters to standard CP1252 characters (diacritics)
+    # so that the tests can run without needing a real translation_map.json and won't fail encoding
+    # and won't corrupt plain English text.
+    rules.translation_map = {
+        "П": "À", "р": "á", "и": "â", "в": "ã", "і": "ä", "т": "å", "я": "æ", 
+        "к": "ç", "с": "è", "п": "é", "а": "ê", "У": "ë", "ї": "ì", "н": "í", 
+        "І": "î", "о": "ï", "Ф": "ð", "ь": "ñ", "ґ": "ò", "г": "ó", "й": "ô",
+        "у": "õ", "х": "ö", "ш": "÷", "щ": "ø", "ц": "ù", "ч": "ú", "ю": "û", "ж": "ü"
+    }
+    rules.reverse_translation_map = {v: k for k, v in rules.translation_map.items()}
+    # Prevent load_translation_map from overwriting our test mapping
+    rules.load_translation_map = lambda: None
+
 def test_ukrainian_character_mapping():
     rules = GameRules()
+    setup_test_mappings(rules)
     
     # Test text with Ukrainian characters
     ukr_text = "Привіт, як справи? Україна, Івано-Франківськ, ґава."
@@ -49,6 +64,7 @@ def test_editor_text_to_msg_content_conversion():
 
 def test_bmg_rules_load_save_lifecycle():
     rules = GameRules()
+    setup_test_mappings(rules)
     
     # Create mock BMG bytes
     bmg = BMGFile()
@@ -91,4 +107,3 @@ def test_bmg_rules_load_save_lifecycle():
     assert len(bmg_verify.messages) == 2
     assert bmg_verify.messages[0].id == 100
     assert bmg_verify.messages[1].id == 101
-

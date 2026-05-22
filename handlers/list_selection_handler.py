@@ -123,6 +123,10 @@ class ListSelectionHandler(BaseHandler):
         # Enable Add Folder if project exists
         if hasattr(self.mw, 'add_folder_button'):
             self.mw.add_folder_button.setEnabled(has_project)
+            self.mw.add_folder_button.setToolTip(
+                "Create new virtual folder" if has_project
+                else "Creating folders is only available in Project mode (within a .uiproj project)."
+            )
 
         current_item = self.mw.block_list_widget.currentItem()
         if has_project and current_item:
@@ -134,24 +138,49 @@ class ListSelectionHandler(BaseHandler):
             # Enable delete and rename for any selected block or folder
             if hasattr(self.mw, 'delete_block_button'):
                 self.mw.delete_block_button.setEnabled(True)
+                self.mw.delete_block_button.setToolTip("Delete selected block or folder")
             if hasattr(self.mw, 'rename_block_button'):
                 self.mw.rename_block_button.setEnabled(True)
+                self.mw.rename_block_button.setToolTip("Rename selected block or folder")
 
             # Enable move up/down based on siblings in the tree
             if hasattr(self.mw, 'move_block_up_button'):
                 self.mw.move_block_up_button.setEnabled(not is_first)
+                self.mw.move_block_up_button.setToolTip(
+                    "Move block or folder up" if not is_first
+                    else "Cannot move up: item is already at the top of its folder"
+                )
             if hasattr(self.mw, 'move_block_down_button'):
                 self.mw.move_block_down_button.setEnabled(not is_last)
+                self.mw.move_block_down_button.setToolTip(
+                    "Move block or folder down" if not is_last
+                    else "Cannot move down: item is already at the bottom of its folder"
+                )
         else:
             # Disable selection-dependent buttons
+            proj_tip = "only available in Project mode (within a .uiproj project)."
+            select_tip = "Select a block or folder to enable this action."
+            
             if hasattr(self.mw, 'delete_block_button'):
                 self.mw.delete_block_button.setEnabled(False)
+                self.mw.delete_block_button.setToolTip(
+                    f"Deleting items is {proj_tip}" if not has_project else select_tip
+                )
             if hasattr(self.mw, 'rename_block_button'):
                 self.mw.rename_block_button.setEnabled(False)
+                self.mw.rename_block_button.setToolTip(
+                    f"Renaming items is {proj_tip}" if not has_project else select_tip
+                )
             if hasattr(self.mw, 'move_block_up_button'):
                 self.mw.move_block_up_button.setEnabled(False)
+                self.mw.move_block_up_button.setToolTip(
+                    f"Moving items is {proj_tip}" if not has_project else select_tip
+                )
             if hasattr(self.mw, 'move_block_down_button'):
                 self.mw.move_block_down_button.setEnabled(False)
+                self.mw.move_block_down_button.setToolTip(
+                    f"Moving items is {proj_tip}" if not has_project else select_tip
+                )
 
 
     def select_string_by_absolute_index(self, absolute_idx: int) -> None:

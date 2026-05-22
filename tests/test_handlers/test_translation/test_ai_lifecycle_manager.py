@@ -164,7 +164,7 @@ def test_ailm_clean_model_output(ailm):
     
     tag_text = "{Color:Red}Hello!"
     assert ailm._clean_model_output(tag_text, expect_json=False) == "{Color:Red}Hello!"
-    assert ailm._clean_model_output(tag_text, expect_json=True) == "Color:Red" # expected behavior when JSON is expected but not present, it strips braces
+    assert ailm._clean_model_output(tag_text, expect_json=True) == "{Color:Red}"
     
     text3 = "No braces here"
     assert ailm._clean_model_output(text3, expect_json=False) == "No braces here"

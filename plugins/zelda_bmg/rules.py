@@ -11,20 +11,6 @@ from utils.utils import convert_spaces_to_dots_for_display
 
 # Load mapping for Ukrainian letters
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
-mapping_path = os.path.join(plugin_dir, 'translation_map.json')
-translation_map = {}
-reverse_translation_map = {}
-
-if os.path.exists(mapping_path):
-    try:
-        with open(mapping_path, 'r', encoding='utf-8') as f:
-            translation_map = json_data = f.read()
-            import json
-            translation_map = json.loads(json_data)
-            reverse_translation_map = {v: k for k, v in translation_map.items()}
-            log_info(f"Loaded {len(translation_map)} translation characters mappings for Ukrainian language.")
-    except Exception as e:
-        log_warning(f"Error loading translation_map.json: {e}")
 
 from .config import (
     PROBLEM_DEFINITIONS,
@@ -60,19 +46,71 @@ class GameRules(BaseGameRules):
                                                 self.problem_definitions_cache, ProblemIDs)
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
         self.last_loaded_bmg = None
+        self.translation_map = {}
+        self.reverse_translation_map = {}
+        self._last_map_path = None
+        self._last_map_mtime = 0
+        self.load_translation_map()
+
+    def load_translation_map(self):
+        project_dir = None
+        if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
+            project_dir = self.mw.project_manager.project_dir
+
+        path = None
+        if project_dir:
+            proj_path = os.path.join(project_dir, 'translation_map.json')
+            if not os.path.exists(proj_path):
+                # Автоматично копіюємо з папки плагіна або створюємо порожній
+                plugin_map_path = os.path.join(plugin_dir, 'translation_map.json')
+                try:
+                    if os.path.exists(plugin_map_path):
+                        import shutil
+                        shutil.copy2(plugin_map_path, proj_path)
+                        log_info(f"Copied default translation_map.json from plugin to project: {proj_path}")
+                    else:
+                        with open(proj_path, 'w', encoding='utf-8') as f:
+                            f.write("{}")
+                        log_info(f"Created empty translation_map.json in project: {proj_path}")
+                except Exception as e:
+                    log_warning(f"Failed to copy/create translation_map.json in project: {e}")
+            path = proj_path
+        else:
+            path = os.path.join(plugin_dir, 'translation_map.json')
+
+        try:
+            mtime = os.path.getmtime(path) if os.path.exists(path) else 0
+        except Exception:
+            mtime = 0
+
+        if path != self._last_map_path or mtime != self._last_map_mtime:
+            self._last_map_path = path
+            self._last_map_mtime = mtime
+            self.translation_map = {}
+            self.reverse_translation_map = {}
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        self.translation_map = json.loads(f.read())
+                        self.reverse_translation_map = {v: k for k, v in self.translation_map.items()}
+                    log_info(f"Loaded {len(self.translation_map)} translation characters mappings from {path}")
+                except Exception as e:
+                    log_warning(f"Error loading translation_map.json from {path}: {e}")
 
     def decode_string_with_mapping(self, s: str) -> str:
         """Decode CP1252 string (with active umlauts) into Ukrainian letters."""
+        self.load_translation_map()
         result = []
         for char in s:
-            result.append(reverse_translation_map.get(char, char))
+            result.append(self.reverse_translation_map.get(char, char))
         return "".join(result)
 
     def encode_string_with_mapping(self, s: str) -> str:
         """Encode Ukrainian letters back into CP1252 characters for BMG compatibility."""
+        self.load_translation_map()
         result = []
         for char in s:
-            result.append(translation_map.get(char, char))
+            result.append(self.translation_map.get(char, char))
         return "".join(result)
 
     def msg_to_editor_text(self, bmg_msg: Any) -> str:

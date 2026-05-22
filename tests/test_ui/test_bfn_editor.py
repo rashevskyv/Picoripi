@@ -245,6 +245,77 @@ def test_bfn_editor_window_save_changes_translation_map(qapp, tmp_path, dummy_bf
     editor.close()
 
 
+def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_path, dummy_bfn_bytes, monkeypatch):
+    """Test that save_changes correctly saves translation_map.json into active project directory when available."""
+    editor = BfnEditorWindow()
+    
+    from PyQt5 import QtWidgets
+    # Mock parent window with active_game_plugin and project_manager
+    class MockProjectManager:
+        def __init__(self, project_dir):
+            self.project_dir = str(project_dir)
+
+    class MockParent(QtWidgets.QWidget):
+        def __init__(self, project_dir):
+            super().__init__()
+            self.active_game_plugin = "mock_plugin"
+            self.project_manager = MockProjectManager(project_dir)
+            
+    project_dir = tmp_path / "my_project"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    
+    parent = MockParent(project_dir)
+    editor.setParent(parent)
+    
+    # Mock os.path.exists and path writing
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(QtWidgets.QMessageBox, "information", lambda *args, **kwargs: None)
+    
+    editor.open_from_bytes(
+        dummy_bfn_bytes,
+        bfn_name="test_font.bfn"
+    )
+    
+    editor.metadata["MAP1"] = [{
+        "mapping_type": 2,
+        "first_char": 0,
+        "last_char": 1,
+        "mapping_entry_count": 2,
+        "entries": [105, 106]  # 'i', 'j'
+    }]
+    
+    editor.original_font_metadata = {
+        "MAP1": [{
+            "mapping_type": 2,
+            "first_char": 0,
+            "last_char": 1,
+            "mapping_entry_count": 2,
+            "entries": [97, 98]  # 'a', 'b'
+        }]
+    }
+    
+    # Call save_changes
+    editor.save_changes()
+    
+    # Verify that translation_map.json is created in project directory, not plugin folder
+    map_file = project_dir / "translation_map.json"
+    assert map_file.exists()
+    
+    # Verify that plugins/mock_plugin/translation_map.json is NOT created (since it went to project)
+    plugins_dir = tmp_path / "plugins"
+    plugin_map_file = plugins_dir / "mock_plugin" / "translation_map.json"
+    assert not plugin_map_file.exists()
+    
+    with open(map_file, "r", encoding="utf-8") as f:
+        import json
+        saved_map = json.load(f)
+        
+    assert saved_map == {"i": "a", "j": "b"}
+    
+    editor.clear_temp()
+    editor.close()
+
+
 def test_bfn_editor_window_parent_node_selection(qapp, dummy_bfn_bytes):
     """Test that selecting a parent BFN file node in the tree view automatically redirects to Sheet 0."""
     from PyQt5 import QtWidgets

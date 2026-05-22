@@ -66,15 +66,37 @@ class FontMapLoader:
                                             
                                             # Load translation_map from active plugin if available
                                             translation_map = None
-                                            plugin_dir = Path("plugins") / plugin_name
-                                            mapping_path = plugin_dir / 'translation_map.json'
-                                            if mapping_path.exists():
+                                            project_dir = None
+                                            if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
+                                                project_dir = self.mw.project_manager.project_dir
+                                            
+                                            mapping_path = None
+                                            if project_dir:
+                                                proj_map_path = Path(project_dir) / 'translation_map.json'
+                                                if not proj_map_path.exists():
+                                                    try:
+                                                        plugin_map = Path("plugins") / plugin_name / 'translation_map.json'
+                                                        if plugin_map.exists():
+                                                            import shutil
+                                                            shutil.copy2(plugin_map, proj_map_path)
+                                                            log_info(f"Copied translation_map.json to project: {proj_map_path}")
+                                                        else:
+                                                            with proj_map_path.open('w', encoding='utf-8') as f:
+                                                                f.write("{}")
+                                                    except Exception as e:
+                                                        log_warning(f"Failed to copy/create translation_map.json in project: {e}")
+                                                mapping_path = proj_map_path
+                                            else:
+                                                plugin_dir = Path("plugins") / plugin_name
+                                                mapping_path = plugin_dir / 'translation_map.json'
+                                                
+                                            if mapping_path and mapping_path.exists():
                                                 try:
                                                     with mapping_path.open('r', encoding='utf-8') as f:
                                                         translation_map = json.load(f)
                                                 except Exception as e:
                                                     log_warning(f"Could not load translation mapping for BFN metrics: {e}")
-                                                    
+                                            
                                             parsed_map = bfn.to_font_map(translation_map)
                                             
                                         if parsed_map is not None:
@@ -106,9 +128,31 @@ class FontMapLoader:
                         
                         # Load translation_map from active plugin if available
                         translation_map = None
-                        plugin_dir = Path("plugins") / plugin_name
-                        mapping_path = plugin_dir / 'translation_map.json'
-                        if mapping_path.exists():
+                        project_dir = None
+                        if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
+                            project_dir = self.mw.project_manager.project_dir
+                        
+                        mapping_path = None
+                        if project_dir:
+                            proj_map_path = Path(project_dir) / 'translation_map.json'
+                            if not proj_map_path.exists():
+                                try:
+                                    plugin_map = Path("plugins") / plugin_name / 'translation_map.json'
+                                    if plugin_map.exists():
+                                        import shutil
+                                        shutil.copy2(plugin_map, proj_map_path)
+                                        log_info(f"Copied translation_map.json to project: {proj_map_path}")
+                                    else:
+                                        with proj_map_path.open('w', encoding='utf-8') as f:
+                                            f.write("{}")
+                                except Exception as e:
+                                    log_warning(f"Failed to copy/create translation_map.json in project: {e}")
+                            mapping_path = proj_map_path
+                        else:
+                            plugin_dir = Path("plugins") / plugin_name
+                            mapping_path = plugin_dir / 'translation_map.json'
+                            
+                        if mapping_path and mapping_path.exists():
                             try:
                                 with mapping_path.open('r', encoding='utf-8') as f:
                                     translation_map = json.load(f)

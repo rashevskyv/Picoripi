@@ -110,8 +110,10 @@ def test_gh_show_glossary_dialog(mock_box, mock_dialog, gh):
     gh._prompt_manager.load_prompts.return_value = ("sys", "text")
     gh.glossary_manager.get_entries.return_value = []
     gh.show_glossary_dialog()
-    mock_box.information.assert_called_once()
-    mock_box.reset_mock()
+    assert gh.dialog == mock_dialog_inst
+    mock_dialog_inst.show.assert_called_once()
+    mock_dialog_inst.show.reset_mock()
+    gh.dialog = None  # reset
     
     # No data
     gh.glossary_manager.get_entries.return_value = [GlossaryEntry("a", "b", "c")]
@@ -206,19 +208,19 @@ def test_gh_handle_ai_fill(mock_box, gh):
     mock_box.reset_mock()
     
     # Success bad JSON
-    gh.main_handler._clean_model_output.return_value = "invalid"
+    gh.main_handler.ai_lifecycle_manager._clean_model_output.return_value = "invalid"
     gh._handle_ai_fill_success(ProviderResponse(), ctx)
     mock_box.warning.assert_called_once()
     mock_box.reset_mock()
     
     # Success no fields
-    gh.main_handler._clean_model_output.return_value = "{}"
+    gh.main_handler.ai_lifecycle_manager._clean_model_output.return_value = "{}"
     gh._handle_ai_fill_success(ProviderResponse(), ctx)
     mock_box.information.assert_called_once()
     mock_box.reset_mock()
     
     # Success
-    gh.main_handler._clean_model_output.return_value = '{"translation": "nT", "notes": "nN"}'
+    gh.main_handler.ai_lifecycle_manager._clean_model_output.return_value = '{"translation": "nT", "notes": "nN"}'
     gh._handle_ai_fill_success(ProviderResponse(), ctx)
     dialog.set_values.assert_called_with("nT", "nN")
 

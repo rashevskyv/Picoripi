@@ -231,19 +231,33 @@ class BfnIoMixin:
                     translation_map = self.generate_translation_map()
                     parent_win = self.parent()
                     active_plugin = None
+                    mw = None
+                    project_dir = None
+                    
                     if parent_win:
                         if hasattr(parent_win, "active_game_plugin"):
                             active_plugin = parent_win.active_game_plugin
-                        elif hasattr(parent_win, "mw") and hasattr(parent_win.mw, "active_game_plugin"):
-                            active_plugin = parent_win.mw.active_game_plugin
+                            mw = parent_win
+                        elif hasattr(parent_win, "mw"):
+                            mw = parent_win.mw
+                            if hasattr(mw, "active_game_plugin"):
+                                active_plugin = mw.active_game_plugin
+                                
+                    if mw and hasattr(mw, "project_manager") and mw.project_manager and mw.project_manager.project_dir:
+                        project_dir = mw.project_manager.project_dir
                     
-                    if active_plugin:
+                    mapping_path = None
+                    if project_dir:
+                        mapping_path = os.path.join(project_dir, "translation_map.json")
+                    elif active_plugin:
                         plugin_dir = os.path.join("plugins", active_plugin)
                         if os.path.exists(plugin_dir):
                             mapping_path = os.path.join(plugin_dir, "translation_map.json")
-                            with open(mapping_path, "w", encoding="utf-8") as f:
-                                json.dump(translation_map, f, indent=4, ensure_ascii=False)
-                            self.status.showMessage(f"Successfully saved BFN and updated translation_map.json with {len(translation_map)} characters!")
+                    
+                    if mapping_path:
+                        with open(mapping_path, "w", encoding="utf-8") as f:
+                            json.dump(translation_map, f, indent=4, ensure_ascii=False)
+                        self.status.showMessage(f"Successfully saved BFN and updated translation_map.json with {len(translation_map)} characters!")
                 except Exception as ex:
                     print(f"Failed to auto-generate or save translation map: {ex}")
                 

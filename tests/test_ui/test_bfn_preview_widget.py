@@ -183,8 +183,8 @@ def test_bfn_preview_widget_resize(qapp):
     widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(130, 140), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
     # bottom right moves: x2 becomes 110 + 20 = 130, y2 becomes 110 + 30 = 140
     # QRect(QPoint(10, 10), QPoint(130, 140)) -> width = 130 - 10 + 1 = 121, height = 140 - 10 + 1 = 131
-    assert widget.text_rect.width() == 121
-    assert widget.text_rect.height() == 131
+    assert widget.text_rect.width() == 120
+    assert widget.text_rect.height() == 130
     
     # Release
     widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(130, 140), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))

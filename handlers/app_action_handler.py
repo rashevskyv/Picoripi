@@ -181,9 +181,9 @@ class AppActionHandler(BaseHandler):
             file_extension = path_obj.suffix.lower()
 
             if file_extension == '.json':
-                file_content, error = load_json_file(path_obj, parent_widget=self.mw)
+                file_content, error = load_json_file(path_obj)
             elif file_extension == '.txt':
-                file_content, error = load_text_file(path_obj, parent_widget=self.mw)
+                file_content, error = load_text_file(path_obj)
             elif file_extension == '.bmg':
                 try:
                     with path_obj.open('rb') as f:
@@ -237,9 +237,9 @@ class AppActionHandler(BaseHandler):
                 edited_file_extension = edited_path_obj.suffix.lower()
 
                 if edited_file_extension == '.json':
-                    edited_file_content, edit_error = load_json_file(edited_path_obj, parent_widget=self.mw)
+                    edited_file_content, edit_error = load_json_file(edited_path_obj)
                 elif edited_file_extension == '.txt':
-                    edited_file_content, edit_error = load_text_file(edited_path_obj, parent_widget=self.mw)
+                    edited_file_content, edit_error = load_text_file(edited_path_obj)
                 elif edited_file_extension == '.bmg':
                     try:
                         with edited_path_obj.open('rb') as f:
@@ -284,11 +284,35 @@ class AppActionHandler(BaseHandler):
             self.ui_updater.update_statusbar_paths()
             self.ui_updater.populate_blocks()
 
+            if hasattr(self.mw, 'close_project_action') and self.mw.close_project_action:
+                self.mw.close_project_action.setEnabled(True)
+
             # Restore UI State (Session)
             if original_file_path and hasattr(self.mw, 'settings_manager'):
-                 state = self.mw.settings_manager.get_session_state(str(original_file_path))
+                 state = self.mw.settings_manager.session_state.get_state_for_file(str(original_file_path))
                  if state:
-                     self.mw.block_handler.restore_ui_state_from_dict(state)
+                     self.ui_updater.apply_tree_state(state)
+                     
+                     # Apply cursor and scroll positions
+                     if self.mw.edited_text_edit:
+                         def _apply_scroll() -> None:
+                             self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
+                             self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
+                             if self.mw.preview_text_edit:
+                                 self.mw.preview_text_edit.verticalScrollBar().setValue(state.get("preview_v_scroll", 0))
+                             if self.mw.original_text_edit:
+                                 self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
+                             
+                             cursor_pos = state.get("cursor_pos", 0)
+                             doc_len = self.mw.edited_text_edit.document().characterCount() - 1
+                             pos_to_set = min(cursor_pos, max(0, doc_len))
+                             cursor = self.mw.edited_text_edit.textCursor()
+                             cursor.setPosition(pos_to_set)
+                             self.mw.edited_text_edit.setTextCursor(cursor)
+                             self.mw.edited_text_edit.ensureCursorVisible()
+
+                         from PyQt5.QtCore import QTimer
+                         QTimer.singleShot(200, _apply_scroll)
 
     def reload_original_data_action(self) -> None:
         log_info("Reload Original action triggered.")
