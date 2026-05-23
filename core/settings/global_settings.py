@@ -52,6 +52,7 @@ class GlobalSettings:
                 "chunk_size": 8000
             },
             "bfn_glyph_table_column_widths": [],
+            "bookmarks": [],
             "bfn_auto_sync_enabled": False,
             "preview_bg_image_path": "",
             "preview_bg_scale": 100,
@@ -180,6 +181,7 @@ class GlobalSettings:
             "log_file_path": getattr(self.mw, 'log_file_path', ""),
             "enabled_log_categories": getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"]),
             "bfn_glyph_table_column_widths": getattr(self.mw, 'bfn_glyph_table_column_widths', []),
+            "bookmarks": getattr(self.mw, 'bookmarks', []) if isinstance(getattr(self.mw, 'bookmarks', []), list) else [],
             "bfn_auto_sync_enabled": getattr(self.mw, 'bfn_auto_sync_enabled', False),
             "preview_bg_image_path": getattr(self.mw, 'preview_bg_image_path', ""),
             "preview_bg_scale": getattr(self.mw, 'preview_bg_scale', 100),

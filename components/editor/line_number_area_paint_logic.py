@@ -129,7 +129,8 @@ class LNETLineNumberAreaPaintLogic:
                         if hasattr(main_window_ref, 'data_store') and (current_block_idx_data_mw, real_idx) in main_window_ref.data_store.edited_data:
                             is_unsaved = True
                     elif is_editor and current_string_idx_data_mw != -1:
-                        edited_sublines = getattr(main_window_ref, 'edited_sublines', set())
+                        ds = getattr(main_window_ref, 'data_store', None)
+                        edited_sublines = getattr(ds, 'edited_sublines', set()) if ds else set()
                         if current_q_block_number_in_editor_doc in edited_sublines:
                             is_unsaved = True
 

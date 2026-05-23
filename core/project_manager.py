@@ -65,6 +65,7 @@ class ProjectManager:
         'autofix_enabled',
         'detection_enabled',
         'context_menu_tags',
+        'bookmarks',
     ]
 
     def __init__(self, project_path: Optional[Union[str, Path]] = None):

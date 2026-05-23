@@ -271,41 +271,80 @@ class DataStateProcessor:
                         sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
                         self.mw.current_game_rules.original_keys = sliced_keys
                     
-                    # For Zelda BMG plugin, pre-load the actual BMG file structure from disk first
-                    # to ensure we don't mix headers/metadata from a different BMG file!
+                    # For Zelda BMG plugin, pre-load the actual BMG file structure from the archive
+                    # to ensure we don't mix headers/metadata from a different BMG file.
+                    # IMPORTANT: We read from the archive container directly (NOT from temp files),
+                    # because .extracted/ paths always resolve to temp dir regardless of is_translation,
+                    # and those temp files may be stale from a previous session.
                     if hasattr(self.mw.current_game_rules, 'last_loaded_bmg'):
                         from bmg_tool import BMGFile
                         bmg = None
-                        
-                        # 1. Try translation file first if it exists
-                        trans_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
-                        if Path(trans_path).exists():
+
+                        # Determine if this file is inside an archive
+                        # trans_file_rel for archive members looks like: '.extracted/translation/<arc>/<inner>'
+                        _prefix_trans = '.extracted/translation/'
+                        _prefix_source = '.extracted/sources/'
+                        _arc_rel = None
+                        _inner_file = None
+
+                        if trans_file_rel.startswith(_prefix_trans):
+                            _sub = trans_file_rel[len(_prefix_trans):]
+                        elif trans_file_rel.startswith(_prefix_source):
+                            _sub = trans_file_rel[len(_prefix_source):]
+                        else:
+                            _sub = None
+
+                        if _sub:
+                            # _sub is like 'bmgres.arc/zel_00.bmg'
+                            for _ext in ('.arc', '.rarc', '.ark'):
+                                _ext_with_slash = _ext + '/'
+                                if _ext_with_slash in _sub.lower():
+                                    _idx = _sub.lower().find(_ext_with_slash)
+                                    _arc_rel = _sub[:_idx + len(_ext)]
+                                    _inner_file = _sub[_idx + len(_ext) + 1:]
+                                    break
+
+                        if _arc_rel and _inner_file:
+                            # 1. Try reading from translation archive first
                             try:
+                                container_trans = self.mw.project_manager.get_archive_container(_arc_rel, is_translation=True)
+                                bmg_bytes = container_trans.read_file(_inner_file)
                                 bmg_temp = BMGFile()
-                                bmg_temp.load(Path(trans_path).read_bytes())
+                                bmg_temp.load(bmg_bytes)
                                 bmg = bmg_temp
-                                log_debug(f"Pre-loaded BMG structure from translation path: {trans_path}", category="file_ops")
+                                log_debug(f"Pre-loaded BMG structure from translation archive: {_arc_rel}/{_inner_file}", category="file_ops")
                             except Exception as e_trans:
-                                log_warning(f"Translation BMG {trans_path} is corrupted: {e_trans}. Deleting it and falling back to source BMG.", category="file_ops")
+                                log_warning(f"Cannot pre-load BMG from translation archive {_arc_rel}/{_inner_file}: {e_trans}. Trying source.", category="file_ops")
+
+                            # 2. Fallback to source archive
+                            if bmg is None:
                                 try:
-                                    Path(trans_path).unlink(missing_ok=True)
-                                except Exception:
-                                    pass
-                        
-                        # 2. Fallback to source file if translation BMG wasn't loaded
-                        if bmg is None:
-                            source_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=False)
-                            if Path(source_path).exists():
-                                try:
+                                    container_src = self.mw.project_manager.get_archive_container(_arc_rel, is_translation=False)
+                                    bmg_bytes = container_src.read_file(_inner_file)
                                     bmg_temp = BMGFile()
-                                    bmg_temp.load(Path(source_path).read_bytes())
+                                    bmg_temp.load(bmg_bytes)
                                     bmg = bmg_temp
-                                    log_debug(f"Pre-loaded original source BMG structure from: {source_path}", category="file_ops")
-                                except Exception as e_source:
-                                    log_error(f"Failed to load source BMG structure {source_path}: {e_source}", category="file_ops")
-                        
+                                    log_debug(f"Pre-loaded BMG structure from source archive: {_arc_rel}/{_inner_file}", category="file_ops")
+                                except Exception as e_src:
+                                    log_error(f"Failed to pre-load BMG from source archive {_arc_rel}/{_inner_file}: {e_src}", category="file_ops")
+                        else:
+                            # Non-archive BMG: read directly from translation or source path
+                            trans_path_bmg = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
+                            source_path_bmg = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=False)
+                            for _p in [trans_path_bmg, source_path_bmg]:
+                                if Path(_p).exists():
+                                    try:
+                                        bmg_temp = BMGFile()
+                                        bmg_temp.load(Path(_p).read_bytes())
+                                        bmg = bmg_temp
+                                        log_debug(f"Pre-loaded BMG structure from: {_p}", category="file_ops")
+                                        break
+                                    except Exception:
+                                        pass
+
                         if bmg:
                             self.mw.current_game_rules.last_loaded_bmg = bmg
+
 
                     # Call plugin to map data back into its JSON/Txt structure
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)

@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.96] - 2026-05-23
+
+### Fixed
+- **BMG Pre-loading**: Fixed a critical bug in `core/data_state_processor.py` where BMG structure was pre-loaded using temporary disk-based `.extracted/` paths. Because `.extracted/` paths always resolve to the temp directory regardless of the `is_translation` flag, the application was reading stale or corrupt BMG files from previous sessions. BMG structures are now pre-loaded directly from the **archive containers** in memory (via `get_archive_container`), ensuring proper and up-to-date metadata.
+- **Archive Block Selection**: Fixed a bug in `handlers/project_action_handler.py` where `edited_file_data` was populated by taking index `0` of the parsed data for archive blocks, causing a mismatch if the block had a different `internal_key` or `sub_idx != 0`. The sub-block is now correctly selected using `block.internal_key` or list index matching.
+- **Pristine UA Archive Recovery**: Copied the original clean English `bmgres.arc` to the UA translation directory, successfully recovering the translation workspace after it had been corrupted by older versions of the repacker.
+
+### Changed
+- **Test Suite Alignment**: Updated `tests/test_core/test_data_state_processor_native_packing.py` to match the new native in-memory preloading logic.
+
 ## [0.2.95] - 2026-05-23
 
 ### Added

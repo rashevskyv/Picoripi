@@ -105,7 +105,7 @@ def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path):
     bfn.signature = "FFNT1bnd"
     bfn.inf1 = [{"encoding": 0, "ascent": 20, "descent": 2, "width": 12, "leading": 2, "fallback_code": 63, "unk1": 0}]
     bfn.map1 = [{"mapping_type": 2, "first_char": 32, "last_char": 34, "mapping_entry_count": 2, "entries": [0, 1]}]
-    bfn.wid1 = [{"first_code_included": 32, "last_code_included": 34, "packets": [{"kerning": 0, "width": 8}, {"kerning": 1, "width": 10}]}]
+    bfn.wid1 = [{"first_code_included": 0, "last_code_included": 2, "packets": [{"kerning": 0, "width": 8}, {"kerning": 1, "width": 10}]}]
     
     bfn_file = fonts_dir / "test_font.bfn"
     with open(bfn_file, 'wb') as f:
@@ -144,7 +144,7 @@ def test_FontMapLoader_load_bfn_from_project_blocks(mock_mw, tmp_path):
     bfn.signature = "FFNT1bnd"
     bfn.inf1 = [{"encoding": 0, "ascent": 20, "descent": 2, "width": 12, "leading": 2, "fallback_code": 63, "unk1": 0}]
     bfn.map1 = [{"mapping_type": 2, "first_char": 32, "last_char": 34, "mapping_entry_count": 2, "entries": [0, 1]}]
-    bfn.wid1 = [{"first_code_included": 32, "last_code_included": 34, "packets": [{"kerning": 0, "width": 8}, {"kerning": 1, "width": 10}]}]
+    bfn.wid1 = [{"first_code_included": 0, "last_code_included": 2, "packets": [{"kerning": 0, "width": 8}, {"kerning": 1, "width": 10}]}]
     bfn_bytes = bfn.save()
 
     # 2. Setup mock project structure

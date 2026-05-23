@@ -133,8 +133,9 @@ class CustomListItemDelegate(QStyledItemDelegate):
         if main_window:
             pm = getattr(main_window, 'project_manager', None)
             project = pm.project if pm else None
-            edited_keys = getattr(main_window, 'edited_data', {})
-            unsaved_blocks = getattr(main_window, 'unsaved_block_indices', set())
+            ds = getattr(main_window, 'data_store', None)
+            edited_keys = getattr(ds, 'edited_data', {}) if ds else {}
+            unsaved_blocks = getattr(ds, 'unsaved_block_indices', set()) if ds else set()
 
             # 1. Determine Unsaved changes (*)
             if category_name:
