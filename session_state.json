@@ -38,23 +38,23 @@
     },
     "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\TwilightPrincess\\project.uiproj": {
         "expanded_ids": [
-            "folder_16f5c836-f862-48b6-a675-114c087d5e5a",
-            "folder_a30fa4cc-339b-4d05-8bf8-2eadcaa47bbf",
-            "folder_7d50c08f-d112-4371-a927-3c217b272efe",
-            "folder_4b2fb7cf-632a-4f03-ad1c-869efcbc0375",
-            "folder_caf72ea1-b7aa-4e0c-98e8-7599fc2f0284",
-            "folder_0c53e6c1-8331-45df-824d-01b6c2d8506f",
-            "folder_b75b7730-1b1a-4882-94ec-05668b4fa9fe",
-            "folder_a12a1e7d-c073-49cd-9c69-faf27ea113bc",
-            "folder_f90e33b9-05f5-4d98-aef2-5017e3177b28"
+            "folder_a130c30f-b2f3-4ab8-a8f9-3d3a85717d82",
+            "folder_ebc842a8-3cc9-4739-889c-9100b1a2fc85",
+            "folder_9ce92c32-f335-4867-9b77-ba5545f8f91c",
+            "folder_b8e51e91-d296-43ad-a3b4-d259c576f048",
+            "folder_2ce6676f-dd82-48de-83b6-aa584d62f526",
+            "folder_b86be717-3489-4273-ba5f-4a31ae0e75dd",
+            "folder_ec38dd7b-927b-4a52-b484-45c4783be3ac",
+            "folder_8f7a6416-49bf-4e94-b0b7-a3a9770a32f9",
+            "folder_ea722ab1-9f3d-4917-ad67-30219f427aa8"
         ],
-        "selected_id": "block_0",
-        "selected_type": "block",
+        "selected_id": "folder_ebc842a8-3cc9-4739-889c-9100b1a2fc85",
+        "selected_type": "folder",
         "selected_string_idx": -1,
-        "cursor_pos": 87,
+        "cursor_pos": 51,
         "v_scroll": 0,
         "h_scroll": 0,
-        "preview_v_scroll": 3,
+        "preview_v_scroll": 320,
         "original_v_scroll": 0
     },
     "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\picoripi\\31b04b89-fb24-4ae7-a4af-503b3158aaad\\.extracted\\sources\\bmgres.arc\\zel_00.bmg": {

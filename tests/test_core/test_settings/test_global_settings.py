@@ -51,6 +51,8 @@ def mock_mw():
     mw.preview_glow_color = "#ffffff"
     mw.preview_glow_alpha = 180
     mw.preview_glow_spread = 4
+    mw.preview_fix_font_scale = False
+    mw.preview_fixed_font_scale = 1.0
     
     mw.data_store.edited_data = None
     mw.window_normal_geometry_on_close = None
