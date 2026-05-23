@@ -572,7 +572,12 @@ class BfnNavigationMixin:
         )
 
     def fill_sequence_dialog(self, start_row):
-        dialog = FillRangeDialog(self)
+        # Detect spellchecker language from parent MainWindow (if available)
+        lang = ""
+        p = self.parent()
+        if p is not None:
+            lang = getattr(p, "spellchecker_language", "") or ""
+        dialog = FillRangeDialog(self, lang=lang)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             start_code, end_code = dialog.get_range()
             if start_code is None or end_code is None:

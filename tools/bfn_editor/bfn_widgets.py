@@ -534,32 +534,59 @@ class GridItem(QtWidgets.QGraphicsItem):
             y = gy * self.real_h
             painter.drawLine(0, y, self.rows * self.real_w, y)
 
+# Default fill ranges per spellchecker language code.
+# Each entry: (start_char, end_char) as single characters.
+# Languages not listed fall back to Latin A–Z.
+_LANG_FILL_DEFAULTS = {
+    # Cyrillic — uppercase А–Я block (U+0410–U+042F)
+    "uk": ("\u0410", "\u042F"),  # Ukrainian
+    "ru": ("\u0410", "\u042F"),  # Russian
+    "be": ("\u0410", "\u042F"),  # Belarusian
+    "bg": ("\u0410", "\u042F"),  # Bulgarian
+    "sr": ("\u0410", "\u042F"),  # Serbian
+    "mk": ("\u0410", "\u042F"),  # Macedonian
+    # Greek — uppercase Α–Ω
+    "el": ("\u0391", "\u03A9"),
+    # Arabic — basic block \u0621–\u064A
+    "ar": ("\u0621", "\u064A"),
+    # Japanese hiragana — \u3041–\u3096
+    "ja": ("\u3041", "\u3096"),
+    # Korean — Hangul syllables begin \uAC00
+    "ko": ("\uAC00", "\uAC1B"),
+}
+
+
 class FillRangeDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, lang=""):
         super().__init__(parent)
         self.setWindowTitle("Fill From To")
         self.setModal(True)
-        self.resize(320, 180)
-        
+        self.resize(320, 200)
+
+        # Determine defaults from language code (strip region suffix: 'uk_UA' -> 'uk')
+        base_lang = lang.split("_")[0].split("-")[0].lower() if lang else ""
+        default_start, default_end = _LANG_FILL_DEFAULTS.get(base_lang, ("A", "Z"))
+
         layout = QtWidgets.QVBoxLayout(self)
-        
+
         form = QtWidgets.QFormLayout()
-        self.input_start = QtWidgets.QLineEdit()
+        self.input_start = QtWidgets.QLineEdit(default_start)
         self.input_start.setPlaceholderText("e.g. A or U+0410 or 0410")
-        self.input_end = QtWidgets.QLineEdit()
+        self.input_end = QtWidgets.QLineEdit(default_end)
         self.input_end.setPlaceholderText("e.g. Z or U+041A or 041A")
-        
+
         form.addRow("Start Character / Code:", self.input_start)
         form.addRow("End Character / Code:", self.input_end)
         layout.addLayout(form)
-        
+
+        lang_hint = f" (detected: {base_lang})" if base_lang else ""
         help_lbl = QtWidgets.QLabel(
-            "Enter either a single character or Unicode hex (e.g., U+0410 or 0410).\n"
+            f"Enter either a single character or Unicode hex (e.g., U+0410 or 0410).{lang_hint}\n"
             "The table will be filled sequentially starting from the selected row."
         )
         help_lbl.setStyleSheet("color: #88888b; font-size: 11px;")
         layout.addWidget(help_lbl)
-        
+
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             self
