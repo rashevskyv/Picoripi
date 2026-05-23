@@ -14,6 +14,10 @@ class EditMetricsCommand(QtWidgets.QUndoCommand):
         wid = self.viewer.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
         wid_idx = self.glyph_idx - self.viewer.first_code
+        if wid_idx >= len(packets):
+            padding_count = wid_idx - len(packets) + 1
+            packets.extend([{"kerning": 0, "width": self.viewer.cell_w} for _ in range(padding_count)])
+            wid["last_code_included"] = self.viewer.first_code + len(packets)
         if 0 <= wid_idx < len(packets):
             packets[wid_idx]["kerning"] = self.old_kern
             packets[wid_idx]["width"] = self.old_width
@@ -34,6 +38,10 @@ class EditMetricsCommand(QtWidgets.QUndoCommand):
         wid = self.viewer.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
         wid_idx = self.glyph_idx - self.viewer.first_code
+        if wid_idx >= len(packets):
+            padding_count = wid_idx - len(packets) + 1
+            packets.extend([{"kerning": 0, "width": self.viewer.cell_w} for _ in range(padding_count)])
+            wid["last_code_included"] = self.viewer.first_code + len(packets)
         if 0 <= wid_idx < len(packets):
             packets[wid_idx]["kerning"] = self.new_kern
             packets[wid_idx]["width"] = self.new_width
@@ -49,6 +57,7 @@ class EditMetricsCommand(QtWidgets.QUndoCommand):
             
         QtCore.QTimer.singleShot(0, self.viewer.update_simulation)
         self.viewer.refresh_table_row(self.glyph_idx)
+
 
     def id(self):
         return 1234
@@ -71,14 +80,14 @@ class EditMapCommand(QtWidgets.QUndoCommand):
 
     def undo(self):
         self.viewer.update_char_mapping(self.glyph_idx, self.old_code)
-        if self.viewer.get_selected_glyph_index() == self.glyph_idx:
+        if self.viewer.get_selected_glyph_index() == self.glyph_idx and self.viewer.selected_cell:
             self.viewer.populate_info_panel(*self.viewer.selected_cell)
         self.viewer.update_simulation()
         self.viewer.refresh_table_row(self.glyph_idx)
 
     def redo(self):
         self.viewer.update_char_mapping(self.glyph_idx, self.new_code)
-        if self.viewer.get_selected_glyph_index() == self.glyph_idx:
+        if self.viewer.get_selected_glyph_index() == self.glyph_idx and self.viewer.selected_cell:
             self.viewer.populate_info_panel(*self.viewer.selected_cell)
         self.viewer.update_simulation()
         self.viewer.refresh_table_row(self.glyph_idx)
@@ -163,5 +172,79 @@ class ImportGlyphCommand(QtWidgets.QUndoCommand):
         
         if self.viewer.current_sheet_index == self.sheet_idx:
             self.viewer.display_current_sheet()
+        self.viewer.update_simulation()
+        self.viewer.populate_glyph_table()
+
+
+class RenderFontCommand(QtWidgets.QUndoCommand):
+    def __init__(self, viewer, pixel_changes, metrics_changes=None, description="Render Font to Glyphs"):
+        super().__init__(description)
+        self.viewer = viewer
+        self.pixel_changes = [(s_idx, cx, cy, old_img.copy(), new_img.copy()) for s_idx, cx, cy, old_img, new_img in pixel_changes]
+        self.metrics_changes = list(metrics_changes) if metrics_changes else []
+
+    def undo(self):
+        # 1. Restore pixels
+        sheets_to_update = set()
+        for sheet_idx, cell_x, cell_y, old_img, _ in self.pixel_changes:
+            sheet_qimg = self.viewer.sheet_images[sheet_idx]
+            painter = QtGui.QPainter(sheet_qimg)
+            painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+            painter.drawImage(cell_x, cell_y, old_img)
+            painter.end()
+            sheets_to_update.add(sheet_idx)
+            
+        # 2. Restore metrics
+        if self.metrics_changes:
+            wid = self.viewer.metadata.get("WID1", [{}])[0]
+            packets = wid.get("packets", [])
+            for glyph_idx, old_kern, _, old_width, _ in self.metrics_changes:
+                wid_idx = glyph_idx - self.viewer.first_code
+                if 0 <= wid_idx < len(packets):
+                    packets[wid_idx]["kerning"] = old_kern
+                    packets[wid_idx]["width"] = old_width
+                    
+        # 3. Update UI
+        if self.viewer.current_sheet_index in sheets_to_update:
+            self.viewer.display_current_sheet()
+            
+        selected = self.viewer.get_selected_glyph_index()
+        if selected is not None and self.viewer.selected_cell:
+            self.viewer.populate_info_panel(*self.viewer.selected_cell)
+            self.viewer.update_overlays()
+            
+        self.viewer.update_simulation()
+        self.viewer.populate_glyph_table()
+
+    def redo(self):
+        # 1. Apply new pixels
+        sheets_to_update = set()
+        for sheet_idx, cell_x, cell_y, _, new_img in self.pixel_changes:
+            sheet_qimg = self.viewer.sheet_images[sheet_idx]
+            painter = QtGui.QPainter(sheet_qimg)
+            painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+            painter.drawImage(cell_x, cell_y, new_img)
+            painter.end()
+            sheets_to_update.add(sheet_idx)
+            
+        # 2. Apply new metrics
+        if self.metrics_changes:
+            wid = self.viewer.metadata.get("WID1", [{}])[0]
+            packets = wid.get("packets", [])
+            for glyph_idx, _, new_kern, _, new_width in self.metrics_changes:
+                wid_idx = glyph_idx - self.viewer.first_code
+                if 0 <= wid_idx < len(packets):
+                    packets[wid_idx]["kerning"] = new_kern
+                    packets[wid_idx]["width"] = new_width
+                    
+        # 3. Update UI
+        if self.viewer.current_sheet_index in sheets_to_update:
+            self.viewer.display_current_sheet()
+            
+        selected = self.viewer.get_selected_glyph_index()
+        if selected is not None and self.viewer.selected_cell:
+            self.viewer.populate_info_panel(*self.viewer.selected_cell)
+            self.viewer.update_overlays()
+            
         self.viewer.update_simulation()
         self.viewer.populate_glyph_table()

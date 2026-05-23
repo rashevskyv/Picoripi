@@ -19,9 +19,25 @@ class BfnViewMixin:
         gy = int(p.y() // self.real_h)
         
         if gx < 0 or gy < 0 or gx >= self.cols or gy >= self.rows:
+            self.selected_cell = None
+            self.selected_char_index = -1
+            self.selected_sim_item = None
+            self.populate_info_panel(-1, -1)
+            self.update_overlays()
+            self.update_simulation()
             return
             
         self.selected_cell = (gx, gy)
+        idx = self.get_selected_glyph_index()
+        if idx == -1:
+            self.selected_cell = None
+            self.selected_char_index = -1
+            self.selected_sim_item = None
+            self.populate_info_panel(-1, -1)
+            self.update_overlays()
+            self.update_simulation()
+            return
+            
         self.populate_info_panel(gx, gy)
         self.update_overlays()
 
@@ -73,7 +89,10 @@ class BfnViewMixin:
     def populate_info_panel(self, gx, gy):
         idx = self.get_selected_glyph_index()
         if idx == -1:
-            self.info_text.setText(f"Cell ({gx}, {gy})\nOut of valid glyph range!")
+            if self.selected_cell is None:
+                self.info_text.setText("No glyph selected")
+            else:
+                self.info_text.setText(f"Cell ({gx}, {gy})\nOut of valid glyph range!")
             self.spin_kerning.setEnabled(False)
             self.spin_width.setEnabled(False)
             self.btn_auto_width.setEnabled(False)
@@ -103,12 +122,14 @@ class BfnViewMixin:
                         map_char = f"Unicode: U+{idx:04X}"
             elif m_type == 2:  # Table mapping
                 entries = m.get("entries", [])
-                if idx < len(entries):
-                    code = entries[idx]
-                    try:
-                        map_char = f"'{chr(code)}' (Unicode: U+{code:04X})"
-                    except Exception:
-                        map_char = f"Unicode: U+{code:04X}"
+                for c_idx, g_idx in enumerate(entries):
+                    if g_idx == idx:
+                        code = m_first + c_idx
+                        try:
+                            map_char = f"'{chr(code)}' (Unicode: U+{code:04X})"
+                        except Exception:
+                            map_char = f"Unicode: U+{code:04X}"
+                        break
             elif m_type == 3:  # Map mapping
                 # Entries contains: [unicode_code_0, unicode_code_1..., glyph_idx_0, glyph_idx_1...]
                 entries = m.get("entries", [])

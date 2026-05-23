@@ -32,13 +32,15 @@ class BfnNavigationMixin:
                             pass
                 elif m_type == 2:
                     entries = m.get("entries", [])
-                    if idx < len(entries):
-                        code = entries[idx]
-                        try:
-                            char_val = chr(code)
-                            uni_val = f"U+{code:04X}"
-                        except Exception:
-                            pass
+                    for c_idx, g_idx in enumerate(entries):
+                        if g_idx == idx:
+                            code = m_first + c_idx
+                            try:
+                                char_val = chr(code)
+                                uni_val = f"U+{code:04X}"
+                            except Exception:
+                                pass
+                            break
                 elif m_type == 3:
                     entries = m.get("entries", [])
                     half = len(entries) // 2
@@ -73,13 +75,15 @@ class BfnNavigationMixin:
                                 pass
                     elif m_type == 2:
                         entries = m.get("entries", [])
-                        if idx < len(entries):
-                            code = entries[idx]
-                            try:
-                                orig_char_val = chr(code)
-                                orig_uni_val = f"U+{code:04X}"
-                            except Exception:
-                                pass
+                        for c_idx, g_idx in enumerate(entries):
+                            if g_idx == idx:
+                                code = m_first + c_idx
+                                try:
+                                    orig_char_val = chr(code)
+                                    orig_uni_val = f"U+{code:04X}"
+                                except Exception:
+                                    pass
+                                break
                     elif m_type == 3:
                         entries = m.get("entries", [])
                         half = len(entries) // 2
@@ -250,13 +254,15 @@ class BfnNavigationMixin:
                         pass
             elif m_type == 2:
                 entries = m.get("entries", [])
-                if glyph_idx < len(entries):
-                    code = entries[glyph_idx]
-                    try:
-                        char_val = chr(code)
-                        uni_val = f"U+{code:04X}"
-                    except Exception:
-                        pass
+                for c_idx, g_idx in enumerate(entries):
+                    if g_idx == glyph_idx:
+                        code = m_first + c_idx
+                        try:
+                            char_val = chr(code)
+                            uni_val = f"U+{code:04X}"
+                        except Exception:
+                            pass
+                        break
             elif m_type == 3:
                 entries = m.get("entries", [])
                 half = len(entries) // 2
@@ -340,9 +346,11 @@ class BfnNavigationMixin:
                     m_type = m.get("mapping_type", 0)
                     if m_type == 2:
                         entries = m.get("entries", [])
-                        if glyph_idx < len(entries):
-                            old_code = entries[glyph_idx]
-                            break
+                        for c_idx, g_idx in enumerate(entries):
+                            if g_idx == glyph_idx:
+                                old_code = m.get("first_char", 0) + c_idx
+                                break
+                        break
                     elif m_type == 3:
                         entries = m.get("entries", [])
                         half = len(entries) // 2
@@ -425,15 +433,46 @@ class BfnNavigationMixin:
             m_type = m.get("mapping_type", 0)
             if m_type == 2:
                 entries = m.get("entries", [])
-                if glyph_idx < len(entries):
-                    entries[glyph_idx] = new_code
+                first_char = m.get("first_char", 0)
+                last_char = m.get("last_char", 0)
+                
+                # First, clear any other character mapping to this glyph_idx
+                for i in range(len(entries)):
+                    if entries[i] == glyph_idx:
+                        entries[i] = 0xFFFF
+                
+                if new_code > 0:
+                    if new_code < first_char:
+                        padding_left = first_char - new_code
+                        m["entries"] = [0xFFFF] * padding_left + entries
+                        entries = m["entries"]
+                        m["first_char"] = new_code
+                        first_char = new_code
+                    
+                    idx_in_entries = new_code - first_char
+                    if idx_in_entries >= len(entries):
+                        padding_right = idx_in_entries - len(entries) + 1
+                        entries.extend([0xFFFF] * padding_right)
+                        m["last_char"] = first_char + len(entries) - 1
+                        
+                    entries[new_code - first_char] = glyph_idx
+                    m["mapping_entry_count"] = len(entries)
             elif m_type == 3:
                 entries = m.get("entries", [])
                 half = len(entries) // 2
+                found = False
                 for k in range(half):
                     if entries[half + k] == glyph_idx:
                         entries[k] = new_code
+                        found = True
                         break
+                if not found:
+                    entries.insert(half, new_code)
+                    entries.append(glyph_idx)
+                    m["mapping_entry_count"] = len(entries) // 2
+                    m["first_char"] = min(m.get("first_char", new_code), new_code)
+                    m["last_char"] = max(m.get("last_char", new_code), new_code)
+
 
     def on_table_cell_double_clicked(self, row, col):
         if col in (3, 7, 8):
@@ -515,16 +554,36 @@ class BfnNavigationMixin:
                 }
             """)
         
+        action_copy = menu.addAction("Copy Character(s) (Ctrl+C)")
+        action_paste = menu.addAction("Paste Character(s) (Ctrl+V)")
+        menu.addSeparator()
+        
         action_fill = menu.addAction("Fill sequentially From/To...")
+        action_render = menu.addAction("Render Font to Selected Glyph...")
         
         action_clear = None
         if len(selected_rows) > 0:
             action_clear = menu.addAction(f"Clear mapping for {len(selected_rows)} selected rows")
             
+        selected_glyphs = []
+        for row in sorted(selected_rows):
+            v_header = self.table_glyphs.verticalHeaderItem(row)
+            if v_header:
+                try:
+                    selected_glyphs.append(int(v_header.text()))
+                except ValueError:
+                    pass
+
         action = menu.exec_(self.table_glyphs.viewport().mapToGlobal(pos))
         
-        if action == action_fill:
+        if action == action_copy:
+            self.copy_glyph_values()
+        elif action == action_paste:
+            self.paste_glyph_values()
+        elif action == action_fill:
             self.fill_sequence_dialog(index.row())
+        elif action == action_render:
+            self.render_system_font_to_glyphs(selected_glyphs=selected_glyphs)
         elif action_clear and action == action_clear:
             self.clear_selected_mappings(selected_rows)
 
@@ -579,15 +638,12 @@ class BfnNavigationMixin:
             lang = getattr(p, "spellchecker_language", "") or ""
         dialog = FillRangeDialog(self, lang=lang)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
-            start_code, end_code = dialog.get_range()
-            if start_code is None or end_code is None:
-                QtWidgets.QMessageBox.warning(self, "Invalid Range", "Failed to parse the start or end character/code.")
+            codes = dialog.get_sequence_codes()
+            if not codes:
+                QtWidgets.QMessageBox.warning(self, "Invalid Sequence", "No characters to fill. The sequence is empty.")
                 return
                 
-            if start_code > end_code:
-                start_code, end_code = end_code, start_code
-                
-            total_items = end_code - start_code + 1
+            total_items = len(codes)
             available_rows = self.table_glyphs.rowCount() - start_row
             items_to_fill = min(total_items, available_rows)
             
@@ -621,7 +677,7 @@ class BfnNavigationMixin:
                                 old_code = entries[k]
                                 break
                                 
-                new_code = start_code + i
+                new_code = codes[i]
                 changes.append((glyph_idx, old_code, new_code))
                 
             if not changes:
@@ -657,18 +713,26 @@ class BfnNavigationMixin:
                 if m_type == 0:
                     if m_first <= glyph_idx <= m_last:
                         try:
-                            return chr(glyph_idx)
+                            return bytes([glyph_idx]).decode('cp1252')
                         except Exception:
-                            pass
-                elif m_type == 2:
-                    entries = m.get("entries", [])
-                    if glyph_idx < len(entries):
-                        code = entries[glyph_idx]
-                        if code > 0:
                             try:
-                                return chr(code)
+                                return chr(glyph_idx)
                             except Exception:
                                 pass
+                elif m_type == 2:
+                    entries = m.get("entries", [])
+                    for c_idx, g_idx in enumerate(entries):
+                        if g_idx == glyph_idx:
+                            code = m_first + c_idx
+                            if code > 0:
+                                try:
+                                    return bytes([code]).decode('cp1252')
+                                except Exception:
+                                    try:
+                                        return chr(code)
+                                    except Exception:
+                                        pass
+                            break
                 elif m_type == 3:
                     entries = m.get("entries", [])
                     half = len(entries) // 2
@@ -677,9 +741,12 @@ class BfnNavigationMixin:
                             code = entries[k]
                             if code > 0:
                                 try:
-                                    return chr(code)
+                                    return bytes([code]).decode('cp1252')
                                 except Exception:
-                                    pass
+                                    try:
+                                        return chr(code)
+                                    except Exception:
+                                        pass
             return ""
 
         for idx in range(self.start_glyph, self.end_glyph + 1):
@@ -689,11 +756,108 @@ class BfnNavigationMixin:
                 
                 if trans_char and orig_char and trans_char != orig_char:
                     if len(trans_char) == 1 and len(orig_char) == 1:
-                        # Skip control characters or nul
-                        if ord(trans_char) >= 32 and ord(orig_char) >= 32:
+                        # Мапимо лише символи локалізації (кирилицю/діакритику), латиницю (ASCII) ігноруємо
+                        if ord(trans_char) >= 128 and ord(orig_char) >= 128:
                             translation_map[trans_char] = orig_char
             except Exception:
                 pass
 
         return translation_map
+
+    def get_current_char_code_for_glyph(self, glyph_idx):
+        maps = self.metadata.get("MAP1", [])
+        for m in maps:
+            m_type = m.get("mapping_type", 0)
+            if m_type == 0:
+                m_first = m.get("first_char", 0)
+                m_last = m.get("last_char", 0)
+                if m_first <= glyph_idx <= m_last:
+                    return glyph_idx
+            elif m_type == 2:
+                entries = m.get("entries", [])
+                for c_idx, g_idx in enumerate(entries):
+                    if g_idx == glyph_idx:
+                        return m.get("first_char", 0) + c_idx
+            elif m_type == 3:
+                entries = m.get("entries", [])
+                half = len(entries) // 2
+                for k in range(half):
+                    if entries[half + k] == glyph_idx:
+                        return entries[k]
+        return 0
+
+    def copy_glyph_values(self):
+        selected_indexes = self.table_glyphs.selectedIndexes()
+        if not selected_indexes:
+            return
+
+        # Sort selected indexes by row and then by column
+        selected_indexes.sort(key=lambda idx: (idx.row(), idx.column()))
+
+        # Check if there are any cells from column 3 (Character)
+        char_cells = [idx for idx in selected_indexes if idx.column() == 3]
+        
+        texts = []
+        if char_cells:
+            for idx in char_cells:
+                item = self.table_glyphs.item(idx.row(), 3)
+                texts.append(item.text() if item else "")
+        else:
+            # If column 3 is not selected, get all unique rows involved
+            rows = sorted(list(set(idx.row() for idx in selected_indexes)))
+            for r in rows:
+                item = self.table_glyphs.item(r, 3)
+                texts.append(item.text() if item else "")
+
+        clipboard_text = "\n".join(texts)
+        QtWidgets.QApplication.clipboard().setText(clipboard_text)
+
+    def paste_glyph_values(self):
+        text = QtWidgets.QApplication.clipboard().text()
+        if not text:
+            return
+
+        # Smart split
+        if '\n' in text or '\r' in text:
+            lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+            if len(lines) > 1 and lines[-1] == "":
+                lines.pop()
+        else:
+            lines = list(text)
+
+        current = self.table_glyphs.currentIndex()
+        if not current.isValid():
+            return
+            
+        start_row = current.row()
+        total_rows = self.table_glyphs.rowCount()
+        items_to_fill = min(len(lines), total_rows - start_row)
+        
+        if items_to_fill <= 0:
+            return
+
+        changes = []
+        for i in range(items_to_fill):
+            row = start_row + i
+            v_header = self.table_glyphs.verticalHeaderItem(row)
+            if not v_header:
+                continue
+            glyph_idx = int(v_header.text())
+            
+            old_code = self.get_current_char_code_for_glyph(glyph_idx)
+            
+            new_char = lines[i]
+            new_code = ord(new_char[0]) if new_char else 0
+            
+            if old_code != new_code:
+                changes.append((glyph_idx, old_code, new_code))
+
+        if not changes:
+            return
+
+        # Use BatchMappingCommand for atomic undo/redo and UI updates
+        cmd = BatchMappingCommand(self, changes, f"Paste {len(changes)} Character Mappings")
+        self.undo_stack.push(cmd)
+        self._set_dirty(True)
+
 

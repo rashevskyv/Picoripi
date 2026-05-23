@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.93] - 2026-05-23
+
+### Fixed
+- **BFN Glyph Table: 32-Position Index Shift on New Projects**: Fixed a critical bug in `core/bfn_core.py` where BFN fonts with linear `mapping_type == 0` were converted to `mapping_type == 2` with incorrectly shifted `entries`. The old code used `entries = [first_char + i for i in range(entry_count)]`, which placed the space glyph (character code 32) at grid position 32 instead of position 0. The fix changes the formula to `entries = [i for i in range(entry_count)]`, so entries correctly start from 0 regardless of the font's first character code. This resolves glyph misalignment visible in the Glyph Table when opening a new project with freshly unpacked game fonts.
+- **Unit Test Alignment**: Updated `test_bfn_core_linear_mapping_type_0_conversion` in `tests/test_ui/test_bfn_preview_widget.py` to expect index-based entries `[0, 1, …, 10]` instead of the previously incorrect character-shifted values `[32, 33, …, 42]`.
+
 ## [0.2.92] - 2026-05-23
 
 ### Improved

@@ -496,8 +496,8 @@ def test_bfn_core_linear_mapping_type_0_conversion():
     # 1. Verify automatic type 0 to type 2 conversion in BfnCore.load()
     assert bfn.map1[0]["mapping_type"] == 2
     assert bfn.map1[0]["mapping_entry_count"] == 11
-    # entries should be [32, 33, 34, ..., 42]
-    assert bfn.map1[0]["entries"] == list(range(32, 43))
+    # entries should be [0, 1, 2, ..., 10]
+    assert bfn.map1[0]["entries"] == list(range(11))
     
     # 2. Verify that layout_text successfully maps character with absolute code to relative index
     # Char space ' ' has code 32, '!' has code 33
