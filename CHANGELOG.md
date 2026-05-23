@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.91] - 2026-05-23
+
+### Added
+- **BFN Font Editor: Language-Aware Alphabet Fill Defaults**: The "Fill sequentially From/To..." dialog in the Glyph Table now automatically pre-fills the Start and End character fields based on the active spellchecker language.
+  - If the spellchecker is set to a Cyrillic language (`uk`, `ru`, `be`, `bg`, `sr`, `mk`), the dialog defaults to А–Я (`U+0410`–`U+042F`).
+  - Greek (`el`) defaults to Α–Ω; Arabic (`ar`) to the basic Arabic block; Japanese (`ja`) to Hiragana; Korean (`ko`) to the beginning of the Hangul syllable block; all other languages default to A–Z.
+  - The language is determined automatically from `spellchecker_language` in the parent `MainWindow` (no extra configuration needed). The hint `(detected: uk)` is shown in the dialog for transparency.
+  - The user can still override the values manually before confirming.
+
 ## [0.2.90] - 2026-05-23
 
 ### Fixed
