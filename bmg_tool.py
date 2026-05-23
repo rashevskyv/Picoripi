@@ -60,6 +60,10 @@ class BMGFile:
         self.unk18 = 0
         self.unk1C = 0
         self.messages = []
+        self.section_order = []
+        self.other_sections = {}
+        self.mid1_entry_len = 4   # bytes per MID1 entry (0 = packed, computed at load)
+        self.mid1_unk = 0         # unknown field in MID1 header
 
     def get_full_encoding(self):
         if self.encoding.lower() == 'utf-16':
@@ -89,12 +93,25 @@ class BMGFile:
         inf_entries = []
         dat_data = b''
         mid_entries = []
+        self.section_order = []
+        self.other_sections = {}
+        self.original_num_sections = num_sections
+        self.original_total_size = total_size  # preserve for exact roundtrip
 
-        for _ in range(num_sections):
-            if offset >= len(data):
+        while offset < len(data):
+            if offset + 8 > len(data):
                 break
             sec_magic, sec_len = struct.unpack_from(se + '4sI', data, offset)
+            if sec_len == 0 or offset + sec_len > len(data):
+                break
             sec_data = data[offset : offset + sec_len]
+            
+            try:
+                magic_str = sec_magic.decode('ascii', errors='ignore')
+            except Exception:
+                magic_str = f"SEC{len(self.section_order)}"
+                
+            self.section_order.append(magic_str)
 
             if sec_magic == b'INF1':
                 count, entry_len, self.id = struct.unpack_from(se + 'HHI', sec_data, 8)
@@ -109,16 +126,33 @@ class BMGFile:
 
             elif sec_magic == b'MID1':
                 count, entry_len, unk = struct.unpack_from(se + 'HHI', sec_data, 8)
-                # entry_len is usually 4 bytes (for ID integers)
+                self.mid1_unk = unk
+                # entry_len == 0 is a Twilight Princess quirk: IDs are stored
+                # contiguously after the 16-byte header. Compute real stride.
+                if entry_len == 0 and count > 0:
+                    data_bytes = len(sec_data) - 16
+                    computed = data_bytes // count
+                    # Only trust if it divides cleanly into a sensible size
+                    real_entry_len = computed if computed in (4, 8) else 4
+                else:
+                    real_entry_len = entry_len if entry_len > 0 else 4
+                self.mid1_entry_len = real_entry_len
+                # Also preserve the original header value for exact roundtrip
+                self._mid1_entry_len_header = entry_len
                 for i in range(count):
-                    entry_offset = 16 + i * entry_len
-                    if entry_len == 4:
+                    entry_offset = 16 + i * real_entry_len
+                    if real_entry_len == 4:
                         msg_id, = struct.unpack_from(se + 'I', sec_data, entry_offset)
                         mid_entries.append(msg_id)
                     else:
-                        mid_entries.append(sec_data[entry_offset : entry_offset + entry_len].hex())
+                        mid_entries.append(sec_data[entry_offset : entry_offset + real_entry_len].hex())
+            else:
+                self.other_sections[magic_str] = bytes(sec_data)
 
             offset += sec_len
+
+        # Preserve any trailing bytes after the last known section for exact roundtrip
+        self.trailing_data = bytes(data[offset:]) if offset < len(data) else b''
 
         # Parse messages
         full_enc = self.get_full_encoding()
@@ -188,12 +222,19 @@ class BMGFile:
         if self.messages:
             entry_len += len(self.messages[0].info)
 
-        has_ids = any(hasattr(m, 'id') for m in self.messages)
+        has_ids = any(hasattr(m, 'id') and isinstance(getattr(m, 'id'), int) for m in self.messages)
+        mid1_entry_len = getattr(self, 'mid1_entry_len', 4)
+        mid1_unk = getattr(self, 'mid1_unk', 0)
+        # Preserve original MID1 header entry_len value for exact roundtrip
+        mid1_entry_len_header = getattr(self, '_mid1_entry_len_header', mid1_entry_len)
 
         for idx, msg in enumerate(self.messages):
             if msg.is_null:
                 inf1.extend(struct.pack(se + 'I', 0))
                 inf1.extend(msg.info)
+                if has_ids:
+                    # Write a zero ID for null messages to maintain index alignment
+                    mid1.extend(struct.pack(se + 'I', 0))
                 continue
 
             # Offset is relative to the start of DAT1 data section (after its 8-byte header)
@@ -209,7 +250,7 @@ class BMGFile:
                     esc_type = part["escape_type"]
                     esc_data = bytes.fromhex(part["data"])
                     esc_len = len(esc_char) + 2 + len(esc_data)
-                    
+
                     dat1.extend(esc_char)
                     dat1.append(esc_len)
                     dat1.append(esc_type)
@@ -217,13 +258,14 @@ class BMGFile:
 
             dat1.extend(null_char)
 
-            # Build MID1 if needed
+            # Build MID1 entry if file has message IDs
             if has_ids:
                 msg_id = getattr(msg, 'id', idx)
                 if isinstance(msg_id, int):
                     mid1.extend(struct.pack(se + 'I', msg_id))
                 else:
-                    mid1.extend(bytes.fromhex(msg_id))
+                    # Fallback: pad with zeros
+                    mid1.extend(b'\x00' * mid1_entry_len)
 
         # Pad sections to 32 bytes
         while len(inf1) % 32 != 0:
@@ -238,25 +280,68 @@ class BMGFile:
         struct.pack_into(se + '4sI', dat1, 0, b'DAT1', len(dat1))
 
         # Assemble file
-        num_sections = 2
+        num_sections = 0
         out_data = bytearray(0x20)
-        out_data.extend(inf1)
-        out_data.extend(dat1)
 
+        # Decide order of sections
+        sections_to_write = list(self.section_order) if getattr(self, 'section_order', None) else ['INF1', 'DAT1', 'MID1']
+        
+        # Ensure we always write INF1 and DAT1
+        if 'INF1' not in sections_to_write:
+            sections_to_write.append('INF1')
+        if 'DAT1' not in sections_to_write:
+            sections_to_write.append('DAT1')
+        
+        # MID1 check
         if has_ids:
-            num_sections += 1
-            struct.pack_into(se + '4sIHHI', mid1, 0, b'MID1', len(mid1), len(self.messages), 4, 0)
-            out_data.extend(mid1)
+            if 'MID1' not in sections_to_write:
+                # Insert after DAT1
+                try:
+                    idx = sections_to_write.index('DAT1')
+                    sections_to_write.insert(idx + 1, 'MID1')
+                except ValueError:
+                    sections_to_write.append('MID1')
+        else:
+            if 'MID1' in sections_to_write:
+                sections_to_write.remove('MID1')
 
-        # Pad total file
-        total_size = len(out_data)
-        while total_size % 32 != 0:
+        for sec_name in sections_to_write:
+            if sec_name == 'INF1':
+                out_data.extend(inf1)
+                num_sections += 1
+            elif sec_name == 'DAT1':
+                out_data.extend(dat1)
+                num_sections += 1
+            elif sec_name == 'MID1':
+                struct.pack_into(se + '4sIHHI', mid1, 0, b'MID1', len(mid1), len(self.messages),
+                                 mid1_entry_len_header, mid1_unk)
+                out_data.extend(mid1)
+                num_sections += 1
+            elif sec_name in getattr(self, 'other_sections', {}):
+                out_data.extend(self.other_sections[sec_name])
+                num_sections += 1
+
+        # Pad total file to 32-byte alignment
+        real_total_size = len(out_data)
+        while real_total_size % 32 != 0:
             out_data.append(0)
-            total_size += 1
+            real_total_size += 1
+
+        # Append any trailing bytes preserved from the original file
+        trailing = getattr(self, 'trailing_data', b'')
+        if trailing:
+            out_data.extend(trailing)
 
         # Write global file header
+        # Use original total_size if it was preserved, for exact roundtrip.
+        # NOTE: In Twilight Princess BMGs the total_size field does not always
+        # reflect the on-disk size (e.g. it may exclude padding/FLW1 sections).
+        # We preserve the original value to avoid corrupting the header.
         enc_id = ENCODINGS_REV.get(self.encoding, 2)
-        struct.pack_into(se + '8sIIB3I', out_data, 0, b'MESGbmg1', total_size, num_sections, enc_id, self.unk14, self.unk18, self.unk1C)
+        header_sections_count = getattr(self, 'original_num_sections', num_sections)
+        orig_total = getattr(self, 'original_total_size', None)
+        header_total_size = orig_total if orig_total is not None else real_total_size
+        struct.pack_into(se + '8sIIB3I', out_data, 0, b'MESGbmg1', header_total_size, header_sections_count, enc_id, self.unk14, self.unk18, self.unk1C)
 
         return bytes(out_data)
 

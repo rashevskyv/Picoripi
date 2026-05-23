@@ -1,5 +1,33 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.94] - 2026-05-23
+
+### Fixed
+- **BMG Packer: Perfect Byte-Perfect Roundtrip for Twilight Princess Archives**: Fixed multiple critical bugs in `bmg_tool.py` that caused corrupted BMG files when saving to `bmgres.arc` in Twilight Princess projects.
+
+  **Bug 1 — MID1 `entry_len=0` quirk (Twilight Princess format)**: The original `zel_00.bmg` uses `entry_len=0` in the MID1 section header — a non-standard Twilight Princess convention where message IDs are stored contiguously. The old code treated `entry_len=0` as a literal stride, appending empty strings `''` as IDs instead of integers. As a result, `has_ids` was `True` but `bytes.fromhex('')` returned `b''`, so MID1 was written with only a 16-byte header instead of 20,032 bytes. Fixed by computing the real stride from section size divided by count:
+  ```python
+  if entry_len == 0 and count > 0:
+      real_entry_len = (len(sec_data) - 16) // count  # e.g., 4 bytes
+  ```
+
+  **Bug 2 — `has_ids` checked attribute existence instead of type**: Changed from `hasattr(m, 'id')` to `hasattr(m, 'id') and isinstance(getattr(m, 'id'), int)`, so messages with `id=''` (empty string from old corrupt files) no longer trigger MID1 writing.
+
+  **Bug 3 — `original_total_size` not preserved**: In Twilight Princess BMGs, the `total_size` header field does not match the actual on-disk file size (it excludes trailing data and FLW1 alignment padding). Saving the recomputed size corrupted the file header. Now `original_total_size` is stored at load time and written back unchanged.
+
+  **Bug 4 — Trailing bytes after last section were lost**: `zel_00.bmg` contains 632 bytes of trailing data after the FLW1 section that were silently dropped during repacking. Now `trailing_data` is preserved and appended at the end of `save()`.
+
+  **Bug 5 — MID1 header written with wrong `entry_len`**: The original header stores `entry_len=0` (the TP quirk), but the save code was writing `4`. Added `_mid1_entry_len_header` field to preserve the original value for exact roundtrip.
+
+  **Bug 6 — Null messages missing from MID1**: Messages with `is_null=True` were skipped in MID1 generation, breaking ID-to-index alignment for all subsequent messages. Null messages now write a zero ID to maintain proper index alignment.
+
+  **Result**: Both `zel_00.bmg` (309,208 bytes) and `zel_unit.bmg` (448 bytes) now achieve **100% byte-perfect roundtrip** — `repacked == original` verified by section-level and full byte comparison.
+
+- **Archive Save: Cache Invalidated After Pack**: After `container.pack()` writes the packed archive to disk, `clear_archive_cache()` is now called immediately. This ensures the next read of the same archive gets the fresh on-disk version rather than the stale in-memory container.
+
+### Changed
+- `BMGFile` now stores additional roundtrip metadata: `original_total_size`, `trailing_data`, `mid1_entry_len`, `mid1_unk`, `_mid1_entry_len_header`.
+
 ## [0.2.93] - 2026-05-23
 
 ### Fixed
