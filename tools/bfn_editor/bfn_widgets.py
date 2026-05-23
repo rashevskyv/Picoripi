@@ -534,25 +534,30 @@ class GridItem(QtWidgets.QGraphicsItem):
             y = gy * self.real_h
             painter.drawLine(0, y, self.rows * self.real_w, y)
 
-# Default fill ranges per spellchecker language code.
-# Each entry: (start_char, end_char) as single characters.
-# Languages not listed fall back to Latin A–Z.
-_LANG_FILL_DEFAULTS = {
-    # Cyrillic — uppercase А–Я block (U+0410–U+042F)
-    "uk": ("\u0410", "\u042F"),  # Ukrainian
-    "ru": ("\u0410", "\u042F"),  # Russian
-    "be": ("\u0410", "\u042F"),  # Belarusian
-    "bg": ("\u0410", "\u042F"),  # Bulgarian
-    "sr": ("\u0410", "\u042F"),  # Serbian
-    "mk": ("\u0410", "\u042F"),  # Macedonian
-    # Greek — uppercase Α–Ω
-    "el": ("\u0391", "\u03A9"),
-    # Arabic — basic block \u0621–\u064A
-    "ar": ("\u0621", "\u064A"),
-    # Japanese hiragana — \u3041–\u3096
-    "ja": ("\u3041", "\u3096"),
-    # Korean — Hangul syllables begin \uAC00
-    "ko": ("\uAC00", "\uAC1B"),
+# Default fill ranges per language key.
+# Each tuple: (label shown in combobox, lang_key, start_char, end_char)
+_FILL_PRESETS = [
+    ("Latin  A – Z",                "la",  "A",       "Z"),
+    ("Latin  a – z",                "la_l","a",       "z"),
+    ("Cyrillic  А – Я (uppercase)", "cyr", "\u0410",  "\u042F"),
+    ("Cyrillic  а – я (lowercase)", "cyr_l","\u0430", "\u044F"),
+    ("Greek  Α – Ω (uppercase)",    "el",  "\u0391",  "\u03A9"),
+    ("Greek  α – ω (lowercase)",    "el_l","\u03B1",  "\u03C9"),
+    ("Arabic  \u0621 – \u064A",     "ar",  "\u0621",  "\u064A"),
+    ("Hiragana  \u3041 – \u3096",   "ja",  "\u3041",  "\u3096"),
+    ("Katakana  \u30A1 – \u30F6",   "ja_k","\u30A1",  "\u30F6"),
+    ("Hangul syllables (first 32)", "ko",  "\uAC00",  "\uAC1F"),
+    ("Custom (edit below)",         "custom", "",     ""),
+]
+
+# Map from spellchecker lang code to preset lang_key
+_LANG_TO_PRESET = {
+    "uk": "cyr", "ru": "cyr", "be": "cyr",
+    "bg": "cyr", "sr": "cyr", "mk": "cyr",
+    "el": "el",
+    "ar": "ar",
+    "ja": "ja",
+    "ko": "ko",
 }
 
 
@@ -561,27 +566,41 @@ class FillRangeDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Fill From To")
         self.setModal(True)
-        self.resize(320, 200)
+        self.resize(360, 230)
 
-        # Determine defaults from language code (strip region suffix: 'uk_UA' -> 'uk')
+        # Determine default preset key from spellchecker language
         base_lang = lang.split("_")[0].split("-")[0].lower() if lang else ""
-        default_start, default_end = _LANG_FILL_DEFAULTS.get(base_lang, ("A", "Z"))
+        default_preset_key = _LANG_TO_PRESET.get(base_lang, "la")
 
         layout = QtWidgets.QVBoxLayout(self)
+        layout.setSpacing(8)
 
+        # --- Alphabet / Language selector ---
+        lang_row = QtWidgets.QHBoxLayout()
+        lang_row.addWidget(QtWidgets.QLabel("Alphabet:"))
+        self.lang_combo = QtWidgets.QComboBox()
+        for label, key, _s, _e in _FILL_PRESETS:
+            self.lang_combo.addItem(label, key)
+        # Select default
+        for i, (_lbl, key, _s, _e) in enumerate(_FILL_PRESETS):
+            if key == default_preset_key:
+                self.lang_combo.setCurrentIndex(i)
+                break
+        lang_row.addWidget(self.lang_combo, 1)
+        layout.addLayout(lang_row)
+
+        # --- Start / End fields ---
         form = QtWidgets.QFormLayout()
-        self.input_start = QtWidgets.QLineEdit(default_start)
+        self.input_start = QtWidgets.QLineEdit()
         self.input_start.setPlaceholderText("e.g. A or U+0410 or 0410")
-        self.input_end = QtWidgets.QLineEdit(default_end)
-        self.input_end.setPlaceholderText("e.g. Z or U+041A or 041A")
-
+        self.input_end = QtWidgets.QLineEdit()
+        self.input_end.setPlaceholderText("e.g. Z or U+042F or 042F")
         form.addRow("Start Character / Code:", self.input_start)
         form.addRow("End Character / Code:", self.input_end)
         layout.addLayout(form)
 
-        lang_hint = f" (detected: {base_lang})" if base_lang else ""
         help_lbl = QtWidgets.QLabel(
-            f"Enter either a single character or Unicode hex (e.g., U+0410 or 0410).{lang_hint}\n"
+            "Choose a preset or enter a single character / Unicode hex.\n"
             "The table will be filled sequentially starting from the selected row."
         )
         help_lbl.setStyleSheet("color: #88888b; font-size: 11px;")
@@ -595,6 +614,34 @@ class FillRangeDialog(QtWidgets.QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        # Fill fields from current preset, then connect signal
+        self._apply_preset(self.lang_combo.currentIndex())
+        self.lang_combo.currentIndexChanged.connect(self._apply_preset)
+
+        # If user edits manually — switch combobox to "Custom"
+        self.input_start.textEdited.connect(self._on_manual_edit)
+        self.input_end.textEdited.connect(self._on_manual_edit)
+
+    # ------------------------------------------------------------------
+    def _apply_preset(self, index):
+        _lbl, key, start_ch, end_ch = _FILL_PRESETS[index]
+        if key == "custom":
+            return  # keep whatever user typed
+        self.input_start.setText(start_ch)
+        self.input_end.setText(end_ch)
+
+    def _on_manual_edit(self):
+        # Switch combobox to "Custom" silently so auto-apply doesn't override
+        custom_idx = next(
+            (i for i, (_l, k, _s, _e) in enumerate(_FILL_PRESETS) if k == "custom"),
+            -1
+        )
+        if custom_idx >= 0 and self.lang_combo.currentIndex() != custom_idx:
+            self.lang_combo.blockSignals(True)
+            self.lang_combo.setCurrentIndex(custom_idx)
+            self.lang_combo.blockSignals(False)
+
+    # ------------------------------------------------------------------
     def get_range(self):
         start_txt = self.input_start.text().strip()
         end_txt = self.input_end.text().strip()
