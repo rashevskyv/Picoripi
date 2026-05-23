@@ -590,3 +590,27 @@ class PreviewUpdater(BaseUIUpdater):
 
         if hasattr(self.mw, 'dictionary_tooltip') and self.mw.dictionary_tooltip:
              self.mw.dictionary_tooltip.hide()
+
+    def update_preview_visibility(self):
+        """Update visibility of the visual preview widget based on loaded fonts and menu toggle state."""
+        preview_widget = getattr(self.mw, 'bfn_preview_widget', None)
+        if not preview_widget:
+            return
+
+        all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
+        fonts_loaded = bool(all_bfn_fonts)
+
+        toggle_action = getattr(self.mw, 'toggle_preview_action', None)
+        
+        if not fonts_loaded:
+            preview_widget.hide()
+            if toggle_action:
+                toggle_action.setEnabled(False)
+                toggle_action.setChecked(False)
+        else:
+            if toggle_action:
+                toggle_action.setEnabled(True)
+                if toggle_action.isChecked():
+                    preview_widget.show()
+                else:
+                    preview_widget.hide()

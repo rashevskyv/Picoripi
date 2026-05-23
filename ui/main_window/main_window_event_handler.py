@@ -16,6 +16,8 @@ class MainWindowEventHandler:
         self.mw = main_window
 
     def connect_signals(self):
+        if hasattr(self.mw, 'toggle_preview_action') and self.mw.toggle_preview_action:
+            self.mw.toggle_preview_action.triggered.connect(self.mw.ui_updater.update_preview_visibility)
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
         if hasattr(self.mw, 'bfn_editor_action') and self.mw.bfn_editor_action:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)

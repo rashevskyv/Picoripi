@@ -225,6 +225,8 @@ class FontMapLoader:
             self._apply_font_overrides(overrides)
         self.update_icon_sequences_cache()
         self.refresh_icon_highlighting()
+        if hasattr(self.mw, 'ui_updater') and hasattr(self.mw.ui_updater, 'update_preview_visibility'):
+            self.mw.ui_updater.update_preview_visibility()
 
     def _parse_new_font_format(self, font_data: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
         """Parses the new font format and returns a font_map."""
