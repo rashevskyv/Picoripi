@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.92] - 2026-05-23
+
+### Improved
+- **BFN Font Editor: Alphabet Selector in Fill Dialog**: The "Fill sequentially From/To..." dialog now shows an **Alphabet** dropdown combobox with named presets (Latin A–Z, Cyrillic А–Я uppercase/lowercase, Greek, Arabic, Hiragana, Katakana, Hangul, and a Custom option).
+  - Selecting a preset instantly updates the Start and End character fields.
+  - Manually editing Start or End automatically switches the combobox to "Custom" so the preset does not override user input.
+  - The default preset is still determined automatically from the active spellchecker language (`uk`/`ru`/`be` → Cyrillic uppercase, `el` → Greek, etc.).
+
 ## [0.2.91] - 2026-05-23
 
 ### Added
