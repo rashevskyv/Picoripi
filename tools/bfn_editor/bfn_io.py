@@ -463,8 +463,22 @@ class BfnIoMixin:
         cell_x = gx * self.cell_w
         cell_y = gy * self.cell_h
         
-        max_x_with_alpha = 0
+        min_x = -1
+        max_x = -1
         
+        # 1. Scan left-to-right for first pixel with alpha > 15
+        for x in range(self.cell_w):
+            has_pixel = False
+            for y in range(self.cell_h):
+                color = sheet_img.pixelColor(cell_x + x, cell_y + y)
+                if color.alpha() > 15:
+                    has_pixel = True
+                    break
+            if has_pixel:
+                min_x = x
+                break
+                
+        # 2. Scan right-to-left for last pixel with alpha > 15
         for x in range(self.cell_w - 1, -1, -1):
             has_pixel = False
             for y in range(self.cell_h):
@@ -473,11 +487,85 @@ class BfnIoMixin:
                     has_pixel = True
                     break
             if has_pixel:
-                max_x_with_alpha = x + 1
+                max_x = x
                 break
                 
-        detected_width = max(1, max_x_with_alpha + 1)
-        self.spin_width.setValue(detected_width)
+        if min_x == -1 or max_x == -1:
+            new_kern = 0
+            new_width = self.cell_w // 2
+        else:
+            # Find maximum continuous block in first column (min_x)
+            max_block_left = 0
+            current_block = 0
+            for y in range(self.cell_h):
+                color = sheet_img.pixelColor(cell_x + min_x, cell_y + y)
+                if color.alpha() > 15:
+                    current_block += 1
+                else:
+                    if current_block > max_block_left:
+                        max_block_left = current_block
+                    current_block = 0
+            if current_block > max_block_left:
+                max_block_left = current_block
+                
+            # Find maximum continuous block in last column (max_x)
+            max_block_right = 0
+            current_block = 0
+            for y in range(self.cell_h):
+                color = sheet_img.pixelColor(cell_x + max_x, cell_y + y)
+                if color.alpha() > 15:
+                    current_block += 1
+                else:
+                    if current_block > max_block_right:
+                        max_block_right = current_block
+                    current_block = 0
+            if current_block > max_block_right:
+                max_block_right = current_block
+                
+            if max_block_left < 5:
+                new_kern = min_x
+            else:
+                new_kern = max(0, min_x - 1)
+                
+            if max_block_right < 5:
+                right_boundary = max_x
+            else:
+                right_boundary = max_x + 1
+                
+            new_width = right_boundary - new_kern + 1
+            # clamp width
+            new_width = max(1, min(self.cell_w - new_kern, new_width))
+            
+        # Get old values
+        idx = self.get_selected_glyph_index()
+        if idx == -1:
+            return
+            
+        wid = self.metadata.get("WID1", [{}])[0]
+        packets = wid.get("packets", [])
+        wid_idx = idx - self.first_code
+        
+        old_kern = 0
+        old_width = self.cell_w
+        if 0 <= wid_idx < len(packets):
+            old_kern = packets[wid_idx]["kerning"]
+            old_width = packets[wid_idx]["width"]
+            
+        if old_kern == new_kern and old_width == new_width:
+            return
+            
+        # Block signals so we don't trigger intermediate commands
+        self.spin_kerning.blockSignals(True)
+        self.spin_width.blockSignals(True)
+        self.spin_kerning.setValue(new_kern)
+        self.spin_width.setValue(new_width)
+        self.spin_kerning.blockSignals(False)
+        self.spin_width.blockSignals(False)
+        
+        from tools.bfn_editor.bfn_commands import EditMetricsCommand
+        cmd = EditMetricsCommand(self, idx, old_kern, new_kern, old_width, new_width)
+        self.undo_stack.push(cmd)
+        self._set_dirty(True)
 
     def load_original_bfn_bytes(self, bfn_bytes, bfn_name="fontres.bfn"):
         import tempfile

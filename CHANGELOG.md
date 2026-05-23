@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.90] - 2026-05-23
+
+### Fixed
+- **BFN Font Editor: Kerning/Width Marker Dragging in `ImageView`**: Fixed a bug where the kerning (blue) or width (red) vertical lines in the glyph grid could be grabbed even when the mouse cursor was positioned *above* or *below* the actual glyph row that owns the line. The hit-test now correctly checks that the cursor's Y coordinate falls within the vertical bounds of the glyph cell before activating the drag handle.
+- **BFN Font Editor: Drag-to-Edit Metrics Correctness**: Replaced the old erratic per-pixel drag logic in both `ImageView` and `SimGlyphItem` with a delta-based approach. The drag now stores the exact values of `kerning` and `width` at the moment of mouse press and calculates the new value as `initial_value + Δx`. This removes the "rubber-band" jumping effect that occurred when dragging resumed from an unexpected position.
+- **BFN Font Editor: Undo Stack Flooding on Drag**: Fixed a regression where every pixel moved while dragging a metric line pushed a separate `EditMetricsCommand` onto the undo stack, making Ctrl+Z effectively unusable after a drag. Now `blockSignals(True/False)` wraps the spinbox update during drag, and a single `EditMetricsCommand` is pushed only on `mouseReleaseEvent`, making the entire drag one undoable action.
+- **BFN Font Editor: AutoWidth Adds 1px Air Around Glyph**: The `auto_detect_width` function in `bfn_io.py` now adds 1 pixel of padding on each side when setting kerning and width, unless the glyph has a sharp edge (fewer than 5 consecutive pixels in the topmost or bottommost contact row). Sharp glyphs (e.g., W, Y, V with pointed tops/bottoms) are detected by scanning the contact row and counting only the longest *unbroken* run of set pixels — if the run is < 5, the boundary is placed flush to the glyph without padding.
+
 ## [0.2.89] - 2026-05-23
 
 ### Added
