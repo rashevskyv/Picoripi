@@ -650,6 +650,42 @@ def test_bfn_preview_widget_hide_background(qapp):
          mw_mock.settings_manager.save_settings.assert_called_once()
 
 
+def test_bfn_preview_widget_fix_font_scale(qapp):
+    mw_mock = MagicMock()
+    mw_mock.preview_fix_font_scale = False
+    mw_mock.preview_fixed_font_scale = 1.0
+    
+    widget = BfnPreviewWidget(mw_mock)
+    assert widget.fix_font_scale is False
+    
+    widget._last_computed_scale_factor = 1.85
+    
+    actions_created = {}
+    original_add_action = QMenu.addAction
+    
+    def spy_add_action(menu_obj, text):
+        action = original_add_action(menu_obj, text)
+        actions_created[text] = action
+        if text == "Fix Font Scale":
+            action.isChecked = MagicMock(return_value=True)
+        return action
+        
+    with patch.object(QMenu, 'addAction', spy_add_action), \
+         patch.object(QMenu, 'exec_') as mock_exec:
+         
+         # Return the dynamically created QAction when exec_ is called
+         mock_exec.side_effect = lambda *args: actions_created.get("Fix Font Scale")
+         
+         widget.show_context_menu(QPoint(0, 0))
+         
+         assert widget.fix_font_scale is True
+         assert widget.fixed_font_scale == 1.85
+         assert mw_mock.preview_fix_font_scale is True
+         assert mw_mock.preview_fixed_font_scale == 1.85
+         mw_mock.settings_manager.save_settings.assert_called()
+
+
+
 
 
 

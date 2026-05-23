@@ -69,7 +69,9 @@ class GlobalSettings:
             "preview_glow_enabled": False,
             "preview_glow_color": "#ffffff",
             "preview_glow_alpha": 180,
-            "preview_glow_spread": 4
+            "preview_glow_spread": 4,
+            "preview_fix_font_scale": False,
+            "preview_fixed_font_scale": 1.0
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -195,7 +197,9 @@ class GlobalSettings:
             "preview_glow_enabled": getattr(self.mw, 'preview_glow_enabled', False),
             "preview_glow_color": getattr(self.mw, 'preview_glow_color', '#ffffff'),
             "preview_glow_alpha": getattr(self.mw, 'preview_glow_alpha', 180),
-            "preview_glow_spread": getattr(self.mw, 'preview_glow_spread', 4)
+            "preview_glow_spread": getattr(self.mw, 'preview_glow_spread', 4),
+            "preview_fix_font_scale": getattr(self.mw, 'preview_fix_font_scale', False),
+            "preview_fixed_font_scale": getattr(self.mw, 'preview_fixed_font_scale', 1.0)
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

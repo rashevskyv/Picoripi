@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.89] - 2026-05-23
+
+### Added
+- **Interactive Angle Picker Wheel for Drop Shadow**: Replaced the plain numeric spinbox for shadow angle with a Photoshop-style interactive angle wheel (`AnglePickerWidget`) in the Drop Shadow settings dialog.
+  - Drag the needle or click anywhere on the wheel to set the shadow direction visually.
+  - A `QSpinBox` next to the wheel stays in sync for precise numeric input — changing one updates the other instantly.
+  - 0° = right, 90° = down, 270° = up, 315° = upper-left (same convention as the rendering engine).
+  - The widget auto-adapts its color scheme based on the application theme (dark/light background detection).
+- **Fix Font Scale for BFN Preview**: Added a new checkable option **"Fix Font Scale"** to the BFN Preview right-click context menu.
+  - When enabled, the current glyph scale factor is frozen. All subsequent string switches will render at the same letter size, regardless of string length or text rect dimensions.
+  - When disabled, the widget returns to automatic scaling (letters fill the text rect proportionally).
+  - Both the enabled state and the locked scale value are persisted in `settings.json` across sessions (`preview_fix_font_scale`, `preview_fixed_font_scale`).
+
 ## [0.2.88] - 2026-05-23
 
 ### Added

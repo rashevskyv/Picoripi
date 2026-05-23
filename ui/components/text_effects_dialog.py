@@ -2,10 +2,106 @@ import math
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QCheckBox, QPushButton, QSlider, QSpinBox, QLabel, QDialogButtonBox,
-    QColorDialog
+    QColorDialog, QWidget
 )
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QPainter, QPen, QBrush
+from PyQt5.QtCore import Qt, pyqtSignal, QPointF
+
+
+class AnglePickerWidget(QWidget):
+    """Interactive wheel for choosing an angle (like in Photoshop)."""
+    angleChanged = pyqtSignal(int)
+
+    def __init__(self, parent=None, size=64):
+        super().__init__(parent)
+        self._angle = 0  # 0 to 359 degrees
+        self.setFixedSize(size, size)
+        self.setCursor(Qt.CrossCursor)
+
+    def angle(self) -> int:
+        return self._angle
+
+    def setAngle(self, angle: int):
+        # Normalize to 0-359
+        angle = (int(angle) % 360 + 360) % 360
+        if self._angle != angle:
+            self._angle = angle
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        width = self.width()
+        height = self.height()
+        radius = min(width, height) / 2.0
+        center = QPointF(width / 2.0, height / 2.0)
+
+        # Draw main circle border and fill
+        circle_radius = radius - 4.0
+        
+        # Subtle dark/light gradient or color fill depending on palette
+        painter.setPen(QPen(QColor("#777777"), 1.5))
+        is_dark = self.palette().color(self.backgroundRole()).lightness() < 128
+        painter.setBrush(QBrush(QColor("#1e1e1e") if is_dark else QColor("#ffffff")))
+        painter.drawEllipse(center, circle_radius, circle_radius)
+
+        # Draw axis ticks
+        tick_pen = QPen(QColor("#555555" if is_dark else "#cccccc"), 1)
+        painter.setPen(tick_pen)
+        
+        tick_len = 4.0
+        # Right (0)
+        painter.drawLine(QPointF(center.x() + circle_radius - tick_len, center.y()), QPointF(center.x() + circle_radius, center.y()))
+        # Left (180)
+        painter.drawLine(QPointF(center.x() - circle_radius + tick_len, center.y()), QPointF(center.x() - circle_radius, center.y()))
+        # Down (90)
+        painter.drawLine(QPointF(center.x(), center.y() + circle_radius - tick_len), QPointF(center.x(), center.y() + circle_radius))
+        # Up (270)
+        painter.drawLine(QPointF(center.x(), center.y() - circle_radius + tick_len), QPointF(center.x(), center.y() - circle_radius))
+
+        # Center dot
+        painter.setBrush(QBrush(QColor("#ffffff" if is_dark else "#000000")))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(center, 2.0, 2.0)
+
+        # Draw the needle representing the angle
+        rad = math.radians(self._angle)
+        line_len = circle_radius - 2.0
+        target_x = center.x() + line_len * math.cos(rad)
+        target_y = center.y() + line_len * math.sin(rad)
+        target_point = QPointF(target_x, target_y)
+
+        # Blue accent line for premium look
+        accent_color = QColor("#007acc")
+        painter.setPen(QPen(accent_color, 2))
+        painter.drawLine(center, target_point)
+
+        # Knob at needle tip
+        painter.setBrush(QBrush(QColor("#ffffff")))
+        painter.setPen(QPen(accent_color, 1.5))
+        painter.drawEllipse(target_point, 4.0, 4.0)
+
+    def _update_angle_from_mouse(self, pos):
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+        
+        dx = pos.x() - center_x
+        dy = pos.y() - center_y
+        
+        rad = math.atan2(dy, dx)
+        deg = (int(math.degrees(rad)) % 360 + 360) % 360
+        
+        self.setAngle(deg)
+        self.angleChanged.emit(deg)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._update_angle_from_mouse(event.pos())
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.LeftButton:
+            self._update_angle_from_mouse(event.pos())
 
 
 class TextEffectsDialog(QDialog):
@@ -75,19 +171,39 @@ class TextEffectsDialog(QDialog):
         form.addRow("Opacity (0–255):", alpha_row)
 
         if mode == self.MODE_SHADOW:
-            # Angle row
-            angle_row = QHBoxLayout()
+            # Angle row with interactive picker
+            angle_layout = QHBoxLayout()
+            
+            # Interactive Angle Picker Wheel
+            self.angle_picker = AnglePickerWidget(size=64)
+            initial_angle = int(settings.get("angle", 315))
+            self.angle_picker.setAngle(initial_angle)
+            
+            # Spin box for numerical entry
             self.spin_angle = QSpinBox()
-            self.spin_angle.setRange(0, 360)
-            self.spin_angle.setValue(int(settings.get("angle", 315)))
+            self.spin_angle.setRange(0, 359)
+            self.spin_angle.setValue(initial_angle)
             self.spin_angle.setSuffix("°")
-            self.spin_angle.setFixedWidth(80)
-            lbl_angle_hint = QLabel("(0° = right, 90° = down, 270° = up, 315° = upper-left)")
+            self.spin_angle.setFixedWidth(70)
+            
+            # Connections for synchronization
+            self.angle_picker.angleChanged.connect(self.spin_angle.setValue)
+            self.spin_angle.valueChanged.connect(self.angle_picker.setAngle)
+            
+            # Text explanation
+            lbl_angle_hint = QLabel("Drag needle or click wheel to set direction (Photoshop style).")
             lbl_angle_hint.setStyleSheet("color: #888; font-size: 9px;")
-            angle_row.addWidget(self.spin_angle)
-            angle_row.addWidget(lbl_angle_hint)
-            angle_row.addStretch()
-            form.addRow("Angle:", angle_row)
+            lbl_angle_hint.setWordWrap(True)
+            
+            angle_layout.addWidget(self.angle_picker)
+            
+            right_col = QVBoxLayout()
+            right_col.setSpacing(4)
+            right_col.addWidget(self.spin_angle)
+            right_col.addWidget(lbl_angle_hint)
+            angle_layout.addLayout(right_col)
+            
+            form.addRow("Angle:", angle_layout)
 
             # Distance row
             self.spin_distance = QSpinBox()

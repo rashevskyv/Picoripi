@@ -264,6 +264,9 @@ class BfnPreviewWidget(QWidget):
         self.glow_color = str(getattr(self.mw, 'preview_glow_color', '#ffffff') or '#ffffff')
         self.glow_alpha = int(getattr(self.mw, 'preview_glow_alpha', 180))
         self.glow_spread = int(getattr(self.mw, 'preview_glow_spread', 4))
+        self.fix_font_scale = bool(getattr(self.mw, 'preview_fix_font_scale', False))
+        self.fixed_font_scale = float(getattr(self.mw, 'preview_fixed_font_scale', 1.0))
+        self._last_computed_scale_factor = 1.0
 
         
         # UI Interaction state
@@ -598,6 +601,10 @@ class BfnPreviewWidget(QWidget):
         menu.addSeparator()
         action_set_spacing = menu.addAction("Set Line Spacing...")
         action_reset_rect = menu.addAction("Reset Text Area")
+        
+        action_fix_scale = menu.addAction("Fix Font Scale")
+        action_fix_scale.setCheckable(True)
+        action_fix_scale.setChecked(self.fix_font_scale)
 
         menu.addSeparator()
         fx_menu = menu.addMenu("Text Effects")
@@ -659,6 +666,15 @@ class BfnPreviewWidget(QWidget):
         elif action == action_reset_rect:
             self.text_rect = QRect(15, 15, 300, 120)
             self.mw.preview_text_rect = [15, 15, 300, 120]
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.save_settings()
+            self.update()
+        elif action == action_fix_scale:
+            self.fix_font_scale = action_fix_scale.isChecked()
+            if self.fix_font_scale:
+                self.fixed_font_scale = self._last_computed_scale_factor
+            self.mw.preview_fix_font_scale = self.fix_font_scale
+            self.mw.preview_fixed_font_scale = self.fixed_font_scale
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_settings()
             self.update()
@@ -928,25 +944,32 @@ class BfnPreviewWidget(QWidget):
         # Determine scaling factor to fit text within text_rect preserving aspect ratio
         scale_factor = 1.0
         if total_width > 0 and total_height > 0:
-            scale_x = abs_rect.width() / total_width
-            scale_y = abs_rect.height() / total_height
-            scale_factor = min(scale_x, scale_y)
+            if self.fix_font_scale:
+                scale_factor = self.fixed_font_scale
+            else:
+                scale_x = abs_rect.width() / total_width
+                scale_y = abs_rect.height() / total_height
+                scale_factor = min(scale_x, scale_y)
+            
+            self._last_computed_scale_factor = scale_factor
 
         # Offscreen image size: same as abs_rect (where we'll stamp the glyphs)
         img_size = QSize(abs_rect.width(), abs_rect.height())
 
         # ── 2a. Outer Glow pass ───────────────────────────────────────────────
-        if self.glow_enabled and self.glow_spread > 0:
+        if self.glow_enabled and self.glow_spread > 0 and self.glow_alpha > 0:
             glow_img = self._render_glyphs_to_image(
                 glyphs, sheets, cell_h, fallback_font, fallback_fm,
                 total_width, total_height, scale_factor, img_size
             )
-            tinted_glow = self._tint_image(glow_img, self.glow_color, 255)
+            tinted_glow = self._tint_image(glow_img, self.glow_color, self.glow_alpha)
 
             # Paint tinted glow in 8 directions × spread steps
-            per_pass_alpha = max(1, self.glow_alpha // max(1, self.glow_spread))
+            # Divide alpha evenly across all passes so total luminance sums correctly
+            n_passes = 8 * self.glow_spread
+            per_pass_alpha = max(1, self.glow_alpha * 2 // max(1, n_passes))
             painter.save()
-            painter.setOpacity(per_pass_alpha / 255.0)
+            painter.setOpacity(min(1.0, per_pass_alpha / 255.0))
             offsets = [
                 (1, 0), (-1, 0), (0, 1), (0, -1),
                 (1, 1), (-1, -1), (1, -1), (-1, 1)
@@ -959,22 +982,19 @@ class BfnPreviewWidget(QWidget):
             painter.restore()
 
         # ── 2b. Drop Shadow pass ──────────────────────────────────────────────
-        if self.shadow_enabled and self.shadow_distance > 0:
+        if self.shadow_enabled and self.shadow_alpha > 0:
             shadow_img = self._render_glyphs_to_image(
                 glyphs, sheets, cell_h, fallback_font, fallback_fm,
                 total_width, total_height, scale_factor, img_size
             )
-            tinted_shadow = self._tint_image(shadow_img, self.shadow_color, 255)
+            tinted_shadow = self._tint_image(shadow_img, self.shadow_color, self.shadow_alpha)
 
-            # Compute offset from angle + distance
+            # Compute pixel offset from angle + distance
             rad = math.radians(self.shadow_angle)
             sdx = int(round(math.cos(rad) * self.shadow_distance))
             sdy = int(round(math.sin(rad) * self.shadow_distance))
 
-            painter.save()
-            painter.setOpacity(self.shadow_alpha / 255.0)
             painter.drawImage(abs_rect.x() + sdx, abs_rect.y() + sdy, tinted_shadow)
-            painter.restore()
 
         # ── 2c. Main glyphs pass (tinted with text_color) ────────────────────
         main_img = self._render_glyphs_to_image(
