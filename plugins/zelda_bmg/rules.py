@@ -91,7 +91,12 @@ class GameRules(BaseGameRules):
             if os.path.exists(path):
                 try:
                     with open(path, 'r', encoding='utf-8') as f:
-                        self.translation_map = json.loads(f.read())
+                        raw_map = json.loads(f.read())
+                        # Фільтруємо латиницю (коди < 128) для безпеки
+                        self.translation_map = {
+                            k: v for k, v in raw_map.items()
+                            if ord(k) >= 128 and ord(v) >= 128
+                        }
                         self.reverse_translation_map = {v: k for k, v in self.translation_map.items()}
                     log_info(f"Loaded {len(self.translation_map)} translation characters mappings from {path}")
                 except Exception as e:

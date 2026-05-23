@@ -38,23 +38,23 @@
     },
     "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\TwilightPrincess\\project.uiproj": {
         "expanded_ids": [
-            "folder_a130c30f-b2f3-4ab8-a8f9-3d3a85717d82",
-            "folder_ebc842a8-3cc9-4739-889c-9100b1a2fc85",
-            "folder_9ce92c32-f335-4867-9b77-ba5545f8f91c",
-            "folder_b8e51e91-d296-43ad-a3b4-d259c576f048",
-            "folder_2ce6676f-dd82-48de-83b6-aa584d62f526",
-            "folder_b86be717-3489-4273-ba5f-4a31ae0e75dd",
-            "folder_ec38dd7b-927b-4a52-b484-45c4783be3ac",
-            "folder_8f7a6416-49bf-4e94-b0b7-a3a9770a32f9",
-            "folder_ea722ab1-9f3d-4917-ad67-30219f427aa8"
+            "folder_508c7a29-4a81-4617-b8d6-0e69bc73d841",
+            "folder_6cf4acb7-ba04-4791-bd68-7ed88a12281e",
+            "folder_1229dfb2-6325-4833-9aa4-6fb5cd011a3b",
+            "folder_8196f24d-9da6-4ce3-9bc3-5cc8820097dc",
+            "folder_bb20cda7-bde4-4e2d-a501-c7f2b64e2323",
+            "folder_c7cff20d-5b25-4f2a-8784-a9c846f4b88b",
+            "folder_761f6679-1021-4ccd-8569-8502e4474812",
+            "folder_ca92ff8d-41ba-49fb-9789-551fd516dd71",
+            "folder_1a72bc78-328e-4708-b3b7-d380ce27a443"
         ],
-        "selected_id": "folder_ebc842a8-3cc9-4739-889c-9100b1a2fc85",
-        "selected_type": "folder",
+        "selected_id": "block_0",
+        "selected_type": "block",
         "selected_string_idx": -1,
-        "cursor_pos": 51,
+        "cursor_pos": 33,
         "v_scroll": 0,
         "h_scroll": 0,
-        "preview_v_scroll": 320,
+        "preview_v_scroll": 0,
         "original_v_scroll": 0
     },
     "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\picoripi\\31b04b89-fb24-4ae7-a4af-503b3158aaad\\.extracted\\sources\\bmgres.arc\\zel_00.bmg": {
@@ -77,6 +77,27 @@
         "v_scroll": 0,
         "h_scroll": 0,
         "preview_v_scroll": 0,
+        "original_v_scroll": 0
+    },
+    "E:\\Emulators\\RomHacking\\ZELDA\\TP_UA\\1\\project.uiproj": {
+        "expanded_ids": [
+            "folder_628c5ae1-ab6f-43f2-8144-3f2dcba10f48",
+            "folder_547592b3-0379-4756-bc25-779409e63e86",
+            "folder_74c69224-fa36-420a-b4d9-015462f2446e",
+            "folder_a45224d8-1ad8-43a4-bd4f-778075b31355",
+            "folder_c1eda6a0-a453-439a-9a68-cf3c016c9923",
+            "folder_defda115-e768-4910-b199-e1aaaf912cd5",
+            "folder_a18ef283-c866-4340-84db-5b3f7a12b17b",
+            "folder_9e7e2094-bf4d-46c0-8991-81acae1f8ed5",
+            "folder_c1741a7e-cff3-427f-8774-d32d22925a47"
+        ],
+        "selected_id": "block_0",
+        "selected_type": "block",
+        "selected_string_idx": -1,
+        "cursor_pos": 126,
+        "v_scroll": 0,
+        "h_scroll": 0,
+        "preview_v_scroll": 24,
         "original_v_scroll": 0
     }
 }

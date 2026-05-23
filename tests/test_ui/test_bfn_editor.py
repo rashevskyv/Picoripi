@@ -123,10 +123,10 @@ def test_bfn_editor_window_original_fonts(qapp, dummy_bfn_bytes):
     editor.original_font_metadata = {
         "MAP1": [{
             "mapping_type": 2,
-            "first_char": 32,
-            "last_char": 34,
+            "first_char": 65,
+            "last_char": 66,
             "mapping_entry_count": 2,
-            "entries": [65, 66]  # 'A', 'B'
+            "entries": [0, 1]  # 'A', 'B' map to glyphs 0, 1
         }]
     }
     editor.original_sheet_images = editor.sheet_images
@@ -152,31 +152,31 @@ def test_bfn_editor_window_generate_translation_map(qapp, dummy_bfn_bytes):
         bfn_name="test_font.bfn"
     )
     
-    # Setup translated characters in MAP1
+    # Setup translated characters in MAP1 (Ukrainian 'А' and 'Б', codes >= 128)
     editor.metadata["MAP1"] = [{
         "mapping_type": 2,
-        "first_char": 0,
-        "last_char": 1,
+        "first_char": 1040,
+        "last_char": 1041,
         "mapping_entry_count": 2,
-        "entries": [105, 106]  # 'i', 'j'
+        "entries": [0, 1]  # 'А', 'Б'
     }]
     
-    # Setup original characters in MAP1
+    # Setup original characters in MAP1 (Umlauts 'ä' and 'å' in CP1252, codes >= 128)
     editor.original_font_metadata = {
         "MAP1": [{
             "mapping_type": 2,
-            "first_char": 0,
-            "last_char": 1,
+            "first_char": 228,
+            "last_char": 229,
             "mapping_entry_count": 2,
-            "entries": [97, 98]  # 'a', 'b'
+            "entries": [0, 1]  # 'ä', 'å'
         }]
     }
     
     # Generate translation map
     translation_map = editor.generate_translation_map()
     
-    # We should have mapping: 'i' -> 'a' and 'j' -> 'b'
-    assert translation_map == {"i": "a", "j": "b"}
+    # We should have mapping: 'А' -> 'ä' and 'Б' -> 'å'
+    assert translation_map == {"А": "ä", "Б": "å"}
     
     editor.clear_temp()
     editor.close()
@@ -212,19 +212,19 @@ def test_bfn_editor_window_save_changes_translation_map(qapp, tmp_path, dummy_bf
     
     editor.metadata["MAP1"] = [{
         "mapping_type": 2,
-        "first_char": 0,
-        "last_char": 1,
+        "first_char": 1040,
+        "last_char": 1041,
         "mapping_entry_count": 2,
-        "entries": [105, 106]  # 'i', 'j'
+        "entries": [0, 1]  # 'А', 'Б'
     }]
     
     editor.original_font_metadata = {
         "MAP1": [{
             "mapping_type": 2,
-            "first_char": 0,
-            "last_char": 1,
+            "first_char": 228,
+            "last_char": 229,
             "mapping_entry_count": 2,
-            "entries": [97, 98]  # 'a', 'b'
+            "entries": [0, 1]  # 'ä', 'å'
         }]
     }
     
@@ -239,7 +239,7 @@ def test_bfn_editor_window_save_changes_translation_map(qapp, tmp_path, dummy_bf
         import json
         saved_map = json.load(f)
         
-    assert saved_map == {"i": "a", "j": "b"}
+    assert saved_map == {"А": "ä", "Б": "å"}
     
     editor.clear_temp()
     editor.close()
@@ -278,19 +278,19 @@ def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_pa
     
     editor.metadata["MAP1"] = [{
         "mapping_type": 2,
-        "first_char": 0,
-        "last_char": 1,
+        "first_char": 1040,
+        "last_char": 1041,
         "mapping_entry_count": 2,
-        "entries": [105, 106]  # 'i', 'j'
+        "entries": [0, 1]  # 'А', 'Б'
     }]
     
     editor.original_font_metadata = {
         "MAP1": [{
             "mapping_type": 2,
-            "first_char": 0,
-            "last_char": 1,
+            "first_char": 228,
+            "last_char": 229,
             "mapping_entry_count": 2,
-            "entries": [97, 98]  # 'a', 'b'
+            "entries": [0, 1]  # 'ä', 'å'
         }]
     }
     
@@ -310,7 +310,7 @@ def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_pa
         import json
         saved_map = json.load(f)
         
-    assert saved_map == {"i": "a", "j": "b"}
+    assert saved_map == {"А": "ä", "Б": "å"}
     
     editor.clear_temp()
     editor.close()
@@ -590,6 +590,244 @@ def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_byte
     
     editor.clear_temp()
     editor.close()
+
+
+def test_bfn_editor_window_dynamic_temp_dir_recreation(qapp, dummy_bfn_bytes):
+    """Test that BFN Editor successfully recreates temp_dir on-the-fly if it was deleted or cleared before save."""
+    from PyQt5 import QtWidgets
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
+    
+    # Verify initial setup
+    assert editor.temp_dir != ""
+    assert os.path.exists(editor.temp_dir)
+    
+    # Force delete the temp dir manually (mimicking unexpected OS deletion or premature clear)
+    import shutil
+    shutil.rmtree(editor.temp_dir, ignore_errors=True)
+    assert not os.path.exists(editor.temp_dir)
+    
+    # Setup mock messagebox to verify no failure modal popped up
+    msg_boxes = []
+    def mock_critical(parent, title, text):
+        msg_boxes.append((title, text))
+    
+    import PyQt5.QtWidgets as qw
+    original_critical = qw.QMessageBox.critical
+    qw.QMessageBox.critical = mock_critical
+    
+    try:
+        # Trigger save
+        editor.save_changes(silent=True)
+        
+        # Verify it saved successfully without showing target directory critical errors
+        assert len(msg_boxes) == 0, f"Expected no error dialogs, got: {msg_boxes}"
+        assert editor.temp_dir != ""
+        assert os.path.exists(editor.temp_dir), "Temp directory should have been dynamically recreated"
+        assert os.path.exists(editor.bfn_path), "Temp BFN file should have been compiled successfully inside reconstructed temp dir"
+    finally:
+        qw.QMessageBox.critical = original_critical
+        editor.clear_temp()
+        editor.close()
+
+
+def test_bfn_editor_window_unmapped_glyph_addition(qapp, dummy_bfn_bytes):
+    """Test that BFN editor successfully maps characters to previously unmapped glyphs by padding MAP1/WID1."""
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
+    
+    # We choose a high glyph index that is out of bounds of current entries in MAP1 and packets in WID1
+    out_of_bounds_glyph_idx = 150
+    
+    # Let's edit mapping for this out-of-bounds glyph index
+    editor.update_char_mapping(out_of_bounds_glyph_idx, ord('Z'))
+    
+    # Verify that MAP1 is correctly padded and updated
+    maps = editor.metadata.get("MAP1", [])
+    assert len(maps) > 0
+    m = maps[0]
+    entries = m.get("entries", [])
+    assert len(entries) >= ord('Z') - m["first_char"] + 1
+    assert entries[ord('Z') - m["first_char"]] == out_of_bounds_glyph_idx
+    assert m["mapping_entry_count"] == len(entries)
+    
+    # Now let's test EditMetricsCommand for this out-of-bounds glyph
+    from tools.bfn_editor.bfn_commands import EditMetricsCommand
+    cmd = EditMetricsCommand(editor, out_of_bounds_glyph_idx, 0, 5, editor.cell_w, 10)
+    cmd.redo()
+    
+    # Verify WID1 is correctly padded
+    wid = editor.metadata.get("WID1", [{}])[0]
+    packets = wid.get("packets", [])
+    wid_idx = out_of_bounds_glyph_idx - editor.first_code
+    assert len(packets) > wid_idx
+    assert packets[wid_idx]["kerning"] == 5
+    assert packets[wid_idx]["width"] == 10
+    
+    editor.clear_temp()
+    editor.close()
+
+
+def test_bfn_editor_window_copy_paste_chain(qapp, dummy_bfn_bytes):
+    """Test that copy and paste chain features in BFN Editor window work correctly with undo/redo."""
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
+    
+    # Setup some test glyph mappings (glyph 0 -> 'A', glyph 1 -> 'B')
+    editor.update_char_mapping(0, ord('A'))
+    editor.update_char_mapping(1, ord('B'))
+    editor.populate_glyph_table()
+    
+    # 1. Test Copy (select row 0 column 3 and row 1 column 3)
+    editor.table_glyphs.clearSelection()
+    
+    # Mock selection
+    from PyQt5.QtCore import QItemSelectionModel
+    sel_model = editor.table_glyphs.selectionModel()
+    sel_model.select(editor.table_glyphs.model().index(0, 3), QItemSelectionModel.Select)
+    sel_model.select(editor.table_glyphs.model().index(1, 3), QItemSelectionModel.Select)
+    
+    editor.copy_glyph_values()
+    
+    # Check that clipboard has "A\nB"
+    clipboard_text = QApplication.clipboard().text()
+    assert clipboard_text == "A\nB"
+    
+    # 2. Test Paste Chain (paste "X\nY" starting at row 0)
+    QApplication.clipboard().setText("X\nY")
+    
+    # Set current index to row 0 column 3
+    editor.table_glyphs.setCurrentCell(0, 3)
+    
+    # Trigger paste
+    editor.paste_glyph_values()
+    
+    # Verify values changed in metadata
+    assert editor.get_current_char_code_for_glyph(0) == ord('X')
+    assert editor.get_current_char_code_for_glyph(1) == ord('Y')
+    
+    # Verify undo
+    editor.undo_stack.undo()
+    assert editor.get_current_char_code_for_glyph(0) == ord('A')
+    assert editor.get_current_char_code_for_glyph(1) == ord('B')
+    
+    # Verify redo
+    editor.undo_stack.redo()
+    assert editor.get_current_char_code_for_glyph(0) == ord('X')
+    assert editor.get_current_char_code_for_glyph(1) == ord('Y')
+    
+    # 3. Test Smart Paste with non-newline string (paste "PQ" starting at row 0)
+    QApplication.clipboard().setText("PQ")
+    editor.table_glyphs.setCurrentCell(0, 3)
+    editor.paste_glyph_values()
+    
+    assert editor.get_current_char_code_for_glyph(0) == ord('P')
+    assert editor.get_current_char_code_for_glyph(1) == ord('Q')
+    
+    editor.clear_temp()
+    editor.close()
+
+
+def test_bfn_editor_window_generate_translation_map_ignores_ascii(qapp, dummy_bfn_bytes):
+    """Test that generate_translation_map ignores ASCII characters with codes < 128."""
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(
+        dummy_bfn_bytes,
+        bfn_name="test_font.bfn"
+    )
+    
+    # Setup mixed characters in MAP1: ASCII ('A', 'B') and Ukrainian ('А', 'Б' >= 128)
+    editor.metadata["MAP1"] = [{
+        "mapping_type": 2,
+        "first_char": 65,  # 'A', 'B', 'А' (1040), 'Б' (1041)
+        "last_char": 1041,
+        "mapping_entry_count": 4,
+        "entries": [0, 1, 2, 3]
+    }]
+    # Force entries to map specifically:
+    # Glyph 0 -> 'A' (65)
+    # Glyph 1 -> 'B' (66)
+    # Glyph 2 -> 'А' (1040)
+    # Glyph 3 -> 'Б' (1041)
+    
+    # Setup original characters in MAP1: ASCII ('!', '"') and German ('ä', 'å' >= 128)
+    editor.original_font_metadata = {
+        "MAP1": [{
+            "mapping_type": 2,
+            "first_char": 33,  # '!', '"', 'ä' (228), 'å' (229)
+            "last_char": 229,
+            "mapping_entry_count": 4,
+            "entries": [0, 1, 2, 3]
+        }]
+    }
+    
+    # We mock get_char_for_glyph internally by patching get_char_for_glyph in generate_translation_map logic
+    # Or simply let our get_char_for_glyph parse the mapped structures:
+    # For Glyph 0: trans='A' (65), orig='!' (33) -> Both are ASCII < 128. Should be ignored!
+    # For Glyph 1: trans='B' (66), orig='"' (34) -> Both are ASCII < 128. Should be ignored!
+    # For Glyph 2: trans='А' (1040), orig='ä' (228) -> Both >= 128. Should be mapped!
+    # For Glyph 3: trans='Б' (1041), orig='å' (229) -> Both >= 128. Should be mapped!
+    
+    # Let's adjust entries to actually return these characters
+    # Since get_char_for_glyph searches for m_first + c_idx where entries[c_idx] == glyph_idx:
+    # For trans:
+    # Glyph 0: code 65. entries has 0 at index 0. first_char = 65. code = 65 + 0 = 65 ('A'). Correct!
+    # Glyph 1: code 66. entries has 1 at index 1. first_char = 65. code = 65 + 1 = 66 ('B'). Correct!
+    # Glyph 2: code 1040. To get 1040: we need c_idx = 1040 - 65 = 975. So entries must have Glyph 2 at index 975.
+    # To keep it extremely simple, let's just mock the nested function get_char_for_glyph, or set map_blocks to have multiple MAP1 blocks!
+    # Yes, we can have multiple MAP1 blocks, or we can just mock get_char_for_glyph by monkeypatching!
+    # But wait, generate_translation_map defines get_char_for_glyph locally.
+    # We can easily create a simple metadata with two blocks!
+    
+    editor.metadata["MAP1"] = [
+        {
+            "mapping_type": 2,
+            "first_char": 65,  # ASCII
+            "last_char": 66,
+            "mapping_entry_count": 2,
+            "entries": [0, 1]
+        },
+        {
+            "mapping_type": 2,
+            "first_char": 1040,  # Cyrillic
+            "last_char": 1041,
+            "mapping_entry_count": 2,
+            "entries": [2, 3]
+        }
+    ]
+    
+    editor.original_font_metadata = {
+        "MAP1": [
+            {
+                "mapping_type": 2,
+                "first_char": 33,  # ASCII
+                "last_char": 34,
+                "mapping_entry_count": 2,
+                "entries": [0, 1]
+            },
+            {
+                "mapping_type": 2,
+                "first_char": 228,  # Cyrillic override
+                "last_char": 229,
+                "mapping_entry_count": 2,
+                "entries": [2, 3]
+            }
+        ]
+    }
+    
+    translation_map = editor.generate_translation_map()
+    
+    # ASCII mappings ("A"->"!" and "B"->'"') must be ignored.
+    # Only Cyrillic ("А"->"ä" and "Б"->"å") must be present!
+    assert "A" not in translation_map
+    assert "B" not in translation_map
+    assert translation_map == {"А": "ä", "Б": "å"}
+    
+    editor.clear_temp()
+    editor.close()
+
+
+
 
 
 

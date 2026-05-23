@@ -110,7 +110,7 @@ class BfnCore:
                 if mapping_type == 0:
                     mapping_type = 2
                     entry_count = last_char - first_char + 1
-                    entries = [first_char + i for i in range(entry_count)]
+                    entries = [i for i in range(entry_count)]
                 elif mapping_type == 2:
                     entry_data = chunk_body[8:8+entry_count*2]
                     entries = list(struct.unpack(f'>{entry_count}H', entry_data))
@@ -308,10 +308,10 @@ class BfnCore:
             for idx, glyph_idx in enumerate(entries):
                 char_code = first_char + idx
                 
-                # Get width for char_code
+                # Get width for glyph_idx
                 char_width = default_width
-                if first_code <= char_code < last_code:
-                    p_idx = char_code - first_code
+                if first_code <= glyph_idx < last_code:
+                    p_idx = glyph_idx - first_code
                     if p_idx < len(packets):
                         char_width = packets[p_idx]["width"]
                         
@@ -465,8 +465,9 @@ class BfnCore:
             for idx in range(m_first, m_last + 1):
                 char_to_glyph[code_to_char(idx)] = idx - m_first
         elif m_type == 2:
-            for idx, code in enumerate(entries):
-                char_to_glyph[code_to_char(code)] = idx
+            for c_idx, g_idx in enumerate(entries):
+                char_code = m_first + c_idx
+                char_to_glyph[code_to_char(char_code)] = g_idx
         elif m_type == 3:
             half = len(entries) // 2
             for k in range(half):

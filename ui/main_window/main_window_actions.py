@@ -325,7 +325,11 @@ class MainWindowActions:
             if current_text is None:
                 current_text = ""
         if current_text:
-            editor.sim_input.setPlainText(current_text)
+            sync_enabled = True
+            if hasattr(editor, 'chk_sync_sim_text'):
+                sync_enabled = editor.chk_sync_sim_text.isChecked()
+            if sync_enabled:
+                editor.sim_input.setPlainText(current_text)
             
         editor.show()
         editor.raise_()
@@ -408,7 +412,11 @@ class MainWindowActions:
             if current_text is None:
                 current_text = ""
         if current_text:
-            editor.sim_input.setPlainText(current_text)
+            sync_enabled = True
+            if hasattr(editor, 'chk_sync_sim_text'):
+                sync_enabled = editor.chk_sync_sim_text.isChecked()
+            if sync_enabled:
+                editor.sim_input.setPlainText(current_text)
 
         editor.show()
         editor.raise_()

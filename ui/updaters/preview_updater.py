@@ -579,10 +579,14 @@ class PreviewUpdater(BaseUIUpdater):
                     pass
                     
                 if not is_mock and not editor.isHidden():
-                    editor.sim_input.blockSignals(True)
-                    editor.sim_input.setPlainText(edited_text_raw)
-                    editor.sim_input.blockSignals(False)
-                    editor.update_simulation()
+                    sync_enabled = True
+                    if hasattr(editor, 'chk_sync_sim_text'):
+                        sync_enabled = editor.chk_sync_sim_text.isChecked()
+                    if sync_enabled:
+                        editor.sim_input.blockSignals(True)
+                        editor.sim_input.setPlainText(edited_text_raw)
+                        editor.sim_input.blockSignals(False)
+                        editor.update_simulation()
             except RuntimeError:
                 self.mw._bfn_editor_window = None
             except Exception:

@@ -233,14 +233,22 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         sim_layout.setContentsMargins(0, 6, 0, 0)
         sim_layout.setSpacing(4)
 
-        sim_layout.addWidget(QtWidgets.QLabel('Enter text to simulate rendering (with kerning & width):'))
+        sim_header_layout = QtWidgets.QHBoxLayout()
+        sim_header_layout.addWidget(QtWidgets.QLabel('Enter text to simulate rendering (with kerning & width):'))
+        
+        self.chk_sync_sim_text = QtWidgets.QCheckBox('Sync with editor')
+        self.chk_sync_sim_text.setChecked(True)
+        self.chk_sync_sim_text.setToolTip("Automatically synchronize with the selected string in the main translation editor")
+        sim_header_layout.addWidget(self.chk_sync_sim_text)
+        sim_header_layout.addStretch(1)
+        sim_layout.addLayout(sim_header_layout)
 
         self.sim_input = QtWidgets.QPlainTextEdit()
         self.sim_input.setPlaceholderText(
             'Type anything here to test in real-time... Right-click for pangrams/placeholder text.'
         )
         self.sim_input.setMaximumHeight(65)
-        self.sim_input.textChanged.connect(self.update_simulation)
+        self.sim_input.textChanged.connect(self.on_sim_text_changed)
         self.sim_input.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.sim_input.customContextMenuRequested.connect(self.show_sim_input_context_menu)
         sim_layout.addWidget(self.sim_input)
@@ -304,6 +312,16 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
 
         def table_keyPressEvent(event):
             key = event.key()
+            if event.modifiers() & QtCore.Qt.ControlModifier:
+                if key == QtCore.Qt.Key_C:
+                    self.copy_glyph_values()
+                    event.accept()
+                    return
+                elif key == QtCore.Qt.Key_V:
+                    self.paste_glyph_values()
+                    event.accept()
+                    return
+
             if key in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
                 original_table_keyPress(event)
 
@@ -387,6 +405,13 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.btn_import_glyph.setEnabled(False)
         self.btn_import_glyph.clicked.connect(self.import_glyph_png)
         right_layout.addWidget(self.btn_import_glyph)
+
+        right_layout.addSpacing(10)
+
+        self.btn_render_font = QtWidgets.QPushButton('Render System Font to Glyphs...')
+        self.btn_render_font.setEnabled(False)
+        self.btn_render_font.clicked.connect(self.render_system_font_to_glyphs)
+        right_layout.addWidget(self.btn_render_font)
 
         right_layout.addStretch()
 

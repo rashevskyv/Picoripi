@@ -102,7 +102,7 @@ def test_bfn_core_to_font_map_conversion():
         "first_char": 32,
         "last_char": 35,
         "mapping_entry_count": 3,
-        "entries": [0, 1, 2]
+        "entries": [32, 33, 34]
     }]
     bfn.wid1 = [{
         "first_code_included": 32,

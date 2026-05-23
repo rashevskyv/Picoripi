@@ -3,6 +3,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from tools.bfn_editor.bfn_widgets import SimGlyphItem
 
 class BfnSimMixin:
+    def on_sim_text_changed(self):
+        if self.sim_input.hasFocus() and hasattr(self, 'chk_sync_sim_text'):
+            self.chk_sync_sim_text.setChecked(False)
+        self.update_simulation()
+
     def update_simulation(self):
         if not self.sheet_images:
             return
@@ -127,4 +132,6 @@ class BfnSimMixin:
         action = menu.exec_(self.sim_input.mapToGlobal(pos))
         if action:
             if action in [eng_p1, eng_p2, eng_p3, ukr_p1, ukr_p2, ukr_p3, ukr_p4]:
+                if hasattr(self, 'chk_sync_sim_text'):
+                    self.chk_sync_sim_text.setChecked(False)
                 self.sim_input.setPlainText(action.text())
