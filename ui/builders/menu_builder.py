@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QMenu, QAction, QStyle, QToolButton, QToolTip
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont
 from PyQt5.QtCore import Qt, QObject, QEvent
 from pathlib import Path
 
@@ -25,6 +25,7 @@ class MenuBuilder:
         menubar = self.mw.menuBar()
         self._build_file_menu(menubar)
         self._build_edit_menu(menubar)
+        self._build_view_menu(menubar)
         self._build_tools_menu(menubar)
         self._build_navigation_menu(menubar)
         self._build_help_menu(menubar)
@@ -155,6 +156,20 @@ class MenuBuilder:
         self.mw.recalculate_widths_action.setShortcut('Ctrl+Shift+R')
         edit_menu.addAction(self.mw.recalculate_widths_action)
 
+    def _build_view_menu(self, menubar):
+        view_menu = menubar.addMenu('&View')
+        view_menu.setToolTipsVisible(True)
+        view_menu.installEventFilter(self.tooltip_filter)
+        self.mw.view_menu = view_menu
+
+        preview_icon = self.style.standardIcon(QStyle.SP_DesktopIcon)
+        self.mw.toggle_preview_action = QAction(preview_icon, '&Preview', self.mw)
+        self.mw.toggle_preview_action.setCheckable(True)
+        self.mw.toggle_preview_action.setChecked(True)
+        self.mw.toggle_preview_action.setShortcut('Ctrl+Shift+P')
+        self.mw.toggle_preview_action.setToolTip("Toggle the visibility of the visual text preview")
+        view_menu.addAction(self.mw.toggle_preview_action)
+
     def _build_tools_menu(self, menubar):
         tools_menu = menubar.addMenu('&Tools')
         tools_menu.setObjectName('&Tools')
@@ -162,8 +177,22 @@ class MenuBuilder:
         tools_menu.installEventFilter(self.tooltip_filter)
         self.mw.tools_menu = tools_menu
 
+        # Create a dynamic beautiful icon for BFN Font Editor with letter 'A'
+        pixmap = QPixmap(32, 32)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        
+        # Draw a stylish letter 'A' in accent blue
+        painter.setPen(QColor("#0078d7"))
+        font = QFont("Arial", 22, QFont.Bold)
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), Qt.AlignCenter, "A")
+        painter.end()
+        bfn_editor_icon = QIcon(pixmap)
+
         self.mw.bfn_editor_action = QAction(
-            self.style.standardIcon(QStyle.SP_DesktopIcon),
+            bfn_editor_icon,
             'BFN &Font Editor...',
             self.mw
         )

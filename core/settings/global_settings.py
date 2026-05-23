@@ -54,6 +54,10 @@ class GlobalSettings:
             "bfn_glyph_table_column_widths": [],
             "bfn_auto_sync_enabled": False,
             "preview_bg_image_path": "",
+            "preview_bg_scale": 100,
+            "preview_bg_offset_x": 0,
+            "preview_bg_offset_y": 0,
+            "preview_bg_hidden": False,
             "preview_line_spacing": 10,
             "preview_text_rect": [15, 15, 300, 120]
         }
@@ -166,6 +170,10 @@ class GlobalSettings:
             "bfn_glyph_table_column_widths": getattr(self.mw, 'bfn_glyph_table_column_widths', []),
             "bfn_auto_sync_enabled": getattr(self.mw, 'bfn_auto_sync_enabled', False),
             "preview_bg_image_path": getattr(self.mw, 'preview_bg_image_path', ""),
+            "preview_bg_scale": getattr(self.mw, 'preview_bg_scale', 100),
+            "preview_bg_offset_x": getattr(self.mw, 'preview_bg_offset_x', 0),
+            "preview_bg_offset_y": getattr(self.mw, 'preview_bg_offset_y', 0),
+            "preview_bg_hidden": getattr(self.mw, 'preview_bg_hidden', False),
             "preview_line_spacing": getattr(self.mw, 'preview_line_spacing', 10),
             "preview_text_rect": getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120])
         })

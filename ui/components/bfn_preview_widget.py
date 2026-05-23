@@ -55,6 +55,10 @@ class BfnPreviewWidget(QWidget):
             except Exception:
                 self.bg_image = None
                 
+        self.bg_scale = getattr(self.mw, 'preview_bg_scale', 100)
+        self.bg_offset_x = getattr(self.mw, 'preview_bg_offset_x', 0)
+        self.bg_offset_y = getattr(self.mw, 'preview_bg_offset_y', 0)
+        self.bg_hidden = getattr(self.mw, 'preview_bg_hidden', False)
         self.line_spacing = getattr(self.mw, 'preview_line_spacing', 10)
         rect_list = getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120])
         self.text_rect = QRect(rect_list[0], rect_list[1], rect_list[2], rect_list[3])
@@ -67,6 +71,8 @@ class BfnPreviewWidget(QWidget):
         self.drag_start_pos = None
         self.drag_start_rect = None
         self.hover_handle = None
+        self.scale_drag_active = False
+        self.move_bg_drag_active = False
         
         self.setMouseTracking(True)
         
@@ -114,6 +120,14 @@ class BfnPreviewWidget(QWidget):
         """Update the text and request redraw."""
         self.text = text
         self.update()
+
+    def get_bg_top_left(self) -> QPoint:
+        """Calculate the top-left position of the background image inside the widget."""
+        return QPoint(0, 0)
+
+    def get_absolute_text_rect(self) -> QRect:
+        """Get the text rect in absolute widget coordinates (relative to background's top-left)."""
+        return self.text_rect.translated(self.get_bg_top_left())
 
     def get_active_bfn_font(self):
         """Find the active BFN font for the current string."""
@@ -173,7 +187,8 @@ class BfnPreviewWidget(QWidget):
         return None
 
     def get_handles_dict(self):
-        rx, ry, rw, rh = self.text_rect.x(), self.text_rect.y(), self.text_rect.width(), self.text_rect.height()
+        abs_rect = self.get_absolute_text_rect()
+        rx, ry, rw, rh = abs_rect.x(), abs_rect.y(), abs_rect.width(), abs_rect.height()
         handle_size = 6
         half_handle = handle_size // 2
         return {
@@ -194,10 +209,11 @@ class BfnPreviewWidget(QWidget):
         return None
 
     def draw_bounding_box(self, painter):
+        abs_rect = self.get_absolute_text_rect()
         if self.mouse_inside or self.drag_active or self.resize_active:
             # Active state: solid blue border
             painter.setPen(QPen(QColor("#0078d7"), 1.5, Qt.SolidLine))
-            painter.drawRect(self.text_rect)
+            painter.drawRect(abs_rect)
             
             # Draw resize handles
             for name, h_rect in self.get_handles_dict().items():
@@ -211,7 +227,7 @@ class BfnPreviewWidget(QWidget):
         else:
             # Inactive state: thin dashed gray border
             painter.setPen(QPen(QColor("#555555"), 1.0, Qt.DashLine))
-            painter.drawRect(self.text_rect)
+            painter.drawRect(abs_rect)
 
     def enterEvent(self, event):
         self.mouse_inside = True
@@ -227,28 +243,52 @@ class BfnPreviewWidget(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            handle = self.get_handle_under_mouse(event.pos())
-            if handle:
-                self.resize_active = True
-                self.resize_handle = handle
+            modifiers = event.modifiers()
+            if modifiers & Qt.ControlModifier and self.bg_image:
+                # Ctrl + Left Mouse Button -> Scale background
+                self.scale_drag_active = True
                 self.drag_start_pos = event.pos()
-                self.drag_start_rect = QRect(self.text_rect)
-            elif self.text_rect.contains(event.pos()):
-                self.drag_active = True
+                self.drag_start_scale = self.bg_scale
+            elif modifiers & Qt.AltModifier and self.bg_image:
+                # Alt + Left Mouse Button -> Move background
+                self.move_bg_drag_active = True
                 self.drag_start_pos = event.pos()
-                self.drag_start_rect = QRect(self.text_rect)
+                self.drag_start_offset_x = self.bg_offset_x
+                self.drag_start_offset_y = self.bg_offset_y
+            else:
+                handle = self.get_handle_under_mouse(event.pos())
+                abs_rect = self.get_absolute_text_rect()
+                if handle:
+                    self.resize_active = True
+                    self.resize_handle = handle
+                    self.drag_start_pos = event.pos()
+                    self.drag_start_rect = QRect(self.text_rect)
+                elif abs_rect.contains(event.pos()):
+                    self.drag_active = True
+                    self.drag_start_pos = event.pos()
+                    self.drag_start_rect = QRect(self.text_rect)
             self.update()
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.drag_active:
+        if self.scale_drag_active:
+            # Calculate shift vertically. Move up increases scale, down decreases.
+            dy = self.drag_start_pos.y() - event.pos().y()
+            new_scale = self.drag_start_scale + dy
+            # Limit scale between 5% and 1000%
+            self.bg_scale = max(5, min(1000, new_scale))
+            self.update()
+        elif self.move_bg_drag_active:
+            dx = event.pos().x() - self.drag_start_pos.x()
+            dy = event.pos().y() - self.drag_start_pos.y()
+            self.bg_offset_x = self.drag_start_offset_x + dx
+            self.bg_offset_y = self.drag_start_offset_y + dy
+            self.update()
+        elif self.drag_active:
             dx = event.pos().x() - self.drag_start_pos.x()
             dy = event.pos().y() - self.drag_start_pos.y()
             new_x = self.drag_start_rect.x() + dx
             new_y = self.drag_start_rect.y() + dy
-            # Keep boundaries safe (allow dragging partially offscreen but keep interactive)
-            new_x = max(-self.text_rect.width() + 10, min(new_x, self.width() - 10))
-            new_y = max(-self.text_rect.height() + 10, min(new_y, self.height() - 10))
             self.text_rect.moveTo(new_x, new_y)
             self.update()
         elif self.resize_active:
@@ -281,6 +321,7 @@ class BfnPreviewWidget(QWidget):
         else:
             handle = self.get_handle_under_mouse(event.pos())
             self.hover_handle = handle
+            abs_rect = self.get_absolute_text_rect()
             
             if handle:
                 if handle in ['top-left', 'bottom-right']:
@@ -291,7 +332,7 @@ class BfnPreviewWidget(QWidget):
                     self.setCursor(Qt.SizeVerCursor)
                 elif handle in ['left', 'right']:
                     self.setCursor(Qt.SizeHorCursor)
-            elif self.text_rect.contains(event.pos()):
+            elif abs_rect.contains(event.pos()):
                 self.setCursor(Qt.SizeAllCursor)
             else:
                 self.setCursor(Qt.ArrowCursor)
@@ -300,7 +341,18 @@ class BfnPreviewWidget(QWidget):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if self.drag_active or self.resize_active:
+            if self.scale_drag_active:
+                self.mw.preview_bg_scale = self.bg_scale
+                if hasattr(self.mw, 'settings_manager'):
+                    self.mw.settings_manager.save_settings()
+                self.scale_drag_active = False
+            elif self.move_bg_drag_active:
+                self.mw.preview_bg_offset_x = self.bg_offset_x
+                self.mw.preview_bg_offset_y = self.bg_offset_y
+                if hasattr(self.mw, 'settings_manager'):
+                    self.mw.settings_manager.save_settings()
+                self.move_bg_drag_active = False
+            elif self.drag_active or self.resize_active:
                 # Save to settings
                 self.mw.preview_text_rect = [
                     self.text_rect.x(), self.text_rect.y(),
@@ -318,6 +370,10 @@ class BfnPreviewWidget(QWidget):
         menu = QMenu(self)
         
         action_set_bg = menu.addAction("Set Background Image...")
+        action_hide_bg = menu.addAction("Hide Background")
+        action_hide_bg.setCheckable(True)
+        action_hide_bg.setChecked(self.bg_hidden)
+        action_hide_bg.setEnabled(bool(self.bg_image_path))
         action_clear_bg = menu.addAction("Clear Background Image")
         action_clear_bg.setEnabled(bool(self.bg_image_path))
         
@@ -332,14 +388,33 @@ class BfnPreviewWidget(QWidget):
             )
             if file_path:
                 self.bg_image_path = file_path
+                had_previous_image = self.bg_image is not None and not self.bg_image.isNull()
                 try:
-                    self.bg_image = QImage(file_path)
+                    new_image = QImage(file_path)
+                    self.bg_image = new_image
                     self.mw.preview_bg_image_path = file_path
+                    
+                    # Center the image inside the preview widget initially, only if no previous image was set/positioned
+                    if not new_image.isNull() and (not had_previous_image or (self.bg_offset_x == 0 and self.bg_offset_y == 0)):
+                        scale_factor = self.bg_scale / 100.0
+                        new_w = self.bg_image.width() * scale_factor
+                        new_h = self.bg_image.height() * scale_factor
+                        self.bg_offset_x = int((self.width() - new_w) / 2)
+                        self.bg_offset_y = int((self.height() - new_h) / 2)
+                        self.mw.preview_bg_offset_x = self.bg_offset_x
+                        self.mw.preview_bg_offset_y = self.bg_offset_y
+                    
                     if hasattr(self.mw, 'settings_manager'):
                         self.mw.settings_manager.save_settings()
                 except Exception:
                     self.bg_image = None
                 self.update()
+        elif action == action_hide_bg:
+            self.bg_hidden = action_hide_bg.isChecked()
+            self.mw.preview_bg_hidden = self.bg_hidden
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.save_settings()
+            self.update()
         elif action == action_clear_bg:
             self.bg_image_path = ""
             self.bg_image = None
@@ -374,12 +449,21 @@ class BfnPreviewWidget(QWidget):
         path.addRoundedRect(QRectF(self.rect()), 6, 6)
         painter.setClipPath(path)
         
-        if self.bg_image and not self.bg_image.isNull():
-            painter.drawImage(self.rect(), self.bg_image)
+        if self.bg_image and not self.bg_image.isNull() and not self.bg_hidden:
+            if self.bg_scale == 0:
+                painter.drawImage(self.rect(), self.bg_image)
+            else:
+                scale_factor = self.bg_scale / 100.0
+                new_w = self.bg_image.width() * scale_factor
+                new_h = self.bg_image.height() * scale_factor
+                x = self.bg_offset_x
+                y = self.bg_offset_y
+                painter.drawImage(QRectF(x, y, new_w, new_h), self.bg_image)
         else:
             painter.fillRect(self.rect(), QColor("#121212"))
         painter.restore()
         
+        abs_rect = self.get_absolute_text_rect()
         bfn = self.get_active_bfn_font()
         if not bfn:
             if self.text:
@@ -402,7 +486,7 @@ class BfnPreviewWidget(QWidget):
                 cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
                 cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
                 
-                painter.drawText(self.text_rect, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, cleaned_text)
+                painter.drawText(abs_rect, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, cleaned_text)
             else:
                 painter.setPen(QColor("#777777"))
                 painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
@@ -476,13 +560,13 @@ class BfnPreviewWidget(QWidget):
         # Determine scaling factor to fit text within text_rect preserving aspect ratio
         scale_factor = 1.0
         if total_width > 0 and total_height > 0:
-            scale_x = self.text_rect.width() / total_width
-            scale_y = self.text_rect.height() / total_height
+            scale_x = abs_rect.width() / total_width
+            scale_y = abs_rect.height() / total_height
             scale_factor = min(scale_x, scale_y)
 
         # Save painter state, translate to the bounding box, and scale
         painter.save()
-        painter.translate(self.text_rect.topLeft())
+        painter.translate(abs_rect.topLeft())
         painter.scale(scale_factor, scale_factor)
 
         # Offset translate back by -15px since layout_text starts current_x/current_y at 15px (simulator layout)

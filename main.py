@@ -372,6 +372,7 @@ class MainWindow(QMainWindow):
         self.list_selection_handler._update_block_toolbar_button_states(current_block)
 
         self.ui_updater.update_title()
+        self.ui_updater.update_preview_visibility()
         log_info("Main window initialization complete.")
     
     def keyPressEvent(self, event: QKeyEvent):

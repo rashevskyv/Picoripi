@@ -343,13 +343,12 @@ class TextHighlightManager:
                     break
             if not already_exists:
                 self._width_exceed_char_selections.append(selection)
-        pass
-
+                self.applyHighlights()
 
     def clear_width_exceed_char_highlights(self):
         if self._width_exceed_char_selections:
             self._width_exceed_char_selections = []
-        pass
+            self.applyHighlights()
 
     def addEmptyOddSublineHighlight(self, block_number: int):
         # Background highlighting disabled by request to keep the text area clean

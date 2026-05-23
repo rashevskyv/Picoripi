@@ -509,6 +509,150 @@ def test_bfn_core_linear_mapping_type_0_conversion():
     assert glyphs[0]["is_fallback"] is False
 
 
+def test_bfn_preview_widget_visibility_management(qapp):
+    from ui.updaters.preview_updater import PreviewUpdater
+
+    # Setup mock MainWindow
+    mw_mock = MagicMock()
+    mw_mock.all_bfn_fonts = {} # Initially no fonts loaded
+    
+    # Mock bfn_preview_widget
+    preview_widget_mock = MagicMock()
+    mw_mock.bfn_preview_widget = preview_widget_mock
+    
+    # Mock toggle_preview_action
+    toggle_action_mock = MagicMock()
+    mw_mock.toggle_preview_action = toggle_action_mock
+    
+    # Initialize PreviewUpdater
+    data_proc_mock = MagicMock()
+    updater = PreviewUpdater(mw_mock, data_proc_mock)
+    
+    # Test case 1: Fonts not loaded
+    updater.update_preview_visibility()
+    
+    preview_widget_mock.hide.assert_called_once()
+    toggle_action_mock.setEnabled.assert_called_once_with(False)
+    toggle_action_mock.setChecked.assert_called_once_with(False)
+    
+    # Reset mocks
+    preview_widget_mock.reset_mock()
+    toggle_action_mock.reset_mock()
+    
+    # Test case 2: Fonts loaded, toggle action is checked
+    mw_mock.all_bfn_fonts = {"font.bfn": MagicMock()}
+    toggle_action_mock.isChecked.return_value = True
+    
+    updater.update_preview_visibility()
+    
+    toggle_action_mock.setEnabled.assert_called_once_with(True)
+    preview_widget_mock.show.assert_called_once()
+    preview_widget_mock.hide.assert_not_called()
+    
+    # Reset mocks
+    preview_widget_mock.reset_mock()
+    toggle_action_mock.reset_mock()
+    
+    # Test case 3: Fonts loaded, toggle action is unchecked
+    toggle_action_mock.isChecked.return_value = False
+    
+    updater.update_preview_visibility()
+    
+    toggle_action_mock.setEnabled.assert_called_once_with(True)
+    preview_widget_mock.hide.assert_called_once()
+    preview_widget_mock.show.assert_not_called()
+
+
+def test_bfn_preview_widget_background_gestures(qapp):
+    from PyQt5.QtGui import QImage
+    mw_mock = MagicMock()
+    widget = BfnPreviewWidget(mw_mock)
+    widget.setGeometry(0, 0, 500, 300)
+    
+    # Mock loaded image
+    widget.bg_image = QImage(32, 32, QImage.Format_ARGB32)
+    widget.bg_scale = 100
+    widget.bg_offset_x = 10
+    widget.bg_offset_y = 15
+    
+    # 1. Ctrl + Drag gesture (Scale)
+    press_event_ctrl = QMouseEvent(
+        QMouseEvent.MouseButtonPress, QPoint(100, 100), Qt.LeftButton, Qt.LeftButton, Qt.ControlModifier
+    )
+    widget.mousePressEvent(press_event_ctrl)
+    assert widget.scale_drag_active is True
+    assert widget.drag_start_pos == QPoint(100, 100)
+    assert widget.drag_start_scale == 100
+    
+    # Move mouse up by 30px (dy = -30) -> Scale should change by 30% (increase)
+    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(100, 70), Qt.NoButton, Qt.NoButton, Qt.ControlModifier))
+    assert widget.bg_scale == 130
+    
+    # Release Ctrl + Drag
+    widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(100, 70), Qt.LeftButton, Qt.LeftButton, Qt.ControlModifier))
+    assert widget.scale_drag_active is False
+    assert mw_mock.preview_bg_scale == 130
+    mw_mock.settings_manager.save_settings.assert_called()
+    
+    # Reset mock
+    mw_mock.settings_manager.save_settings.reset_mock()
+    
+    # 2. Alt + Drag gesture (Move offset)
+    press_event_alt = QMouseEvent(
+        QMouseEvent.MouseButtonPress, QPoint(100, 100), Qt.LeftButton, Qt.LeftButton, Qt.AltModifier
+    )
+    widget.mousePressEvent(press_event_alt)
+    assert widget.move_bg_drag_active is True
+    assert widget.drag_start_pos == QPoint(100, 100)
+    assert widget.drag_start_offset_x == 10
+    assert widget.drag_start_offset_y == 15
+    
+    # Move mouse by dx = 20px, dy = -10px
+    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(120, 90), Qt.NoButton, Qt.NoButton, Qt.AltModifier))
+    assert widget.bg_offset_x == 30
+    assert widget.bg_offset_y == 5
+    
+    # Release Alt + Drag
+    widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(120, 90), Qt.LeftButton, Qt.LeftButton, Qt.AltModifier))
+    assert widget.move_bg_drag_active is False
+    assert mw_mock.preview_bg_offset_x == 30
+    assert mw_mock.preview_bg_offset_y == 5
+    mw_mock.settings_manager.save_settings.assert_called_once()
+
+
+def test_bfn_preview_widget_hide_background(qapp):
+    mw_mock = MagicMock()
+    mw_mock.preview_bg_hidden = False
+    widget = BfnPreviewWidget(mw_mock)
+    
+    actions_created = {}
+    original_add_action = QMenu.addAction
+    
+    def spy_add_action(menu_obj, text):
+        action = original_add_action(menu_obj, text)
+        actions_created[text] = action
+        if text == "Hide Background":
+            action.isChecked = MagicMock(return_value=True)
+        return action
+        
+    with patch.object(QMenu, 'addAction', spy_add_action), \
+         patch.object(QMenu, 'exec_') as mock_exec:
+         
+         widget.bg_image_path = "some_image.png"
+         
+         # Return the dynamically created QAction when exec_ is called
+         mock_exec.side_effect = lambda *args: actions_created.get("Hide Background")
+         
+         widget.show_context_menu(QPoint(0, 0))
+         
+         assert widget.bg_hidden is True
+         assert mw_mock.preview_bg_hidden is True
+         mw_mock.settings_manager.save_settings.assert_called_once()
+
+
+
+
+
 
 
 

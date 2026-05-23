@@ -99,3 +99,6 @@ class UIUpdater:
             
     def update_text_views(self): 
         self.preview_updater.update_text_views()
+
+    def update_preview_visibility(self):
+        self.preview_updater.update_preview_visibility()

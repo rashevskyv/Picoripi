@@ -102,3 +102,21 @@ def test_update_text_views_reentrancy_guard():
     
     # _do_update_text_views should NOT have been called because of the guard
     assert not hasattr(updater, '_do_update_text_views_called')
+
+def test_width_exceed_highlights_trigger_apply(editor):
+    """add_width_exceed_char_highlight and clear_width_exceed_char_highlights must trigger applyHighlights."""
+    manager = TextHighlightManager(editor)
+    
+    block = editor.document().firstBlock()
+    color = QColor(144, 238, 144) # Green
+    
+    with patch.object(manager, 'applyHighlights') as mock_apply:
+        manager.add_width_exceed_char_highlight(block, 2, color)
+        assert mock_apply.call_count == 1
+        
+        # Adding same highlight is skipped, so no applyHighlights
+        manager.add_width_exceed_char_highlight(block, 2, color)
+        assert mock_apply.call_count == 1
+        
+        manager.clear_width_exceed_char_highlights()
+        assert mock_apply.call_count == 2

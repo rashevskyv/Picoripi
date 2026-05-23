@@ -1,5 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.87] - 2026-05-23
+
+### Added
+- **Background Image Ctrl+Drag Scaling**: Holding `Ctrl` while dragging with the left mouse button inside the BFN Preview widget now adjusts the background image scale. The further you drag from the click origin, the more the image scales. No separate "Scale Background" button is needed — scaling is now a pure keyboard+mouse interaction.
+- **Background Image Alt+Drag Panning**: Holding `Alt` while dragging with the left mouse button pans (moves) the background image freely in 2D within the preview widget. The offset is persisted to `settings.json` on mouse release.
+- **Hide Background Context Menu Action**: Added a "Hide Background" toggle action to the BFN Preview right-click context menu. The action is checkable, reflects current visibility state, and is disabled when no background image is set.
+- **Background Position Persistence on Image Swap**: When replacing the background image with a new one, Picoripi now preserves the current offset (`bg_offset_x`/`bg_offset_y`) so the new image is placed at the same position as the previous one. The image is centered automatically only when there is no prior positioned background (offset is zero and no image was loaded). This allows using a first reference image to position text and then switching to a final screenshot without losing alignment.
+- **Preview Toggle Menu Action**: Added a "Show Preview" checkable action to the View menu (`toggle_preview_action`), connected to `update_preview_visibility`. The action respects BFN font availability — it is disabled and unchecked when no BFN fonts are loaded.
+- **`update_preview_visibility` Method**: New method in `PreviewUpdater` that controls BFN preview widget show/hide based on loaded fonts and the toggle action state.
+
+### Fixed
+- **Width-Exceed Green Highlight Marker Visibility**: Fixed a regression where the green rectangle marker (indicating the exact character where a line exceeds the allowed pixel width) would flash briefly on click and then disappear. Root cause: `add_width_exceed_char_highlight` added extra selections but did not call `applyHighlights()`, so Qt never rendered them. Fixed by calling `self.applyHighlights()` at the end of `add_width_exceed_char_highlight` and `clear_width_exceed_char_highlights` in `TextHighlightManager`.
+- **Background Image Renders Behind Text**: Fixed a rendering order bug where the background image was painted over the BFN text rendering, making text invisible when a background was active. The background is now painted first in `paintEvent`, then text and overlays are drawn on top.
+- **Text/Background Misalignment on Preview Resize**: Resolved a bug where resizing the preview window caused the text and background image to shift independently. The background position is now stored as an absolute pixel offset and the text rectangle is computed relative to the widget via `get_absolute_text_rect()`, keeping them anchored consistently regardless of widget size changes.
+
 ## [0.2.86] - 2026-05-23
 
 ### Fixed

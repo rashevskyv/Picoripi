@@ -35,6 +35,10 @@ def mock_mw():
     mw.bfn_glyph_table_column_widths = []
     mw.bfn_auto_sync_enabled = False
     mw.preview_bg_image_path = ""
+    mw.preview_bg_scale = 100
+    mw.preview_bg_offset_x = 0
+    mw.preview_bg_offset_y = 0
+    mw.preview_bg_hidden = False
     mw.preview_line_spacing = 10
     mw.preview_text_rect = [15, 15, 300, 120]
     
