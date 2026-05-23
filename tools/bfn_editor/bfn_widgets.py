@@ -20,6 +20,9 @@ class ImageView(QtWidgets.QGraphicsView):
         self._scale_min = 0.5
         self._scale_max = 20.0
         self._dragging_handle = None  # 'kerning' | 'width' | None
+        self._drag_start_scene_x = None
+        self._drag_start_kern = 0
+        self._drag_start_width = 0
 
     def set_scale(self, scale):
         self._scale = scale
@@ -49,24 +52,33 @@ class ImageView(QtWidgets.QGraphicsView):
                     
                     gx, gy = v.selected_cell
                     x0 = gx * v.real_w
+                    y0 = gy * v.real_h
                     
                     left_x = x0 + kerning
                     right_x = x0 + kerning + width
                     
                     tolerance = max(2.0, 8.0 / self._scale)
                     
-                    if abs(scene_pos.x() - left_x) <= tolerance:
-                        self._dragging_handle = 'kerning'
-                        self.setCursor(QtCore.Qt.SizeHorCursor)
-                        event.accept()
-                        return
-                    elif abs(scene_pos.x() - right_x) <= tolerance:
-                        self._dragging_handle = 'width'
-                        self.setCursor(QtCore.Qt.SizeHorCursor)
-                        event.accept()
-                        return
+                    if y0 <= scene_pos.y() <= y0 + v.real_h:
+                        if abs(scene_pos.x() - left_x) <= tolerance:
+                            self._dragging_handle = 'kerning'
+                            self._drag_start_scene_x = scene_pos.x()
+                            self._drag_start_kern = kerning
+                            self._drag_start_width = width
+                            self.setCursor(QtCore.Qt.SizeHorCursor)
+                            event.accept()
+                            return
+                        elif abs(scene_pos.x() - right_x) <= tolerance:
+                            self._dragging_handle = 'width'
+                            self._drag_start_scene_x = scene_pos.x()
+                            self._drag_start_kern = kerning
+                            self._drag_start_width = width
+                            self.setCursor(QtCore.Qt.SizeHorCursor)
+                            event.accept()
+                            return
             
             self._dragging_handle = None
+            self._drag_start_scene_x = None
             self.clicked.emit(scene_pos)
             event.accept()
             return
@@ -85,7 +97,7 @@ class ImageView(QtWidgets.QGraphicsView):
         scene_pos = self.mapToScene(pos)
         
         # Drag handle processing
-        if self._dragging_handle is not None:
+        if self._dragging_handle is not None and self._drag_start_scene_x is not None:
             v = self.parent()
             while v and not hasattr(v, 'selected_cell'):
                 v = v.parent()
@@ -97,18 +109,30 @@ class ImageView(QtWidgets.QGraphicsView):
                 wid_idx = idx - v.first_code
                 
                 if 0 <= wid_idx < len(packets):
-                    gx, gy = v.selected_cell
-                    x0 = gx * v.real_w
+                    dx = scene_pos.x() - self._drag_start_scene_x
                     
                     if self._dragging_handle == 'kerning':
-                        new_kern = int(round(scene_pos.x() - x0))
+                        new_kern = int(round(self._drag_start_kern + dx))
                         new_kern = max(-128, min(127, new_kern))
+                        
+                        v.spin_kerning.blockSignals(True)
                         v.spin_kerning.setValue(new_kern)
+                        v.spin_kerning.blockSignals(False)
+                        
+                        packets[wid_idx]["kerning"] = new_kern
+                        v.update_overlays()
+                        v.update_simulation()
                     elif self._dragging_handle == 'width':
-                        kerning = packets[wid_idx]["kerning"]
-                        new_width = int(round(scene_pos.x() - (x0 + kerning)))
+                        new_width = int(round(self._drag_start_width + dx))
                         new_width = max(0, min(255, new_width))
+                        
+                        v.spin_width.blockSignals(True)
                         v.spin_width.setValue(new_width)
+                        v.spin_width.blockSignals(False)
+                        
+                        packets[wid_idx]["width"] = new_width
+                        v.update_overlays()
+                        v.update_simulation()
                         
             event.accept()
             return
@@ -137,22 +161,50 @@ class ImageView(QtWidgets.QGraphicsView):
                 
                 gx, gy = v.selected_cell
                 x0 = gx * v.real_w
+                y0 = gy * v.real_h
                 
                 left_x = x0 + kerning
                 right_x = x0 + kerning + width
                 
                 tolerance = max(2.0, 8.0 / self._scale)
-                if abs(scene_pos.x() - left_x) <= tolerance or abs(scene_pos.x() - right_x) <= tolerance:
-                    self.setCursor(QtCore.Qt.SizeHorCursor)
-                    super().mouseMoveEvent(event)
-                    return
+                if y0 <= scene_pos.y() <= y0 + v.real_h:
+                    if abs(scene_pos.x() - left_x) <= tolerance or abs(scene_pos.x() - right_x) <= tolerance:
+                        self.setCursor(QtCore.Qt.SizeHorCursor)
+                        super().mouseMoveEvent(event)
+                        return
                     
         self.unsetCursor()
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.LeftButton and self._dragging_handle is not None:
+            v = self.parent()
+            while v and not hasattr(v, 'selected_cell'):
+                v = v.parent()
+                
+            if v and v.selected_cell and v.get_selected_glyph_index() != -1:
+                idx = v.get_selected_glyph_index()
+                wid = v.metadata.get("WID1", [{}])[0]
+                packets = wid.get("packets", [])
+                wid_idx = idx - v.first_code
+                
+                if 0 <= wid_idx < len(packets):
+                    old_kern, old_width = self._drag_start_kern, self._drag_start_width
+                    new_kern = packets[wid_idx]["kerning"]
+                    new_width = packets[wid_idx]["width"]
+                    
+                    if old_kern != new_kern or old_width != new_width:
+                        # Restore old values temporarily for QUndoCommand to execute properly
+                        packets[wid_idx]["kerning"] = old_kern
+                        packets[wid_idx]["width"] = old_width
+                        
+                        from tools.bfn_editor.bfn_commands import EditMetricsCommand
+                        cmd = EditMetricsCommand(v, idx, old_kern, new_kern, old_width, new_width)
+                        v.undo_stack.push(cmd)
+                        v._set_dirty(True)
+            
             self._dragging_handle = None
+            self._drag_start_scene_x = None
             self.unsetCursor()
             event.accept()
             return
@@ -201,6 +253,9 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
         self.char_pos_idx = int(char_pos_idx)
         self.viewer = viewer
         self._dragging_handle = None
+        self._drag_start_scene_x = None
+        self._drag_start_kern = 0
+        self._drag_start_width = 0
         
         self.setPos(x_offset, y_offset)
         self.setAcceptHoverEvents(True)
@@ -282,47 +337,62 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
             
             if abs(p.x() - left_x) <= tolerance:
                 self._dragging_handle = 'kerning'
+                self._drag_start_scene_x = event.scenePos().x()
+                self._drag_start_kern = kerning
+                self._drag_start_width = width
                 self.viewer._dragging_in_sim = True
                 self.setCursor(QtCore.Qt.SizeHorCursor)
                 event.accept()
                 return
             elif abs(p.x() - right_x) <= tolerance:
                 self._dragging_handle = 'width'
+                self._drag_start_scene_x = event.scenePos().x()
+                self._drag_start_kern = kerning
+                self._drag_start_width = width
                 self.viewer._dragging_in_sim = True
                 self.setCursor(QtCore.Qt.SizeHorCursor)
                 event.accept()
                 return
                 
             self._dragging_handle = None
+            self._drag_start_scene_x = None
             event.accept()
             return
             
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if self._dragging_handle is not None:
-            p = event.pos()
-            
-            kerning = 0
-            width = self.viewer.cell_w
+        if self._dragging_handle is not None and self._drag_start_scene_x is not None:
             wid = self.viewer.metadata.get("WID1", [{}])[0]
             packets = wid.get("packets", [])
             wid_idx = self.glyph_idx - self.viewer.first_code
+            
             if 0 <= wid_idx < len(packets):
-                kerning = packets[wid_idx]["kerning"]
-                width = packets[wid_idx]["width"]
+                dx = event.scenePos().x() - self._drag_start_scene_x
                 
-            if self._dragging_handle == 'kerning':
-                new_kern = int(round(p.x() + kerning))
-                new_kern = max(-128, min(127, new_kern))
-                self.viewer.spin_kerning.setValue(new_kern)
-            elif self._dragging_handle == 'width':
-                new_width = int(round(p.x()))
-                new_width = max(0, min(255, new_width))
-                self.viewer.spin_width.setValue(new_width)
+                if self._dragging_handle == 'kerning':
+                    new_kern = int(round(self._drag_start_kern + dx))
+                    new_kern = max(-128, min(127, new_kern))
+                    
+                    self.viewer.spin_kerning.blockSignals(True)
+                    self.viewer.spin_kerning.setValue(new_kern)
+                    self.viewer.spin_kerning.blockSignals(False)
+                    
+                    packets[wid_idx]["kerning"] = new_kern
+                elif self._dragging_handle == 'width':
+                    new_width = int(round(self._drag_start_width + dx))
+                    new_width = max(0, min(255, new_width))
+                    
+                    self.viewer.spin_width.blockSignals(True)
+                    self.viewer.spin_width.setValue(new_width)
+                    self.viewer.spin_width.blockSignals(False)
+                    
+                    packets[wid_idx]["width"] = new_width
                 
-            self.prepareGeometryChange()
-            self.update()
+                self.prepareGeometryChange()
+                self.update()
+                self.viewer.reposition_simulation_items()
+                
             event.accept()
             return
             
@@ -331,7 +401,27 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.button() == QtCore.Qt.LeftButton:
             if self._dragging_handle is not None:
+                wid = self.viewer.metadata.get("WID1", [{}])[0]
+                packets = wid.get("packets", [])
+                wid_idx = self.glyph_idx - self.viewer.first_code
+                
+                if 0 <= wid_idx < len(packets):
+                    old_kern, old_width = self._drag_start_kern, self._drag_start_width
+                    new_kern = packets[wid_idx]["kerning"]
+                    new_width = packets[wid_idx]["width"]
+                    
+                    if old_kern != new_kern or old_width != new_width:
+                        # Restore old values temporarily for QUndoCommand to execute properly
+                        packets[wid_idx]["kerning"] = old_kern
+                        packets[wid_idx]["width"] = old_width
+                        
+                        from tools.bfn_editor.bfn_commands import EditMetricsCommand
+                        cmd = EditMetricsCommand(self.viewer, self.glyph_idx, old_kern, new_kern, old_width, new_width)
+                        self.viewer.undo_stack.push(cmd)
+                        self.viewer._set_dirty(True)
+                
                 self._dragging_handle = None
+                self._drag_start_scene_x = None
                 self.viewer._dragging_in_sim = False
                 self.unsetCursor()
                 self.viewer.update_simulation()
