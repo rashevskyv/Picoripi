@@ -59,7 +59,17 @@ class GlobalSettings:
             "preview_bg_offset_y": 0,
             "preview_bg_hidden": False,
             "preview_line_spacing": 10,
-            "preview_text_rect": [15, 15, 300, 120]
+            "preview_text_rect": [15, 15, 300, 120],
+            "preview_text_color": "#ffffff",
+            "preview_shadow_enabled": False,
+            "preview_shadow_color": "#000000",
+            "preview_shadow_alpha": 178,
+            "preview_shadow_angle": 315,
+            "preview_shadow_distance": 3,
+            "preview_glow_enabled": False,
+            "preview_glow_color": "#ffffff",
+            "preview_glow_alpha": 180,
+            "preview_glow_spread": 4
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -175,7 +185,17 @@ class GlobalSettings:
             "preview_bg_offset_y": getattr(self.mw, 'preview_bg_offset_y', 0),
             "preview_bg_hidden": getattr(self.mw, 'preview_bg_hidden', False),
             "preview_line_spacing": getattr(self.mw, 'preview_line_spacing', 10),
-            "preview_text_rect": getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120])
+            "preview_text_rect": getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120]),
+            "preview_text_color": getattr(self.mw, 'preview_text_color', '#ffffff'),
+            "preview_shadow_enabled": getattr(self.mw, 'preview_shadow_enabled', False),
+            "preview_shadow_color": getattr(self.mw, 'preview_shadow_color', '#000000'),
+            "preview_shadow_alpha": getattr(self.mw, 'preview_shadow_alpha', 178),
+            "preview_shadow_angle": getattr(self.mw, 'preview_shadow_angle', 315),
+            "preview_shadow_distance": getattr(self.mw, 'preview_shadow_distance', 3),
+            "preview_glow_enabled": getattr(self.mw, 'preview_glow_enabled', False),
+            "preview_glow_color": getattr(self.mw, 'preview_glow_color', '#ffffff'),
+            "preview_glow_alpha": getattr(self.mw, 'preview_glow_alpha', 180),
+            "preview_glow_spread": getattr(self.mw, 'preview_glow_spread', 4)
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:
