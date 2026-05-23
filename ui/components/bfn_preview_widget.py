@@ -1,9 +1,10 @@
 import json
+import math
 import re
 from pathlib import Path
-from PyQt5.QtWidgets import QWidget, QMenu, QFileDialog, QInputDialog
+from PyQt5.QtWidgets import QWidget, QMenu, QFileDialog, QInputDialog, QColorDialog
 from PyQt5.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
-from PyQt5.QtCore import Qt, QRect, QPoint, QRectF
+from PyQt5.QtCore import Qt, QRect, QPoint, QRectF, QSize
 
 class BfnEditorAdapter:
     def __init__(self, editor):
@@ -62,6 +63,19 @@ class BfnPreviewWidget(QWidget):
         self.line_spacing = getattr(self.mw, 'preview_line_spacing', 10)
         rect_list = getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120])
         self.text_rect = QRect(rect_list[0], rect_list[1], rect_list[2], rect_list[3])
+
+        # Text effects settings
+        self.text_color = str(getattr(self.mw, 'preview_text_color', '#ffffff') or '#ffffff')
+        self.shadow_enabled = bool(getattr(self.mw, 'preview_shadow_enabled', False))
+        self.shadow_color = str(getattr(self.mw, 'preview_shadow_color', '#000000') or '#000000')
+        self.shadow_alpha = int(getattr(self.mw, 'preview_shadow_alpha', 178))
+        self.shadow_angle = int(getattr(self.mw, 'preview_shadow_angle', 315))
+        self.shadow_distance = int(getattr(self.mw, 'preview_shadow_distance', 3))
+        self.glow_enabled = bool(getattr(self.mw, 'preview_glow_enabled', False))
+        self.glow_color = str(getattr(self.mw, 'preview_glow_color', '#ffffff') or '#ffffff')
+        self.glow_alpha = int(getattr(self.mw, 'preview_glow_alpha', 180))
+        self.glow_spread = int(getattr(self.mw, 'preview_glow_spread', 4))
+
         
         # UI Interaction state
         self.mouse_inside = False
@@ -380,7 +394,13 @@ class BfnPreviewWidget(QWidget):
         menu.addSeparator()
         action_set_spacing = menu.addAction("Set Line Spacing...")
         action_reset_rect = menu.addAction("Reset Text Area")
-        
+
+        menu.addSeparator()
+        fx_menu = menu.addMenu("Text Effects")
+        action_text_color = fx_menu.addAction("Text Color...")
+        action_shadow = fx_menu.addAction("Drop Shadow...")
+        action_glow = fx_menu.addAction("Outer Glow...")
+
         action = menu.exec_(self.mapToGlobal(pos))
         if action == action_set_bg:
             file_path, _ = QFileDialog.getOpenFileName(
@@ -438,12 +458,152 @@ class BfnPreviewWidget(QWidget):
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_settings()
             self.update()
+        elif action == action_text_color:
+            self._open_text_color_dialog()
+        elif action == action_shadow:
+            self._open_shadow_dialog()
+        elif action == action_glow:
+            self._open_glow_dialog()
+
+    # ── Text Effects dialogs ──────────────────────────────────────────────────
+
+    def _open_text_color_dialog(self):
+        initial = QColor(self.text_color)
+        color = QColorDialog.getColor(initial, self, "Select Text Color")
+        if color.isValid():
+            self.text_color = color.name()
+            self._save_effects_settings()
+            self.update()
+
+    def _open_shadow_dialog(self):
+        from ui.components.text_effects_dialog import TextEffectsDialog
+        dlg = TextEffectsDialog(
+            TextEffectsDialog.MODE_SHADOW,
+            {
+                "enabled": self.shadow_enabled,
+                "color": self.shadow_color,
+                "alpha": self.shadow_alpha,
+                "angle": self.shadow_angle,
+                "distance": self.shadow_distance,
+            },
+            parent=self
+        )
+        if dlg.exec_() == TextEffectsDialog.Accepted:
+            result = dlg.get_result()
+            self.shadow_enabled = result["enabled"]
+            self.shadow_color = result["color"]
+            self.shadow_alpha = result["alpha"]
+            self.shadow_angle = result["angle"]
+            self.shadow_distance = result["distance"]
+            self._save_effects_settings()
+            self.update()
+
+    def _open_glow_dialog(self):
+        from ui.components.text_effects_dialog import TextEffectsDialog
+        dlg = TextEffectsDialog(
+            TextEffectsDialog.MODE_GLOW,
+            {
+                "enabled": self.glow_enabled,
+                "color": self.glow_color,
+                "alpha": self.glow_alpha,
+                "spread": self.glow_spread,
+            },
+            parent=self
+        )
+        if dlg.exec_() == TextEffectsDialog.Accepted:
+            result = dlg.get_result()
+            self.glow_enabled = result["enabled"]
+            self.glow_color = result["color"]
+            self.glow_alpha = result["alpha"]
+            self.glow_spread = result["spread"]
+            self._save_effects_settings()
+            self.update()
+
+    def _save_effects_settings(self):
+        """Persist all text effects settings to mw and settings_manager."""
+        self.mw.preview_text_color = self.text_color
+        self.mw.preview_shadow_enabled = self.shadow_enabled
+        self.mw.preview_shadow_color = self.shadow_color
+        self.mw.preview_shadow_alpha = self.shadow_alpha
+        self.mw.preview_shadow_angle = self.shadow_angle
+        self.mw.preview_shadow_distance = self.shadow_distance
+        self.mw.preview_glow_enabled = self.glow_enabled
+        self.mw.preview_glow_color = self.glow_color
+        self.mw.preview_glow_alpha = self.glow_alpha
+        self.mw.preview_glow_spread = self.glow_spread
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+
+    # ── Offscreen glyph rendering ─────────────────────────────────────────────
+
+    def _render_glyphs_to_image(self, glyphs, sheets, cell_h, fallback_font,
+                                fallback_fm, total_width, total_height,
+                                scale_factor, img_size: QSize) -> QImage:
+        """
+        Render all glyphs onto a transparent QImage of img_size.
+        The painter transform (translate + scale) is applied identically to paintEvent.
+        Returns a QImage with Format_ARGB32_Premultiplied for composition.
+        """
+        img = QImage(img_size, QImage.Format_ARGB32_Premultiplied)
+        img.fill(Qt.transparent)
+        p = QPainter(img)
+        p.setRenderHint(QPainter.Antialiasing, False)
+        p.scale(scale_factor, scale_factor)
+        p.translate(-15, -15)
+
+        for g in glyphs:
+            if g["is_fallback"]:
+                p.save()
+                p.setPen(QColor("#ffffff"))
+                p.setFont(fallback_font)
+                char_w = fallback_fm.horizontalAdvance(g["char"])
+                if char_w <= 0:
+                    char_w = 1
+                p.drawText(QRectF(g["draw_x"], g["draw_y"], char_w, cell_h),
+                            Qt.AlignCenter, g["char"])
+                p.restore()
+                continue
+
+            if g["sheet_idx"] < 0 or g["sheet_idx"] >= len(sheets):
+                continue
+
+            sheet_img = sheets[g["sheet_idx"]]
+            crop_x = g["cell_x"] + g["kerning"]
+            crop_w = g["width"]
+            if crop_w <= 0:
+                crop_w = 1
+            p.drawImage(g["draw_x"], g["draw_y"], sheet_img,
+                        crop_x, g["cell_y"], crop_w, cell_h)
+
+        p.end()
+        return img
+
+    def _tint_image(self, src: QImage, color_hex: str, alpha: int) -> QImage:
+        """
+        Apply a color tint to a white/RGBA glyph image.
+        Uses SourceIn composition: dst = src_alpha * tint_color.
+        Returns a new QImage tinted with the given color and clamped alpha.
+        """
+        tint = QImage(src.size(), QImage.Format_ARGB32_Premultiplied)
+        tint.fill(Qt.transparent)
+        tp = QPainter(tint)
+        # 1. Draw source (the white glyphs) — this gives us the alpha mask
+        tp.drawImage(0, 0, src)
+        # 2. Fill with color using SourceIn: result keeps src alpha, gets new color
+        c = QColor(color_hex)
+        c.setAlpha(alpha)
+        tp.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        tp.fillRect(tint.rect(), c)
+        tp.end()
+        return tint
+
+    # ── paintEvent ────────────────────────────────────────────────────────────
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, False)
         
-        # Draw background inside border with rounded corners clipping
+        # ── 1. Background ─────────────────────────────────────────────────────
         painter.save()
         path = QPainterPath()
         path.addRoundedRect(QRectF(self.rect()), 6, 6)
@@ -456,23 +616,22 @@ class BfnPreviewWidget(QWidget):
                 scale_factor = self.bg_scale / 100.0
                 new_w = self.bg_image.width() * scale_factor
                 new_h = self.bg_image.height() * scale_factor
-                x = self.bg_offset_x
-                y = self.bg_offset_y
-                painter.drawImage(QRectF(x, y, new_w, new_h), self.bg_image)
+                painter.drawImage(QRectF(self.bg_offset_x, self.bg_offset_y, new_w, new_h), self.bg_image)
         else:
             painter.fillRect(self.rect(), QColor("#121212"))
         painter.restore()
         
+        # ── 2. Text rendering ─────────────────────────────────────────────────
         abs_rect = self.get_absolute_text_rect()
         bfn = self.get_active_bfn_font()
+
         if not bfn:
             if self.text:
-                painter.setPen(QColor("#ffffff"))
+                painter.setPen(QColor(self.text_color))
                 font = painter.font()
                 font.setPointSize(12)
                 painter.setFont(font)
                 
-                # Clean tags from text before rendering
                 cleaned_text = self.text
                 rules = getattr(self.mw, 'current_game_rules', None)
                 if rules:
@@ -520,7 +679,6 @@ class BfnPreviewWidget(QWidget):
                         cleaned_text = re.sub(pattern, "", cleaned_text)
                     except Exception:
                         pass
-        # Fallback to remove basic curly and square bracket tags
         cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
         cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
 
@@ -564,43 +722,57 @@ class BfnPreviewWidget(QWidget):
             scale_y = abs_rect.height() / total_height
             scale_factor = min(scale_x, scale_y)
 
-        # Save painter state, translate to the bounding box, and scale
-        painter.save()
-        painter.translate(abs_rect.topLeft())
-        painter.scale(scale_factor, scale_factor)
+        # Offscreen image size: same as abs_rect (where we'll stamp the glyphs)
+        img_size = QSize(abs_rect.width(), abs_rect.height())
 
-        # Offset translate back by -15px since layout_text starts current_x/current_y at 15px (simulator layout)
-        painter.translate(-15, -15)
+        # ── 2a. Outer Glow pass ───────────────────────────────────────────────
+        if self.glow_enabled and self.glow_spread > 0:
+            glow_img = self._render_glyphs_to_image(
+                glyphs, sheets, cell_h, fallback_font, fallback_fm,
+                total_width, total_height, scale_factor, img_size
+            )
+            tinted_glow = self._tint_image(glow_img, self.glow_color, 255)
 
-        for g in glyphs:
-            if g["is_fallback"]:
-                # Draw fallback character using system font instead of gray box
-                painter.save()
-                painter.setPen(QColor("#ffffff"))
-                painter.setFont(fallback_font)
-                
-                char_w = fallback_fm.horizontalAdvance(g["char"])
-                if char_w <= 0:
-                    char_w = cell_w // 2
-                    
-                painter.drawText(QRectF(g["draw_x"], g["draw_y"], char_w, cell_h), Qt.AlignCenter, g["char"])
-                painter.restore()
-                continue
+            # Paint tinted glow in 8 directions × spread steps
+            per_pass_alpha = max(1, self.glow_alpha // max(1, self.glow_spread))
+            painter.save()
+            painter.setOpacity(per_pass_alpha / 255.0)
+            offsets = [
+                (1, 0), (-1, 0), (0, 1), (0, -1),
+                (1, 1), (-1, -1), (1, -1), (-1, 1)
+            ]
+            for step in range(1, self.glow_spread + 1):
+                for dx_unit, dy_unit in offsets:
+                    ox = abs_rect.x() + dx_unit * step
+                    oy = abs_rect.y() + dy_unit * step
+                    painter.drawImage(ox, oy, tinted_glow)
+            painter.restore()
 
-            if g["sheet_idx"] < 0 or g["sheet_idx"] >= len(sheets):
-                continue
+        # ── 2b. Drop Shadow pass ──────────────────────────────────────────────
+        if self.shadow_enabled and self.shadow_distance > 0:
+            shadow_img = self._render_glyphs_to_image(
+                glyphs, sheets, cell_h, fallback_font, fallback_fm,
+                total_width, total_height, scale_factor, img_size
+            )
+            tinted_shadow = self._tint_image(shadow_img, self.shadow_color, 255)
 
-            # Render decoded white/rgba glyph
-            sheet_img = sheets[g["sheet_idx"]]
-            
-            crop_x = g["cell_x"] + g["kerning"]
-            crop_w = g["width"]
-            if crop_w <= 0:
-                crop_w = 1
+            # Compute offset from angle + distance
+            rad = math.radians(self.shadow_angle)
+            sdx = int(round(math.cos(rad) * self.shadow_distance))
+            sdy = int(round(math.sin(rad) * self.shadow_distance))
 
-            painter.drawImage(g["draw_x"], g["draw_y"], sheet_img, crop_x, g["cell_y"], crop_w, cell_h)
+            painter.save()
+            painter.setOpacity(self.shadow_alpha / 255.0)
+            painter.drawImage(abs_rect.x() + sdx, abs_rect.y() + sdy, tinted_shadow)
+            painter.restore()
 
-        painter.restore()
+        # ── 2c. Main glyphs pass (tinted with text_color) ────────────────────
+        main_img = self._render_glyphs_to_image(
+            glyphs, sheets, cell_h, fallback_font, fallback_fm,
+            total_width, total_height, scale_factor, img_size
+        )
+        tinted_main = self._tint_image(main_img, self.text_color, 255)
+        painter.drawImage(abs_rect.x(), abs_rect.y(), tinted_main)
 
-        # Draw interactive bounding box frame over text
+        # ── 3. Bounding box overlay ───────────────────────────────────────────
         self.draw_bounding_box(painter)

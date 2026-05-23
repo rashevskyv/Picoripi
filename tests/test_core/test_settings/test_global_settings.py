@@ -41,6 +41,16 @@ def mock_mw():
     mw.preview_bg_hidden = False
     mw.preview_line_spacing = 10
     mw.preview_text_rect = [15, 15, 300, 120]
+    mw.preview_text_color = "#ffffff"
+    mw.preview_shadow_enabled = False
+    mw.preview_shadow_color = "#000000"
+    mw.preview_shadow_alpha = 178
+    mw.preview_shadow_angle = 315
+    mw.preview_shadow_distance = 3
+    mw.preview_glow_enabled = False
+    mw.preview_glow_color = "#ffffff"
+    mw.preview_glow_alpha = 180
+    mw.preview_glow_spread = 4
     
     mw.data_store.edited_data = None
     mw.window_normal_geometry_on_close = None

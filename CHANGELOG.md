@@ -1,5 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.88] - 2026-05-23
+
+### Added
+- **Drop Shadow Effect for BFN Preview Text**: Added a Photoshop-style drop shadow effect to the BFN Preview widget text rendering.
+  - Configurable shadow **color**, **opacity** (0–255), **angle** (0°–360°) and **distance** in pixels.
+  - Accessible via right-click context menu → **Text Effects → Drop Shadow...**.
+  - Settings are persistent across sessions (stored in `settings.json`).
+- **Outer Glow Effect for BFN Preview Text**: Added an outer glow halo around the rendered BFN glyphs.
+  - Configurable glow **color**, **opacity** (0–255), and **spread** radius in pixels (1–20).
+  - Implemented via multi-pass offset rendering in 8 directions — no external blur dependencies.
+  - Accessible via right-click context menu → **Text Effects → Outer Glow...**.
+- **Text Color for BFN Preview**: Added the ability to set an arbitrary color for the rendered BFN text.
+  - Uses offscreen `QImage` rendering with `CompositionMode_SourceIn` for accurate glyph tinting without alpha artifacts.
+  - Color is selected via standard `QColorDialog` (**Text Effects → Text Color...**).
+- **`TextEffectsDialog`**: New reusable `QDialog` (`ui/components/text_effects_dialog.py`) shared between Shadow and Glow settings. Includes a color preview swatch + color picker button, opacity slider with synced spinbox, and angle/distance/spread spinboxes.
+- **Offscreen Glyph Pipeline**: Introduced `_render_glyphs_to_image()` helper that renders all BFN glyphs onto a transparent `QImage` for compositing (used for shadow, glow, and tint passes). Rendering order is: **Glow → Shadow → Tinted main glyphs**.
+
 ## [0.2.87] - 2026-05-23
 
 ### Added
