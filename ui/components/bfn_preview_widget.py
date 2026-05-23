@@ -2,9 +2,198 @@ import json
 import math
 import re
 from pathlib import Path
-from PyQt5.QtWidgets import QWidget, QMenu, QFileDialog, QInputDialog, QColorDialog
+from PyQt5.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
+                             QColorDialog, QVBoxLayout, QPushButton, QFrame)
 from PyQt5.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
 from PyQt5.QtCore import Qt, QRect, QPoint, QRectF, QSize
+
+
+class BfnSideButton(QPushButton):
+    """A compact square icon button for the BFN preview sidebar."""
+    SIZE = 30
+
+    def __init__(self, icon_text: str, tooltip: str, checkable: bool = False, parent=None):
+        super().__init__(icon_text, parent)
+        self.setFixedSize(self.SIZE, self.SIZE)
+        self.setToolTip(tooltip)
+        self.setCheckable(checkable)
+        self._apply_style(False)
+
+    def _apply_style(self, checked: bool):
+        base = (
+            "QPushButton {"
+            "  background: #1e1e1e;"
+            "  color: #cccccc;"
+            "  border: 1px solid #3a3a3a;"
+            "  border-radius: 5px;"
+            "  font-size: 14px;"
+            "}"
+            "QPushButton:hover {"
+            "  background: #2d2d2d;"
+            "  border-color: #5a5a5a;"
+            "}"
+        )
+        active = (
+            "QPushButton:checked, QPushButton[active=true] {"
+            "  background: #1c3a5e;"
+            "  border-color: #0078d7;"
+            "  color: #ffffff;"
+            "}"
+        )
+        self.setStyleSheet(base + active)
+
+    def setActive(self, active: bool):
+        self.setProperty("active", active)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+
+class BfnPreviewSideBar(QFrame):
+    """Vertical toolbar pinned to the left side of BfnPreviewWidget."""
+    WIDTH = 38
+
+    def __init__(self, preview_widget: 'BfnPreviewWidget'):
+        super().__init__(preview_widget)
+        self.pw = preview_widget
+        self.setFixedWidth(self.WIDTH)
+        self.setStyleSheet(
+            "BfnPreviewSideBar {"
+            "  background: rgba(15, 15, 15, 200);"
+            "  border-right: 1px solid #2a2a2a;"
+            "  border-top-left-radius: 6px;"
+            "  border-bottom-left-radius: 6px;"
+            "}"
+        )
+        # Don't intercept mouse events for the preview canvas
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 8, 4, 8)
+        layout.setSpacing(4)
+        layout.setAlignment(Qt.AlignTop)
+
+        # Color swatch button — shows current text color
+        self.btn_color = BfnSideButton("A", "Text Color")
+        self._update_color_btn()
+        self.btn_color.clicked.connect(self.pw._open_text_color_dialog)
+        layout.addWidget(self.btn_color)
+
+        # Shadow toggle button
+        self.btn_shadow = BfnSideButton("\u25a1", "Drop Shadow (click to configure)", checkable=True)
+        self.btn_shadow.setChecked(self.pw.shadow_enabled)
+        self.btn_shadow.clicked.connect(self._on_shadow_clicked)
+        layout.addWidget(self.btn_shadow)
+
+        # Glow toggle button
+        self.btn_glow = BfnSideButton("\u2605", "Outer Glow (click to configure)", checkable=True)
+        self.btn_glow.setChecked(self.pw.glow_enabled)
+        self.btn_glow.clicked.connect(self._on_glow_clicked)
+        layout.addWidget(self.btn_glow)
+
+        layout.addSpacing(6)
+
+        # Background image button
+        self.btn_bg = BfnSideButton("\U0001f5bc", "Set Background Image...")
+        self.btn_bg.clicked.connect(self._on_set_bg)
+        layout.addWidget(self.btn_bg)
+
+        # Hide/show background toggle
+        self.btn_hide_bg = BfnSideButton("\U0001f441", "Show / Hide Background", checkable=True)
+        self.btn_hide_bg.setChecked(self.pw.bg_hidden)
+        self.btn_hide_bg.setEnabled(bool(self.pw.bg_image_path))
+        self.btn_hide_bg.clicked.connect(self._on_hide_bg)
+        layout.addWidget(self.btn_hide_bg)
+
+        layout.addSpacing(6)
+
+        # Line spacing button
+        self.btn_spacing = BfnSideButton("\u21f3", "Set Line Spacing...")
+        self.btn_spacing.clicked.connect(self._on_set_spacing)
+        layout.addWidget(self.btn_spacing)
+
+        layout.addStretch()
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _update_color_btn(self):
+        """Tint the 'A' button background to reflect current text color."""
+        c = QColor(self.pw.text_color)
+        dark = c.lightness() < 128
+        text_col = "#ffffff" if dark else "#111111"
+        self.btn_color.setStyleSheet(
+            f"QPushButton {{"
+            f"  background: {self.pw.text_color};"
+            f"  color: {text_col};"
+            f"  border: 1px solid #555;"
+            f"  border-radius: 5px;"
+            f"  font-size: 13px; font-weight: bold;"
+            f"}}"
+            f"QPushButton:hover {{ border-color: #999; }}"
+        )
+
+    def refresh_state(self):
+        """Sync button visual states with current widget settings."""
+        self._update_color_btn()
+        self.btn_shadow.setChecked(self.pw.shadow_enabled)
+        self.btn_glow.setChecked(self.pw.glow_enabled)
+        self.btn_hide_bg.setChecked(self.pw.bg_hidden)
+        self.btn_hide_bg.setEnabled(bool(self.pw.bg_image_path))
+
+    # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _on_shadow_clicked(self, checked: bool):
+        """Open shadow dialog; if user cancels keep previous enabled state."""
+        self.pw._open_shadow_dialog()
+        self.btn_shadow.setChecked(self.pw.shadow_enabled)
+
+    def _on_glow_clicked(self, checked: bool):
+        self.pw._open_glow_dialog()
+        self.btn_glow.setChecked(self.pw.glow_enabled)
+
+    def _on_set_bg(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.pw, "Select Background Image", "", "Images (*.png *.jpg *.jpeg *.bmp)"
+        )
+        if not file_path:
+            return
+        self.pw.bg_image_path = file_path
+        had_previous_image = self.pw.bg_image is not None and not self.pw.bg_image.isNull()
+        try:
+            new_image = QImage(file_path)
+            self.pw.bg_image = new_image
+            self.pw.mw.preview_bg_image_path = file_path
+            if not new_image.isNull() and (not had_previous_image or
+                    (self.pw.bg_offset_x == 0 and self.pw.bg_offset_y == 0)):
+                sf = self.pw.bg_scale / 100.0
+                self.pw.bg_offset_x = int((self.pw.width() - new_image.width() * sf) / 2)
+                self.pw.bg_offset_y = int((self.pw.height() - new_image.height() * sf) / 2)
+                self.pw.mw.preview_bg_offset_x = self.pw.bg_offset_x
+                self.pw.mw.preview_bg_offset_y = self.pw.bg_offset_y
+            if hasattr(self.pw.mw, 'settings_manager'):
+                self.pw.mw.settings_manager.save_settings()
+        except Exception:
+            self.pw.bg_image = None
+        self.refresh_state()
+        self.pw.update()
+
+    def _on_hide_bg(self, checked: bool):
+        self.pw.bg_hidden = checked
+        self.pw.mw.preview_bg_hidden = checked
+        if hasattr(self.pw.mw, 'settings_manager'):
+            self.pw.mw.settings_manager.save_settings()
+        self.pw.update()
+
+    def _on_set_spacing(self):
+        val, ok = QInputDialog.getInt(
+            self.pw, "Set Line Spacing", "Enter line spacing in pixels:",
+            self.pw.line_spacing, -100, 100
+        )
+        if ok:
+            self.pw.line_spacing = val
+            self.pw.mw.preview_line_spacing = val
+            if hasattr(self.pw.mw, 'settings_manager'):
+                self.pw.mw.settings_manager.save_settings()
+            self.pw.update()
 
 class BfnEditorAdapter:
     def __init__(self, editor):
@@ -93,6 +282,10 @@ class BfnPreviewWidget(QWidget):
         # Context Menu
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
+
+        # Side toolbar
+        self.sidebar = BfnPreviewSideBar(self)
+        self._position_sidebar()
 
     def load_translation_map(self):
         project_dir = None
@@ -243,10 +436,21 @@ class BfnPreviewWidget(QWidget):
             painter.setPen(QPen(QColor("#555555"), 1.0, Qt.DashLine))
             painter.drawRect(abs_rect)
 
+    def _position_sidebar(self):
+        """Pin the sidebar to the left edge, full height."""
+        if hasattr(self, 'sidebar'):
+            self.sidebar.setGeometry(0, 0, BfnPreviewSideBar.WIDTH, self.height())
+            self.sidebar.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_sidebar()
+
     def enterEvent(self, event):
         self.mouse_inside = True
         self.update()
         super().enterEvent(event)
+
 
     def leaveEvent(self, event):
         self.mouse_inside = False
@@ -473,6 +677,8 @@ class BfnPreviewWidget(QWidget):
         if color.isValid():
             self.text_color = color.name()
             self._save_effects_settings()
+            if hasattr(self, 'sidebar'):
+                self.sidebar.refresh_state()
             self.update()
 
     def _open_shadow_dialog(self):
@@ -496,6 +702,8 @@ class BfnPreviewWidget(QWidget):
             self.shadow_angle = result["angle"]
             self.shadow_distance = result["distance"]
             self._save_effects_settings()
+            if hasattr(self, 'sidebar'):
+                self.sidebar.refresh_state()
             self.update()
 
     def _open_glow_dialog(self):
@@ -517,6 +725,8 @@ class BfnPreviewWidget(QWidget):
             self.glow_alpha = result["alpha"]
             self.glow_spread = result["spread"]
             self._save_effects_settings()
+            if hasattr(self, 'sidebar'):
+                self.sidebar.refresh_state()
             self.update()
 
     def _save_effects_settings(self):
