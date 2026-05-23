@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from PyQt5.QtWidgets import QMessageBox
 from .data_manager import load_json_file, save_json_file, save_text_file
-from utils.logging_utils import log_debug, log_error
+from utils.logging_utils import log_debug, log_warning, log_error
 
 class DataStateProcessor:
     def __init__(self, main_window: Any):
@@ -174,7 +174,7 @@ class DataStateProcessor:
 
 
     def save_current_edits(self, ask_confirmation: bool = True) -> bool:
-        log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}")
+        log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}", category="file_ops")
         if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
             self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
         if not self.mw.data_store.edited_json_path:
@@ -185,7 +185,7 @@ class DataStateProcessor:
             return False
         
         if not self.mw.data_store.unsaved_changes:
-            log_debug("Save called but no unsaved changes detected. Skipping file write.")
+            log_debug("Save called but no unsaved changes detected. Skipping file write.", category="file_ops")
             if ask_confirmation:
                 QMessageBox.information(self.mw, "Save", "No changes to save.")
             return True
@@ -199,22 +199,28 @@ class DataStateProcessor:
             
             output_data_list = json.loads(json.dumps(self.mw.data_store.data)) 
             if self.mw.data_store.edited_file_data:
-                output_data_list = json.loads(json.dumps(self.mw.data_store.edited_file_data))
+                temp_edited = json.loads(json.dumps(self.mw.data_store.edited_file_data))
+                for i in range(len(output_data_list)):
+                    if i < len(temp_edited) and temp_edited[i]:
+                        output_data_list[i] = temp_edited[i]
+                        log_debug(f"Save: block {i} merged from edited_file_data (length {len(temp_edited[i])})", category="file_ops")
+                    else:
+                        log_debug(f"Save: block {i} falling back to original source data (length {len(output_data_list[i])})", category="file_ops")
 
             if self.mw.data_store.edited_data:
-                log_debug(f"Applying {len(self.mw.data_store.edited_data)} in-memory edits before saving...")
+                log_debug(f"Applying {len(self.mw.data_store.edited_data)} in-memory edits before saving...", category="file_ops")
             for (b_idx, s_idx), edited_text_from_memory in self.mw.data_store.edited_data.items():
                 if 0 <= b_idx < len(output_data_list) and isinstance(output_data_list[b_idx], list) and \
                    0 <= s_idx < len(output_data_list[b_idx]):
                     output_data_list[b_idx][s_idx] = edited_text_from_memory
                 else:
-                    log_debug(f"Save: Memory edit for key ({b_idx},{s_idx}) is out of bounds for output_data. Ignored.")
+                    log_debug(f"Save: Memory edit for key ({b_idx},{s_idx}) is out of bounds for output_data. Ignored.", category="file_ops")
 
             # Check if we are inside a project mode
             is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
             
             if is_project_mode:
-                log_debug("Saving in Project Mode: Splitting blocks into their corresponding files")
+                log_debug("Saving in Project Mode: Splitting blocks into their corresponding files", category="file_ops")
                 blocks = self.mw.project_manager.project.blocks
                 success_all = True
                 
@@ -249,7 +255,7 @@ class DataStateProcessor:
                         if has_edits: break
                     
                     if not has_edits:
-                        log_debug(f"Skipping save for project file '{trans_file_rel}' as it has no pending edits.")
+                        log_debug(f"Skipping save for project file '{trans_file_rel}' as it has no pending edits.", category="file_ops")
                         continue
 
                     block = file_to_block_info[trans_file_rel]
@@ -265,6 +271,42 @@ class DataStateProcessor:
                         sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
                         self.mw.current_game_rules.original_keys = sliced_keys
                     
+                    # For Zelda BMG plugin, pre-load the actual BMG file structure from disk first
+                    # to ensure we don't mix headers/metadata from a different BMG file!
+                    if hasattr(self.mw.current_game_rules, 'last_loaded_bmg'):
+                        from bmg_tool import BMGFile
+                        bmg = None
+                        
+                        # 1. Try translation file first if it exists
+                        trans_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
+                        if Path(trans_path).exists():
+                            try:
+                                bmg_temp = BMGFile()
+                                bmg_temp.load(Path(trans_path).read_bytes())
+                                bmg = bmg_temp
+                                log_debug(f"Pre-loaded BMG structure from translation path: {trans_path}", category="file_ops")
+                            except Exception as e_trans:
+                                log_warning(f"Translation BMG {trans_path} is corrupted: {e_trans}. Deleting it and falling back to source BMG.", category="file_ops")
+                                try:
+                                    Path(trans_path).unlink(missing_ok=True)
+                                except Exception:
+                                    pass
+                        
+                        # 2. Fallback to source file if translation BMG wasn't loaded
+                        if bmg is None:
+                            source_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=False)
+                            if Path(source_path).exists():
+                                try:
+                                    bmg_temp = BMGFile()
+                                    bmg_temp.load(Path(source_path).read_bytes())
+                                    bmg = bmg_temp
+                                    log_debug(f"Pre-loaded original source BMG structure from: {source_path}", category="file_ops")
+                                except Exception as e_source:
+                                    log_error(f"Failed to load source BMG structure {source_path}: {e_source}", category="file_ops")
+                        
+                        if bmg:
+                            self.mw.current_game_rules.last_loaded_bmg = bmg
+
                     # Call plugin to map data back into its JSON/Txt structure
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
                     
@@ -276,15 +318,17 @@ class DataStateProcessor:
                         if isinstance(final_obj_to_save, str):
                             save_file_success = save_text_file(trans_path, final_obj_to_save)
                         else:
-                            log_debug(f"Save Error: Plugin for .txt file {trans_path} did not return a string.")
+                            log_debug(f"Save Error: Plugin for .txt file {trans_path} did not return a string.", category="file_ops")
                             save_file_success = False
                     elif file_extension == '.bmg':
                         try:
-                            with Path(trans_path).open('wb') as f:
+                            p = Path(trans_path)
+                            p.parent.mkdir(parents=True, exist_ok=True)
+                            with p.open('wb') as f:
                                 f.write(final_obj_to_save)
                             save_file_success = True
                         except Exception as e:
-                            log_debug(f"Failed to write BMG: {e}")
+                            log_debug(f"Failed to write BMG: {e}", category="file_ops")
                             save_file_success = False
                     else:
                         # Fallback for unknown extensions
@@ -326,33 +370,47 @@ class DataStateProcessor:
                                 archive_rel_path = sub_path[:ark_idx + 4]
                                 modified_archives.add(archive_rel_path)
 
-                    # Pack each modified archive back
+                    # Pack each modified archive back natively using ContainerManager
                     if modified_archives:
-                        import subprocess
-                        exe_path = Path("tools/ArcPack.exe").absolute()
-                        if exe_path.exists():
-                            for archive_rel_path in modified_archives:
-                                ext_trans_dir = Path(self.mw.project_manager.get_absolute_path(f".extracted/translation/{archive_rel_path}"))
-                                is_directory_mode = self.mw.project_manager.project.metadata.get('is_directory_mode', True)
-                                translation_path = self.mw.project_manager.project.metadata.get('translation_path')
+                        from core.containers import ContainerManager
+                        pack_errors = []
+                        for archive_rel_path in modified_archives:
+                            try:
+                                log_debug(f"Natively packing archive {archive_rel_path}...", category="file_ops")
+                                container = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=True)
                                 
-                                if translation_path:
-                                    if is_directory_mode:
-                                        dest_archive_path = Path(translation_path) / archive_rel_path
-                                    else:
-                                        dest_archive_path = Path(translation_path)
+                                # Write all modified files that belong to this archive
+                                for trans_file_rel, data_indices in file_to_data_indices.items():
+                                    prefix = ".extracted/translation/"
+                                    if not trans_file_rel.startswith(prefix):
+                                        continue
+                                    
+                                    sub_path = trans_file_rel[len(prefix):]
+                                    if sub_path.startswith(archive_rel_path + "/"):
+                                        inner_path = sub_path[len(archive_rel_path) + 1:]
+                                        trans_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
                                         
-                                    log_debug(f"Packing archive from {ext_trans_dir} to {dest_archive_path}")
-                                    dest_archive_path.parent.mkdir(parents=True, exist_ok=True)
-                                    result = subprocess.run([str(exe_path), str(ext_trans_dir), str(dest_archive_path)], capture_output=True, text=True)
-                                    if result.returncode != 0:
-                                        log_error(f"ArcPack failed with code {result.returncode}: {result.stderr}")
-                                        QMessageBox.warning(self.mw, "Archive Pack Warning", f"Failed to pack archive '{archive_rel_path}':\n{result.stderr}")
-                                    else:
-                                        log_debug(f"Successfully packed archive {archive_rel_path}")
-                        else:
-                            log_error(f"ArcPack.exe not found at {exe_path}")
-                            QMessageBox.warning(self.mw, "Archive Pack Error", "ArcPack.exe not found. Translation archives were not updated.")
+                                        if Path(trans_path).exists():
+                                            file_bytes = Path(trans_path).read_bytes()
+                                            container.write_file(inner_path, file_bytes)
+                                            log_debug(f"In-memory overlay: wrote {inner_path} into {archive_rel_path}", category="file_ops")
+
+                                # Pack and write bytes to the final destination path
+                                packed_bytes = container.pack()
+                                dest_archive_path = Path(self.mw.project_manager.get_absolute_path(archive_rel_path, is_translation=True))
+                                
+                                dest_archive_path.parent.mkdir(parents=True, exist_ok=True)
+                                dest_archive_path.write_bytes(packed_bytes)
+                                log_debug(f"Successfully packed and wrote archive to {dest_archive_path}", category="file_ops")
+                                # Invalidate the cache so next read gets the fresh on-disk version
+                                self.mw.project_manager.clear_archive_cache()
+                                
+                            except Exception as archive_err:
+                                log_error(f"Native packing failed for {archive_rel_path}: {archive_err}", exc_info=True, category="file_ops")
+                                pack_errors.append(f"{archive_rel_path}: {archive_err}")
+                                
+                        if pack_errors:
+                            QMessageBox.warning(self.mw, "Archive Pack Warning", f"Failed to pack some archives natively:\n" + "\n".join(pack_errors))
 
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
@@ -389,11 +447,13 @@ class DataStateProcessor:
                         return False
                 elif file_extension == '.bmg':
                     try:
-                        with Path(self.mw.data_store.edited_json_path).open('wb') as f:
+                        p = Path(self.mw.data_store.edited_json_path)
+                        p.parent.mkdir(parents=True, exist_ok=True)
+                        with p.open('wb') as f:
                             f.write(final_obj_to_save)
                         save_file_success = True
                     except Exception as e:
-                        log_debug(f"Failed to write BMG: {e}")
+                        log_debug(f"Failed to write BMG: {e}", category="file_ops")
                         QMessageBox.critical(self.mw, "Save Error", f"Failed to save BMG file: {e}")
                         save_file_success = False
                 
