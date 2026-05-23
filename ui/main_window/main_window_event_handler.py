@@ -21,6 +21,8 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
         if hasattr(self.mw, 'bfn_editor_action') and self.mw.bfn_editor_action:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)
+        if hasattr(self.mw, 'export_bmg_json_action') and self.mw.export_bmg_json_action:
+            self.mw.export_bmg_json_action.triggered.connect(self.mw.actions.export_current_bmg_to_json)
         if hasattr(self.mw, 'help_shortcuts_action'): self.mw.help_shortcuts_action.triggered.connect(self.mw.actions.show_shortcuts_help)
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.currentItemChanged.connect(self.mw.list_selection_handler.block_selected)
@@ -89,7 +91,16 @@ class MainWindowEventHandler:
             self.mw.help_button.clicked.connect(self.mw.actions.show_shortcuts_help)
 
         # File actions
-        if hasattr(self.mw, 'save_action'): self.mw.save_action.triggered.connect(self.mw.actions.trigger_save_action)
+        if hasattr(self.mw, 'save_action'):
+            try:
+                log_info(f"Connecting save_action: exists={self.mw.save_action is not None}", category="lifecycle")
+                if self.mw.save_action:
+                    self.mw.save_action.triggered.connect(self.mw.actions.trigger_save_action)
+                    log_info("Successfully connected save_action.triggered to trigger_save_action", category="lifecycle")
+                else:
+                    log_warning("save_action is None, cannot connect triggered signal!", category="lifecycle")
+            except Exception as conn_err:
+                log_error(f"Error connecting save_action signal: {conn_err}", exc_info=True, category="lifecycle")
         if hasattr(self.mw, 'reload_action'): self.mw.reload_action.triggered.connect(self.mw.app_action_handler.reload_original_data_action)
         if hasattr(self.mw, 'save_as_action'): self.mw.save_as_action.triggered.connect(self.mw.app_action_handler.save_as_dialog_action)
         if hasattr(self.mw, 'revert_action'): self.mw.revert_action.triggered.connect(self.mw.actions.trigger_revert_action)
@@ -101,6 +112,10 @@ class MainWindowEventHandler:
             self.mw.reload_tag_mappings_action.triggered.connect(self.mw.actions.trigger_reload_tag_mappings)
         if hasattr(self.mw, 'find_action'):
             self.mw.find_action.triggered.connect(self.mw.helper.toggle_search_panel)
+        if hasattr(self.mw, 'add_bookmark_action') and self.mw.add_bookmark_action:
+            self.mw.add_bookmark_action.triggered.connect(self.mw.bookmark_handler.add_bookmark)
+        if hasattr(self.mw, 'clear_bookmarks_action') and self.mw.clear_bookmarks_action:
+            self.mw.clear_bookmarks_action.triggered.connect(self.mw.bookmark_handler.clear_bookmarks)
         if hasattr(self.mw, 'open_ai_chat_action'):
             self.mw.open_ai_chat_action.triggered.connect(self.mw.ai_chat_handler.show_chat_window)
         if hasattr(self.mw, 'search_panel_widget'):
