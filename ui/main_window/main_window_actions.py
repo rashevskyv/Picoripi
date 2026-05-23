@@ -176,9 +176,18 @@ class MainWindowActions:
 
 
     def trigger_save_action(self):
-        log_info("Save action triggered.")
-        if self.mw.app_action_handler.save_data_action(ask_confirmation=True):
-             self.helper.rebuild_unsaved_block_indices()
+        log_info("Save action triggered.", category="file_ops")
+        try:
+            log_info(f"trigger_save_action details: has_app_action_handler={hasattr(self.mw, 'app_action_handler')}, "
+                     f"unsaved_changes={getattr(self.mw.data_store, 'unsaved_changes', 'N/A')}, "
+                     f"edited_keys_count={len(getattr(self.mw.data_store, 'edited_data', {}))}", category="file_ops")
+            if self.mw.app_action_handler.save_data_action(ask_confirmation=True):
+                 self.helper.rebuild_unsaved_block_indices()
+                 log_info("Save action processed and unsaved block indices rebuilt.", category="file_ops")
+            else:
+                 log_info("Save action was cancelled or returned False.", category="file_ops")
+        except Exception as save_err:
+            log_error(f"CRITICAL ERROR in trigger_save_action: {save_err}", exc_info=True, category="file_ops")
 
     def trigger_revert_action(self):
         log_info("Revert changes file action triggered.")
@@ -446,9 +455,108 @@ class MainWindowActions:
             
         log_info("BFN Editor: font metrics reloaded and silent full project recalculation started.")
 
+    def export_current_bmg_to_json(self):
+        """Export the currently selected BMG file's text content to a JSON file for inspection."""
+        import json
+        from pathlib import Path
+        from PyQt5.QtWidgets import QMessageBox, QFileDialog
+        from bmg_tool import BMGFile
+
+        pm = getattr(self.mw, 'project_manager', None)
+        ds = getattr(self.mw, 'data_store', None)
+
+        if not pm or not pm.project or ds is None or ds.current_block_idx == -1:
+            QMessageBox.warning(self.mw, 'Export BMG', 'No block selected. Please select a BMG block first.')
+            return
+
+        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        proj_b_idx = block_map.get(ds.current_block_idx)
+        if proj_b_idx is None or proj_b_idx >= len(pm.project.blocks):
+            QMessageBox.warning(self.mw, 'Export BMG', 'Cannot resolve the selected block to a project file.')
+            return
+
+        block = pm.project.blocks[proj_b_idx]
+        is_archive = block.metadata.get('is_archive_member', False)
+
+        # Determine which BMGs to export: translation first, then source
+        def _read_bmg_bytes(is_translation: bool):
+            if is_archive:
+                arc_rel = block.metadata.get('archive_rel_path', '')
+                inner = block.metadata.get('archive_file_name', '')
+                try:
+                    container = pm.get_archive_container(arc_rel, is_translation=is_translation)
+                    return container.read_file(inner), f"{arc_rel}/{inner}"
+                except Exception:
+                    return None, ''
+            else:
+                path = pm.get_absolute_path(
+                    block.translation_file if is_translation else block.source_file,
+                    is_translation=is_translation
+                )
+                if Path(path).exists() and path.lower().endswith('.bmg'):
+                    return Path(path).read_bytes(), path
+                return None, ''
+
+        # Try translation first, fallback to source
+        raw_trans, label_trans = _read_bmg_bytes(is_translation=True)
+        raw_src, label_src = _read_bmg_bytes(is_translation=False)
+
+        if raw_trans is None and raw_src is None:
+            QMessageBox.warning(self.mw, 'Export BMG',
+                'The selected block does not appear to reference a BMG file.')
+            return
+
+        def bmg_bytes_to_dict(raw: bytes, label: str) -> dict:
+            bmg = BMGFile()
+            bmg.load(raw)
+            messages = []
+            for msg in bmg.messages:
+                d = msg.to_dict()
+                d['id'] = getattr(msg, 'id', None)
+                messages.append(d)
+            return {
+                'source': label,
+                'encoding': bmg.encoding,
+                'endianness': 'big' if bmg.endianness == '>' else 'little',
+                'file_id': bmg.id,
+                'section_order': bmg.section_order,
+                'message_count': len(messages),
+                'messages': messages
+            }
+
+        export_data = {}
+        if raw_src is not None:
+            export_data['source'] = bmg_bytes_to_dict(raw_src, label_src)
+        if raw_trans is not None:
+            export_data['translation'] = bmg_bytes_to_dict(raw_trans, label_trans)
+
+        # Ask where to save
+        block_name = block.name.replace('/', '_').replace('\\', '_')
+        default_name = f"{block_name}_bmg_export.json"
+        save_path, _ = QFileDialog.getSaveFileName(
+            self.mw,
+            'Export BMG to JSON',
+            str(Path.home() / default_name),
+            'JSON Files (*.json);;All Files (*)'
+        )
+        if not save_path:
+            return
+
+        try:
+            with open(save_path, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            QMessageBox.information(
+                self.mw, 'Export BMG',
+                f'Successfully exported BMG content to:\n{save_path}\n\n'
+                f'Messages: {export_data.get("source", export_data.get("translation", {})).get("message_count", 0)}'
+            )
+        except Exception as e:
+            QMessageBox.critical(self.mw, 'Export BMG', f'Failed to save JSON:\n{e}')
+
     def trigger_recalculate_widths(self):
         """Force recalculate text widths and issues for the entire project."""
         from PyQt5.QtWidgets import QMessageBox
+
         
         # 1. Reload font metrics
         sm = getattr(self.mw, 'settings_manager', None)

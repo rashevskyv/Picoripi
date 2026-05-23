@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.95] - 2026-05-23
+
+### Added
+- **Tools Menu: Export Current BMG to JSON**: Added a new action `Tools → Export Current BMG to JSON...` that exports the text content of the currently selected BMG block to a human-readable JSON file.
+  - Reads both the **source** (ENG) and **translation** (UA) BMG files from their respective archives.
+  - The resulting JSON contains all message metadata: `id`, `is_null`, `info` (hex), and `parts` (text strings and escape tags serialized via `BMGMessage.to_dict()`).
+  - Includes file header info: `encoding`, `endianness`, `file_id`, `section_order`, `message_count`.
+  - Provides a save file dialog with a default name based on the block name.
+  - Action is enabled only when a project is open, and automatically enables/disables with the project via `_set_project_actions_enabled()`.
+  - Useful for debugging: you can verify exactly what text is stored in the archive before and after translation.
+
 ## [0.2.94] - 2026-05-23
 
 ### Fixed

@@ -42,6 +42,10 @@ class ProjectActionHandler(BaseHandler):
             'add_folder_button': {
                 'enabled_tip': "Create new virtual folder",
                 'disabled_tip': "Creating folders is only available in Project mode (within a .uiproj project)."
+            },
+            'export_bmg_json_action': {
+                'enabled_tip': "Export the currently selected BMG file's text content to JSON",
+                'disabled_tip': "Export BMG to JSON is only available when a project is open."
             }
         }
         for action_name, tips in actions_map.items():
@@ -189,6 +193,8 @@ class ProjectActionHandler(BaseHandler):
             # Update UI
             self.ui_updater.update_title()
             self._populate_blocks_from_project()
+            if hasattr(self.mw, 'bookmark_handler'):
+                self.mw.bookmark_handler.update_bookmarks_menu()
 
             log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
         else:
@@ -233,6 +239,10 @@ class ProjectActionHandler(BaseHandler):
             self.mw.settings_manager.set("last_opened_path", "")
             self.mw.settings_manager.set("active_game_plugin", "")
             self.mw.settings_manager.save_settings()
+        
+        if hasattr(self.mw, 'bookmark_handler'):
+            self.mw.bookmarks = self.mw.settings_manager.get('bookmarks', [])
+            self.mw.bookmark_handler.update_bookmarks_menu()
 
         # Reset plugin settings to defaults
         if hasattr(self.mw, 'settings_manager'):
@@ -731,9 +741,32 @@ class ProjectActionHandler(BaseHandler):
                 else:
                     error = "Translation file does not exist"
 
+            parsed_edited_data = None
             if not error and file_content is not None and self.mw.current_game_rules:
-                parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-                
+                try:
+                    parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+                except Exception as parse_err:
+                    log_error(f"CORRUPT BMG: Failed to parse translation for {block.name} (archive {archive_rel_path}/{inner_path}): {parse_err}. Falling back to source.", category="file_ops")
+                    # Fallback: Read source file content instead
+                    file_content_src = None
+                    try:
+                        if is_archive:
+                            container_src = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=False)
+                            file_content_src = container_src.read_file(inner_path)
+                        else:
+                            source_path = self.mw.project_manager.get_absolute_path(block.source_file)
+                            if Path(source_path).exists():
+                                file_content_src = Path(source_path).read_bytes()
+                    except Exception:
+                        pass
+                    
+                    if file_content_src is not None:
+                        try:
+                            parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content_src)
+                        except Exception:
+                            parsed_edited_data = None
+
+            if parsed_edited_data is not None:
                 # Force match the number of blocks to the source structure
                 for i in range(expected_count):
                     if i < len(parsed_edited_data):
@@ -901,6 +934,8 @@ class ProjectActionHandler(BaseHandler):
             # 6. Populate UI components with the new project data
             self.ui_updater.update_title()
             self._populate_blocks_from_project()
+            if hasattr(self.mw, 'bookmark_handler'):
+                self.mw.bookmark_handler.update_bookmarks_menu()
             
             log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
 

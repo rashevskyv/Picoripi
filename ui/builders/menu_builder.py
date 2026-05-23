@@ -28,6 +28,7 @@ class MenuBuilder:
         self._build_view_menu(menubar)
         self._build_tools_menu(menubar)
         self._build_navigation_menu(menubar)
+        self._build_bookmarks_menu(menubar)
         self._build_help_menu(menubar)
 
     def _build_file_menu(self, menubar):
@@ -199,6 +200,20 @@ class MenuBuilder:
         self.mw.bfn_editor_action.setToolTip('Open the BFN Font Editor (Nintendo binary font)')
         tools_menu.addAction(self.mw.bfn_editor_action)
 
+        tools_menu.addSeparator()
+
+        self.mw.export_bmg_json_action = QAction(
+            self.style.standardIcon(QStyle.SP_DialogSaveButton),
+            'Export Current BMG to &JSON...',
+            self.mw
+        )
+        self.mw.export_bmg_json_action.setToolTip(
+            'Export the text content of the currently selected BMG file to a JSON file for inspection'
+        )
+        self.mw.export_bmg_json_action.setEnabled(False)
+        tools_menu.addAction(self.mw.export_bmg_json_action)
+
+
     def _build_navigation_menu(self, menubar):
         self.mw.navigation_menu = menubar.addMenu('&Navigation')
         self.mw.navigation_menu.setToolTipsVisible(True)
@@ -223,6 +238,25 @@ class MenuBuilder:
         self.mw.prev_folder_nav_action.setShortcut(QKeySequence('Alt+Shift+Left'))
         self.mw.prev_folder_nav_action.setShortcutContext(Qt.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.prev_folder_nav_action)
+
+    def _build_bookmarks_menu(self, menubar):
+        bookmarks_menu = menubar.addMenu('&Bookmarks')
+        bookmarks_menu.setToolTipsVisible(True)
+        bookmarks_menu.installEventFilter(self.tooltip_filter)
+        self.mw.bookmarks_menu = bookmarks_menu
+
+        # Add Bookmark Action
+        self.mw.add_bookmark_action = QAction('&Add Bookmark...', self.mw)
+        self.mw.add_bookmark_action.setShortcut('Ctrl+B')
+        self.mw.add_bookmark_action.setToolTip("Add bookmark at the current line of the active block (Ctrl+B)")
+        bookmarks_menu.addAction(self.mw.add_bookmark_action)
+
+        # Clear Bookmarks Action
+        self.mw.clear_bookmarks_action = QAction('&Clear All Bookmarks', self.mw)
+        self.mw.clear_bookmarks_action.setToolTip("Delete all bookmarks persistently")
+        bookmarks_menu.addAction(self.mw.clear_bookmarks_action)
+
+        bookmarks_menu.addSeparator()
 
     def _build_help_menu(self, menubar):
         self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.SP_DialogHelpButton)), '&Shortcuts Help', self.mw)
