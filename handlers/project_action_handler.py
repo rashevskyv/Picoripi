@@ -767,12 +767,33 @@ class ProjectActionHandler(BaseHandler):
                             parsed_edited_data = None
 
             if parsed_edited_data is not None:
-                # Force match the number of blocks to the source structure
-                for i in range(expected_count):
-                    if i < len(parsed_edited_data):
-                        self.mw.data_store.edited_file_data.append(parsed_edited_data[i])
+                if block.internal_key:
+                    # Source uses internal_key to find the correct sub-block index.
+                    # edited_file_data must use the same sub-block, not always index 0.
+                    sub_idx_edit = -1
+                    try:
+                        _, trans_names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+                    except Exception:
+                        trans_names = {}
+                    for i_n, name_n in trans_names.items():
+                        if name_n == block.internal_key:
+                            sub_idx_edit = int(i_n)
+                            break
+                    if sub_idx_edit != -1 and sub_idx_edit < len(parsed_edited_data):
+                        self.mw.data_store.edited_file_data.append(parsed_edited_data[sub_idx_edit])
+                    elif parsed_edited_data:
+                        # Fallback: use first block if key not found
+                        self.mw.data_store.edited_file_data.append(parsed_edited_data[0])
                     else:
-                        self.mw.data_store.edited_file_data.append([]) # Pad if translation has fewer blocks
+                        self.mw.data_store.edited_file_data.append([])
+                else:
+                    # No internal key: load all sub-blocks in order
+                    for i in range(expected_count):
+                        if i < len(parsed_edited_data):
+                            self.mw.data_store.edited_file_data.append(parsed_edited_data[i])
+                        else:
+                            self.mw.data_store.edited_file_data.append([])
+
             else:
                 for _ in range(expected_count):
                     self.mw.data_store.edited_file_data.append([])

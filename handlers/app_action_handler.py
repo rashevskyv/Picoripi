@@ -141,8 +141,14 @@ class AppActionHandler(BaseHandler):
         """
         High-level save action that delegates to the data processor.
         """
-        log_info(f"AppActionHandler: save_data_action called (confirm={ask_confirmation})")
-        return bool(self.data_processor.save_current_edits(ask_confirmation))
+        log_info(f"AppActionHandler: save_data_action called (confirm={ask_confirmation})", category="file_ops")
+        try:
+            res = bool(self.data_processor.save_current_edits(ask_confirmation))
+            log_info(f"AppActionHandler: save_data_action finished successfully with result={res}", category="file_ops")
+            return res
+        except Exception as err:
+            log_error(f"Error in AppActionHandler.save_data_action: {err}", exc_info=True, category="file_ops")
+            return False
 
     def save_as_dialog_action(self) -> None:
         log_info("Save As Dialog action triggered.")

@@ -17,6 +17,12 @@ class LNETKeyboardHandler:
         editor = self.editor
         main_window = editor.window()
 
+        # --- Allow Ctrl+S to propagate to parent window actions ---
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_S:
+            from utils.logging_utils import log_debug
+            log_debug("LNETKeyboardHandler: Ctrl+S detected. Let it propagate to parent window.")
+            return False
+
         # --- Undo ---
         is_undo = event.matches(QKeySequence.Undo) or \
                   (event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Z)

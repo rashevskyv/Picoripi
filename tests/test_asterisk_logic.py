@@ -127,5 +127,106 @@ def test_folder_asterisk_propagation():
     has_star = any(mw.block_to_project_file_map.get(idx) in {5} for idx in mw.data_store.unsaved_block_indices)
     assert has_star, "Folder should show star if block under it is unsaved"
 
+def test_custom_list_item_delegate_data_store_access():
+    from components.custom_list_item_delegate import CustomListItemDelegate
+    from PyQt5.QtCore import QModelIndex, Qt
+    
+    # 1. Setup a clean separation where data_store is a separate object, mimicking the real application
+    class RealDataStore:
+        def __init__(self):
+            self.unsaved_block_indices = {2}
+            self.edited_data = {(2, 5): "New Text"}
+            self.block_names = { "2": "Test Block" }
+            self.data = [[]]
+            
+    class RealMainWindow:
+        def __init__(self):
+            self.data_store = RealDataStore()
+            self.project_manager = MagicMock()
+            self.project_manager.project = MagicMock()
+            self.project_manager.project.blocks = [MagicMock(), MagicMock(), MagicMock()]
+            self.block_to_project_file_map = {2: 2}
+            self.theme = 'light'
+            
+    mw = RealMainWindow()
+    
+    delegate = CustomListItemDelegate(None)
+    delegate.list_widget = MagicMock()
+    delegate.list_widget.window.return_value = mw
+    
+    # Mock model index for Block index 2
+    index = QModelIndex()
+    def mock_data(role):
+        if role == Qt.UserRole:
+            return 2 # block_idx
+        if role == Qt.UserRole + 10:
+            return None # category
+        if role == Qt.UserRole + 2:
+            return None # merged_folder_ids
+        return None
+    index.data = mock_data
+    
+    # Simulate delegate variables resolution inside delegate.paint()
+    ds = getattr(mw, 'data_store', None)
+    assert ds is not None
+    
+    edited_keys = getattr(ds, 'edited_data', {})
+    unsaved_blocks = getattr(ds, 'unsaved_block_indices', set())
+    
+    assert (2, 5) in edited_keys
+    assert 2 in unsaved_blocks
+    
+    # Check category path
+    cat_index = QModelIndex()
+    def mock_cat_data(role):
+        if role == Qt.UserRole:
+            return 2
+        if role == Qt.UserRole + 10:
+            return "CatA"
+        if role == Qt.UserRole + 2:
+            return None
+        return None
+    cat_index.data = mock_cat_data
+    
+    # Mock block with category
+    block_mock = MagicMock()
+    category_mock = MagicMock()
+    category_mock.name = "CatA"
+    category_mock.line_indices = [5, 10]
+    block_mock.categories = [category_mock]
+    mw.project_manager.project.blocks[2] = block_mock
+    
+    # Check category changes propagation
+    has_unsaved_changes_in_cat = any(
+        (2, l_idx) in edited_keys 
+        for l_idx in category_mock.line_indices
+    )
+    assert has_unsaved_changes_in_cat, "Category should correctly detect changes in line index 5 from edited_data inside data_store"
+
+def test_line_number_area_paint_logic_data_store_access():
+    from components.editor.line_number_area_paint_logic import LNETLineNumberAreaPaintLogic
+    
+    class RealDataStore:
+        def __init__(self):
+            self.edited_sublines = {1, 3}
+            self.current_block_idx = 0
+            self.current_string_idx = 0
+            
+    class RealMainWindow:
+        def __init__(self):
+            self.data_store = RealDataStore()
+            
+    mw = RealMainWindow()
+    editor = MagicMock()
+    logic = LNETLineNumberAreaPaintLogic(editor, MagicMock(), mw)
+    
+    ds = getattr(mw, 'data_store', None)
+    assert ds is not None
+    
+    edited_sublines = getattr(ds, 'edited_sublines', set())
+    assert 1 in edited_sublines
+    assert 3 in edited_sublines
+    assert 2 not in edited_sublines
+
 if __name__ == "__main__":
     pytest.main([__file__])

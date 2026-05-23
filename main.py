@@ -33,6 +33,7 @@ from handlers.string_settings_handler import StringSettingsHandler
 from handlers.translation_handler import TranslationHandler
 from handlers.text_analysis_handler import TextAnalysisHandler
 from handlers.ai_chat_handler import AIChatHandler
+from handlers.bookmark_handler import BookmarkHandler
 
 from core.settings_manager import SettingsManager
 from core.data_state_processor import DataStateProcessor
@@ -250,6 +251,7 @@ class MainWindow(QMainWindow):
         self.translation_handler = TranslationHandler(self, self.data_processor, self.ui_updater)
         self.text_analysis_handler = TextAnalysisHandler(self, self.data_processor, self.ui_updater)
         self.ai_chat_handler = AIChatHandler(self, self.data_processor, self.ui_updater)
+        self.bookmark_handler = BookmarkHandler(self, self.data_processor, self.ui_updater)
         self.hotkey_manager = HotkeyManager(self)
 
     def _init_ui(self) -> None:
@@ -370,6 +372,9 @@ class MainWindow(QMainWindow):
 
         current_block = self.data_store.current_block_idx
         self.list_selection_handler._update_block_toolbar_button_states(current_block)
+
+        if hasattr(self, 'bookmark_handler'):
+            self.bookmark_handler.update_bookmarks_menu()
 
         self.ui_updater.update_title()
         self.ui_updater.update_preview_visibility()

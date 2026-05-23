@@ -241,7 +241,7 @@ class TextOperationHandler(BaseHandler):
         Compares the current text of a string with its original version from the file 
         and updates mw.data_store.edited_sublines to show asterisks (*) on modified sublines in the editor.
         """
-        if not hasattr(self.mw, 'edited_sublines'):
+        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_sublines'):
             return
 
         # Determine the baseline (original) text for comparison
