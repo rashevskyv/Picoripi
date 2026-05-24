@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.101] - 2026-05-24
+
+### Fixed
+- **BFN Editor: Empty Glyph Support for Character Mapping & Rendering**: Fixed issues when attempting to map, render, or save newly assigned characters for completely empty (unmapped) glyphs (e.g. glyphs with no pre-existing MAP1 entries in the `.bfn` file).
+  - In `on_table_item_changed`, fixed a blocking guard `if not orig_char: return` which was preventing the editor from assigning virtual characters (`reverse_translation_map`) to empty glyphs.
+  - In `load_translation_map`, fixed a filtering condition `ord(k) >= 128` that was discarding synthetic keys like `#g182` due to the ASCII value of `#` being lower than 128. Synthetic keys are now explicitly preserved and successfully reloaded upon restarting the application.
+- **BFN Editor: Automatic Metric Calibration for Empty Glyphs**: Fixed a bug where auto-detecting and applying width metrics during font rendering was skipped for empty glyphs.
+  - Extended the WID1 packet array on-the-fly both inside the rendering loop (`bfn_io.py`) and inside the command undo/redo structures (`RenderFontCommand` in `bfn_commands.py`) whenever a glyph's index falls outside the initial WID1 range. This guarantees that newly rendered Cyrillic characters are perfectly calibrated using pixel-accurate automatic widths immediately after generation, even if their respective physical glyphs were originally unallocated.
+
 ## [0.2.100] - 2026-05-24
 
 ### Added

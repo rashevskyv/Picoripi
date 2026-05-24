@@ -527,6 +527,12 @@ class BfnIoMixin:
                     if virtual_char:
                         char_val = virtual_char
                 glyph_to_char[idx] = char_val
+            elif hasattr(self, 'translation_map') and self.translation_map:
+                # Glyph has no MAP1 entry: check for a synthetic mapping "#g{idx}"
+                synthetic_key = f"#g{idx}"
+                virtual_char = self.translation_map.get(synthetic_key, "")
+                if virtual_char:
+                    glyph_to_char[idx] = virtual_char
                 
         # Determine current or fallback glyphs for interactive real-time preview
         has_sel = (selected_glyphs and len(selected_glyphs) > 0) or (self.selected_cell is not None and self.current_sheet_index >= 0)
@@ -776,7 +782,12 @@ class BfnIoMixin:
                     new_width = right_boundary - new_kern + 1
                     
                 wid_idx = idx - self.first_code
-                if 0 <= wid_idx < len(packets):
+                if 0 <= wid_idx:
+                    # Extend packets if this glyph is beyond the current WID1 range
+                    if wid_idx >= len(packets):
+                        padding_count = wid_idx - len(packets) + 1
+                        packets.extend([{"kerning": 0, "width": self.cell_w} for _ in range(padding_count)])
+                        wid["last_code_included"] = self.first_code + len(packets)
                     old_kern = packets[wid_idx]["kerning"]
                     old_width = packets[wid_idx]["width"]
                     metrics_changes.append((idx, old_kern, new_kern, old_width, new_width))

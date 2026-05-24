@@ -200,6 +200,10 @@ class RenderFontCommand(QtWidgets.QUndoCommand):
             packets = wid.get("packets", [])
             for glyph_idx, old_kern, _, old_width, _ in self.metrics_changes:
                 wid_idx = glyph_idx - self.viewer.first_code
+                if wid_idx >= len(packets):
+                    padding_count = wid_idx - len(packets) + 1
+                    packets.extend([{"kerning": 0, "width": self.viewer.cell_w} for _ in range(padding_count)])
+                    wid["last_code_included"] = self.viewer.first_code + len(packets)
                 if 0 <= wid_idx < len(packets):
                     packets[wid_idx]["kerning"] = old_kern
                     packets[wid_idx]["width"] = old_width
@@ -233,6 +237,10 @@ class RenderFontCommand(QtWidgets.QUndoCommand):
             packets = wid.get("packets", [])
             for glyph_idx, _, new_kern, _, new_width in self.metrics_changes:
                 wid_idx = glyph_idx - self.viewer.first_code
+                if wid_idx >= len(packets):
+                    padding_count = wid_idx - len(packets) + 1
+                    packets.extend([{"kerning": 0, "width": self.viewer.cell_w} for _ in range(padding_count)])
+                    wid["last_code_included"] = self.viewer.first_code + len(packets)
                 if 0 <= wid_idx < len(packets):
                     packets[wid_idx]["kerning"] = new_kern
                     packets[wid_idx]["width"] = new_width
