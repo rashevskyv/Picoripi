@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.106] - 2026-05-24
+
+### Fixed
+- **BFN Editor: Fixed Load-Order and Migration Bugs**: Resolved a critical load-order sequence bug in `load_from_extracted_dir()` inside `bfn_io.py` where `load_translation_map()` was called before the `metadata` was parsed from `data.json`, causing the physical `MAP1` mappings to be overwritten and leading to Cyrillic letters disappearing upon restart.
+- **BFN Editor: Enhanced Forceful Synthetic Key Migration**: Upgraded the migration pipeline in `load_translation_map()` to always forcefully migrate synthetic keys to physical codes using `get_next_free_char_code()`, bypassing mapping conflicts on standard range structures. Cyrillic letters like `"я"` now render perfectly in the game instead of the placeholder character `"à"`.
+
 ## [0.2.105] - 2026-05-24
 
 ### Added
