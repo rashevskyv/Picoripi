@@ -243,6 +243,8 @@ class DataStateProcessor:
                 if hasattr(self.mw.current_game_rules, 'original_keys'):
                     global_keys_backup = list(self.mw.current_game_rules.original_keys)
 
+                files_saved_in_this_transaction = set()
+
                 for trans_file_rel, data_indices in file_to_data_indices.items():
                     # Check if this specific file has any unsaved edits
                     has_edits = False
@@ -347,7 +349,9 @@ class DataStateProcessor:
 
 
                     # Call plugin to map data back into its JSON/Txt structure
+                    log_debug(f"Calling plugin save_data_to_json_obj for '{trans_file_rel}'. data len={len(file_data_list)}, type={type(file_data_list)}", category="file_ops")
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
+                    log_debug(f"Plugin save_data_to_json_obj returned object of type={type(final_obj_to_save)}, len={len(final_obj_to_save) if hasattr(final_obj_to_save, '__len__') else 'N/A'}", category="file_ops")
                     
                     # Save to the specific translation path
                     file_extension = Path(trans_path).suffix.lower()
@@ -376,6 +380,8 @@ class DataStateProcessor:
                     if not save_file_success:
                         success_all = False
                         break
+                    else:
+                        files_saved_in_this_transaction.add(trans_file_rel)
                 
                 if success_all:
                     # Collect unique modified archives
@@ -420,6 +426,9 @@ class DataStateProcessor:
                                 
                                 # Write all modified files that belong to this archive
                                 for trans_file_rel, data_indices in file_to_data_indices.items():
+                                    if trans_file_rel not in files_saved_in_this_transaction:
+                                        continue
+                                    
                                     prefix = ".extracted/translation/"
                                     if not trans_file_rel.startswith(prefix):
                                         continue

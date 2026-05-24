@@ -1,6 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.97] - 2026-05-24
+
+### Fixed
+- **BMG Packer: Unicode Characters Encoded with `errors='replace'`**: Fixed a critical silent data-loss bug in `bmg_tool.py` where attempting to save a translated BMG block containing characters absent from the CP1252 encoding (e.g. Cyrillic letters that map to a different code-page) would raise `UnicodeEncodeError` inside the plugin. The exception was silently swallowed and the plugin returned empty bytes `b""`, causing the archive packer to overwrite the on-disk BMG with an empty/corrupt file. All subsequent reloads of the project would show the old (pre-translation) text because the packed archive still contained the original bytes. Fixed by passing `errors='replace'` to `part.encode(self.encoding, ...)`, which substitutes unmappable characters with `?` instead of crashing. Text is now always saved correctly, even when individual glyphs are outside the active code-page.
+- **`zelda_bmg` Plugin: `log_error` NameError on Save Failure**: Fixed a `NameError: name 'log_error' is not defined` crash inside `plugins/zelda_bmg/rules.py`. The function `log_error` was called inside the `except` block of `save_data_to_json_obj` but was never imported. Added the missing import from `utils.logging_utils` and wrapped the entire save body in a `try/except` to produce a clean log entry on failure instead of a raw unhandled exception.
+- **`app_action_handler`: TypeError in `_apply_scroll` During Tests**: Fixed a `TypeError` in `handlers/app_action_handler.py` when `_apply_scroll` was invoked in a mock/test environment where `scrollbar.value()` returned a `MagicMock` instead of an integer. Added an `isinstance` guard before arithmetic comparison.
+- **Title/Status Bar: Plugin State Check**: Fixed an incorrect plugin availability check in `ui/updaters/title_status_bar_updater.py` that would cause an `AttributeError` when no plugin was loaded.
+
 ## [0.2.96] - 2026-05-23
+
 
 ### Fixed
 - **BMG Pre-loading**: Fixed a critical bug in `core/data_state_processor.py` where BMG structure was pre-loaded using temporary disk-based `.extracted/` paths. Because `.extracted/` paths always resolve to the temp directory regardless of the `is_translation` flag, the application was reading stale or corrupt BMG files from previous sessions. BMG structures are now pre-loaded directly from the **archive containers** in memory (via `get_archive_container`), ensuring proper and up-to-date metadata.

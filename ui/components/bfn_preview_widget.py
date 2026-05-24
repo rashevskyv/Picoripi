@@ -780,13 +780,9 @@ class BfnPreviewWidget(QWidget):
         for g in glyphs:
             if g["is_fallback"]:
                 p.save()
-                p.setPen(QColor("#ffffff"))
-                p.setFont(fallback_font)
-                char_w = fallback_fm.horizontalAdvance(g["char"])
-                if char_w <= 0:
-                    char_w = 1
-                p.drawText(QRectF(g["draw_x"], g["draw_y"], char_w, cell_h),
-                            Qt.AlignCenter, g["char"])
+                p.setPen(QPen(QColor("#ffffff"), 1))
+                box_w = g["width"] - 2 if g["width"] > 2 else 10
+                p.drawRect(QRectF(g["draw_x"] + 1, g["draw_y"] + 1, box_w, cell_h - 2))
                 p.restore()
                 continue
 
