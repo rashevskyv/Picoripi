@@ -245,7 +245,7 @@ class BMGFile:
             # Build and append message string with escape tags
             for part in msg.parts:
                 if isinstance(part, str):
-                    dat1.extend(part.encode(full_enc))
+                    dat1.extend(part.encode(full_enc, errors='replace'))
                 elif isinstance(part, dict) and part.get("type") == "escape":
                     esc_type = part["escape_type"]
                     esc_data = bytes.fromhex(part["data"])

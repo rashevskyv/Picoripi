@@ -6,7 +6,7 @@ from typing import Any, Tuple, Dict, List, Set, Optional
 from PyQt5.QtGui import QTextCharFormat, QColor, QFont
 
 from plugins.base_game_rules import BaseGameRules
-from utils.logging_utils import log_info, log_warning, log_debug
+from utils.logging_utils import log_info, log_warning, log_debug, log_error
 from utils.utils import convert_spaces_to_dots_for_display
 
 # Load mapping for Ukrainian letters
@@ -180,39 +180,43 @@ class GameRules(BaseGameRules):
         return [strings_list], block_names
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
-        if not data or not isinstance(data[0], list):
-            return b""
-
-        strings_list = data[0]
-        from bmg_tool import BMGFile, BMGMessage
-
-        bmg = self.last_loaded_bmg
-        if not bmg:
-            # Fallback if no file was previously loaded
-            bmg = BMGFile()
-            bmg.endianness = '>'
-            bmg.encoding = 'cp1252'
-            bmg.id = 0
-
-        new_messages = []
-        for idx, text in enumerate(strings_list):
-            orig_msg = bmg.messages[idx] if bmg and idx < len(bmg.messages) else None
-            msg_id = getattr(orig_msg, 'id', idx) if orig_msg else idx
-            info = getattr(orig_msg, 'info', b'\x00\x00\x00\x00') if orig_msg else b'\x00\x00\x00\x00'
-            is_null = getattr(orig_msg, 'is_null', False) if orig_msg else False
-            
-            msg = BMGMessage(info=info, parts=self.editor_text_to_msg_content(text), is_null=is_null)
-            msg.id = msg_id
-            new_messages.append(msg)
-
-        bmg.messages = new_messages
-
         try:
+            log_debug(f"zelda_bmg: save_data_to_json_obj called. data type={type(data)}, len={len(data) if data else 0}", category="file_ops")
+            if data and len(data) > 0:
+                log_debug(f"zelda_bmg: data[0] type={type(data[0])}, len={len(data[0]) if hasattr(data[0], '__len__') else 'N/A'}", category="file_ops")
+            if not data or not isinstance(data[0], list):
+                log_warning("zelda_bmg: save_data_to_json_obj early exit because data is empty or data[0] is not a list!", category="file_ops")
+                return b""
+
+            strings_list = data[0]
+            from bmg_tool import BMGFile, BMGMessage
+
+            bmg = self.last_loaded_bmg
+            if not bmg:
+                # Fallback if no file was previously loaded
+                bmg = BMGFile()
+                bmg.endianness = '>'
+                bmg.encoding = 'cp1252'
+                bmg.id = 0
+
+            new_messages = []
+            for idx, text in enumerate(strings_list):
+                orig_msg = bmg.messages[idx] if bmg and idx < len(bmg.messages) else None
+                msg_id = getattr(orig_msg, 'id', idx) if orig_msg else idx
+                info = getattr(orig_msg, 'info', b'\x00\x00\x00\x00') if orig_msg else b'\x00\x00\x00\x00'
+                is_null = getattr(orig_msg, 'is_null', False) if orig_msg else False
+                
+                msg = BMGMessage(info=info, parts=self.editor_text_to_msg_content(text), is_null=is_null)
+                msg.id = msg_id
+                new_messages.append(msg)
+
+            bmg.messages = new_messages
+
             out_bytes = bmg.save()
-            log_info(f"Successfully packed {len(new_messages)} messages into BMG binary.")
+            log_info(f"Successfully packed {len(new_messages)} messages into BMG binary.", category="file_ops")
             return out_bytes
         except Exception as e:
-            log_warning(f"Error packing BMG in plugin: {e}")
+            log_error(f"Error packing BMG in plugin: {e}", exc_info=True, category="file_ops")
             return b""
 
     def get_display_name(self) -> str:
