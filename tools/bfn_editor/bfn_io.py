@@ -494,12 +494,15 @@ class BfnIoMixin:
                         break
                 elif m_type == 2:
                     entries = m.get("entries", [])
-                    if idx < len(entries):
-                        code = entries[idx]
-                        try:
-                            char_val = chr(code)
-                        except Exception:
-                            pass
+                    for c_idx, g_idx in enumerate(entries):
+                        if g_idx == idx:
+                            code = m_first + c_idx
+                            try:
+                                char_val = chr(code)
+                            except Exception:
+                                pass
+                            break
+                    if char_val:
                         break
                 elif m_type == 3:
                     entries = m.get("entries", [])

@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.98] - 2026-05-24
+
+### Fixed
+- **BFN Font Editor: Sheet 0 Renders as Black on Initial Open**: Fixed a bug where opening the BFN Font Editor (or navigating from the Glyph Table to Sheet 0) caused the canvas to remain completely black until the user manually clicked on another sheet and returned to Sheet 0. Root cause: `set_current_sheet_row` blocks tree widget signals to avoid recursion when selecting the sheet item, which prevented `currentItemChanged` from firing and thus `select_sheet` (the method that actually loads and paints the sheet texture) was never called. Fixed by adding an explicit `self.select_sheet(sheet_idx)` call inside `set_current_sheet_row` after the tree selection is programmatically set.
+- **BFN Font Editor: "Render Font to Selected" Preview Shows Empty Glyph**: Fixed a bug where the "Render System Font to Glyphs" dialog showed a black square for the preview of the currently selected glyph. The character mapping lookup for `mapping_type == 2` in `bfn_io.py` was incorrectly using `entries[idx]` (direct index lookup by glyph index), which produced wrong or control character codes. The correct approach is to iterate entries searching for a matching glyph index and compute the character code as `m_first + c_idx`, consistent with all other places in the codebase that handle type-2 mappings.
+
 ## [0.2.97] - 2026-05-24
 
 ### Fixed
