@@ -827,6 +827,42 @@ def test_bfn_editor_window_generate_translation_map_ignores_ascii(qapp, dummy_bf
     editor.close()
 
 
+def test_bfn_editor_empty_glyph_automatic_physical_registration(qapp, dummy_bfn_bytes):
+    """Test that empty glyphs are automatically registered in MAP1 metadata with physical codes."""
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
+    
+    # Verify glyph 5 has no mapping in original/comparison font MAP1 (empty glyph)
+    orig_char = editor.get_original_char_for_glyph(5)
+    assert not orig_char
+    
+    # 1. Trigger manual change of glyph 5 Character (column 3) to "Я"
+    from PyQt5.QtWidgets import QTableWidgetItem
+    item = QTableWidgetItem("Я")
+    
+    # Setup table structure and mock item changed event
+    editor.table_glyphs.setItem(5, 3, item)
+    # Mock row header widget
+    row_header = QTableWidgetItem("5")
+    editor.table_glyphs.setVerticalHeaderItem(5, row_header)
+    
+    # Trigger cell edit manually
+    editor.on_table_item_changed(item)
+    
+    # Verify that:
+    # A) Glyph 5 is physically registered in MAP1 metadata
+    new_orig_char = editor.get_original_char_for_glyph(5)
+    assert new_orig_char == chr(5)
+    
+    # B) Virtual translation map contains clean mapping "Я" -> chr(5) without any synthetic "#g" keys!
+    assert editor.translation_map.get("Я") == chr(5)
+    assert editor.reverse_translation_map.get(chr(5)) == "Я"
+    assert "#g5" not in editor.translation_map
+    
+    editor.clear_temp()
+    editor.close()
+
+
 
 
 

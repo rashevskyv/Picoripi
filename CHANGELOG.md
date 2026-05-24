@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.103] - 2026-05-24
+
+### Fixed
+- **BFN Editor: Automatic Physical MAP1 Registration for Empty Glyphs**: Implemented automatic on-the-fly registration of physical character codes in the BFN `MAP1` metadata when assigning characters to previously unmapped (empty) glyphs.
+  - Upon manual editing (`on_table_item_changed`), sequence filling (`fill_sequence_dialog`), or clipboard pasting (`paste_glyph_values`), if a target glyph does not have a physical character mapping in `MAP1`, the editor automatically registers the physical code `glyph_idx` to this glyph.
+  - This converts previously synthetic empty-glyph mappings (like `#g224`) into clean, standard, and robust physical translations (e.g. `"я": "à"` where `"à"` is `chr(224)`), writing these physical mappings directly into the BFN file header and allowing the game engine to naturally locate these Cyrillic glyphs without custom runtime hacks.
+  - Keeps backward compatibility fallback in the Zelda BMG plugin to load and repack older virtual maps using synthetic `#g` keys correctly.
+  - Added full test coverage in `tests/test_ui/test_bfn_editor.py` with `test_bfn_editor_empty_glyph_automatic_physical_registration()` verifying the automatic physical registration pipeline.
+
 ## [0.2.102] - 2026-05-24
 
 ### Fixed
