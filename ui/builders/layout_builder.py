@@ -191,6 +191,7 @@ class LayoutBuilder:
         editable_text_header_layout.addWidget(self.mw.ai_variation_button)
 
         self.mw.auto_fix_button = QPushButton('Auto-fix')
+        self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A)")
         editable_text_header_layout.addWidget(self.mw.auto_fix_button)
 
         from PyQt5.QtGui import QIcon

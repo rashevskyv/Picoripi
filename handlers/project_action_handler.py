@@ -46,6 +46,10 @@ class ProjectActionHandler(BaseHandler):
             'export_bmg_json_action': {
                 'enabled_tip': "Export the currently selected BMG file's text content to JSON",
                 'disabled_tip': "Export BMG to JSON is only available when a project is open."
+            },
+            'import_bmg_json_action': {
+                'enabled_tip': "Import BMG text content from an exported JSON file into the currently selected block",
+                'disabled_tip': "Import BMG from JSON is only available when a project is open."
             }
         }
         for action_name, tips in actions_map.items():

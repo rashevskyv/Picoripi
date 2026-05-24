@@ -23,6 +23,8 @@ class MainWindowEventHandler:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)
         if hasattr(self.mw, 'export_bmg_json_action') and self.mw.export_bmg_json_action:
             self.mw.export_bmg_json_action.triggered.connect(self.mw.actions.export_current_bmg_to_json)
+        if hasattr(self.mw, 'import_bmg_json_action') and self.mw.import_bmg_json_action:
+            self.mw.import_bmg_json_action.triggered.connect(self.mw.actions.import_current_bmg_from_json)
         if hasattr(self.mw, 'help_shortcuts_action'): self.mw.help_shortcuts_action.triggered.connect(self.mw.actions.show_shortcuts_help)
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.currentItemChanged.connect(self.mw.list_selection_handler.block_selected)

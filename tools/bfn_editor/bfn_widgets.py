@@ -840,8 +840,96 @@ _LAST_RENDER_PARAMS = {
     "align_h": None,
     "align_v": None,
     "auto_metrics": True,
-    "antialiasing": True
+    "antialiasing": True,
+    "bold": False,
+    "italic": False,
+    "stretch": 100,
+    "v_scale": 100
 }
+
+
+class ScaleSliderWidget(QtWidgets.QWidget):
+    valueChanged = QtCore.pyqtSignal(int)
+    
+    def __init__(self, default_val=100, min_val=-200, max_val=400, parent=None):
+        super().__init__(parent)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        
+        # Min spinbox
+        self.spin_min = QtWidgets.QSpinBox()
+        self.spin_min.setRange(-2000, 2000)
+        self.spin_min.setValue(min_val)
+        self.spin_min.setToolTip("Minimum scale boundary")
+        self.spin_min.setFixedWidth(55)
+        
+        # Slider
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.setRange(min_val, max_val)
+        self.slider.setValue(default_val)
+        self.slider.setToolTip("Drag to adjust scale")
+        
+        # Max spinbox
+        self.spin_max = QtWidgets.QSpinBox()
+        self.spin_max.setRange(-2000, 2000)
+        self.spin_max.setValue(max_val)
+        self.spin_max.setToolTip("Maximum scale boundary")
+        self.spin_max.setFixedWidth(55)
+        
+        # Value spinbox
+        self.spin_val = QtWidgets.QSpinBox()
+        self.spin_val.setRange(-2000, 2000)
+        self.spin_val.setValue(default_val)
+        self.spin_val.setSuffix(" %")
+        self.spin_val.setToolTip("Current scale value")
+        self.spin_val.setFixedWidth(70)
+        
+        layout.addWidget(self.spin_min)
+        layout.addWidget(self.slider)
+        layout.addWidget(self.spin_max)
+        layout.addWidget(self.spin_val)
+        
+        # Connections
+        self.spin_min.valueChanged.connect(self._on_min_changed)
+        self.spin_max.valueChanged.connect(self._on_max_changed)
+        self.slider.valueChanged.connect(self._on_slider_changed)
+        self.spin_val.valueChanged.connect(self._on_spin_changed)
+        
+    def _on_min_changed(self, val):
+        if val >= self.spin_max.value():
+            self.spin_max.setValue(val + 1)
+        self.slider.setMinimum(val)
+        self.slider.setValue(self.spin_val.value())
+        
+    def _on_max_changed(self, val):
+        if val <= self.spin_min.value():
+            self.spin_min.setValue(val - 1)
+        self.slider.setMaximum(val)
+        self.slider.setValue(self.spin_val.value())
+        
+    def _on_slider_changed(self, val):
+        self.spin_val.blockSignals(True)
+        self.spin_val.setValue(val)
+        self.spin_val.blockSignals(False)
+        self.valueChanged.emit(val)
+        
+    def _on_spin_changed(self, val):
+        if val < self.spin_min.value():
+            self.spin_min.setValue(val)
+        elif val > self.spin_max.value():
+            self.spin_max.setValue(val)
+            
+        self.slider.blockSignals(True)
+        self.slider.setValue(val)
+        self.slider.blockSignals(False)
+        self.valueChanged.emit(val)
+        
+    def value(self):
+        return self.spin_val.value()
+        
+    def setValue(self, val):
+        self.spin_val.setValue(val)
 
 
 class RenderFontDialog(QtWidgets.QDialog):
@@ -919,7 +1007,10 @@ class RenderFontDialog(QtWidgets.QDialog):
         
         self.lbl_preview_info = QtWidgets.QLabel("Glyph 1 of 1")
         self.lbl_preview_info.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_preview_info.setStyleSheet("font-weight: bold; color: #00b4d8; font-size: 11px;")
+        self.lbl_preview_info.setStyleSheet("font-weight: bold; color: #00b4d8; font-size: 11px; text-decoration: underline;")
+        self.lbl_preview_info.setCursor(QtCore.Qt.PointingHandCursor)
+        self.lbl_preview_info.setToolTip("Click to jump to a specific glyph index, character, or position (e.g., 24)")
+        self.lbl_preview_info.mousePressEvent = self._on_preview_info_clicked
         
         self.btn_next = QtWidgets.QPushButton("▶")
         self.btn_next.setFixedSize(30, 24)
@@ -947,6 +1038,11 @@ class RenderFontDialog(QtWidgets.QDialog):
             self.font_combo.setCurrentFont(QtGui.QFont(_LAST_RENDER_PARAMS["font_family"]))
         form.addRow("Font Family:", self.font_combo)
         
+        # Configure font family search to match substrings/middle words
+        completer = self.font_combo.completer()
+        if completer:
+            completer.setFilterMode(QtCore.Qt.MatchContains)
+        
         # 2. Font Size
         self.spin_size = QtWidgets.QSpinBox()
         self.spin_size.setRange(6, 120)
@@ -956,6 +1052,33 @@ class RenderFontDialog(QtWidgets.QDialog):
             default_size = self.ascent if self.ascent > 0 else max(6, cell_h - 4)
             self.spin_size.setValue(default_size)
         form.addRow("Font Size (px):", self.spin_size)
+        
+        # Font Style (Bold & Italic)
+        self.style_layout = QtWidgets.QHBoxLayout()
+        self.chk_bold = QtWidgets.QCheckBox("Bold")
+        self.chk_bold.setChecked(_LAST_RENDER_PARAMS.get("bold", False))
+        self.chk_italic = QtWidgets.QCheckBox("Italic")
+        self.chk_italic.setChecked(_LAST_RENDER_PARAMS.get("italic", False))
+        self.style_layout.addWidget(self.chk_bold)
+        self.style_layout.addWidget(self.chk_italic)
+        self.style_layout.addStretch()
+        form.addRow("Font Style:", self.style_layout)
+        
+        # Horizontal Scale
+        self.scale_h = ScaleSliderWidget(
+            default_val=_LAST_RENDER_PARAMS.get("stretch", 100),
+            min_val=-200,
+            max_val=400
+        )
+        form.addRow("Horizontal Scale:", self.scale_h)
+        
+        # Vertical Scale
+        self.scale_v = ScaleSliderWidget(
+            default_val=_LAST_RENDER_PARAMS.get("v_scale", 100),
+            min_val=-200,
+            max_val=400
+        )
+        form.addRow("Vertical Scale:", self.scale_v)
         
         # 3. Offsets X & Y
         self.spin_x = QtWidgets.QSpinBox()
@@ -1052,6 +1175,10 @@ class RenderFontDialog(QtWidgets.QDialog):
         # Connect slots for real-time visual updates
         self.font_combo.currentFontChanged.connect(self._update_preview)
         self.spin_size.valueChanged.connect(self._update_preview)
+        self.chk_bold.stateChanged.connect(self._update_preview)
+        self.chk_italic.stateChanged.connect(self._update_preview)
+        self.scale_h.valueChanged.connect(self._update_preview)
+        self.scale_v.valueChanged.connect(self._update_preview)
         self.spin_x.valueChanged.connect(self._update_preview)
         self.spin_y.valueChanged.connect(self._update_preview)
         self.combo_align_h.currentIndexChanged.connect(self._update_preview)
@@ -1073,11 +1200,77 @@ class RenderFontDialog(QtWidgets.QDialog):
         _LAST_RENDER_PARAMS["auto_metrics"] = self.chk_auto_metrics.isChecked()
         _LAST_RENDER_PARAMS["antialiasing"] = self.chk_antialiasing.isChecked()
         
+        # Save new parameters
+        _LAST_RENDER_PARAMS["bold"] = self.chk_bold.isChecked()
+        _LAST_RENDER_PARAMS["italic"] = self.chk_italic.isChecked()
+        _LAST_RENDER_PARAMS["stretch"] = self.scale_h.value()
+        _LAST_RENDER_PARAMS["v_scale"] = self.scale_v.value()
+        
         super().accept()
 
     def _on_scope_changed(self):
         scope_type = self.combo_scope.itemData(self.combo_scope.currentIndex())
         self.range_widget.setVisible(scope_type == "custom")
+
+    def _on_preview_info_clicked(self, event):
+        if not self.preview_list:
+            return
+            
+        text, ok = QtWidgets.QInputDialog.getText(
+            self,
+            "Jump to Glyph",
+            f"Enter Glyph Index, Character, or Position (1-{len(self.preview_list)}):"
+        )
+        if not ok or not text:
+            return
+            
+        search_query = text.strip()
+        if not search_query:
+            return
+            
+        found_idx = -1
+        
+        # 1. Try to parse as position number (1-based index)
+        try:
+            pos = int(search_query)
+            if 1 <= pos <= len(self.preview_list):
+                found_idx = pos - 1
+        except ValueError:
+            pass
+            
+        # 2. Try to match as glyph index (idx field in preview items)
+        if found_idx == -1:
+            try:
+                g_idx = int(search_query)
+                for i, item in enumerate(self.preview_list):
+                    if item.get("idx") == g_idx:
+                        found_idx = i
+                        break
+            except ValueError:
+                pass
+                
+        # 3. Try to match as character (exact or case-insensitive)
+        if found_idx == -1:
+            for i, item in enumerate(self.preview_list):
+                if item.get("char") == search_query:
+                    found_idx = i
+                    break
+            if found_idx == -1:
+                # Fallback: case-insensitive
+                for i, item in enumerate(self.preview_list):
+                    if item.get("char", "").lower() == search_query.lower():
+                        found_idx = i
+                        break
+                        
+        if found_idx != -1:
+            self.preview_index = found_idx
+            self._update_preview_item()
+        else:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Not Found",
+                f"Could not find any glyph matching '{search_query}' as index, character, or position."
+            )
 
     def _on_prev_preview(self):
         if len(self.preview_list) <= 1:
@@ -1122,6 +1315,8 @@ class RenderFontDialog(QtWidgets.QDialog):
             
         params = self.get_params()
         font = params["font"]
+        h_scale = params["h_scale"]
+        v_scale = params["v_scale"]
         x_offset = params["x_offset"]
         y_offset = params["y_offset"]
         align_h = params["align_h"]
@@ -1139,6 +1334,14 @@ class RenderFontDialog(QtWidgets.QDialog):
         painter.setPen(QtGui.QColor(255, 255, 255, 255))
         
         ascent_val = self.ascent if self.ascent > 0 else int(self.cell_h * 0.75)
+        
+        # Apply scaling relative to the cell center
+        painter.save()
+        cx = self.cell_w / 2.0
+        cy = self.cell_h / 2.0
+        painter.translate(cx, cy)
+        painter.scale(h_scale / 100.0, v_scale / 100.0)
+        painter.translate(-cx, -cy)
         
         if align_v == "baseline":
             font_metrics = QtGui.QFontMetrics(font)
@@ -1159,6 +1362,7 @@ class RenderFontDialog(QtWidgets.QDialog):
             rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
             painter.drawText(rect, alignment, self.char_str)
             
+        painter.restore()
         painter.end()
         
         new_pix = QtGui.QPixmap.fromImage(new_glyph)
@@ -1167,6 +1371,8 @@ class RenderFontDialog(QtWidgets.QDialog):
     def get_params(self):
         qfont = self.font_combo.currentFont()
         qfont.setPixelSize(self.spin_size.value())
+        qfont.setBold(self.chk_bold.isChecked())
+        qfont.setItalic(self.chk_italic.isChecked())
         
         idx = self.combo_scope.currentIndex()
         scope_val = self.combo_scope.itemData(idx)
@@ -1179,6 +1385,8 @@ class RenderFontDialog(QtWidgets.QDialog):
         
         return {
             "font": qfont,
+            "h_scale": self.scale_h.value(),
+            "v_scale": self.scale_v.value(),
             "x_offset": self.spin_x.value(),
             "y_offset": self.spin_y.value(),
             "align_h": align_h_val,

@@ -461,7 +461,7 @@ def test_bfn_editor_window_header_tooltips_and_no_header_resize(qapp, dummy_bfn_
     # 1. Verify all 9 headers have tooltips
     expected_headers = [
         'Original Render', 'Original Char',
-        'Glyph Render', 'Character', 'Unicode',
+        'Glyph Render', 'Character', 'Font Char',
         'Texture Sheet', 'Tile Position', 'Kerning', 'Width'
     ]
     for col_idx, expected_text in enumerate(expected_headers):
@@ -702,27 +702,27 @@ def test_bfn_editor_window_copy_paste_chain(qapp, dummy_bfn_bytes):
     # Trigger paste
     editor.paste_glyph_values()
     
-    # Verify values changed in metadata
-    assert editor.get_current_char_code_for_glyph(0) == ord('X')
-    assert editor.get_current_char_code_for_glyph(1) == ord('Y')
+    # Verify values changed in virtual translation map
+    assert editor.translation_map.get("X") == "A"
+    assert editor.translation_map.get("Y") == "B"
     
     # Verify undo
     editor.undo_stack.undo()
-    assert editor.get_current_char_code_for_glyph(0) == ord('A')
-    assert editor.get_current_char_code_for_glyph(1) == ord('B')
+    assert "X" not in editor.translation_map
+    assert "Y" not in editor.translation_map
     
     # Verify redo
     editor.undo_stack.redo()
-    assert editor.get_current_char_code_for_glyph(0) == ord('X')
-    assert editor.get_current_char_code_for_glyph(1) == ord('Y')
+    assert editor.translation_map.get("X") == "A"
+    assert editor.translation_map.get("Y") == "B"
     
     # 3. Test Smart Paste with non-newline string (paste "PQ" starting at row 0)
     QApplication.clipboard().setText("PQ")
     editor.table_glyphs.setCurrentCell(0, 3)
     editor.paste_glyph_values()
     
-    assert editor.get_current_char_code_for_glyph(0) == ord('P')
-    assert editor.get_current_char_code_for_glyph(1) == ord('Q')
+    assert editor.translation_map.get("P") == "A"
+    assert editor.translation_map.get("Q") == "B"
     
     editor.clear_temp()
     editor.close()

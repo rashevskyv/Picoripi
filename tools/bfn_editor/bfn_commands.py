@@ -248,3 +248,45 @@ class RenderFontCommand(QtWidgets.QUndoCommand):
             
         self.viewer.update_simulation()
         self.viewer.populate_glyph_table()
+
+
+class BatchVirtualMapCommand(QtWidgets.QUndoCommand):
+    def __init__(self, viewer, new_translation_map, new_reverse_map, description="Batch Fill/Paste Virtual Mappings"):
+        super().__init__(description)
+        self.viewer = viewer
+        self.old_translation_map = dict(viewer.translation_map)
+        self.old_reverse_map = dict(viewer.reverse_translation_map)
+        self.new_translation_map = dict(new_translation_map)
+        self.new_reverse_map = dict(new_reverse_map)
+
+    def undo(self):
+        self.viewer.translation_map = dict(self.old_translation_map)
+        self.viewer.reverse_translation_map = dict(self.old_reverse_map)
+        self.viewer.save_translation_map()
+        
+        if self.viewer.font_sync_callback:
+            try:
+                self.viewer.font_sync_callback()
+            except Exception:
+                pass
+                
+        self.viewer.populate_glyph_table()
+        if self.viewer.selected_cell:
+            self.viewer.populate_info_panel(*self.viewer.selected_cell)
+        self.viewer.update_simulation()
+
+    def redo(self):
+        self.viewer.translation_map = dict(self.new_translation_map)
+        self.viewer.reverse_translation_map = dict(self.new_reverse_map)
+        self.viewer.save_translation_map()
+        
+        if self.viewer.font_sync_callback:
+            try:
+                self.viewer.font_sync_callback()
+            except Exception:
+                pass
+                
+        self.viewer.populate_glyph_table()
+        if self.viewer.selected_cell:
+            self.viewer.populate_info_panel(*self.viewer.selected_cell)
+        self.viewer.update_simulation()

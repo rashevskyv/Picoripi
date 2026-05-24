@@ -28,7 +28,8 @@ class BfnSimMixin:
         bfn_temp.inf1 = self.metadata.get("INF1", [])
         
         # Call unified layout engine (using line_spacing=10 like simulator does)
-        glyphs, total_w, total_h = bfn_temp.layout_text(text, line_spacing=10)
+        trans_map = getattr(self, 'translation_map', None)
+        glyphs, total_w, total_h = bfn_temp.layout_text(text, translation_map=trans_map, line_spacing=10)
         
         active_idx = self.get_selected_glyph_index()
         
