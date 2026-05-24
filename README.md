@@ -1,4 +1,4 @@
-# Picoripi v0.2.103
+# Picoripi v0.2.104
 
 A PyQt5-based translation workbench designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
