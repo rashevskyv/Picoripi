@@ -213,6 +213,17 @@ class MenuBuilder:
         self.mw.export_bmg_json_action.setEnabled(False)
         tools_menu.addAction(self.mw.export_bmg_json_action)
 
+        self.mw.import_bmg_json_action = QAction(
+            self.style.standardIcon(QStyle.SP_DialogOpenButton),
+            'Import Current BMG from &JSON...',
+            self.mw
+        )
+        self.mw.import_bmg_json_action.setToolTip(
+            'Import BMG text content from an exported JSON file into the currently selected block'
+        )
+        self.mw.import_bmg_json_action.setEnabled(False)
+        tools_menu.addAction(self.mw.import_bmg_json_action)
+
 
     def _build_navigation_menu(self, menubar):
         self.mw.navigation_menu = menubar.addMenu('&Navigation')

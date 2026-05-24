@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+import os
 from tools.bfn_editor.bfn_widgets import FillRangeDialog
 from tools.bfn_editor.bfn_commands import EditMetricsCommand, EditMapCommand, BatchMappingCommand
 
@@ -53,7 +54,14 @@ class BfnNavigationMixin:
                             except Exception:
                                 pass
                             break
-            glyph_to_char[idx] = (char_val, uni_val)
+            
+            font_char_val = char_val
+            if char_val and hasattr(self, 'reverse_translation_map') and self.reverse_translation_map:
+                virtual_char = self.reverse_translation_map.get(char_val)
+                if virtual_char:
+                    char_val = virtual_char
+
+            glyph_to_char[idx] = (char_val, font_char_val)
             
         orig_glyph_to_char = {}
         if self.original_font_metadata:
@@ -102,7 +110,7 @@ class BfnNavigationMixin:
         
         rows_data = []
         for idx in range(self.start_glyph, self.end_glyph + 1):
-            char_val, uni_val = glyph_to_char.get(idx, ("", ""))
+            char_val, font_char_val = glyph_to_char.get(idx, ("", ""))
             orig_char_val, _ = orig_glyph_to_char.get(idx, ("", ""))
             
             rem = idx - self.start_glyph
@@ -123,32 +131,41 @@ class BfnNavigationMixin:
                     search_query in str(idx) or
                     search_query in char_val.lower() or
                     search_query in orig_char_val.lower() or
-                    search_query in uni_val.lower() or
+                    search_query in font_char_val.lower() or
                     search_query in f"sheet_{sheet_idx}".lower()
                 )
                 if not match:
                     continue
                     
-            rows_data.append((idx, char_val, uni_val, sheet_idx, gx, gy, kerning, width, orig_char_val))
+            rows_data.append((idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_val))
             
         self.table_glyphs.setRowCount(len(rows_data))
         self.table_glyphs.verticalHeader().setDefaultSectionSize(36)
         
         for r_idx, data in enumerate(rows_data):
-            idx, char_val, uni_val, sheet_idx, gx, gy, kerning, width, orig_char_val = data
+            idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_val = data
             
             self.table_glyphs.setVerticalHeaderItem(r_idx, QtWidgets.QTableWidgetItem(str(idx)))
             
             item_orig_char = QtWidgets.QTableWidgetItem(orig_char_val)
             item_char = QtWidgets.QTableWidgetItem(char_val)
-            item_uni = QtWidgets.QTableWidgetItem(uni_val)
+            item_font_char = QtWidgets.QTableWidgetItem(font_char_val)
             item_sheet = QtWidgets.QTableWidgetItem(f"Sheet {sheet_idx}")
             item_tile = QtWidgets.QTableWidgetItem(f"Row {gy}, Col {gx}")
             item_kern = QtWidgets.QTableWidgetItem(str(kerning))
             item_width = QtWidgets.QTableWidgetItem(str(width))
             
-            for item in (item_orig_char, item_uni, item_sheet, item_tile):
+            for item in (item_orig_char, item_font_char, item_sheet, item_tile):
                 item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
+                
+            # Visually mark Font Char as read-only
+            if getattr(self, "is_dark_theme", True):
+                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#88888b")))
+                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#1a1a20")))
+            else:
+                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#7e8a9b")))
+                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
+            item_font_char.setToolTip("Font Character (read-only, stored in font metadata)")
                 
             item_char.setFlags(item_char.flags() | QtCore.Qt.ItemIsEditable)
             item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemIsEditable)
@@ -156,7 +173,7 @@ class BfnNavigationMixin:
             
             self.table_glyphs.setItem(r_idx, 1, item_orig_char)
             self.table_glyphs.setItem(r_idx, 3, item_char)
-            self.table_glyphs.setItem(r_idx, 4, item_uni)
+            self.table_glyphs.setItem(r_idx, 4, item_font_char)
             self.table_glyphs.setItem(r_idx, 5, item_sheet)
             self.table_glyphs.setItem(r_idx, 6, item_tile)
             self.table_glyphs.setItem(r_idx, 7, item_kern)
@@ -276,12 +293,25 @@ class BfnNavigationMixin:
                             pass
                         break
                         
+        font_char_val = char_val
+        if char_val and hasattr(self, 'reverse_translation_map') and self.reverse_translation_map:
+            virtual_char = self.reverse_translation_map.get(char_val)
+            if virtual_char:
+                char_val = virtual_char
+                
         item_char = self.table_glyphs.item(found_row, 3)
         if item_char:
             item_char.setText(char_val)
-        item_uni = self.table_glyphs.item(found_row, 4)
-        if item_uni:
-            item_uni.setText(uni_val)
+        item_font_char = self.table_glyphs.item(found_row, 4)
+        if item_font_char:
+            item_font_char.setText(font_char_val)
+            if getattr(self, "is_dark_theme", True):
+                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#88888b")))
+                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#1a1a20")))
+            else:
+                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#7e8a9b")))
+                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
+            item_font_char.setToolTip("Font Character (read-only, stored in font metadata)")
             
         wid = self.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
@@ -339,38 +369,56 @@ class BfnNavigationMixin:
         
         try:
             if col == 3:
-                # Find old mapping code
-                old_code = 0
-                maps = self.metadata.get("MAP1", [])
-                for m in maps:
-                    m_type = m.get("mapping_type", 0)
-                    if m_type == 2:
-                        entries = m.get("entries", [])
-                        for c_idx, g_idx in enumerate(entries):
-                            if g_idx == glyph_idx:
-                                old_code = m.get("first_char", 0) + c_idx
-                                break
-                        break
-                    elif m_type == 3:
-                        entries = m.get("entries", [])
-                        half = len(entries) // 2
-                        for k in range(half):
-                            if entries[half + k] == glyph_idx:
-                                old_code = entries[k]
-                                break
-                                
-                if len(val_str) > 0:
-                    new_code = ord(val_str[0])
-                else:
-                    new_code = 0
-                    
-                if old_code == new_code:
+                # 1. Get the original character of this glyph from the font MAP1 metadata
+                orig_char = self.get_original_char_for_glyph(glyph_idx)
+                if not orig_char:
                     self.table_glyphs.blockSignals(False)
                     return
+                
+                # 2. Get the new virtual character typed by the user
+                new_virtual_char = val_str[0] if len(val_str) > 0 else ""
+                
+                # 3. Get the old virtual character from self.reverse_translation_map
+                old_virtual_char = self.reverse_translation_map.get(orig_char, "")
+                
+                if old_virtual_char == new_virtual_char:
+                    self.table_glyphs.blockSignals(False)
+                    return
+                
+                # 4. Update the translation maps in memory
+                # Remove old mapping from reverse
+                if orig_char in self.reverse_translation_map:
+                    del self.reverse_translation_map[orig_char]
+                # Remove old mapping from translation_map
+                if old_virtual_char in self.translation_map:
+                    del self.translation_map[old_virtual_char]
                     
-                cmd = EditMapCommand(self, glyph_idx, old_code, new_code)
-                self.undo_stack.push(cmd)
-                self._set_dirty(True)
+                if new_virtual_char:
+                    # Clear any duplicate mapping to prevent conflict
+                    duplicate_orig = self.translation_map.get(new_virtual_char)
+                    if duplicate_orig:
+                        if duplicate_orig in self.reverse_translation_map:
+                            del self.reverse_translation_map[duplicate_orig]
+                        del self.translation_map[new_virtual_char]
+                        
+                    self.translation_map[new_virtual_char] = orig_char
+                    self.reverse_translation_map[orig_char] = new_virtual_char
+                
+                # 5. Save the updated translation map to disk
+                self.save_translation_map()
+                
+                # 6. Refresh UI
+                self.table_glyphs.blockSignals(False)
+                self.refresh_table_row(glyph_idx)
+                self.update_simulation()
+                
+                # Call Picoripi sync callback to reload the map and refresh previews!
+                if self.font_sync_callback:
+                    try:
+                        self.font_sync_callback()
+                    except Exception:
+                        pass
+                return
                     
             elif col == 7:
                 try:
@@ -426,6 +474,90 @@ class BfnNavigationMixin:
             print(f"Error updating table metadata: {e}")
             
         self.table_glyphs.blockSignals(False)
+
+    def get_translation_map_path(self):
+        import os
+        project_dir = None
+        active_plugin = None
+        parent_win = self.parent()
+        if parent_win:
+            mw = getattr(parent_win, "mw", None) if hasattr(parent_win, "mw") else parent_win
+            if hasattr(mw, "project_manager") and mw.project_manager and mw.project_manager.project_dir:
+                project_dir = mw.project_manager.project_dir
+            if hasattr(mw, "active_game_plugin"):
+                active_plugin = mw.active_game_plugin
+                
+        mapping_path = None
+        if project_dir:
+            mapping_path = os.path.join(project_dir, "translation_map.json")
+        elif active_plugin:
+            plugin_dir = os.path.join("plugins", active_plugin)
+            if os.path.exists(plugin_dir):
+                mapping_path = os.path.join(plugin_dir, "translation_map.json")
+        return mapping_path
+
+    def load_translation_map(self):
+        self.translation_map = {}
+        self.reverse_translation_map = {}
+        try:
+            mapping_path = self.get_translation_map_path()
+            if mapping_path and os.path.exists(mapping_path):
+                import json
+                with open(mapping_path, "r", encoding="utf-8") as f:
+                    raw_map = json.load(f)
+                    self.translation_map = {
+                        k: v for k, v in raw_map.items()
+                        if ord(k) >= 128 and ord(v) >= 128
+                    }
+                    self.reverse_translation_map = {v: k for k, v in self.translation_map.items()}
+                print(f"BFN Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
+        except Exception as e:
+            print(f"Failed to load translation map: {e}")
+
+    def save_translation_map(self):
+        try:
+            mapping_path = self.get_translation_map_path()
+            if mapping_path:
+                import json
+                with open(mapping_path, "w", encoding="utf-8") as f:
+                    json.dump(self.translation_map, f, indent=4, ensure_ascii=False)
+                self.status.showMessage(f"Updated translation_map.json with {len(self.translation_map)} characters!")
+        except Exception as e:
+            print(f"Failed to save translation map: {e}")
+
+    def get_original_char_for_glyph(self, glyph_idx):
+        metadata = self.original_font_metadata if self.original_font_metadata else self.metadata
+        maps = metadata.get("MAP1", [])
+        for m in maps:
+            m_type = m.get("mapping_type", 0)
+            m_first = m.get("first_char", 0)
+            m_last = m.get("last_char", 0)
+            if m_type == 0:
+                if m_first <= glyph_idx <= m_last:
+                    try:
+                        return chr(glyph_idx)
+                    except Exception:
+                        pass
+            elif m_type == 2:
+                entries = m.get("entries", [])
+                for c_idx, g_idx in enumerate(entries):
+                    if g_idx == glyph_idx:
+                        code = m_first + c_idx
+                        try:
+                            return chr(code)
+                        except Exception:
+                            pass
+            elif m_type == 3:
+                entries = m.get("entries", [])
+                half = len(entries) // 2
+                for k in range(half):
+                    if entries[half + k] == glyph_idx:
+                        code = entries[k]
+                        try:
+                            return chr(code)
+                        except Exception:
+                            pass
+        return ""
 
     def update_char_mapping(self, glyph_idx, new_code):
         maps = self.metadata.get("MAP1", [])
@@ -651,7 +783,10 @@ class BfnNavigationMixin:
                 QtWidgets.QMessageBox.warning(self, "No Space", "No rows available to fill below the selected position.")
                 return
                 
-            changes = []
+            new_translation_map = dict(self.translation_map)
+            new_reverse_map = dict(self.reverse_translation_map)
+            
+            filled_count = 0
             for i in range(items_to_fill):
                 row = start_row + i
                 v_header = self.table_glyphs.verticalHeaderItem(row)
@@ -659,39 +794,48 @@ class BfnNavigationMixin:
                     continue
                 glyph_idx = int(v_header.text())
                 
-                # Find old code
-                old_code = 0
-                maps = self.metadata.get("MAP1", [])
-                for m in maps:
-                    m_type = m.get("mapping_type", 0)
-                    if m_type == 2:
-                        entries = m.get("entries", [])
-                        if glyph_idx < len(entries):
-                            old_code = entries[glyph_idx]
-                            break
-                    elif m_type == 3:
-                        entries = m.get("entries", [])
-                        half = len(entries) // 2
-                        for k in range(half):
-                            if entries[half + k] == glyph_idx:
-                                old_code = entries[k]
-                                break
-                                
-                new_code = codes[i]
-                changes.append((glyph_idx, old_code, new_code))
+                # Get the original CP1252 character for this glyph
+                orig_char = self.get_original_char_for_glyph(glyph_idx)
+                if not orig_char:
+                    continue
                 
-            if not changes:
-                return
+                # Get new virtual character
+                new_char_code = codes[i]
+                new_virtual_char = chr(new_char_code) if new_char_code > 0 else ""
                 
-            cmd = BatchMappingCommand(self, changes, f"Fill {len(changes)} Mappings")
-            self.undo_stack.push(cmd)
-            self._set_dirty(True)
+                # Update maps in memory
+                # Remove old mapping from reverse
+                if orig_char in new_reverse_map:
+                    old_virtual_char = new_reverse_map[orig_char]
+                    if old_virtual_char in new_translation_map:
+                        del new_translation_map[old_virtual_char]
+                    del new_reverse_map[orig_char]
+                
+                if new_virtual_char:
+                    # Clear any duplicate mapping to prevent conflict
+                    duplicate_orig = new_translation_map.get(new_virtual_char)
+                    if duplicate_orig:
+                        if duplicate_orig in new_reverse_map:
+                            del new_reverse_map[duplicate_orig]
+                        del new_translation_map[new_virtual_char]
+                        
+                    new_translation_map[new_virtual_char] = orig_char
+                    new_reverse_map[orig_char] = new_virtual_char
+                    filled_count += 1
+                else:
+                    filled_count += 1
             
-            QtWidgets.QMessageBox.information(
-                self, 
-                "Success", 
-                f"Successfully filled {items_to_fill} symbols sequentially!"
-            )
+            if filled_count > 0:
+                from tools.bfn_editor.bfn_commands import BatchVirtualMapCommand
+                cmd = BatchVirtualMapCommand(self, new_translation_map, new_reverse_map, f"Fill {filled_count} Mappings")
+                self.undo_stack.push(cmd)
+                self._set_dirty(True)
+                
+                QtWidgets.QMessageBox.information(
+                    self, 
+                    "Success", 
+                    f"Successfully filled {items_to_fill} symbols sequentially!"
+                )
 
     def generate_translation_map(self) -> dict:
         """
@@ -836,7 +980,10 @@ class BfnNavigationMixin:
         if items_to_fill <= 0:
             return
 
-        changes = []
+        new_translation_map = dict(self.translation_map)
+        new_reverse_map = dict(self.reverse_translation_map)
+        
+        pasted_count = 0
         for i in range(items_to_fill):
             row = start_row + i
             v_header = self.table_glyphs.verticalHeaderItem(row)
@@ -844,20 +991,39 @@ class BfnNavigationMixin:
                 continue
             glyph_idx = int(v_header.text())
             
-            old_code = self.get_current_char_code_for_glyph(glyph_idx)
-            
+            orig_char = self.get_original_char_for_glyph(glyph_idx)
+            if not orig_char:
+                continue
+                
             new_char = lines[i]
-            new_code = ord(new_char[0]) if new_char else 0
+            new_virtual_char = new_char[0] if new_char else ""
             
-            if old_code != new_code:
-                changes.append((glyph_idx, old_code, new_code))
+            # Update maps in memory
+            # Remove old mapping from reverse
+            if orig_char in new_reverse_map:
+                old_virtual_char = new_reverse_map[orig_char]
+                if old_virtual_char in new_translation_map:
+                    del new_translation_map[old_virtual_char]
+                del new_reverse_map[orig_char]
+            
+            if new_virtual_char:
+                # Clear any duplicate mapping to prevent conflict
+                duplicate_orig = new_translation_map.get(new_virtual_char)
+                if duplicate_orig:
+                    if duplicate_orig in new_reverse_map:
+                        del new_reverse_map[duplicate_orig]
+                    del new_translation_map[new_virtual_char]
+                    
+                new_translation_map[new_virtual_char] = orig_char
+                new_reverse_map[orig_char] = new_virtual_char
+                pasted_count += 1
+            else:
+                pasted_count += 1
 
-        if not changes:
-            return
-
-        # Use BatchMappingCommand for atomic undo/redo and UI updates
-        cmd = BatchMappingCommand(self, changes, f"Paste {len(changes)} Character Mappings")
-        self.undo_stack.push(cmd)
-        self._set_dirty(True)
+        if pasted_count > 0:
+            from tools.bfn_editor.bfn_commands import BatchVirtualMapCommand
+            cmd = BatchVirtualMapCommand(self, new_translation_map, new_reverse_map, f"Paste {pasted_count} Character Mappings")
+            self.undo_stack.push(cmd)
+            self._set_dirty(True)
 
 

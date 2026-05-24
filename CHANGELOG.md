@@ -1,5 +1,33 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.100] - 2026-05-24
+
+### Added
+- **BFN Editor: Vertical Scale Slider for System Font Rendering**: Added a **Vertical Scale** control in the "Render System Font to Glyphs" dialog alongside the existing Horizontal Scale. Both controls are now fully interactive sliders (`ScaleSliderWidget`) with adjustable min/max boundaries (including negative values for mirror flipping) and a live-updating current-value spinbox.
+- **BFN Editor: `ScaleSliderWidget` — Reusable Interactive Scale Control**: Implemented a new reusable `ScaleSliderWidget` component in `bfn_widgets.py`. It combines a minimum boundary spinbox, a `QSlider`, a maximum boundary spinbox, and a current-value spinbox (with `%` suffix) in a single row. The widget features full two-way reactive binding: dragging the slider updates the value field instantly; typing a value outside the current bounds automatically extends the min/max limits accordingly; changing the boundaries dynamically updates the slider range.
+
+### Fixed
+- **BFN Editor Simulation Preview: Cyrillic Characters Displayed as Empty Boxes**: Fixed a bug where typing Cyrillic text into the BFN Editor simulation panel produced empty rectangles (fallback boxes) instead of the correct glyphs. The root cause was that the simulation's `update_simulation()` method called `layout_text` without passing the active `translation_map`, causing the character-to-glyph lookup to fail for all virtual (Cyrillic) characters. Fixed by reading the editor's `translation_map` attribute and forwarding it into the `layout_text` call: `bfn_temp.layout_text(text, translation_map=trans_map, ...)`. The simulation preview now correctly renders Cyrillic symbols matching the main Picoripi preview.
+
+### Changed
+- **BFN Editor: QPainter-Based 2D Scaling Replaces `QFont.setStretch`**: The system font rendering pipeline (both live preview in `RenderFontDialog._update_preview` and final batch rendering in `bfn_io.py`) now scales glyphs via `QPainter.scale(sx, sy)` centered on the glyph cell's geometric midpoint, instead of the limited `QFont.setStretch` (horizontal only). This enables independent horizontal and vertical stretch with full support for negative scale factors (mirroring), and guarantees that the live preview pixel-accurately matches the final rendered output written to the BFN texture.
+
+## [0.2.99] - 2026-05-24
+
+### Added
+- **Tools Menu: Import Current BMG from JSON**: Added a new action `Tools → Import Current BMG from JSON...` that imports text content from a previously exported JSON file back into the currently selected BMG block.
+  - Opens a file picker dialog to select any `.json` file.
+  - Automatically detects the JSON structure: supports files with both `source` and `translation` sections (prompts the user to choose which one to import), files with only one section, or plain single-block JSON exports.
+  - Shows a confirmation dialog listing the block name and number of strings to be replaced before applying changes.
+  - Reconstructs each message via `BMGMessage.from_dict` and converts it to editor text using the active plugin's `msg_to_editor_text`, preserving all control codes and tag formatting.
+  - Replaces all existing in-memory edits for the block with the imported strings (clean overwrite using tuple-keyed `edited_data`).
+  - Automatically triggers a full UI refresh: block list, string list, text views, title bar, and issue rescan for the affected block.
+  - Action is enabled only when a project is open and automatically enables/disables with the project via `_set_project_actions_enabled()`.
+  - Displays a summary dialog on success with the count of imported strings.
+
+### Fixed
+- **Import BMG from JSON: TypeError on `edited_data` Key Type**: Fixed a `TypeError: cannot unpack non-iterable int object` that occurred when importing a JSON file. The previous implementation stored imported strings as `ds.edited_data[block_idx] = list`, but `edited_data` expects `(block_idx, string_idx)` tuple keys. Changed to store each string individually as `ds.edited_data[(block_idx, string_idx)] = text`.
+
 ## [0.2.98] - 2026-05-24
 
 ### Fixed

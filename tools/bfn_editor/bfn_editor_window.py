@@ -282,7 +282,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.table_glyphs = QtWidgets.QTableWidget()
         headers = [
             'Original Render', 'Original Char',
-            'Glyph Render', 'Character', 'Unicode',
+            'Glyph Render', 'Character', 'Font Char',
             'Texture Sheet', 'Tile Position', 'Kerning', 'Width'
         ]
         self.table_glyphs.setColumnCount(len(headers))

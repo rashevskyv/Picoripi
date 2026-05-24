@@ -81,6 +81,7 @@ class BfnIoMixin:
             self.status.showMessage("Failed to load folder.")
 
     def load_from_extracted_dir(self, dir_path):
+        self.load_translation_map()
         json_path = os.path.join(dir_path, 'data.json')
         with open(json_path, 'r') as f:
             self.metadata = json.load(f)
@@ -239,8 +240,11 @@ class BfnIoMixin:
             else:
                 self.status.showMessage(f"Successfully saved files in folder: {os.path.basename(target_dir)}")
                 
-            # Automatically generate and save translation map if original font is loaded
-            if self.original_font_metadata:
+            # Save the virtual translation map if it contains entries,
+            # otherwise fall back to auto-generating from MAP1 difference (for unit tests and legacy compatibility)
+            if hasattr(self, 'translation_map') and self.translation_map:
+                self.save_translation_map()
+            elif self.original_font_metadata:
                 try:
                     translation_map = self.generate_translation_map()
                     parent_win = self.parent()
@@ -518,6 +522,10 @@ class BfnIoMixin:
                     if char_val:
                         break
             if char_val:
+                if hasattr(self, 'reverse_translation_map') and self.reverse_translation_map:
+                    virtual_char = self.reverse_translation_map.get(char_val)
+                    if virtual_char:
+                        char_val = virtual_char
                 glyph_to_char[idx] = char_val
                 
         # Determine current or fallback glyphs for interactive real-time preview
@@ -612,6 +620,8 @@ class BfnIoMixin:
         
         # Prepare QFont
         font = params["font"]
+        h_scale = params.get("h_scale", 100)
+        v_scale = params.get("v_scale", 100)
         x_offset = params["x_offset"]
         y_offset = params["y_offset"]
         align_h = params["align_h"]
@@ -669,6 +679,14 @@ class BfnIoMixin:
             painter.setFont(font)
             painter.setPen(QtGui.QColor(255, 255, 255, 255))
             
+            # Apply scaling relative to the cell center
+            painter.save()
+            cx = self.cell_w / 2.0
+            cy = self.cell_h / 2.0
+            painter.translate(cx, cy)
+            painter.scale(h_scale / 100.0, v_scale / 100.0)
+            painter.translate(-cx, -cy)
+            
             if align_v == "baseline":
                 # Draw text aligned on baseline
                 font_metrics = QtGui.QFontMetrics(font)
@@ -684,6 +702,7 @@ class BfnIoMixin:
                 rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
                 painter.drawText(rect, alignment, char_str)
                 
+            painter.restore()
             painter.end()
             
             pixel_changes.append((sheet_idx, cell_x, cell_y, old_glyph_crop, new_glyph))
