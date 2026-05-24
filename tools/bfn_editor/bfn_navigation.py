@@ -389,6 +389,7 @@ class BfnNavigationMixin:
                 
                 # 2. Get the new virtual character typed by the user
                 new_virtual_char = val_str[0] if len(val_str) > 0 else ""
+                _empty_glyph_registered = False
                 
                 if orig_char:
                     # Normal case: glyph has a physical char in MAP1
@@ -423,6 +424,7 @@ class BfnNavigationMixin:
                         
                     self.update_char_mapping(glyph_idx, physical_code)
                     orig_char = chr(physical_code)
+                    _empty_glyph_registered = True
                     
                     # Update table row to reflect physical mapping instantly in Font Char column (col 4)
                     item_font_char = self.table_glyphs.item(row, 4)
@@ -453,6 +455,15 @@ class BfnNavigationMixin:
                 
                 # 5. Save the updated translation map to disk
                 self.save_translation_map()
+                
+                # 5b. If a new physical code was assigned to a previously empty glyph,
+                # the MAP1 change is only in memory — persist the BFN to disk immediately
+                # so the mapping survives a restart.
+                if _empty_glyph_registered:
+                    try:
+                        self.save_changes(silent=True)
+                    except Exception as _e:
+                        print(f"BFN Editor: Failed to auto-save BFN after empty glyph registration: {_e}")
                 
                 # 6. Refresh UI
                 self.table_glyphs.blockSignals(False)
@@ -639,9 +650,19 @@ class BfnNavigationMixin:
                     healed_map[k] = v
                     
                 # Load healed entries
+                # Valid entry: key is non-ASCII unicode (ord >= 128), value is printable CP1252 (161-255)
+                # Reject entries with control/non-printable value codes
                 for k, v in healed_map.items():
-                    if len(k) == 1 and len(v) == 1 and ord(k) >= 128 and ord(v) >= 128:
-                        self.translation_map[k] = v
+                    if len(k) == 1 and len(v) == 1:
+                        k_code = ord(k)
+                        v_code = ord(v)
+                        # Key must be non-ASCII (Cyrillic etc.), value must be printable CP1252 range 161-255
+                        if k_code >= 128 and 161 <= v_code <= 255:
+                            self.translation_map[k] = v
+                        elif k_code >= 128 and v_code >= 128:
+                            # Borderline case: both non-ASCII, allow but mark for heal next time
+                            self.translation_map[k] = v
+                            needs_save = True
                     elif k.startswith("#g") or v.startswith("#g"): # fallback if migration failed
                         self.translation_map[k] = v
                         
@@ -650,6 +671,67 @@ class BfnNavigationMixin:
                     v: k for k, v in self.translation_map.items()
                     if not k.startswith("#g") and not v.startswith("#g")
                 }
+                
+                # 4. Fourth pass: re-register any physical codes that are in translation_map
+                # but NOT present in the current MAP1 (e.g. BFN wasn't saved after empty glyph assignment).
+                # Find all codes currently registered in MAP1:
+                registered_codes = set()
+                for m in self.metadata.get("MAP1", []):
+                    m_type = m.get("mapping_type", 0)
+                    if m_type == 0:
+                        for code in range(m.get("first_char", 0), m.get("last_char", 0) + 1):
+                            registered_codes.add(code)
+                    elif m_type == 2:
+                        first_char = m.get("first_char", 0)
+                        for c_idx, g_idx in enumerate(m.get("entries", [])):
+                            if g_idx != 0xFFFF:
+                                registered_codes.add(first_char + c_idx)
+                    elif m_type == 3:
+                        entries = m.get("entries", [])
+                        half = len(entries) // 2
+                        for ki in range(half):
+                            registered_codes.add(entries[ki])
+                
+                # Find all glyph indices that have NO code in MAP1 (empty glyphs)
+                # Read range from metadata directly — self.start_glyph/end_glyph may not be set yet
+                gly_meta = self.metadata.get("GLY1", [{}])[0]
+                _heal_start = int(gly_meta.get("start_glyph", 0))
+                _heal_end = int(gly_meta.get("end_glyph", _heal_start))
+                all_glyphs = set(range(_heal_start, _heal_end + 1))
+                mapped_glyphs = set()
+                for m in self.metadata.get("MAP1", []):
+                    m_type = m.get("mapping_type", 0)
+                    if m_type == 2:
+                        for g_idx in m.get("entries", []):
+                            if g_idx != 0xFFFF:
+                                mapped_glyphs.add(g_idx)
+                    elif m_type == 3:
+                        entries = m.get("entries", [])
+                        half = len(entries) // 2
+                        for ki in range(half):
+                            mapped_glyphs.add(entries[half + ki])
+                empty_glyphs = sorted(all_glyphs - mapped_glyphs)
+                empty_glyph_iter = iter(empty_glyphs)
+                
+                orphan_codes_found = False
+                for virtual_char, phys_char in list(self.translation_map.items()):
+                    if len(virtual_char) != 1 or len(phys_char) != 1:
+                        continue
+                    phys_code = ord(phys_char)
+                    if phys_code not in registered_codes:
+                        # This physical code has no glyph assigned — find an empty glyph and assign it
+                        try:
+                            empty_glyph = next(empty_glyph_iter)
+                            self.update_char_mapping(empty_glyph, phys_code)
+                            registered_codes.add(phys_code)
+                            mapped_glyphs.add(empty_glyph)
+                            orphan_codes_found = True
+                            print(f"BFN Editor: Re-registered orphan code {phys_code} ('{virtual_char}') to glyph {empty_glyph}")
+                        except StopIteration:
+                            print(f"BFN Editor: No empty glyphs left to re-register code {phys_code} ('{virtual_char}')")
+                
+                if orphan_codes_found:
+                    needs_save = True
                 
                 if needs_save:
                     # Save the cleaned mapping_file without synthetic keys back to disk
@@ -670,9 +752,24 @@ class BfnNavigationMixin:
             mapping_path = self.get_translation_map_path()
             if mapping_path:
                 import json
+                # Filter out corrupt entries before saving:
+                # - key must be 1 char, non-ASCII (ord >= 128)
+                # - value must be 1 char, printable CP1252 (161-255)
+                # Synthetic keys (#g...) are never saved to disk
+                clean_map = {}
+                for k, v in self.translation_map.items():
+                    if k.startswith("#g") or (isinstance(v, str) and v.startswith("#g")):
+                        continue  # skip synthetic entries
+                    if len(k) == 1 and len(v) == 1:
+                        k_code = ord(k)
+                        v_code = ord(v)
+                        if k_code >= 128 and 161 <= v_code <= 255:
+                            clean_map[k] = v
+                        # skip entries with control/invalid value codes
+                    # skip entries with non-single-char keys/values
                 with open(mapping_path, "w", encoding="utf-8") as f:
-                    json.dump(self.translation_map, f, indent=4, ensure_ascii=False)
-                self.status.showMessage(f"Updated translation_map.json with {len(self.translation_map)} characters!")
+                    json.dump(clean_map, f, indent=4, ensure_ascii=False)
+                self.status.showMessage(f"Updated translation_map.json with {len(clean_map)} characters!")
         except Exception as e:
             print(f"Failed to save translation map: {e}")
 
