@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.102] - 2026-05-24
+
+### Fixed
+- **Zelda BMG Plugin: Fixed Encoding Loss (Swapping to Question Marks `?`) for Synthetic Empty Glyphs**: Fixed a critical bug where Cyrillic letters that were assigned to empty glyphs (with synthetic mapping keys like `#g224`) were written to the binary BMG file as question marks (`?`).
+  - In `plugins/zelda_bmg/rules.py`'s `load_translation_map()`, updated the loading filter logic to accept synthetic empty-glyph mappings (`k.startswith("#g")` or `v.startswith("#g")`) instead of discarding them due to the ASCII value of `#` being lower than 128.
+  - In `encode_string_with_mapping()`, implemented dynamic conversion of synthetic `#g{idx}` strings into one-byte characters with character code `idx` (e.g. converting `"#g224"` into `chr(224)`) when encoding messages to be written to BMG binary buffers, allowing them to perfectly map to physical BFN texture sheets inside the game.
+  - In `decode_string_with_mapping()`, added fallback logic where if a CP1252 character is not present in `reverse_translation_map`, the plugin dynamically constructs a synthetic lookup key (`#g{ord(char)}`) and checks `translation_map` to successfully decode it back into the original virtual Ukrainian letter.
+  - Added full test coverage in `tests/test_plugins/test_zelda_bmg_rules.py` containing a comprehensive end-to-end unit test `test_synthetic_empty_glyph_mapping()` that verifies mapping, encoding, decoding, packing, and unpacking of synthetic characters in the BMG lifecycle.
+
 ## [0.2.101] - 2026-05-24
 
 ### Fixed

@@ -107,3 +107,44 @@ def test_bmg_rules_load_save_lifecycle():
     assert len(bmg_verify.messages) == 2
     assert bmg_verify.messages[0].id == 100
     assert bmg_verify.messages[1].id == 101
+
+
+def test_synthetic_empty_glyph_mapping():
+    rules = GameRules()
+    
+    # Setup translation map containing a synthetic empty-glyph mapping
+    rules.translation_map = {
+        "я": "#g224",
+        "#g224": "я"
+    }
+    rules.reverse_translation_map = {} # Only synthetic entries exist
+    rules.load_translation_map = lambda: None
+    
+    # 1. Test encoding: "я" (Cyrillic ya) should be mapped to chr(224)
+    encoded = rules.encode_string_with_mapping("я")
+    assert len(encoded) == 1
+    assert ord(encoded) == 224
+    
+    # 2. Test decoding: chr(224) should be mapped back to "я"
+    decoded = rules.decode_string_with_mapping(encoded)
+    assert decoded == "я"
+    
+    # 3. Test packing / unpacking lifecycle with synthetic character
+    bmg = BMGFile()
+    bmg.endianness = '>'
+    bmg.encoding = 'cp1252'
+    bmg.id = 0
+    
+    msg = BMGMessage(info=b'\x00\x00\x00\x00', parts=[rules.encode_string_with_mapping("яabc")])
+    bmg.messages = [msg]
+    
+    bmg_bytes = bmg.save()
+    
+    # Check that bytes contain exactly the code 224 (0xe0) in CP1252 instead of question marks
+    assert b'\xe0' in bmg_bytes
+    assert b'?' not in bmg_bytes
+    
+    # Unpack via plugin
+    data, block_names = rules.load_data_from_json_obj(bmg_bytes)
+    assert len(data) == 1
+    assert data[0][0] == "яabc"
