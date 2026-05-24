@@ -27,20 +27,28 @@ class BfnNavigationMixin:
                 if m_type == 0:
                     if m_first <= idx <= m_last:
                         try:
-                            char_val = chr(idx)
+                            char_val = bytes([idx]).decode('cp1252')
                             uni_val = f"U+{idx:04X}"
                         except Exception:
-                            pass
+                            try:
+                                char_val = chr(idx)
+                                uni_val = f"U+{idx:04X}"
+                            except Exception:
+                                pass
                 elif m_type == 2:
                     entries = m.get("entries", [])
                     for c_idx, g_idx in enumerate(entries):
                         if g_idx == idx:
                             code = m_first + c_idx
                             try:
-                                char_val = chr(code)
+                                char_val = bytes([code]).decode('cp1252')
                                 uni_val = f"U+{code:04X}"
                             except Exception:
-                                pass
+                                try:
+                                    char_val = chr(code)
+                                    uni_val = f"U+{code:04X}"
+                                except Exception:
+                                    pass
                             break
                 elif m_type == 3:
                     entries = m.get("entries", [])
@@ -49,10 +57,14 @@ class BfnNavigationMixin:
                         if entries[half + k] == idx:
                             code = entries[k]
                             try:
-                                char_val = chr(code)
+                                char_val = bytes([code]).decode('cp1252')
                                 uni_val = f"U+{code:04X}"
                             except Exception:
-                                pass
+                                try:
+                                    char_val = chr(code)
+                                    uni_val = f"U+{code:04X}"
+                                except Exception:
+                                    pass
                             break
             
             font_char_val = char_val
@@ -83,20 +95,28 @@ class BfnNavigationMixin:
                     if m_type == 0:
                         if m_first <= idx <= m_last:
                             try:
-                                orig_char_val = chr(idx)
+                                orig_char_val = bytes([idx]).decode('cp1252')
                                 orig_uni_val = f"U+{idx:04X}"
                             except Exception:
-                                pass
+                                try:
+                                    orig_char_val = chr(idx)
+                                    orig_uni_val = f"U+{idx:04X}"
+                                except Exception:
+                                    pass
                     elif m_type == 2:
                         entries = m.get("entries", [])
                         for c_idx, g_idx in enumerate(entries):
                             if g_idx == idx:
                                 code = m_first + c_idx
                                 try:
-                                    orig_char_val = chr(code)
+                                    orig_char_val = bytes([code]).decode('cp1252')
                                     orig_uni_val = f"U+{code:04X}"
                                 except Exception:
-                                    pass
+                                    try:
+                                        orig_char_val = chr(code)
+                                        orig_uni_val = f"U+{code:04X}"
+                                    except Exception:
+                                        pass
                                 break
                     elif m_type == 3:
                         entries = m.get("entries", [])
@@ -105,10 +125,14 @@ class BfnNavigationMixin:
                             if entries[half + k] == idx:
                                 code = entries[k]
                                 try:
-                                    orig_char_val = chr(code)
+                                    orig_char_val = bytes([code]).decode('cp1252')
                                     orig_uni_val = f"U+{code:04X}"
                                 except Exception:
-                                    pass
+                                    try:
+                                        orig_char_val = chr(code)
+                                        orig_uni_val = f"U+{code:04X}"
+                                    except Exception:
+                                        pass
                                 break
                 orig_glyph_to_char[idx] = (orig_char_val, orig_uni_val)
             
@@ -271,20 +295,28 @@ class BfnNavigationMixin:
             if m_type == 0:
                 if m_first <= glyph_idx <= m_last:
                     try:
-                        char_val = chr(glyph_idx)
+                        char_val = bytes([glyph_idx]).decode('cp1252')
                         uni_val = f"U+{glyph_idx:04X}"
                     except Exception:
-                        pass
+                        try:
+                            char_val = chr(glyph_idx)
+                            uni_val = f"U+{glyph_idx:04X}"
+                        except Exception:
+                            pass
             elif m_type == 2:
                 entries = m.get("entries", [])
                 for c_idx, g_idx in enumerate(entries):
                     if g_idx == glyph_idx:
                         code = m_first + c_idx
                         try:
-                            char_val = chr(code)
+                            char_val = bytes([code]).decode('cp1252')
                             uni_val = f"U+{code:04X}"
                         except Exception:
-                            pass
+                            try:
+                                char_val = chr(code)
+                                uni_val = f"U+{code:04X}"
+                            except Exception:
+                                pass
                         break
             elif m_type == 3:
                 entries = m.get("entries", [])
@@ -293,10 +325,14 @@ class BfnNavigationMixin:
                     if entries[half + k] == glyph_idx:
                         code = entries[k]
                         try:
-                            char_val = chr(code)
+                            char_val = bytes([code]).decode('cp1252')
                             uni_val = f"U+{code:04X}"
                         except Exception:
-                            pass
+                            try:
+                                char_val = chr(code)
+                                uni_val = f"U+{code:04X}"
+                            except Exception:
+                                pass
                         break
                         
         font_char_val = char_val
@@ -815,18 +851,24 @@ class BfnNavigationMixin:
             if m_type == 0:
                 if m_first <= glyph_idx <= m_last:
                     try:
-                        return chr(glyph_idx)
+                        return bytes([glyph_idx]).decode('cp1252')
                     except Exception:
-                        pass
+                        try:
+                            return chr(glyph_idx)
+                        except Exception:
+                            pass
             elif m_type == 2:
                 entries = m.get("entries", [])
                 for c_idx, g_idx in enumerate(entries):
                     if g_idx == glyph_idx:
                         code = m_first + c_idx
                         try:
-                            return chr(code)
+                            return bytes([code]).decode('cp1252')
                         except Exception:
-                            pass
+                            try:
+                                return chr(code)
+                            except Exception:
+                                pass
             elif m_type == 3:
                 entries = m.get("entries", [])
                 half = len(entries) // 2
@@ -834,9 +876,12 @@ class BfnNavigationMixin:
                     if entries[half + k] == glyph_idx:
                         code = entries[k]
                         try:
-                            return chr(code)
+                            return bytes([code]).decode('cp1252')
                         except Exception:
-                            pass
+                            try:
+                                return chr(code)
+                            except Exception:
+                                pass
         return ""
 
     def update_char_mapping(self, glyph_idx, new_code):
@@ -1003,43 +1048,63 @@ class BfnNavigationMixin:
         if not selected_rows:
             return
             
-        changes = []
+        new_translation_map = dict(self.translation_map)
+        new_reverse_map = dict(self.reverse_translation_map)
+        
+        cleared_count = 0
         for row in selected_rows:
             v_header = self.table_glyphs.verticalHeaderItem(row)
             if not v_header:
                 continue
-            glyph_idx = int(v_header.text())
-            
-            # Find old code
-            old_code = 0
-            maps = self.metadata.get("MAP1", [])
-            for m in maps:
-                m_type = m.get("mapping_type", 0)
-                if m_type == 2:
-                    entries = m.get("entries", [])
-                    if glyph_idx < len(entries):
-                        old_code = entries[glyph_idx]
-                        break
-                elif m_type == 3:
-                    entries = m.get("entries", [])
-                    half = len(entries) // 2
-                    for k in range(half):
-                        if entries[half + k] == glyph_idx:
-                            old_code = entries[k]
-                            break
-            changes.append((glyph_idx, old_code, 0))
-            
-        if not changes:
+            try:
+                glyph_idx = int(v_header.text())
+            except ValueError:
+                continue
+                
+            # Get current physical character code
+            code = self.get_current_char_code_for_glyph(glyph_idx)
+            phys_char = None
+            if code > 0:
+                try:
+                    phys_char = bytes([code]).decode('cp1252')
+                except Exception:
+                    phys_char = chr(code)
+                    
+            # 1. Clear normal mapping
+            if phys_char and phys_char in new_reverse_map:
+                virtual_char = new_reverse_map[phys_char]
+                if virtual_char in new_translation_map:
+                    del new_translation_map[virtual_char]
+                del new_reverse_map[phys_char]
+                cleared_count += 1
+                
+            # 2. Clear synthetic mapping if any (#g...)
+            synth_key = f"#g{glyph_idx}"
+            if synth_key in new_translation_map:
+                val = new_translation_map[synth_key]
+                if val in new_reverse_map:
+                    del new_reverse_map[val]
+                del new_translation_map[synth_key]
+                cleared_count += 1
+                
+            # If the value in translation_map is synth_key
+            for k, v in list(new_translation_map.items()):
+                if v == synth_key:
+                    del new_translation_map[k]
+                    cleared_count += 1
+
+        if cleared_count == 0:
             return
             
-        cmd = BatchMappingCommand(self, changes, f"Clear {len(changes)} Mappings")
+        from tools.bfn_editor.bfn_commands import BatchVirtualMapCommand
+        cmd = BatchVirtualMapCommand(self, new_translation_map, new_reverse_map, f"Clear {cleared_count} Virtual Mappings")
         self.undo_stack.push(cmd)
         self._set_dirty(True)
         
         QtWidgets.QMessageBox.information(
             self,
             "Success",
-            f"Successfully cleared {len(changes)} character mappings!"
+            f"Successfully cleared {cleared_count} character mappings!"
         )
 
     def fill_sequence_dialog(self, start_row):
@@ -1182,11 +1247,15 @@ class BfnNavigationMixin:
                 trans_char = get_char_for_glyph(idx, maps)
                 orig_char = get_char_for_glyph(idx, orig_maps)
                 
-                if trans_char and orig_char and trans_char != orig_char:
-                    if len(trans_char) == 1 and len(orig_char) == 1:
-                        # Мапимо лише символи локалізації (кирилицю/діакритику), латиницю (ASCII) ігноруємо
-                        if ord(trans_char) >= 128 and ord(orig_char) >= 128:
-                            translation_map[trans_char] = orig_char
+                if trans_char:
+                    virtual_char = self.reverse_translation_map.get(trans_char)
+                    if virtual_char:
+                        if virtual_char != orig_char:
+                            translation_map[virtual_char] = trans_char
+                    elif orig_char and trans_char != orig_char:
+                        if len(trans_char) == 1 and len(orig_char) == 1:
+                            if ord(trans_char) >= 128 and ord(orig_char) >= 128:
+                                translation_map[trans_char] = orig_char
             except Exception:
                 pass
 

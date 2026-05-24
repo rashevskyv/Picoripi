@@ -120,12 +120,12 @@ def test_synthetic_empty_glyph_mapping():
     rules.reverse_translation_map = {} # Only synthetic entries exist
     rules.load_translation_map = lambda: None
     
-    # 1. Test encoding: "я" (Cyrillic ya) should be mapped to chr(224)
+    # 1. Test encoding: "я" (Cyrillic ya) should be mapped to chr(225)
     encoded = rules.encode_string_with_mapping("я")
     assert len(encoded) == 1
-    assert ord(encoded) == 224
+    assert ord(encoded) == 225
     
-    # 2. Test decoding: chr(224) should be mapped back to "я"
+    # 2. Test decoding: chr(225) should be mapped back to "я"
     decoded = rules.decode_string_with_mapping(encoded)
     assert decoded == "я"
     
@@ -140,8 +140,8 @@ def test_synthetic_empty_glyph_mapping():
     
     bmg_bytes = bmg.save()
     
-    # Check that bytes contain exactly the code 224 (0xe0) in CP1252 instead of question marks
-    assert b'\xe0' in bmg_bytes
+    # Check that bytes contain exactly the code 225 (0xe1) in CP1252 instead of question marks
+    assert b'\xe1' in bmg_bytes
     assert b'?' not in bmg_bytes
     
     # Unpack via plugin

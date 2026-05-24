@@ -945,6 +945,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         self.preview_index = 0
         self.char_str = ""
         self.orig_glyph_img = None
+        self._font_combo_just_focused = False
         
         # Try to find ascent from BFN Editor metadata for smart default forecasting
         ascent = 0
@@ -1032,16 +1033,25 @@ class RenderFontDialog(QtWidgets.QDialog):
         # --- Form parameters ---
         form = QtWidgets.QFormLayout()
         
-        # 1. Font Family
+        # 1. Font Family (Editable with real-time filtering and focus events)
         self.font_combo = QtWidgets.QFontComboBox()
+        self.font_combo.setEditable(True)
+        self.font_combo.setCompleter(None) # Disable default auto-completion which interferes with filtering
+        
         if _LAST_RENDER_PARAMS["font_family"] is not None:
             self.font_combo.setCurrentFont(QtGui.QFont(_LAST_RENDER_PARAMS["font_family"]))
         form.addRow("Font Family:", self.font_combo)
         
-        # Configure font family search to match substrings/middle words
-        completer = self.font_combo.completer()
-        if completer:
-            completer.setFilterMode(QtCore.Qt.MatchContains)
+        # Install event filter to select all text when lineEdit gets focus
+        self.font_combo.installEventFilter(self)
+        if self.font_combo.lineEdit():
+            self.font_combo.lineEdit().installEventFilter(self)
+            self.font_combo.lineEdit().textEdited.connect(self._on_font_text_edited)
+        if self.font_combo.view():
+            self.font_combo.view().installEventFilter(self)
+            
+        self.font_combo.activated.connect(self._on_font_activated)
+        
         
         # 2. Font Size
         self.spin_size = QtWidgets.QSpinBox()
@@ -1397,3 +1407,74 @@ class RenderFontDialog(QtWidgets.QDialog):
             "auto_metrics": self.chk_auto_metrics.isChecked(),
             "antialiasing": self.chk_antialiasing.isChecked()
         }
+
+    def eventFilter(self, obj, event):
+        if obj in (self.font_combo, self.font_combo.lineEdit()):
+            if event.type() in (
+                QtCore.QEvent.FocusIn,
+                QtCore.QEvent.MouseButtonPress,
+                QtCore.QEvent.MouseButtonRelease,
+                QtCore.QEvent.MouseButtonDblClick
+            ):
+                line_edit = self.font_combo.lineEdit()
+                if line_edit:
+                    QtCore.QTimer.singleShot(50, line_edit.selectAll)
+                    
+        elif obj == self.font_combo.view():
+            if event.type() == QtCore.QEvent.KeyPress:
+                key = event.key()
+                # Allow standard list navigation keys to work on the popup view
+                if key in (
+                    QtCore.Qt.Key_Up,
+                    QtCore.Qt.Key_Down,
+                    QtCore.Qt.Key_Enter,
+                    QtCore.Qt.Key_Return,
+                    QtCore.Qt.Key_Escape,
+                    QtCore.Qt.Key_PageUp,
+                    QtCore.Qt.Key_PageDown
+                ):
+                    return super().eventFilter(obj, event)
+                    
+                # Proxy all other typing and editing events back to lineEdit
+                line_edit = self.font_combo.lineEdit()
+                if line_edit:
+                    QtCore.QCoreApplication.sendEvent(line_edit, event)
+                    return True # Consume event so view doesn't handle it
+                    
+        return super().eventFilter(obj, event)
+
+    def _on_font_text_edited(self, text):
+        filter_text = text.lower().strip()
+        view = self.font_combo.view()
+        model = self.font_combo.model()
+        total = model.rowCount()
+        
+        if not filter_text:
+            self._reset_font_filter()
+            return
+            
+        words = filter_text.split()
+        
+        # Hide matching rows in view
+        for i in range(total):
+            name = model.index(i, 0).data() or ""
+            name_lower = name.lower()
+            if all(w in name_lower for w in words):
+                view.setRowHidden(i, False)
+            else:
+                view.setRowHidden(i, True)
+                
+        # Automatically show drop-down popup when typing
+        if not view.isVisible():
+            self.font_combo.showPopup()
+
+    def _on_font_activated(self, index):
+        self._reset_font_filter()
+
+    def _reset_font_filter(self):
+        view = self.font_combo.view()
+        model = self.font_combo.model()
+        total = model.rowCount()
+        for i in range(total):
+            view.setRowHidden(i, False)
+
