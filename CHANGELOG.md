@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.107] - 2026-05-24
+
+### Fixed
+- **BFN Editor: Persistence Fix on Migration**: Integrated automatic BFN-font file saving (`self.save_changes(silent=True)`) during the synthetic-key migration process inside `load_translation_map()`. This commits the newly migrated physical `MAP1` mappings permanently to the `.bfn` file immediately, preventing Cyrillic characters from disappearing upon application restart.
+- **BFN Editor: Shifted Search Range to Printable Codes (161-255)**: Restricted the dynamically generated character codes to range `161–255` (0xA1–0xFF). This completely avoids the Unicode C1 control characters range (128–159), ensuring every registered character is visually printable in the table and safely encoded in the JSON database.
+
 ## [0.2.106] - 2026-05-24
 
 ### Fixed

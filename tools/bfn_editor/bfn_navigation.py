@@ -615,6 +615,11 @@ class BfnNavigationMixin:
                 if needs_save:
                     # Save the cleaned mapping_file without synthetic keys back to disk
                     self.save_translation_map()
+                    # Physically save the BFN font file to commit the MAP1 changes to disk
+                    try:
+                        self.save_changes(silent=True)
+                    except Exception as e:
+                        print(f"Failed to auto-save BFN font during migration: {e}")
                     
                 print(f"BFN Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
         except Exception as e:
@@ -673,8 +678,8 @@ class BfnNavigationMixin:
                     if code >= 128:
                         used_codes.add(code)
                         
-        # 3. Find the first free code in the CP1252 printable range 128-255
-        for code in range(128, 256):
+        # 3. Find the first free code in the CP1252 printable range 161-255
+        for code in range(161, 256):
             if code not in used_codes:
                 return code
                 
