@@ -121,7 +121,7 @@ class GameRules(BaseGameRules):
                 continue
                 
             # 2. Try synthetic reverse mapping: check if ord(char) corresponds to a synthetic key
-            synth_key = f"#g{ord(char)}"
+            synth_key = f"#g{ord(char) - 1}"
             decoded_synth = self.translation_map.get(synth_key)
             if decoded_synth:
                 result.append(decoded_synth)
@@ -138,11 +138,11 @@ class GameRules(BaseGameRules):
             # 1. Get mapped value
             val = self.translation_map.get(char, char)
             
-            # 2. If it's a synthetic empty-glyph mapping like "#g224", encode as character with code 224
+            # 2. If it's a synthetic empty-glyph mapping like "#g224", encode as character with code 225 (glyph_idx + 1)
             if val.startswith("#g"):
                 try:
                     glyph_idx = int(val[2:])
-                    val = chr(glyph_idx)
+                    val = chr(glyph_idx + 1)
                 except Exception:
                     pass
             result.append(val)
