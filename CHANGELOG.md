@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.109] - 2026-05-24
+
+### Fixed
+- **BFN Editor: Empty Glyph Character Persists After Restart**: Fixed the root cause of Cyrillic characters (like «я») disappearing from empty glyphs after application restart. The issue had two causes:
+  1. When a character was typed into an empty glyph, `update_char_mapping()` updated MAP1 **only in memory** but the BFN file was never written to disk. Now `save_changes(silent=True)` is automatically called immediately after registering a new empty glyph, persisting the MAP1 entry.
+  2. On load, if `translation_map.json` contained a valid mapping (e.g. `"я" → chr(161)`) but the BFN file's MAP1 didn't have that code registered (e.g. from a previous unsaved session), the character silently disappeared. A new **4th pass** in `load_translation_map()` now detects such orphaned codes and re-registers them to the first available empty glyph, then auto-saves.
+- **BFN Editor: Load/Save Filter for translation_map.json**: `save_translation_map()` now filters out corrupt entries (control character codes < 161, synthetic keys) before writing to disk. `load_translation_map()` now only accepts entries where the key is non-ASCII (ord ≥ 128) and the value is a printable CP1252 code in range 161–255, rejecting all control character entries that previously caused silent loss of mapped characters.
+
 ## [0.2.108] - 2026-05-24
 
 ### Fixed
