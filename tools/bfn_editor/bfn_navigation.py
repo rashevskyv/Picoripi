@@ -417,12 +417,15 @@ class BfnNavigationMixin:
                 else:
                     # Empty glyph case: no MAP1 entry.
                     # Automatically initialize a physical mapping in MAP1 for this empty glyph!
-                    physical_code = glyph_idx
+                    physical_code = self.get_next_free_char_code()
+                    if physical_code is None:
+                        physical_code = glyph_idx
+                        
                     self.update_char_mapping(glyph_idx, physical_code)
                     orig_char = chr(physical_code)
                     
-                    # Update table row to reflect physical mapping instantly in Font Char column
-                    item_font_char = self.table_glyphs.item(row, 2)
+                    # Update table row to reflect physical mapping instantly in Font Char column (col 4)
+                    item_font_char = self.table_glyphs.item(row, 4)
                     if item_font_char:
                         item_font_char.setText(orig_char)
                         
@@ -618,6 +621,59 @@ class BfnNavigationMixin:
                 self.status.showMessage(f"Updated translation_map.json with {len(self.translation_map)} characters!")
         except Exception as e:
             print(f"Failed to save translation map: {e}")
+
+    def get_next_free_char_code(self, temp_translation_map=None):
+        used_codes = set()
+        
+        # 1. Collect codes used in the active translation map
+        trans_map = temp_translation_map if temp_translation_map is not None else getattr(self, 'translation_map', {})
+        if trans_map:
+            for v in trans_map.values():
+                if isinstance(v, str) and len(v) == 1:
+                    used_codes.add(ord(v))
+                elif isinstance(v, str) and v.startswith("#g"):
+                    try:
+                        used_codes.add(int(v[2:]))
+                    except Exception:
+                        pass
+        
+        # 2. Collect codes physically mapped in MAP1
+        maps = self.metadata.get("MAP1", [])
+        for m in maps:
+            m_type = m.get("mapping_type", 0)
+            if m_type == 0:
+                m_first = m.get("first_char", 0)
+                m_last = m.get("last_char", 0)
+                for code in range(m_first, m_last + 1):
+                    if code >= 128:
+                        used_codes.add(code)
+            elif m_type == 2:
+                m_first = m.get("first_char", 0)
+                entries = m.get("entries", [])
+                for c_idx, g_idx in enumerate(entries):
+                    if g_idx != 0xFFFF:
+                        code = m_first + c_idx
+                        if code >= 128:
+                            used_codes.add(code)
+            elif m_type == 3:
+                entries = m.get("entries", [])
+                half = len(entries) // 2
+                for k in range(half):
+                    code = entries[k]
+                    if code >= 128:
+                        used_codes.add(code)
+                        
+        # 3. Find the first free code in the CP1252 printable range 128-255
+        for code in range(128, 256):
+            if code not in used_codes:
+                return code
+                
+        # Fallback to standard range
+        for code in range(1, 128):
+            if code not in used_codes and code not in (9, 10, 13):
+                return code
+                
+        return None
 
     def get_original_char_for_glyph(self, glyph_idx):
         metadata = self.original_font_metadata if self.original_font_metadata else self.metadata
@@ -891,8 +947,11 @@ class BfnNavigationMixin:
                 # Get the original CP1252 character for this glyph
                 orig_char = self.get_original_char_for_glyph(glyph_idx)
                 if not orig_char:
-                    self.update_char_mapping(glyph_idx, glyph_idx)
-                    orig_char = chr(glyph_idx)
+                    physical_code = self.get_next_free_char_code(new_translation_map)
+                    if physical_code is None:
+                        physical_code = glyph_idx
+                    self.update_char_mapping(glyph_idx, physical_code)
+                    orig_char = chr(physical_code)
                 
                 # Get new virtual character
                 new_char_code = codes[i]
@@ -1088,8 +1147,11 @@ class BfnNavigationMixin:
             
             orig_char = self.get_original_char_for_glyph(glyph_idx)
             if not orig_char:
-                self.update_char_mapping(glyph_idx, glyph_idx)
-                orig_char = chr(glyph_idx)
+                physical_code = self.get_next_free_char_code(new_translation_map)
+                if physical_code is None:
+                    physical_code = glyph_idx
+                self.update_char_mapping(glyph_idx, physical_code)
+                orig_char = chr(physical_code)
                 
             new_char = lines[i]
             new_virtual_char = new_char[0] if new_char else ""

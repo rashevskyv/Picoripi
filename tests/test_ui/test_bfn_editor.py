@@ -849,14 +849,13 @@ def test_bfn_editor_empty_glyph_automatic_physical_registration(qapp, dummy_bfn_
     # Trigger cell edit manually
     editor.on_table_item_changed(item)
     
-    # Verify that:
     # A) Glyph 5 is physically registered in MAP1 metadata
     new_orig_char = editor.get_original_char_for_glyph(5)
-    assert new_orig_char == chr(5)
+    assert new_orig_char == chr(128)
     
-    # B) Virtual translation map contains clean mapping "Я" -> chr(5) without any synthetic "#g" keys!
-    assert editor.translation_map.get("Я") == chr(5)
-    assert editor.reverse_translation_map.get(chr(5)) == "Я"
+    # B) Virtual translation map contains clean mapping "Я" -> chr(128) without any synthetic "#g" keys!
+    assert editor.translation_map.get("Я") == chr(128)
+    assert editor.reverse_translation_map.get(chr(128)) == "Я"
     assert "#g5" not in editor.translation_map
     
     editor.clear_temp()

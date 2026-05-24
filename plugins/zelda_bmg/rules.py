@@ -97,7 +97,7 @@ class GameRules(BaseGameRules):
                             # Accept synthetic keys "#g{idx}" (empty-glyph mappings) as-is
                             if k.startswith("#g") or v.startswith("#g"):
                                 self.translation_map[k] = v
-                            elif len(k) == 1 and len(v) == 1 and ord(k) >= 128 and ord(v) >= 128:
+                            elif len(k) == 1 and len(v) == 1:
                                 self.translation_map[k] = v
                                 
                         # Rebuild reverse map only from normal (non-synthetic) entries
