@@ -41,7 +41,7 @@ from . import lnet_editor_setup
 
 class LineNumberedTextEdit(QPlainTextEdit):
     lineClicked = pyqtSignal(int)
-    selectionChanged = pyqtSignal(list)
+    previewSelectionChanged = pyqtSignal(list)
     addTagMappingRequest = pyqtSignal(str, str)
     calculateLineWidthRequest = pyqtSignal(int)
 
@@ -235,6 +235,13 @@ class LineNumberedTextEdit(QPlainTextEdit):
         return sorted(list(self._selected_lines))
 
     def set_selected_lines(self, lines: List[int]):
+        # Safeguard multi-selection in preview:
+        # If we currently have multiple lines selected (len > 1), and a programmatic call
+        # tries to select a single line that is already part of the current selection,
+        # we ignore it to prevent lazy-loading or text updates from resetting user's selection.
+        if len(lines) == 1 and len(self._selected_lines) > 1 and lines[0] in self._selected_lines:
+            return
+
         new_set = set(lines)
         if self._selected_lines == new_set:
             return
@@ -257,7 +264,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._previously_selected_lines = self._selected_lines.copy()
 
     def _emit_selection_changed(self):
-        self.selectionChanged.emit(self.get_selected_lines())
+        self.previewSelectionChanged.emit(self.get_selected_lines())
 
     def leaveEvent(self, event) -> None:
         if getattr(self, '_current_combined_tooltip', None):

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QT
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock 
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
 
 class ListSelectionHandler(BaseHandler):
@@ -199,6 +199,7 @@ class ListSelectionHandler(BaseHandler):
         self.string_selected_from_preview(rel_idx)
 
     def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False) -> None:
+        log_debug(f"DIAG_STRING_SELECTED_FROM_PREVIEW: line={line_number}, is_manual={is_manual_click}")
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
 
         original_programmatic_state = self.mw.is_programmatically_changing_text
@@ -563,10 +564,13 @@ class ListSelectionHandler(BaseHandler):
 
     def handle_preview_selection_changed(self, selected_lines: Optional[List[int]] = None) -> None:
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
-        if not preview_edit or not preview_edit.hasFocus() or self.mw.is_programmatically_changing_text:
+        log_debug(f"DIAG_HANDLE_PREVIEW_SELECTION_CHANGED: selected={selected_lines}, focus={preview_edit.hasFocus() if preview_edit else False}, programmatic={self.mw.is_programmatically_changing_text}")
+        if not preview_edit or self.mw.is_programmatically_changing_text:
             return
             
         if selected_lines is None:
+            if not preview_edit.hasFocus():
+                return
             cursor = preview_edit.textCursor()
             if not cursor.hasSelection():
                 if self.mw.data_store.current_string_idx != -1:
