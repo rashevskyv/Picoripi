@@ -415,30 +415,38 @@ class BfnNavigationMixin:
                         self.translation_map[new_virtual_char] = orig_char
                         self.reverse_translation_map[orig_char] = new_virtual_char
                 else:
-                    # Empty glyph case: no MAP1 entry, use synthetic key "#g{glyph_idx}"
-                    old_virtual_char = self.translation_map.get(synthetic_key, "")
+                    # Empty glyph case: no MAP1 entry.
+                    # Automatically initialize a physical mapping in MAP1 for this empty glyph!
+                    physical_code = glyph_idx
+                    self.update_char_mapping(glyph_idx, physical_code)
+                    orig_char = chr(physical_code)
+                    
+                    # Update table row to reflect physical mapping instantly in Font Char column
+                    item_font_char = self.table_glyphs.item(row, 2)
+                    if item_font_char:
+                        item_font_char.setText(orig_char)
+                        
+                    # Now fallback to normal flow because orig_char is set!
+                    old_virtual_char = self.reverse_translation_map.get(orig_char, "")
                     
                     if old_virtual_char == new_virtual_char:
                         self.table_glyphs.blockSignals(False)
                         return
                     
-                    # Remove old synthetic mapping
+                    if orig_char in self.reverse_translation_map:
+                        del self.reverse_translation_map[orig_char]
                     if old_virtual_char in self.translation_map:
                         del self.translation_map[old_virtual_char]
-                    if synthetic_key in self.translation_map:
-                        del self.translation_map[synthetic_key]
-                    
+                        
                     if new_virtual_char:
-                        # Remove any duplicate mapping for this virtual char
                         duplicate_orig = self.translation_map.get(new_virtual_char)
                         if duplicate_orig:
                             if duplicate_orig in self.reverse_translation_map:
                                 del self.reverse_translation_map[duplicate_orig]
                             del self.translation_map[new_virtual_char]
-                        
-                        # Store: virtual_char -> synthetic_key AND synthetic_key -> virtual_char
-                        self.translation_map[new_virtual_char] = synthetic_key
-                        self.translation_map[synthetic_key] = new_virtual_char
+                            
+                        self.translation_map[new_virtual_char] = orig_char
+                        self.reverse_translation_map[orig_char] = new_virtual_char
                 
                 # 5. Save the updated translation map to disk
                 self.save_translation_map()
@@ -841,7 +849,8 @@ class BfnNavigationMixin:
                 # Get the original CP1252 character for this glyph
                 orig_char = self.get_original_char_for_glyph(glyph_idx)
                 if not orig_char:
-                    continue
+                    self.update_char_mapping(glyph_idx, glyph_idx)
+                    orig_char = chr(glyph_idx)
                 
                 # Get new virtual character
                 new_char_code = codes[i]
@@ -1037,7 +1046,8 @@ class BfnNavigationMixin:
             
             orig_char = self.get_original_char_for_glyph(glyph_idx)
             if not orig_char:
-                continue
+                self.update_char_mapping(glyph_idx, glyph_idx)
+                orig_char = chr(glyph_idx)
                 
             new_char = lines[i]
             new_virtual_char = new_char[0] if new_char else ""
