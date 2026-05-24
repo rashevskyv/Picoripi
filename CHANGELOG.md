@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.105] - 2026-05-24
+
+### Added
+- **BFN Editor: Conflict-Free Dynamic Empty Glyph Physical Mapping**: Upgraded the automatic empty-glyph registration logic to dynamically scan, allocate, and assign the first available CP1252 printable character code (starting at 128) instead of the hardcoded non-printable index values. This completely eliminates mapping conflicts and redundant synthetic keys.
+- **BMG Plugin: Simplified Filtering Rules**: Streamlined the Zelda BMG rules loading process to allow any single-character mapping without enforcing the legacy >= 128 ASCII limit, ensuring maximum reliability and compatibility for clean mappings.
+- **Unit Tests: Updated Test Cases**: Updated the unit test suite to assert the new, safer dynamic printable character code allocation (verifying `chr(128)` allocation for empty glyphs).
+
 ## [0.2.104] - 2026-05-24
 
 ### Added
