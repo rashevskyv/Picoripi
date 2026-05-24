@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.104] - 2026-05-24
+
+### Added
+- **BFN Editor: Non-Character-Based Navigation**: Added helper methods `goto_next_empty_glyph()`, `goto_prev_empty_glyph()`, and `jump_to_glyph_index(glyph_idx)` in `bfn_navigation.py` to support quick positioning and empty cell traversal without using specific character codes.
+
+### Fixed
+- **BFN Editor: Automatic Legacy Mapping Migration**: Implemented dynamic migration of legacy synthetic mappings (e.g. `"#g224"`) to standard physical `MAP1` mappings upon loading `translation_map.json`. This cleans up existing legacy databases instantly and saves the normalized file to disk.
+
 ## [0.2.103] - 2026-05-24
 
 ### Fixed

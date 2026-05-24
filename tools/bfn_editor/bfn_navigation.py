@@ -549,18 +549,60 @@ class BfnNavigationMixin:
                 import json
                 with open(mapping_path, "r", encoding="utf-8") as f:
                     raw_map = json.load(f)
-                    self.translation_map = {}
-                    for k, v in raw_map.items():
-                        # Accept synthetic keys "#g{idx}" (empty-glyph mappings) as-is
-                        if k.startswith("#g") or v.startswith("#g"):
-                            self.translation_map[k] = v
-                        elif len(k) == 1 and len(v) == 1 and ord(k) >= 128 and ord(v) >= 128:
-                            self.translation_map[k] = v
-                    # Rebuild reverse map only from normal (non-synthetic) entries
-                    self.reverse_translation_map = {
-                        v: k for k, v in self.translation_map.items()
-                        if not k.startswith("#g") and not v.startswith("#g")
-                    }
+                    
+                self.translation_map = {}
+                needs_save = False
+                
+                # First pass: parse and migrate any synthetic mappings to real physical mappings in MAP1
+                migrated_map = {}
+                for k, v in raw_map.items():
+                    # Check if either k or v is a synthetic key "#g{idx}"
+                    synthetic_key = None
+                    virtual_char = None
+                    if k.startswith("#g"):
+                        synthetic_key = k
+                        virtual_char = v
+                    elif v.startswith("#g"):
+                        synthetic_key = v
+                        virtual_char = k
+                        
+                    if synthetic_key and virtual_char:
+                        try:
+                            glyph_idx = int(synthetic_key[2:])
+                            # Verify if this glyph is currently unmapped in MAP1
+                            orig_char = self.get_original_char_for_glyph(glyph_idx)
+                            if not orig_char:
+                                # Automatically register this glyph physically in MAP1!
+                                self.update_char_mapping(glyph_idx, glyph_idx)
+                                orig_char = chr(glyph_idx)
+                                
+                            # Convert to clean physical mapping in memory
+                            migrated_map[virtual_char] = orig_char
+                            migrated_map[orig_char] = virtual_char
+                            needs_save = True
+                        except Exception as e:
+                            print(f"Failed to migrate synthetic key {synthetic_key}: {e}")
+                    else:
+                        # Keep normal entries as-is
+                        migrated_map[k] = v
+                        
+                # Now load migrated entries
+                for k, v in migrated_map.items():
+                    if len(k) == 1 and len(v) == 1 and ord(k) >= 128 and ord(v) >= 128:
+                        self.translation_map[k] = v
+                    elif k.startswith("#g") or v.startswith("#g"): # fallback if migration failed
+                        self.translation_map[k] = v
+                        
+                # Rebuild reverse map only from normal (non-synthetic) entries
+                self.reverse_translation_map = {
+                    v: k for k, v in self.translation_map.items()
+                    if not k.startswith("#g") and not v.startswith("#g")
+                }
+                
+                if needs_save:
+                    # Save the cleaned mapping_file without synthetic keys back to disk
+                    self.save_translation_map()
+                    
                 print(f"BFN Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
         except Exception as e:
             print(f"Failed to load translation map: {e}")
@@ -1079,5 +1121,81 @@ class BfnNavigationMixin:
             cmd = BatchVirtualMapCommand(self, new_translation_map, new_reverse_map, f"Paste {pasted_count} Character Mappings")
             self.undo_stack.push(cmd)
             self._set_dirty(True)
+
+    def goto_next_empty_glyph(self):
+        current = self.table_glyphs.currentIndex()
+        start_row = current.row() if current.isValid() else 0
+        row_count = self.table_glyphs.rowCount()
+        
+        found_row = -1
+        # Search down
+        for row in range(start_row + 1, row_count):
+            item = self.table_glyphs.item(row, 3) # Column 3 is Character
+            if not item or not item.text().strip():
+                found_row = row
+                break
+                
+        if found_row == -1:
+            # Wrap around and search from top
+            for row in range(0, start_row + 1):
+                if row >= row_count:
+                    break
+                item = self.table_glyphs.item(row, 3)
+                if not item or not item.text().strip():
+                    found_row = row
+                    break
+                    
+        if found_row != -1:
+            self.table_glyphs.setCurrentCell(found_row, 3)
+            self.table_glyphs.scrollToItem(self.table_glyphs.currentItem())
+        else:
+            QtWidgets.QMessageBox.information(self, "Empty Glyphs", "No empty glyphs found in the table.")
+
+    def goto_prev_empty_glyph(self):
+        current = self.table_glyphs.currentIndex()
+        row_count = self.table_glyphs.rowCount()
+        start_row = current.row() if current.isValid() else row_count - 1
+        
+        found_row = -1
+        # Search up
+        for row in range(start_row - 1, -1, -1):
+            item = self.table_glyphs.item(row, 3)
+            if not item or not item.text().strip():
+                found_row = row
+                break
+                
+        if found_row == -1:
+            # Wrap around and search from bottom
+            for row in range(row_count - 1, start_row - 1, -1):
+                if row < 0:
+                    break
+                item = self.table_glyphs.item(row, 3)
+                if not item or not item.text().strip():
+                    found_row = row
+                    break
+                    
+        if found_row != -1:
+            self.table_glyphs.setCurrentCell(found_row, 3)
+            self.table_glyphs.scrollToItem(self.table_glyphs.currentItem())
+        else:
+            QtWidgets.QMessageBox.information(self, "Empty Glyphs", "No empty glyphs found in the table.")
+
+    def jump_to_glyph_index(self, glyph_idx=None):
+        if glyph_idx is None:
+            glyph_idx = self.spin_jump_idx.value()
+            
+        row_count = self.table_glyphs.rowCount()
+        found_row = -1
+        for row in range(row_count):
+            v_header = self.table_glyphs.verticalHeaderItem(row)
+            if v_header and int(v_header.text()) == glyph_idx:
+                found_row = row
+                break
+                
+        if found_row != -1:
+            self.table_glyphs.setCurrentCell(found_row, 3)
+            self.table_glyphs.scrollToItem(self.table_glyphs.currentItem())
+        else:
+            QtWidgets.QMessageBox.warning(self, "Not Found", f"Glyph with index {glyph_idx} is not in the current range or does not exist.")
 
 
