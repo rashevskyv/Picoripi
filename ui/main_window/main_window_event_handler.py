@@ -34,7 +34,7 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'preview_text_edit'):
             if hasattr(self.mw.preview_text_edit, 'lineClicked'):
                 self.mw.preview_text_edit.lineClicked.connect(lambda idx: self.mw.list_selection_handler.string_selected_from_preview(idx, is_manual_click=True))
-            self.mw.preview_text_edit.selectionChanged.connect(self.mw.list_selection_handler.handle_preview_selection_changed)
+            self.mw.preview_text_edit.previewSelectionChanged.connect(self.mw.list_selection_handler.handle_preview_selection_changed)
 
         if hasattr(self.mw, 'edited_text_edit'):
             self.mw.edited_text_edit.textChanged.connect(self.mw.editor_operation_handler.text_edited)

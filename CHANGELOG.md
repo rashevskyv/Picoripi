@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.110] - 2026-05-24
+
+### Fixed
+- **Fixed Multi-Selection Reset in Strings in Block Preview**: Fixed a critical bug where Shift-clicking or Ctrl-clicking to select multiple lines in the preview list ("Strings in block") would immediately reset and disappear.
+  - Implemented instant focus setting (`setFocus()`) in `mousePressEvent` in [mouse_handlers.py](file:///d:/git/dev/Picoripi/components/editor/mouse_handlers.py) to resolve async focus transfer latency when clicking from the translation editor.
+  - Optimized focus checks in `handle_preview_selection_changed` in [list_selection_handler.py](file:///d:/git/dev/Picoripi/handlers/list_selection_handler.py) to perform `hasFocus()` verification only on native Qt selection updates, skipping it entirely for custom selection signals.
+  - Protected multi-selection state in `set_selected_lines` in [line_numbered_text_edit.py](file:///d:/git/dev/Picoripi/components/editor/line_numbered_text_edit.py) from being programmatically overwritten by lazy-loading timer blocks or background view updates, ignoring single line selection events if they are already part of an active multi-selection.
+
 ## [0.2.109] - 2026-05-24
 
 ### Fixed

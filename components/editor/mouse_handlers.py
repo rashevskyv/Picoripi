@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QPoint
 import re
 from typing import Optional, Tuple, List
 
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_info, log_error
 
 class LNETMouseHandlers:
     def __init__(self, editor): # editor - це LineNumberedTextEdit
@@ -259,8 +259,10 @@ class LNETMouseHandlers:
         if self.editor.objectName() == "preview_text_edit":
             cursor = self.editor.cursorForPosition(event.pos())
             block_number = cursor.blockNumber()
+            log_debug(f"DIAG_MOUSE_PRESS: modifiers={event.modifiers()}, button={event.button()}, block={block_number}, last_clicked={self.editor._last_clicked_line}")
 
             if event.button() == Qt.LeftButton:
+                self.editor.setFocus()
                 self.editor.setTextCursor(cursor)
                 
                 self.editor.drag_start_pos = event.pos()
