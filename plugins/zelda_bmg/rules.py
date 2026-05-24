@@ -92,12 +92,19 @@ class GameRules(BaseGameRules):
                 try:
                     with open(path, 'r', encoding='utf-8') as f:
                         raw_map = json.loads(f.read())
-                        # Фільтруємо латиницю (коди < 128) для безпеки
-                        self.translation_map = {
-                            k: v for k, v in raw_map.items()
-                            if ord(k) >= 128 and ord(v) >= 128
+                        self.translation_map = {}
+                        for k, v in raw_map.items():
+                            # Accept synthetic keys "#g{idx}" (empty-glyph mappings) as-is
+                            if k.startswith("#g") or v.startswith("#g"):
+                                self.translation_map[k] = v
+                            elif len(k) == 1 and len(v) == 1 and ord(k) >= 128 and ord(v) >= 128:
+                                self.translation_map[k] = v
+                                
+                        # Rebuild reverse map only from normal (non-synthetic) entries
+                        self.reverse_translation_map = {
+                            v: k for k, v in self.translation_map.items()
+                            if not k.startswith("#g") and not v.startswith("#g")
                         }
-                        self.reverse_translation_map = {v: k for k, v in self.translation_map.items()}
                     log_info(f"Loaded {len(self.translation_map)} translation characters mappings from {path}")
                 except Exception as e:
                     log_warning(f"Error loading translation_map.json from {path}: {e}")
@@ -107,7 +114,20 @@ class GameRules(BaseGameRules):
         self.load_translation_map()
         result = []
         for char in s:
-            result.append(self.reverse_translation_map.get(char, char))
+            # 1. Try normal reverse translation mapping
+            decoded = self.reverse_translation_map.get(char)
+            if decoded:
+                result.append(decoded)
+                continue
+                
+            # 2. Try synthetic reverse mapping: check if ord(char) corresponds to a synthetic key
+            synth_key = f"#g{ord(char)}"
+            decoded_synth = self.translation_map.get(synth_key)
+            if decoded_synth:
+                result.append(decoded_synth)
+                continue
+                
+            result.append(char)
         return "".join(result)
 
     def encode_string_with_mapping(self, s: str) -> str:
@@ -115,7 +135,17 @@ class GameRules(BaseGameRules):
         self.load_translation_map()
         result = []
         for char in s:
-            result.append(self.translation_map.get(char, char))
+            # 1. Get mapped value
+            val = self.translation_map.get(char, char)
+            
+            # 2. If it's a synthetic empty-glyph mapping like "#g224", encode as character with code 224
+            if val.startswith("#g"):
+                try:
+                    glyph_idx = int(val[2:])
+                    val = chr(glyph_idx)
+                except Exception:
+                    pass
+            result.append(val)
         return "".join(result)
 
     def msg_to_editor_text(self, bmg_msg: Any) -> str:
