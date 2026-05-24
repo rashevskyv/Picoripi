@@ -572,12 +572,22 @@ class BfnNavigationMixin:
                     if synthetic_key and virtual_char:
                         try:
                             glyph_idx = int(synthetic_key[2:])
-                            # Verify if this glyph is currently unmapped in MAP1
-                            orig_char = self.get_original_char_for_glyph(glyph_idx)
-                            if not orig_char:
-                                # Automatically register this glyph physically in MAP1!
-                                self.update_char_mapping(glyph_idx, glyph_idx)
-                                orig_char = chr(glyph_idx)
+                            # Check if this glyph already has a physical character code in MAP1
+                            current_code = self.get_current_char_code_for_glyph(glyph_idx)
+                            
+                            # If it doesn't have a mapped code, or if the current code is already taken in raw_map
+                            # (excluding the synthetic key itself) or is equal to glyph_idx which could conflict,
+                            # dynamically allocate a clean printable character code!
+                            taken_codes = [ord(val) for key, val in raw_map.items() if len(val) == 1 and key != synthetic_key]
+                            if current_code <= 0 or current_code >= 0xFFFF or current_code in taken_codes or current_code == glyph_idx:
+                                physical_code = self.get_next_free_char_code(migrated_map)
+                                if physical_code is None:
+                                    physical_code = glyph_idx
+                            else:
+                                physical_code = current_code
+                                
+                            self.update_char_mapping(glyph_idx, physical_code)
+                            orig_char = chr(physical_code)
                                 
                             # Convert to clean physical mapping in memory
                             migrated_map[virtual_char] = orig_char

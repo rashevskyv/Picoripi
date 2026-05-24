@@ -81,7 +81,6 @@ class BfnIoMixin:
             self.status.showMessage("Failed to load folder.")
 
     def load_from_extracted_dir(self, dir_path):
-        self.load_translation_map()
         json_path = os.path.join(dir_path, 'data.json')
         with open(json_path, 'r') as f:
             self.metadata = json.load(f)
@@ -94,6 +93,8 @@ class BfnIoMixin:
                 last_char = m.get("last_char", 0)
                 m["mapping_entry_count"] = last_char - first_char + 1
                 m["entries"] = [i for i in range(m["mapping_entry_count"])]
+                
+        self.load_translation_map()
             
         gly = self.metadata.get("GLY1", [{}])[0]
         self.cell_w = int(gly.get("cell_width", 24))
