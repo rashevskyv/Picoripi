@@ -805,6 +805,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                     self.list_sheets.blockSignals(True)
                     self.list_sheets.setCurrentItem(item)
                     self.list_sheets.blockSignals(False)
+                    self.select_sheet(sheet_idx)
                     break
             iterator += 1
 
