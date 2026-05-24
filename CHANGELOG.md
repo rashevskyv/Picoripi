@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.108] - 2026-05-24
+
+### Fixed
+- **BFN Editor: Dynamic Mapping Self-Healing & Direction Normalization**: Enhanced `load_translation_map()` to automatically detect, normalize, and swap backwards key-value pairs (so Ukrainian characters with ord >= 256 are always keys, and CP1252 codes with ord < 256 are always values).
+- **BFN Editor: Automatic Control Character Healing**: Implemented on-the-fly detection and healing of invalid control/non-printable character codes. Any legacy mapping pointing to non-printable ranges (like `\u0001` or Unicode C1 controls) is automatically resolved by allocating a clean CP1252 printable code in range 161–255, remapping the physical BFN block, and saving changes to disk.
+- **BFN Editor: Dynamic Code Allocation Improvements**: Updated `get_next_free_char_code()` to only consider a CP1252 code as "used" if it is actually present in the translation map, completely ignoring standard 1-to-1 MAP1 physical blocks. This ensures a clean code is always found in default-mapped fonts.
+
 ## [0.2.107] - 2026-05-24
 
 ### Fixed

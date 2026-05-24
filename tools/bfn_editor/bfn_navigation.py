@@ -556,9 +556,24 @@ class BfnNavigationMixin:
                 self.translation_map = {}
                 needs_save = False
                 
-                # First pass: parse and migrate any synthetic mappings to real physical mappings in MAP1
-                migrated_map = {}
+                # 1. Normalize mapping direction: Ukrainian character (ord >= 256) must be the key,
+                # CP1252 character (ord < 256) must be the value.
+                normalized_map = {}
                 for k, v in raw_map.items():
+                    if k.startswith("#g") or v.startswith("#g"):
+                        normalized_map[k] = v
+                    elif len(k) == 1 and len(v) == 1:
+                        if ord(k) < 256 and ord(v) >= 256:
+                            # Swap to make Ukrainian character the key
+                            normalized_map[v] = k
+                        elif ord(k) >= 256 and ord(v) < 256:
+                            normalized_map[k] = v
+                        else:
+                            normalized_map[k] = v
+                            
+                # 2. First pass: parse and migrate any synthetic mappings to real physical mappings in MAP1
+                migrated_map = {}
+                for k, v in normalized_map.items():
                     # Check if either k or v is a synthetic key "#g{idx}"
                     synthetic_key = None
                     virtual_char = None
@@ -575,10 +590,10 @@ class BfnNavigationMixin:
                             # Check if this glyph already has a physical character code in MAP1
                             current_code = self.get_current_char_code_for_glyph(glyph_idx)
                             
-                            # If it doesn't have a mapped code, or if the current code is already taken in raw_map
+                            # If it doesn't have a mapped code, or if the current code is already taken
                             # (excluding the synthetic key itself) or is equal to glyph_idx which could conflict,
                             # dynamically allocate a clean printable character code!
-                            taken_codes = [ord(val) for key, val in raw_map.items() if len(val) == 1 and key != synthetic_key]
+                            taken_codes = [ord(val) for key, val in normalized_map.items() if len(val) == 1 and key != synthetic_key]
                             if current_code <= 0 or current_code >= 0xFFFF or current_code in taken_codes or current_code == glyph_idx:
                                 physical_code = self.get_next_free_char_code(migrated_map)
                                 if physical_code is None:
@@ -591,7 +606,6 @@ class BfnNavigationMixin:
                                 
                             # Convert to clean physical mapping in memory
                             migrated_map[virtual_char] = orig_char
-                            migrated_map[orig_char] = virtual_char
                             needs_save = True
                         except Exception as e:
                             print(f"Failed to migrate synthetic key {synthetic_key}: {e}")
@@ -599,8 +613,33 @@ class BfnNavigationMixin:
                         # Keep normal entries as-is
                         migrated_map[k] = v
                         
-                # Now load migrated entries
+                # 3. Second pass: heal any control characters/non-printable character codes in migrated_map
+                healed_map = {}
                 for k, v in migrated_map.items():
+                    if len(k) == 1 and len(v) == 1:
+                        char_code = ord(v)
+                        # Control/non-printable range in Unicode/CP1252
+                        if char_code < 32 or (127 <= char_code <= 160):
+                            try:
+                                # Find which glyph currently maps to this control code
+                                glyph_idx = -1
+                                for idx in range(self.start_glyph, self.end_glyph + 1):
+                                    if self.get_current_char_code_for_glyph(idx) == char_code:
+                                        glyph_idx = idx
+                                        break
+                                        
+                                if glyph_idx != -1:
+                                    physical_code = self.get_next_free_char_code(healed_map)
+                                    if physical_code is not None:
+                                        self.update_char_mapping(glyph_idx, physical_code)
+                                        v = chr(physical_code)
+                                        needs_save = True
+                            except Exception as e:
+                                print(f"Failed to heal control character code {char_code} for glyph {glyph_idx}: {e}")
+                    healed_map[k] = v
+                    
+                # Load healed entries
+                for k, v in healed_map.items():
                     if len(k) == 1 and len(v) == 1 and ord(k) >= 128 and ord(v) >= 128:
                         self.translation_map[k] = v
                     elif k.startswith("#g") or v.startswith("#g"): # fallback if migration failed
@@ -652,40 +691,19 @@ class BfnNavigationMixin:
                     except Exception:
                         pass
         
-        # 2. Collect codes physically mapped in MAP1
-        maps = self.metadata.get("MAP1", [])
-        for m in maps:
-            m_type = m.get("mapping_type", 0)
-            if m_type == 0:
-                m_first = m.get("first_char", 0)
-                m_last = m.get("last_char", 0)
-                for code in range(m_first, m_last + 1):
-                    if code >= 128:
-                        used_codes.add(code)
-            elif m_type == 2:
-                m_first = m.get("first_char", 0)
-                entries = m.get("entries", [])
-                for c_idx, g_idx in enumerate(entries):
-                    if g_idx != 0xFFFF:
-                        code = m_first + c_idx
-                        if code >= 128:
-                            used_codes.add(code)
-            elif m_type == 3:
-                entries = m.get("entries", [])
-                half = len(entries) // 2
-                for k in range(half):
-                    code = entries[k]
-                    if code >= 128:
-                        used_codes.add(code)
+        # 2. Add ASCII printable characters to avoid overwriting them
+        for code in range(32, 128):
+            used_codes.add(code)
+            
+        # 3. Add control / non-printable CP1252 characters to avoid them
+        for code in range(0, 32):
+            used_codes.add(code)
+        for code in range(127, 161):
+            used_codes.add(code)
                         
-        # 3. Find the first free code in the CP1252 printable range 161-255
+        # 4. Find the first free code in the CP1252 printable range 161-255
         for code in range(161, 256):
             if code not in used_codes:
-                return code
-                
-        # Fallback to standard range
-        for code in range(1, 128):
-            if code not in used_codes and code not in (9, 10, 13):
                 return code
                 
         return None
