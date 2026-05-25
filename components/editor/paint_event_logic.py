@@ -103,7 +103,7 @@ class LNETPaintEventLogic:
             block = block.next()
         
         # Draw vertical line representing the width threshold (Editor Line Width Warning)
-        if self.editor.line_width_warning_threshold_pixels > 0 and self.editor.objectName() != "preview_text_edit":
+        if self.editor.line_width_warning_threshold_pixels > 0 and self.editor.objectName() != "preview_text_edit" and getattr(self.editor, 'show_width_guideline', True):
             pen = QPen(self.editor.width_threshold_line_color)
             pen.setWidth(self.editor.width_threshold_line_width)
             pen.setStyle(self.editor.width_threshold_line_style)

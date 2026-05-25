@@ -200,6 +200,15 @@ class SettingsDialogUiMixin:
         
         self.width_warning_spinbox = LabeledSpinBox("Editor Line Width Warning (px):", 100, 10000, 208, parent=self)
         self.width_warning_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
+        
+        self.show_width_guideline_checkbox = QCheckBox("Show guideline", self)
+        self.show_width_guideline_checkbox.stateChanged.connect(self.on_rules_changed)
+        
+        spinbox_layout = self.width_warning_spinbox.layout()
+        if spinbox_layout:
+            spinbox_layout.insertSpacing(2, 20)
+            spinbox_layout.insertWidget(3, self.show_width_guideline_checkbox)
+            
         layout.addRow(self.width_warning_spinbox)
 
         self.lines_per_page_spinbox = LabeledSpinBox("Lines Per Page:", 1, 20, 4, parent=self)

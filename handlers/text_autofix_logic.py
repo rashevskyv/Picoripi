@@ -111,7 +111,9 @@ class TextAutofixLogic:
         joined_text = "\n".join(new_sub_lines)
         return joined_text
 
-    def _fix_short_lines(self, text: str, width_threshold: int) -> str:
+    def _fix_short_lines(self, text: str, width_threshold: int = None) -> str:
+        if width_threshold is None:
+            width_threshold = getattr(self.mw, 'game_dialog_max_width_pixels', 200)
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
             return text
@@ -197,7 +199,9 @@ class TextAutofixLogic:
         final_text = "\n".join(sub_lines)
         return final_text
 
-    def _fix_width_exceeded(self, text: str, width_threshold: int) -> str:
+    def _fix_width_exceeded(self, text: str, width_threshold: int = None) -> str:
+        if width_threshold is None:
+            width_threshold = getattr(self.mw, 'game_dialog_max_width_pixels', 200)
         sub_lines = text.split('\n')
         made_change_overall = False
         

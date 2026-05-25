@@ -74,6 +74,9 @@ class MainWindowActions:
         for key, value in new_settings.items():
             setattr(self.mw, key, value)
 
+        if not (dialog.plugin_changed_requires_restart or dialog.theme_changed_requires_restart or font_file_changed):
+            self.mw.string_settings_updater.update_string_settings_panel()
+
         if dialog.plugin_changed_requires_restart or dialog.theme_changed_requires_restart or font_file_changed:
             log_info(f"Restart required. Plugin change: {dialog.plugin_changed_requires_restart}, Theme change: {dialog.theme_changed_requires_restart}, Font file change: {font_file_changed}")
             

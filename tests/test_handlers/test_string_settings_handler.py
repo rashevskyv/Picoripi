@@ -8,6 +8,7 @@ def handler(mock_mw):
     mock_mw.current_string_idx = 0
     mock_mw.string_metadata = {}
     mock_mw.line_width_warning_threshold_pixels = 200
+    mock_mw.game_dialog_max_width_pixels = 200
     mock_mw.font_combobox = MagicMock()
     mock_mw.width_spinbox = MagicMock()
     mock_mw.apply_width_button = MagicMock()

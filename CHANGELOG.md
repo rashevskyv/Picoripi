@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.112] - 2026-05-25
+
+### Added
+- **Show Guideline Option**: Added a new **"Show guideline"** checkbox right next to the `Editor Line Width Warning (px)` field inside `Settings` -> `Project` -> `Rules`. Allows translators to easily toggle the visual vertical dotted guideline in the translation editors on or off. State is persistent and saved in `settings.json` under `show_width_guideline` (defaults to `True`).
+
+### Fixed
+- **Stable QSpinBox Width Arrows**: Fixed a bug where QSpinBox arrows (up/down step buttons) disappeared on Windows after issue scans or string list updates. Transitioned the purple override highlight styling from the parent `QSpinBox` widget level to exclusively target its nested line edit field via `width_spinbox.lineEdit().setStyleSheet()`, leaving the system step button rendering completely intact.
+- **Zero-Lag Default Width Sidebar Updates**: Eliminated the visual delay/lag when default width parameters were updated. Sidebar string settings panel updates are now executed instantly at the very start of the settings saving routine, bypassing blocked modal `QMessageBox` rescan dialogues and keeping the source of truth fully synchronized in real-time.
+- **Robust Mock-Context Suite and Safe Width Fallback**: Patched the pytest unit testing suite by registering the new `game_dialog_max_width_pixels` properties within mock context fixtures (`MockContext` and `mock_mw`). Integrated safe fallback `getattr(self.mw, 'game_dialog_max_width_pixels', 200)` inside аsync handlers to prevent `AttributeError` exceptions under high-concurrency Qt event execution contexts.
+
 ## [0.2.111] - 2026-05-25
 
 ### Added
