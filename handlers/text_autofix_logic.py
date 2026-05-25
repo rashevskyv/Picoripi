@@ -111,7 +111,7 @@ class TextAutofixLogic:
         joined_text = "\n".join(new_sub_lines)
         return joined_text
 
-    def _fix_short_lines(self, text: str) -> str:
+    def _fix_short_lines(self, text: str, width_threshold: int) -> str:
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
             return text
@@ -150,7 +150,7 @@ class TextAutofixLogic:
                 width_first_word_next = calculate_string_width(first_word_next_no_tags, self.mw.font_map)
                 space_width = calculate_string_width(" ", self.mw.font_map)
                 
-                can_merge = width_current_line_rstripped + space_width + width_first_word_next <= self.mw.line_width_warning_threshold_pixels
+                can_merge = width_current_line_rstripped + space_width + width_first_word_next <= width_threshold
 
                 if can_merge:
                     merged_line = current_line_for_width_calc
@@ -197,7 +197,7 @@ class TextAutofixLogic:
         final_text = "\n".join(sub_lines)
         return final_text
 
-    def _fix_width_exceeded(self, text: str) -> str:
+    def _fix_width_exceeded(self, text: str, width_threshold: int) -> str:
         sub_lines = text.split('\n')
         made_change_overall = False
         
@@ -210,7 +210,7 @@ class TextAutofixLogic:
             while True: 
                 line_width_no_tags = calculate_string_width(remove_all_tags(current_processing_line), self.mw.font_map)
 
-                if line_width_no_tags <= self.mw.line_width_warning_threshold_pixels:
+                if line_width_no_tags <= width_threshold:
                     if current_processing_line or not temp_newly_created_lines_for_this_original_line or \
                        (not current_processing_line and line_idx < len(sub_lines) -1 ): 
                         temp_newly_created_lines_for_this_original_line.append(current_processing_line)
@@ -237,7 +237,7 @@ class TextAutofixLogic:
                         width_to_check += calculate_string_width(" ", self.mw.font_map)
                     width_to_check += part_width
 
-                    if width_to_check <= self.mw.line_width_warning_threshold_pixels:
+                    if width_to_check <= width_threshold:
                         if current_needs_space_before:
                             text_fits += " "
                         text_fits += part
@@ -412,14 +412,17 @@ class TextAutofixLogic:
         
         edited_text_edit = self.mw.edited_text_edit
         
+        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
+        width_threshold = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+        
         while iterations < max_iterations:
             text_before_pass = modified_text
             iterations += 1
 
             modified_text = self._fix_empty_odd_sublines(modified_text)
             modified_text = self._fix_blue_sublines(modified_text)
-            modified_text = self._fix_short_lines(modified_text)
-            modified_text = self._fix_width_exceeded(modified_text)
+            modified_text = self._fix_short_lines(modified_text, width_threshold)
+            modified_text = self._fix_width_exceeded(modified_text, width_threshold)
             modified_text = self._cleanup_spaces_around_tags(modified_text) 
             modified_text = self._fix_leading_spaces_in_sublines(modified_text) 
             

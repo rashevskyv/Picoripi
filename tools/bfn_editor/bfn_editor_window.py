@@ -52,6 +52,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.selected_char_index = -1
         self._dragging_in_sim = False
         self._dirty = False
+        self.changes_saved_during_session = False
 
         # Integration callbacks (set by Picoripi when opening from archive)
         self.archive_save_callback = None  # callable(filename, bytes) — write updated BFN back to archive

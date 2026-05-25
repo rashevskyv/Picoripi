@@ -282,6 +282,7 @@ class BfnIoMixin:
                 
             self._sync_with_global_preview_cache()
             self._set_dirty(False)
+            self.changes_saved_during_session = True
             if not silent:
                 QtWidgets.QMessageBox.information(self, 'Success', 'All changes saved successfully!')
         except Exception as e:
@@ -368,6 +369,25 @@ class BfnIoMixin:
         else:
             self.clear_temp()
             event.accept()
+
+        if event.isAccepted() and getattr(self, "changes_saved_during_session", False):
+            parent_mw = None
+            if hasattr(self, 'parent') and callable(self.parent):
+                parent_mw = self.parent()
+            elif hasattr(self, 'mw'):
+                parent_mw = self.mw
+                
+            if parent_mw:
+                if hasattr(parent_mw, 'settings_manager') and parent_mw.settings_manager:
+                    parent_mw.settings_manager.load_all_font_maps()
+                elif hasattr(parent_mw, 'font_map_loader'):
+                    parent_mw.font_map_loader.load_all_font_maps()
+                    
+                if hasattr(parent_mw, 'string_settings_updater'):
+                    parent_mw.string_settings_updater.update_font_combobox()
+                
+                if hasattr(parent_mw, 'app_action_handler'):
+                    parent_mw.app_action_handler.rescan_all_tags()
 
     def export_sheet_png(self):
         if self.current_sheet_index < 0 or self.current_sheet_index >= len(self.sheet_images):

@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.111] - 2026-05-25
+
+### Added
+- **BFN Font Editor Independent Sliders**: Decoupled kerning (blue) and glyph width (red) sliders in BFN Font Editor's interactive glyph viewer and simulation previews. Moving the kerning slider now automatically adjusts the glyph width internally to ensure the width line remains visually static in absolute coordinates, preventing unexpected layout modifications. Included safe clamping to prevent value overflows.
+- **BFN Editor Auto-Rescan on Close**: Integrated automatic full project re-scans upon closing the BFN Font Editor if changes to custom font metrics were successfully saved during the session, allowing instant propagation of updated font metrics to translation alerts.
+- **Rules Limits Redefinition (Game Dialog Max Width)**: Restructured text safety limits. `Game Dialog Max Width` is now the primary limit that drives string warning highlights, issue scanner errors, and the Auto-Fix wrapping engine.
+- **Visual Editor Line Width Guideline**: `Editor Line Width Warning` is now dedicated solely to drawing a subtle vertical guideline inside the translation inputs, giving translators full control over safe visual boundaries without throwing annoying errors or blocking auto-fixes.
+- **Improved Guideline Styling**: Restyled the vertical guideline to be a thin 1px dashed line with 50% opacity (`QColor(0, 128, 0, 128)`) for an elegant, distraction-free appearance, and successfully hid it inside the "Strings in block" preview list.
+- **Settings Dialog Rescan Trigger**: Implemented safe pre-dialog value caching for Game Dialog Width, Editor Line Warning, and Lines Per Page. When the Settings dialog is closed via "Ok", a full rescan of all tags and issues is automatically triggered if and only if one of these parameters has actually changed.
+- **Reactive Side Panel Sync**: Integrated automatic UI side panel updates upon saving settings, immediately synchronizing the default width value inside the String Settings panel's spinbox without requiring block or string selection refreshes.
+
 ## [0.2.110] - 2026-05-24
 
 ### Fixed

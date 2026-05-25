@@ -34,7 +34,7 @@ class TextOperationHandler(BaseHandler):
         font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
         
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-        width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+        width_threshold_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
         
         problems_in_string = []
         if hasattr(analyzer, 'analyze_data_string'):
@@ -419,11 +419,11 @@ class TextOperationHandler(BaseHandler):
         max_allowed_width = self.mw.game_dialog_max_width_pixels
         
         string_meta = self.mw.string_metadata.get((self.mw.data_store.current_block_idx, data_line_idx), {})
-        warning_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+        warning_threshold = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
 
         font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, data_line_idx)
         
-        info_parts = [f"Data Line {data_line_idx + 1} (Block {self.mw.data_store.current_block_idx}):\nMax Allowed Width (Game Dialog): {max_allowed_width}px\nWidth Warning Threshold (Editor): {warning_threshold}px\n"]
+        info_parts = [f"Data Line {data_line_idx + 1} (Block {self.mw.data_store.current_block_idx}):\nMax Allowed Width (Game Dialog): {max_allowed_width}px\nWidth Warning Threshold: {warning_threshold}px\n"]
         
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         
@@ -509,7 +509,7 @@ class TextOperationHandler(BaseHandler):
         font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
         
         string_meta = self.mw.string_metadata.get((self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx), {})
-        width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+        width_threshold_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
         
         fixed_data, changed = self.mw.current_game_rules.autofix_data_string(
             data_to_fix, 

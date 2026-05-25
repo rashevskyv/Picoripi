@@ -128,7 +128,7 @@ class PreviewUpdater(BaseUIUpdater):
                 q_block_text_raw_dots = block.text()
                 
                 string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-                current_threshold_game_px = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+                current_threshold_game_px = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
                 
                 line_text_with_spaces_and_tags = convert_dots_to_spaces_from_editor(q_block_text_raw_dots)
                 line_text_no_tags_for_width_calc = remove_all_tags(line_text_with_spaces_and_tags).rstrip()
