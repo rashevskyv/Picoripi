@@ -128,6 +128,7 @@ class MainWindowHelper:
                 editor_widget.line_width_warning_threshold_pixels = self.mw.line_width_warning_threshold_pixels
                 editor_widget.font_map = self.mw.font_map
                 editor_widget.game_dialog_max_width_pixels = self.mw.game_dialog_max_width_pixels
+                editor_widget.show_width_guideline = getattr(self.mw, 'show_width_guideline', True)
                 if hasattr(editor_widget, 'updateLineNumberAreaWidth'):
                     editor_widget.updateLineNumberAreaWidth(0)
 

@@ -25,6 +25,7 @@ def mock_mw():
     mw.current_game_rules = None
     mw.data_store.data = []
     mw.line_width_warning_threshold_pixels = 100
+    mw.game_dialog_max_width_pixels = 200
     return mw
 
 
@@ -106,7 +107,7 @@ class TestStringSettingsUpdater:
         updater.mw.data_store.current_block_idx = 0
         updater.mw.data_store.current_string_idx = 0
         updater.mw.string_metadata = {}  # No custom meta
-        updater.mw.line_width_warning_threshold_pixels = 200
+        updater.mw.game_dialog_max_width_pixels = 200
 
         updater.update_string_settings_panel()
 
@@ -114,18 +115,18 @@ class TestStringSettingsUpdater:
         updater.mw.width_spinbox.setEnabled.assert_called_with(True)
         # Width should be default
         updater.mw.width_spinbox.setValue.assert_called_with(200)
-        updater.mw.width_spinbox.setStyleSheet.assert_called_with("")
+        updater.mw.width_spinbox.lineEdit().setStyleSheet.assert_called_with("")
 
     def test_update_string_settings_panel_custom_width(self, updater):
         updater.mw.data_store.current_block_idx = 0
         updater.mw.data_store.current_string_idx = 0
         updater.mw.string_metadata = {(0, 0): {"width": 150}}
-        updater.mw.line_width_warning_threshold_pixels = 200
+        updater.mw.game_dialog_max_width_pixels = 200
 
         updater.update_string_settings_panel()
 
         updater.mw.width_spinbox.setValue.assert_called_with(150)
-        updater.mw.width_spinbox.setStyleSheet.assert_called_with(updater.highlight_style)
+        updater.mw.width_spinbox.lineEdit().setStyleSheet.assert_called_with("border: 1px solid rgba(147, 112, 219, 180); background-color: rgba(147, 112, 219, 30);")
 
 
 # ── PreviewUpdater ────────────────────────────────────────────────────────────

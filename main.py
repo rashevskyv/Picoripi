@@ -330,6 +330,7 @@ class MainWindow(QMainWindow):
                 editor_widget.line_width_warning_threshold_pixels = self.line_width_warning_threshold_pixels
                 editor_widget.font_map = self.font_map
                 editor_widget.game_dialog_max_width_pixels = self.game_dialog_max_width_pixels
+                editor_widget.show_width_guideline = self.show_width_guideline
                 
                 if hasattr(editor_widget, 'updateLineNumberAreaWidth'):
                     editor_widget.updateLineNumberAreaWidth(0)
@@ -432,6 +433,11 @@ class MainWindow(QMainWindow):
     def line_width_warning_threshold_pixels(self): return self.settings_manager.get('line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
     @line_width_warning_threshold_pixels.setter
     def line_width_warning_threshold_pixels(self, val): self.settings_manager.set('line_width_warning_threshold_pixels', val)
+
+    @property
+    def show_width_guideline(self): return self.settings_manager.get('show_width_guideline', True)
+    @show_width_guideline.setter
+    def show_width_guideline(self, val): self.settings_manager.set('show_width_guideline', val)
 
     @property
     def tree_font_size(self): return self.settings_manager.get('tree_font_size', self.current_font_size)

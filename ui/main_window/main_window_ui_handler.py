@@ -24,6 +24,7 @@ class MainWindowUIHandler:
             if editor:
                 editor.line_width_warning_threshold_pixels = self.mw.line_width_warning_threshold_pixels
                 editor.game_dialog_max_width_pixels = self.mw.game_dialog_max_width_pixels
+                editor.show_width_guideline = getattr(self.mw, 'show_width_guideline', True)
                 if hasattr(editor, '_update_auxiliary_widths'):
                     editor._update_auxiliary_widths()
                 editor.viewport().update()

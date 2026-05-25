@@ -8,7 +8,7 @@ from utils.utils import log_debug
 class StringSettingsUpdater(BaseUIUpdater):
     def __init__(self, main_window, data_processor):
         super().__init__(main_window, data_processor)
-        self.highlight_style = "border: 1px solid #9370DB;" # MediumPurple
+        self.highlight_style = "QComboBox, QSpinBox QLineEdit { border: 1px solid rgba(147, 112, 219, 180); background-color: rgba(147, 112, 219, 30); }"
 
     def update_font_combobox(self):
         self.mw.font_combobox.blockSignals(True)
@@ -64,11 +64,16 @@ class StringSettingsUpdater(BaseUIUpdater):
         # Update width
         width = string_meta.get("width")
         self.mw.width_spinbox.blockSignals(True)
+        
+        line_edit_highlight = "border: 1px solid rgba(147, 112, 219, 180); background-color: rgba(147, 112, 219, 30);"
+        
         if width and width != self.mw.game_dialog_max_width_pixels:
             self.mw.width_spinbox.setValue(width)
-            self.mw.width_spinbox.setStyleSheet(self.highlight_style)
+            if hasattr(self.mw.width_spinbox, 'lineEdit') and self.mw.width_spinbox.lineEdit():
+                self.mw.width_spinbox.lineEdit().setStyleSheet(line_edit_highlight)
         else:
             self.mw.width_spinbox.setValue(self.mw.game_dialog_max_width_pixels)
-            self.mw.width_spinbox.setStyleSheet("")
+            if hasattr(self.mw.width_spinbox, 'lineEdit') and self.mw.width_spinbox.lineEdit():
+                self.mw.width_spinbox.lineEdit().setStyleSheet("")
         self.mw.width_spinbox.blockSignals(False)
         self.mw.apply_width_button.setEnabled(False)

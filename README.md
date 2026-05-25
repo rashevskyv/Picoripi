@@ -1,6 +1,6 @@
-# Picoripi v0.2.111
+# Picoripi v0.2.112
 
-The "Picoripi" (v0.2.111) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.112) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -20,7 +20,9 @@ The "Picoripi" (v0.2.111) is a desktop application built with **Python** and **P
 - Visual feedback (red and yellow markers) for text that exceeds the game's displayable width limit.
 - Syntax highlighting for game control codes and tags (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
 - Convenient insertion of control codes (button icons) through a visual interface and context menus.
+- **Vertical Width Guideline**: Elegant vertical dotted line (1px, 50% opacity) showing the visual width warning boundary in both editors, with a **"Show guideline"** toggle checkbox in project settings to easily enable or disable the guideline.
 - **Revert to Original**: Quickly restore original text for individual lines or entire blocks with full undo support.
+
 
 ### Plugin System
 - Game-specific logic handled by a robust plugin system in the `plugins/` directory.

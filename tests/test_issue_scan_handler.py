@@ -9,6 +9,7 @@ class MockContext:
         self.problems_per_subline = {}
         self.string_metadata = {}
         self.line_width_warning_threshold_pixels = 100
+        self.game_dialog_max_width_pixels = 100
         self.current_game_rules = MagicMock()
         self.current_block_idx = 0
         self.ui_provider = MagicMock()

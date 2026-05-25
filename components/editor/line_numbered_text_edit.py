@@ -63,6 +63,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.font_map = {}
         self.game_dialog_max_width_pixels = DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS
         self.line_width_warning_threshold_pixels = DEFAULT_LINE_WIDTH_WARNING_THRESHOLD
+        self.show_width_guideline = True
 
         if parent and isinstance(parent, QMainWindow):
             self.editor_player_tag = getattr(parent, 'EDITOR_PLAYER_TAG', EDITOR_PLAYER_TAG_CONST)
@@ -70,6 +71,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
             self.font_map = getattr(parent, 'font_map', {})
             self.game_dialog_max_width_pixels = getattr(parent, 'game_dialog_max_width_pixels', DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS)
             self.line_width_warning_threshold_pixels = getattr(parent, 'line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
+            self.show_width_guideline = getattr(parent, 'show_width_guideline', True)
             self.character_limit_line_position = getattr(parent, 'editor_char_limit_line_pos', CHARACTER_LIMIT_LINE_POSITION)
 
         self.lineNumberArea = LineNumberArea(self)

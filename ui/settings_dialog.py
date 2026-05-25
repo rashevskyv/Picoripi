@@ -261,6 +261,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.tag_bold_chk.setChecked(getattr(self.mw, 'tag_bold', True)); self.tag_italic_chk.setChecked(getattr(self.mw, 'tag_italic', False)); self.tag_underline_chk.setChecked(getattr(self.mw, 'tag_underline', False))
         
         self.game_dialog_width_spinbox.setValue(self.mw.game_dialog_max_width_pixels); self.width_warning_spinbox.setValue(self.mw.line_width_warning_threshold_pixels)
+        self.show_width_guideline_checkbox.setChecked(getattr(self.mw, 'show_width_guideline', True))
         self.lines_per_page_spinbox.setValue(getattr(self.mw, 'lines_per_page', 4))
 
         current_font_file = getattr(self.mw, 'default_font_file', ""); font_index = self.font_file_combo.findData(current_font_file)
@@ -443,6 +444,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'tag_color_rgba': self.tag_color_picker.color().name(QColor.HexArgb) if hasattr(QColor, 'HexArgb') else self.tag_color_picker.color().name(),
             'tag_bold': self.tag_bold_chk.isChecked(), 'tag_italic': self.tag_italic_chk.isChecked(), 'tag_underline': self.tag_underline_chk.isChecked(),
             'game_dialog_max_width_pixels': self.game_dialog_width_spinbox.value(), 'line_width_warning_threshold_pixels': self.width_warning_spinbox.value(),
+            'show_width_guideline': self.show_width_guideline_checkbox.isChecked(),
             'lines_per_page': self.lines_per_page_spinbox.value(),
             'autofix_enabled': autofix_settings, 'translation_config': translation_config_to_save, 'detection_enabled': detection_settings,
             'glossary_ai': glossary_ai_settings,

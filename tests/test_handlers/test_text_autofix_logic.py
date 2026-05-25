@@ -141,7 +141,7 @@ def test_TextAutofixLogic_fix_short_lines_merge(mock_calc, mock_autofix, mock_mw
 @patch('handlers.text_autofix_logic.calculate_string_width')
 def test_TextAutofixLogic_fix_width_exceeded_corner(mock_calc, mock_autofix, mock_mw):
     mock_calc.return_value = 200
-    mock_mw.line_width_warning_threshold_pixels = 100
+    mock_mw.game_dialog_max_width_pixels = 100
     mock_mw.font_map = {}
     
     # word exceeds initially
@@ -170,12 +170,12 @@ def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix
     mock_mw.edited_text_edit.verticalScrollBar().value.return_value = 0
     mock_mw.edited_text_edit.horizontalScrollBar().value.return_value = 0
     
-    mock_autofix._fix_empty_odd_sublines = MagicMock(side_effect=lambda x: x)
-    mock_autofix._fix_short_lines = MagicMock(side_effect=lambda x: x)
-    mock_autofix._fix_width_exceeded = MagicMock(side_effect=lambda x: x)
-    mock_autofix._fix_blue_sublines = MagicMock(side_effect=lambda x: x)
-    mock_autofix._fix_leading_spaces_in_sublines = MagicMock(side_effect=lambda x: x)
-    mock_autofix._cleanup_spaces_around_tags = MagicMock(side_effect=lambda x: x)
+    mock_autofix._fix_empty_odd_sublines = MagicMock(side_effect=lambda x, *args: x)
+    mock_autofix._fix_short_lines = MagicMock(side_effect=lambda x, *args: x)
+    mock_autofix._fix_width_exceeded = MagicMock(side_effect=lambda x, *args: x)
+    mock_autofix._fix_blue_sublines = MagicMock(side_effect=lambda x, *args: x)
+    mock_autofix._fix_leading_spaces_in_sublines = MagicMock(side_effect=lambda x, *args: x)
+    mock_autofix._cleanup_spaces_around_tags = MagicMock(side_effect=lambda x, *args: x)
     
     # No changes branch
     mock_autofix.auto_fix_current_string()
