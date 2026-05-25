@@ -40,15 +40,18 @@ class MockContext(MagicMock):
         self.is_programmatically_changing_text = False
         self.edited_text_edit = MagicMock()
         self.helper = MagicMock()
+        self.helper.get_font_map_for_string.return_value = {}
 
     def update_title(self): pass
     def get_font_map_for_string(self, b, s): return {}
 
-def test_text_edited_basic():
+@patch('handlers.text_operation_handler.AsyncIssueScanner')
+def test_text_edited_basic(mock_async_scanner):
     ctx = MockContext()
     data_processor = MagicMock()
     # Mock data_processor._get_string_from_source to return original
     data_processor._get_string_from_source.return_value = "Original line 1"
+    data_processor.get_current_string_text.return_value = ("Changed line 1", "edited")
     
     ui_updater = MagicMock()
     handler = TextOperationHandler(ctx, data_processor, ui_updater)
@@ -57,11 +60,15 @@ def test_text_edited_basic():
     ctx.edited_text_edit.toPlainText.return_value = "Changed line 1"
     
     handler.text_edited()
+    handler._on_preview_update_timer_timeout()
     
     # Verify edited_sublines contains index 0
     assert 0 in ctx.data_store.edited_sublines
     # Verify data_processor.update_edited_data was called
     data_processor.update_edited_data.assert_called()
+    # Verify scanner was instantiated and started
+    mock_async_scanner.assert_called_once()
+    mock_async_scanner.return_value.start.assert_called_once()
 
 def test_revert_line():
     ctx = MockContext()

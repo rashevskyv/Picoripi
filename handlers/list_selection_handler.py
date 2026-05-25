@@ -720,8 +720,32 @@ class ListSelectionHandler(BaseHandler):
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
 
+    def scroll_to_current_string_in_preview(self) -> None:
+        """Scroll and focus the preview text edit to the currently selected string."""
+        preview_edit = getattr(self.mw, 'preview_text_edit', None)
+        if not preview_edit:
+            return
+            
+        current_string_idx = self.mw.data_store.current_string_idx
+        if current_string_idx == -1:
+            return
+            
+        displayed_indices = self._get_displayed_indices()
+        if current_string_idx in displayed_indices:
+            rel_idx = displayed_indices.index(current_string_idx)
+            if 0 <= rel_idx < preview_edit.document().blockCount():
+                block_to_show = preview_edit.document().findBlockByNumber(rel_idx)
+                if block_to_show.isValid():
+                    cursor = QTextCursor(block_to_show)
+                    preview_edit.setTextCursor(cursor)
+                    if hasattr(preview_edit, 'set_selected_lines'):
+                        preview_edit.set_selected_lines([rel_idx])
+                    from PyQt5.QtCore import QTimer
+                    QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
+
     def _get_displayed_indices(self) -> list:
         indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
         if not indices and hasattr(self.mw, 'displayed_string_indices'):
             indices = self.mw.displayed_string_indices
         return indices
+

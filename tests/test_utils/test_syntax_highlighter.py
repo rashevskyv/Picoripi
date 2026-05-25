@@ -126,16 +126,26 @@ def test_JsonTagHighlighter_glossary_cache(highlighter, mock_mw):
     doc.setPlainText("GlossaryTerm")
     
     mock_entry = MagicMock()
-    match = GlossaryMatch(entry=mock_entry, start=0, end=12)
+    mock_entry.original = "GlossaryTerm"
+    mock_entry.translation = "Translation"
+    mock_entry.notes = "Notes"
     
-    gm = MagicMock()
-    gm.get_entries.return_value = {"GlossaryTerm": mock_entry}
-    gm.find_matches.return_value = [match]
-    
-    hl.set_glossary_manager(gm)
+    hl._glossary_enabled = True
+    hl.set_async_highlights(
+        glossary_matches=[{
+            'start': 0,
+            'end': 12,
+            'original': "GlossaryTerm",
+            'translation': "Translation",
+            'notes': "Notes"
+        }],
+        translation_matches=[],
+        spellcheck_matches=[]
+    )
     
     hl.currentBlock = MagicMock()
     hl.currentBlock().blockNumber.return_value = 0
+    hl.currentBlock().position.return_value = 0
     
     hl.highlightBlock("GlossaryTerm")
     
@@ -148,7 +158,14 @@ def test_JsonTagHighlighter_spellcheck(highlighter, mock_mw):
     hl, doc = highlighter
     hl.set_spellchecker_enabled(True)
     
-    mock_mw.spellchecker_manager.is_misspelled.return_value = True
+    hl.set_async_highlights(
+        glossary_matches=[],
+        translation_matches=[],
+        spellcheck_matches=[(0, 14)]
+    )
+    
+    hl.currentBlock = MagicMock()
+    hl.currentBlock().position.return_value = 0
     
     text = "MisspelledWord"
     hl.highlightBlock(text)

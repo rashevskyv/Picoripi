@@ -159,18 +159,44 @@ class LNETContextMenuLogic:
                         menu.addSeparator()
                         custom_actions_added = True
 
-                    suggestions = spellchecker_manager.get_suggestions(word_under_cursor)
-                    if suggestions:
-                        for suggestion in suggestions[:5]:
-                            suggestion_action = menu.addAction(f"→ {suggestion}")
-                            suggestion_action.triggered.connect(
-                                lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
-                            )
-                        menu.addSeparator()
+                    cleaned_word = word_under_cursor.strip("'·").lower()
+                    if cleaned_word in spellchecker_manager._suggestions_cache:
+                        suggestions = spellchecker_manager._suggestions_cache[cleaned_word]
+                        if suggestions:
+                            for suggestion in suggestions[:5]:
+                                suggestion_action = menu.addAction(f"→ {suggestion}")
+                                suggestion_action.triggered.connect(
+                                    lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
+                                )
+                            menu.addSeparator()
+                        else:
+                            no_suggestions_action = menu.addAction("(No suggestions)")
+                            no_suggestions_action.setEnabled(False)
+                            menu.addSeparator()
                     else:
-                        no_suggestions_action = menu.addAction("(Loading suggestions...)")
+                        no_suggestions_action = menu.addAction("(Loading suggestions... 🔄)")
                         no_suggestions_action.setEnabled(False)
-                        menu.addSeparator()
+                        separator_action = menu.addSeparator()
+
+                        def handle_suggestions_loaded(word, suggs):
+                            if word.lower() == word_under_cursor.lower():
+                                menu.removeAction(no_suggestions_action)
+                                if suggs:
+                                    for suggestion in suggs[:5]:
+                                        suggestion_action = menu.insertAction(separator_action, f"→ {suggestion}")
+                                        suggestion_action.triggered.connect(
+                                            lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
+                                        )
+                                else:
+                                    no_sugg_act = menu.insertAction(separator_action, "(No suggestions)")
+                                    no_sugg_act.setEnabled(False)
+                                menu.adjustSize()
+
+                        spellchecker_manager.suggestions_loaded.connect(handle_suggestions_loaded)
+                        menu.aboutToHide.connect(
+                            lambda: spellchecker_manager.suggestions_loaded.disconnect(handle_suggestions_loaded)
+                        )
+                        spellchecker_manager.get_suggestions(word_under_cursor)
 
                     add_to_dict_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_DialogHelpButton), f"Add \"{word_under_cursor}\" to Dictionary")
                     add_to_dict_action.triggered.connect(

@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QWidget, QMainWindow
 from .logging_utils import log_debug
 from .utils import SPACE_DOT_SYMBOL
 from plugins.common.markers import P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
-from core.glossary_manager import GlossaryManager, GlossaryMatch
+from core.glossary_manager import GlossaryManager, GlossaryMatch, GlossaryEntry
 
 _COLOR_TAG_PATTERN = re.compile(
     r"(\[(Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White)\])|"
@@ -64,6 +64,11 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self._spellchecker_format = QTextCharFormat()
         self._spellchecker_enabled = False
         self._typing_mode = False
+
+        # Async highlights storage
+        self._async_glossary_matches = None
+        self._async_translation_matches = None
+        self._async_spellcheck_matches = None
 
         # Translation Glossary Bridge
         self._is_translation_mode = False
@@ -149,6 +154,13 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         """Enable or disable translation-specific glossary highlighting."""
         self._is_translation_mode = enabled
         self._source_editor_ref = source_editor_ref
+        self.rehighlight()
+
+    def set_async_highlights(self, glossary_matches: list, translation_matches: list, spellcheck_matches: list) -> None:
+        """Sets pre-calculated highlights from the background thread and triggers quick rehighlight."""
+        self._async_glossary_matches = glossary_matches
+        self._async_translation_matches = translation_matches
+        self._async_spellcheck_matches = spellcheck_matches
         self.rehighlight()
 
     def _apply_css_to_format(self, char_format, css_str, base_color=None):
@@ -604,98 +616,107 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                     combined_format.setFontWeight(self.icon_sequence_format.fontWeight())
                 self.setFormat(start, length, combined_format)
 
-        glossary_matches_for_block: List[Tuple[int, int, GlossaryMatch]] = []
-        if not self._typing_mode and self._glossary_enabled and self._glossary_manager:
-            self._rebuild_glossary_cache()
-            glossary_matches_for_block = self._glossary_matches_cache.get(
-                self.currentBlock().blockNumber(), []
-            )
+        all_matches_for_tooltip = []
+        
+        block_pos = self.currentBlock().position()
+        block_len = len(text)
+        block_end = block_pos + block_len
+
+        # 1. Glossary highlighting (Aho-Corasick)
+        glossary_matches_to_apply = []
+        if self._glossary_enabled:
+            if self._async_glossary_matches is not None:
+                for m in self._async_glossary_matches:
+                    m_start = m['start']
+                    m_end = m['end']
+                    overlap_start = max(m_start, block_pos)
+                    overlap_end = min(m_end, block_end)
+                    if overlap_end > overlap_start:
+                        local_start = overlap_start - block_pos
+                        local_length = overlap_end - overlap_start
+                        entry = GlossaryEntry(original=m['original'], translation=m['translation'], notes=m['notes'])
+                        glossary_matches_to_apply.append(GlossaryMatch(entry=entry, start=local_start, end=local_start + local_length))
+            else:
+                # Synchronous fallback for startup and unit tests
+                self._rebuild_glossary_cache()
+                block_number = self.currentBlock().blockNumber()
+                if block_number in self._glossary_matches_cache:
+                    for local_start, local_length, match in self._glossary_matches_cache[block_number]:
+                        glossary_matches_to_apply.append(GlossaryMatch(entry=match.entry, start=local_start, end=local_start + local_length))
+
+        if glossary_matches_to_apply:
             underline_style = self._glossary_format.underlineStyle()
             underline_color = self._glossary_format.underlineColor()
             has_custom_color = underline_color.isValid()
-            for local_start, local_length, match in glossary_matches_for_block:
-                if local_length <= 0:
-                    continue
-                # Apply format directly to the entire range (8x faster than char-by-char loop)
-                existing_format = self.format(local_start)
+            for m in glossary_matches_to_apply:
+                existing_format = self.format(m.start)
                 existing_format.setFontUnderline(True)
                 existing_format.setUnderlineStyle(underline_style)
                 if has_custom_color:
                     existing_format.setUnderlineColor(underline_color)
-                self.setFormat(local_start, local_length, existing_format)
+                self.setFormat(m.start, m.end - m.start, existing_format)
+                all_matches_for_tooltip.append(m)
 
-        # Translation Glossary Bridge highlighting
-        translation_matches = []
-        if not self._typing_mode and self._is_translation_mode and self._source_editor_ref and self._glossary_manager:
-            try:
+        # 2. Translation Glossary Bridge highlighting
+        translation_matches_to_apply = []
+        if self._is_translation_mode:
+            if self._async_translation_matches is not None:
+                for m in self._async_translation_matches:
+                    m_start = m['start']
+                    m_end = m['end']
+                    overlap_start = max(m_start, block_pos)
+                    overlap_end = min(m_end, block_end)
+                    if overlap_end > overlap_start:
+                        local_start = overlap_start - block_pos
+                        local_length = overlap_end - overlap_start
+                        entry = GlossaryEntry(original=m['original'], translation=m['translation'], notes=m['notes'])
+                        translation_matches_to_apply.append(GlossaryMatch(entry=entry, start=local_start, end=local_start + local_length))
+            else:
+                # Synchronous fallback for startup and unit tests
                 self._rebuild_translation_glossary_cache()
-                
-                block_num = self.currentBlock().blockNumber()
-                matches_for_block = self._translation_matches_cache.get(block_num, [])
-                
-                if matches_for_block:
-                    underline_style = self._glossary_format.underlineStyle()
-                    underline_color = self._glossary_format.underlineColor()
-                    has_custom_color = underline_color.isValid()
-                    
-                    for local_start, local_length, t_match in matches_for_block:
-                        if local_length <= 0:
-                            continue
-                            
-                        # Highlight in translation text
-                        existing_format = self.format(local_start)
-                        existing_format.setFontUnderline(True)
-                        existing_format.setUnderlineStyle(underline_style)
-                        if has_custom_color:
-                            existing_format.setUnderlineColor(underline_color)
-                        self.setFormat(local_start, local_length, existing_format)
-                        
-                        # Store for user data (tooltips)
-                        translation_matches.append(
-                            GlossaryMatch(
-                                entry=t_match.entry,
-                                start=local_start,
-                                end=local_start + local_length
-                            )
-                        )
-            except Exception as e:
-                log_debug(f"JsonTagHighlighter: Error in translation glossary highlighting: {e}")
+                block_number = self.currentBlock().blockNumber()
+                if block_number in self._translation_matches_cache:
+                    for local_start, local_length, match in self._translation_matches_cache[block_number]:
+                        translation_matches_to_apply.append(GlossaryMatch(entry=match.entry, start=local_start, end=local_start + local_length))
 
-        # Combine matches for user data (to enable tooltips and context menu)
-        all_matches = []
-        if glossary_matches_for_block:
-            for local_start, local_length, match in glossary_matches_for_block:
-                if local_length > 0:
-                    all_matches.append(
-                        GlossaryMatch(
-                            entry=match.entry,
-                            start=local_start,
-                            end=local_start + local_length,
-                        )
-                    )
-        
-        # Add translation bridge matches
-        all_matches.extend(translation_matches)
+        if translation_matches_to_apply:
+            underline_style = self._glossary_format.underlineStyle()
+            underline_color = self._glossary_format.underlineColor()
+            has_custom_color = underline_color.isValid()
+            for m in translation_matches_to_apply:
+                existing_format = self.format(m.start)
+                existing_format.setFontUnderline(True)
+                existing_format.setUnderlineStyle(underline_style)
+                if has_custom_color:
+                    existing_format.setUnderlineColor(underline_color)
+                self.setFormat(m.start, m.end - m.start, existing_format)
+                all_matches_for_tooltip.append(m)
 
-        if all_matches:
-            self.setCurrentBlockUserData(self.GlossaryBlockData(all_matches))
+        if all_matches_for_tooltip:
+            self.setCurrentBlockUserData(self.GlossaryBlockData(all_matches_for_tooltip))
         else:
             self.setCurrentBlockUserData(None)
 
-        # Spellchecker highlighting
-        if not self._typing_mode and self._should_check_spelling() and self.mw:
-            spellchecker_manager = getattr(self.mw, 'spellchecker_manager', None)
-            if spellchecker_manager and spellchecker_manager.enabled:
-                words = self._extract_words_from_text(text)
-                for start, end, word in words:
-                    if spellchecker_manager.is_misspelled(word):
-                        word_length = end - start
-                        existing_format = self.format(start)
-                        existing_format.setFontUnderline(True)
-                        existing_format.setUnderlineStyle(self._spellchecker_format.underlineStyle())
-                        underline_color = self._spellchecker_format.underlineColor()
-                        if underline_color.isValid():
-                            existing_format.setUnderlineColor(underline_color)
-                        self.setFormat(start, word_length, existing_format)
+        # 3. Spellchecker highlighting using pre-calculated async matches
+        if self._should_check_spelling() and self._async_spellcheck_matches is not None:
+            underline_style = self._spellchecker_format.underlineStyle()
+            underline_color = self._spellchecker_format.underlineColor()
+            has_custom_color = underline_color.isValid()
+            
+            for m_start, m_length in self._async_spellcheck_matches:
+                m_end = m_start + m_length
+                
+                overlap_start = max(m_start, block_pos)
+                overlap_end = min(m_end, block_end)
+                if overlap_end > overlap_start:
+                    local_start = overlap_start - block_pos
+                    local_length = overlap_end - overlap_start
+                    
+                    existing_format = self.format(local_start)
+                    existing_format.setFontUnderline(True)
+                    existing_format.setUnderlineStyle(underline_style)
+                    if has_custom_color:
+                        existing_format.setUnderlineColor(underline_color)
+                    self.setFormat(local_start, local_length, existing_format)
 
         self.setCurrentBlockState(current_block_color_state)

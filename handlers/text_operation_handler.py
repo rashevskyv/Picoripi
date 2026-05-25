@@ -7,6 +7,7 @@ from PyQt5.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
+from .async_issue_scanner import AsyncIssueScanner
 
 PREVIEW_UPDATE_DELAY = 250
 
@@ -18,6 +19,8 @@ class TextOperationHandler(BaseHandler):
         self.preview_update_timer.timeout.connect(self._on_preview_update_timer_timeout)
         self._debounce_block_idx = -1
         self._debounce_string_idx = -1
+        self.current_scanner_thread = None
+        self._orphaned_threads = []
 
     def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
         if not self.mw.current_game_rules:
@@ -157,52 +160,15 @@ class TextOperationHandler(BaseHandler):
             
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
-        
-        block_idx = self.mw.data_store.current_block_idx
-        string_idx_in_block = self.mw.data_store.current_string_idx
-        
+            
         edited_edit = self.mw.edited_text_edit
-        
-        if not edited_edit or not self.mw.current_game_rules:
+        if not edited_edit:
             return
-            
-        text_from_editor = edited_edit.toPlainText()
-        actual_text = self.mw.current_game_rules.convert_editor_text_to_data(text_from_editor)
-        actual_text_with_spaces = convert_dots_to_spaces_from_editor(actual_text)
 
-        # Determine which sublines differ from the saved baseline
-        text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.data_store.edited_file_data, "edited_file_data")
-        if text_from_saved_file is None:
-            text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx_in_block, self.mw.data_store.data, "original_data")
-        if text_from_saved_file is None:
-            text_from_saved_file = ""
-            
-        saved_lines = str(text_from_saved_file).split('\n')
-        curr_lines = actual_text_with_spaces.split('\n')
-        
-        self.mw.data_store.edited_sublines.clear()
-        for i, curr_line in enumerate(curr_lines):
-            if i >= len(saved_lines) or curr_line != saved_lines[i]:
-                self.mw.data_store.edited_sublines.add(i)
-
-        needs_title_update = self.data_processor.update_edited_data(block_idx, string_idx_in_block, actual_text_with_spaces)
-        
-        if needs_title_update: 
-            self.mw.ui_updater.update_title()
-
-        # Set typing mode in the highlighter to suppress heavy calculations
-        if edited_edit and hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
-            edited_edit.highlighter.set_typing_mode(True)
-
-        # Queue visual changes using debounce
-        self._debounce_block_idx = block_idx
-        self._debounce_string_idx = string_idx_in_block
-        self.preview_update_timer.start(PREVIEW_UPDATE_DELAY) 
-        
-        self.mw.ui_updater.synchronize_original_cursor()
-        
-        if edited_edit and hasattr(edited_edit, 'lineNumberArea'):
-            edited_edit.lineNumberArea.update()
+        # Queue ALL heavy operations (data updates, title, cursors, issue scanning, preview) using debounce
+        self._debounce_block_idx = self.mw.data_store.current_block_idx
+        self._debounce_string_idx = self.mw.data_store.current_string_idx
+        self.preview_update_timer.start(PREVIEW_UPDATE_DELAY)
 
     def _on_preview_update_timer_timeout(self) -> None:
         block_idx = self._debounce_block_idx
@@ -215,26 +181,125 @@ class TextOperationHandler(BaseHandler):
         if block_idx == -1 or string_idx == -1:
             return
             
-        # Disable typing mode to restore spellchecking and glossary highlights
         edited_edit = getattr(self.mw, 'edited_text_edit', None)
-        if edited_edit and hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
-            edited_edit.highlighter.set_typing_mode(False)
+        if not edited_edit or not self.mw.current_game_rules:
+            return
+
+        # 1. Get the current text and convert it to data format
+        text_from_editor = edited_edit.toPlainText()
+        actual_text = self.mw.current_game_rules.convert_editor_text_to_data(text_from_editor)
+        actual_text_with_spaces = convert_dots_to_spaces_from_editor(actual_text)
+
+        # 2. Determine which sublines differ from the saved baseline
+        text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
+        if text_from_saved_file is None:
+            text_from_saved_file = self.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data")
+        if text_from_saved_file is None:
+            text_from_saved_file = ""
+            
+        saved_lines = str(text_from_saved_file).split('\n')
+        curr_lines = actual_text_with_spaces.split('\n')
+        
+        self.mw.data_store.edited_sublines.clear()
+        for i, curr_line in enumerate(curr_lines):
+            if i >= len(saved_lines) or curr_line != saved_lines[i]:
+                self.mw.data_store.edited_sublines.add(i)
+
+        # 3. Save the data
+        needs_title_update = self.data_processor.update_edited_data(block_idx, string_idx, actual_text_with_spaces)
+        if needs_title_update: 
+            self.mw.ui_updater.update_title()
             
         current_text_raw, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         if current_text_raw is not None:
-            self._rescan_issues_for_current_string(block_idx, string_idx, str(current_text_raw))
-            
+            # Cancel current active scanner thread if any
+            if self.current_scanner_thread and self.current_scanner_thread.isRunning():
+                try:
+                    self.current_scanner_thread.finished_scan.disconnect()
+                except Exception:
+                    pass
+                
+                old_thread = self.current_scanner_thread
+                self._orphaned_threads.append(old_thread)
+                old_thread.finished.connect(lambda t=old_thread: self._orphaned_threads.remove(t) if t in self._orphaned_threads else None)
+
+            font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+            string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
+            width_threshold_for_string = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 200))
+            analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules)
+
+            # Start background async scanner
+            source_text = ""
+            if hasattr(self.mw, 'original_text_edit') and self.mw.original_text_edit:
+                source_text = self.mw.original_text_edit.toPlainText()
+
+            active_word = ""
+            if edited_edit:
+                cursor = edited_edit.textCursor()
+                pos = cursor.position()
+                if isinstance(pos, int) and pos > 0:
+                    text = edited_edit.toPlainText()
+                    if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
+                        cursor.select(QTextCursor.WordUnderCursor)
+                        active_word = cursor.selectedText().strip("'·").lower()
+
+            self.current_scanner_thread = AsyncIssueScanner(
+                block_idx=block_idx,
+                string_idx=string_idx,
+                text=str(current_text_raw),
+                font_map=dict(font_map_for_string),
+                width_threshold=width_threshold_for_string,
+                analyzer=analyzer,
+                glossary_manager=getattr(edited_edit, '_glossary_manager', None),
+                spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
+                source_text=source_text,
+                active_word=active_word
+            )
+            self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
+            self.current_scanner_thread.start()
+
+        # 5. Synchronize original cursor and update lineNumberArea
+        self.mw.ui_updater.synchronize_original_cursor()
+        if hasattr(edited_edit, 'lineNumberArea'):
+            edited_edit.lineNumberArea.update()
+
+    def _on_issue_scan_finished(self, block_idx: int, string_idx: int, text: str, problems_in_string: list,
+                                 glossary_matches: list, translation_matches: list, spellcheck_matches: list) -> None:
+        # Check if the block/string selection has changed while scanning
+        if block_idx != self.mw.data_store.current_block_idx or string_idx != self.mw.data_store.current_string_idx:
+            return
+
+        # Clear existing problems for this string
+        keys_to_remove = [k for k in self.mw.data_store.problems_per_subline if k[0] == block_idx and k[1] == string_idx]
+        for key in keys_to_remove:
+            del self.mw.data_store.problems_per_subline[key]
+
+        # Apply newly found problems
+        for i, problem_set in enumerate(problems_in_string):
+            if problem_set:
+                self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
+
+        # 1. Update highlighter matches FIRST so they are ready for any text updates
+        edited_edit = getattr(self.mw, 'edited_text_edit', None)
+        if edited_edit:
+            if hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
+                edited_edit.highlighter._async_glossary_matches = glossary_matches
+                edited_edit.highlighter._async_translation_matches = translation_matches
+                edited_edit.highlighter._async_spellcheck_matches = spellcheck_matches
+
+        # 2. Update UI components smoothly (including text views which might reset the editor text)
         self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
         self._update_preview_content()
         self.mw.ui_updater.update_status_bar()
-        self.mw.ui_updater.update_text_views()
+        # self.mw.ui_updater.update_text_views()
         
-        if (self.mw.data_store.current_block_idx == block_idx and 
-            self.mw.data_store.current_string_idx == string_idx):
-            if edited_edit:
-                self.mw.ui_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx)
-                if hasattr(edited_edit, 'lineNumberArea'):
-                    edited_edit.lineNumberArea.update()
+        # 3. Apply highlights to editor and trigger rehighlight to ensure everything is perfectly updated
+        if edited_edit:
+            self.mw.ui_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx)
+            if hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
+                edited_edit.highlighter.rehighlight()
+            if hasattr(edited_edit, 'lineNumberArea'):
+                edited_edit.lineNumberArea.update()
 
     def sync_subline_asterisks(self, block_idx: int, string_idx: int, current_text: str) -> None:
         """

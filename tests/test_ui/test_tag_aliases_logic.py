@@ -6,10 +6,12 @@ from handlers.text_operation_handler import TextOperationHandler
 from core.data_state_processor import DataStateProcessor
 from ui.main_window.main_window_actions import MainWindowActions
 
-def test_text_edited_resolves_alias_to_tag(mock_mw):
+@patch('handlers.text_operation_handler.AsyncIssueScanner')
+def test_text_edited_resolves_alias_to_tag(mock_async_scanner, mock_mw):
     # Setup default mappings
     mock_mw.default_tag_mappings = {"[RedColor]": "{Color:Red}"}
     mock_mw.current_game_rules = BaseGameRules(main_window_ref=mock_mw)
+    mock_mw.helper.get_font_map_for_string.return_value = {}
     
     # Mock text edit component with on-screen text containing the alias
     edited_text_edit = MagicMock()
@@ -34,6 +36,7 @@ def test_text_edited_resolves_alias_to_tag(mock_mw):
     
     # Act
     handler.text_edited()
+    handler._on_preview_update_timer_timeout()
     
     # Assert
     # The raw text in edited_data must contain the original tag, not the alias

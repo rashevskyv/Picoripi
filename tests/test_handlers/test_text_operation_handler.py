@@ -57,6 +57,7 @@ def test_TextOperationHandler_text_edited(mock_conv, handler, mock_mw):
     mock_mw.edited_text_edit.toPlainText.return_value = "new text"
     
     handler.text_edited()
+    handler.preview_update_timer.timeout.emit()
     
     mock_mw.data_processor.update_edited_data.assert_called_with(0, 0, "new text")
     mock_mw.ui_updater.update_title.assert_called()
@@ -82,6 +83,7 @@ def test_TextOperationHandler_auto_fix_current_string(mock_cursor_cls, mock_conv
     mock_mw.edited_text_edit.toPlainText.side_effect = ["bad text", "fixed", "fixed", "fixed"]
     
     handler.auto_fix_current_string()
+    handler.preview_update_timer.timeout.emit()
     
     mock_mw.data_processor.update_edited_data.assert_any_call(0, 0, "fixed")
 
@@ -230,3 +232,46 @@ def test_TextOperationHandler_update_preview_content_partial(mock_cursor_cls, ha
     mock_cursor.setPosition.assert_any_call(10)
     mock_cursor.setPosition.assert_any_call(10 + len("prev_old"), mock_cursor_cls.KeepAnchor)
     mock_cursor.insertText.assert_called_once_with("prev_current")
+
+def test_AsyncIssueScanner_execution(handler, mock_mw):
+    from handlers.async_issue_scanner import AsyncIssueScanner
+    
+    analyzer = MagicMock()
+    analyzer.analyze_data_string.return_value = [{"PROB_ASYNC"}]
+    
+    scanner = AsyncIssueScanner(
+        block_idx=0,
+        string_idx=1,
+        text="line1\nline2",
+        font_map={"A": 10},
+        width_threshold=100,
+        analyzer=analyzer
+    )
+    
+    # We can run the scanner's run() method synchronously in tests to verify its logic
+    results = []
+    def on_finished(block_idx, string_idx, text, problems, glossary_matches, translation_matches, spellcheck_matches):
+        results.append((block_idx, string_idx, text, problems, glossary_matches, translation_matches, spellcheck_matches))
+        
+    scanner.finished_scan.connect(on_finished)
+    scanner.run()
+    
+    assert len(results) == 1
+    assert results[0][0] == 0
+    assert results[0][1] == 1
+    assert results[0][2] == "line1\nline2"
+    assert results[0][3] == [{"PROB_ASYNC"}]
+
+def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.current_string_idx = 1
+    mock_mw.data_store.problems_per_subline = {}
+    mock_mw.ui_updater = MagicMock()
+    mock_mw.edited_text_edit = MagicMock()
+    
+    handler._on_issue_scan_finished(0, 1, "test", [{"PROB_FINISHED"}], [], [], [])
+    
+    assert (0, 1, 0) in mock_mw.data_store.problems_per_subline
+    assert mock_mw.data_store.problems_per_subline[(0, 1, 0)] == {"PROB_FINISHED"}
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
