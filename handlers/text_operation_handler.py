@@ -235,13 +235,16 @@ class TextOperationHandler(BaseHandler):
 
             active_word = ""
             if edited_edit:
-                cursor = edited_edit.textCursor()
-                pos = cursor.position()
-                if isinstance(pos, int) and pos > 0:
-                    text = edited_edit.toPlainText()
-                    if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
-                        cursor.select(QTextCursor.WordUnderCursor)
-                        active_word = cursor.selectedText().strip("'·").lower()
+                try:
+                    cursor = edited_edit.textCursor()
+                    pos = cursor.position()
+                    if isinstance(pos, int) and pos > 0:
+                        text = edited_edit.toPlainText()
+                        if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
+                            cursor.select(QTextCursor.WordUnderCursor)
+                            active_word = cursor.selectedText().strip("'·").lower()
+                except BaseException:
+                    pass
 
             self.current_scanner_thread = AsyncIssueScanner(
                 block_idx=block_idx,

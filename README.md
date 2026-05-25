@@ -1,6 +1,6 @@
-# Picoripi v0.2.113
+# Picoripi v0.2.114
 
-The "Picoripi" (v0.2.113) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.114) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -20,7 +20,7 @@ The "Picoripi" (v0.2.113) is a desktop application built with **Python** and **P
 - Visual feedback (red and yellow markers) for text that exceeds the game's displayable width limit.
 - Syntax highlighting for game control codes and tags (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
 - Convenient insertion of control codes (button icons) through a visual interface and context menus.
-- **Vertical Width Guideline**: Elegant vertical dotted line (1px, 50% opacity) showing the visual width warning boundary in both editors, with a **"Show guideline"** toggle checkbox in project settings to easily enable or disable the guideline.
+- **Dynamic Guidelines**: Dynamic vertical line guidelines (ticks) rendered individually for each visible line inside the translation inputs. Proportional pixel position is computed dynamically based on the game's actual font mapping widths ($text\_w \times \frac{limit\_px}{width\_px}$), highlighting in red upon width limit violations, providing an accurate, lag-free visual estimation of the remaining space.
 - **Revert to Original**: Quickly restore original text for individual lines or entire blocks with full undo support.
 
 

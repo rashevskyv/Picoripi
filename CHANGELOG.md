@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.114] - 2026-05-25
+
+### Added
+- **Dynamic Guidelines (Visual Width Alignment)**: Replaced the static vertical width warning guideline with smart, dynamically computed individual guidelines (vertical ticks) for each visible text line inside the editors. Proportional positions are calculated on-the-fly using the line's real game font width ($text\_w \times \frac{limit\_px}{width\_px}$). Guidelines automatically turn red upon width limit violations and remain soft gray/green when valid, ensuring real-time accurate visual estimation of the remaining space.
+
+### Fixed
+- **Optimized Rendering Event Execution**: Verified that all dynamic width calculations execute only for onscreen blocks inside the rendering viewport loop, avoiding CPU lag during keystroke input.
+
 ## [0.2.113] - 2026-05-25
 
 ### Added

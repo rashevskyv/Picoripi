@@ -48,6 +48,17 @@ class LNETPaintEventLogic:
                 log_debug(f"Using page_size={page_size} for horizontal lines")
                 self.editor._last_logged_page_size = page_size
 
+        draw_guidelines = (
+            self.editor.line_width_warning_threshold_pixels > 0
+            and self.editor.objectName() != "preview_text_edit"
+            and getattr(self.editor, 'show_width_guideline', True)
+        )
+        
+        limit_px = self.editor.line_width_warning_threshold_pixels
+        font_map = getattr(self.editor, 'font_map', {})
+        sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
+        left_margin = viewport_offset.x() + self.editor.document().documentMargin()
+
         while block.isValid() and block.layout():
             layout = block.layout()
             block_rect = self.editor.blockBoundingGeometry(block).translated(viewport_offset)
@@ -98,19 +109,46 @@ class LNETPaintEventLogic:
                                 )
                     doc_visual_line_index += 1
 
+            # Draw dynamic line width guidelines if enabled
+            if draw_guidelines and layout.lineCount() > 0:
+                text_raw = convert_dots_to_spaces_from_editor(block.text()).rstrip()
+                width_px = calculate_string_width(text_raw, font_map, icon_sequences=sequences)
+                
+                # Calculate limit_x based on character proportions
+                first_line = layout.lineAt(0)
+                text_w = first_line.naturalTextWidth()
+                if width_px > 0:
+                    limit_x = left_margin + text_w * (limit_px / width_px)
+                else:
+                    # Fallback for empty strings
+                    fm = self.editor.fontMetrics()
+                    char_w = fm.horizontalAdvance('A')
+                    limit_x = left_margin + limit_px * (char_w / 7.5)
+                
+                # Determine pen styling
+                if width_px > limit_px:
+                    pen_guide = QPen(QColor(255, 0, 0, 180))
+                    pen_guide.setWidth(2)
+                    pen_guide.setStyle(Qt.SolidLine)
+                else:
+                    pen_guide = QPen(self.editor.width_threshold_line_color)
+                    color = QColor(self.editor.width_threshold_line_color)
+                    color.setAlpha(120)
+                    pen_guide.setColor(color)
+                    pen_guide.setWidth(self.editor.width_threshold_line_width)
+                    pen_guide.setStyle(self.editor.width_threshold_line_style)
+                
+                # Draw vertical tick for each line segment of the block
+                for i in range(layout.lineCount()):
+                    line = layout.lineAt(i)
+                    if line.isValid():
+                        y_top = block_rect.top() + line.rect().top()
+                        y_bottom = block_rect.top() + line.rect().bottom()
+                        painter_lines.setPen(pen_guide)
+                        painter_lines.drawLine(int(limit_x), int(y_top), int(limit_x), int(y_bottom))
+
             if block_rect.bottom() > self.editor.viewport().height():
                 break
             block = block.next()
-        
-        # Draw vertical line representing the width threshold (Editor Line Width Warning)
-        if self.editor.line_width_warning_threshold_pixels > 0 and self.editor.objectName() != "preview_text_edit" and getattr(self.editor, 'show_width_guideline', True):
-            pen = QPen(self.editor.width_threshold_line_color)
-            pen.setWidth(self.editor.width_threshold_line_width)
-            pen.setStyle(self.editor.width_threshold_line_style)
-            painter_lines.setPen(pen)
-            
-            x = self.editor.line_width_warning_threshold_pixels
-            h = self.editor.viewport().height()
-            painter_lines.drawLine(x, 0, x, h)
 
         painter_lines.end()
