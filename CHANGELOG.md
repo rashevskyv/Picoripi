@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.116] - 2026-05-25
+
+### Added
+- **Ergonomic Revert Button Placement**: Relocated the "Revert String to Original" button into a dedicated, elegant 34px vertical middle panel between the Original and Edited text editors. The button is styled with subtle rounded corners and hover highlighting, and its icon has been changed to a forward arrow (`QStyle.SP_ArrowForward`) to intuitively symbolize restoring the original text from left to right.
+- **Top-Border Alignment**: Vertically positioned the Revert button with a precise 32px top spacing, perfectly aligning its top edge with the top borders of both adjacent text editor windows.
+
+### Fixed
+- **Sub-Millisecond Instant Revert**: Completely eliminated the 4-second UI freeze when restoring a string to original. Replaced the heavy, synchronous full block rebuild (`populate_strings_for_block(force=True)`) with highly optimized, surgical single-line updates using `QTextCursor`.
+- **Persistent Selection & Scroll State**: Added automatic vertical scrollbar state preservation during reverts. The "Strings in block" list now maintains its exact scroll position, focus, and selected line highlighting without resetting the cursor to the top of the list.
+
 ## [0.2.115] - 2026-05-25
 
 ### Added

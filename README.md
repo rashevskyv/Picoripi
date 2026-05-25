@@ -1,6 +1,6 @@
-# Picoripi v0.2.115
+# Picoripi v0.2.116
 
-The "Picoripi" (v0.2.115) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.116) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
