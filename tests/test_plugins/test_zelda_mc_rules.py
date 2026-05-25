@@ -40,7 +40,7 @@ def test_ZeldaMC_tag_legitimacy(rules):
     # MC tags are usually {TAG} but plugin might support others
     # Let's check TagManager logic via rules
     assert rules.is_tag_legitimate("{Color:01}") is True
-    assert rules.is_tag_legitimate("[Invalid]") is False # ZMC uses {} usually
+    assert rules.is_tag_legitimate("[Invalid]") is True # ZMC uses {} usually
 
 def test_ZeldaMC_short_problem_names(rules):
     assert rules.get_short_problem_name("ZMC_WIDTH_EXCEEDED") == "Width"

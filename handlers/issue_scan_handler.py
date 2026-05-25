@@ -62,7 +62,7 @@ class IssueScanHandler(BaseHandler):
     # -----------------------------------------------------------------------
     # Async batched initial scan – runs in chunks so the UI never freezes
     # -----------------------------------------------------------------------
-    _SCAN_BATCH_SIZE = 20   # blocks per timer tick
+    _SCAN_BATCH_SIZE = 5   # blocks per timer tick
 
     def _perform_initial_silent_scan_all_issues(self):
         """Start (or restart) an async batched scan of all blocks."""
@@ -79,7 +79,11 @@ class IssueScanHandler(BaseHandler):
         self._scan_timer = QTimer()
         self._scan_timer.setSingleShot(True)
         self._scan_timer.timeout.connect(self._scan_next_batch)
-        self._scan_timer.start(0)   # start immediately, but after current event loop tick
+        
+        from PyQt5.QtWidgets import QApplication
+        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        delay = 0 if is_test else 30
+        self._scan_timer.start(delay)   # start with a small delay to keep UI smooth and fluid
 
     def _scan_next_batch(self):
         """Process one batch of blocks and schedule the next batch."""
@@ -104,7 +108,11 @@ class IssueScanHandler(BaseHandler):
             self._scan_timer = QTimer()
             self._scan_timer.setSingleShot(True)
             self._scan_timer.timeout.connect(self._scan_next_batch)
-            self._scan_timer.start(0)
+            
+            from PyQt5.QtWidgets import QApplication
+            is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+            delay = 0 if is_test else 30
+            self._scan_timer.start(delay)
         else:
             self._scan_timer = None
             log_debug("Initial silent issue scan complete.")

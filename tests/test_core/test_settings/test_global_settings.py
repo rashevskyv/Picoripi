@@ -26,6 +26,9 @@ def mock_mw():
     mw.glossary_ai = {}
     mw.spellchecker_enabled = False
     mw.spellchecker_language = "en"
+    mw.preview_enabled = True
+    mw.warnings_enabled = True
+    mw.glossary_enabled = True
     mw.last_browse_dir = "C:/"
     mw.enable_console_logging = True
     mw.enable_file_logging = False

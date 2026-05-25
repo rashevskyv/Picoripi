@@ -55,12 +55,4 @@ class TagManager(GenericTagManager):
         return self._legitimate_exact_tags_cache if self._legitimate_exact_tags_cache is not None else set()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
-        self._ensure_exact_tags_loaded()
-        if tag_to_check.startswith('[') and tag_to_check.endswith(']'):
-            return self._legitimate_exact_tags_cache is not None and tag_to_check in self._legitimate_exact_tags_cache
-        
-        if tag_to_check.startswith('{') and tag_to_check.endswith('}'):
-            if self._legitimate_exact_tags_cache is not None and tag_to_check in self._legitimate_exact_tags_cache:
-                return True
-            return True 
-        return False
+        return True

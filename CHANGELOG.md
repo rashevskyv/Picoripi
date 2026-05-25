@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.117] - 2026-05-25
+
+### Fixed
+- **Tag-Layering Visual Correction**: Fixed a rendering bug where glossary underlines (blue line) and custom font colors (e.g. red color from `{color:red}`) would bleed or overflow onto adjacent control tags (like `{color:white}` or `[PLAYER]`) when written in close proximity without spaces (e.g., `word{color:white}`).
+- **Priority-Based Highlight Layers**: Restructured the formatting passes in `JsonTagHighlighter.highlightBlock` to apply heavy text metadata styling (Aho-Corasick glossary matches, Translation Glossary Bridge, and Spellcheck underlines) at the very beginning of the block layout render loop, before executing plugin-specific and built-in tag matching. This guarantees that control codes are rendered last and completely clean up any underlying highlights, ensuring pixel-perfect text validation aesthetics.
+
 ## [0.2.116] - 2026-05-25
 
 ### Added

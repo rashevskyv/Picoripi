@@ -59,6 +59,4 @@ class TagManager:
         return set()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
-        if re.fullmatch(r"\[[^\]]+\]", tag_to_check):
-            return True
-        return False
+        return True

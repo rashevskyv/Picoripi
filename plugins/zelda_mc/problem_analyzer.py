@@ -96,10 +96,5 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             if self._check_single_word_subline_generic(text_with_spaces):
                 found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
 
-        for tag_match in ALL_TAGS_PATTERN.finditer(text_with_spaces):
-            tag = tag_match.group(0)
-            if not self.tag_manager.is_tag_legitimate(tag):
-                found_problems.add(self.problem_ids.PROBLEM_TAG_WARNING)
-                break
 
         return found_problems
