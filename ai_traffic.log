@@ -11603,3 +11603,899 @@ Task Type: translate_block_chunked
 {"translated_strings": ["TransA"]}
 ============================================================
 
+==================== 2026-05-25 22:51:13.418 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:51:13.419 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:51:14.412 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:51:14.412 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 22:51:15.401 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:51:15.402 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 22:51:17.408 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:51:17.409 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:52:24.048 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:52:24.049 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:52:24.123 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:52:24.124 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 22:52:24.186 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:52:24.186 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 22:52:24.387 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:52:24.388 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:54:09.095 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:54:09.096 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:54:09.253 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:54:09.253 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:54:09.336 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:54:09.337 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 22:54:09.445 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:54:09.445 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 22:55:10.163 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:55:10.163 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:55:10.340 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:55:10.340 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:55:10.404 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:55:10.405 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 22:55:10.552 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:55:10.553 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 22:58:16.559 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:58:16.560 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 22:58:17.716 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:58:17.716 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 22:58:18.876 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:58:18.876 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 22:58:21.163 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 22:58:21.163 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 23:02:36.830 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:02:36.830 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 23:02:37.865 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:02:37.865 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 23:02:38.901 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:02:38.901 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 23:02:40.977 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:02:40.977 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 23:14:02.855 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:14:02.855 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 23:14:03.938 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:14:03.939 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 23:14:05.003 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:14:05.003 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 23:14:07.151 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:14:07.152 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 23:19:10.356 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:19:10.356 ====================
+Task Type: chat_message
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+
+==================== 2026-05-25 23:19:11.369 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:19:11.369 ====================
+Task Type: build_glossary
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": ""
+  },
+  {
+    "role": "user",
+    "content": "chunk1"
+  }
+]
+--- RESPONSE RECEIVED ---
+```json
+[{"term": "test"}]
+```
+============================================================
+
+==================== 2026-05-25 23:19:12.392 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:19:12.393 ====================
+Task Type: translate_block_chunked
+--- MESSAGES SENT ---
+[
+  {
+    "role": "system",
+    "content": "sys"
+  },
+  {
+    "role": "user",
+    "content": "user"
+  }
+]
+--- RESPONSE RECEIVED ---
+{"translated_strings": ["TransA"]}
+============================================================
+
+==================== 2026-05-25 23:19:14.422 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+============================================================
+
+==================== 2026-05-25 23:19:14.423 ====================
+Task Type: chat_message_stream
+--- MESSAGES SENT ---
+[
+  {
+    "role": "user",
+    "content": "hi"
+  }
+]
+--- RESPONSE RECEIVED ---
+response
+============================================================
+

@@ -70,11 +70,6 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             if i > 0 and is_odd_logical_subline:
                 if self._check_single_word_subline_generic(subline):
                     problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
-            for tag_match in re.finditer(r'\[[^\]]*\]', subline):
-                tag = tag_match.group(0)
-                if not self.tag_manager.is_tag_legitimate(tag):
-                    problems_per_subline[i].add(self.problem_ids.PROBLEM_TAG_WARNING)
-                    break
         return problems_per_subline
 
     def analyze_subline(self, *args, **kwargs) -> Set[str]:

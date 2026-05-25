@@ -15,19 +15,41 @@ if TYPE_CHECKING:
     from main import MainWindow
 
 class AliasUpdateWorker(QThread):
-    finished_signal = pyqtSignal(dict)
+    finished_signal = pyqtSignal(object, object, object)
 
-    def __init__(self, edited_data_copy: dict, alias: str, original_tag: str):
+    def __init__(self, edited_data_copy: dict, data_copy: list, edited_file_data_copy: list, alias: str, original_tag: str):
         super().__init__()
         self.edited_data_copy = edited_data_copy
+        self.data_copy = data_copy
+        self.edited_file_data_copy = edited_file_data_copy
         self.alias = alias
         self.original_tag = original_tag
 
     def run(self):
+        # 1. Update edited_data
         for key, val in list(self.edited_data_copy.items()):
             if isinstance(val, str) and self.alias in val:
                 self.edited_data_copy[key] = val.replace(self.alias, self.original_tag)
-        self.finished_signal.emit(self.edited_data_copy)
+                
+        # 2. Update data (original read-only text)
+        if self.data_copy:
+            for b_idx in range(len(self.data_copy)):
+                if isinstance(self.data_copy[b_idx], list):
+                    for s_idx in range(len(self.data_copy[b_idx])):
+                        val = self.data_copy[b_idx][s_idx]
+                        if isinstance(val, str) and self.alias in val:
+                            self.data_copy[b_idx][s_idx] = val.replace(self.alias, self.original_tag)
+                            
+        # 3. Update edited_file_data
+        if self.edited_file_data_copy:
+            for b_idx in range(len(self.edited_file_data_copy)):
+                if isinstance(self.edited_file_data_copy[b_idx], list):
+                    for s_idx in range(len(self.edited_file_data_copy[b_idx])):
+                        val = self.edited_file_data_copy[b_idx][s_idx]
+                        if isinstance(val, str) and self.alias in val:
+                            self.edited_file_data_copy[b_idx][s_idx] = val.replace(self.alias, self.original_tag)
+                            
+        self.finished_signal.emit(self.edited_data_copy, self.data_copy, self.edited_file_data_copy)
 
 
 class MainWindowActions:
@@ -757,7 +779,7 @@ class MainWindowActions:
         alias, ok = QInputDialog.getText(
             self.mw, 
             "Add Tag Alias", 
-            f"Enter alias for tag '{original_tag}':\n(Will be displayed as [AliasName])"
+            f"Enter alias for tag '{original_tag}':\n(Will be displayed as {{AliasName}})"
         )
         if not ok:
             return
@@ -767,9 +789,9 @@ class MainWindowActions:
             QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
             return
             
-        # Ensure it has brackets
-        if not alias.startswith('[') or not alias.endswith(']'):
-            alias = f"[{alias}]"
+        # Ensure it has curly braces
+        if not alias.startswith('{') or not alias.endswith('}'):
+            alias = f"{{{alias}}}"
             
         if not hasattr(self.mw, 'default_tag_mappings'):
             self.mw.default_tag_mappings = {}
@@ -805,9 +827,9 @@ class MainWindowActions:
             QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
             return
             
-        # Ensure it has brackets
-        if not new_alias.startswith('[') or not new_alias.endswith(']'):
-            new_alias = f"[{new_alias}]"
+        # Ensure it has curly braces
+        if not new_alias.startswith('{') or not new_alias.endswith('}'):
+            new_alias = f"{{{new_alias}}}"
             
         if not hasattr(self.mw, 'default_tag_mappings'):
             self.mw.default_tag_mappings = {}
@@ -854,20 +876,36 @@ class MainWindowActions:
 
     def _update_aliases_in_edited_data(self, alias: str, original_tag: str, on_complete_callback):
         """Clean up stale alias from in-memory edits in a background thread if needed."""
-        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data') or not self.mw.data_store.edited_data:
+        ds = getattr(self.mw, 'data_store', None)
+        if not ds:
+            on_complete_callback()
+            return
+
+        has_edited = hasattr(ds, 'edited_data') and ds.edited_data
+        has_data = hasattr(ds, 'data') and ds.data
+        has_edited_file = hasattr(ds, 'edited_file_data') and ds.edited_file_data
+
+        if not has_edited and not has_data and not has_edited_file:
             on_complete_callback()
             return
 
         # Check if we are running in tests or QApplication is not fully initialized
         is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
         
-        edited_data_copy = dict(self.mw.data_store.edited_data)
+        # High-performance shallow copies of the block string lists
+        edited_data_copy = dict(ds.edited_data) if has_edited else {}
+        data_copy = [list(block) for block in ds.data] if (has_data and isinstance(ds.data, list)) else []
+        edited_file_data_copy = [list(block) for block in ds.edited_file_data] if (has_edited_file and isinstance(ds.edited_file_data, list)) else []
         
         # Create worker
-        self._alias_worker = AliasUpdateWorker(edited_data_copy, alias, original_tag)
+        self._alias_worker = AliasUpdateWorker(edited_data_copy, data_copy, edited_file_data_copy, alias, original_tag)
         
-        def on_worker_finished(updated_data):
-            self.mw.data_store.edited_data = updated_data
+        def on_worker_finished(updated_edited_data, updated_data, updated_edited_file_data):
+            self.mw.data_store.edited_data = updated_edited_data
+            if updated_data:
+                self.mw.data_store.data = updated_data
+            if updated_edited_file_data:
+                self.mw.data_store.edited_file_data = updated_edited_file_data
             on_complete_callback()
             # Clean up reference
             self._alias_worker = None
@@ -905,9 +943,5 @@ class MainWindowActions:
         if ui:
             if hasattr(ui, 'update_text_views'):
                 ui.update_text_views()
-            if hasattr(ui, 'populate_strings_for_block'):
-                ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
                 
-        # Trigger silent project-wide scan so that problem counts update with new legitimate tags
-        if hasattr(self.mw, 'issue_scan_handler'):
-            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+

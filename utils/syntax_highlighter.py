@@ -585,40 +585,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             final_format = format_map.get(current_block_color_state, self.color_default_format)
             self.setFormat(last_pos, len(text) - last_pos, final_format)
 
-        # Apply custom rules from the game plugin
-        rules_to_apply = self._compiled_custom_rules_all
-        
-        # Performance optimization for the preview window by not highlighting bracket tags (controller buttons)
-        doc = self.document()
-        if doc:
-            editor_widget = doc.parent()
-            if hasattr(editor_widget, 'objectName') and editor_widget.objectName() == 'preview_text_edit':
-                rules_to_apply = self._compiled_custom_rules_preview
-        
-        for compiled_pattern, fmt in rules_to_apply:
-            try:
-                for match in compiled_pattern.finditer(text):
-                    self.setFormat(match.start(), match.end() - match.start(), fmt)
-            except Exception as e:
-                pass # Already precompiled, shouldn't fail runtime
-                
-        for compiled_pattern, fmt in self._compiled_all_rules_builtin:
-            for match in compiled_pattern.finditer(text):
-                self.setFormat(match.start(), match.end() - match.start(), fmt)
-
-        icon_sequences = self._get_icon_sequences()
-        if icon_sequences and self._should_highlight_icons():
-            matches = self._get_icon_matches_for_block(icon_sequences)
-            for start, length in matches:
-                existing_format = self.format(start)
-                combined_format = QTextCharFormat(existing_format)
-                icon_bg = self.icon_sequence_format.background()
-                if icon_bg.style() != Qt.NoBrush:
-                    combined_format.setBackground(icon_bg)
-                if self.icon_sequence_format.fontWeight() != QFont.Normal:
-                    combined_format.setFontWeight(self.icon_sequence_format.fontWeight())
-                self.setFormat(start, length, combined_format)
-
+        # Glossary and spellcheck highlighting (run BEFORE tag rules so that tags can clean up formats on top)
         all_matches_for_tooltip = []
         
         block_pos = self.currentBlock().position()
@@ -721,5 +688,39 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                     if has_custom_color:
                         existing_format.setUnderlineColor(underline_color)
                     self.setFormat(local_start, local_length, existing_format)
+
+        # Apply custom rules from the game plugin
+        rules_to_apply = self._compiled_custom_rules_all
+        
+        # Performance optimization for the preview window by not highlighting bracket tags (controller buttons)
+        doc = self.document()
+        if doc:
+            editor_widget = doc.parent()
+            if hasattr(editor_widget, 'objectName') and editor_widget.objectName() == 'preview_text_edit':
+                rules_to_apply = self._compiled_custom_rules_preview
+        
+        for compiled_pattern, fmt in rules_to_apply:
+            try:
+                for match in compiled_pattern.finditer(text):
+                    self.setFormat(match.start(), match.end() - match.start(), fmt)
+            except Exception as e:
+                pass # Already precompiled, shouldn't fail runtime
+                
+        for compiled_pattern, fmt in self._compiled_all_rules_builtin:
+            for match in compiled_pattern.finditer(text):
+                self.setFormat(match.start(), match.end() - match.start(), fmt)
+
+        icon_sequences = self._get_icon_sequences()
+        if icon_sequences and self._should_highlight_icons():
+            matches = self._get_icon_matches_for_block(icon_sequences)
+            for start, length in matches:
+                existing_format = self.format(start)
+                combined_format = QTextCharFormat(existing_format)
+                icon_bg = self.icon_sequence_format.background()
+                if icon_bg.style() != Qt.NoBrush:
+                    combined_format.setBackground(icon_bg)
+                if self.icon_sequence_format.fontWeight() != QFont.Normal:
+                    combined_format.setFontWeight(self.icon_sequence_format.fontWeight())
+                self.setFormat(start, length, combined_format)
 
         self.setCurrentBlockState(current_block_color_state)

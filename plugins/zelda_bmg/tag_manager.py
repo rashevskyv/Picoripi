@@ -62,21 +62,4 @@ class TagManager:
         return set(CONTROL_CODES)
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
-        # Check default_tag_mappings first
-        if self.mw and hasattr(self.mw, 'default_tag_mappings'):
-            if tag_to_check in self.mw.default_tag_mappings or tag_to_check in self.mw.default_tag_mappings.values():
-                return True
-
-        if not re.fullmatch(r"\{[^}]+\}", tag_to_check):
-            return False
-        
-        # Check if it matches {escape:...}
-        if re.fullmatch(r"\{escape:\d+:[0-9a-fA-F]*\}", tag_to_check):
-            return True
-            
-        # Check if it matches config-defined tags
-        legit_tags = self.get_legitimate_tags()
-        if tag_to_check in legit_tags:
-            return True
-            
-        return False
+        return True

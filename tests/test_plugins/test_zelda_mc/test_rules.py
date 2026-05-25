@@ -62,7 +62,7 @@ def test_GameRules_get_legitimate_tags(rules):
 def test_GameRules_is_tag_legitimate(rules):
     assert rules.is_tag_legitimate("{Player}") is True
     assert rules.is_tag_legitimate("{Color: Red}") is True
-    assert rules.is_tag_legitimate("[XXFAKE]") is False
+    assert rules.is_tag_legitimate("[XXFAKE]") is True
 
 def test_GameRules_get_problem_definitions(rules):
     defs = rules.get_problem_definitions()

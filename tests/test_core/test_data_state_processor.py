@@ -130,7 +130,7 @@ def test_revert_strings_to_original(dsp, mock_mw):
     assert (0, 1) not in mock_mw.edited_data
     mock_mw.undo_manager.begin_group.assert_called()
     mock_mw.undo_manager.end_group.assert_called_with("REVERT")
-    mock_mw.ui_updater.populate_strings_for_block.assert_called()
+    mock_mw.ui_updater.update_text_views.assert_called()
 
 
 @patch("core.data_state_processor.QMessageBox.question")
