@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.115] - 2026-05-25
+
+### Added
+- **Global Performance Toggles**: Introduced new checkbox toggles in the **Global Settings** tab to allow users to completely enable or disable heavy subsystems (Live BFN Dialog Preview, real-time warning scans, and glossary matches). Disabling these features allows for diagnosing and fully eliminating typing latency (input lag) on slower hardware.
+- **Debounced Typing Mode in QSyntaxHighlighter**: Implemented a dynamic `_typing_mode` state inside `JsonTagHighlighter`. During rapid typing, heavy synchronous glossary cache rebuilding and Slavic morphological searches are bypassed. These features fall back to debounced async background calculations, ensuring that character input is buttery-smooth and instantly rendered on the screen.
+
+### Fixed
+- **Isolated Preview Toggling & Correct Strings in Block Indexing**: Fixed a critical bug where disabling "Live Preview" would prematurely exit `populate_strings_for_block()` and completely clear the "Strings in block" list. Mapped the preview toggle to control only the graphical `BfnPreviewWidget` visibility, keeping the textual lines index, category filtering, and editor synchronization fully operational.
+
 ## [0.2.114] - 2026-05-25
 
 ### Added

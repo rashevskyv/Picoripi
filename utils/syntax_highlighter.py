@@ -123,7 +123,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
     def set_glossary_manager(self, manager: Optional[GlossaryManager]) -> None:
         self._glossary_manager = manager
-        self._glossary_enabled = bool(manager and manager.get_entries())
+        mw_enabled = getattr(self.mw, 'glossary_enabled', True) if self.mw else True
+        self._glossary_enabled = bool(mw_enabled and manager and manager.get_entries())
         self._glossary_matches_cache.clear()
         self._glossary_cache_revision = None
         self.rehighlight()
@@ -143,11 +144,11 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         else:
             log_debug(f"JsonTagHighlighter ({editor_name}): Spellchecker state unchanged, no rehighlight needed")
 
-    def set_typing_mode(self, enabled: bool) -> None:
+    def set_typing_mode(self, enabled: bool, trigger_rehighlight: bool = True) -> None:
         """Enable or disable typing mode which suppresses heavy checks like glossary and spellchecking."""
         if hasattr(self, '_typing_mode') and self._typing_mode != enabled:
             self._typing_mode = enabled
-            if not enabled:
+            if not enabled and trigger_rehighlight:
                 self.rehighlight()
 
     def set_translation_mode(self, enabled: bool, source_editor_ref: Optional[QWidget] = None) -> None:
@@ -302,6 +303,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             pass
 
         self.newline_char = newline_symbol
+        mw_enabled = getattr(self.mw, 'glossary_enabled', True) if self.mw else True
+        self._glossary_enabled = bool(mw_enabled and self._glossary_manager and self._glossary_manager.get_entries())
         self._glossary_matches_cache.clear()
         self._glossary_cache_revision = None
         if self.document():
@@ -636,7 +639,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         local_length = overlap_end - overlap_start
                         entry = GlossaryEntry(original=m['original'], translation=m['translation'], notes=m['notes'])
                         glossary_matches_to_apply.append(GlossaryMatch(entry=entry, start=local_start, end=local_start + local_length))
-            else:
+            elif not self._typing_mode:
                 # Synchronous fallback for startup and unit tests
                 self._rebuild_glossary_cache()
                 block_number = self.currentBlock().blockNumber()
@@ -671,7 +674,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         local_length = overlap_end - overlap_start
                         entry = GlossaryEntry(original=m['original'], translation=m['translation'], notes=m['notes'])
                         translation_matches_to_apply.append(GlossaryMatch(entry=entry, start=local_start, end=local_start + local_length))
-            else:
+            elif not self._typing_mode:
                 # Synchronous fallback for startup and unit tests
                 self._rebuild_translation_glossary_cache()
                 block_number = self.currentBlock().blockNumber()

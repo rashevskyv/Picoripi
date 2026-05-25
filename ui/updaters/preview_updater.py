@@ -91,6 +91,9 @@ class PreviewUpdater(BaseUIUpdater):
         
         editor.highlightManager.clearAllProblemHighlights()
         
+        if not getattr(self.mw, 'warnings_enabled', True):
+            return
+            
         if block_idx < 0 or string_idx < 0:
             return
 
@@ -563,8 +566,14 @@ class PreviewUpdater(BaseUIUpdater):
             self.mw.ui_updater.clear_status_bar()
 
         # Update BFN visual preview
-        if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
-            self.mw.bfn_preview_widget.update_preview_text(edited_text_raw)
+        if getattr(self.mw, 'preview_enabled', True):
+            if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+                if self.mw.bfn_preview_widget.isHidden():
+                    self.mw.bfn_preview_widget.show()
+                self.mw.bfn_preview_widget.update_preview_text(edited_text_raw)
+        else:
+            if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+                self.mw.bfn_preview_widget.hide()
 
         # Sync text with active BFN Font Editor simulation if it is open
         if hasattr(self.mw, '_bfn_editor_window') and self.mw._bfn_editor_window is not None:
@@ -599,6 +608,10 @@ class PreviewUpdater(BaseUIUpdater):
         """Update visibility of the visual preview widget based on loaded fonts and menu toggle state."""
         preview_widget = getattr(self.mw, 'bfn_preview_widget', None)
         if not preview_widget:
+            return
+
+        if not getattr(self.mw, 'preview_enabled', True):
+            preview_widget.hide()
             return
 
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})

@@ -201,6 +201,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.space_dot_color_picker.setColor(QColor(self.mw.space_dot_color_hex))
         self.restore_session_checkbox.setChecked(self.mw.restore_unsaved_on_startup)
         self.prompt_editor_checkbox.setChecked(getattr(self.mw, 'prompt_editor_enabled', True))
+        self.preview_enabled_checkbox.setChecked(getattr(self.mw, 'preview_enabled', True))
+        self.warnings_enabled_checkbox.setChecked(getattr(self.mw, 'warnings_enabled', True))
+        self.glossary_enabled_checkbox.setChecked(getattr(self.mw, 'glossary_enabled', True))
         
         self.enable_console_logging_checkbox.setChecked(getattr(self.mw, 'enable_console_logging', True))
         self.enable_file_logging_checkbox.setChecked(getattr(self.mw, 'enable_file_logging', True))
@@ -431,6 +434,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'font_size': self.font_size_spinbox.value(), 'show_multiple_spaces_as_dots': self.show_spaces_checkbox.isChecked(),
             'space_dot_color_hex': self.space_dot_color_picker.color().name(), 'restore_unsaved_on_startup': self.restore_session_checkbox.isChecked(),
             'prompt_editor_enabled': self.prompt_editor_checkbox.isChecked(),
+            'preview_enabled': self.preview_enabled_checkbox.isChecked(),
+            'warnings_enabled': self.warnings_enabled_checkbox.isChecked(),
+            'glossary_enabled': self.glossary_enabled_checkbox.isChecked(),
             'original_file_path': self.original_path_edit.text() if is_project_active else getattr(self.mw, 'original_file_path', ''),
             'edited_file_path': self.edited_path_edit.text() if is_project_active else getattr(self.mw, 'edited_file_path', ''),
             'is_directory_mode': self.dir_mode_checkbox.isChecked() if is_project_active else getattr(self.mw, 'is_directory_mode', False),

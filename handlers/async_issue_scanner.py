@@ -14,7 +14,8 @@ class AsyncIssueScanner(QThread):
     finished_scan = pyqtSignal(int, int, str, list, list, list, list)
 
     def __init__(self, block_idx: int, string_idx: int, text: str, font_map: dict, width_threshold: int, analyzer: Any,
-                 glossary_manager: Any = None, spellchecker_manager: Any = None, source_text: str = "", active_word: str = ""):
+                 glossary_manager: Any = None, spellchecker_manager: Any = None, source_text: str = "", active_word: str = "",
+                 warnings_enabled: bool = True, glossary_enabled: bool = True):
         super().__init__()
         self.block_idx = block_idx
         self.string_idx = string_idx
@@ -26,6 +27,8 @@ class AsyncIssueScanner(QThread):
         self.spellchecker_manager = spellchecker_manager
         self.source_text = source_text
         self.active_word = active_word
+        self.warnings_enabled = warnings_enabled
+        self.glossary_enabled = glossary_enabled
 
     def run(self):
         try:
@@ -33,26 +36,29 @@ class AsyncIssueScanner(QThread):
             problems_in_string = []
             
             # 1. Run the appropriate plugin analysis method
-            if hasattr(self.analyzer, 'analyze_data_string'):
-                problems_in_string = self.analyzer.analyze_data_string(self.text, self.font_map, self.width_threshold)
-            elif hasattr(self.analyzer, 'analyze_subline'):
-                for i, subline in enumerate(sublines):
-                    next_subline = sublines[i+1] if i + 1 < len(sublines) else None
-                    problems = self.analyzer.analyze_subline(
-                        text=subline,
-                        next_text=next_subline,
-                        subline_number_in_data_string=i,
-                        qtextblock_number_in_editor=i,
-                        is_last_subline_in_data_string=(i == len(sublines) - 1),
-                        editor_font_map=self.font_map,
-                        editor_line_width_threshold=self.width_threshold,
-                        full_data_string_text_for_logical_check=self.text
-                    )
-                    problems_in_string.append(problems)
+            if self.warnings_enabled:
+                if hasattr(self.analyzer, 'analyze_data_string'):
+                    problems_in_string = self.analyzer.analyze_data_string(self.text, self.font_map, self.width_threshold)
+                elif hasattr(self.analyzer, 'analyze_subline'):
+                    for i, subline in enumerate(sublines):
+                        next_subline = sublines[i+1] if i + 1 < len(sublines) else None
+                        problems = self.analyzer.analyze_subline(
+                            text=subline,
+                            next_text=next_subline,
+                            subline_number_in_data_string=i,
+                            qtextblock_number_in_editor=i,
+                            is_last_subline_in_data_string=(i == len(sublines) - 1),
+                            editor_font_map=self.font_map,
+                            editor_line_width_threshold=self.width_threshold,
+                            full_data_string_text_for_logical_check=self.text
+                        )
+                        problems_in_string.append(problems)
+            else:
+                problems_in_string = []
             
             # 2. Async Glossary analysis
             glossary_matches = []
-            if self.glossary_manager and self.glossary_manager.get_entries():
+            if self.glossary_enabled and self.glossary_manager and self.glossary_manager.get_entries():
                 try:
                     matches = self.glossary_manager.find_matches(self.text)
                     for m in matches:
@@ -68,7 +74,7 @@ class AsyncIssueScanner(QThread):
 
             # 3. Async Translation Glossary Bridge analysis
             translation_matches = []
-            if self.glossary_manager and self.source_text:
+            if self.glossary_enabled and self.glossary_manager and self.source_text:
                 try:
                     source_matches = self.glossary_manager.get_relevant_terms(self.source_text)
                     for entry in source_matches:
