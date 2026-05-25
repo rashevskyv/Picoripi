@@ -165,6 +165,9 @@ class TextOperationHandler(BaseHandler):
         if not edited_edit:
             return
 
+        if hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
+            edited_edit.highlighter.set_typing_mode(True)
+
         # Queue ALL heavy operations (data updates, title, cursors, issue scanning, preview) using debounce
         self._debounce_block_idx = self.mw.data_store.current_block_idx
         self._debounce_string_idx = self.mw.data_store.current_string_idx
@@ -256,7 +259,9 @@ class TextOperationHandler(BaseHandler):
                 glossary_manager=getattr(edited_edit, '_glossary_manager', None),
                 spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
                 source_text=source_text,
-                active_word=active_word
+                active_word=active_word,
+                warnings_enabled=getattr(self.mw, 'warnings_enabled', True),
+                glossary_enabled=getattr(self.mw, 'glossary_enabled', True)
             )
             self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
             self.current_scanner_thread.start()
@@ -289,6 +294,7 @@ class TextOperationHandler(BaseHandler):
                 edited_edit.highlighter._async_glossary_matches = glossary_matches
                 edited_edit.highlighter._async_translation_matches = translation_matches
                 edited_edit.highlighter._async_spellcheck_matches = spellcheck_matches
+                edited_edit.highlighter.set_typing_mode(False, trigger_rehighlight=False)
 
         # 2. Update UI components smoothly (including text views which might reset the editor text)
         self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)

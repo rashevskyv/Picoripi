@@ -38,6 +38,15 @@ class SettingsDialogUiMixin:
         self.prompt_editor_checkbox = QCheckBox("Show prompt editor before AI requests", self)
         layout.addRow(self.prompt_editor_checkbox)
 
+        self.preview_enabled_checkbox = QCheckBox("Enable Live Preview (turn off to reduce lag)", self)
+        layout.addRow(self.preview_enabled_checkbox)
+
+        self.warnings_enabled_checkbox = QCheckBox("Enable Real-Time Warning Scan (turn off to reduce lag)", self)
+        layout.addRow(self.warnings_enabled_checkbox)
+
+        self.glossary_enabled_checkbox = QCheckBox("Enable Glossary System (turn off to reduce lag)", self)
+        layout.addRow(self.glossary_enabled_checkbox)
+
         self.plugin_combo.activated.connect(self.on_plugin_changed)
         self.theme_combo.activated.connect(self.on_theme_changed)
 

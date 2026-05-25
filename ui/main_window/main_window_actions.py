@@ -210,6 +210,10 @@ class MainWindowActions:
             self.mw.string_settings_updater.update_font_combobox()
             self.mw.string_settings_updater.update_string_settings_panel()
 
+            if hasattr(self.mw, 'text_operation_handler'):
+                self.mw.text_operation_handler._update_preview_content()
+                self.mw.text_operation_handler.text_edited()
+
 
     def trigger_save_action(self):
         log_info("Save action triggered.", category="file_ops")
