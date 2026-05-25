@@ -64,11 +64,11 @@ class StringSettingsUpdater(BaseUIUpdater):
         # Update width
         width = string_meta.get("width")
         self.mw.width_spinbox.blockSignals(True)
-        if width and width != self.mw.line_width_warning_threshold_pixels:
+        if width and width != self.mw.game_dialog_max_width_pixels:
             self.mw.width_spinbox.setValue(width)
             self.mw.width_spinbox.setStyleSheet(self.highlight_style)
         else:
-            self.mw.width_spinbox.setValue(self.mw.line_width_warning_threshold_pixels)
+            self.mw.width_spinbox.setValue(self.mw.game_dialog_max_width_pixels)
             self.mw.width_spinbox.setStyleSheet("")
         self.mw.width_spinbox.blockSignals(False)
         self.mw.apply_width_button.setEnabled(False)

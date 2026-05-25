@@ -36,7 +36,7 @@ class IssueScanHandler(BaseHandler):
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
             
             string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-            width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+            width_threshold_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
             
             all_problems_for_string = [] # List of sets, one per subline
             

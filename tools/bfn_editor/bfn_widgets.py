@@ -113,13 +113,22 @@ class ImageView(QtWidgets.QGraphicsView):
                     
                     if self._dragging_handle == 'kerning':
                         new_kern = int(round(self._drag_start_kern + dx))
-                        new_kern = max(-128, min(127, new_kern))
+                        max_kern = min(127, self._drag_start_kern + self._drag_start_width)
+                        min_kern = max(-128, self._drag_start_kern + self._drag_start_width - 255)
+                        new_kern = max(min_kern, min(max_kern, new_kern))
                         
                         v.spin_kerning.blockSignals(True)
                         v.spin_kerning.setValue(new_kern)
                         v.spin_kerning.blockSignals(False)
                         
                         packets[wid_idx]["kerning"] = new_kern
+                        
+                        new_width = self._drag_start_kern + self._drag_start_width - new_kern
+                        v.spin_width.blockSignals(True)
+                        v.spin_width.setValue(new_width)
+                        v.spin_width.blockSignals(False)
+                        packets[wid_idx]["width"] = new_width
+                        
                         v.update_overlays()
                         v.update_simulation()
                     elif self._dragging_handle == 'width':
@@ -452,13 +461,21 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
                 
                 if self._dragging_handle == 'kerning':
                     new_kern = int(round(self._drag_start_kern + dx))
-                    new_kern = max(-128, min(127, new_kern))
+                    max_kern = min(127, self._drag_start_kern + self._drag_start_width)
+                    min_kern = max(-128, self._drag_start_kern + self._drag_start_width - 255)
+                    new_kern = max(min_kern, min(max_kern, new_kern))
                     
                     self.viewer.spin_kerning.blockSignals(True)
                     self.viewer.spin_kerning.setValue(new_kern)
                     self.viewer.spin_kerning.blockSignals(False)
                     
                     packets[wid_idx]["kerning"] = new_kern
+                    
+                    new_width = self._drag_start_kern + self._drag_start_width - new_kern
+                    self.viewer.spin_width.blockSignals(True)
+                    self.viewer.spin_width.setValue(new_width)
+                    self.viewer.spin_width.blockSignals(False)
+                    packets[wid_idx]["width"] = new_width
                 elif self._dragging_handle == 'width':
                     new_width = int(round(self._drag_start_width + dx))
                     new_width = max(0, min(255, new_width))

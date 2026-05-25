@@ -63,7 +63,7 @@ class WidthCalculationWorker(QThread):
             
             font_map_for_string = self.font_map_helper.get_font_map_for_string(self.block_idx, data_str_idx)
             string_meta = self.mw_settings.get('string_metadata', {}).get((self.block_idx, data_str_idx), {})
-            editor_warning_threshold = string_meta.get("width", self.mw_settings.get('line_width_warning_threshold_pixels', 200))
+            editor_warning_threshold = string_meta.get("width", self.mw_settings.get('game_dialog_max_width_pixels', 400))
 
             line_report_parts = [f"Data Line {data_str_idx + 1}:"]
             

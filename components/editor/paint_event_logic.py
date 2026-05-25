@@ -102,4 +102,15 @@ class LNETPaintEventLogic:
                 break
             block = block.next()
         
-        # Extracted width exceed logic from paintEvent. It should be handled in apply_highlights_to_editor instead.
+        # Draw vertical line representing the width threshold (Editor Line Width Warning)
+        if self.editor.line_width_warning_threshold_pixels > 0 and self.editor.objectName() != "preview_text_edit":
+            pen = QPen(self.editor.width_threshold_line_color)
+            pen.setWidth(self.editor.width_threshold_line_width)
+            pen.setStyle(self.editor.width_threshold_line_style)
+            painter_lines.setPen(pen)
+            
+            x = self.editor.line_width_warning_threshold_pixels
+            h = self.editor.viewport().height()
+            painter_lines.drawLine(x, 0, x, h)
+
+        painter_lines.end()

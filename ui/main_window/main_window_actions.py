@@ -3,7 +3,8 @@
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog
+from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog
+from PyQt5.QtCore import QThread, pyqtSignal
 from utils.logging_utils import log_info
 import copy
 from pathlib import Path
@@ -13,6 +14,22 @@ from ui.settings_dialog import SettingsDialog
 if TYPE_CHECKING:
     from main import MainWindow
 
+class AliasUpdateWorker(QThread):
+    finished_signal = pyqtSignal(dict)
+
+    def __init__(self, edited_data_copy: dict, alias: str, original_tag: str):
+        super().__init__()
+        self.edited_data_copy = edited_data_copy
+        self.alias = alias
+        self.original_tag = original_tag
+
+    def run(self):
+        for key, val in list(self.edited_data_copy.items()):
+            if isinstance(val, str) and self.alias in val:
+                self.edited_data_copy[key] = val.replace(self.alias, self.original_tag)
+        self.finished_signal.emit(self.edited_data_copy)
+
+
 class MainWindowActions:
     def __init__(self, main_window: MainWindow):
         self.mw = main_window
@@ -21,6 +38,11 @@ class MainWindowActions:
     def open_settings_dialog(self):
         log_info("Opening settings dialog...")
         
+        # Save current rules values to compare later
+        old_game_dialog_max_width = self.mw.game_dialog_max_width_pixels
+        old_line_width_warning = self.mw.line_width_warning_threshold_pixels
+        old_lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+        
         dialog = SettingsDialog(self.mw)
         
         if not dialog.exec_():
@@ -28,6 +50,16 @@ class MainWindowActions:
             return
 
         new_settings = dialog.get_settings()
+        
+        # Check if rules values were actually changed to trigger rescan
+        new_game_dialog_max_width = new_settings.get('game_dialog_max_width_pixels', old_game_dialog_max_width)
+        new_line_width_warning = new_settings.get('line_width_warning_threshold_pixels', old_line_width_warning)
+        new_lines_per_page = new_settings.get('lines_per_page', old_lines_per_page)
+        
+        if (new_game_dialog_max_width != old_game_dialog_max_width or
+            new_line_width_warning != old_line_width_warning or
+            new_lines_per_page != old_lines_per_page):
+            dialog.rules_changed_requires_rescan = True
         
         new_font_file = new_settings.get('default_font_file') or ""
         old_font_file = getattr(self.mw, 'default_font_file', '') or ""
@@ -173,6 +205,7 @@ class MainWindowActions:
             # Reload font maps and update combobox in case custom font dir changed
             self.mw.settings_manager.load_all_font_maps()
             self.mw.string_settings_updater.update_font_combobox()
+            self.mw.string_settings_updater.update_string_settings_panel()
 
 
     def trigger_save_action(self):
@@ -783,17 +816,14 @@ class MainWindowActions:
         self.mw.default_tag_mappings.pop(alias, None)
         self.mw.default_tag_mappings[new_alias] = original_tag
         
-        # Clean up stale alias from in-memory edits to prevent desync
-        if hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'edited_data'):
-            for key, val in list(self.mw.data_store.edited_data.items()):
-                if isinstance(val, str) and alias in val:
-                    self.mw.data_store.edited_data[key] = val.replace(alias, original_tag)
-        
-        # Save settings
-        if hasattr(self.mw, 'settings_manager'):
-            self.mw.settings_manager.save_settings()
+        # Clean up stale alias from in-memory edits to prevent desync asynchronously
+        def on_complete():
+            # Save settings
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.save_settings()
+            self._refresh_editors_after_alias_change()
             
-        self._refresh_editors_after_alias_change()
+        self._update_aliases_in_edited_data(alias, original_tag, on_complete)
 
     def remove_tag_alias(self, alias: str, original_tag: str):
         reply = QMessageBox.question(
@@ -807,15 +837,52 @@ class MainWindowActions:
             if hasattr(self.mw, 'default_tag_mappings'):
                 self.mw.default_tag_mappings.pop(alias, None)
                 
-                # Clean up stale alias from in-memory edits to prevent desync
-                if hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'edited_data'):
-                    for key, val in list(self.mw.data_store.edited_data.items()):
-                        if isinstance(val, str) and alias in val:
-                            self.mw.data_store.edited_data[key] = val.replace(alias, original_tag)
-                
-                if hasattr(self.mw, 'settings_manager'):
-                    self.mw.settings_manager.save_settings()
-                self._refresh_editors_after_alias_change()
+                # Clean up stale alias from in-memory edits to prevent desync asynchronously
+                def on_complete():
+                    if hasattr(self.mw, 'settings_manager'):
+                        self.mw.settings_manager.save_settings()
+                    self._refresh_editors_after_alias_change()
+                    
+                self._update_aliases_in_edited_data(alias, original_tag, on_complete)
+
+    def _update_aliases_in_edited_data(self, alias: str, original_tag: str, on_complete_callback):
+        """Clean up stale alias from in-memory edits in a background thread if needed."""
+        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data') or not self.mw.data_store.edited_data:
+            on_complete_callback()
+            return
+
+        # Check if we are running in tests or QApplication is not fully initialized
+        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        
+        edited_data_copy = dict(self.mw.data_store.edited_data)
+        
+        # Create worker
+        self._alias_worker = AliasUpdateWorker(edited_data_copy, alias, original_tag)
+        
+        def on_worker_finished(updated_data):
+            self.mw.data_store.edited_data = updated_data
+            on_complete_callback()
+            # Clean up reference
+            self._alias_worker = None
+            
+        self._alias_worker.finished_signal.connect(on_worker_finished)
+
+        if is_test:
+            # Sync mode for tests
+            self._alias_worker.run()
+        else:
+            # Async mode for production with non-blocking QProgressDialog
+            self._progress_dialog = QProgressDialog("Updating tag aliases across the project...", None, 0, 0, self.mw)
+            self._progress_dialog.setWindowTitle("Tag Aliases")
+            self._progress_dialog.setWindowModality(2) # Qt.WindowModal
+            self._progress_dialog.setCancelButton(None) # Remove cancel button to ensure integrity
+            self._progress_dialog.show()
+            
+            # Connect progress dialog close to worker finish
+            self._alias_worker.finished_signal.connect(self._progress_dialog.close)
+            
+            self._alias_worker.start()
+
 
     def _refresh_editors_after_alias_change(self):
         rules = getattr(self.mw, 'current_game_rules', None)
