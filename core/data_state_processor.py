@@ -119,7 +119,66 @@ class DataStateProcessor:
                 self.mw.undo_manager.end_group("REVERT")
             
         if hasattr(self.mw, 'ui_updater'):
-            self.mw.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+            preview_edit = getattr(self.mw, 'preview_text_edit', None)
+            if preview_edit and self.mw.current_game_rules:
+                from PyQt5.QtGui import QTextCursor
+                
+                old_scrollbar_value = preview_edit.verticalScrollBar().value()
+                
+                # Prevent triggering events during the text updates
+                was_programmatically_changing = self.mw.is_programmatically_changing_text
+                self.mw.is_programmatically_changing_text = True
+                
+                try:
+                    target_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+                    if not target_indices:
+                        if 0 <= block_idx < len(self.mw.data_store.data) and isinstance(self.mw.data_store.data[block_idx], list):
+                            target_indices = list(range(len(self.mw.data_store.data[block_idx])))
+                        else:
+                            target_indices = []
+                    
+                    preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
+                    cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                    
+                    for s_idx in string_indices:
+                        if s_idx in target_indices:
+                            preview_idx = target_indices.index(s_idx)
+                            if 0 <= preview_idx < preview_edit.document().blockCount():
+                                text_for_preview_raw, _ = self.get_current_string_text(block_idx, s_idx)
+                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                                
+                                block = preview_edit.document().findBlockByNumber(preview_idx)
+                                if block.isValid() and block.text() != preview_line_text:
+                                    cursor = QTextCursor(block)
+                                    cursor.setPosition(block.position())
+                                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                                    cursor.insertText(preview_line_text)
+                                    
+                                    # Update local cache
+                                    if preview_updater and hasattr(preview_updater, '_preview_cache'):
+                                        if cache_key in preview_updater._preview_cache:
+                                            cache = preview_updater._preview_cache[cache_key]
+                                            if 0 <= preview_idx < len(cache['lines']):
+                                                cache['lines'][preview_idx] = preview_line_text
+                    
+                    # Refresh highlights
+                    if hasattr(preview_edit, 'highlightManager'):
+                        preview_edit.highlightManager.clearAllProblemHighlights()
+                        self.mw.ui_updater._apply_highlights_for_block(block_idx)
+                    
+                    # Restore selection
+                    if self.mw.data_store.current_string_idx != -1 and self.mw.data_store.current_string_idx in target_indices:
+                        preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+                        if 0 <= preview_idx_to_select < preview_edit.document().blockCount():
+                            preview_edit.set_selected_lines([preview_idx_to_select])
+                    
+                    preview_edit.verticalScrollBar().setValue(old_scrollbar_value)
+                    if hasattr(preview_edit, 'lineNumberArea'):
+                        preview_edit.lineNumberArea.update()
+                finally:
+                    self.mw.is_programmatically_changing_text = was_programmatically_changing
+            
+            # Fast update for original and edited text views
             self.mw.ui_updater.update_text_views()
 
     def perform_revert_strings(self, block_idx: int, string_indices: List[int], confirm: bool = True) -> None:

@@ -128,11 +128,12 @@ class LayoutBuilder:
         # Bottom Right (Editors)
         self.mw.bottom_right_splitter = QSplitter(Qt.Horizontal)
         self._build_original_panel()
+        self._build_middle_panel()
         self._build_edited_panel()
         
         self.mw.right_splitter.addWidget(self.mw.bottom_right_splitter)
         self.mw.right_splitter.setSizes([150, 450])
-        self.mw.bottom_right_splitter.setSizes([400, 400])
+        self.mw.bottom_right_splitter.setSizes([380, 40, 380])
 
     def _build_original_panel(self):
         bottom_left_panel = QWidget()
@@ -159,6 +160,26 @@ class LayoutBuilder:
         self.mw.original_text_edit.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
         bottom_left_layout.addWidget(self.mw.original_text_edit)
         self.mw.bottom_right_splitter.addWidget(bottom_left_panel)
+
+    def _build_middle_panel(self):
+        middle_panel = QWidget()
+        middle_layout = QVBoxLayout(middle_panel)
+        middle_layout.setContentsMargins(0, 0, 0, 0)
+        middle_layout.setSpacing(0)
+        
+        middle_layout.addSpacing(92)
+        
+        self.mw.revert_string_button = QPushButton()
+        self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowForward))
+        self.mw.revert_string_button.setToolTip("Revert current string to original file content")
+        self.mw.revert_string_button.setFixedWidth(30)
+        self.mw.revert_string_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
+        
+        middle_layout.addWidget(self.mw.revert_string_button, 0, Qt.AlignCenter)
+        middle_layout.addStretch(1)
+        
+        middle_panel.setFixedWidth(34)
+        self.mw.bottom_right_splitter.addWidget(middle_panel)
 
     def _build_edited_panel(self):
         bottom_right_panel = QWidget()
@@ -199,11 +220,6 @@ class LayoutBuilder:
         self.mw.help_button.setIcon(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.SP_DialogHelpButton)))
         self.mw.help_button.setToolTip("View Shortcuts & Help (F1)")
         editable_text_header_layout.addWidget(self.mw.help_button)
-
-        self.mw.revert_string_button = QPushButton()
-        self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowBack))
-        self.mw.revert_string_button.setToolTip("Revert current string to original file content")
-        editable_text_header_layout.addWidget(self.mw.revert_string_button)
         
         right_header_layout.addLayout(editable_text_header_layout)
 
