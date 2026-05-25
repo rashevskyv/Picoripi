@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.113] - 2026-05-25
+
+### Added
+- **Double-Click Line Sync in Preview**: Implemented an intuitive navigation shortcut allowing translators to double-click the line number area (`LineNumberArea` showing widths/line numbers) in any active editor to instantly scroll the `"Strings in block"` preview panel to the currently edited string. Focuses and highlights the corresponding line, keeping visual context fully synchronized even in long files.
+
+### Fixed
+- **Type-Robust Mock Test Suite**: Resolved a pytest failure by fully mocking `QTextCursor` instantiation on dynamic `QTextBlock` elements during unit-testing, completely eliminating `TypeError` occurrences in mock environments while preserving clean production code.
+
 ## [0.2.112] - 2026-05-25
 
 ### Added

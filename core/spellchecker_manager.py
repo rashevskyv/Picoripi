@@ -85,8 +85,11 @@ class SpellcheckWorker(QObject):
             self._queue.append(word)
             self._queue_set.add(word)
 
-class SpellcheckerManager:
+class SpellcheckerManager(QObject):
+    suggestions_loaded = pyqtSignal(str, list)
+
     def __init__(self, main_window, language='uk', custom_dict_path=None):
+        super().__init__()
         self.mw = main_window
         self.language = language
         self.custom_dict_path = Path(custom_dict_path) if custom_dict_path else LOCAL_DICT_PATH
@@ -136,6 +139,7 @@ class SpellcheckerManager:
         for word, suggestions in sugg_results.items():
             if word not in self._suggestions_cache:
                 self._suggestions_cache[word] = suggestions
+            self.suggestions_loaded.emit(word, suggestions)
                 
         if cache_updated:
             if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:

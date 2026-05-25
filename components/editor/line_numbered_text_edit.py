@@ -138,6 +138,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
     def handle_line_number_click(self, y_pos: int):
         self.mouse_handler.handle_line_number_click(y_pos)
 
+    def handle_line_number_double_click(self, y_pos: int):
+        self.mouse_handler.handle_line_number_double_click(y_pos)
+
     def set_glossary_manager(self, manager) -> None:
         self._glossary_manager = manager
         if hasattr(self, 'highlighter') and self.highlighter:
@@ -211,6 +214,10 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._last_clicked_line = -1
         if hasattr(self, 'highlightManager'):
             self.highlightManager.clearAllHighlights()
+        if hasattr(self, 'highlighter') and self.highlighter:
+            self.highlighter._async_glossary_matches = None
+            self.highlighter._async_translation_matches = None
+            self.highlighter._async_spellcheck_matches = None
         super().setPlainText(text)
         # If we have an active glossary, we must re-trigger highlighting
         # because set_glossary_manager ran while the editor was empty,

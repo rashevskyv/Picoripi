@@ -37,6 +37,11 @@ class LineNumberArea(QWidget):
             self.codeEditor.mouse_handler.handle_line_number_click(event.pos().y())
         super().mousePressEvent(event)
 
+    def mouseDoubleClickEvent(self, event: QMouseEvent):
+        if event.button() == Qt.LeftButton:
+            self.codeEditor.handle_line_number_double_click(event.pos().y())
+        super().mouseDoubleClickEvent(event)
+
     def mouseMoveEvent(self, event: QMouseEvent):
         # Delegate tooltip generation to the mouse handler
         self.codeEditor.mouse_handler.handle_line_number_area_mouse_move(event)

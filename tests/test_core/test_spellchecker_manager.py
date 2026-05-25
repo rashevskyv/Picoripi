@@ -240,6 +240,21 @@ def test_SpellcheckerManager_caching(mock_from_files, mock_mw):
     sm._initialize_spellchecker()
     assert "apple" not in sm._spell_cache
 
+def test_SpellcheckerManager_suggestions_loaded_signal(mock_mw):
+    sm = SpellcheckerManager(mock_mw)
+    sm.enabled = True
+    
+    # Track signal emission
+    emitted_args = []
+    sm.suggestions_loaded.connect(lambda w, s: emitted_args.append((w, s)))
+    
+    # Trigger _on_spellcheck_results_ready
+    sm._on_spellcheck_results_ready({}, {"apple": ["test1", "test2"]})
+    
+    assert len(emitted_args) == 1
+    assert emitted_args[0] == ("apple", ["test1", "test2"])
+
+
 
 
 

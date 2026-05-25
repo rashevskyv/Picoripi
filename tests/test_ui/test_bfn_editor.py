@@ -668,8 +668,22 @@ def test_bfn_editor_window_unmapped_glyph_addition(qapp, dummy_bfn_bytes):
     editor.close()
 
 
-def test_bfn_editor_window_copy_paste_chain(qapp, dummy_bfn_bytes):
+from unittest.mock import patch
+
+@patch('PyQt5.QtWidgets.QApplication.clipboard')
+def test_bfn_editor_window_copy_paste_chain(mock_clipboard, qapp, dummy_bfn_bytes):
     """Test that copy and paste chain features in BFN Editor window work correctly with undo/redo."""
+    clipboard_mock = MagicMock()
+    clipboard_text_store = [""]
+    def mock_text():
+        return clipboard_text_store[0]
+    def mock_set_text(text):
+        clipboard_text_store[0] = text
+        
+    clipboard_mock.text = mock_text
+    clipboard_mock.setText = mock_set_text
+    mock_clipboard.return_value = clipboard_mock
+
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     

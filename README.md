@@ -1,6 +1,6 @@
-# Picoripi v0.2.112
+# Picoripi v0.2.113
 
-The "Picoripi" (v0.2.112) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.113) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -65,6 +65,7 @@ The "Picoripi" (v0.2.112) is a desktop application built with **Python** and **P
 - **Undo / Redo**: Comprehensive undo system covering text edits, folder structure changes, reverts, and even tree navigation.
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
 - **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
+- **Double-Click Line Sync**: Double-clicking the line number area in any translation editor instantly scrolls and highlights the currently edited string inside the "Strings in block" preview panel.
 - **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
 - **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).
 

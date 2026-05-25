@@ -223,6 +223,12 @@ class LNETMouseHandlers:
             editor.horizontalScrollBar().setValue(scroll_value)
             editor.setFocus()
 
+    def handle_line_number_double_click(self, y_pos: int):
+        """Handle a double-click on the line number area."""
+        actual_main_window = self.editor.window()
+        if hasattr(actual_main_window, 'list_selection_handler') and actual_main_window.list_selection_handler:
+            actual_main_window.list_selection_handler.scroll_to_current_string_in_preview()
+
     def handle_line_number_area_mouse_move(self, event):
         """Show tooltip when hovering over the line number area."""
         from PyQt5.QtWidgets import QToolTip

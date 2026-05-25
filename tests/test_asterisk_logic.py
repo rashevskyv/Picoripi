@@ -38,8 +38,12 @@ class MockMainWindow(QMainWindow):
         self.current_game_rules.get_problem_definitions = lambda: {}
         self.helper = MagicMock()
 
-def test_asterisk_persistence_on_navigation():
+from unittest.mock import patch
+
+@patch('handlers.text_operation_handler.AsyncIssueScanner')
+def test_asterisk_persistence_on_navigation(mock_async_scanner):
     mw = MockMainWindow()
+    mw.helper.get_font_map_for_string.return_value = {}
     dsp = DataStateProcessor(mw)
     mw.ui_updater = MagicMock()
     
@@ -59,6 +63,7 @@ def test_asterisk_persistence_on_navigation():
     # - Update mw.data_store.edited_data[(0, 0)]
     # - Set mw.data_store.edited_sublines to {0}
     toh.text_edited()
+    toh._on_preview_update_timer_timeout()
     
     assert (0, 0) in mw.data_store.edited_data
     assert mw.data_store.edited_data[(0, 0)] == "Edited Line 1\nSubline 2"
