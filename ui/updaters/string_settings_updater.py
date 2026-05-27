@@ -75,7 +75,14 @@ class StringSettingsUpdater(BaseUIUpdater):
             
             raw_text = ""
             if hasattr(self.mw, 'data_processor') and self.mw.data_processor:
-                raw_text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+                try:
+                    result = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+                    if isinstance(result, (tuple, list)) and len(result) >= 2:
+                        raw_text = result[0] or ""
+                    elif isinstance(result, str):
+                        raw_text = result
+                except Exception:
+                    pass
             
             composer = None
             if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:

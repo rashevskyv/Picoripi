@@ -84,6 +84,10 @@ class MemePalaceBuilderDialog(QDialog):
         self.client = None
         self.bmg_strings = []
         self.bmg_ids = []
+        # Remember which block was active when dialog was opened
+        self._initial_block_idx = -1
+        if hasattr(main_window, 'data_store') and main_window.data_store:
+            self._initial_block_idx = main_window.data_store.current_block_idx
 
         self._setup_ui()
         self.load_builder_settings()
@@ -324,44 +328,18 @@ class MemePalaceBuilderDialog(QDialog):
         
         from PyQt5.QtCore import Qt
         if not is_entire:
-            # Active File Only: Check only the current block, uncheck others
-            current_idx = -1
-            if hasattr(self.mw, "data_store") and self.mw.data_store:
-                current_idx = self.mw.data_store.current_block_idx
-                
+            # Active File Only: check only the block that was active when the dialog opened
             for i in range(self.blocks_list_widget.count()):
                 item = self.blocks_list_widget.item(i)
                 block_idx = item.data(Qt.UserRole)
-                if block_idx == current_idx:
+                if block_idx == self._initial_block_idx:
                     item.setCheckState(Qt.Checked)
                 else:
                     item.setCheckState(Qt.Unchecked)
         else:
-            # Entire Project: Restore based on saved settings or check all
-            pm = getattr(self.mw, 'project_manager', None)
-            project = pm.project if pm else None
-            selected_blocks = []
-            if project:
-                selected_blocks = project.metadata.get("mempalace_selected_blocks", [])
-            else:
-                sm = getattr(self.mw, 'settings_manager', None)
-                if sm:
-                    selected_blocks = sm.get("mempalace_selected_blocks", [])
-            
-            if not isinstance(selected_blocks, list):
-                selected_blocks = []
-                
+            # Entire Project (All Selected Files): always check all blocks
             for i in range(self.blocks_list_widget.count()):
-                item = self.blocks_list_widget.item(i)
-                block_idx = item.data(Qt.UserRole)
-                block_name = item.text().partition("(")[0].strip()
-                if selected_blocks:
-                    if block_idx in selected_blocks or str(block_idx) in selected_blocks or block_name in selected_blocks:
-                        item.setCheckState(Qt.Checked)
-                    else:
-                        item.setCheckState(Qt.Unchecked)
-                else:
-                    item.setCheckState(Qt.Checked)
+                self.blocks_list_widget.item(i).setCheckState(Qt.Checked)
 
     def _load_bmg_strings(self):
         """Populate the block list and load strings from the active main window workspace data store."""

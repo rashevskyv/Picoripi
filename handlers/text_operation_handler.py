@@ -268,6 +268,8 @@ class TextOperationHandler(BaseHandler):
 
         # 5. Synchronize original cursor and update lineNumberArea
         self.mw.ui_updater.synchronize_original_cursor()
+        if hasattr(edited_edit, 'recalculate_guidelines'):
+            edited_edit.recalculate_guidelines()
         if hasattr(edited_edit, 'lineNumberArea'):
             edited_edit.lineNumberArea.update()
 

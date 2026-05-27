@@ -126,6 +126,8 @@ class ProjectActionHandler(BaseHandler):
 
             # Enable project-specific actions
             self._set_project_actions_enabled(True)
+            if hasattr(self.mw, 'ui_handler'):
+                self.mw.ui_handler.update_editor_rules_properties()
 
             # Update UI
             self.ui_updater.update_title()
@@ -185,6 +187,8 @@ class ProjectActionHandler(BaseHandler):
             # Load project-specific settings from metadata
             if self.mw.project_manager:
                 self.mw.project_manager.load_settings_from_project(self.mw)
+                if hasattr(self.mw, 'ui_handler'):
+                    self.mw.ui_handler.update_editor_rules_properties()
                 if hasattr(self.mw, 'settings_manager'):
                     self.mw.settings_manager.load_all_font_maps()
                 if hasattr(self.mw, 'string_settings_updater'):
@@ -941,6 +945,8 @@ class ProjectActionHandler(BaseHandler):
 
             # 3. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
             self.mw.project_manager.load_settings_from_project(self.mw)
+            if hasattr(self.mw, 'ui_handler'):
+                self.mw.ui_handler.update_editor_rules_properties()
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.load_all_font_maps()
             if hasattr(self.mw, 'string_settings_updater'):

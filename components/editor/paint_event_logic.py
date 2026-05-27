@@ -111,22 +111,11 @@ class LNETPaintEventLogic:
 
             # Draw dynamic line width guidelines if enabled
             if draw_guidelines and layout.lineCount() > 0:
-                text_raw = convert_dots_to_spaces_from_editor(block.text()).rstrip()
-                width_px = calculate_string_width(text_raw, font_map, icon_sequences=sequences)
-                
-                # Calculate limit_x based on character proportions
-                first_line = layout.lineAt(0)
-                text_w = first_line.naturalTextWidth()
-                if width_px > 0:
-                    limit_x = left_margin + text_w * (limit_px / width_px)
-                else:
-                    # Fallback for empty strings
-                    fm = self.editor.fontMetrics()
-                    char_w = fm.horizontalAdvance('A')
-                    limit_x = left_margin + limit_px * (char_w / 7.5)
-                
-                # Determine pen styling
-                if width_px > limit_px:
+                block_text_raw = convert_dots_to_spaces_from_editor(block.text())
+                block_width_px = calculate_string_width(block_text_raw.rstrip(), font_map, icon_sequences=sequences)
+
+                # Determine pen styling based on the whole block's width
+                if block_width_px > limit_px:
                     pen_guide = QPen(QColor(255, 0, 0, 180))
                     pen_guide.setWidth(2)
                     pen_guide.setStyle(Qt.SolidLine)
@@ -137,15 +126,76 @@ class LNETPaintEventLogic:
                     pen_guide.setColor(color)
                     pen_guide.setWidth(self.editor.width_threshold_line_width)
                     pen_guide.setStyle(self.editor.width_threshold_line_style)
-                
-                # Draw vertical tick for each line segment of the block
+
+                # Draw vertical tick for each visual line of the block individually
                 for i in range(layout.lineCount()):
                     line = layout.lineAt(i)
-                    if line.isValid():
-                        y_top = block_rect.top() + line.rect().top()
-                        y_bottom = block_rect.top() + line.rect().bottom()
-                        painter_lines.setPen(pen_guide)
-                        painter_lines.drawLine(int(limit_x), int(y_top), int(limit_x), int(y_bottom))
+                    if not line.isValid():
+                        continue
+
+                    block_num = block.blockNumber()
+                    limit_x = getattr(self.editor, 'guideline_positions', {}).get((block_num, i))
+                    if limit_x is None:
+                        # Fallback: calculate on-the-fly and save if not yet cached
+                        from PyQt5.QtGui import QTextCursor
+                        cursor = QTextCursor(self.editor.document())
+                        
+                        line_start = line.textStart()
+                        line_len = line.textLength()
+                        line_text = block_text_raw[line_start:line_start + line_len]
+                        line_text_stripped = line_text.rstrip()
+
+                        cursor.setPosition(block.position() + line_start)
+                        x_start = self.editor.cursorRect(cursor).left()
+
+                        line_game_width = calculate_string_width(line_text_stripped, font_map, icon_sequences=sequences)
+
+                        if line_game_width > 0:
+                            if line_game_width < limit_px:
+                                cursor.setPosition(block.position() + line_start + len(line_text_stripped))
+                                x_end = self.editor.cursorRect(cursor).left()
+                                viewport_text_w = x_end - x_start
+                                limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
+                            else:
+                                found = False
+                                for k in range(1, len(line_text_stripped) + 1):
+                                    prefix = line_text_stripped[:k]
+                                    prefix_w = calculate_string_width(prefix, font_map, icon_sequences=sequences)
+                                    if prefix_w >= limit_px:
+                                        prev_prefix = line_text_stripped[:k-1]
+                                        prev_w = calculate_string_width(prev_prefix, font_map, icon_sequences=sequences)
+                                        
+                                        cursor.setPosition(block.position() + line_start + k - 1)
+                                        x_prev = self.editor.cursorRect(cursor).left()
+                                        
+                                        cursor.setPosition(block.position() + line_start + k)
+                                        x_curr = self.editor.cursorRect(cursor).left()
+                                        
+                                        if prefix_w > prev_w:
+                                            fraction = (limit_px - prev_w) / (prefix_w - prev_w)
+                                        else:
+                                            fraction = 0
+                                        limit_x = x_prev + fraction * (x_curr - x_prev)
+                                        found = True
+                                        break
+                                if not found:
+                                    cursor.setPosition(block.position() + line_start + len(line_text_stripped))
+                                    x_end = self.editor.cursorRect(cursor).left()
+                                    viewport_text_w = x_end - x_start
+                                    limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
+                        else:
+                            fm = self.editor.fontMetrics()
+                            char_w = fm.horizontalAdvance('A')
+                            limit_x = x_start + limit_px * (char_w / 7.5)
+
+                        if not hasattr(self.editor, 'guideline_positions'):
+                            self.editor.guideline_positions = {}
+                        self.editor.guideline_positions[(block_num, i)] = limit_x
+
+                    y_top = block_rect.top() + line.rect().top()
+                    y_bottom = block_rect.top() + line.rect().bottom()
+                    painter_lines.setPen(pen_guide)
+                    painter_lines.drawLine(int(limit_x), int(y_top), int(limit_x), int(y_bottom))
 
             if block_rect.bottom() > self.editor.viewport().height():
                 break
