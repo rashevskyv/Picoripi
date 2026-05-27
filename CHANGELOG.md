@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.119] - 2026-05-27
+
+### Changed
+- **Release Stability Update**: Bumped version to `v0.2.119` to synchronize release tags and integrate comprehensive codebase auditing, updated documentation across files (`README.md`, `GEMINI.md`), and refreshed codebase audit markers in `AUDIT.md`.
+
 ## [0.2.118] - 2026-05-27
 
 ### Fixed
