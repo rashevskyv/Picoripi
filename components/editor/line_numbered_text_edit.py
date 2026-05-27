@@ -61,17 +61,18 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.editor_player_tag = EDITOR_PLAYER_TAG_CONST
         self.original_player_tag = ORIGINAL_PLAYER_TAG_CONST
         self.font_map = {}
-        self.game_dialog_max_width_pixels = DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS
-        self.line_width_warning_threshold_pixels = DEFAULT_LINE_WIDTH_WARNING_THRESHOLD
-        self.show_width_guideline = True
+        self._game_dialog_max_width_pixels = DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS
+        self._line_width_warning_threshold_pixels = DEFAULT_LINE_WIDTH_WARNING_THRESHOLD
+        self._show_width_guideline = True
+        self.guideline_positions = {}
 
         if parent and isinstance(parent, QMainWindow):
             self.editor_player_tag = getattr(parent, 'EDITOR_PLAYER_TAG', EDITOR_PLAYER_TAG_CONST)
             self.original_player_tag = getattr(parent, 'ORIGINAL_PLAYER_TAG', ORIGINAL_PLAYER_TAG_CONST)
             self.font_map = getattr(parent, 'font_map', {})
-            self.game_dialog_max_width_pixels = getattr(parent, 'game_dialog_max_width_pixels', DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS)
-            self.line_width_warning_threshold_pixels = getattr(parent, 'line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
-            self.show_width_guideline = getattr(parent, 'show_width_guideline', True)
+            self._game_dialog_max_width_pixels = getattr(parent, 'game_dialog_max_width_pixels', DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS)
+            self._line_width_warning_threshold_pixels = getattr(parent, 'line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
+            self._show_width_guideline = getattr(parent, 'show_width_guideline', True)
             self.character_limit_line_position = getattr(parent, 'editor_char_limit_line_pos', CHARACTER_LIMIT_LINE_POSITION)
 
         self.lineNumberArea = LineNumberArea(self)
@@ -226,6 +227,102 @@ class LineNumberedTextEdit(QPlainTextEdit):
             highlighter = self.highlighter
             if getattr(highlighter, '_glossary_enabled', False):
                 highlighter.rehighlight()
+        # Defer guideline recalculation so Qt has time to finalize block layouts.
+        # Without this, QTextBlock.layout().lineAt() returns invalid lines immediately
+        # after setPlainText, producing empty guideline_positions.
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, self.recalculate_guidelines)
+
+    def recalculate_guidelines(self) -> None:
+        self.guideline_positions = {}
+        if not self.show_width_guideline or self.line_width_warning_threshold_pixels <= 0:
+            return
+
+        from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
+        from PyQt5.QtGui import QTextCursor
+        
+        main_window = self.window()
+        font_map = getattr(self, 'font_map', {})
+        if not font_map and hasattr(main_window, 'font_map'):
+            font_map = main_window.font_map
+            
+        if hasattr(main_window, 'data_store') and hasattr(main_window, 'helper'):
+            block_idx = main_window.data_store.current_block_idx
+            string_idx = main_window.data_store.current_string_idx
+            if block_idx != -1 and string_idx != -1:
+                font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)
+                
+        sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
+        limit_px = self.line_width_warning_threshold_pixels
+        
+        block = self.firstVisibleBlock()
+        cursor = QTextCursor(self.document())
+        
+        while block.isValid():
+            layout = block.layout()
+            if layout:
+                block_text_raw = convert_dots_to_spaces_from_editor(block.text())
+                block_num = block.blockNumber()
+                
+                for i in range(layout.lineCount()):
+                    line = layout.lineAt(i)
+                    if not line.isValid():
+                        continue
+                        
+                    line_start = line.textStart()
+                    line_len = line.textLength()
+                    line_text = block_text_raw[line_start:line_start + line_len]
+                    line_text_stripped = line_text.rstrip()
+                    
+                    cursor.setPosition(block.position() + line_start)
+                    x_start = self.cursorRect(cursor).left()
+                    
+                    line_game_width = calculate_string_width(line_text_stripped, font_map, icon_sequences=sequences)
+                    
+                    if line_game_width > 0:
+                        if line_game_width < limit_px:
+                            # Y < X: відступаємо на X - Y ігрових пікселів вправо від останнього символу
+                            cursor.setPosition(block.position() + line_start + len(line_text_stripped))
+                            x_end = self.cursorRect(cursor).left()
+                            viewport_text_w = x_end - x_start
+                            
+                            limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
+                        else:
+                            # Y >= X: заморожуємо на X ігрових пікселях від початку
+                            found = False
+                            for k in range(1, len(line_text_stripped) + 1):
+                                prefix = line_text_stripped[:k]
+                                prefix_w = calculate_string_width(prefix, font_map, icon_sequences=sequences)
+                                if prefix_w >= limit_px:
+                                    prev_prefix = line_text_stripped[:k-1]
+                                    prev_w = calculate_string_width(prev_prefix, font_map, icon_sequences=sequences)
+                                    
+                                    cursor.setPosition(block.position() + line_start + k - 1)
+                                    x_prev = self.cursorRect(cursor).left()
+                                    
+                                    cursor.setPosition(block.position() + line_start + k)
+                                    x_curr = self.cursorRect(cursor).left()
+                                    
+                                    if prefix_w > prev_w:
+                                        fraction = (limit_px - prev_w) / (prefix_w - prev_w)
+                                    else:
+                                        fraction = 0
+                                    limit_x = x_prev + fraction * (x_curr - x_prev)
+                                    found = True
+                                    break
+                            if not found:
+                                cursor.setPosition(block.position() + line_start + len(line_text_stripped))
+                                x_end = self.cursorRect(cursor).left()
+                                viewport_text_w = x_end - x_start
+                                limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
+                    else:
+                        fm = self.fontMetrics()
+                        char_w = fm.horizontalAdvance('A')
+                        limit_x = x_start + limit_px * (char_w / 7.5)
+                        
+                    self.guideline_positions[(block_num, i)] = limit_x
+            block = block.next()
+        self.viewport().update()
 
     def reset_selection_state(self):
         """Explicitly reset all selection tracking and visual highlights."""
@@ -548,3 +645,35 @@ class LineNumberedTextEdit(QPlainTextEdit):
             width = dialog.get_width()
             main_window.string_settings_handler.apply_width_to_lines(selected_lines, width)
 
+    @property
+    def game_dialog_max_width_pixels(self):
+        main_window = self.window()
+        if main_window is not self and isinstance(main_window, QMainWindow) and hasattr(main_window, 'game_dialog_max_width_pixels'):
+            return main_window.game_dialog_max_width_pixels
+        return getattr(self, '_game_dialog_max_width_pixels', DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS)
+
+    @game_dialog_max_width_pixels.setter
+    def game_dialog_max_width_pixels(self, val):
+        self._game_dialog_max_width_pixels = val
+
+    @property
+    def line_width_warning_threshold_pixels(self):
+        main_window = self.window()
+        if main_window is not self and isinstance(main_window, QMainWindow) and hasattr(main_window, 'line_width_warning_threshold_pixels'):
+            return main_window.line_width_warning_threshold_pixels
+        return getattr(self, '_line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
+
+    @line_width_warning_threshold_pixels.setter
+    def line_width_warning_threshold_pixels(self, val):
+        self._line_width_warning_threshold_pixels = val
+
+    @property
+    def show_width_guideline(self):
+        main_window = self.window()
+        if main_window is not self and isinstance(main_window, QMainWindow) and hasattr(main_window, 'show_width_guideline'):
+            return main_window.show_width_guideline
+        return getattr(self, '_show_width_guideline', True)
+
+    @show_width_guideline.setter
+    def show_width_guideline(self, val):
+        self._show_width_guideline = val

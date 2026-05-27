@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.118] - 2026-05-27
+
+### Fixed
+- **Guideline Width Limit Synchronization**: Fixed a critical bug where the vertical width guideline in translation editors used the default threshold value (280px) instead of the project-configured value (e.g. 460px). The root cause was that `line_width_warning_threshold_pixels`, `game_dialog_max_width_pixels`, and `show_width_guideline` were set as plain instance variables at widget construction time and never updated when a project was opened or switched. These three properties are now implemented as dynamic Python `property` descriptors in `LineNumberedTextEdit`, which always forward reads directly to the active `MainWindow` instance at call time, guaranteeing the editor always sees the correct project-level limit without any manual synchronization.
+- **Guideline Calculated Immediately on String Selection**: Fixed a bug where width guideline lines were only drawn after the user started typing in a string. Previously `recalculate_guidelines()` was called synchronously inside `setPlainText()`, but Qt had not yet finalized the block text layout at that point, so all `layout.lineAt(i).isValid()` calls returned `False` and `guideline_positions` remained empty. The call is now deferred via `QTimer.singleShot(0, self.recalculate_guidelines)`, which schedules the recalculation for after Qt completes the layout pass — ensuring guidelines appear immediately when a string is loaded into the editor.
+- **Guideline Repaint After Recalculation**: `recalculate_guidelines()` now calls `self.viewport().update()` at the end to force an immediate visual repaint of the editor, ensuring the newly computed guideline positions are drawn without requiring any additional user interaction.
+- **Editor Rules Sync on Project Open/Switch**: Added `update_editor_rules_properties()` calls in `ProjectActionHandler` for all three project lifecycle events — `open_project_action`, `_open_recent_project`, and `create_new_project_action` — ensuring all three editors immediately receive the correct project-specific limits right after a project's settings are loaded from metadata.
+
 ## [0.2.117] - 2026-05-25
 
 ### Fixed
