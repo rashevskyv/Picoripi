@@ -169,13 +169,39 @@ class LayoutBuilder:
         
         middle_layout.addSpacing(92)
         
+        from PyQt5.QtGui import QPixmap, QPainter, QColor, QFont, QIcon
+        
+        # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
+        pixmap_s = QPixmap(32, 32)
+        pixmap_s.fill(Qt.transparent)
+        painter_s = QPainter(pixmap_s)
+        painter_s.setRenderHint(QPainter.Antialiasing, True)
+        painter_s.setPen(QColor("#0078d7")) # Classic Microsoft Blue
+        font_s = QFont("Arial", 22, QFont.Bold)
+        painter_s.setFont(font_s)
+        painter_s.drawText(pixmap_s.rect(), Qt.AlignCenter, "S")
+        painter_s.end()
+        story_icon = QIcon(pixmap_s)
+        
         self.mw.revert_string_button = QPushButton()
         self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowForward))
         self.mw.revert_string_button.setToolTip("Revert current string to original file content")
         self.mw.revert_string_button.setFixedWidth(30)
+        self.mw.revert_string_button.setCursor(Qt.PointingHandCursor)
         self.mw.revert_string_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
         
         middle_layout.addWidget(self.mw.revert_string_button, 0, Qt.AlignCenter)
+        
+        middle_layout.addSpacing(6)
+        
+        self.mw.inspect_story_context_button = QPushButton()
+        self.mw.inspect_story_context_button.setIcon(story_icon)
+        self.mw.inspect_story_context_button.setToolTip('Show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I)')
+        self.mw.inspect_story_context_button.setFixedWidth(30)
+        self.mw.inspect_story_context_button.setCursor(Qt.PointingHandCursor)
+        self.mw.inspect_story_context_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
+        
+        middle_layout.addWidget(self.mw.inspect_story_context_button, 0, Qt.AlignCenter)
         middle_layout.addStretch(1)
         
         middle_panel.setFixedWidth(34)
@@ -214,12 +240,6 @@ class LayoutBuilder:
         self.mw.auto_fix_button = QPushButton('Auto-fix')
         self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A)")
         editable_text_header_layout.addWidget(self.mw.auto_fix_button)
-
-        from PyQt5.QtGui import QIcon
-        self.mw.help_button = QPushButton()
-        self.mw.help_button.setIcon(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.SP_DialogHelpButton)))
-        self.mw.help_button.setToolTip("View Shortcuts & Help (F1)")
-        editable_text_header_layout.addWidget(self.mw.help_button)
         
         right_header_layout.addLayout(editable_text_header_layout)
 
@@ -228,6 +248,12 @@ class LayoutBuilder:
         string_settings_layout = QHBoxLayout(string_settings_panel)
         string_settings_layout.setContentsMargins(0, 5, 0, 5)
 
+        self.mw.speaker_label = QLabel("")
+        self.mw.speaker_label.setStyleSheet("font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px;")
+        self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
+        string_settings_layout.addWidget(self.mw.speaker_label)
+
+        string_settings_layout.addStretch(1)
         string_settings_layout.addWidget(QLabel("Font:"))
         self.mw.font_combobox = QComboBox()
         string_settings_layout.addWidget(self.mw.font_combobox)
@@ -251,7 +277,6 @@ class LayoutBuilder:
         self.mw.apply_width_button = QPushButton("Apply")
         self.mw.apply_width_button.setEnabled(False)
         string_settings_layout.addWidget(self.mw.apply_width_button)
-        string_settings_layout.addStretch(1)
         right_header_layout.addWidget(string_settings_panel)
         bottom_right_layout.addWidget(self.mw.right_header_container)
 

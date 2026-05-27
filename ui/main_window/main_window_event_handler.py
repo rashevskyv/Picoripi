@@ -21,6 +21,12 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
         if hasattr(self.mw, 'bfn_editor_action') and self.mw.bfn_editor_action:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)
+        if hasattr(self.mw, 'mempalace_builder_action') and self.mw.mempalace_builder_action:
+            self.mw.mempalace_builder_action.triggered.connect(self.mw.actions.open_mempalace_builder)
+        if hasattr(self.mw, 'inspect_story_context_action') and self.mw.inspect_story_context_action:
+            self.mw.inspect_story_context_action.triggered.connect(self.mw.actions.inspect_story_context)
+        if hasattr(self.mw, 'mempalace_viewer_action') and self.mw.mempalace_viewer_action:
+            self.mw.mempalace_viewer_action.triggered.connect(self.mw.actions.open_mempalace_viewer)
         if hasattr(self.mw, 'export_bmg_json_action') and self.mw.export_bmg_json_action:
             self.mw.export_bmg_json_action.triggered.connect(self.mw.actions.export_current_bmg_to_json)
         if hasattr(self.mw, 'import_bmg_json_action') and self.mw.import_bmg_json_action:
@@ -88,9 +94,6 @@ class MainWindowEventHandler:
             self.mw.next_folder_nav_action.triggered.connect(lambda: self.mw.list_selection_handler.navigate_between_folders(True))
         if hasattr(self.mw, 'prev_folder_nav_action'):
             self.mw.prev_folder_nav_action.triggered.connect(lambda: self.mw.list_selection_handler.navigate_between_folders(False))
-            
-        if hasattr(self.mw, 'help_button'):
-            self.mw.help_button.clicked.connect(self.mw.actions.show_shortcuts_help)
 
         # File actions
         if hasattr(self.mw, 'save_action'):
@@ -141,6 +144,9 @@ class MainWindowEventHandler:
         
         if hasattr(self.mw, 'revert_string_button'):
             self.mw.revert_string_button.clicked.connect(lambda: self.mw.data_processor.perform_revert_strings(self.mw.data_store.current_block_idx, [self.mw.data_store.current_string_idx]) if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1 else None)
+        
+        if hasattr(self.mw, 'inspect_story_context_button') and self.mw.inspect_story_context_button:
+            self.mw.inspect_story_context_button.clicked.connect(self.mw.actions.inspect_story_context)
         
         
         if hasattr(self.mw, 'font_combobox'):

@@ -200,6 +200,69 @@ class MenuBuilder:
         self.mw.bfn_editor_action.setToolTip('Open the BFN Font Editor (Nintendo binary font)')
         tools_menu.addAction(self.mw.bfn_editor_action)
 
+        # Create a dynamic beautiful icon for MemePalace Context Builder with letter 'M'
+        pixmap_m = QPixmap(32, 32)
+        pixmap_m.fill(Qt.transparent)
+        painter_m = QPainter(pixmap_m)
+        painter_m.setRenderHint(QPainter.Antialiasing, True)
+        painter_m.setPen(QColor("#e81123")) # Stylish accent red/orange
+        font_m = QFont("Arial", 22, QFont.Bold)
+        painter_m.setFont(font_m)
+        painter_m.drawText(pixmap_m.rect(), Qt.AlignCenter, "M")
+        painter_m.end()
+        mempalace_icon = QIcon(pixmap_m)
+
+        self.mw.mempalace_builder_action = QAction(
+            mempalace_icon,
+            'Meme&Palace Context Builder...',
+            self.mw
+        )
+        self.mw.mempalace_builder_action.setToolTip('Weave chronological context walkthrough into your project memory (Ctrl+M)')
+        self.mw.mempalace_builder_action.setShortcut('Ctrl+M')
+        tools_menu.addAction(self.mw.mempalace_builder_action)
+
+        # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
+        pixmap_s = QPixmap(32, 32)
+        pixmap_s.fill(Qt.transparent)
+        painter_s = QPainter(pixmap_s)
+        painter_s.setRenderHint(QPainter.Antialiasing, True)
+        painter_s.setPen(QColor("#0078d7")) # Classic Microsoft Blue
+        font_s = QFont("Arial", 22, QFont.Bold)
+        painter_s.setFont(font_s)
+        painter_s.drawText(pixmap_s.rect(), Qt.AlignCenter, "S")
+        painter_s.end()
+        story_icon = QIcon(pixmap_s)
+
+        self.mw.inspect_story_context_action = QAction(
+            story_icon,
+            'Inspect &Story Context...',
+            self.mw
+        )
+        self.mw.inspect_story_context_action.setToolTip('Show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I)')
+        self.mw.inspect_story_context_action.setShortcut('Ctrl+I')
+        tools_menu.addAction(self.mw.inspect_story_context_action)
+
+        # Create a dynamic beautiful icon for MemePalace Database Viewer with letter 'V'
+        pixmap_v = QPixmap(32, 32)
+        pixmap_v.fill(Qt.transparent)
+        painter_v = QPainter(pixmap_v)
+        painter_v.setRenderHint(QPainter.Antialiasing, True)
+        painter_v.setPen(QColor("#107c41")) # Accent Green
+        font_v = QFont("Arial", 22, QFont.Bold)
+        painter_v.setFont(font_v)
+        painter_v.drawText(pixmap_v.rect(), Qt.AlignCenter, "V")
+        painter_v.end()
+        viewer_icon = QIcon(pixmap_v)
+
+        self.mw.mempalace_viewer_action = QAction(
+            viewer_icon,
+            'MemePalace Database &Viewer...',
+            self.mw
+        )
+        self.mw.mempalace_viewer_action.setToolTip('Examine and browse full rooms, visual contexts and character graph relations in local database (Ctrl+Shift+I)')
+        self.mw.mempalace_viewer_action.setShortcut('Ctrl+Shift+I')
+        tools_menu.addAction(self.mw.mempalace_viewer_action)
+
         tools_menu.addSeparator()
 
         self.mw.export_bmg_json_action = QAction(
