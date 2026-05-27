@@ -380,6 +380,103 @@ class MainWindowActions:
     # BFN Font Editor integration
     # ------------------------------------------------------------------
 
+    def open_mempalace_builder(self):
+        """Open the MemePalace Context Builder dialog."""
+        from ui.mempalace_builder_dialog import MemePalaceBuilderDialog
+        dialog = MemePalaceBuilderDialog(self.mw)
+        dialog.exec_()
+
+    def open_mempalace_viewer(self):
+        """Open the MemePalace Database Viewer dialog."""
+        if hasattr(self.mw, 'mempalace_viewer_dialog') and self.mw.mempalace_viewer_dialog:
+            self.mw.mempalace_viewer_dialog.show()
+            self.mw.mempalace_viewer_dialog.raise_()
+            self.mw.mempalace_viewer_dialog.activateWindow()
+            return
+
+        from ui.mempalace_viewer_dialog import MemePalaceViewerDialog
+        dialog = MemePalaceViewerDialog(self.mw)
+        self.mw.mempalace_viewer_dialog = dialog
+        dialog.show()
+
+    def inspect_story_context(self):
+        """Query and display visual context/timeline for the selected row from MemePalace without translating."""
+        import os
+        from PyQt5.QtWidgets import QMessageBox
+        
+        # 1. Verify that a project is loaded and a row is selected
+        ds = getattr(self.mw, 'data_store', None)
+        if not ds or ds.current_block_idx == -1 or ds.current_string_idx == -1:
+            QMessageBox.warning(self.mw, "Story Inspector", "Please select a dialogue row to inspect.")
+            return
+
+        # 2. Get the current original text and IDs
+        block_idx = ds.current_block_idx
+        s_idx = ds.current_string_idx
+        text, _ = self.mw.data_processor.get_current_string_text(block_idx, s_idx)
+        if not text:
+            QMessageBox.warning(self.mw, "Story Inspector", "Selected row is empty.")
+            return
+
+        # 3. Retrieve context via AIPromptComposer
+        composer = None
+        if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+            composer = getattr(self.mw.translation_handler, 'prompt_composer', None)
+            
+        if not composer:
+            # Fallback to create composer if not present
+            from handlers.translation.ai_prompt_composer import AIPromptComposer
+            class DummyHandler:
+                def __init__(self, mw):
+                    self.mw = mw
+                    self.data_processor = mw.data_processor
+                    self.ui_updater = mw.ui_updater
+                    self._glossary_manager = getattr(mw, '_glossary_manager', None)
+            composer = AIPromptComposer(DummyHandler(self.mw))
+            
+        story_context = composer._fetch_story_context(block_idx, s_idx, text)
+
+        # 4. Display result
+        if story_context:
+            # Beautiful HTML-formatted dialogue box
+            formatted_text = story_context.replace("\n", "<br>")
+            
+            QMessageBox.information(
+                self.mw, 
+                "Story Context Inspector",
+                f"<h3>Story Context for Row #{s_idx + 1}</h3>"
+                f"<hr>"
+                f"<div style='font-family: Arial, sans-serif; font-size: 13px; line-height: 1.4; color: #333333;'>"
+                f"{formatted_text}"
+                f"</div>"
+            )
+        else:
+            # Gather debug variables
+            client = composer._get_mempalace_client()
+            db_path = client.db_path if client else "None"
+            wing_name = composer._get_wing_name()
+            block_label = composer._get_block_label(block_idx)
+            bmg_id = f"{block_label}_Str_{s_idx}"
+            
+            debug_info = (
+                f"<b>[DEBUG INFO]</b><br>"
+                f"• Client DB Path: <code>{db_path}</code><br>"
+                f"• Wing Name: <code>{wing_name}</code><br>"
+                f"• Block Label: <code>{block_label}</code><br>"
+                f"• BMG ID Searched: <code>{bmg_id}</code><br>"
+                f"• SQLite File Exists: <code>{os.path.exists(db_path) if db_path != 'None' else 'False'}</code>"
+            )
+            
+            QMessageBox.information(
+                self.mw,
+                "Story Context Inspector",
+                f"<h3>No Context Found</h3>"
+                f"<hr>"
+                f"No mapped story scene or timeline context was found for this row in your local database.<br><br>"
+                f"{debug_info}<br><br>"
+                f"Please ensure you selected the correct file/block and active game plugin!"
+            )
+
     def open_bfn_editor_standalone(self):
         """Open BFN Font Editor as a standalone window (no archive binding)."""
         from tools.bfn_editor import BfnEditorWindow

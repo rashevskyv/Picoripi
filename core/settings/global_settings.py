@@ -75,7 +75,14 @@ class GlobalSettings:
             "preview_glow_alpha": 180,
             "preview_glow_spread": 4,
             "preview_fix_font_scale": False,
-            "preview_fixed_font_scale": 1.0
+            "preview_fixed_font_scale": 1.0,
+            "mempalace_file_path": "",
+            "mempalace_wing_name": "",
+            "mempalace_mapping_scope": 0,
+            "mempalace_mapping_only": False,
+            "mempalace_selected_blocks": [],
+            "mempalace_builder_width": 650,
+            "mempalace_builder_height": 500
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -207,7 +214,14 @@ class GlobalSettings:
             "preview_glow_alpha": getattr(self.mw, 'preview_glow_alpha', 180),
             "preview_glow_spread": getattr(self.mw, 'preview_glow_spread', 4),
             "preview_fix_font_scale": getattr(self.mw, 'preview_fix_font_scale', False),
-            "preview_fixed_font_scale": getattr(self.mw, 'preview_fixed_font_scale', 1.0)
+            "preview_fixed_font_scale": getattr(self.mw, 'preview_fixed_font_scale', 1.0),
+            "mempalace_file_path": settings_dict.get("mempalace_file_path", ""),
+            "mempalace_wing_name": settings_dict.get("mempalace_wing_name", ""),
+            "mempalace_mapping_scope": settings_dict.get("mempalace_mapping_scope", 0),
+            "mempalace_mapping_only": settings_dict.get("mempalace_mapping_only", False),
+            "mempalace_selected_blocks": settings_dict.get("mempalace_selected_blocks", []),
+            "mempalace_builder_width": settings_dict.get("mempalace_builder_width", 650),
+            "mempalace_builder_height": settings_dict.get("mempalace_builder_height", 500)
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

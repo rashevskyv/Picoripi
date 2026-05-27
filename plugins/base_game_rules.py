@@ -204,3 +204,81 @@ class BaseGameRules:
     def get_font_for_block(self, block_idx: int) -> Optional[Dict[str, str]]:
         """Returns a dict with 'original_font_name' and 'font_name' if block has specific font overrides."""
         return None
+
+    def parse_walkthrough_transcript(self, file_path: str) -> List[Dict[str, Any]]:
+        """
+        Parse game-specific walkthrough transcript text file into structured rooms and dialogue cues.
+        Plugins should override this to handle custom separators, chapters, acts, speakers, etc.
+        """
+        import os
+        import json
+        import re
+        from utils.logging_utils import log_info, log_warning
+        
+        transcript_list = []
+        if not file_path or not os.path.exists(file_path):
+            return transcript_list
+            
+        try:
+            if file_path.lower().endswith(".json"):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        transcript_list = data
+                    elif isinstance(data, dict) and "lines" in data:
+                        transcript_list = data["lines"]
+            else:
+                # Highly advanced text parser for GameFAQ scripts
+                # Supports Act/Chapter detection, speaker blocks, and action descriptions in brackets [...]
+                with open(file_path, "r", encoding="cp1252", errors="replace") as f:
+                    lines = f.readlines()
+                
+                current_chapter = "Foreword"
+                last_speaker = "Dialogue/Narrator"
+                last_brackets = ""
+
+                for idx, line in enumerate(lines):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    # 1. Detect Wave separators (e.g. ~~~~~~~~~~~~~~~~~~~~~~~~) to split micro-scenes
+                    if line.startswith("~") or (len(line) > 5 and all(c == '~' for c in line)):
+                        last_brackets = ""
+                        continue
+                    
+                    # 2. Detect Chapter / Act changes to split into Rooms
+                    chapter_match = re.search(r'(Chapter\s+[IVXLCDM\d]+|ACT\s+[A-Z]+|Act\s+[A-Za-z]+)', line)
+                    if chapter_match:
+                        # Clean chapter name to be clean room name
+                        clean_ch = re.sub(r'[^a-zA-Z0-9_\s]', '', line).strip()
+                        clean_ch = "_".join(clean_ch.split())
+                        if len(clean_ch) > 3:
+                            current_chapter = clean_ch
+                        last_brackets = "" # Reset micro-scene boundary on new chapter
+                        continue
+
+                    # 3. Detect action descriptions in brackets [...]
+                    if line.startswith("[") and line.endswith("]"):
+                        last_brackets = line[1:-1].strip()
+                        continue
+
+                    # 4. Detect Speaker (Uppercase words on a separate line, e.g. "MIDNA" or "PRINCESS ZELDA")
+                    if line.isupper() and len(line) >= 2 and not line.startswith("ACT") and not line.startswith("CHAPTER") and not line.startswith("VERSION"):
+                        last_speaker = line
+                        continue
+
+                    # 5. Dialogue lines
+                    text = line
+                    context_note = f"Action: {last_brackets}" if last_brackets else ""
+                    
+                    transcript_list.append({
+                        "text": text,
+                        "speaker": last_speaker,
+                        "timestamp": context_note or f"Scene_{idx}",
+                        "room": current_chapter
+                    })
+        except Exception as e:
+            log_warning(f"BaseGameRules: Failed to parse transcript: {e}")
+            
+        return transcript_list

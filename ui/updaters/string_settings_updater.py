@@ -39,10 +39,72 @@ class StringSettingsUpdater(BaseUIUpdater):
             self.mw.width_spinbox.setValue(0)
             self.mw.width_spinbox.setStyleSheet("")
             self.mw.font_combobox.setStyleSheet("")
+            if hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
+                self.mw.speaker_label.setText("")
             return
 
         self.mw.font_combobox.setEnabled(True)
         self.mw.width_spinbox.setEnabled(True)
+
+        # Update Speaker Label instantly from MemePalace cache
+        if hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
+            speaker_text = ""
+            import os
+            
+            block_label = ""
+            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and \
+               self.mw.project_manager.project and block_idx < len(self.mw.project_manager.project.blocks):
+                block_label = self.mw.project_manager.project.blocks[block_idx].name
+            else:
+                name_key = str(block_idx)
+                if hasattr(self.mw, 'data_store') and self.mw.data_store and \
+                   self.mw.data_store.block_names and name_key in self.mw.data_store.block_names:
+                    b_desc = self.mw.data_store.block_names[name_key]
+                    if "Message ID" in b_desc:
+                        block_label = b_desc.partition("(")[0].strip()
+                
+                if not block_label and hasattr(self.mw, 'data_store') and self.mw.data_store:
+                    json_path = getattr(self.mw.data_store, "json_path", None)
+                    if json_path and isinstance(json_path, (str, bytes)):
+                        block_label = os.path.splitext(os.path.basename(json_path))[0]
+                        
+                if not block_label:
+                    block_label = f"Block_{block_idx}"
+            
+            bmg_id = f"{block_label}_Str_{string_idx}"
+            
+            raw_text = ""
+            if hasattr(self.mw, 'data_processor') and self.mw.data_processor:
+                raw_text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+            
+            composer = None
+            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                composer = getattr(self.mw.translation_handler, 'prompt_composer', None)
+                
+            client = None
+            if composer and hasattr(composer, '_get_mempalace_client'):
+                client = composer._get_mempalace_client()
+            else:
+                try:
+                    from core.mempalace_client import MemePalaceClient
+                    project_dir = None
+                    if hasattr(self.mw, "project_manager") and self.mw.project_manager:
+                        project_dir = getattr(self.mw.project_manager, "project_dir", None)
+                    if not project_dir and hasattr(self.mw, "data_store") and self.mw.data_store:
+                        project_file = getattr(self.mw.data_store, "project_file", None)
+                        if project_file and isinstance(project_file, (str, bytes)):
+                            project_dir = os.path.dirname(project_file)
+                    if project_dir and isinstance(project_dir, (str, bytes)):
+                        client = MemePalaceClient(project_dir=project_dir)
+                except Exception:
+                    pass
+                
+            if client:
+                cached_ctx = client.get_cached_context(bmg_id, raw_text)
+                if cached_ctx and cached_ctx.get("speaker"):
+                    speaker_text = f"Speaker: {cached_ctx.get('speaker')}"
+            
+            self.mw.speaker_label.setText(speaker_text)
 
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})
