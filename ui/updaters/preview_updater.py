@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QTextCursor
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, remove_all_tags, calculate_strict_string_width
 from core.glossary_manager import GlossaryOccurrence
+from ui.components.bfn_preview_widget import _looks_like_bfn_editor
 from .base_ui_updater import BaseUIUpdater
 
 class PreviewUpdater(BaseUIUpdater):
@@ -575,19 +576,13 @@ class PreviewUpdater(BaseUIUpdater):
             if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
                 self.mw.bfn_preview_widget.hide()
 
-        # Sync text with active BFN Font Editor simulation if it is open
-        if hasattr(self.mw, '_bfn_editor_window') and self.mw._bfn_editor_window is not None:
+        # Sync text with active BFN Font Editor simulation if it is open.
+        # We rely on the structural _looks_like_bfn_editor helper to ignore
+        # bare test mocks without bothering production code with Mock imports.
+        editor = getattr(self.mw, '_bfn_editor_window', None)
+        if _looks_like_bfn_editor(editor):
             try:
-                editor = self.mw._bfn_editor_window
-                is_mock = False
-                try:
-                    from unittest.mock import Mock
-                    if isinstance(editor, Mock):
-                        is_mock = True
-                except ImportError:
-                    pass
-                    
-                if not is_mock and not editor.isHidden():
+                if not editor.isHidden():
                     sync_enabled = True
                     if hasattr(editor, 'chk_sync_sim_text'):
                         sync_enabled = editor.chk_sync_sim_text.isChecked()

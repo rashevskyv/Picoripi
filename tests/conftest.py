@@ -1,6 +1,7 @@
 import pytest
 import gc
 from unittest.mock import MagicMock
+from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QApplication, QWidget
 
 @pytest.fixture(autouse=True)
@@ -39,6 +40,34 @@ def qapp():
         app = QApplication([])
     yield app
 
+def _stop_lingering_qthreads():
+    """Best-effort: stop any still-running QThreads before gc tears them down.
+
+    Letting a running QThread be garbage-collected aborts the process with
+    "QThread: Destroyed while thread is still running". The SpellcheckerManager
+    in particular leaves a background worker thread alive across many tests,
+    which previously caused intermittent worker crashes under pytest-xdist.
+    We walk all live QObjects we can see and ask each running QThread to quit.
+    """
+    # Walk all live QObjects on the heap and find QThreads.
+    threads = [obj for obj in gc.get_objects() if isinstance(obj, QThread)]
+    for thread in threads:
+        try:
+            if not thread.isRunning():
+                continue
+            # Try the manager-provided cooperative shutdown hooks if any object
+            # holds the thread; we don't have a reference to its worker, so we
+            # rely on QThread.quit() + a short wait. Workers that watch
+            # threading.Event or check thread.isInterruptionRequested() will
+            # exit; otherwise we time out and move on.
+            thread.requestInterruption()
+            thread.quit()
+            thread.wait(500)
+        except RuntimeError:
+            # The C++ object may already be gone; that's fine.
+            pass
+
+
 @pytest.fixture(autouse=True)
 def cleanup_qt(qapp):
     """Ensures all top-level widgets are destroyed and memory is collected after each test."""
@@ -47,10 +76,14 @@ def cleanup_qt(qapp):
     for widget in QApplication.topLevelWidgets():
         widget.close()
         widget.deleteLater()
-    
+
     # Process events to let deleteLater work
     QApplication.processEvents()
-    
+
+    # Stop any background QThreads before gc.collect() — destroying a running
+    # QThread aborts the process.
+    _stop_lingering_qthreads()
+
     # Force garbage collection
     gc.collect()
 
@@ -79,7 +112,13 @@ def mock_mw(qapp):
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 240
     mw.current_game_rules = MagicMock()
-    
+
+    # Default to "no BFN editor open" so production code doesn't try to call
+    # methods on a magic-mock and either blow up or produce nonsensical state.
+    # Tests that need an active BFN editor should explicitly assign a real
+    # DummyBfnEditor (see tests/test_ui/test_bfn_preview_widget.py).
+    mw._bfn_editor_window = None
+
     return mw
 
 @pytest.fixture
