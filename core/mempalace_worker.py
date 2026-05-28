@@ -553,17 +553,262 @@ class MemePalaceScriptAnalyzerWorker(QThread):
                  client: MemePalaceClient, 
                  file_path: str, 
                  ai_provider: BaseTranslationProvider, 
-                 wing_name: str = "Zelda_TP"):
+                 wing_name: str = "Zelda_TP",
+                 glossary_manager: Optional[Any] = None,
+                 target_lang: str = "Ukrainian",
+                 plugin_name: Optional[str] = None):
         super().__init__()
         self.client = client
         self.file_path = file_path
         self.ai_provider = ai_provider
         self.wing_name = wing_name
+        self.glossary_manager = glossary_manager
+        self.target_lang = target_lang
+        self.plugin_name = plugin_name
         self.is_cancelled = False
 
     def cancel(self):
         self.is_cancelled = True
         self.log.emit("Script pre-analysis cancellation requested...")
+
+    def _load_plugin_prompts(self) -> dict:
+        """Load prompts.json for active plugin if available."""
+        from pathlib import Path
+        prompts_data = {}
+        if self.plugin_name:
+            prompts_path = Path("plugins") / self.plugin_name / "translation_prompts" / "prompts.json"
+            if not prompts_path.exists():
+                prompts_path = Path("plugins") / "common" / "defaults" / "prompts.json"
+            if not prompts_path.exists():
+                prompts_path = Path("translation_prompts") / "prompts.json"
+            
+            if prompts_path.exists():
+                try:
+                    prompts_data = json.loads(prompts_path.read_text("utf-8"))
+                    self.log.emit(f"MemePalace Worker: Loaded per-plugin prompts config from {prompts_path}")
+                except Exception as e_load:
+                    log_error(f"Failed to load prompts.json for plugin {self.plugin_name}: {e_load}")
+        return prompts_data
+
+    def _get_mining_prompts(self, script_segment: str, prompts_data: dict) -> Tuple[str, str]:
+        """Resolve Mining prompts with per-plugin customizations and fallbacks."""
+        m_section = prompts_data.get("mempalace", {})
+        p_sys = m_section.get("mining_system_prompt")
+        p_usr = m_section.get("mining_user_prompt")
+
+        if p_sys and p_usr:
+            return p_sys.format(target_lang=self.target_lang), p_usr.format(script_segment=script_segment, target_lang=self.target_lang)
+
+        # Fallback built-in prompts
+        if self.target_lang == "Ukrainian":
+            system_prompt = (
+                "Ви — професійний сценарист відеоігор та директор з локалізації. Ваше завдання — проаналізувати список персонажів "
+                "та вступний текст ігрового скрипту, вилучити всіх ключових персонажів, їхні профілі, важливі предмети, "
+                "локації чи термінологію, а також соціальні зв'язки. Ви повинні писати всі детальні описи, атрибути, "
+                "описи стосунків та типи звертання виключно українською мовою."
+            )
+            user_prompt = f"""
+Проаналізуйте наступний вступний фрагмент ігрового скрипту.
+Вилучіть:
+1. Усіх згаданих персонажів з їхнім детальним описом та роллю в сюжеті.
+2. Атрибути персонажів для забезпечення послідовності перекладу українською мовою:
+   - "gender": 'male', 'female' або 'unknown'.
+   - "age_group": 'child', 'adult', 'elder' або 'unknown'.
+   - "relationship_summary": детальний опис того, ким є цей персонаж для інших, виключно українською мовою (наприклад, 'наставник Лінка, чоловік Улі').
+   - "address_type": граматичний статус звертання виключно українською мовою (наприклад, 'звертається до Лінка неформально (на "ти"), до мера звертається шанобливо/формально (на "ви")').
+   - "description": детальний опис характеру та сюжетної ролі виключно українською мовою.
+3. Ключові ігрові/сюжетні предмети, локації або спеціальну термінологію ("objects_and_terms") з чітким описом того, що це таке, виключно українською мовою.
+4. Соціальні зв'язки між персонажами, які визначають стиль їхнього спілкування в українському перекладі:
+   - "addresses_informally" (використовують "ти"): для близьких друзів, рівних за статусом, родини, дітей чи наставників, що звертаються до учнів.
+   - "addresses_respectfully" (шанобливе "ти" або шанобливе "ви").
+   - "addresses_formally" (використовують "ви"): для королівських осіб, високопосадовців, незнайомців або при формальній ієрархії.
+
+ВСТУПНИЙ СЕГМЕНТ СКРИПТУ:
+{script_segment}
+
+У відповідь поверніть ВИКЛЮЧНО валідний об'єкт JSON. Не додавайте блоки markdown чи будь-які інші пояснення.
+Структура JSON:
+{{
+  "characters": [
+    {{
+      "name": "RUSL",
+      "gender": "male",
+      "age_group": "adult",
+      "relationship_summary": "наставник Лінка, чоловік Улі, батько Коліна",
+      "address_type": "звертається до Лінка неформально ('ти'), до мера звертається шанобливо/формально ('ви')",
+      "description": "Хоробрий мечник із селища Ордон, який є наставником Лінка та просить його доставити щит до замку Хайрул."
+    }}
+  ],
+  "objects_and_terms": [
+    {{
+      "name": "Ordon Shield",
+      "description": "Дерев'яний щит з шкіряними елементами, виготовлений Руслем для того, щоб Лінк доставив його до замку Хайрул."
+    }}
+  ],
+  "relations": [
+    {{"source": "RUSL", "relation": "addresses_informally", "target": "LINK", "reason": "mentor speaking to student"}},
+    {{"source": "LINK", "relation": "addresses_respectfully", "target": "RUSL", "reason": "student speaking to mentor"}}
+  ]
+}}
+"""
+        else:
+            system_prompt = (
+                f"You are an expert game narrative architect and localization director. Your task is to analyze a game script's "
+                f"character list and introduction text, and extract all key characters, their character profiles, "
+                f"important gameplay/story objects, locations, or terminology, and social relations. "
+                f"You must write all detailed descriptions, attributes, relationship summaries, and address types strictly in {self.target_lang}."
+            )
+            user_prompt = f"""
+Analyze the following introduction segment of a game script.
+Extract:
+1. All characters mentioned with their detailed description and specific story role.
+2. Character attributes for target language translation consistency (specifically for {self.target_lang} translation):
+   - "gender": 'male', 'female', or 'unknown'.
+   - "age_group": 'child', 'adult', 'elder', or 'unknown'.
+   - "relationship_summary": detailed explanation of who this character is to others strictly in {self.target_lang} (e.g., 'mentor of Link').
+   - "address_type": grammar address status strictly in {self.target_lang} (e.g., 'speaks to Link informally').
+   - "description": detailed context and personality description strictly in {self.target_lang}.
+3. Key gameplay/story objects, items, locations, or special terminology ("objects_and_terms") found in the script with a clear description of what they are, written strictly in {self.target_lang}.
+4. Social relations between characters that dictate how they should speak to each other in {self.target_lang} translation:
+   - "addresses_informally" (meaning they use "ти"): for close friends, equals, family, children, mentors speaking to students.
+   - "addresses_respectfully" (meaning they use respect forms).
+   - "addresses_formally" (meaning they use formal "ви").
+   
+INTRO TEXT SEGMENT:
+{script_segment}
+
+Respond ONLY with a valid JSON object. Do not include markdown blocks or any other explanation.
+JSON structure:
+{{
+  "characters": [
+    {{
+      "name": "RUSL",
+      "gender": "male",
+      "age_group": "adult",
+      "relationship_summary": "mentor of Link, husband of Uli",
+      "address_type": "addresses Link informally, addresses mayor respectfully",
+      "description": "Brave swordsman from Ordon..."
+    }}
+  ],
+  "objects_and_terms": [
+    {{
+      "name": "Ordon Shield",
+      "description": "Wooden shield crafted by Rusl..."
+    }}
+  ],
+  "relations": [
+    {{"source": "RUSL", "relation": "addresses_informally", "target": "LINK", "reason": "mentor speaking to student"}}
+  ]
+}}
+"""
+        return system_prompt, user_prompt
+
+    def _get_synthesis_prompts(self, term_name: str, existing_notes: str, details: str, prompts_data: dict) -> Tuple[str, str]:
+        """Resolve Synthesis prompts with per-plugin customizations and fallbacks."""
+        m_section = prompts_data.get("mempalace", {})
+        s_sys = m_section.get("synthesis_system_prompt")
+        s_usr = m_section.get("synthesis_user_prompt")
+
+        if s_sys and s_usr:
+            return s_sys.format(target_lang=self.target_lang), s_usr.format(
+                term_name=term_name,
+                existing_notes=existing_notes,
+                details=details,
+                target_lang=self.target_lang
+            )
+
+        if self.target_lang == "Ukrainian":
+            synth_system_prompt = (
+                "Ви — професійний лексикограф та перекладач відеоігор. Ваше завдання — об'єднати існуючі нотатки/опис "
+                "терміна у глосарії з новими деталями, знайденими в ігровому скрипті. Ви повинні синтезувати їх "
+                "у один зв'язний, високоякісний, структурований та детальний опис (notes), написаний виключно українською мовою."
+            )
+            synth_user_prompt = f"""
+Синтезуйте наступну інформацію для терміна/персонажа '{term_name}':
+
+Існуючий опис у глосарії (нотатки):
+{existing_notes}
+
+Нові сюжетні деталі зі скрипту:
+{details}
+
+Створіть єдиний, красиво структурований та детальний опис, написаний виключно українською мовою. Уникайте повторень.
+Збережіть увесь попередній контекст, обов'язково переклавши його українською мовою (якщо він був англійською), та гармонійно інтегруйте нову інформацію (стать, вік, стосунки, стилі звертання та роль у грі).
+Не повертайте нічого, крім фінального синтезованого тексту українською мовою. Не загортайте в блоки markdown або JSON. Поверніть лише чистий текст опису.
+"""
+        else:
+            synth_system_prompt = (
+                f"You are an expert game translation lexicographer. Your task is to combine the existing glossary entry notes "
+                f"with new narrative insights extracted from the game script. You must synthesize them into one coherent, premium, well-structured, "
+                f"highly detailed description (notes) written strictly in {self.target_lang}."
+            )
+            synth_user_prompt = f"""
+Synthesize the following information for the term/character '{term_name}':
+
+Existing Glossary Description (Notes):
+{existing_notes}
+
+New Script Insights:
+{details}
+
+Produce a unified, beautifully structured, and highly detailed description written strictly in {self.target_lang}. Avoid redundancy. 
+Keep any pre-existing context while seamlessly translating it and integrating the new information (like gender, age, relationships, address styles, and gameplay role). 
+Do not output anything else but the synthesized {self.target_lang} text. Do not wrap in markdown blocks or JSON. Just print the final synthesized notes paragraph or text body.
+"""
+        return synth_system_prompt, synth_user_prompt
+
+    def _get_new_term_prompts(self, term_name: str, details: str, prompts_data: dict) -> Tuple[str, str]:
+        """Resolve New Term prompts with per-plugin customizations and fallbacks."""
+        m_section = prompts_data.get("mempalace", {})
+        nt_sys = m_section.get("new_term_system_prompt")
+        nt_usr = m_section.get("new_term_user_prompt")
+
+        if nt_sys and nt_usr:
+            return nt_sys.format(target_lang=self.target_lang), nt_usr.format(
+                term_name=term_name,
+                details=details,
+                target_lang=self.target_lang
+            )
+
+        if self.target_lang == "Ukrainian":
+            new_term_system_prompt = (
+                "Ви — професійний перекладач ретро-ігор з англійської на українську мову. Ваше завдання — "
+                "запропонувати природний переклад або транслітерацію назви терміна українською мовою, "
+                "а також згенерувати детальний структурований опис (нотатки) виключно українською мовою на основі наданих сюжетних деталей."
+            )
+            new_term_user_prompt = f"""
+Створити новий запис у глосарії для терміна: '{term_name}'
+
+Сюжетні деталі зі скрипту:
+{details}
+
+У відповідь поверніть ВИКЛЮЧНО валідний об'єкт JSON. Не додавайте блоки markdown чи будь-які інші пояснення.
+Структура JSON:
+{{
+  "translation": "Природний переклад або транслітерація українською мовою (наприклад, 'Русль' або 'Ордонський щит')",
+  "notes": "Високоякісний структурований опис, написаний виключно українською мовою, який містить стать, вікову групу, стосунки, форми звертання та сюжетний контекст."
+}}
+"""
+        else:
+            new_term_system_prompt = (
+                f"You are an expert retro game translator from English to {self.target_lang}. "
+                f"Your task is to provide a natural translated or transliterated name for the term in {self.target_lang}, "
+                f"and generate a premium structured description (notes) written strictly in {self.target_lang} based on script insights."
+            )
+            new_term_user_prompt = f"""
+Create a new glossary record for term: '{term_name}'
+
+Script Insights:
+{details}
+
+Respond ONLY with a valid JSON object. Do not include markdown blocks or any other explanation.
+JSON structure:
+{{
+  "translation": "Natural translation or transliteration in {self.target_lang} (e.g. 'Rusl')",
+  "notes": "Premium structured description written strictly in {self.target_lang} including gender, age group, relationships, address forms, and narrative context."
+}}
+"""
+        return new_term_system_prompt, new_term_user_prompt
 
     def run(self):
         try:
@@ -591,41 +836,15 @@ class MemePalaceScriptAnalyzerWorker(QThread):
                 self.finished.emit(False, "Process cancelled by user.")
                 return
 
-            self.progress.emit(30, 100, "Sending script segment to AI (Gemini/Claude)...")
+            self.progress.emit(25, 100, "Sending script segment to AI for terminology & character mining...")
             self.log.emit(f"Extracted {len(intro_lines)} lines for AI Persona Miner. Querying LLM...")
 
-            # 2. Formulate Prompt
-            system_prompt = (
-                "You are an expert game narrative architect. Your task is to analyze a game script's "
-                "character list and introduction text, and extract all key characters, their character profiles, "
-                "and their social/grammatical relations (for Ukrainian language translation priority)."
-            )
+            # Load prompts.json configuration (per-plugin)
+            prompts_data = self._load_plugin_prompts()
 
-            user_prompt = f"""
-Analyze the following introduction segment of a game script.
-Extract:
-1. All characters mentioned with their description/personality.
-2. Social relations between characters that dictate how they should speak to each other in Ukrainian translation:
-   - "addresses_informally" (meaning they use "ти"): for close friends, equals, family, children, mentors speaking to students.
-   - "addresses_respectfully" (meaning they use "ти" with respect, or respectful "ви" if very formal/distant).
-   - "addresses_formally" (meaning they use "ви"): for royalty, high status officials, strangers, or formal hierarchy.
-   
-INTRO TEXT SEGMENT:
-{script_segment}
+            # 2. Formulate Prompt for Character and Term mining
+            system_prompt, user_prompt = self._get_mining_prompts(script_segment, prompts_data)
 
-Respond ONLY with a valid JSON object. Do not include markdown blocks or any other explanation.
-JSON structure:
-{{
-  "characters": [
-    {{"name": "RUSL", "description": "Link's mentor. Brave swordsman from Ordon Village."}},
-    {{"name": "LINK", "description": "Hero of the story. Young village wrangler."}}
-  ],
-  "relations": [
-    {{"source": "RUSL", "relation": "addresses_informally", "target": "LINK", "reason": "mentor speaking to student"}},
-    {{"source": "LINK", "relation": "addresses_respectfully", "target": "RUSL", "reason": "student speaking to mentor"}}
-  ]
-}}
-"""
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -637,22 +856,158 @@ JSON structure:
                 self.finished.emit(False, "Process cancelled by user.")
                 return
 
-            self.progress.emit(70, 100, "Processing AI response and writing to SQLite...")
+            self.progress.emit(50, 100, "Processing AI response and writing to SQLite...")
             
-            # 3. Parse JSON response
-            cleaned_text = response.text.strip()
-            if cleaned_text.startswith("```"):
-                cleaned_text = cleaned_text.split("```")[1]
-                if cleaned_text.startswith("json"):
-                    cleaned_text = cleaned_text[4:]
-            
-            data = json.loads(cleaned_text.strip())
+            # 3. Parse JSON response using robust parser
+            data = robust_json_loads(response.text)
             characters = data.get("characters", [])
+            objects_and_terms = data.get("objects_and_terms", [])
             relations = data.get("relations", [])
 
-            self.log.emit(f"AI found {len(characters)} character profiles and {len(relations)} relations.")
+            self.log.emit(f"AI found {len(characters)} character profiles, {len(objects_and_terms)} objects/terms, and {len(relations)} relations.")
 
-            # 4. Write to local SQLite Palace
+            # 4. Process and enrich Picoripi Glossary
+            if self.glossary_manager:
+                self.log.emit(f"Active Glossary Manager detected. Populating and synthesizing glossary entries in {self.target_lang}...")
+                
+                # Combine characters and objects for glossary processing
+                items_to_process = []
+                for char in characters:
+                    items_to_process.append({
+                        "name": char.get("name", "").strip(),
+                        "type": "character",
+                        "gender": char.get("gender", "unknown"),
+                        "age_group": char.get("age_group", "unknown"),
+                        "relationship_summary": char.get("relationship_summary", ""),
+                        "address_type": char.get("address_type", ""),
+                        "description": char.get("description", "")
+                    })
+                for obj in objects_and_terms:
+                    items_to_process.append({
+                        "name": obj.get("name", "").strip(),
+                        "type": "object",
+                        "description": obj.get("description", "")
+                    })
+
+                total_items = len(items_to_process)
+                for item_idx, item in enumerate(items_to_process):
+                    if self.is_cancelled:
+                        break
+                    
+                    term_name = item["name"]
+                    if not term_name:
+                        continue
+                    
+                    # Update progress slightly during glossary loop (from 50% to 85%)
+                    sub_pct = 50 + int((item_idx / total_items) * 35)
+                    self.progress.emit(sub_pct, 100, f"Synthesizing Glossary Entry {item_idx + 1}/{total_items}: {term_name}...")
+
+                    # Search in glossary manager (case-insensitive)
+                    existing_entry = self.glossary_manager.get_entry(term_name)
+                    
+                    if existing_entry:
+                        # Term exists! Synthesize notes with existing ones, preserving translation!
+                        self.log.emit(f"Term '{term_name}' exists in glossary. Synthesizing notes via AI strictly in {self.target_lang} (preserving translation)...")
+                        
+                        existing_notes = existing_entry.notes or ""
+                        
+                        if item["type"] == "character":
+                            details = f"""
+- Тип сутності: Персонаж
+- Стать: {item['gender']}
+- Вікова категорія: {item['age_group']}
+- Стосунки/Родинні зв'язки: {item['relationship_summary']}
+- Форми звертання (на "ти" / на "ви"): {item['address_type']}
+- Новий сюжетний контекст: {item['description']}
+"""
+                        else:
+                            details = f"""
+- Тип сутності: Предмет/Локація/Термін
+- Новий сюжетний контекст: {item['description']}
+"""
+                        
+                        synth_system_prompt, synth_user_prompt = self._get_synthesis_prompts(
+                            term_name, existing_notes, details, prompts_data
+                        )
+
+                        synth_messages = [
+                            {"role": "system", "content": synth_system_prompt},
+                            {"role": "user", "content": synth_user_prompt}
+                        ]
+                        
+                        try:
+                            synth_response = self.ai_provider.translate(synth_messages, session=None)
+                            synthesized_notes = synth_response.text.strip()
+                            
+                            # Safely update the entry in the glossary
+                            self.glossary_manager.update_entry(
+                                original=existing_entry.original,
+                                translation=existing_entry.translation,
+                                notes=synthesized_notes
+                            )
+                            self.log.emit(f"SUCCESS: Synthesized entry for '{term_name}' (notes updated in {self.target_lang}, translation '{existing_entry.translation}' kept).")
+                        except Exception as e_synth:
+                            log_error(f"Failed to synthesize notes for existing term {term_name}: {e_synth}")
+                            self.log.emit(f"WARNING: Notes synthesis failed for '{term_name}': {str(e_synth)}")
+                    
+                    else:
+                        # New term! Translate term and construct initial notes in self.target_lang
+                        self.log.emit(f"Term '{term_name}' is new. Translating name and creating structured notes in {self.target_lang} via AI...")
+                        
+                        if item["type"] == "character":
+                            details = f"""
+- Тип сутності: Персонаж
+- Стать: {item['gender']}
+- Вікова категорія: {item['age_group']}
+- Стосунки/Родинні зв'язки: {item['relationship_summary']}
+- Форми звертання (на "ти" / на "ви"): {item['address_type']}
+- Опис: {item['description']}
+"""
+                        else:
+                            details = f"""
+- Тип сутності: Предмет/Локація/Термін
+- Опис: {item['description']}
+"""
+
+                        new_term_system_prompt, new_term_user_prompt = self._get_new_term_prompts(
+                            term_name, details, prompts_data
+                        )
+
+                        new_term_messages = [
+                            {"role": "system", "content": new_term_system_prompt},
+                            {"role": "user", "content": new_term_user_prompt}
+                        ]
+                        
+                        try:
+                            new_term_response = self.ai_provider.translate(new_term_messages, session=None)
+                            term_data = robust_json_loads(new_term_response.text)
+                            translated_name = term_data.get("translation", term_name).strip()
+                            synthesized_notes = term_data.get("notes", "").strip()
+                            
+                            # Add new entry to the glossary
+                            section = "Characters" if item["type"] == "character" else "Terms"
+                            self.glossary_manager.add_entry(
+                                original=term_name,
+                                translation=translated_name,
+                                notes=synthesized_notes,
+                                section=section
+                            )
+                            self.log.emit(f"SUCCESS: Created new entry '{term_name}' -> '{translated_name}' in section '{section}' with description in {self.target_lang}.")
+                        except Exception as e_new:
+                            log_error(f"Failed to translate and save new term {term_name}: {e_new}")
+                            self.log.emit(f"WARNING: Creation failed for new term '{term_name}': {str(e_new)}")
+
+                # Write all glossary updates to disk
+                try:
+                    self.glossary_manager.save_to_disk()
+                    self.log.emit("Successfully saved updated glossary database (.md table) to disk.")
+                except Exception as disk_err:
+                    log_error(f"Failed to save glossary to disk: {disk_err}")
+                    self.log.emit(f"ERROR saving glossary to disk: {disk_err}")
+
+            self.progress.emit(90, 100, "Writing character profiles to SQLite Memory Palace...")
+
+            # 5. Write to local SQLite Palace (for viewer consistency)
             self.client.add_wing(self.wing_name, f"Chronological Memory Palace for {self.wing_name}")
             
             # Save character cast profiles to a dedicated drawer in a special room
@@ -687,10 +1042,12 @@ JSON structure:
                 )
                 self.log.emit(f"Saved Relation: {source} -[{relation}]-> {target} ({reason})")
 
-            self.progress.emit(100, 100, "Script pre-analysis completed!")
-            self.finished.emit(True, f"Successfully parsed script! Found {len(characters)} characters and {len(relations)} relations. Saved to SQLite.")
+            self.progress.emit(100, 100, "Script pre-analysis and glossary synthesis completed!")
+            self.finished.emit(True, f"Successfully parsed script! Found {len(characters)} characters and {len(relations)} relations. Glossary has been synchronized and saved to disk.")
 
         except Exception as e:
             log_error(f"Error in MemePalaceScriptAnalyzerWorker: {e}", exc_info=True)
+            self.log.emit(f"FATAL ERROR: {str(e)}")
+            self.finished.emit(False, f"Error occurred: {str(e)}")
             self.log.emit(f"FATAL ERROR: {str(e)}")
             self.finished.emit(False, f"Error occurred: {str(e)}")

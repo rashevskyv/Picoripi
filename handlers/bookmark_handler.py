@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/bookmark_handler.py ---
 import uuid
 from typing import Any, Optional
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator

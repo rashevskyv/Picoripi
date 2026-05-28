@@ -1,4 +1,3 @@
-# --- START OF FILE components/editor/highlight_interface.py ---
 from PyQt5.QtGui import QTextBlock
 from typing import Optional
 

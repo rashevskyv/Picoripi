@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/common/tag_manager.py ---
 import re
 from typing import List, Set, Tuple, Optional
 from PyQt5.QtGui import QTextCharFormat, QColor, QFont

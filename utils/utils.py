@@ -1,4 +1,3 @@
-# --- START OF FILE utils/utils.py ---
 import datetime
 import re
 import difflib # Додано
@@ -72,11 +71,11 @@ def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequenc
     return root, flat_widths
 
 
-def calculate_string_width(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None) -> int:
+def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, strict: bool = False) -> Optional[int]:
     if not text:
         return 0
         
-    trie, char_widths = _get_trie_and_flat_map(font_map, default_char_width, icon_sequences, strict=False)
+    trie, char_widths = _get_trie_and_flat_map(font_map, default_char_width, icon_sequences, strict=strict)
     
     total_width = 0
     i = 0
@@ -103,63 +102,7 @@ def calculate_string_width(text: str, font_map: dict, default_char_width: int = 
                 j += 1
                 
             if is_match:
-                total_width += best_width
-                i += best_len
-                continue
-
-        if ch == '[':
-            end_index = text.find(']', i)
-            if end_index != -1:
-                i = end_index + 1
-                continue
-        if ch == '{':
-            end_index = text.find('}', i)
-            if end_index != -1:
-                i = end_index + 1
-                continue
-
-        total_width += char_widths.get(ch, default_char_width)
-        i += 1
-        
-    return total_width
-
-def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Optional[List[str]] = None) -> Optional[int]:
-    """
-    Calculates string width strictly based on the font_map.
-    If ANY character is missing from the font_map, it returns None.
-    Does not use a default fallback width.
-    """
-    if not text:
-        return 0
-        
-    trie, char_widths = _get_trie_and_flat_map(font_map, 8, icon_sequences, strict=True)
-    
-    total_width = 0
-    i = 0
-    text_len = len(text)
-    
-    while i < text_len:
-        ch = text[i]
-        
-        node = trie.children.get(ch)
-        if node is not None:
-            best_width = None
-            best_len = 0
-            is_match = False
-            j = i + 1
-            while node is not None and j <= text_len:
-                if node.length > 0:
-                    best_width = node.width
-                    best_len = node.length
-                    is_match = True
-                if j < text_len:
-                    node = node.children.get(text[j])
-                else:
-                    break
-                j += 1
-                
-            if is_match:
-                if best_width is None:
+                if strict and best_width is None:
                     return None
                 total_width += best_width
                 i += best_len
@@ -176,14 +119,29 @@ def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Opt
                 i = end_index + 1
                 continue
 
-        width = char_widths.get(ch)
-        if width is None:
-            return None
-            
-        total_width += width
+        if strict:
+            width = char_widths.get(ch)
+            if width is None:
+                return None
+            total_width += width
+        else:
+            total_width += char_widths.get(ch, default_char_width)
         i += 1
         
     return total_width
+
+
+def calculate_string_width(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None) -> int:
+    return _calculate_string_width_impl(text, font_map, default_char_width, icon_sequences, strict=False)
+
+
+def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Optional[List[str]] = None) -> Optional[int]:
+    """
+    Calculates string width strictly based on the font_map.
+    If ANY character is missing from the font_map, it returns None.
+    Does not use a default fallback width.
+    """
+    return _calculate_string_width_impl(text, font_map, 8, icon_sequences, strict=True)
 
 def is_fuzzy_match(word1: str, word2: str, threshold: float = 0.8) -> bool:
     """

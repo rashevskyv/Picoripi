@@ -1,4 +1,3 @@
-# --- START OF FILE core/settings/session_state_manager.py ---
 import json
 from pathlib import Path
 from typing import Dict, Any, Union, Optional

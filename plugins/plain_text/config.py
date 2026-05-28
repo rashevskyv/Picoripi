@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/plain_text/config.py ---
 from PyQt5.QtGui import QColor
 
 PROBLEM_TAG_WARNING = "ZWW_TAG_WARNING"

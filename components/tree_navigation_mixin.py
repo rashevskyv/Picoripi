@@ -74,13 +74,7 @@ class TreeNavigationMixin:
     # Toolbar move up / move down (shared implementation)
     # -------------------------------------------------------------------------
 
-    def move_current_item_up(self):
-        self._move_current_item(direction=-1)
-
-    def move_current_item_down(self):
-        self._move_current_item(direction=1)
-
-    def _move_current_item(self, direction: int):
+    def move_current_item(self, direction: int):
         """Move all selected items up (direction=-1) or down (direction=1)."""
         selected_items = self.selectedItems()
         if not selected_items:

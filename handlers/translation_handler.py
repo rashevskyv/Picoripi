@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/translation_handler.py ---
 # handlers/translation/translation_handler.py
 
 import json

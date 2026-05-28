@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_mc/tag_checker_handler.py ---
 import re
 from typing import Optional, List, Tuple
 from PyQt5.QtWidgets import QMessageBox, QApplication

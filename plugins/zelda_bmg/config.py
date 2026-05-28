@@ -98,4 +98,5 @@ if os.path.exists(CONFIG_PATH):
                         PROBLEM_DEFINITIONS[mapped_key]["description"] = val["description"]
             CONTROL_CODES = config_data.get("CONTROL_CODES", [])
     except Exception as e:
-        print(f"Error loading zelda_bmg/config.json: {e}")
+        from utils.logging_utils import log_error
+        log_error(f"Error loading zelda_bmg/config.json: {e}")

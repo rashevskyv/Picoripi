@@ -1,4 +1,3 @@
-# --- START OF FILE components/editor/paint_helpers.py ---
 import re
 from PyQt5.QtGui import QTextBlock
 from PyQt5.QtWidgets import QMainWindow

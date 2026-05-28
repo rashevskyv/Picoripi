@@ -244,6 +244,8 @@ class FontMapLoader:
         overrides: Dict[str, dict] = {}
         if not plugin_name: return overrides
         override_path = Path('plugins') / plugin_name / 'font_map.json'
+        if not override_path.is_file():
+            override_path = Path('plugins') / 'common' / 'defaults' / 'font_map.json'
         if not override_path.is_file(): return overrides
 
         try:

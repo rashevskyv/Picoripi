@@ -1,4 +1,3 @@
-# --- START OF FILE scripts/cleanup_project.py ---
 import os
 import shutil
 import subprocess

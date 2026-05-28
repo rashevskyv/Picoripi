@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/pokemon_fr/text_fixer.py ---
 from typing import Tuple, List
 import re
 from utils.utils import calculate_string_width, remove_all_tags

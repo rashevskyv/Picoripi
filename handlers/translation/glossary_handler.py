@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/translation/glossary_handler.py ---
 # Refactored: GlossaryHandler is now a thin facade delegating to:
 #   - GlossaryPromptManager      (prompt I/O and caching)
 #   - GlossaryOccurrenceUpdater  (AI retranslation of occurrences)

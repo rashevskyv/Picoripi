@@ -1,6 +1,3 @@
-# --- START OF FILE components/editor/line_number_area.py ---
-# --- START OF FILE components/line_number_area.py ---
-# --- START OF FILE components/LineNumberArea.py ---
 from PyQt5.QtWidgets import QWidget, QToolTip
 from PyQt5.QtGui import QPainter, QColor, QPen, QMouseEvent
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint

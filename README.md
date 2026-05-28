@@ -1,6 +1,6 @@
-# Picoripi v0.2.119
+# Picoripi v0.2.121-dev
 
-The "Picoripi" (v0.2.119) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.121-dev) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -69,6 +69,12 @@ The "Picoripi" (v0.2.119) is a desktop application built with **Python** and **P
 - **Double-Click Line Sync**: Double-clicking the line number area in any translation editor instantly scrolls and highlights the currently edited string inside the "Strings in block" preview panel.
 - **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
 - **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).
+
+### MemePalace Context Integration
+- **Chronological Story Timeline Mapping**: Connects raw, flat game dialogue strings to a structured chronological timeline (e.g., walkthroughs or parsed YouTube captions) and stores them in a local SQLite database.
+- **AI Visual Action & Relationship Enrichment**: Automatically analyzes transcript files to enrich AI models with immediate spatial, temporal, and social context (visual environment, character casts, and emotional mood annotations), bypassing isolated string translation limits.
+- **Modeless Context Builder**: Features a fully non-blocking, modeless dialog that fetches YouTube transcripts, configures mapping scopes, and runs background weaving workers (`MemePalaceWorker`) without locking the main Picoripi interface.
+- **Interactive Database Viewer**: Provides a dynamic viewer (`MemePalaceViewerDialog`) to explore mapped story rooms, inspect generated visual actions, browse verbatim dialogues, and double-click any dialogue row to instantly jump to and select it in the main editor.
 
 ### Nintendo Binary Font (BFN) Editor
 - **Integrated Font Editor**: Create, view, and modify Nintendo binary fonts (`.bfn` files) directly inside the Picoripi workspace.
@@ -150,18 +156,16 @@ The project uses `pytest` for unit testing with 600+ tests.
 
 #### Run All Tests
 ```bash
-# Windows
-set PYTHONPATH=.
-.\venv\Scripts\python.exe -m pytest tests/
-
-# Linux/macOS
-export PYTHONPATH=.
-python -m pytest tests/
+pytest tests/
+```
+Or with parallel execution (requires `pytest-xdist`):
+```bash
+pytest -n auto tests/
 ```
 
 #### Run with Coverage Report
 ```bash
-.\venv\Scripts\python.exe -m pytest --cov=core --cov=handlers --cov=ui tests/
+pytest --cov=core --cov=handlers --cov=ui tests/
 ```
 
 ## Project Structure

@@ -1,4 +1,3 @@
-# --- START OF FILE utils/hotkey_manager.py ---
 """
 Windows-level global hotkey manager.
 

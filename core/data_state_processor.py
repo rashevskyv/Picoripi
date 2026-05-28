@@ -1,6 +1,6 @@
-# --- START OF FILE core/data_state_processor.py ---
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
+import copy
 from pathlib import Path
 from PyQt5.QtWidgets import QMessageBox
 from .data_manager import load_json_file, save_json_file, save_text_file
@@ -256,9 +256,9 @@ class DataStateProcessor:
         try:
             if not self.mw.data_store.data: QMessageBox.critical(self.mw, "Save Error", "Original data not loaded. Cannot save."); return False
             
-            output_data_list = json.loads(json.dumps(self.mw.data_store.data)) 
+            output_data_list = copy.deepcopy(self.mw.data_store.data) 
             if self.mw.data_store.edited_file_data:
-                temp_edited = json.loads(json.dumps(self.mw.data_store.edited_file_data))
+                temp_edited = copy.deepcopy(self.mw.data_store.edited_file_data)
                 for i in range(len(output_data_list)):
                     if i < len(temp_edited) and temp_edited[i]:
                         output_data_list[i] = temp_edited[i]

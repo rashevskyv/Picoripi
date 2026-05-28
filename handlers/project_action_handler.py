@@ -507,15 +507,11 @@ class ProjectActionHandler(BaseHandler):
                 else:
                     self.ui_updater.populate_blocks()
 
-    def move_block_up_action(self) -> None:
-        log_info("Move Block Up action triggered.")
+    def move_block_action(self, direction: int) -> None:
+        """direction: -1 for up, +1 for down."""
+        log_info(f"Move Block {'Up' if direction < 0 else 'Down'} action triggered.")
         if hasattr(self.mw, 'block_list_widget'):
-            self.mw.block_list_widget.move_current_item_up()
-
-    def move_block_down_action(self) -> None:
-        log_info("Move Block Down action triggered.")
-        if hasattr(self.mw, 'block_list_widget'):
-            self.mw.block_list_widget.move_current_item_down()
+            self.mw.block_list_widget.move_current_item(direction)
 
     def add_folder_action(self) -> None:
         log_info("Add Folder action triggered.")

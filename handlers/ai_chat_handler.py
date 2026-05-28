@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/ai_chat_handler.py ---
 from typing import Dict, Optional, List, Any
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread

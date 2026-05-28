@@ -1,4 +1,3 @@
-# --- START OF FILE ui/ui_event_filters.py ---
 from PyQt5.QtCore import QObject, QEvent, Qt
 from PyQt5.QtWidgets import QApplication, QWidget
 from utils.logging_utils import log_debug

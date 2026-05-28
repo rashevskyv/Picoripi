@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_bmg/text_fixer.py ---
 import re
 from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer

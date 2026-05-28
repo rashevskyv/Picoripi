@@ -1,4 +1,3 @@
-# --- START OF FILE tests/test_base_game_rules.py ---
 """
 Tests for plugins/base_game_rules.py — base plugin class behaviour.
 Safety net for refactoring: Issue #5 (plugin markers), plugin changes.

@@ -1,4 +1,3 @@
-# --- START OF FILE components/prompt_editor_dialog.py ---
 """Reusable prompt editor dialog for AI requests."""
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QDialogButtonBox
 from PyQt5.QtCore import Qt

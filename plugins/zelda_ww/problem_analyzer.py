@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_ww/problem_analyzer.py ---
 import re
 from typing import Optional, Set, Dict, Any, List
 from utils.utils import calculate_string_width, remove_all_tags

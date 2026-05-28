@@ -1,4 +1,3 @@
-# --- START OF FILE components/help_dialog.py ---
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor

@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/text_operation_handler.py ---
 import re
 from typing import Any, Optional, List, Dict, Tuple, Set, Union
 from PyQt5.QtWidgets import QMessageBox, QApplication, QPlainTextEdit

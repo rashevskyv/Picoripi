@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/common/text_fixer.py ---
 from typing import Tuple, List, Optional
 import re
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN

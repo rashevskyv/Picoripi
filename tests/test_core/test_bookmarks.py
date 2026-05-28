@@ -1,4 +1,3 @@
-# --- START OF FILE tests/test_core/test_bookmarks.py ---
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt5.QtWidgets import QMessageBox

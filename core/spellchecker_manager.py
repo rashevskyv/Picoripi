@@ -1,7 +1,7 @@
-# --- START OF FILE core/spellchecker_manager.py ---
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
 import re
 import time
+import threading
 from pathlib import Path
 from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
@@ -24,6 +24,7 @@ class SpellcheckWorker(QObject):
         self._queue = []
         self._queue_set = set() # For O(1) checks
         self._is_running = True
+        self._queue_event = threading.Event()
 
     @pyqtSlot()
     def process_queue(self):
@@ -74,16 +75,19 @@ class SpellcheckWorker(QObject):
                 if results_spell or results_sugg:
                     self.spellcheck_results_ready.emit(results_spell, results_sugg)
             else:
-                time.sleep(0.05)
+                self._queue_event.wait(timeout=1.0)
+                self._queue_event.clear()
         self.finished.emit()
 
     def stop(self):
         self._is_running = False
+        self._queue_event.set()
 
     def enqueue(self, word):
         if word not in self._queue_set:
             self._queue.append(word)
             self._queue_set.add(word)
+            self._queue_event.set()
 
 class SpellcheckerManager(QObject):
     suggestions_loaded = pyqtSignal(str, list)

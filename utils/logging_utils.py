@@ -9,6 +9,31 @@ project_root = Path(__file__).resolve().parent.parent
 default_log_file_path = str(project_root / 'app_debug.txt')
 log_file_path = default_log_file_path
 
+class SafeRotatingFileHandler(RotatingFileHandler):
+    """
+    A robust subclass of RotatingFileHandler that gracefully handles PermissionError
+    and OSError on Windows when the log file is locked by another process
+    (e.g., during parallel pytest runs or multiple app instances).
+    Instead of crashing or spamming stderr, it catches the error and continues
+    writing to the current log file.
+    """
+    def doRollover(self):
+        try:
+            super().doRollover()
+        except (PermissionError, OSError):
+            # Gracefully recover if the log file cannot be renamed due to sharing violation on Windows.
+            # Re-open the current active stream to continue logging.
+            if self.stream:
+                try:
+                    self.stream.close()
+                except Exception:
+                    pass
+            self.stream = None
+            try:
+                self.stream = self._open()
+            except Exception:
+                pass
+
 class DuplicateFilter(logging.Filter):
     """
     Filter that suppresses duplicate log messages that occur within a short time window.
@@ -74,8 +99,8 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
             # Ensure folder exists
             Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
             
-            # Use RotatingFileHandler: 2MB per file, max 5 backups
-            _file_handler = RotatingFileHandler(
+            # Use SafeRotatingFileHandler: 2MB per file, max 5 backups
+            _file_handler = SafeRotatingFileHandler(
                 log_file_path, 
                 maxBytes=2 * 1024 * 1024, 
                 backupCount=5, 

@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/common/problem_analyzer.py ---
 from typing import Optional, Set, List
 import re
 from utils.utils import calculate_string_width, remove_all_tags

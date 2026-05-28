@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/translation/ai_worker.py ---
 from PyQt5.QtCore import QObject, pyqtSignal
 from typing import List, Dict, Optional, Any
 import json

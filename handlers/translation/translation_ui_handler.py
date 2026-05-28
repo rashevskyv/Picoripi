@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/translation/translation_ui_handler.py ---
 # handlers/translation/translation_ui_handler.py ---
 import json
 import re
@@ -13,6 +12,7 @@ from components.translation_variations_dialog import TranslationVariationsDialog
 from components.session_bootstrap_dialog import SessionBootstrapDialog
 from components.ai_status_dialog import AIStatusDialog
 from utils.utils import convert_spaces_to_dots_for_display
+from core.state_manager import AppState
 
 class TranslationUIHandler(BaseTranslationHandler):
     def __init__(self, main_handler):
@@ -70,12 +70,11 @@ class TranslationUIHandler(BaseTranslationHandler):
         display_text = convert_spaces_to_dots_for_display(visual_text, self.mw.show_multiple_spaces_as_dots)
 
         cursor = edited_widget.textCursor()
-        self.mw.is_programmatically_changing_text = True
-        cursor.beginEditBlock()
-        cursor.select(QTextCursor.Document)
-        cursor.insertText(display_text)
-        cursor.endEditBlock()
-        self.mw.is_programmatically_changing_text = False
+        with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
+            cursor.beginEditBlock()
+            cursor.select(QTextCursor.Document)
+            cursor.insertText(display_text)
+            cursor.endEditBlock()
         
         restored = edited_widget.textCursor()
         restored.movePosition(QTextCursor.End)
@@ -92,11 +91,10 @@ class TranslationUIHandler(BaseTranslationHandler):
             QMessageBox.warning(self.mw, "Apply Variation", "No text selected to apply variation to.")
             return
 
-        self.mw.is_programmatically_changing_text = True
-        cursor.beginEditBlock()
-        cursor.insertText(variation)
-        cursor.endEditBlock()
-        self.mw.is_programmatically_changing_text = False
+        with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
+            cursor.beginEditBlock()
+            cursor.insertText(variation)
+            cursor.endEditBlock()
         
         self.mw.editor_operation_handler.text_edited()
 

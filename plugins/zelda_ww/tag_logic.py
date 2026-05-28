@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_ww/tag_logic.py ---
 import re
 from typing import Tuple
 from utils.logging_utils import log_debug

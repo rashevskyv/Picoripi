@@ -1,4 +1,3 @@
-# --- START OF FILE tests/test_project_models.py ---
 """
 Tests for core/project_models.py — Category, Block, Project data models.
 Safety net for refactoring: project management changes.

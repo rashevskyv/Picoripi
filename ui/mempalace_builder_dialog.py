@@ -18,6 +18,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.setWindowTitle("MemePalace Context Builder")
         self.resize(650, 500)
         self.setMinimumSize(550, 400)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         
         # Styles & Theme
         self.setStyleSheet("""
@@ -728,12 +729,38 @@ class MemePalaceBuilderDialog(QDialog):
         self.clear_btn.setEnabled(False)
         self.file_path_edit.setEnabled(False)
 
+        # Resolve active glossary entries dynamically
+        gm = getattr(self.mw, 'glossary_manager', None)
+        if not gm:
+            gm = getattr(self.mw, '_glossary_manager', None)
+        if not gm and hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+            gm = getattr(self.mw.translation_handler, '_glossary_manager', None)
+            if not gm:
+                gh = getattr(self.mw.translation_handler, 'glossary_handler', None)
+                if gh:
+                    gm = getattr(gh, 'glossary_manager', None)
+
+        # Resolve target language dynamically based on spellchecker language
+        lang_code = getattr(self.mw, 'spellchecker_language', 'uk')
+        target_lang = "Ukrainian"
+        if lang_code == 'uk':
+            target_lang = "Ukrainian"
+        elif lang_code == 'ru':
+            target_lang = "Russian"
+        elif lang_code == 'en':
+            target_lang = "English"
+
+        plugin_name = getattr(self.mw, "active_game_plugin", None)
+
         # 4. Initialize and run Analyzer Worker
         self.analyzer_worker = MemePalaceScriptAnalyzerWorker(
             client=client,
             file_path=file_path,
             ai_provider=ai_provider,
-            wing_name=wing_name
+            wing_name=wing_name,
+            glossary_manager=gm,
+            target_lang=target_lang,
+            plugin_name=plugin_name
         )
 
         self.analyzer_worker.progress.connect(self._handle_worker_progress)
@@ -750,6 +777,19 @@ class MemePalaceBuilderDialog(QDialog):
         self.file_path_edit.setEnabled(True)
 
         if success:
+            # Refresh glossary manager, highlighting and AI prompts cache in the editors!
+            try:
+                gh = None
+                if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                    gh = getattr(self.mw.translation_handler, 'glossary_handler', None)
+                if gh:
+                    gh.glossary_manager.refresh_from_disk()
+                    gh._update_glossary_highlighting()
+                    gh.main_handler._cached_glossary = gh.glossary_manager.get_raw_text()
+                    log_info("Successfully reloaded and refreshed glossary highlighting in editors after AI Script pre-analysis.")
+            except Exception as ref_err:
+                log_error(f"Failed to refresh glossary highlighting after AI analysis: {ref_err}")
+
             QMessageBox.information(self, "AI Script Analyzer Status", f"Pre-analysis complete!\n\n{message}")
             self.append_log("AI SCRIPT PRE-ANALYSIS SUCCESSFUL!")
         else:
@@ -949,6 +989,8 @@ class MemePalaceBuilderDialog(QDialog):
                     log_error(f"Failed to save global settings: {e}")
 
     def closeEvent(self, event):
-        """Automatically save settings when the dialog is closed."""
+        """Automatically save settings and clear reference in main window when closed."""
         self.save_builder_settings()
+        if hasattr(self.mw, 'mempalace_builder_dialog'):
+            self.mw.mempalace_builder_dialog = None
         super().closeEvent(event)

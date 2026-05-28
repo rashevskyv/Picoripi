@@ -1,4 +1,3 @@
-# --- START OF FILE components/editor/paint_event_logic.py ---
 import re
 from PyQt5.QtGui import QPainter, QColor, QPen, QPaintEvent, QTextLine
 from PyQt5.QtCore import Qt
