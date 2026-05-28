@@ -787,6 +787,14 @@ class MemePalaceBuilderDialog(QDialog):
                     gh._update_glossary_highlighting()
                     gh.main_handler._cached_glossary = gh.glossary_manager.get_raw_text()
                     log_info("Successfully reloaded and refreshed glossary highlighting in editors after AI Script pre-analysis.")
+                    
+                    # Hot-reload the open Glossary Dialog if it is visible
+                    if gh.dialog and gh.dialog.isVisible():
+                        data_source = getattr(self.mw.data_store, "data", [])
+                        occurrence_map = gh.glossary_manager.build_occurrence_index(data_source)
+                        entries = sorted(gh.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+                        gh.dialog.reload_data(entries, occurrence_map)
+                        log_info("Successfully hot-reloaded and synchronized open Glossary Dialog after AI Script pre-analysis.")
             except Exception as ref_err:
                 log_error(f"Failed to refresh glossary highlighting after AI analysis: {ref_err}")
 

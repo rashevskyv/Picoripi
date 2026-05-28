@@ -73,6 +73,7 @@ logger.addFilter(duplicate_filter)
 
 _file_handler = None
 _console_handler = None
+_cleared_paths = set()
 
 _enabled_categories = {
     "general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"
@@ -83,7 +84,7 @@ def set_enabled_log_categories(categories: list):
     _enabled_categories = set(categories)
 
 def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: str = None):
-    global _file_handler, _console_handler, log_file_path
+    global _file_handler, _console_handler, log_file_path, _cleared_paths
     
     if file_path:
         log_file_path = file_path
@@ -97,11 +98,22 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
     if enable_file and not _file_handler:
         try:
             # Ensure folder exists
-            Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
+            log_path = Path(log_file_path).resolve()
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Truncate the log file on the first startup initialization for this path
+            if log_path not in _cleared_paths:
+                try:
+                    if log_path.exists():
+                        with open(log_path, 'w', encoding='utf-8') as f:
+                            f.truncate(0)
+                except Exception:
+                    pass
+                _cleared_paths.add(log_path)
             
             # Use SafeRotatingFileHandler: 2MB per file, max 5 backups
             _file_handler = SafeRotatingFileHandler(
-                log_file_path, 
+                str(log_path), 
                 maxBytes=2 * 1024 * 1024, 
                 backupCount=5, 
                 encoding='utf-8'

@@ -837,7 +837,7 @@ JSON structure:
             self.log.emit("Starting AI Script Pre-Analyzer...")
             self.progress.emit(10, 100, "Reading script introduction...")
 
-            # 1. Read first 500 lines of the script (where cast/intro resides)
+            # 1. Read first 2000 lines of the script (where cast/intro resides)
             import os
             if not os.path.exists(self.file_path):
                 self.finished.emit(False, f"Script file not found: {self.file_path}")
@@ -846,7 +846,7 @@ JSON structure:
             # Read with cp1252 to handle special symbols in GameFAQ scripts
             with open(self.file_path, "r", encoding="cp1252", errors="replace") as f:
                 intro_lines = []
-                for _ in range(500):
+                for _ in range(2000):
                     line = f.readline()
                     if not line:
                         break

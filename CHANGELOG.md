@@ -1,8 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.2.121-dev] - 2026-05-28
+## [0.2.123] - 2026-05-28
+
+### Fixed
+- **Strings in Block: Lazy Loading Timer Cancellation Bug**: Fixed a critical bug where the list of strings in the "Strings in block" preview panel appeared empty (invisible text) for all items beyond the initially loaded chunk (roughly the first 1560 strings) in large files with 5000+ entries. Root cause: `populate_strings_for_block()` unconditionally stopped the lazy loading timer (`_lazy_load_timer.stop()`) on every call — including repeated calls triggered by view updates and selection restores for the same block. Since the block had not changed, the timer was killed but never restarted, leaving most lines blank. Fixed by only stopping the timer when the block or the displayed index set actually changes (`should_regenerate = block_changed or displayed_indices_changed or force`).
+- **Window Size Not Restored Correctly**: Fixed a bug where the application window size was always capped to 1280×800 on startup, even if the user had resized it to a larger resolution before closing. Removed the artificial `min(width, 1280)` / `min(height, 800)` constraints from `restore_state_after_settings_load()`. The window now restores to its exact saved geometry, clamped only to the current screen dimensions and the minimum safe size of 800×600.
+
+## [0.2.122] - 2026-05-28
 
 ### Added
+
 - **Hybrid Default Fallback & On-Demand Materialization for Plugins**: Implemented an intelligent default filesystem architecture for game plugins. Shared baseline presets (`font_map.json` and `prompts.json`) are stored inside `plugins/common/defaults/` to keep the repository extremely clean. Subsystems (`FontMapLoader`, `GlossaryPromptManager`, `MemePalaceScriptAnalyzerWorker`) automatically fallback to these defaults when plugin files are missing.
 - **On-Demand Auto-Creation (Materialization on Edit)**: Added automatic local file creation inside the target plugin's directory (`plugins/{plugin_name}/translation_prompts/prompts.json`) when a user edits prompts via the GUI (`save_prompt_section`) or triggers manual on-disk editing via the "Edit Prompts" settings button. This provides local-specific customization seamlessly on-the-fly.
 - **CPU-Efficient Background Spellchecking**: Replaced the performance-intensive busy-loop with `time.sleep(0.05)` inside `SpellcheckWorker` with a high-efficiency `threading.Event()` wait condition mechanism. This completely eliminates idle CPU overhead and instantly wakes up the checker thread when a new word is enqueued.

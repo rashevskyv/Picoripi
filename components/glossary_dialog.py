@@ -596,3 +596,28 @@ class GlossaryDialog(QDialog):
             self._occurrence_list.clear()
             self._occurrence_label.setText("Occurrences: 0")
 
+    def reload_data(
+        self,
+        entries: Sequence[GlossaryEntry],
+        occurrence_map: Dict[str, List[GlossaryOccurrence]]
+    ) -> None:
+        """Hot-reload entries and occurrences from external source and refresh UI."""
+        self._all_entries = list(entries)
+        self._occurrences = occurrence_map
+        
+        # Save currently selected term name to restore selection after reload
+        selected_term = None
+        if self._current_entry:
+            selected_term = self._current_entry.original
+            
+        # Apply filters to re-populate the table
+        self._apply_filter(self._search_field.text())
+        
+        # Restore selection if possible, otherwise select first row
+        if selected_term:
+            self._select_initial_term(selected_term)
+        elif self._filtered_entries:
+            self._entry_table.selectRow(0)
+            self._show_entry_for_row(0)
+
+
