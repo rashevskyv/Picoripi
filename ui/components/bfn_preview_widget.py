@@ -8,6 +8,31 @@ from PyQt5.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFo
 from PyQt5.QtCore import Qt, QRect, QPoint, QRectF, QSize
 
 
+def _looks_like_bfn_editor(editor) -> bool:
+    """Structural check that 'editor' is a real BFN editor window (not None / not a bare test mock).
+
+    The real BfnEditorWindow and the test DummyBfnEditor both expose a `metadata` dict
+    and a `sheet_images` list. A bare MagicMock would have these attributes auto-created
+    as Mock objects (not dict / not list), so it fails this check.
+    """
+    if editor is None:
+        return False
+    metadata = getattr(editor, 'metadata', None)
+    sheets = getattr(editor, 'sheet_images', None)
+    return isinstance(metadata, dict) and isinstance(sheets, list)
+
+
+def _looks_like_bfn_core(bfn) -> bool:
+    """Structural check that 'bfn' is a real BfnCore-like object with a callable layout_text."""
+    if bfn is None:
+        return False
+    return (
+        isinstance(getattr(bfn, 'gly1', None), list)
+        and isinstance(getattr(bfn, 'map1', None), list)
+        and isinstance(getattr(bfn, 'wid1', None), list)
+    )
+
+
 class BfnSideButton(QPushButton):
     """A compact square icon button for the BFN preview sidebar."""
     SIZE = 30
@@ -341,22 +366,13 @@ class BfnPreviewWidget(QWidget):
 
     def get_active_bfn_font(self):
         """Find the active BFN font for the current string."""
-        if hasattr(self.mw, '_bfn_editor_window') and self.mw._bfn_editor_window is not None:
-            editor = self.mw._bfn_editor_window
-            is_mock = False
+        editor = getattr(self.mw, '_bfn_editor_window', None)
+        if _looks_like_bfn_editor(editor):
             try:
-                from unittest.mock import Mock
-                if isinstance(editor, Mock):
-                    is_mock = True
-            except ImportError:
-                pass
-                
-            if not is_mock:
-                try:
-                    if not editor.isHidden() and getattr(editor, 'sheet_images', None):
-                        return BfnEditorAdapter(editor)
-                except RuntimeError:
-                    self.mw._bfn_editor_window = None
+                if not editor.isHidden() and editor.sheet_images:
+                    return BfnEditorAdapter(editor)
+            except RuntimeError:
+                self.mw._bfn_editor_window = None
 
         block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
         string_idx = getattr(self.mw.data_store, 'current_string_idx', -1)
@@ -916,20 +932,14 @@ class BfnPreviewWidget(QWidget):
         fallback_font.setPixelSize(max(10, int(cell_h * 0.85)))
         fallback_fm = QFontMetrics(fallback_font)
 
-        # Call unified layout engine
-        is_mock = False
-        try:
-            from unittest.mock import Mock
-            if isinstance(bfn, Mock):
-                is_mock = True
-        except ImportError:
-            pass
-            
-        if is_mock:
-            from core.bfn_core import BfnCore
-            glyphs, total_width, total_height = BfnCore.layout_text(bfn, encoded_text, self.translation_map, self.line_spacing)
-        else:
-            glyphs, total_width, total_height = bfn.layout_text(encoded_text, self.translation_map, self.line_spacing)
+        # Call unified layout engine via the BfnCore implementation. This works
+        # uniformly for real BfnCore instances, BfnEditorAdapter (whose own
+        # layout_text just delegates back to BfnCore), and structural stubs in
+        # tests that expose gly1 / map1 / wid1 as plain lists.
+        from core.bfn_core import BfnCore
+        glyphs, total_width, total_height = BfnCore.layout_text(
+            bfn, encoded_text, self.translation_map, self.line_spacing
+        )
 
         if not glyphs:
             painter.setPen(QColor("#777777"))

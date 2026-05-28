@@ -1,5 +1,7 @@
 pytest==8.4.0
+pytest-mock
 pytest-qt
+pytest-timeout
 pytest-xdist
 ruff
 mypy

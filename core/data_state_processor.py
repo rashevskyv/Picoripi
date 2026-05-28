@@ -1,6 +1,5 @@
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
-import copy
 from pathlib import Path
 from PyQt5.QtWidgets import QMessageBox
 from .data_manager import load_json_file, save_json_file, save_text_file
@@ -256,24 +255,62 @@ class DataStateProcessor:
         try:
             if not self.mw.data_store.data: QMessageBox.critical(self.mw, "Save Error", "Original data not loaded. Cannot save."); return False
             
-            output_data_list = copy.deepcopy(self.mw.data_store.data) 
-            if self.mw.data_store.edited_file_data:
-                temp_edited = copy.deepcopy(self.mw.data_store.edited_file_data)
-                for i in range(len(output_data_list)):
-                    if i < len(temp_edited) and temp_edited[i]:
-                        output_data_list[i] = temp_edited[i]
-                        log_debug(f"Save: block {i} merged from edited_file_data (length {len(temp_edited[i])})", category="file_ops")
-                    else:
-                        log_debug(f"Save: block {i} falling back to original source data (length {len(output_data_list[i])})", category="file_ops")
+            # Build the merged save snapshot WITHOUT a full deep copy.
+            #
+            # Layout invariants we rely on:
+            #   - data_store.data is a list of blocks; each block is a list of
+            #     strings (immutable, so safe to share).
+            #   - edited_file_data is either empty or a parallel list of blocks;
+            #     a non-empty block at index i overrides data[i].
+            #   - edited_data is a dict {(b_idx, s_idx): new_text} of pending
+            #     in-memory edits that override the per-block strings above.
+            #   - Plugins' save_data_to_json_obj iterate the data read-only,
+            #     so sharing block references with data_store is safe.
+            #
+            # Strategy: for each block, pick the appropriate source block by
+            # reference; only blocks that have pending in-memory edits get a
+            # shallow list(...) copy so we can write the edited strings into
+            # them without mutating data_store. This is O(blocks + edits)
+            # instead of O(all_strings) like copy.deepcopy would be.
+            source_data = self.mw.data_store.data
+            edited_file_data = self.mw.data_store.edited_file_data or []
+            edited_memory = self.mw.data_store.edited_data or {}
 
-            if self.mw.data_store.edited_data:
-                log_debug(f"Applying {len(self.mw.data_store.edited_data)} in-memory edits before saving...", category="file_ops")
-            for (b_idx, s_idx), edited_text_from_memory in self.mw.data_store.edited_data.items():
-                if 0 <= b_idx < len(output_data_list) and isinstance(output_data_list[b_idx], list) and \
-                   0 <= s_idx < len(output_data_list[b_idx]):
-                    output_data_list[b_idx][s_idx] = edited_text_from_memory
+            edits_by_block: Dict[int, Dict[int, str]] = {}
+            for (b_idx, s_idx), edited_text in edited_memory.items():
+                edits_by_block.setdefault(b_idx, {})[s_idx] = edited_text
+
+            output_data_list: List[Any] = []
+            for i in range(len(source_data)):
+                if i < len(edited_file_data) and edited_file_data[i]:
+                    chosen_block = edited_file_data[i]
+                    log_debug(f"Save: block {i} merged from edited_file_data (length {len(chosen_block) if isinstance(chosen_block, list) else 'N/A'})", category="file_ops")
                 else:
-                    log_debug(f"Save: Memory edit for key ({b_idx},{s_idx}) is out of bounds for output_data. Ignored.", category="file_ops")
+                    chosen_block = source_data[i]
+                    log_debug(f"Save: block {i} falling back to original source data (length {len(chosen_block) if isinstance(chosen_block, list) else 'N/A'})", category="file_ops")
+
+                block_edits = edits_by_block.get(i)
+                if block_edits and isinstance(chosen_block, list):
+                    # Shallow copy this block so we can overwrite strings without
+                    # touching data_store. Strings themselves are immutable, so
+                    # this is a single allocation of len(chosen_block) pointers.
+                    materialized = list(chosen_block)
+                    for s_idx, edited_text in block_edits.items():
+                        if 0 <= s_idx < len(materialized):
+                            materialized[s_idx] = edited_text
+                        else:
+                            log_debug(f"Save: Memory edit for key ({i},{s_idx}) is out of bounds for output_data. Ignored.", category="file_ops")
+                    output_data_list.append(materialized)
+                else:
+                    if block_edits:
+                        # Block has pending edits but the chosen source isn't a list
+                        # (corrupt state). Log and drop the edits to mirror old behavior.
+                        for s_idx in block_edits:
+                            log_debug(f"Save: Memory edit for key ({i},{s_idx}) is out of bounds for output_data. Ignored.", category="file_ops")
+                    output_data_list.append(chosen_block)
+
+            if edited_memory:
+                log_debug(f"Applied {len(edited_memory)} in-memory edits to save snapshot ({len(edits_by_block)} blocks materialized).", category="file_ops")
 
             # Check if we are inside a project mode
             is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project

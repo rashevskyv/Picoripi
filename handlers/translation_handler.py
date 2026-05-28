@@ -3,7 +3,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from PyQt5.QtCore import QTimer, Qt, QPoint, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox, QApplication
