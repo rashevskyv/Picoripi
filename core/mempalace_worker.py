@@ -1,10 +1,32 @@
 import json
+import re
 import difflib
 from PyQt5.QtCore import QThread, pyqtSignal
 from typing import List, Dict, Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from utils.logging_utils import log_info, log_error, log_debug
+
+
+def robust_json_loads(text: str) -> dict:
+    """Parse JSON from AI response text, stripping markdown code fences if present."""
+    cleaned = (text or "").strip()
+    # Strip ```json ... ``` or ``` ... ``` blocks
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r'^```[a-zA-Z]*\n?', '', cleaned)
+        cleaned = re.sub(r'```$', '', cleaned).strip()
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        # Last resort: try to find first { ... } block
+        match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+    return {}
+
 
 class MemePalaceWorker(QThread):
     # Signals for UI communication
