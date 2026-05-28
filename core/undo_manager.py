@@ -3,6 +3,7 @@ import zlib
 import pickle
 from dataclasses import dataclass
 from typing import List, Optional, Any
+from PyQt5.QtGui import QTextCursor
 from utils.logging_utils import log_debug
 
 def _compress_any(data: Any) -> Any:

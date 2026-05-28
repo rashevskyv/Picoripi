@@ -10,6 +10,7 @@ from PyQt5.QtGui import (
     QFont,
     QPen,
     QTextDocument,
+    QPalette,
 )
 from PyQt5.QtWidgets import QWidget, QMainWindow
 
@@ -81,7 +82,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         else:
             editor_widget = parent.parent() if parent else None
             if editor_widget and isinstance(editor_widget, QWidget) and hasattr(editor_widget, 'palette'):
-                self.default_text_color = editor_widget.palette().color(editor_widget.foregroundRole())
+                self.default_text_color = editor_widget.palette().color(QPalette.Text)
 
         self.custom_rules = []
         self._compiled_custom_rules_all = []
@@ -214,7 +215,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             self.default_text_color = QColor("#E0E0E0")
         else:
             if editor_widget and hasattr(editor_widget, 'palette'):
-                self.default_text_color = editor_widget.palette().color(editor_widget.foregroundRole())
+                self.default_text_color = editor_widget.palette().color(QPalette.Text)
             else:
                  self.default_text_color = QColor(Qt.black)
         

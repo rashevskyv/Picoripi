@@ -5,4 +5,4 @@ numpy==2.3.3
 pycountry==24.6.1
 requests==2.32.5
 spylls==0.1.7
-Pillow==10.4.0
+Pillow>=10.4.0

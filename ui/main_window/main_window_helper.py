@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtCore import QRect, QProcess
+from PyQt5.QtCore import QRect, QProcess, QPoint
 from utils.logging_utils import log_debug, log_info
 import copy
 from pathlib import Path
@@ -210,9 +210,32 @@ class MainWindowHelper:
         if hasattr(self.mw, 'window_geometry_to_restore') and self.mw.window_geometry_to_restore:
             geom_dict = self.mw.window_geometry_to_restore
             if all(k in geom_dict for k in ('x', 'y', 'width', 'height')):
-                self.mw.setGeometry(geom_dict['x'], geom_dict['y'], geom_dict['width'], geom_dict['height'])
-            if hasattr(self.mw, 'window_was_maximized_at_save') and self.mw.window_was_maximized_at_save:
-                self.mw.showMaximized()
+                desktop = QApplication.desktop()
+                # Determine target screen number
+                screen_idx = desktop.screenNumber(QPoint(geom_dict.get('x', 0), geom_dict.get('y', 0)))
+                if screen_idx == -1:
+                    screen_idx = desktop.primaryScreen()
+                screen_geom = desktop.screenGeometry(screen_idx)
+                
+                # Enforce minimum size, and cap to screen size
+                width = max(min(geom_dict['width'], screen_geom.width()), 800)
+                height = max(min(geom_dict['height'], screen_geom.height()), 600)
+                
+                x = geom_dict['x']
+                y = geom_dict['y']
+                
+                # Keep within screen bounds
+                if x + width > screen_geom.right() or x < screen_geom.left():
+                    x = screen_geom.left() + (screen_geom.width() - width) // 2
+                if y + height > screen_geom.bottom() or y < screen_geom.top():
+                    y = screen_geom.top() + (screen_geom.height() - height) // 2
+                    
+                self.mw.setGeometry(x, y, width, height)
+            else:
+                self.mw.resize(1280, 800)
+        else:
+            self.mw.resize(1280, 800)
+
 
         # Determine which path to auto-open
         path_to_open = getattr(self.mw, 'last_opened_path', "")

@@ -380,11 +380,21 @@ class MainWindowActions:
 
     def open_mempalace_builder(self):
         """Open the MemePalace Context Builder dialog in modeless mode."""
+        try:
+            from PyQt5 import sip
+        except ImportError:
+            import sip
+
         if hasattr(self.mw, 'mempalace_builder_dialog') and self.mw.mempalace_builder_dialog:
-            self.mw.mempalace_builder_dialog.show()
-            self.mw.mempalace_builder_dialog.raise_()
-            self.mw.mempalace_builder_dialog.activateWindow()
-            return
+            try:
+                if not sip.isdeleted(self.mw.mempalace_builder_dialog):
+                    self.mw.mempalace_builder_dialog.show()
+                    self.mw.mempalace_builder_dialog.raise_()
+                    self.mw.mempalace_builder_dialog.activateWindow()
+                    return
+            except (RuntimeError, TypeError, NameError):
+                pass
+            self.mw.mempalace_builder_dialog = None
 
         from ui.mempalace_builder_dialog import MemePalaceBuilderDialog
         dialog = MemePalaceBuilderDialog(self.mw)
@@ -393,11 +403,21 @@ class MainWindowActions:
 
     def open_mempalace_viewer(self):
         """Open the MemePalace Database Viewer dialog."""
+        try:
+            from PyQt5 import sip
+        except ImportError:
+            import sip
+
         if hasattr(self.mw, 'mempalace_viewer_dialog') and self.mw.mempalace_viewer_dialog:
-            self.mw.mempalace_viewer_dialog.show()
-            self.mw.mempalace_viewer_dialog.raise_()
-            self.mw.mempalace_viewer_dialog.activateWindow()
-            return
+            try:
+                if not sip.isdeleted(self.mw.mempalace_viewer_dialog):
+                    self.mw.mempalace_viewer_dialog.show()
+                    self.mw.mempalace_viewer_dialog.raise_()
+                    self.mw.mempalace_viewer_dialog.activateWindow()
+                    return
+            except (RuntimeError, TypeError, NameError):
+                pass
+            self.mw.mempalace_viewer_dialog = None
 
         from ui.mempalace_viewer_dialog import MemePalaceViewerDialog
         dialog = MemePalaceViewerDialog(self.mw)
@@ -437,6 +457,8 @@ class MainWindowActions:
                     self.data_processor = mw.data_processor
                     self.ui_updater = mw.ui_updater
                     self._glossary_manager = getattr(mw, '_glossary_manager', None)
+                def __getattr__(self, name):
+                    return getattr(self.mw, name)
             composer = AIPromptComposer(DummyHandler(self.mw))
             
         story_context = composer._fetch_story_context(block_idx, s_idx, text)

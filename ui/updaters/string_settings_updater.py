@@ -73,42 +73,59 @@ class StringSettingsUpdater(BaseUIUpdater):
             bmg_id = f"{block_label}_Str_{string_idx}"
             
             raw_text = ""
-            if hasattr(self.mw, 'data_processor') and self.mw.data_processor:
-                try:
-                    result = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
-                    if isinstance(result, (tuple, list)) and len(result) >= 2:
-                        raw_text = result[0] or ""
-                    elif isinstance(result, str):
-                        raw_text = result
-                except Exception:
-                    pass
+            try:
+                if hasattr(self.mw, 'data_store') and self.mw.data_store.data:
+                    if 0 <= block_idx < len(self.mw.data_store.data):
+                        block_data = self.mw.data_store.data[block_idx]
+                        if 0 <= string_idx < len(block_data):
+                            raw_text = block_data[string_idx] or ""
+            except Exception:
+                pass
             
             composer = None
             if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
                 composer = getattr(self.mw.translation_handler, 'prompt_composer', None)
                 
-            client = None
-            if composer and hasattr(composer, '_get_mempalace_client'):
-                client = composer._get_mempalace_client()
-            else:
+            if not composer:
                 try:
-                    from core.mempalace_client import MemePalaceClient
-                    project_dir = None
-                    if hasattr(self.mw, "project_manager") and self.mw.project_manager:
-                        project_dir = getattr(self.mw.project_manager, "project_dir", None)
-                    if not project_dir and hasattr(self.mw, "data_store") and self.mw.data_store:
-                        project_file = getattr(self.mw.data_store, "project_file", None)
-                        if project_file and isinstance(project_file, (str, bytes)):
-                            project_dir = os.path.dirname(project_file)
-                    if project_dir and isinstance(project_dir, (str, bytes)):
-                        client = MemePalaceClient(project_dir=project_dir)
+                    from handlers.translation.ai_prompt_composer import AIPromptComposer
+                    class DummyHandler:
+                        def __init__(self, mw):
+                            self.mw = mw
+                            self.data_processor = mw.data_processor
+                            self.ui_updater = mw.ui_updater
+                            self._glossary_manager = getattr(mw, '_glossary_manager', None)
+                        def __getattr__(self, name):
+                            return getattr(self.mw, name)
+                    if not hasattr(self.mw, '_temp_prompt_composer') or self.mw._temp_prompt_composer is None:
+                        self.mw._temp_prompt_composer = AIPromptComposer(DummyHandler(self.mw))
+                    composer = self.mw._temp_prompt_composer
                 except Exception:
                     pass
-                
-            if client:
-                cached_ctx = client.get_cached_context(bmg_id, raw_text)
-                if cached_ctx and cached_ctx.get("speaker"):
-                    speaker_text = f"Speaker: {cached_ctx.get('speaker')}"
+                    
+            if composer:
+                raw_spk = composer._find_speaker_in_script(block_idx, string_idx, raw_text)
+                if raw_spk:
+                    import re
+                    if raw_spk == "NONE":
+                        speaker_text = "Speaker: NONE"
+                        self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
+                    elif re.match(r'^[\d,\s]+$', raw_spk):
+                        self.mw.speaker_label.setToolTip(f"Matching lines in script: {raw_spk}")
+                        lines_list = [num.strip() for num in raw_spk.split(",") if num.strip()]
+                        if len(lines_list) > 4:
+                            displayed_spk = ", ".join(lines_list[:4]) + ", ..."
+                        else:
+                            displayed_spk = ", ".join(lines_list)
+                        speaker_text = f"Speaker: {displayed_spk}"
+                    else:
+                        trans_spk = composer._translate_speaker(raw_spk)
+                        speaker_text = f"Speaker: {trans_spk} ({raw_spk})"
+                        self.mw.speaker_label.setToolTip(f"Speaker: {trans_spk} ({raw_spk})")
+                else:
+                    self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
+            else:
+                self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
             
             self.mw.speaker_label.setText(speaker_text)
 

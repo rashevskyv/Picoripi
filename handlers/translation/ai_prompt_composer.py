@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from .base_translation_handler import BaseTranslationHandler
@@ -12,6 +14,13 @@ from utils.logging_utils import log_debug
 
 class AIPromptComposer(BaseTranslationHandler):
     """Compose prompts for AI translation/variation tasks and manage placeholders."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._script_lines_cache = None
+        self._global_distilled_text_cache = None
+        self._char_to_line_map_cache = None
+        self._cached_script_path = None
 
     # ------------------------------------------------------------------
     # Public API used by translation handler
@@ -70,10 +79,21 @@ class AIPromptComposer(BaseTranslationHandler):
             except ValueError:
                 context_before, context_after = '', ''
 
+            # Fetch story context from MemPalace if available
+            story_context = self._fetch_story_context(block_idx, item_id, current_text)
+
             # Find relevant glossary terms
             relevant_glossary_entries = []
             if glossary_manager:
-                combined_text = '\n'.join([context_before, current_text, context_after])
+                search_parts = [context_before, current_text, context_after]
+                if story_context:
+                    for line in story_context.splitlines():
+                        if line.startswith("Speaker in this line:"):
+                            speaker = line.partition("Speaker in this line:")[2].strip()
+                            if speaker:
+                                search_parts.append(speaker)
+                            break
+                combined_text = '\n'.join(search_parts)
                 relevant_glossary_entries = glossary_manager.get_relevant_terms(combined_text)
 
             item_for_ai = {
@@ -84,8 +104,6 @@ class AIPromptComposer(BaseTranslationHandler):
                 'relevant_glossary': self._glossary_entries_to_text(relevant_glossary_entries)
             }
             
-            # Fetch story context from MemPalace if available
-            story_context = self._fetch_story_context(block_idx, item_id, current_text)
             if story_context:
                 item_for_ai['story_context'] = story_context
                 
@@ -539,87 +557,40 @@ class AIPromptComposer(BaseTranslationHandler):
     def _fetch_story_context(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
         """Query the local SQLite database for visual scene description, character status and timeline info."""
         client = self._get_mempalace_client()
-        if not client:
+        
+        # Helper to try and resolve speaker via script fallback if missing
+        def get_script_speaker_fallback() -> Optional[Tuple[str, str]]:
+            raw_spk = self._find_speaker_in_script(block_idx, s_idx, text)
+            if raw_spk:
+                return raw_spk, self._translate_speaker(raw_spk)
             return None
-            
-        wing_name = self._get_wing_name()
-        block_label = self._get_block_label(block_idx)
-        bmg_id = f"{block_label}_Str_{s_idx}"
-        
-        # 1. Try local in-memory cache first for instant response
-        cached_ctx = client.get_cached_context(bmg_id, text)
-        if cached_ctx:
-            room_name = cached_ctx.get("room")
-            speaker = cached_ctx.get("speaker")
-            timestamp = cached_ctx.get("timestamp") or "Unknown time"
-            visual_ctx = client.get_room_visual_context(wing_name, room_name)
-            
-            context_parts = []
-            clean_room = room_name.replace("_", " ")
-            context_parts.append(f"Story Location/Scene: {clean_room} (Timeline: {timestamp})")
-            
-            if speaker:
-                context_parts.append(f"Speaker in this line: {speaker}")
-                
-            if visual_ctx:
-                context_parts.append(f"Visual Action Context:\n{visual_ctx}")
-            else:
-                context_parts.append("Timeline context mapped successfully (No detailed visual context generated).")
-                
-            # Retrieve relations
-            try:
-                relations = client.get_relations(wing_name)
-                relevant_relations = []
-                if speaker:
-                    speaker_low = speaker.lower()
-                    for r in relations:
-                        if r.get("source", "").lower() == speaker_low or r.get("target", "").lower() == speaker_low:
-                            relevant_relations.append(r)
-                            
-                if not relevant_relations and relations:
-                    room_low = room_name.lower()
-                    for r in relations:
-                        valid_from = r.get("valid_from", "")
-                        if valid_from and valid_from.lower() in room_low:
-                            relevant_relations.append(r)
-                            
-                if relevant_relations:
-                    context_parts.append("\nCharacter Status & Story Relations:")
-                    for r in relevant_relations[:5]:
-                        context_parts.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
-            except Exception as rel_err:
-                log_debug(f"Could not load relations for visual context: {rel_err}")
-                
-            return "\n".join(context_parts)
 
-        # 2. Search database fallback
-        results = client.search_context(wing_name, bmg_id, limit=1)
-        
-        if not results:
-            # Fallback: search by actual text (first 40 characters)
-            query_text = text.strip()[:40]
-            if len(query_text) > 8:
-                results = client.search_context(wing_name, query_text, limit=1)
-                
-        if results:
-            best_match = results[0]
-            room_name = best_match.get("room")
-            if room_name:
-                # Retrieve visual scene context if generated by AI
+        # 1. Try local in-memory cache first for instant response
+        if client:
+            wing_name = self._get_wing_name()
+            block_label = self._get_block_label(block_idx)
+            bmg_id = f"{block_label}_Str_{s_idx}"
+            
+            cached_ctx = client.get_cached_context(bmg_id, text)
+            if cached_ctx:
+                room_name = cached_ctx.get("room")
+                speaker = cached_ctx.get("speaker")
+                timestamp = cached_ctx.get("timestamp") or "Unknown time"
                 visual_ctx = client.get_room_visual_context(wing_name, room_name)
                 
-                # Check metadata for timestamp & speakers
-                meta = best_match.get("metadata") or {}
-                timestamp = meta.get("timestamp") or "Unknown time"
-                speaker_map = meta.get("speaker_map") or {}
-                
-                # Deduce speaker for this row if available
-                speaker = speaker_map.get(bmg_id) or speaker_map.get(f"[{bmg_id}]")
-                
                 context_parts = []
-                # Clean room name for display
                 clean_room = room_name.replace("_", " ")
                 context_parts.append(f"Story Location/Scene: {clean_room} (Timeline: {timestamp})")
+                
+                # If speaker missing in cache, try script fallback
+                if not speaker:
+                    fallback = get_script_speaker_fallback()
+                    if fallback:
+                        raw_spk, trans_spk = fallback
+                        if re.match(r'^[\d,\s]+$', raw_spk):
+                            speaker = f"{raw_spk} [Disk Script]"
+                        else:
+                            speaker = f"{trans_spk} ({raw_spk}) [Disk Script]"
                 
                 if speaker:
                     context_parts.append(f"Speaker in this line: {speaker}")
@@ -628,15 +599,15 @@ class AIPromptComposer(BaseTranslationHandler):
                     context_parts.append(f"Visual Action Context:\n{visual_ctx}")
                 else:
                     context_parts.append("Timeline context mapped successfully (No detailed visual context generated).")
-                
-                # 3. Retrieve character relations from temporal Knowledge Graph
+                    
+                # Retrieve relations
                 try:
                     relations = client.get_relations(wing_name)
                     relevant_relations = []
                     if speaker:
                         speaker_low = speaker.lower()
                         for r in relations:
-                            if r.get("source", "").lower() == speaker_low or r.get("target", "").lower() == speaker_low:
+                            if r.get("source", "").lower() in speaker_low or r.get("target", "").lower() in speaker_low:
                                 relevant_relations.append(r)
                                 
                     if not relevant_relations and relations:
@@ -647,15 +618,453 @@ class AIPromptComposer(BaseTranslationHandler):
                                 relevant_relations.append(r)
                                 
                     if relevant_relations:
-                        rel_lines = ["\nCHARACTER & STORY RELATIONS (Ukrainian Grammar Priority):"]
-                        rel_lines.append("Use these social relations to determine the correct informal ('ти') or formal/respectful ('ви') pronoun and verb endings in Ukrainian:")
-                        for r in relevant_relations:
-                            rel_lines.append(f"• {r['source']} -[{r['relation']}]-> {r['target']}")
-                        context_parts.append("\n".join(rel_lines))
+                        context_parts.append("\nCharacter Status & Story Relations:")
+                        for r in relevant_relations[:5]:
+                            context_parts.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
                 except Exception as rel_err:
-                    import utils.logging_utils
-                    utils.logging_utils.log_error(f"Error gathering relations for prompt: {rel_err}")
-                     
+                    log_debug(f"Could not load relations for visual context: {rel_err}")
+                    
                 return "\n".join(context_parts)
+
+            # 2. Search database fallback
+            results = client.search_context(wing_name, bmg_id, limit=1)
+            
+            if not results:
+                # Fallback: search by actual text (first 40 characters)
+                query_text = text.strip()[:40]
+                if len(query_text) > 8:
+                    results = client.search_context(wing_name, query_text, limit=1)
+                    
+            if results:
+                best_match = results[0]
+                room_name = best_match.get("room")
+                if room_name:
+                    # Retrieve visual scene context if generated by AI
+                    visual_ctx = client.get_room_visual_context(wing_name, room_name)
+                    
+                    # Check metadata for timestamp & speakers
+                    meta = best_match.get("metadata") or {}
+                    timestamp = meta.get("timestamp") or "Unknown time"
+                    speaker_map = meta.get("speaker_map") or {}
+                    
+                    # Deduce speaker for this row if available
+                    speaker = None
+                    content = best_match.get("content") or ""
+                    matched_id_in_content = None
+                    
+                    if content:
+                        # Helper function for tagless text cleaning
+                        def clean_for_compare(t: str) -> str:
+                            if not t:
+                                return ""
+                            t = re.sub(r'\{[^}]+\}', '', t)
+                            t = re.sub(r'\[[^]]+\]', '', t)
+                            return re.sub(r'[^a-zA-Z0-9]', '', t).lower().strip()
+                            
+                        clean_query = clean_for_compare(text)
+                        for line in content.splitlines():
+                            line_id = None
+                            line_text = None
+                            if "ID:" in line and "| Text:" in line:
+                                parts = line.split("| Text:", 1)
+                                line_id = parts[0].replace("ID:", "").strip()
+                                line_text = parts[1].strip()
+                            elif ":" in line:
+                                parts = line.split(":", 1)
+                                line_id = parts[0].strip()
+                                if line_id.startswith("[") and line_id.endswith("]"):
+                                    line_id = line_id[1:-1].strip()
+                                line_text = parts[1].strip()
+                                
+                            if line_id and line_text:
+                                if clean_for_compare(line_text) == clean_query:
+                                    matched_id_in_content = line_id
+                                    break
+                                    
+                    target_bmg_id = matched_id_in_content or bmg_id
+                    speaker = speaker_map.get(target_bmg_id) or speaker_map.get(f"[{target_bmg_id}]")
+                    
+                    # If speaker is missing in SQLite metadata, try disk script fallback
+                    if not speaker:
+                        fallback = get_script_speaker_fallback()
+                        if fallback:
+                            raw_spk, trans_spk = fallback
+                            if re.match(r'^[\d,\s]+$', raw_spk):
+                                speaker = f"{raw_spk} [Disk Script]"
+                            else:
+                                speaker = f"{trans_spk} ({raw_spk}) [Disk Script]"
+                    
+                    context_parts = []
+                    # Clean room name for display
+                    clean_room = room_name.replace("_", " ")
+                    context_parts.append(f"Story Location/Scene: {clean_room} (Timeline: {timestamp})")
+                    
+                    if speaker:
+                        context_parts.append(f"Speaker in this line: {speaker}")
+                        
+                    if visual_ctx:
+                        context_parts.append(f"Visual Action Context:\n{visual_ctx}")
+                    else:
+                        context_parts.append("Timeline context mapped successfully (No detailed visual context generated).")
+                    
+                    # 3. Retrieve character relations from temporal Knowledge Graph
+                    try:
+                        relations = client.get_relations(wing_name)
+                        relevant_relations = []
+                        if speaker:
+                            speaker_low = speaker.lower()
+                            for r in relations:
+                                if r.get("source", "").lower() in speaker_low or r.get("target", "").lower() in speaker_low:
+                                    relevant_relations.append(r)
+                                    
+                        if not relevant_relations and relations:
+                            room_low = room_name.lower()
+                            for r in relations:
+                                valid_from = r.get("valid_from", "")
+                                if valid_from and valid_from.lower() in room_low:
+                                    relevant_relations.append(r)
+                                    
+                        if relevant_relations:
+                            rel_lines = ["\nCHARACTER & STORY RELATIONS (Ukrainian Grammar Priority):"]
+                            rel_lines.append("Use these social relations to determine the correct informal ('ти') or formal/respectful ('ви') pronoun and verb endings in Ukrainian:")
+                            for r in relevant_relations:
+                                rel_lines.append(f"• {r['source']} -[{r['relation']}]-> {r['target']}")
+                            context_parts.append("\n".join(rel_lines))
+                    except Exception as rel_err:
+                        import utils.logging_utils
+                        utils.logging_utils.log_error(f"Error gathering relations for prompt: {rel_err}")
+                         
+                    return "\n".join(context_parts)
+
+        # 3. Absolute Fallback: SQLite completely failed, try Script Fallback to at least extract Speaker
+        fallback = get_script_speaker_fallback()
+        if fallback:
+            raw_spk, trans_spk = fallback
+            context_parts = [
+                "Story Location/Scene: Mapped from Disk Script",
+                f"Speaker in this line: {trans_spk} ({raw_spk}) [Disk Script]",
+                "Timeline: Mapped from script sequence"
+            ]
+            return "\n".join(context_parts)
+            
+        return None
+
+    def _find_script_path(self) -> Optional[str]:
+        """Find the absolute path to the game script file on disk."""
+        import os
+        from pathlib import Path
+        
+        candidates = [
+            r"e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt",
+        ]
+        
+        # Add candidate near DB path
+        client = self._get_mempalace_client()
+        db_path = client.db_path if client else None
+        if db_path:
+            db_dir = os.path.dirname(db_path)
+            candidates.append(os.path.join(db_dir, "zelda_tp_script.txt"))
+            candidates.append(os.path.join(os.path.dirname(db_dir), "zelda_tp_script.txt"))
+            
+        # Add candidate near project directory
+        project_dir = getattr(self, "_mempalace_project_dir", None)
+        if not project_dir and hasattr(self.mw, "project_manager") and self.mw.project_manager and self.mw.project_manager.project:
+            project_dir = self.mw.project_manager.project.project_dir
+            
+        if project_dir:
+            candidates.append(os.path.join(project_dir, "zelda_tp_script.txt"))
+            candidates.append(os.path.join(os.path.dirname(project_dir), "zelda_tp_script.txt"))
+            
+        for path in candidates:
+            if path and os.path.exists(path):
+                return path
+                
+        # Search for any *.txt file containing 'script' on first level of project directory
+        if project_dir and os.path.exists(project_dir):
+            try:
+                for f in os.listdir(project_dir):
+                    if "script" in f.lower() and f.lower().endswith(".txt"):
+                        p = os.path.join(project_dir, f)
+                        if os.path.exists(p):
+                            return p
+            except Exception:
+                pass
                 
         return None
+
+    def _translate_speaker(self, speaker: str) -> str:
+        """Translate the character name using glossary if possible."""
+        if not speaker:
+            return ""
+        glossary_manager = getattr(self.main_handler, '_glossary_manager', None)
+        if not glossary_manager:
+            return speaker
+            
+        for entry in glossary_manager.get_entries():
+            if entry.original.strip().lower() == speaker.strip().lower():
+                trans = entry.translation.split(";")[0].strip()
+                if trans:
+                    return trans
+        return speaker
+
+    def _find_speaker_in_script(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
+        """Find speaker in the script file using middle third distilled matching."""
+        import os
+        import re
+        
+        script_path = self._find_script_path()
+        if not script_path or not os.path.exists(script_path):
+            log_debug("Script Fallback: script file not found.")
+            return None
+            
+        def distill(t: str) -> str:
+            if not t:
+                return ""
+            t = re.sub(r'\{[^}]+\}', '', t)
+            t = re.sub(r'\[[^]]+\]', '', t)
+            return "".join(c for c in t if c.isalnum()).lower()
+
+        # Try to retrieve from In-Memory Script Cache to ensure instant response
+        if (hasattr(self, "_script_lines_cache") and self._script_lines_cache and 
+            hasattr(self, "_global_distilled_text_cache") and self._global_distilled_text_cache and 
+            hasattr(self, "_char_to_line_map_cache") and self._char_to_line_map_cache and 
+            getattr(self, "_cached_script_path", None) == script_path):
+            lines = self._script_lines_cache
+            global_distilled_text = self._global_distilled_text_cache
+            char_to_line_map = self._char_to_line_map_cache
+        else:
+            try:
+                with open(script_path, "r", encoding="cp1252", errors="replace") as f:
+                    lines = f.readlines()
+            except Exception as e:
+                log_debug(f"Script Fallback: failed to load with cp1252, trying utf-8: {e}")
+                try:
+                    with open(script_path, "r", encoding="utf-8", errors="replace") as f:
+                        lines = f.readlines()
+                except Exception as e2:
+                    log_debug(f"Script Fallback: failed to load script file: {e2}")
+                    return None
+            # Populate cache and global mapping
+            self._script_lines_cache = lines
+            
+            global_distilled = []
+            char_to_line_map = []
+            def line_strip_is_speaker(s: str) -> bool:
+                return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s\.\-\']+$', s) is not None
+
+            for idx, line in enumerate(lines):
+                line_strip = line.strip()
+                # Skip action bracket lines or uppercase speaker lines in mapping to avoid false positive speaker triggers
+                if line_strip.startswith("[") and line_strip.endswith("]"):
+                    continue
+                if line_strip_is_speaker(line_strip):
+                    continue
+                    
+                distilled_line = distill(line)
+                if distilled_line:
+                    for _ in range(len(distilled_line)):
+                        char_to_line_map.append(idx + 1) # 1-based line number
+                    global_distilled.append(distilled_line)
+                    
+            self._global_distilled_text_cache = "".join(global_distilled)
+            self._char_to_line_map_cache = char_to_line_map
+            self._cached_script_path = script_path
+            global_distilled_text = self._global_distilled_text_cache
+            log_debug(f"Successfully cached and mapped script file {script_path} ({len(lines)} lines, {len(global_distilled_text)} distilled characters).")
+
+        # Count words in original text
+        words_count = len(re.findall(r'\w+', text))
+        
+        # Distill current text
+        distilled_query = distill(text)
+        if not distilled_query:
+            return "NONE"
+            
+        start_offset = 0
+        if words_count < 4:
+            search_query = distilled_query
+        else:
+            n = len(distilled_query)
+            if n < 3:
+                search_query = distilled_query
+            else:
+                third = n // 3
+                start = third
+                end = n - third
+                search_query = distilled_query[start:end]
+                start_offset = start
+                
+        if not search_query:
+            return "NONE"
+
+        def line_strip_is_speaker(s: str) -> bool:
+            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s\.\-\']+$', s) is not None
+
+        def is_line_boundary(line_str: str) -> bool:
+            s = line_str.strip()
+            if not s:
+                return True
+            if s.startswith("[") and s.endswith("]"):
+                return True
+            if line_strip_is_speaker(s):
+                return True
+            return False
+
+        def get_script_remainder(e_pos: int) -> str:
+            remainder_chars = []
+            prev_line = char_to_line_map[e_pos - 1] if e_pos > 0 else 1
+            for i in range(e_pos, len(global_distilled_text)):
+                curr_line = char_to_line_map[i]
+                if curr_line != prev_line:
+                    break  # Stop at line boundary!
+                remainder_chars.append(global_distilled_text[i])
+            return "".join(remainder_chars)
+
+        def get_prev_script_text(l_num: int) -> str:
+            for idx in range(l_num - 2, -1, -1):
+                line_str = lines[idx].strip()
+                if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):
+                    continue
+                return line_str
+            return ""
+
+        def get_next_script_text(l_num: int) -> str:
+            for idx in range(l_num, len(lines)):
+                line_str = lines[idx].strip()
+                if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):
+                    continue
+                return line_str
+            return ""
+
+        # Get preceding and subsequent BMG strings for context check
+        preceding_strings = []
+        subsequent_strings = []
+        if (hasattr(self.mw, 'data_store') and self.mw.data_store and 
+            block_idx is not None and 0 <= block_idx < len(self.mw.data_store.data)):
+            block_strings = self.mw.data_store.data[block_idx]
+            # Preceding BMG strings
+            for prev_idx in range(max(0, s_idx - 5), s_idx):
+                preceding_strings.append(block_strings[prev_idx])
+            # Subsequent BMG strings
+            for next_idx in range(s_idx + 1, len(block_strings)):
+                subsequent_strings.append(block_strings[next_idx])
+
+        dist_prev_bmg = ""
+        if preceding_strings:
+            for s in reversed(preceding_strings):
+                d_s = distill(s)
+                if d_s:
+                    dist_prev_bmg = d_s
+                    break
+
+        dist_next_bmg = ""
+        if subsequent_strings:
+            for s in subsequent_strings:
+                d_s = distill(s)
+                if d_s:
+                    dist_next_bmg = d_s
+                    break
+            
+        # Search the query in the global distilled text
+        candidates = []
+        start_pos = 0
+        while True:
+            pos = global_distilled_text.find(search_query, start_pos)
+            if pos == -1:
+                break
+            # Translate position back to original line number of the START of the query
+            actual_pos = max(0, pos - start_offset)
+            end_pos = actual_pos + len(distilled_query)
+            
+            # Check if validation is needed: only if the match does NOT end at a line boundary
+            needs_validation = False
+            if end_pos < len(char_to_line_map):
+                if char_to_line_map[end_pos] == char_to_line_map[end_pos - 1]:
+                    needs_validation = True
+            
+            if needs_validation:
+                remainder = get_script_remainder(end_pos)
+                if remainder:
+                    temp_remainder = remainder
+                    match_valid = True
+                    for next_text in subsequent_strings:
+                        dist_next = distill(next_text)
+                        if not dist_next:
+                            continue
+                        if temp_remainder.startswith(dist_next):
+                            temp_remainder = temp_remainder[len(dist_next):]
+                            if not temp_remainder:
+                                break
+                        elif dist_next.startswith(temp_remainder):
+                            temp_remainder = ""
+                            break
+                        else:
+                            match_valid = False
+                            break
+                    
+                    if not match_valid or (temp_remainder and len(temp_remainder) > 0):
+                        start_pos = pos + 1
+                        continue
+            
+            if actual_pos < len(char_to_line_map) and (end_pos - 1) < len(char_to_line_map):
+                line_num = char_to_line_map[actual_pos]
+                L_start = char_to_line_map[actual_pos]
+                L_end = char_to_line_map[end_pos - 1]
+                
+                # 1. Word count diff
+                script_matched_text = " ".join(lines[l - 1].strip() for l in range(L_start, L_end + 1))
+                words_script = len(re.findall(r'\w+', script_matched_text))
+                words_bmg = len(re.findall(r'\w+', text))
+                word_diff = abs(words_script - words_bmg)
+                
+                # 2. Context Match
+                has_prev_match = False
+                if dist_prev_bmg:
+                    prev_script_text = get_prev_script_text(line_num)
+                    dist_prev_script = distill(prev_script_text)
+                    if dist_prev_script:
+                        if dist_prev_bmg in dist_prev_script or dist_prev_script in dist_prev_bmg:
+                            has_prev_match = True
+                            
+                has_next_match = False
+                if dist_next_bmg:
+                    next_script_text = get_next_script_text(line_num)
+                    dist_next_script = distill(next_script_text)
+                    if dist_next_script:
+                        if dist_next_bmg in dist_next_script or dist_next_script in dist_next_bmg:
+                            has_next_match = True
+                            
+                context_level = 0
+                if has_prev_match and has_next_match:
+                    context_level = 2
+                elif has_prev_match or has_next_match:
+                    context_level = 1
+                    
+                candidates.append({
+                    "line_num": line_num,
+                    "context_level": context_level,
+                    "word_diff": word_diff
+                })
+            start_pos = pos + 1
+            
+        if not candidates:
+            return "NONE"
+            
+        # FILTERING HIERARCHY
+        # 1. Keep max context level
+        max_level = max(c["context_level"] for c in candidates)
+        filtered = [c for c in candidates if c["context_level"] == max_level]
+        
+        # 2. Keep min word count diff
+        min_diff = min(c["word_diff"] for c in filtered)
+        final_candidates = [c for c in filtered if c["word_diff"] == min_diff]
+        
+        matched_lines = []
+        for c in final_candidates:
+            if c["line_num"] not in matched_lines:
+                matched_lines.append(c["line_num"])
+                
+        if matched_lines:
+            return ", ".join(str(line_num) for line_num in matched_lines)
+            
+        return "NONE"

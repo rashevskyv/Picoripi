@@ -278,7 +278,8 @@ class PreviewUpdater(BaseUIUpdater):
                 self._lazy_load_timer = QTimer(timer_parent)
                 self._lazy_load_timer.timeout.connect(self._load_next_preview_chunk)
 
-            if self._lazy_load_timer.isActive():
+            should_regenerate = block_changed or displayed_indices_changed or force
+            if should_regenerate and self._lazy_load_timer.isActive():
                 self._lazy_load_timer.stop()
 
             # Map current_string_idx to preview index if possible
@@ -294,7 +295,7 @@ class PreviewUpdater(BaseUIUpdater):
             preview_edit.updateLineNumberAreaWidth(0)
 
             # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
-            if block_changed or displayed_indices_changed or force:
+            if should_regenerate:
                 cache_key = (block_idx, category_name)
                 if force and cache_key in self._preview_cache:
                     del self._preview_cache[cache_key]
@@ -381,70 +382,77 @@ class PreviewUpdater(BaseUIUpdater):
         self.mw.is_programmatically_changing_text = _saved_programmatic_flag
 
     def _load_next_preview_chunk(self):
+        from utils.logging_utils import log_info, log_error
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit or not hasattr(self, '_lazy_load_next_index') or not hasattr(self, '_lazy_load_target_indices'):
             if hasattr(self, '_lazy_load_timer'):
                 self._lazy_load_timer.stop()
             return
 
-        block_idx = self._lazy_load_block_idx
-        target_indices = self._lazy_load_target_indices
-        start_idx = self._lazy_load_next_index
-        end_idx = min(start_idx + 500, len(target_indices))
-        
-        if start_idx >= len(target_indices):
-            self._lazy_load_timer.stop()
-            return
-            
-        chunk_indices = target_indices[start_idx:end_idx]
-        preview_lines = []
-        for real_idx in chunk_indices:
-            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-            preview_lines.append(preview_line_text)
-            
-        _saved_programmatic_flag = self.mw.is_programmatically_changing_text
-        self.mw.is_programmatically_changing_text = True
-        
         try:
-            cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
-            cache = self._preview_cache.get(cache_key)
+            block_idx = self._lazy_load_block_idx
+            target_indices = self._lazy_load_target_indices
+            start_idx = self._lazy_load_next_index
+            end_idx = min(start_idx + 500, len(target_indices))
             
-            doc = preview_edit.document()
-            cursor = QTextCursor(doc)
-            cursor.beginEditBlock()
-            for offset, preview_line_text in enumerate(preview_lines):
-                line_idx = start_idx + offset
-                if cache and line_idx < len(cache['lines']):
-                    cache['lines'][line_idx] = preview_line_text
+            if start_idx >= len(target_indices):
+                self._lazy_load_timer.stop()
+                return
                 
-                block = doc.findBlockByNumber(line_idx)
-                if block.isValid():
-                    cursor.setPosition(block.position())
-                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
-                    cursor.insertText(preview_line_text)
-            cursor.endEditBlock()
+            chunk_indices = target_indices[start_idx:end_idx]
+            preview_lines = []
+            for real_idx in chunk_indices:
+                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                preview_lines.append(preview_line_text)
+                
+            _saved_programmatic_flag = self.mw.is_programmatically_changing_text
+            self.mw.is_programmatically_changing_text = True
             
-            if cache:
-                cache['next_index'] = end_idx
-        finally:
-            self.mw.is_programmatically_changing_text = _saved_programmatic_flag
+            try:
+                cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                cache = self._preview_cache.get(cache_key)
+                
+                doc = preview_edit.document()
+                cursor = QTextCursor(doc)
+                cursor.beginEditBlock()
+                for offset, preview_line_text in enumerate(preview_lines):
+                    line_idx = start_idx + offset
+                    if cache and line_idx < len(cache['lines']):
+                        cache['lines'][line_idx] = preview_line_text
+                    
+                    block = doc.findBlockByNumber(line_idx)
+                    if block.isValid():
+                        cursor.setPosition(block.position())
+                        cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                        cursor.insertText(preview_line_text)
+                cursor.endEditBlock()
+                
+                if cache:
+                    cache['next_index'] = end_idx
+            finally:
+                self.mw.is_programmatically_changing_text = _saved_programmatic_flag
+                
+            self._lazy_load_next_index = end_idx
             
-        self._lazy_load_next_index = end_idx
-        
-        self._apply_highlights_for_block(block_idx)
-        
-        preview_idx_to_select = -1
-        if self.mw.data_store.current_string_idx in target_indices:
-            preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+            self._apply_highlights_for_block(block_idx)
+            
+            preview_idx_to_select = -1
+            if self.mw.data_store.current_string_idx in target_indices:
+                preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
 
-        if preview_idx_to_select != -1 and \
-           hasattr(preview_edit, 'set_selected_lines') and \
-           0 <= preview_idx_to_select < preview_edit.document().blockCount():
-            preview_edit.set_selected_lines([preview_idx_to_select])
-            
-        if end_idx >= len(target_indices):
-            self._lazy_load_timer.stop()
+            if preview_idx_to_select != -1 and \
+               hasattr(preview_edit, 'set_selected_lines') and \
+               0 <= preview_idx_to_select < preview_edit.document().blockCount():
+                preview_edit.set_selected_lines([preview_idx_to_select])
+                
+            if end_idx >= len(target_indices):
+                self._lazy_load_timer.stop()
+                
+        except Exception as ex:
+            log_error(f"Error in _load_next_preview_chunk: {ex}", exc_info=True)
+            if hasattr(self, '_lazy_load_timer'):
+                self._lazy_load_timer.stop()
 
     def update_text_views(self): 
         if getattr(self, '_in_update_text_views', False):
