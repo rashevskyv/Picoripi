@@ -418,17 +418,9 @@ class BfnCore:
             - total width of text block
             - total height of text block
         """
-        # Safety check for mock objects in tests
-        try:
-            from unittest.mock import Mock
-            if isinstance(line_spacing, Mock):
-                line_spacing = 10
-        except ImportError:
-            pass
-            
         try:
             line_spacing = int(line_spacing)
-        except Exception:
+        except (TypeError, ValueError):
             line_spacing = 10
 
         glyphs_layout = []
