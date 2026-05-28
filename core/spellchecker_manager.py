@@ -29,6 +29,12 @@ class SpellcheckWorker(QObject):
     @pyqtSlot()
     def process_queue(self):
         while self._is_running:
+            # Cooperative cancellation: honor QThread.requestInterruption() so
+            # that test teardown / app shutdown can stop us without relying on
+            # SpellcheckerManager.__del__ firing in time.
+            cur_thread = QThread.currentThread()
+            if cur_thread is not None and cur_thread.isInterruptionRequested():
+                break
             if self._queue:
                 batch_size = min(len(self._queue), 20)
                 results_spell = {}

@@ -1,7 +1,7 @@
 import json
 import difflib
 from PyQt5.QtCore import QThread, pyqtSignal
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from utils.logging_utils import log_info, log_error, log_debug

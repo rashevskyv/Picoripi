@@ -737,8 +737,13 @@ def test_bfn_editor_window_copy_paste_chain(mock_clipboard, qapp, dummy_bfn_byte
     
     assert editor.translation_map.get("P") == "A"
     assert editor.translation_map.get("Q") == "B"
-    
+
     editor.clear_temp()
+    # The editor is dirty at this point (we just modified the translation map),
+    # so closeEvent would normally pop a modal "Unsaved changes?" QMessageBox
+    # that hangs forever under xvfb. Clear the dirty flag so close() exits
+    # cleanly without prompting.
+    editor._dirty = False
     editor.close()
 
 

@@ -12,15 +12,12 @@ class BlockListUpdater(BaseUIUpdater):
             block_map = getattr(self.mw, 'block_to_project_file_map', {})
             proj_b_idx = block_map.get(block_idx, block_idx)
             try:
-                from unittest.mock import Mock
-                if (isinstance(proj_b_idx, int) and 
-                    not isinstance(pm.project, Mock) and 
-                    not isinstance(pm.project.blocks, Mock) and 
+                if (isinstance(proj_b_idx, int) and
                     isinstance(pm.project.blocks, list) and
                     proj_b_idx < len(pm.project.blocks)):
-                    
+
                     block = pm.project.blocks[proj_b_idx]
-                    if block and not isinstance(block, Mock):
+                    if block is not None and isinstance(getattr(block, 'metadata', None), dict):
                         is_archive = block.metadata.get('is_archive_member', False)
                         if is_archive:
                             orig_filename = block.metadata.get('archive_file_name') or Path(block.source_file).name
