@@ -75,12 +75,24 @@ class MemePalaceClient:
                 # 2. Extract dialogue lines and map to texts
                 if content:
                     for line in content.splitlines():
-                        if ":" in line:
+                        line_id = None
+                        line_text = None
+                        
+                        # Format A: "ID: BMG_Str_12 | Text: In the kingdom..."
+                        if "ID:" in line and "| Text:" in line:
+                            parts = line.split("| Text:", 1)
+                            line_id = parts[0].replace("ID:", "").strip()
+                            line_text = parts[1].strip()
+                        # Format B: "[BMG_Str_12]: In the kingdom..."
+                        elif ":" in line:
                             parts = line.split(":", 1)
                             line_id = parts[0].strip()
+                            if line_id.startswith("[") and line_id.endswith("]"):
+                                line_id = line_id[1:-1].strip()
                             line_text = parts[1].strip()
-                            clean_text = line_text.lower().strip()
                             
+                        if line_id and line_text:
+                            clean_text = line_text.lower().strip()
                             speaker = speaker_map.get(line_id) or speaker_map.get(f"[{line_id}]")
                             
                             ctx_info = {
@@ -90,7 +102,7 @@ class MemePalaceClient:
                                 "metadata": meta,
                                 "content": content
                             }
-                            if line_id and line_id not in self._bmg_to_context:
+                            if line_id not in self._bmg_to_context:
                                 self._bmg_to_context[line_id] = ctx_info
                                 self._bmg_to_context[f"[{line_id}]"] = ctx_info
                                 

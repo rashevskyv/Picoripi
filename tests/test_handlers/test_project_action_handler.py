@@ -159,15 +159,13 @@ def test_ProjectActionHandler_delete_block_action(mock_msg_box, mock_mw):
     mock_mw.project_manager.save.assert_called_once()
     h._populate_blocks_from_project.assert_called_once()
 
-def test_ProjectActionHandler_move_block_up_action(mock_mw):
+def test_ProjectActionHandler_move_block_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    h.move_block_up_action()
-    mock_mw.block_list_widget.move_current_item_up.assert_called_once()
-
-def test_ProjectActionHandler_move_block_down_action(mock_mw):
-    h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    h.move_block_down_action()
-    mock_mw.block_list_widget.move_current_item_down.assert_called_once()
+    h.move_block_action(-1)
+    mock_mw.block_list_widget.move_current_item.assert_called_with(-1)
+    
+    h.move_block_action(1)
+    mock_mw.block_list_widget.move_current_item.assert_called_with(1)
 
 def test_ProjectActionHandler_add_folder_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)

@@ -1,5 +1,3 @@
-# --- START OF FILE components/editor/paint_handlers.py ---
-# --- START OF FILE components/LNET_paint_handlers.py ---
 from PyQt5.QtGui import QPainter, QColor, QFontMetrics, QTextBlock, QPaintEvent
 from PyQt5.QtCore import Qt, QRectF
 from typing import Optional

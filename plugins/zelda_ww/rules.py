@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_ww/rules.py ---
 import os
 import re
 from typing import Any, Tuple, Dict, List, Set, Optional

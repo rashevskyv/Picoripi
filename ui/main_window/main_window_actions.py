@@ -1,5 +1,3 @@
-# --- START OF FILE ui/main_window/main_window_actions.py ---
-# --- START OF FILE main_window_actions.py ---
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
@@ -381,10 +379,17 @@ class MainWindowActions:
     # ------------------------------------------------------------------
 
     def open_mempalace_builder(self):
-        """Open the MemePalace Context Builder dialog."""
+        """Open the MemePalace Context Builder dialog in modeless mode."""
+        if hasattr(self.mw, 'mempalace_builder_dialog') and self.mw.mempalace_builder_dialog:
+            self.mw.mempalace_builder_dialog.show()
+            self.mw.mempalace_builder_dialog.raise_()
+            self.mw.mempalace_builder_dialog.activateWindow()
+            return
+
         from ui.mempalace_builder_dialog import MemePalaceBuilderDialog
         dialog = MemePalaceBuilderDialog(self.mw)
-        dialog.exec_()
+        self.mw.mempalace_builder_dialog = dialog
+        dialog.show()
 
     def open_mempalace_viewer(self):
         """Open the MemePalace Database Viewer dialog."""

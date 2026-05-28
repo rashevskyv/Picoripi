@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/pokemon_fr/config.py ---
 from PyQt5.QtGui import QColor
 
 P_NEWLINE_MARKER = "▶"

@@ -1,4 +1,3 @@
-# --- START OF FILE components/original_text_analysis_dialog.py ---
 # -*- coding: utf-8 -*-
 """Interactive dialog for analysing original text width."""
 from __future__ import annotations

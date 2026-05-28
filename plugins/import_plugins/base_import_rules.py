@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/import_plugins/base_import_rules.py ---
 from typing import List, Tuple, Dict, Optional
 from plugins.base_game_rules import BaseGameRules 
 # from utils.logging_utils import log_debug # Якщо буде логування в apply_mappings_to_text

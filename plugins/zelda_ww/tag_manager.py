@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_ww/tag_manager.py ---
 import re
 from typing import Optional, Set, List, Tuple
 from PyQt5.QtGui import QTextCharFormat, QColor, QFont

@@ -1,5 +1,28 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.121-dev] - 2026-05-28
+
+### Added
+- **Hybrid Default Fallback & On-Demand Materialization for Plugins**: Implemented an intelligent default filesystem architecture for game plugins. Shared baseline presets (`font_map.json` and `prompts.json`) are stored inside `plugins/common/defaults/` to keep the repository extremely clean. Subsystems (`FontMapLoader`, `GlossaryPromptManager`, `MemePalaceScriptAnalyzerWorker`) automatically fallback to these defaults when plugin files are missing.
+- **On-Demand Auto-Creation (Materialization on Edit)**: Added automatic local file creation inside the target plugin's directory (`plugins/{plugin_name}/translation_prompts/prompts.json`) when a user edits prompts via the GUI (`save_prompt_section`) or triggers manual on-disk editing via the "Edit Prompts" settings button. This provides local-specific customization seamlessly on-the-fly.
+- **CPU-Efficient Background Spellchecking**: Replaced the performance-intensive busy-loop with `time.sleep(0.05)` inside `SpellcheckWorker` with a high-efficiency `threading.Event()` wait condition mechanism. This completely eliminates idle CPU overhead and instantly wakes up the checker thread when a new word is enqueued.
+
+### Changed
+- **Type-Safe Programmatic Text State**: Replaced raw boolean flag assignments `self.mw.is_programmatically_changing_text = True/False` inside `TranslationUIHandler` with the robust `StateManager` context manager: `with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):`. This prevents state corruption or locks in case of unhandled event exceptions.
+- **Clean Project Dialogs Imports**: Moved `import json` from inside the `_scan_plugins` loop to the top of `components/project_dialogs.py` adhering to PEP 8 standards.
+- **Removed Dead Comments**: Deleted the obsolete `TODO: Add recent projects list here` block inside `OpenProjectDialog` to clean up source clutter.
+- **Version Release Synchronization**: Bumped the version across all project resources (`utils/constants.py`, `README.md`, `GEMINI.md`, `CHANGELOG.md`) to `v0.2.121-dev`.
+
+## [0.2.120-dev] - 2026-05-27
+
+### Added
+- **AI Script Analyzer Glossary Integration**: Integrated the MemePalace AI Script Pre-Analyzer with the Picoripi Glossary system (`GlossaryManager`). The analyzer now automatically extracts characters with inflected properties (gender, age group, relationships, informal/formal/respectful address types) and gameplay items/locations/terminology.
+- **Smart Glossary Synthesis & Name Translation**: Implemented dynamic AI notes synthesis for existing glossary entries, preserving their translation unchanged, and automatic natural Ukrainian translation generation and structured description writing for new terms.
+- **Real-time Glossary Highlight Synchronization**: Added automatic glossary reloading from disk, cache synchronization, and real-time syntax highlighter refresh in editors upon successful AI script pre-analysis.
+- **Modeless MemePalace Context Builder**: Converted the MemePalace Context Builder dialog to a modeless window (`dialog.show()`), allowing users to freely edit text, navigate blocks, and use the main Picoripi interface concurrently during script-to-timeline context weaving.
+- **Dynamic Context Builder Instance Management**: Implemented automatic window focus restoration (`raise_()`, `activateWindow()`) on already open dialog instances, preventing duplicate window spawn, and added clean resource deletion (`WA_DeleteOnClose`) on close.
+- **MemePalace Weaving Accuracy Improvements**: Integrated a substring-based matching algorithm that searches the entire BMG database, cuts dynamic names (`Link`, `Epona`) for perfect char alignment, and uses context-aware look-ahead expansions to resolve duplicates.
+
 ## [0.2.119] - 2026-05-27
 
 ### Changed

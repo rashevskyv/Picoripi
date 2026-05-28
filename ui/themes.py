@@ -1,4 +1,3 @@
-# --- START OF FILE ui/themes.py ---
 DARK_THEME_STYLESHEET = """
 QWidget {
     background-color: #2E2E2E;

@@ -1,4 +1,3 @@
-# --- START OF FILE ui/settings_dialog.py ---
 # /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 from pathlib import Path
 import json
@@ -489,25 +488,40 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
     def on_edit_prompts_clicked(self):
         plugin_name = self.plugin_combo.currentData()
-        prompts_path = None
-        if hasattr(self.mw, 'translation_handler') and hasattr(self.mw.translation_handler, 'glossary_handler'):
-            prompts_path = self.mw.translation_handler.glossary_handler._prompt_manager._resolve_file("prompts.json", plugin_name)
-        
-        if not prompts_path:
-            # Fallback if resolving failed
-            from pathlib import Path
-            candidates = [
-                Path("plugins", plugin_name, "translation_prompts", "prompts.json") if plugin_name else None,
-                Path("translation_prompts", "prompts.json")
-            ]
-            prompts_path = next((p for p in candidates if p and p.exists()), None)
+        if not plugin_name:
+            QMessageBox.warning(self, "Edit Prompts", "Please select a plugin first.")
+            return
 
-        if prompts_path:
+        plugin_prompts_path = Path("plugins", plugin_name, "translation_prompts", "prompts.json")
+        
+        # If local prompts.json doesn't exist, materialize it on-demand
+        if not plugin_prompts_path.exists():
+            fallback_path = None
+            if hasattr(self.mw, 'translation_handler') and hasattr(self.mw.translation_handler, 'glossary_handler'):
+                fallback_path = self.mw.translation_handler.glossary_handler._prompt_manager._resolve_file("prompts.json", plugin_name)
+            
+            if not fallback_path:
+                candidates = [
+                    Path("plugins", "common", "defaults", "prompts.json"),
+                    Path("translation_prompts", "prompts.json")
+                ]
+                fallback_path = next((p for p in candidates if p and p.exists()), None)
+            
+            if fallback_path and fallback_path.exists():
+                try:
+                    plugin_prompts_path.parent.mkdir(parents=True, exist_ok=True)
+                    import shutil
+                    shutil.copy2(fallback_path, plugin_prompts_path)
+                    log_debug(f"Materialized local prompts.json for plugin '{plugin_name}' from {fallback_path}")
+                except Exception as e:
+                    log_debug(f"Failed to materialize local prompts.json: {e}")
+        
+        if plugin_prompts_path.exists():
             from PyQt5.QtGui import QDesktopServices
             from PyQt5.QtCore import QUrl
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(prompts_path.resolve())))
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(plugin_prompts_path.resolve())))
         else:
-            QMessageBox.warning(self, "Edit Prompts", "Could not find prompts.json file.")
+            QMessageBox.warning(self, "Edit Prompts", "Could not find or create prompts.json file.")
 
     def on_test_provider_clicked(self):
         settings = self.get_settings()

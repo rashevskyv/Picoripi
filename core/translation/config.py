@@ -1,4 +1,3 @@
-# --- START OF FILE core/translation/config.py ---
 
 from typing import Dict
 

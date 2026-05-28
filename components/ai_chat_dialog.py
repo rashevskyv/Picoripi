@@ -1,4 +1,3 @@
-# --- START OF FILE components/ai_chat_dialog.py ---
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QTabWidget, QWidget, QTextBrowser,
     QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QDialogButtonBox,

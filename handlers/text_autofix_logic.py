@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/text_autofix_logic.py ---
 import re
 from typing import Any, List, Optional, Tuple, Dict, Set
 from PyQt5.QtWidgets import QMessageBox

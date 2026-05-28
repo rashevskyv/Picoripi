@@ -1,4 +1,3 @@
-# --- START OF FILE tests/test_data_manager.py ---
 """
 Tests for core/data_manager.py — JSON/text file loading and saving.
 These tests act as a safety net for refactoring Issue #9 (removing QMessageBox from core).

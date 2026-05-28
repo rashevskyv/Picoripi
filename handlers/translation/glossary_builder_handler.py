@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/translation/glossary_builder_handler.py ---
 # D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
 import json
 from typing import Dict, List, Optional

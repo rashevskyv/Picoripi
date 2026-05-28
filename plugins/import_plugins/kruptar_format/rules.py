@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/import_plugins/kruptar_format/rules.py ---
 from typing import List, Tuple, Dict, Optional
 import re
 from ..base_import_rules import BaseImportRules, TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS, TAG_STATUS_WARNING

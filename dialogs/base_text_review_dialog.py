@@ -1,4 +1,3 @@
-# --- START OF FILE dialogs/base_text_review_dialog.py ---
 # Base class for specialized text review dialogs (Spellcheck, Search, Glossary)
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QSplitter, QDialogButtonBox, QWidget, QApplication)

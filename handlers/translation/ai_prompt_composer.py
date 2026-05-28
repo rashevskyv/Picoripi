@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/translation/ai_prompt_composer.py ---
 from __future__ import annotations
 
 import json
@@ -659,4 +658,4 @@ class AIPromptComposer(BaseTranslationHandler):
                      
                 return "\n".join(context_parts)
                 
-        return None
+        return None

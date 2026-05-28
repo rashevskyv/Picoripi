@@ -1,4 +1,3 @@
-# --- START OF FILE components/project_dialogs.py ---
 # components/project_dialogs.py
 """
 Dialog windows for project management:
@@ -7,6 +6,7 @@ Dialog windows for project management:
 - ImportBlockDialog: Import a new block into the project
 """
 
+import json
 from pathlib import Path
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -159,7 +159,6 @@ class NewProjectDialog(QDialog):
 
             if item_path.is_dir() and config_path.exists():
                 try:
-                    import json
                     with open(config_path, 'r', encoding='utf-8') as f:
                         config_data = json.load(f)
                     display_name = config_data.get("display_name", item_path.name)
@@ -383,10 +382,6 @@ class OpenProjectDialog(QDialog):
         path_layout.addWidget(browse_file_button)
 
         layout.addLayout(path_layout)
-
-        # TODO: Add recent projects list here
-        # recent_group = QGroupBox("Recent Projects", self)
-        # ...
 
         layout.addStretch()
 

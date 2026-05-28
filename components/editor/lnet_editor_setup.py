@@ -1,4 +1,3 @@
-# --- START OF FILE components/editor/lnet_editor_setup.py ---
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QMenu
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt

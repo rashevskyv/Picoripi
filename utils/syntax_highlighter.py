@@ -1,4 +1,3 @@
-# --- START OF FILE utils/syntax_highlighter.py ---
 import sys
 import re
 from typing import Dict, Iterable, List, Optional, Tuple

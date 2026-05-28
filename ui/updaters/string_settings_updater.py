@@ -1,4 +1,3 @@
-# --- START OF FILE ui/updaters/string_settings_updater.py ---
 from pathlib import Path
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtGui import QColor, QPalette

@@ -1,4 +1,3 @@
-# --- START OF FILE tests/test_utils.py ---
 """
 Tests for utils/utils.py — string width calculation, tag removal, fuzzy match, space/dot conversion.
 Safety net for refactoring: Issue #5 (plugin markers), Issue #11 (pathlib migration).

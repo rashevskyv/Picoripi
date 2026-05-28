@@ -8,5 +8,27 @@
   "glossary_occurrence_update": {
     "system_prompt": "You are an assistant updating Ukrainian translations after a glossary term has changed. Preserve all tags, placeholder tokens (e.g., __TAG_0__), whitespace, and line structure exactly as provided. Never wrap responses in code fences or add commentary.",
     "user_prompt_template": "Original text (keep formatting):\n{text}\n\nTerm: {term}\nOld translation: {old_translation}\nNew translation: {new_translation}\n\nReturn JSON only: {\\\"translation\\\": \\\"...\\\"}. The updated translation must keep the same number of lines as the input and leave every placeholder token untouched."
+  },
+  "mempalace": {
+    "_comment": [
+      "=== MEMEPALACE AI PROMPTS CONFIGURATION ===",
+      "This section configures the prompts used by the MemePalace Context Weaver (AI Script Pre-Analyzer).",
+      "All prompts here support per-plugin translations and customizations.",
+      "The following dynamic placeholders are supported and will be substituted at runtime:",
+      "  {target_lang}      - The target language for the translation (e.g., 'Ukrainian')",
+      "  {script_segment}   - A 500-line chunk of the script text used during term mining (Mining)",
+      "  {term_name}        - The name of the character/term being processed (Synthesis/New Term)",
+      "  {existing_notes}   - Pre-existing glossary notes for the term (Synthesis)",
+      "  {details}          - AI-mined relationship, gender, age, and context details (Synthesis/New Term)",
+      "",
+      "If any prompt is missing or set to null, the high-quality built-in Ukrainian fallback prompts will be used.",
+      "To customize, uncomment/add the corresponding fields below:"
+    ],
+    "mining_system_prompt": null,
+    "mining_user_prompt": null,
+    "synthesis_system_prompt": null,
+    "synthesis_user_prompt": null,
+    "new_term_system_prompt": null,
+    "new_term_user_prompt": null
   }
 }

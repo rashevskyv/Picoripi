@@ -1,4 +1,3 @@
-# --- START OF FILE tests/test_glossary_manager.py ---
 """
 Tests for core/glossary_manager.py — glossary loading, matching, CRUD.
 Safety net for refactoring: TranslationHandler split (Issue #3).

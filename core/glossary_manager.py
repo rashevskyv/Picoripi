@@ -1,4 +1,3 @@
-# --- START OF FILE core/glossary_manager.py ---
 """Glossary management helpers: loading, caching, and pattern matching."""
 from __future__ import annotations
 

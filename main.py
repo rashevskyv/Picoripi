@@ -1,4 +1,3 @@
-# --- START OF FILE main.py ---
 import sys
 import json
 import re
@@ -460,35 +459,18 @@ class MainWindow(QMainWindow):
         # delta usually comes from wheel event as 120 (one notch)
         step = 1 if delta > 0 else -1
         
-        updated = False
-        if target == 'tree':
-            old = self.tree_font_size
-            new = max(5, min(72, old + step))
-            if new != old:
-                self.tree_font_size = new
-                updated = True
-        elif target == 'preview':
-            old = self.preview_font_size
-            new = max(5, min(72, old + step))
-            if new != old:
-                self.preview_font_size = new
-                updated = True
-        elif target == 'editors':
-            old = self.editors_font_size
-            new = max(5, min(72, old + step))
-            if new != old:
-                self.editors_font_size = new
-                updated = True
-        else: # 'all' - for backward compatibility or global zoom if needed
-            old = self.current_font_size
-            new = max(5, min(72, old + step))
-            if new != old:
-                self.current_font_size = new
-                # Also update independents to match? 
-                # For now let's just update the target specifically.
-                updated = True
+        targets = {
+            'tree': 'tree_font_size',
+            'preview': 'preview_font_size',
+            'editors': 'editors_font_size',
+            'all': 'current_font_size'
+        }
         
-        if updated:
+        attr = targets.get(target, 'current_font_size')
+        old = getattr(self, attr)
+        new = max(5, min(72, old + step))
+        if new != old:
+            setattr(self, attr, new)
             self.ui_handler.apply_font_size(fast=True, target=target)
 
 

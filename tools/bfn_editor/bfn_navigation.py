@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import os
 from tools.bfn_editor.bfn_widgets import FillRangeDialog
 from tools.bfn_editor.bfn_commands import EditMetricsCommand, EditMapCommand, BatchMappingCommand
+from utils.logging_utils import log_info, log_error
 
 class BfnNavigationMixin:
     def populate_glyph_table(self):
@@ -499,7 +500,7 @@ class BfnNavigationMixin:
                     try:
                         self.save_changes(silent=True)
                     except Exception as _e:
-                        print(f"BFN Editor: Failed to auto-save BFN after empty glyph registration: {_e}")
+                        log_error(f"BFN Editor: Failed to auto-save BFN after empty glyph registration: {_e}")
                 
                 # 6. Refresh UI
                 self.table_glyphs.blockSignals(False)
@@ -565,7 +566,7 @@ class BfnNavigationMixin:
                 except ValueError:
                     pass
         except Exception as e:
-            print(f"Error updating table metadata: {e}")
+            log_error(f"Error updating table metadata: {e}")
             
         self.table_glyphs.blockSignals(False)
 
@@ -655,7 +656,7 @@ class BfnNavigationMixin:
                             migrated_map[virtual_char] = orig_char
                             needs_save = True
                         except Exception as e:
-                            print(f"Failed to migrate synthetic key {synthetic_key}: {e}")
+                            log_error(f"Failed to migrate synthetic key {synthetic_key}: {e}")
                     else:
                         # Keep normal entries as-is
                         migrated_map[k] = v
@@ -682,7 +683,7 @@ class BfnNavigationMixin:
                                         v = chr(physical_code)
                                         needs_save = True
                             except Exception as e:
-                                print(f"Failed to heal control character code {char_code} for glyph {glyph_idx}: {e}")
+                                log_error(f"Failed to heal control character code {char_code} for glyph {glyph_idx}: {e}")
                     healed_map[k] = v
                     
                 # Load healed entries
@@ -762,9 +763,9 @@ class BfnNavigationMixin:
                             registered_codes.add(phys_code)
                             mapped_glyphs.add(empty_glyph)
                             orphan_codes_found = True
-                            print(f"BFN Editor: Re-registered orphan code {phys_code} ('{virtual_char}') to glyph {empty_glyph}")
+                            log_info(f"BFN Editor: Re-registered orphan code {phys_code} ('{virtual_char}') to glyph {empty_glyph}")
                         except StopIteration:
-                            print(f"BFN Editor: No empty glyphs left to re-register code {phys_code} ('{virtual_char}')")
+                            log_error(f"BFN Editor: No empty glyphs left to re-register code {phys_code} ('{virtual_char}')")
                 
                 if orphan_codes_found:
                     needs_save = True
@@ -776,11 +777,11 @@ class BfnNavigationMixin:
                     try:
                         self.save_changes(silent=True)
                     except Exception as e:
-                        print(f"Failed to auto-save BFN font during migration: {e}")
+                        log_error(f"Failed to auto-save BFN font during migration: {e}")
                     
-                print(f"BFN Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
+                log_info(f"BFN Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
         except Exception as e:
-            print(f"Failed to load translation map: {e}")
+            log_error(f"Failed to load translation map: {e}")
 
 
     def save_translation_map(self):
@@ -807,7 +808,7 @@ class BfnNavigationMixin:
                     json.dump(clean_map, f, indent=4, ensure_ascii=False)
                 self.status.showMessage(f"Updated translation_map.json with {len(clean_map)} characters!")
         except Exception as e:
-            print(f"Failed to save translation map: {e}")
+            log_error(f"Failed to save translation map: {e}")
 
     def get_next_free_char_code(self, temp_translation_map=None):
         used_codes = set()

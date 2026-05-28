@@ -46,6 +46,7 @@ class GlossaryPromptManager:
     def _resolve_file(self, filename: str, plugin_name: Optional[str]) -> Optional[Path]:
         candidates = [
             self._plugin_dir(plugin_name) and self._plugin_dir(plugin_name) / filename,
+            Path("plugins", "common", "defaults") / filename,
             self._fallback_dir() / filename,
         ]
         return next((p for p in candidates if p and p.exists()), None)
@@ -154,15 +155,35 @@ class GlossaryPromptManager:
 
     def save_prompt_section(self, section: str, field: str, value: str) -> bool:
         """Persists one field of prompts.json and updates local caches."""
-        path = self.current_prompts_path
-        if not path:
+        plugin_name = getattr(self._mw, "active_game_plugin", None)
+        if not plugin_name:
             return False
+
+        plugin_dir = self._plugin_dir(plugin_name)
+        if not plugin_dir:
+            return False
+        
+        target_path = plugin_dir / "prompts.json"
+
+        # If local prompts.json doesn't exist, materialize it from defaults
+        if not target_path.exists():
+            current_resolved = self._resolve_file("prompts.json", plugin_name)
+            if current_resolved and current_resolved.exists():
+                try:
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    import shutil
+                    shutil.copy2(current_resolved, target_path)
+                    log_debug(f"Copied default prompts to {target_path} for on-demand writing.")
+                except Exception as exc:
+                    log_debug(f"Failed to copy default prompts to {target_path}: {exc}")
+
         try:
-            data: Dict = json.loads(path.read_text("utf-8")) if path.exists() else {}
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            data: Dict = json.loads(target_path.read_text("utf-8")) if target_path.exists() else {}
             if not isinstance(data, dict):
                 data = {}
         except Exception as exc:
-            log_debug(f"Failed to load prompts file {path}: {exc}")
+            log_debug(f"Failed to load prompts file {target_path}: {exc}")
             return False
 
         section_data = data.setdefault(section, {})
@@ -172,9 +193,10 @@ class GlossaryPromptManager:
         section_data[field] = value
 
         try:
-            path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            target_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            self.current_prompts_path = target_path
         except Exception as exc:
-            log_debug(f"Failed to write prompts file {path}: {exc}")
+            log_debug(f"Failed to write prompts file {target_path}: {exc}")
             return False
 
         if section == "glossary" and field == "prompt_template":

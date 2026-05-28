@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/pokemon_fr/rules.py ---
 from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from PyQt5.QtGui import QTextCharFormat, QColor, QFont

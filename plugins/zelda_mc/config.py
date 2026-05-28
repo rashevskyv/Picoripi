@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_mc/config.py ---
 from PyQt5.QtGui import QColor
 
 PROBLEM_TAG_WARNING = "ZMC_TAG_WARNING"

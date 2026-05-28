@@ -1,4 +1,3 @@
-# --- START OF FILE components/dictionary_manager_dialog.py ---
 import requests
 from pathlib import Path
 from typing import List

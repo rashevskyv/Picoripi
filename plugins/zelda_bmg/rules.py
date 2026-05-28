@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/zelda_bmg/rules.py ---
 import os
 import re
 import json

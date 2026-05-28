@@ -1,4 +1,3 @@
-# --- START OF FILE components/glossary_translation_update_dialog.py ---
 """Dialog for reviewing translations after a glossary change."""
 from __future__ import annotations
 

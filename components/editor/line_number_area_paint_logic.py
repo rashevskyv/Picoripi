@@ -1,4 +1,3 @@
-# --- START OF FILE components/editor/line_number_area_paint_logic.py ---
 from PyQt5.QtGui import QPainter, QColor
 from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtWidgets import QMainWindow, QTextEdit

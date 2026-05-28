@@ -102,21 +102,15 @@ class SearchHandler(BaseHandler):
             else:
                 return matches[0]
 
-    def find_next(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
-        log_debug(f"SearchHandler: find_next. Q: '{query}', Case: {case_sensitive}, Orig: {search_in_original}, IgnoreTags: {ignore_tags}, Fuzzy: {is_fuzzy}")
-        
-        effective_query = prepare_text_for_tagless_search(query) if ignore_tags else query
-        if not effective_query:
-            if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
-                self.mw.search_panel_widget.set_status_message("Enter query", is_error=True)
-            return False
-
+    def _update_search_state(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool) -> None:
         if (self.current_query != query or
             self.is_case_sensitive != case_sensitive or
             self.search_in_original != search_in_original or
             self.ignore_tags_newlines != ignore_tags or
             self.is_fuzzy != is_fuzzy):
-            self.last_found_block = -1; self.last_found_string = -1; self.last_found_char_pos_raw = -1
+            self.last_found_block = -1
+            self.last_found_string = -1
+            self.last_found_char_pos_raw = -1
         
         self.current_query = query
         self.is_case_sensitive = case_sensitive
@@ -124,101 +118,73 @@ class SearchHandler(BaseHandler):
         self.ignore_tags_newlines = ignore_tags
         self.is_fuzzy = is_fuzzy
 
-        if not self.mw.data_store.data: return False
-        
-        start_block_data_idx = self.last_found_block if self.last_found_block != -1 else 0
-        start_string_data_idx = self.last_found_string if self.last_found_string != -1 else 0
-        start_char_offset = self.last_found_char_pos_raw + 1 if self.last_found_char_pos_raw != -1 else 0
-        
-        for b_idx in range(start_block_data_idx, len(self.mw.data_store.data)):
-            if not isinstance(self.mw.data_store.data[b_idx], list): continue
-            
-            s_idx_start_loop_offset = start_string_data_idx if b_idx == start_block_data_idx else 0
-            for s_idx in range(s_idx_start_loop_offset, len(self.mw.data_store.data[b_idx])):
-                current_char_search_offset = start_char_offset if b_idx == start_block_data_idx and s_idx == start_string_data_idx else 0
-                
-                text_for_search = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
-                
-                match_pos_in_search_text, match_len_in_search_text = self._find_in_text(
-                    text_for_search, 
-                    effective_query, 
-                    current_char_search_offset, 
-                    self.is_case_sensitive, 
-                    find_reverse=False,
-                    is_fuzzy=self.is_fuzzy
-                )
-                
-                if match_pos_in_search_text != -1:
-                    log_debug(f"Found match in {'processed' if ignore_tags else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}, Len {match_len_in_search_text}")
-                    self.last_found_block = b_idx
-                    self.last_found_string = s_idx
-                    self.last_found_char_pos_raw = match_pos_in_search_text
-                    
-                    self._navigate_to_match(b_idx, s_idx, match_pos_in_search_text, match_len_in_search_text, self.ignore_tags_newlines)
-                    if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
-                        self.mw.search_panel_widget.set_status_message(f"Found: B{b_idx+1}, S{s_idx+1}")
-                    return True
-            
-            start_string_data_idx = 0
-            start_char_offset = 0   
-
-        if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
-            self.mw.search_panel_widget.set_status_message("Not found (end)")
-        self.last_found_block = -1; self.last_found_string = -1; self.last_found_char_pos_raw = -1
-        return False
+    def find_next(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
+        log_debug(f"SearchHandler: find_next. Q: '{query}', Case: {case_sensitive}, Orig: {search_in_original}, IgnoreTags: {ignore_tags}, Fuzzy: {is_fuzzy}")
+        self._update_search_state(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
+        return self._find(direction=1)
 
     def find_previous(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
         log_debug(f"SearchHandler: find_previous. Q: '{query}', Case: {case_sensitive}, Orig: {search_in_original}, IgnoreTags: {ignore_tags}, Fuzzy: {is_fuzzy}")
+        self._update_search_state(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
+        return self._find(direction=-1)
 
-        effective_query: str = prepare_text_for_tagless_search(query) if ignore_tags else query
+    def _find(self, direction: int) -> bool:
+        effective_query = prepare_text_for_tagless_search(self.current_query) if self.ignore_tags_newlines else self.current_query
         if not effective_query:
             if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
                 self.mw.search_panel_widget.set_status_message("Enter query", is_error=True)
             return False
 
-        if (self.current_query != query or
-            self.is_case_sensitive != case_sensitive or
-            self.search_in_original != search_in_original or
-            self.ignore_tags_newlines != ignore_tags or
-            self.is_fuzzy != is_fuzzy):
-            self.last_found_block = -1; self.last_found_string = -1; self.last_found_char_pos_raw = -1
-
-        self.current_query = query
-        self.is_case_sensitive = case_sensitive
-        self.search_in_original = search_in_original
-        self.ignore_tags_newlines = ignore_tags
-        self.is_fuzzy = is_fuzzy
-            
         if not self.mw.data_store.data: return False
 
-        start_block_data_idx: int = self.last_found_block if self.last_found_block != -1 else len(self.mw.data_store.data) - 1
-        start_string_data_idx: int = self.last_found_string if self.last_found_string != -1 else -1
-        start_char_search_from: int = self.last_found_char_pos_raw -1 if self.last_found_char_pos_raw != -1 else -1
-        
-        for b_idx in range(start_block_data_idx, -1, -1):
+        find_reverse = (direction < 0)
+
+        # Determine start indices based on search direction
+        if not find_reverse: # forward search
+            start_block_data_idx = self.last_found_block if self.last_found_block != -1 else 0
+            start_string_data_idx = self.last_found_string if self.last_found_string != -1 else 0
+            start_char_offset = self.last_found_char_pos_raw + 1 if self.last_found_char_pos_raw != -1 else 0
+            block_range = range(start_block_data_idx, len(self.mw.data_store.data))
+        else: # backward search
+            start_block_data_idx = self.last_found_block if self.last_found_block != -1 else len(self.mw.data_store.data) - 1
+            start_string_data_idx = self.last_found_string if self.last_found_string != -1 else -1
+            start_char_search_from = self.last_found_char_pos_raw - 1 if self.last_found_char_pos_raw != -1 else -1
+            block_range = range(start_block_data_idx, -1, -1)
+
+        for b_idx in block_range:
             if not isinstance(self.mw.data_store.data[b_idx], list): continue
             
-            s_idx_start_loop_offset: int = (start_string_data_idx if b_idx == start_block_data_idx and start_string_data_idx != -1
-                                   else len(self.mw.data_store.data[b_idx]) - 1)
-            
-            for s_idx in range(s_idx_start_loop_offset, -1, -1):
-                text_for_search: str = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
+            # Determine strings loop range
+            if not find_reverse:
+                s_idx_start_loop_offset = start_string_data_idx if b_idx == start_block_data_idx else 0
+                string_range = range(s_idx_start_loop_offset, len(self.mw.data_store.data[b_idx]))
+            else:
+                s_idx_start_loop_offset = (start_string_data_idx if b_idx == start_block_data_idx and start_string_data_idx != -1
+                                           else len(self.mw.data_store.data[b_idx]) - 1)
+                string_range = range(s_idx_start_loop_offset, -1, -1)
+
+            for s_idx in string_range:
+                text_for_search = self._get_text_for_search(b_idx, s_idx, self.search_in_original, self.ignore_tags_newlines)
                 
-                current_char_search_from: int = (start_char_search_from
+                # Determine starting character offset
+                if not find_reverse:
+                    current_char_offset = start_char_offset if b_idx == start_block_data_idx and s_idx == start_string_data_idx else 0
+                else:
+                    current_char_offset = (start_char_search_from
                                            if b_idx == start_block_data_idx and s_idx == start_string_data_idx and start_char_search_from != -1
-                                           else len(text_for_search) -1 )
+                                           else len(text_for_search) - 1)
                 
                 match_pos_in_search_text, match_len_in_search_text = self._find_in_text(
                     text_for_search, 
                     effective_query, 
-                    current_char_search_from, 
+                    current_char_offset, 
                     self.is_case_sensitive, 
-                    find_reverse=True,
+                    find_reverse=find_reverse,
                     is_fuzzy=self.is_fuzzy
                 )
                 
                 if match_pos_in_search_text != -1:
-                    log_debug(f"Found (prev) match in {'processed' if ignore_tags else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}, Len {match_len_in_search_text}")
+                    log_debug(f"Found {'(prev) ' if find_reverse else ''}match in {'processed' if self.ignore_tags_newlines else 'raw'} text at DataB {b_idx}, DataS {s_idx}, SearchTextPos {match_pos_in_search_text}, Len {match_len_in_search_text}")
                     self.last_found_block = b_idx
                     self.last_found_string = s_idx
                     self.last_found_char_pos_raw = match_pos_in_search_text
@@ -228,11 +194,16 @@ class SearchHandler(BaseHandler):
                         self.mw.search_panel_widget.set_status_message(f"Found: B{b_idx+1}, S{s_idx+1}")
                     return True
             
-            start_string_data_idx = -1
-            start_char_search_from = -1   
+            # Reset values for next blocks in loop
+            if not find_reverse:
+                start_string_data_idx = 0
+                start_char_offset = 0   
+            else:
+                start_string_data_idx = -1
+                start_char_search_from = -1
 
         if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
-             self.mw.search_panel_widget.set_status_message("Not found (start)")
+            self.mw.search_panel_widget.set_status_message("Not found (end)" if not find_reverse else "Not found (start)")
         self.last_found_block = -1; self.last_found_string = -1; self.last_found_char_pos_raw = -1
         return False
 

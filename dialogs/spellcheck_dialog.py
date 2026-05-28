@@ -1,4 +1,3 @@
-# --- START OF FILE dialogs/spellcheck_dialog.py ---
 # Dialog for interactive spellchecking of selected text
 from PyQt5.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QDialogButtonBox, QApplication)
 from PyQt5.QtCore import Qt, QTimer

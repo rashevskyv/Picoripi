@@ -1,4 +1,3 @@
-# --- START OF FILE components/editor/lnet_keyboard_handler.py ---
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtGui import QKeyEvent, QKeySequence
 from PyQt5.QtCore import Qt

@@ -1,5 +1,3 @@
-# --- START OF FILE ui/main_window/main_window_ui_handler.py ---
-# --- START OF FILE main_window_ui_handler.py ---
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel

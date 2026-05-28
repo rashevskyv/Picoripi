@@ -1,4 +1,3 @@
-# --- START OF FILE handlers/async_issue_scanner.py ---
 from PyQt5.QtCore import QThread, pyqtSignal
 from typing import Any, List
 import re

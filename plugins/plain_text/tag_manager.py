@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/plain_text/tag_manager.py ---
 import re
 from typing import Optional, Set, List, Tuple
 from plugins.common.tag_manager import GenericTagManager

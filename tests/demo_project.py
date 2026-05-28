@@ -1,5 +1,3 @@
-# --- START OF FILE tests/demo_project.py ---
-# --- START OF FILE demo_project.py ---
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """

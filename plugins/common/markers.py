@@ -1,4 +1,3 @@
-# --- START OF FILE plugins/common/markers.py ---
 """
 Common visual markers used by plugins and utility modules.
 

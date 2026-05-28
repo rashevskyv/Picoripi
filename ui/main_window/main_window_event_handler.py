@@ -1,6 +1,3 @@
-# --- START OF FILE ui/main_window/main_window_event_handler.py ---
-# --- START OF FILE main_window_event_handler.py ---
-# --- START OF FILE handlers/main_window_event_handler.py ---
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt5.QtGui import QTextCursor, QKeyEvent
@@ -74,9 +71,9 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'rename_block_button'):
             self.mw.rename_block_button.clicked.connect(lambda: self.mw.list_selection_handler.rename_block(self.mw.block_list_widget.currentItem()))
         if hasattr(self.mw, 'move_block_up_button'):
-            self.mw.move_block_up_button.clicked.connect(self.mw.project_action_handler.move_block_up_action)
+            self.mw.move_block_up_button.clicked.connect(lambda: self.mw.project_action_handler.move_block_action(-1))
         if hasattr(self.mw, 'move_block_down_button'):
-            self.mw.move_block_down_button.clicked.connect(self.mw.project_action_handler.move_block_down_action)
+            self.mw.move_block_down_button.clicked.connect(lambda: self.mw.project_action_handler.move_block_action(1))
         if hasattr(self.mw, 'add_folder_button'):
             self.mw.add_folder_button.clicked.connect(self.mw.project_action_handler.add_folder_action)
         
