@@ -6,7 +6,7 @@ from PyQt5.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
-from .async_issue_scanner import AsyncIssueScanner
+from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 
 PREVIEW_UPDATE_DELAY = 250
 
@@ -18,8 +18,9 @@ class TextOperationHandler(BaseHandler):
         self.preview_update_timer.timeout.connect(self._on_preview_update_timer_timeout)
         self._debounce_block_idx = -1
         self._debounce_string_idx = -1
-        self.current_scanner_thread = None
-        self._orphaned_threads = []
+        # current_scanner is an AsyncIssueScanner (QRunnable) — kept around so
+        # we can cooperatively cancel it when a newer scan supersedes it.
+        self.current_scanner_thread: Optional[AsyncIssueScanner] = None
 
     def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
         if not self.mw.current_game_rules:
@@ -214,16 +215,13 @@ class TextOperationHandler(BaseHandler):
             
         current_text_raw, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         if current_text_raw is not None:
-            # Cancel current active scanner thread if any
-            if self.current_scanner_thread and self.current_scanner_thread.isRunning():
-                try:
-                    self.current_scanner_thread.finished_scan.disconnect()
-                except Exception:
-                    pass
-                
-                old_thread = self.current_scanner_thread
-                self._orphaned_threads.append(old_thread)
-                old_thread.finished.connect(lambda t=old_thread: self._orphaned_threads.remove(t) if t in self._orphaned_threads else None)
+            # Supersede any in-flight scan via cooperative cancellation. The
+            # previous runnable will not emit finished_scan after cancel(),
+            # so we don't need to disconnect its signal — and we don't have
+            # to leak it into an orphaned-threads list.
+            if self.current_scanner_thread is not None:
+                self.current_scanner_thread.cancel()
+                self.current_scanner_thread = None
 
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
             string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
@@ -263,7 +261,7 @@ class TextOperationHandler(BaseHandler):
                 glossary_enabled=getattr(self.mw, 'glossary_enabled', True)
             )
             self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
-            self.current_scanner_thread.start()
+            get_scanner_thread_pool().start(self.current_scanner_thread)
 
         # 5. Synchronize original cursor and update lineNumberArea
         self.mw.ui_updater.synchronize_original_cursor()

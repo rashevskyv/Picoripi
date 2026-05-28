@@ -259,6 +259,11 @@ class SpellcheckerManager(QObject):
 
     def _load_persistent_cache(self):
         """Loads spell check results from a JSON file."""
+        # Skip persistent cache under pytest so test runs don't share state
+        # through resources/spellchecker/spell_cache.json.
+        import sys
+        if 'pytest' in sys.modules:
+            return
         if not self._cache_file.exists():
             return
         try:
@@ -273,6 +278,11 @@ class SpellcheckerManager(QObject):
 
     def _save_persistent_cache(self):
         """Saves current memory spell cache to disk."""
+        # Skip persistent cache under pytest so test runs don't share state
+        # through resources/spellchecker/spell_cache.json.
+        import sys
+        if 'pytest' in sys.modules:
+            return
         if not self._spell_cache:
             return
         try:
