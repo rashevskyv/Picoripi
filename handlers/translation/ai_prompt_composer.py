@@ -831,15 +831,20 @@ class AIPromptComposer(BaseTranslationHandler):
             # First replace known dynamic name tags (e.g. {escape:0:0022} -> "Epona")
             for tag, name in _dynamic_name_tags.items():
                 t = t.replace(tag, name)
-            t = re.sub(r'\{[^}]+\}', '', t)
-            t = re.sub(r'\[[^]]+\]', '', t)
+            t = re.sub(r'\{[^}]+\}', '', t)      # {escape:…} and other curly tags
+            t = re.sub(r'\[[^]]+\]', '', t)       # [action notes]
+            t = re.sub(r'\([^)]+\)', '', t)       # (button hints) e.g. (Up on D Pad)
             return "".join(c for c in t if c.isalnum()).lower()
+
+        # Cache version – bump whenever distill() logic changes so stale caches are rebuilt
+        _DISTILL_CACHE_VERSION = 2
 
         # Try to retrieve from In-Memory Script Cache to ensure instant response
         if (hasattr(self, "_script_lines_cache") and self._script_lines_cache and 
             hasattr(self, "_global_distilled_text_cache") and self._global_distilled_text_cache and 
             hasattr(self, "_char_to_line_map_cache") and self._char_to_line_map_cache and 
-            getattr(self, "_cached_script_path", None) == script_path):
+            getattr(self, "_cached_script_path", None) == script_path and
+            getattr(self, "_distill_cache_version", None) == _DISTILL_CACHE_VERSION):
             lines = self._script_lines_cache
             global_distilled_text = self._global_distilled_text_cache
             char_to_line_map = self._char_to_line_map_cache
@@ -880,6 +885,7 @@ class AIPromptComposer(BaseTranslationHandler):
             self._global_distilled_text_cache = "".join(global_distilled)
             self._char_to_line_map_cache = char_to_line_map
             self._cached_script_path = script_path
+            self._distill_cache_version = _DISTILL_CACHE_VERSION
             global_distilled_text = self._global_distilled_text_cache
             log_debug(f"Successfully cached and mapped script file {script_path} ({len(lines)} lines, {len(global_distilled_text)} distilled characters).")
 

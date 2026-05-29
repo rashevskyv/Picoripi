@@ -1,6 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.125] - 2026-05-29
+
+### Fixed
+- **Script Matching: Button-Hint Parentheses Stripped from Distillation**: Fixed a script-line matching failure for BMG strings that contain button-prompt escape tags. In the script file, button descriptions appear as plain parenthesised text, e.g. `(Up on D Pad)`. In the BMG, the same position is an escape code like `{escape:0:0011}`. Previously `distill()` stripped curly-brace tags but not parenthesised content, so the script side produced extra characters (`upondpad`) that had no counterpart in the BMG query, causing mismatches. Now `distill()` also strips `(…)` content, making both sides comparable.
+- **Distill Cache Auto-Invalidation**: Introduced an internal `_DISTILL_CACHE_VERSION` constant (currently `2`). The script-cache hit condition now requires the stored version to match. Bumping this constant when `distill()` logic changes forces a fresh rebuild of the global distilled-text cache instead of silently serving stale data from the previous session.
+
 ## [0.2.124] - 2026-05-29
+
 
 ### Fixed
 - **Script Matching: Link/Epona Tag Substitution Before Distillation**: Fixed a script-line matching failure for BMG strings that contain dynamic runtime name tags (`{PLAYER}`, `{escape:0:0001}` for Link, `{escape:0:0022}` for Epona). Previously these tags were stripped as unknown markup, making the distilled BMG query shorter and mismatching against the script text where the real name appears (e.g. `"whywithouteponathe"` vs `"whywithoutthe"`). Now, a new plugin hook `get_dynamic_name_tags() -> dict` is consulted before tag-stripping. The zelda_bmg plugin returns a mapping of known runtime-name escape codes to their plain-text names; these substitutions are applied first inside `distill()`, so the query matches correctly.
