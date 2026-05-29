@@ -26,6 +26,13 @@ class AIWorker(QObject):
         self._last_messages = None
 
     def _log_ai_traffic(self, messages: List[Dict[str, str]], response_text: Optional[str] = None, error: Optional[str] = None):
+        log_enabled = False
+        if self.prompt_composer and self.prompt_composer.mw:
+            log_enabled = getattr(self.prompt_composer.mw, 'log_ai_traffic', False)
+            
+        if not log_enabled:
+            return
+
         from utils.logging_utils import log_info
         import datetime
         import os
@@ -58,6 +65,11 @@ class AIWorker(QObject):
                     f.write("--- ERROR ---\n")
                     f.write(error + "\n")
                 f.write("="*60 + "\n\n")
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except Exception:
+                    pass
         except Exception as e:
             log_debug(f"AIWorker: Failed to write to ai_traffic.log: {e}")
 
@@ -89,6 +101,23 @@ class AIWorker(QObject):
     def run(self):
         from components.ai_status_dialog import AIStatusDialog
         log_debug(f"AIWorker: Thread started for task type '{self.task_details.get('type')}'.")
+        
+        # Truncate the ai_traffic.log file at the very start of a new session (not retry or resume)
+        log_enabled = False
+        if self.prompt_composer and self.prompt_composer.mw:
+            log_enabled = getattr(self.prompt_composer.mw, 'log_ai_traffic', False)
+        
+        if log_enabled:
+            is_retry = self.task_details.get('attempt', 1) > 1
+            is_resume = self.task_details.get('is_resume', False)
+            if not is_retry and not is_resume:
+                try:
+                    import os
+                    log_file = os.path.join(os.getcwd(), "ai_traffic.log")
+                    with open(log_file, "w", encoding="utf-8") as f:
+                        pass # Truncate the file
+                except Exception as e:
+                    log_debug(f"AIWorker: Failed to truncate ai_traffic.log: {e}")
         
         try:
             task_type = self.task_details.get('type')
@@ -194,9 +223,53 @@ class AIWorker(QObject):
                 return
 
             if task_type == 'translate_block_chunked':
-                CHUNK_SIZE = 10
                 source_items = self.task_details['source_items']
-                chunks = [source_items[i:i + CHUNK_SIZE] for i in range(0, len(source_items), CHUNK_SIZE)]
+                block_idx = self.task_details.get('block_idx')
+                
+                client = self.prompt_composer._get_mempalace_client()
+                wing_name = self.prompt_composer._get_wing_name()
+                block_label = self.prompt_composer._get_block_label(block_idx)
+                
+                # Classify items into scene-based and scene-less
+                scene_items_by_room = {}
+                scene_less_items = []
+                rooms_order = []
+                
+                for item in source_items:
+                    if isinstance(item, dict):
+                        item_id = item.get('id', 0)
+                        item_text = item.get('text', '')
+                    else:
+                        item_id = 0
+                        item_text = str(item)
+                    
+                    room = None
+                    if client:
+                        bmg_id = f"{block_label}_Str_{item_id}"
+                        cached_ctx = client.get_cached_context(bmg_id, item_text)
+                        if cached_ctx:
+                            room = cached_ctx.get("room")
+                            
+                    if room:
+                        if room not in scene_items_by_room:
+                            scene_items_by_room[room] = []
+                            rooms_order.append(room)
+                        scene_items_by_room[room].append(item)
+                    else:
+                        scene_less_items.append(item)
+                
+                # Build chunks: first scenes in chronological order, then scene-less ones at the end
+                chunks = []
+                
+                for room in rooms_order:
+                    room_items = scene_items_by_room[room]
+                    # Split room items into sub-chunks of max 12 items
+                    for k in range(0, len(room_items), 12):
+                        chunks.append(room_items[k:k+12])
+                        
+                for k in range(0, len(scene_less_items), 12):
+                    chunks.append(scene_less_items[k:k+12])
+
                 chunks_to_skip = self.task_details.get('chunks_to_skip', set())
                 self.total_chunks_calculated.emit(len(chunks), len(chunks_to_skip))
                 session_state = self.task_details.get('session_state')

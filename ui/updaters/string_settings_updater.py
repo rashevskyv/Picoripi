@@ -105,13 +105,17 @@ class StringSettingsUpdater(BaseUIUpdater):
                     
             if composer:
                 result = composer._find_speaker_in_script(block_idx, string_idx, raw_text)
-                if result:
+                if result and isinstance(result, (tuple, list)) and len(result) == 2:
                     raw_spk, matched_lines_str = result
-                    if raw_spk == "NONE":
-                        speaker_text = "Speaker: NONE"
-                    else:
-                        trans_spk = composer._translate_speaker(raw_spk)
-                        speaker_text = f"Speaker: {trans_spk} ({raw_spk})"
+                else:
+                    raw_spk, matched_lines_str = "NONE", None
+
+                if raw_spk == "NONE":
+                    speaker_text = "Speaker: NONE"
+                    self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
+                else:
+                    trans_spk = composer._translate_speaker(raw_spk)
+                    speaker_text = f"Speaker: {trans_spk} ({raw_spk})"
                     
                     tooltip_text = ""
                     if matched_lines_str:
@@ -139,8 +143,6 @@ class StringSettingsUpdater(BaseUIUpdater):
                             tooltip_text += "<br><br><b>Glossary Info:</b><br>" + "<br>".join(glossary_infos)
                             
                     self.mw.speaker_label.setToolTip(tooltip_text)
-                else:
-                    self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
             else:
                 self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
             

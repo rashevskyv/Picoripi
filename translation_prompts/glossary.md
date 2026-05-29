@@ -169,9 +169,6 @@
 | Gate Key | Ключ від Воріт | Спеціальний ключ для відкриття воріт. |
 | Ordon Cheese | Ордонський Сир | Сир з села Ордон, виготовлений з козячого молока. |
 | Surf Leaf | Листок для Серфінгу | Великий листок для ковзання по воді. |
-| Child's Wallet | Дитячий Гаманець | Гаманець з дитинства, вміщує до 300 рупій. |
-| Adult's Wallet | Дорослий Гаманець | Гаманець від Агіти, вміщує до 600 рупій. |
-| Giant's Wallet | Гігантський Гаманець | Найбільший гаманець від Агіти, вміщує до 1000 рупій. |
 | Hyrule | Хайрул | Хайрул — це велике королівство та священна земля, де розгортаються події серії The Legend of Zelda, слугуючи основною ареною, на якій відбувається дія гри. Згідно з давніми переказами, цей світ був сплетений богинями Дін, Нейру та Фароре з ниток мудрості, мужності та сили, що встановило його як землю божественного походження та mythологічного значення. Королівство являє собою не просто географічне розташування, а сакральний простір, сформований цими трьома фундаментальними чеснотами, які пронизують його історію, мешканців та долю. |
 | Agitha | Агіта | Agitha is a ten-year-old girl who proclaims herself the princess of the insect kingdom in Castle Town. She is an enthusiastic collector of golden bugs, which she gathers for her ball. Her personality is characterized by giggly, bubbly behavior and childish rhetoric that reflects her young age and whimsical nature. As a child character, she is addressed informally by others using the familiar form, while she herself speaks in a distinctly childish manner befitting her self-appointed royal status in her imaginary bug kingdom. Her collection quest serves as a side activity where players can bring her rare golden insects they discover throughout their journey. |
 | Iza | Іза | Власниця пункту прокату човнів, дає сумку для бомб. |

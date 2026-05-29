@@ -38,7 +38,7 @@ class TextAnalysisHandler(BaseHandler):
         self._menu_action = action
 
     def analyze_original_text(self) -> None:
-        data_source: Optional[List[Any]] = getattr(self.mw, 'data', None)
+        data_source: Optional[List[Any]] = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
         if not isinstance(data_source, list) or not data_source:
             QMessageBox.information(
                 self.mw,

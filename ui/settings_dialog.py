@@ -206,6 +206,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         
         self.enable_console_logging_checkbox.setChecked(getattr(self.mw, 'enable_console_logging', True))
         self.enable_file_logging_checkbox.setChecked(getattr(self.mw, 'enable_file_logging', True))
+        self.log_ai_traffic_checkbox.setChecked(getattr(self.mw, 'log_ai_traffic', False))
         self.log_file_path_edit.setText(getattr(self.mw, 'log_file_path', ""))
         
         enabled_cats = getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"])
@@ -458,6 +459,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'settings_window_width': self.width(),
             'enable_console_logging': self.enable_console_logging_checkbox.isChecked(),
             'enable_file_logging': self.enable_file_logging_checkbox.isChecked(),
+            'log_ai_traffic': self.log_ai_traffic_checkbox.isChecked(),
             'log_file_path': self.log_file_path_edit.text(),
             'enabled_log_categories': [cat_id for cat_id, chk in self.log_categories_checkboxes.items() if chk.isChecked()],
             'context_menu_tags': self._get_tags_from_tables()

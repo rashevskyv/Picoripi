@@ -1134,7 +1134,7 @@ class MemePalaceChapterMapperWorker(QThread):
                         continue
                         
                     res = self.composer._find_speaker_in_script(b_idx, s_idx, text)
-                    if res and len(res) == 2:
+                    if res and isinstance(res, (tuple, list)) and len(res) == 2:
                         _, lines_str = res
                         if lines_str and lines_str != "NONE":
                             try:

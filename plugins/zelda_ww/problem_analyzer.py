@@ -65,10 +65,18 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             if next_subline is not None:
                 if self._check_short_line_zww(subline, next_subline, font_map, threshold):
                     problems_per_subline[i].add(self.problem_ids.PROBLEM_SHORT_LINE)
-            is_odd_logical_subline = (i + 1) % 2 != 0
-            if i > 0 and is_odd_logical_subline:
+            lines_per_page = 4
+            if self.mw and hasattr(self.mw, 'lines_per_page'):
+                lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+            if len(sublines) > 1 and i % lines_per_page == 0:
                 if self._check_single_word_subline_generic(subline):
-                    problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                    if not self._is_single_word_ok_generic(subline):
+                        page_lines = sublines[i : i + lines_per_page]
+                        has_content_after = any(line.strip() for line in page_lines[1:])
+                        if has_content_after:
+                            problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                        else:
+                            problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
         return problems_per_subline
 
     def analyze_subline(self, *args, **kwargs) -> Set[str]:

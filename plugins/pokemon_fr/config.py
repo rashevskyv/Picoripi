@@ -9,12 +9,14 @@ PROBLEM_WIDTH_EXCEEDED = "PKFR_WIDTH_EXCEEDED"
 PROBLEM_SHORT_LINE = "PKFR_SHORT_LINE"
 PROBLEM_EMPTY_SUBLINE = "PKFR_EMPTY_SUBLINE"
 PROBLEM_SINGLE_WORD_SUBLINE = "PKFR_SINGLE_WORD_SUBLINE"
+PROBLEM_SINGLE_WORD_SUBLINE_NON_START = "PKFR_SINGLE_WORD_SUBLINE_NON_START"
 PROBLEM_TAG_WARNING = "PKFR_TAG_WARNING"
 
 PRIORITY_WIDTH_EXCEEDED = 1
 PRIORITY_TAG_WARNING = 2
 PRIORITY_EMPTY_SUBLINE = 3
 PRIORITY_SINGLE_WORD_SUBLINE = 4
+PRIORITY_SINGLE_WORD_SUBLINE_NON_START = 3
 PRIORITY_SHORT_LINE = 5
 
 PROBLEM_DEFINITIONS = {
@@ -40,7 +42,13 @@ PROBLEM_DEFINITIONS = {
         "name": "Single Word Subline",
         "color": QColor(0, 0, 255, 120),
         "priority": PRIORITY_SINGLE_WORD_SUBLINE,
-        "description": "The subline consists of only one word (and possibly punctuation)."
+        "description": "The subline consists of only one word (and possible punctuation)."
+    },
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: {
+        "name": "Single Word Subline (Non-Start)",
+        "color": QColor(139, 69, 19, 120),
+        "priority": PRIORITY_SINGLE_WORD_SUBLINE_NON_START,
+        "description": "The subline consists of only one word, but not at the start of a page/dialogue window."
     },
     PROBLEM_TAG_WARNING: {
         "name": "Tag Warning",
@@ -55,6 +63,7 @@ DEFAULT_DETECTION_SETTINGS = {
     PROBLEM_SHORT_LINE: True,
     PROBLEM_EMPTY_SUBLINE: True,
     PROBLEM_SINGLE_WORD_SUBLINE: True,
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True,
     PROBLEM_TAG_WARNING: True,
 }
 
@@ -63,6 +72,7 @@ DEFAULT_AUTOFIX_SETTINGS = {
     PROBLEM_SHORT_LINE: True,
     PROBLEM_EMPTY_SUBLINE: True,
     PROBLEM_SINGLE_WORD_SUBLINE: False,
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: False,
     PROBLEM_TAG_WARNING: False
 }
 
