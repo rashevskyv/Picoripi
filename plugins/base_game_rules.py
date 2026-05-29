@@ -136,6 +136,15 @@ class BaseGameRules:
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
         return {}
+
+    def get_dynamic_name_tags(self) -> Dict[str, str]:
+        """Return a mapping of {tag_string: replacement_name} for dynamic in-game names.
+
+        These tags are substituted *before* stripping tags during script-matching distillation,
+        so that e.g. '{escape:0:0022}' in BMG text matches 'Epona' in the script.
+        The dict key must be the exact tag string as it appears in editor text.
+        """
+        return {}
     
     def get_tag_checker_handler(self) -> Optional[Any]:
         return None

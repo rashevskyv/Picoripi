@@ -1,6 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.124] - 2026-05-29
+
+### Fixed
+- **Script Matching: Link/Epona Tag Substitution Before Distillation**: Fixed a script-line matching failure for BMG strings that contain dynamic runtime name tags (`{PLAYER}`, `{escape:0:0001}` for Link, `{escape:0:0022}` for Epona). Previously these tags were stripped as unknown markup, making the distilled BMG query shorter and mismatching against the script text where the real name appears (e.g. `"whywithouteponathe"` vs `"whywithoutthe"`). Now, a new plugin hook `get_dynamic_name_tags() -> dict` is consulted before tag-stripping. The zelda_bmg plugin returns a mapping of known runtime-name escape codes to their plain-text names; these substitutions are applied first inside `distill()`, so the query matches correctly.
+
+### Changed
+- **Plugin API: `get_dynamic_name_tags()` hook on `BaseGameRules`**: Added a new optional override method `get_dynamic_name_tags() -> Dict[str, str]` to `BaseGameRules`. It returns an empty dict by default. Subclasses (e.g. `zelda_bmg`) can override it to declare which tag strings should be treated as plain-text character names during script-line matching. The key is the exact tag string as it appears in editor text; the value is the replacement name.
+
 ## [0.2.123] - 2026-05-28
+
 
 ### Fixed
 - **Strings in Block: Lazy Loading Timer Cancellation Bug**: Fixed a critical bug where the list of strings in the "Strings in block" preview panel appeared empty (invisible text) for all items beyond the initially loaded chunk (roughly the first 1560 strings) in large files with 5000+ entries. Root cause: `populate_strings_for_block()` unconditionally stopped the lazy loading timer (`_lazy_load_timer.stop()`) on every call — including repeated calls triggered by view updates and selection restores for the same block. Since the block had not changed, the timer was killed but never restarted, leaving most lines blank. Fixed by only stopping the timer when the block or the displayed index set actually changes (`should_regenerate = block_changed or displayed_indices_changed or force`).

@@ -51,6 +51,25 @@ class GameRules(BaseGameRules):
         self._last_map_mtime = 0
         self.load_translation_map()
 
+    def get_dynamic_name_tags(self) -> dict:
+        """Twilight Princess BMG dynamic name escape tags.
+
+        In TP BMG files, the player name (Link) and the horse name (Epona)
+        are stored as escape tags that the game replaces at runtime.
+        These substitutions allow distilled script-matching to find strings
+        that contain these tags by treating them as plain text.
+
+        Tag format in editor: {escape:<type>:<hex_data>}
+          - Link  -> {escape:0:0001}
+          - Epona -> {escape:0:0022}
+        """
+        return {
+            "{PLAYER}": "Link",
+            "{escape:0:0001}": "Link",
+            "{escape:0:0022}": "Epona",
+        }
+
+
     def load_translation_map(self):
         project_dir = None
         if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:

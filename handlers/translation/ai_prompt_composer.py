@@ -817,9 +817,20 @@ class AIPromptComposer(BaseTranslationHandler):
             log_debug("Script Fallback: script file not found.")
             return None
             
+        # Retrieve dynamic name tag substitutions from the active plugin (e.g. {escape:0:0022} -> "Epona")
+        _dynamic_name_tags: dict = {}
+        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
+            try:
+                _dynamic_name_tags = self.mw.current_game_rules.get_dynamic_name_tags()
+            except Exception:
+                pass
+
         def distill(t: str) -> str:
             if not t:
                 return ""
+            # First replace known dynamic name tags (e.g. {escape:0:0022} -> "Epona")
+            for tag, name in _dynamic_name_tags.items():
+                t = t.replace(tag, name)
             t = re.sub(r'\{[^}]+\}', '', t)
             t = re.sub(r'\[[^]]+\]', '', t)
             return "".join(c for c in t if c.isalnum()).lower()
