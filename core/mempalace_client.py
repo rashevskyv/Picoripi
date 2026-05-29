@@ -200,6 +200,35 @@ class MemePalaceClient:
                     FOREIGN KEY(wing_id) REFERENCES wings(id) ON DELETE CASCADE
                 )
             """)
+
+            # Create Script Chapters table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS script_chapters (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    wing_id INTEGER,
+                    num TEXT,
+                    title TEXT,
+                    start_line INTEGER,
+                    end_line INTEGER,
+                    ai_summary TEXT,
+                    content TEXT,
+                    FOREIGN KEY(wing_id) REFERENCES wings(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Create Script Mappings table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS script_mappings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    wing_id INTEGER,
+                    chapter_id INTEGER,
+                    bmg_id TEXT,
+                    script_line INTEGER,
+                    bmg_text TEXT,
+                    FOREIGN KEY(wing_id) REFERENCES wings(id) ON DELETE CASCADE,
+                    FOREIGN KEY(chapter_id) REFERENCES script_chapters(id) ON DELETE CASCADE
+                )
+            """)
             
             conn.commit()
             conn.close()
@@ -745,3 +774,214 @@ class MemePalaceClient:
             except Exception as e:
                 log_error(f"Local DB error in get_room_drawers: {e}")
         return results
+
+    def get_chapter_for_line(self, wing_name: str, line_num: int) -> Optional[Dict[str, Any]]:
+        """Find the script chapter containing the given script line number."""
+        if not self.db_path or not os.path.exists(self.db_path):
+            return None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT sc.id, sc.num, sc.title, sc.start_line, sc.end_line, sc.ai_summary, sc.content
+                FROM script_chapters sc
+                JOIN wings w ON sc.wing_id = w.id
+                WHERE w.name = ? AND ? BETWEEN sc.start_line AND sc.end_line
+            """, (wing_name, line_num))
+            row = cursor.fetchone()
+            conn.close()
+            if row:
+                return {
+                    "id": row[0],
+                    "num": row[1],
+                    "title": row[2],
+                    "start_line": row[3],
+                    "end_line": row[4],
+                    "ai_summary": row[5] or "",
+                    "content": row[6] or ""
+                }
+        except Exception as e:
+            log_error(f"Local DB error in get_chapter_for_line: {e}")
+        return None
+
+    def get_script_mapping(self, wing_name: str, bmg_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve script mapping directly from script_mappings table."""
+        if not self.db_path or not os.path.exists(self.db_path):
+            return None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT sm.script_line, sm.bmg_text, sc.id, sc.num, sc.title
+                FROM script_mappings sm
+                JOIN wings w ON sm.wing_id = w.id
+                LEFT JOIN script_chapters sc ON sm.chapter_id = sc.id
+                WHERE w.name = ? AND sm.bmg_id = ?
+            """, (wing_name, bmg_id))
+            row = cursor.fetchone()
+            
+            # Try with clean ID if original is bracketed
+            if not row and bmg_id.startswith("[") and bmg_id.endswith("]"):
+                clean_id = bmg_id[1:-1]
+                cursor.execute("""
+                    SELECT sm.script_line, sm.bmg_text, sc.id, sc.num, sc.title
+                    FROM script_mappings sm
+                    JOIN wings w ON sm.wing_id = w.id
+                    LEFT JOIN script_chapters sc ON sm.chapter_id = sc.id
+                    WHERE w.name = ? AND sm.bmg_id = ?
+                """, (wing_name, clean_id))
+                row = cursor.fetchone()
+                
+            conn.close()
+            if row:
+                return {
+                    "script_line": row[0],
+                    "bmg_text": row[1],
+                    "chapter_id": row[2],
+                    "chapter_num": row[3],
+                    "chapter_title": row[4]
+                }
+        except Exception as e:
+            log_error(f"Local DB error in get_script_mapping: {e}")
+        return None
+
+
+    def get_all_chapters(self, wing_name: str) -> List[Dict[str, Any]]:
+        """Retrieve all chapters and their mapping counts for a wing."""
+        results = []
+        if not self.db_path or not os.path.exists(self.db_path):
+            return results
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check if wings table has entries first
+            cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
+            w_row = cursor.fetchone()
+            if not w_row:
+                conn.close()
+                return results
+            wing_id = w_row[0]
+
+            cursor.execute("""
+                SELECT sc.id, sc.num, sc.title, sc.start_line, sc.end_line, sc.ai_summary,
+                       (SELECT COUNT(*) FROM script_mappings sm WHERE sm.chapter_id = sc.id) as mapped_count
+                FROM script_chapters sc
+                WHERE sc.wing_id = ?
+                ORDER BY sc.start_line
+            """, (wing_id,))
+            rows = cursor.fetchall()
+            conn.close()
+            for row in rows:
+                results.append({
+                    "id": row[0],
+                    "num": row[1],
+                    "title": row[2],
+                    "start_line": row[3],
+                    "end_line": row[4],
+                    "ai_summary": row[5] or "",
+                    "mapped_count": row[6]
+                })
+        except Exception as e:
+            log_error(f"Local DB error in get_all_chapters: {e}")
+        return results
+
+    def save_chapter_summary(self, chapter_id: int, summary: str):
+        """Update AI summary of a chapter."""
+        if not self.db_path:
+            return
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE script_chapters SET ai_summary = ? WHERE id = ?", (summary, chapter_id))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            log_error(f"Local DB error in save_chapter_summary: {e}")
+
+    def save_chapters_to_db(self, wing_name: str, chapters: List[Dict[str, Any]]):
+        """Save segmented chapters into local SQLite DB, clearing older chapters for the wing."""
+        if not self.db_path:
+            return
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Get wing ID
+            cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
+            w_row = cursor.fetchone()
+            if not w_row:
+                cursor.execute("INSERT INTO wings (name) VALUES (?)", (wing_name,))
+                wing_id = cursor.lastrowid
+            else:
+                wing_id = w_row[0]
+                
+            # Clear old chapters and mappings (cascade delete or manual delete)
+            cursor.execute("DELETE FROM script_chapters WHERE wing_id = ?", (wing_id,))
+            cursor.execute("DELETE FROM script_mappings WHERE wing_id = ?", (wing_id,))
+            
+            for ch in chapters:
+                cursor.execute("""
+                    INSERT INTO script_chapters (wing_id, num, title, start_line, end_line, ai_summary, content)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    wing_id,
+                    ch.get("num", ""),
+                    ch.get("title", ""),
+                    ch.get("start_line", 0),
+                    ch.get("end_line", 0),
+                    ch.get("ai_summary", ""),
+                    ch.get("content", "")
+                ))
+            conn.commit()
+            conn.close()
+            log_info(f"Successfully saved {len(chapters)} chapters for wing '{wing_name}' to local DB.")
+        except Exception as e:
+            log_error(f"Local DB error in save_chapters_to_db: {e}", exc_info=True)
+
+    def save_mappings_to_db(self, wing_name: str, mappings: List[Dict[str, Any]]):
+        """Save BMG to script mappings into SQLite DB, clearing older mappings first."""
+        if not self.db_path:
+            return
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Get wing ID
+            cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
+            w_row = cursor.fetchone()
+            if not w_row:
+                cursor.execute("INSERT INTO wings (name) VALUES (?)", (wing_name,))
+                wing_id = cursor.lastrowid
+            else:
+                wing_id = w_row[0]
+                
+            cursor.execute("DELETE FROM script_mappings WHERE wing_id = ?", (wing_id,))
+            
+            # Retrieve active chapter lookup map: (start, end) -> chapter_id
+            cursor.execute("SELECT id, start_line, end_line FROM script_chapters WHERE wing_id = ?", (wing_id,))
+            ch_rows = cursor.fetchall()
+            
+            for m in mappings:
+                line = m.get("script_line")
+                chapter_id = None
+                for ch_id, s_line, e_line in ch_rows:
+                    if s_line <= line <= e_line:
+                        chapter_id = ch_id
+                        break
+                        
+                cursor.execute("""
+                    INSERT INTO script_mappings (wing_id, chapter_id, bmg_id, script_line, bmg_text)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    wing_id,
+                    chapter_id,
+                    m.get("bmg_id", ""),
+                    line,
+                    m.get("bmg_text", "")
+                ))
+            conn.commit()
+            conn.close()
+            log_info(f"Successfully saved {len(mappings)} BMG mappings for wing '{wing_name}' to local DB.")
+        except Exception as e:
+            log_error(f"Local DB error in save_mappings_to_db: {e}", exc_info=True)

@@ -558,11 +558,17 @@ class AIPromptComposer(BaseTranslationHandler):
         """Query the local SQLite database for visual scene description, character status and timeline info."""
         client = self._get_mempalace_client()
         
+        script_res = self._find_speaker_in_script(block_idx, s_idx, text)
+        if not isinstance(script_res, (tuple, list)) or len(script_res) != 2:
+            script_res = None
+            
+        script_lines_str = script_res[1] if script_res else None
+
         # Helper to try and resolve speaker via script fallback if missing
-        def get_script_speaker_fallback() -> Optional[Tuple[str, str]]:
-            raw_spk = self._find_speaker_in_script(block_idx, s_idx, text)
-            if raw_spk:
-                return raw_spk, self._translate_speaker(raw_spk)
+        def get_script_speaker_fallback() -> Optional[Tuple[str, str, str]]:
+            if script_res:
+                raw_spk, lines_str = script_res
+                return raw_spk, self._translate_speaker(raw_spk), lines_str
             return None
 
         # 1. Try local in-memory cache first for instant response
@@ -586,7 +592,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 if not speaker:
                     fallback = get_script_speaker_fallback()
                     if fallback:
-                        raw_spk, trans_spk = fallback
+                        raw_spk, trans_spk, _ = fallback
                         if re.match(r'^[\d,\s]+$', raw_spk):
                             speaker = f"{raw_spk} [Disk Script]"
                         else:
@@ -594,6 +600,8 @@ class AIPromptComposer(BaseTranslationHandler):
                 
                 if speaker:
                     context_parts.append(f"Speaker in this line: {speaker}")
+                if script_lines_str:
+                    context_parts.append(f"Script Line: {script_lines_str}")
                     
                 if visual_ctx:
                     context_parts.append(f"Visual Action Context:\n{visual_ctx}")
@@ -688,7 +696,7 @@ class AIPromptComposer(BaseTranslationHandler):
                     if not speaker:
                         fallback = get_script_speaker_fallback()
                         if fallback:
-                            raw_spk, trans_spk = fallback
+                            raw_spk, trans_spk, _ = fallback
                             if re.match(r'^[\d,\s]+$', raw_spk):
                                 speaker = f"{raw_spk} [Disk Script]"
                             else:
@@ -701,6 +709,8 @@ class AIPromptComposer(BaseTranslationHandler):
                     
                     if speaker:
                         context_parts.append(f"Speaker in this line: {speaker}")
+                    if script_lines_str:
+                        context_parts.append(f"Script Line: {script_lines_str}")
                         
                     if visual_ctx:
                         context_parts.append(f"Visual Action Context:\n{visual_ctx}")
@@ -739,10 +749,11 @@ class AIPromptComposer(BaseTranslationHandler):
         # 3. Absolute Fallback: SQLite completely failed, try Script Fallback to at least extract Speaker
         fallback = get_script_speaker_fallback()
         if fallback:
-            raw_spk, trans_spk = fallback
+            raw_spk, trans_spk, lines_str = fallback
             context_parts = [
                 "Story Location/Scene: Mapped from Disk Script",
                 f"Speaker in this line: {trans_spk} ({raw_spk}) [Disk Script]",
+                f"Script Line: {lines_str}",
                 "Timeline: Mapped from script sequence"
             ]
             return "\n".join(context_parts)
@@ -808,7 +819,7 @@ class AIPromptComposer(BaseTranslationHandler):
         return speaker
 
     def _find_speaker_in_script(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
-        """Find speaker in the script file using middle third distilled matching."""
+        """Find speaker in the script file using direct DB mapping or middle third distilled matching."""
         import os
         import re
         
@@ -816,6 +827,59 @@ class AIPromptComposer(BaseTranslationHandler):
         if not script_path or not os.path.exists(script_path):
             log_debug("Script Fallback: script file not found.")
             return None
+
+        # 1. High-priority Direct DB Script Mapping Check
+        client = self._get_mempalace_client()
+        db_mapping = None
+        if client:
+            wing_name = self._get_wing_name()
+            block_label = self._get_block_label(block_idx)
+            bmg_id = f"{block_label}_Str_{s_idx}"
+            db_mapping = client.get_script_mapping(wing_name, bmg_id)
+
+        # Retrieve dynamic name tag substitutions from the active plugin (e.g. {escape:0:0022} -> "Epona")
+        _dynamic_name_tags: dict = {}
+        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
+            try:
+                _dynamic_name_tags = self.mw.current_game_rules.get_dynamic_name_tags()
+            except Exception:
+                pass
+
+        def line_strip_is_speaker(s: str) -> bool:
+            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
+
+        # If direct mapping found, we can load the script and find the speaker directly from that line index
+        if db_mapping and db_mapping.get("script_line"):
+            line_num = db_mapping["script_line"]
+            # Fast check: load only lines up to line_num if not cached, or load all
+            try:
+                if hasattr(self, "_script_lines_cache") and self._script_lines_cache:
+                    lines = self._script_lines_cache
+                else:
+                    try:
+                        with open(script_path, "r", encoding="cp1252", errors="replace") as f:
+                            lines = f.readlines()
+                    except Exception:
+                        with open(script_path, "r", encoding="utf-8", errors="replace") as f:
+                            lines = f.readlines()
+                    self._script_lines_cache = lines
+                
+                # Scan backwards from line_num - 2 (0-indexed offset of line_num - 1)
+                speaker = None
+                for idx in range(line_num - 2, -1, -1):
+                    s = lines[idx].strip()
+                    if not s:
+                        continue
+                    if s.startswith("[") and s.endswith("]"):
+                        continue
+                    if line_strip_is_speaker(s):
+                        speaker = s
+                        break
+                speaker_str = speaker if speaker else "NONE"
+                return speaker_str, str(line_num)
+            except Exception as e:
+                log_debug(f"Direct mapping speaker extraction failed: {e}")
+
             
         # Retrieve dynamic name tag substitutions from the active plugin (e.g. {escape:0:0022} -> "Epona")
         _dynamic_name_tags: dict = {}
@@ -866,7 +930,7 @@ class AIPromptComposer(BaseTranslationHandler):
             global_distilled = []
             char_to_line_map = []
             def line_strip_is_speaker(s: str) -> bool:
-                return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s\.\-\']+$', s) is not None
+                return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
 
             for idx, line in enumerate(lines):
                 line_strip = line.strip()
@@ -915,7 +979,7 @@ class AIPromptComposer(BaseTranslationHandler):
             return "NONE"
 
         def line_strip_is_speaker(s: str) -> bool:
-            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s\.\-\']+$', s) is not None
+            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
 
         def is_line_boundary(line_str: str) -> bool:
             s = line_str.strip()
@@ -1081,7 +1145,24 @@ class AIPromptComposer(BaseTranslationHandler):
             if c["line_num"] not in matched_lines:
                 matched_lines.append(c["line_num"])
                 
+        speakers = []
+        for line_num in matched_lines:
+            speaker = None
+            for idx in range(line_num - 2, -1, -1):
+                s = lines[idx].strip()
+                if not s:
+                    continue
+                if s.startswith("[") and s.endswith("]"):
+                    continue
+                if line_strip_is_speaker(s):
+                    speaker = s
+                    break
+            if speaker and speaker not in speakers:
+                speakers.append(speaker)
+                
         if matched_lines:
-            return ", ".join(str(line_num) for line_num in matched_lines)
+            matched_lines_str = ", ".join(str(line_num) for line_num in matched_lines)
+            speaker_str = ", ".join(speakers) if speakers else "NONE"
+            return speaker_str, matched_lines_str
             
-        return "NONE"
+        return None

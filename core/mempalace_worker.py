@@ -1071,5 +1071,188 @@ JSON structure:
             log_error(f"Error in MemePalaceScriptAnalyzerWorker: {e}", exc_info=True)
             self.log.emit(f"FATAL ERROR: {str(e)}")
             self.finished.emit(False, f"Error occurred: {str(e)}")
-            self.log.emit(f"FATAL ERROR: {str(e)}")
-            self.finished.emit(False, f"Error occurred: {str(e)}")
+
+class MemePalaceChapterMapperWorker(QThread):
+    progress = pyqtSignal(int, int, str)
+    log = pyqtSignal(str)
+    finished = pyqtSignal(bool, str)
+
+    def __init__(self, client: MemePalaceClient, composer, wing_name: str):
+        super().__init__()
+        self.client = client
+        self.composer = composer
+        self.wing_name = wing_name
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True
+
+    def run(self):
+        import os
+        try:
+            self.log.emit("Starting Chapter Mapping Process...")
+            script_path = self.composer._find_script_path()
+            if not script_path or not os.path.exists(script_path):
+                self.finished.emit(False, "Script file not found.")
+                return
+
+            self.log.emit(f"Parsing script file: {script_path}")
+            from core.script_segmenter import segment_script_file
+            chapters = segment_script_file(script_path)
+            if not chapters:
+                self.finished.emit(False, "No chapters found in the script.")
+                return
+
+            self.log.emit(f"Found {len(chapters)} chapters. Saving chapters to local DB...")
+            self.client.save_chapters_to_db(self.wing_name, chapters)
+
+            # Gather BMG strings from project workspace
+            mw = self.composer.mw
+            store = getattr(mw, "data_store", None)
+            if not store or not store.data:
+                self.finished.emit(False, "No project blocks loaded.")
+                return
+
+            total_blocks = len(store.data)
+            mappings = []
+            
+            # Map BMG strings
+            for b_idx in range(total_blocks):
+                if self.is_cancelled:
+                    self.finished.emit(False, "Process cancelled.")
+                    return
+                    
+                block_label = self.composer._get_block_label(b_idx)
+                block_strings = store.data[b_idx]
+                total_strings = len(block_strings)
+                
+                self.progress.emit(b_idx, total_blocks, f"Mapping block {block_label} ({b_idx+1}/{total_blocks})...")
+                self.log.emit(f"Mapping block '{block_label}'...")
+
+                for s_idx, text in enumerate(block_strings):
+                    if not text or not str(text).strip():
+                        continue
+                        
+                    res = self.composer._find_speaker_in_script(b_idx, s_idx, text)
+                    if res and len(res) == 2:
+                        _, lines_str = res
+                        if lines_str and lines_str != "NONE":
+                            try:
+                                first_line = int(lines_str.split(",")[0].strip())
+                                mappings.append({
+                                    "bmg_id": f"{block_label}_Str_{s_idx}",
+                                    "script_line": first_line,
+                                    "bmg_text": text
+                                })
+                            except Exception:
+                                pass
+
+            self.log.emit(f"Saving {len(mappings)} mappings to database...")
+            self.client.save_mappings_to_db(self.wing_name, mappings)
+            
+            self.progress.emit(100, 100, "Mapping complete!")
+            self.finished.emit(True, f"Mapped {len(chapters)} chapters and {len(mappings)} dialogue lines successfully.")
+            
+        except Exception as e:
+            log_error(f"Error in MemePalaceChapterMapperWorker: {e}", exc_info=True)
+            self.finished.emit(False, f"Error: {e}")
+
+class MemePalaceChapterAIAnalyzerWorker(QThread):
+    progress = pyqtSignal(int, int, str)
+    log = pyqtSignal(str)
+    finished = pyqtSignal(bool, str)
+
+    def __init__(self, client: MemePalaceClient, ai_provider, chapter_id: int, num: str, title: str, content: str, start_line: int = 1, target_lang: str = "Ukrainian"):
+        super().__init__()
+        self.client = client
+        self.ai_provider = ai_provider
+        self.chapter_id = chapter_id
+        self.num = num
+        self.title = title
+        self.content = content
+        self.start_line = start_line
+        self.target_lang = target_lang
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True
+
+    def run(self):
+        try:
+            self.log.emit(f"Analyzing Chapter {self.num}: {self.title} via AI...")
+            self.progress.emit(0, 100, "Preparing prompt...")
+            
+            if not self.ai_provider:
+                self.finished.emit(False, "No AI Provider configured.")
+                return
+
+            # Number the lines of the content sequentially starting from start_line
+            lines = self.content.splitlines()
+            numbered_lines = []
+            for i, line in enumerate(lines):
+                actual_line_num = self.start_line + i
+                numbered_lines.append(f"{actual_line_num}: {line}")
+            
+            content_snippet = "\n".join(numbered_lines)
+            if len(content_snippet) > 35000:
+                content_snippet = content_snippet[:35000] + "\n\n[TRUNCATED FOR LENGTH...]"
+
+            system_prompt = (
+                "You are an expert game narrative architect. Your task is to analyze a game script chapter "
+                "and divide it into logical, sequential story events (micro-scenes or narrative events) with precise line ranges. "
+                "Format your entire response as a single valid JSON array of objects. Each object must have fields: "
+                "'start_line', 'end_line', 'event_name', and 'summary_ukrainian'. Ensure that there are no line gaps between events, "
+                "and they cover the entire chapter sequentially."
+            )
+            
+            user_prompt = f"""
+Analyze the following game script chapter where each line is prefixed with its actual script file line number.
+Divide this chapter into sequential, logical narrative events (scenes or plot points).
+For each event, determine the start line and end line numbers and write a brief, 1-2 sentence summary of what is happening in Ukrainian.
+
+CHAPTER: Chapter {self.num} - {self.title}
+
+SCRIPT TEXT:
+{content_snippet}
+
+Your output must be a valid JSON array of objects. Do not wrap the JSON in markdown formatting (do not use ```json). Return ONLY the raw JSON string.
+"""
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+
+            self.progress.emit(30, 100, "Sending request to AI...")
+            self.log.emit("Sending request to AI provider. This might take 10-20 seconds...")
+            
+            from core.translation.providers import ProviderResponse
+            response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+            
+            if self.is_cancelled:
+                self.finished.emit(False, "Process cancelled.")
+                return
+
+            summary = response.text.strip()
+            if not summary:
+                self.finished.emit(False, "Received empty summary from AI.")
+                return
+
+            # Clean json formatting tags if any
+            cleaned_json = summary
+            if cleaned_json.startswith("```"):
+                lines_json = cleaned_json.splitlines()
+                if lines_json[0].startswith("```"):
+                    lines_json = lines_json[1:]
+                if lines_json and lines_json[-1].startswith("```"):
+                    lines_json = lines_json[:-1]
+                cleaned_json = "\n".join(lines_json).strip()
+
+            self.progress.emit(80, 100, "Saving summary to database...")
+            self.client.save_chapter_summary(self.chapter_id, cleaned_json)
+
+            self.progress.emit(100, 100, "Analysis complete!")
+            self.finished.emit(True, f"Chapter {self.num} successfully analyzed and saved.")
+
+        except Exception as e:
+            log_error(f"Error in MemePalaceChapterAIAnalyzerWorker: {e}", exc_info=True)
+            self.finished.emit(False, f"Error: {e}")

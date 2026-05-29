@@ -104,24 +104,41 @@ class StringSettingsUpdater(BaseUIUpdater):
                     pass
                     
             if composer:
-                raw_spk = composer._find_speaker_in_script(block_idx, string_idx, raw_text)
-                if raw_spk:
-                    import re
+                result = composer._find_speaker_in_script(block_idx, string_idx, raw_text)
+                if result:
+                    raw_spk, matched_lines_str = result
                     if raw_spk == "NONE":
                         speaker_text = "Speaker: NONE"
-                        self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
-                    elif re.match(r'^[\d,\s]+$', raw_spk):
-                        self.mw.speaker_label.setToolTip(f"Matching lines in script: {raw_spk}")
-                        lines_list = [num.strip() for num in raw_spk.split(",") if num.strip()]
-                        if len(lines_list) > 4:
-                            displayed_spk = ", ".join(lines_list[:4]) + ", ..."
-                        else:
-                            displayed_spk = ", ".join(lines_list)
-                        speaker_text = f"Speaker: {displayed_spk}"
                     else:
                         trans_spk = composer._translate_speaker(raw_spk)
                         speaker_text = f"Speaker: {trans_spk} ({raw_spk})"
-                        self.mw.speaker_label.setToolTip(f"Speaker: {trans_spk} ({raw_spk})")
+                    
+                    tooltip_text = ""
+                    if matched_lines_str:
+                        tooltip_text = f"Matching lines in script: {matched_lines_str}"
+                    else:
+                        tooltip_text = "Speaker for the current line mapped from MemePalace"
+                        
+                    # Fetch speaker details from glossary
+                    glossary_manager = None
+                    if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                        glossary_manager = getattr(self.mw.translation_handler, '_glossary_manager', None)
+                    if glossary_manager and raw_spk and raw_spk != "NONE":
+                        spk_parts = [s.strip() for s in raw_spk.split(",") if s.strip()]
+                        glossary_infos = []
+                        for spk in spk_parts:
+                            entry = glossary_manager.get_entry(spk)
+                            if entry:
+                                info = f"• <b>{entry.original}</b>"
+                                if entry.translation:
+                                    info += f" —> {entry.translation}"
+                                if entry.notes:
+                                    info += f" ({entry.notes})"
+                                glossary_infos.append(info)
+                        if glossary_infos:
+                            tooltip_text += "<br><br><b>Glossary Info:</b><br>" + "<br>".join(glossary_infos)
+                            
+                    self.mw.speaker_label.setToolTip(tooltip_text)
                 else:
                     self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
             else:
