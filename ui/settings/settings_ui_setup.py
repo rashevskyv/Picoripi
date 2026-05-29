@@ -808,6 +808,9 @@ class SettingsDialogUiMixin:
         self.enable_file_logging_checkbox = QCheckBox("Enable File Logging", self)
         handler_layout.addRow(self.enable_file_logging_checkbox)
         
+        self.log_ai_traffic_checkbox = QCheckBox("Log AI Traffic to File (ai_traffic.log)", self)
+        handler_layout.addRow(self.log_ai_traffic_checkbox)
+        
         self.log_file_path_edit = QLineEdit(self)
         self.log_file_path_edit.setPlaceholderText("Leave empty for default app_debug.txt")
         handler_layout.addRow("Log File Path:", self._create_path_selector(self.log_file_path_edit))

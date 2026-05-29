@@ -44,8 +44,6 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
         "SysPrompt", source_items, all_items, block_idx=0, mode_description="TestMode"
     )
     
-    assert "Hello" in user # context before
-    assert "Goodbye" in user # context after
     assert "World" in user # current text
     assert "Test Game" in user
     assert "Block 0" in user

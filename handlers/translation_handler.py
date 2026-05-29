@@ -25,7 +25,7 @@ from .translation.ai_lifecycle_manager import AILifecycleManager
 from .translation.ai_worker import AIWorker
 from components.prompt_editor_dialog import PromptEditorDialog
 from utils.logging_utils import log_debug, log_warning
-from utils.utils import convert_spaces_to_dots_for_display
+from utils.utils import convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags
 
 
 class TranslationHandler(BaseHandler):
@@ -383,7 +383,7 @@ class TranslationHandler(BaseHandler):
         from PyQt5.QtWidgets import QApplication
         QApplication.processEvents()
 
-        data_source = getattr(self.mw, 'data', None)
+        data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
         if not isinstance(data_source, list) or not (0 <= target_block_idx < len(data_source)):
             self.ui_handler.finish_ai_operation()
             QMessageBox.information(self.mw, "AI Translation", "No block data available to translate.")
@@ -502,6 +502,77 @@ class TranslationHandler(BaseHandler):
             base = 120
         return max(base, 30)
 
+    def _format_and_wrap_translation(self, text: str, block_idx: int, string_idx: int) -> str:
+        """
+        Cleans the incoming translation by stripping newlines inside sentences,
+        and wraps it using the font metrics and recommended pixel width.
+        """
+        if not text:
+            return ""
+            
+        # Clean incoming translation: replace all newlines with spaces
+        cleaned_text = text.replace('\n', ' ')
+        # Normalize double/multiple spaces to single space
+        cleaned_text = re.sub(r' +', ' ', cleaned_text).strip()
+        
+        # Get font map and recommended width
+        font_map = None
+        if hasattr(self.mw, "current_font_map") and self.mw.current_font_map:
+            font_map = self.mw.current_font_map
+        elif hasattr(self.mw, "font_map") and self.mw.font_map:
+            font_map = self.mw.font_map
+            
+        string_meta = getattr(self.mw, 'string_metadata', {}).get((block_idx, string_idx), {})
+        width_threshold_raw = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 200))
+        try:
+            width_threshold = int(width_threshold_raw)
+        except (TypeError, ValueError):
+            width_threshold = 200
+        
+        # Perform wrapping using a word wrap logic similar to TextAutofixLogic._fix_width_exceeded
+        line_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', cleaned_text)
+        
+        lines = []
+        current_line = ""
+        current_width = 0
+        needs_space = False
+        
+        for part in line_parts:
+            part_no_tags = remove_all_tags(part)
+            part_width = calculate_string_width(part_no_tags, font_map)
+            
+            # Width calculation including optional space
+            width_to_check = current_width
+            current_needs_space = needs_space and not part.isspace() and current_line and not current_line.endswith(" ")
+            
+            if current_needs_space:
+                width_to_check += calculate_string_width(" ", font_map)
+            width_to_check += part_width
+            
+            if width_to_check <= width_threshold:
+                if current_needs_space:
+                    current_line += " "
+                current_line += part
+                current_width = calculate_string_width(remove_all_tags(current_line), font_map)
+                if not part.isspace():
+                    needs_space = True
+                else:
+                    needs_space = False
+            else:
+                # Part doesn't fit, start a new line
+                if current_line:
+                    lines.append(current_line.rstrip())
+                
+                # Start new line with the current part
+                current_line = part.strip()
+                current_width = calculate_string_width(remove_all_tags(current_line), font_map)
+                needs_space = not part.isspace()
+                
+        if current_line:
+            lines.append(current_line.rstrip())
+            
+        final_text = "\n".join(lines)
+        return final_text
 
     def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
         self.translated_chunks_count = 0
@@ -605,7 +676,7 @@ class TranslationHandler(BaseHandler):
 
             for item in translated_strings:
                 string_idx, translated_text = item["id"], item["translation"]
-                final_text = self.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(translated_text)
+                final_text = self._format_and_wrap_translation(translated_text, block_idx, string_idx)
                 self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE")
             
             if hasattr(self.mw, 'undo_manager'):
@@ -651,7 +722,7 @@ class TranslationHandler(BaseHandler):
             self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
             for item in translated_strings:
                 string_idx, translated_text = item["id"], item["translation"]
-                final_text = self.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(translated_text)
+                final_text = self._format_and_wrap_translation(translated_text, context['block_idx'], string_idx)
                 self.data_processor.update_edited_data(context['block_idx'], string_idx, final_text, action_type="TRANSLATE")
 
             if hasattr(self.mw, 'undo_manager'):
@@ -673,13 +744,16 @@ class TranslationHandler(BaseHandler):
     def _handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
-        trimmed_translation = self.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(cleaned_translation)
+        
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
+        final_text = self._format_and_wrap_translation(cleaned_translation, block_idx, string_idx)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
         
         self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        self.ui_handler.apply_full_translation(trimmed_translation)
+        self.ui_handler.apply_full_translation(final_text)
         self.ui_handler.finish_ai_operation()
-        self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+        self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
         self.ai_lifecycle_manager.on_task_finished(context)
@@ -699,10 +773,13 @@ class TranslationHandler(BaseHandler):
         
         chosen = self.ui_handler.show_variations_dialog(trimmed)
         if chosen:
+            block_idx = self.mw.data_store.current_block_idx
+            string_idx = self.mw.data_store.current_string_idx
+            final_text = self._format_and_wrap_translation(chosen, block_idx, string_idx)
             if context.get('is_inline', False):
-                self.ui_handler.apply_inline_variation(chosen)
+                self.ui_handler.apply_inline_variation(final_text)
             else:
-                self.ui_handler.apply_full_translation(chosen)
+                self.ui_handler.apply_full_translation(final_text)
 
 
     def generate_variation_for_current_string(self) -> None:

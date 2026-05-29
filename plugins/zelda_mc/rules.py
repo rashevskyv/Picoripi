@@ -16,6 +16,7 @@ from .config import (
     PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY,
     PROBLEM_TAG_WARNING,
     PROBLEM_SINGLE_WORD_SUBLINE,
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
     COLOR_MARKER_DEFINITIONS,
     CONTROL_CODES
 )
@@ -31,6 +32,7 @@ class ProblemIDs:
     PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY = PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
     PROBLEM_SINGLE_WORD_SUBLINE = PROBLEM_SINGLE_WORD_SUBLINE
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START = PROBLEM_SINGLE_WORD_SUBLINE_NON_START
 
 class GameRules(BaseGameRules):
 
@@ -87,6 +89,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_SHORT_LINE: return "Short"
         if problem_id == PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: return "EmptyPage"
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE: return "1Word"
+        if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
         if problem_id == PROBLEM_TAG_WARNING: return "Tag"
         return super().get_short_problem_name(problem_id)
 

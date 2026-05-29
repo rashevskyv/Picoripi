@@ -52,6 +52,7 @@
         "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": false,
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": false,
         "ZBMG_SINGLE_WORD_SUBLINE": false,
+        "ZBMG_SINGLE_WORD_SUBLINE_NON_START": false,
         "ZBMG_SHORT_LINE": false
     },
     "detection_enabled": {
@@ -61,6 +62,7 @@
         "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": true,
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": true,
         "ZBMG_SINGLE_WORD_SUBLINE": true,
+        "ZBMG_SINGLE_WORD_SUBLINE_NON_START": true,
         "ZBMG_SHORT_LINE": true
     },
     "translation_config": {},

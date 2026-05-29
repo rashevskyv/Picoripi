@@ -3,7 +3,7 @@ import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from .config import (PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE,
-                     PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_TAG_WARNING)
+                     PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_TAG_WARNING)
 
 SENTENCE_END_PUNCTUATION_CHARS = ['.', '!', '?']
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
@@ -16,6 +16,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             'SHORT': PROBLEM_SHORT_LINE,
             'EMPTY': PROBLEM_EMPTY_SUBLINE,
             'SINGLE': PROBLEM_SINGLE_WORD_SUBLINE,
+            'SINGLE_NON_START': PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
             'TAG': PROBLEM_TAG_WARNING,
         }
 
@@ -72,8 +73,18 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                 next_text_part, _ = sublines_with_tags[i+1]
                 if self._check_short_line(text_part, next_text_part, font_map, threshold):
                     problems_per_subline_idx[i].add(self.problem_ids['SHORT'])
-            if not is_only_one_subline_in_total and self._check_single_word_subline_generic(text_part):
-                 problems_per_subline_idx[i].add(self.problem_ids['SINGLE'])
+            lines_per_page = 4
+            if self.mw and hasattr(self.mw, 'lines_per_page'):
+                lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+            if len(sublines_with_tags) > 1 and i % lines_per_page == 0:
+                if self._check_single_word_subline_generic(text_part):
+                    if not self._is_single_word_ok_generic(text_part):
+                        page_lines = [part for part, _ in sublines_with_tags[i : i + lines_per_page]]
+                        has_content_after = any(line.strip() for line in page_lines[1:])
+                        if has_content_after:
+                            problems_per_subline_idx[i].add(self.problem_ids['SINGLE'])
+                        else:
+                            problems_per_subline_idx[i].add(self.problem_ids['SINGLE_NON_START'])
         return problems_per_subline_idx
 
     def analyze_subline(self, text: str, **kwargs) -> Set[str]:

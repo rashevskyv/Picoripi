@@ -1,5 +1,19 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.127] - 2026-05-29
+
+### Added
+- **Unified Plugin Problem Analyzer Subsystem**: Refactored the validation and warning analysis engine across all plugins. Created a shared baseline `BaseProblemAnalyzer` inside `plugins/common/problem_analyzer.py` to standardize the parsing, width evaluation, and warning generation logic. Decomposed rule checkers in `plain_text`, `pokemon_fr`, `zelda_bmg`, `zelda_mc`, and `zelda_ww` plugins into cohesive analyzer classes, greatly reducing duplicate boilerplate.
+- **Enhanced AI Prompt Composer and Translation Workflow**: Substantially upgraded the AI prompt composer and async worker execution lifecycle in `handlers/translation/ai_prompt_composer.py` and `handlers/translation/ai_worker.py`. Strengthened structural JSON processing, refined translation context injection, and resolved type annotations throughout the handlers.
+- **Robust Problem Analyzer Test Suite**: Added a dedicated test suite under `tests/test_plugins/test_plain_text/test_problem_analyzer.py` to comprehensively verify problem detection, warning offsets, and customized plugin markers.
+
+## [0.2.126] - 2026-05-29
+
+### Added
+- **Direct Database Script Line Mapping**: Integrated a high-performance DB-direct query pipeline inside MemePalace context matching to dynamically map dialogue strings to chronological story events, eliminating flat index traversal delays.
+- **Chapter Timeline Quick Access**: Added a new keyboard shortcut `Ctrl+I` to instantly trigger the chronologically mapped chapter walkthrough timeline dialog.
+- **Accurate AI Operation Queue Progress Bar**: Enhanced the status indicators with highly accurate queue calculation and real-time step progress updates inside `AIStatusDialog` for long-running AI operations.
+
 ## [0.2.125] - 2026-05-29
 
 ### Fixed

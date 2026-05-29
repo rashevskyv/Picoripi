@@ -20,6 +20,27 @@ class GenericProblemAnalyzer:
         word_content_pattern = re.compile(r'[\wа-яА-ЯіїІїЄєґҐ]+') 
         return bool(word_content_pattern.search(word))
 
+    def _is_single_word_ok_generic(self, subline_text: str) -> bool:
+        text_no_tags = remove_all_tags(subline_text).strip()
+        if not text_no_tags:
+            return True
+        words = text_no_tags.split()
+        if len(words) != 1:
+            return True
+        word = words[0]
+        
+        first_letter_match = re.search(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ]', word)
+        if not first_letter_match:
+            return True
+            
+        is_capital = first_letter_match.group(0).isupper()
+        
+        # Word starting with a capital letter is ALWAYS ok (no warning)
+        if is_capital:
+            return True
+            
+        return False
+
     def analyze_subline(self,
                         text: str,
                         next_text: Optional[str],

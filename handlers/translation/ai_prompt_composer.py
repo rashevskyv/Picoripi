@@ -57,69 +57,128 @@ class AIPromptComposer(BaseTranslationHandler):
         retry_reason: str = '',
     ) -> Tuple[str, str, Dict]:
         placeholder_map: Dict = {}
-        
-        # Create a map for quick lookup of items by id
-        all_items_map = {item['id']: item for item in all_source_items}
-        all_item_ids = [item['id'] for item in all_source_items]
-
-        items_with_context = []
         glossary_manager = self.main_handler._glossary_manager
+        client = self._get_mempalace_client()
+        wing_name = self._get_wing_name()
+        block_label = self._get_block_label(block_idx)
 
+        # 1. Resolve speakers and clean newlines for all items in chunk
+        items_with_context = []
         for item in source_items:
-            item_id = item['id']
-            current_text = item.get('text', '')
+            if isinstance(item, dict):
+                item_id = item.get('id', 0)
+                current_text = item.get('text', '')
+            else:
+                item_id = 0
+                current_text = str(item)
             
-            try:
-                current_idx = all_item_ids.index(item_id)
-                prev_idx = current_idx - 1
-                next_idx = current_idx + 1
+            # Remove line breaks inside sentences for AI translation
+            current_text_clean = current_text.replace('\n', ' ')
+            current_text_clean = re.sub(r' +', ' ', current_text_clean).strip()
 
-                context_before = all_source_items[prev_idx]['text'] if prev_idx >= 0 else ''
-                context_after = all_source_items[next_idx]['text'] if next_idx < len(all_source_items) else ''
-            except ValueError:
-                context_before, context_after = '', ''
-
-            # Fetch story context from MemPalace if available
-            story_context = self._fetch_story_context(block_idx, item_id, current_text)
-
-            # Find relevant glossary terms
-            relevant_glossary_entries = []
-            if glossary_manager:
-                search_parts = [context_before, current_text, context_after]
-                if story_context:
-                    for line in story_context.splitlines():
-                        if line.startswith("Speaker in this line:"):
-                            speaker = line.partition("Speaker in this line:")[2].strip()
-                            if speaker:
-                                search_parts.append(speaker)
-                            break
-                combined_text = '\n'.join(search_parts)
-                relevant_glossary_entries = glossary_manager.get_relevant_terms(combined_text)
+            # Resolve speaker
+            speaker = None
+            if client:
+                bmg_id = f"{block_label}_Str_{item_id}"
+                cached_ctx = client.get_cached_context(bmg_id, current_text)
+                if cached_ctx:
+                    speaker = cached_ctx.get("speaker")
+                    
+            if not speaker:
+                script_res = self._find_speaker_in_script(block_idx, item_id, current_text)
+                if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
+                    raw_spk = script_res[0]
+                    speaker = self._translate_speaker(raw_spk) if raw_spk else None
+            
+            if not speaker:
+                speaker = "Unknown"
 
             item_for_ai = {
                 'id': item_id,
-                'text': current_text,
-                'context_before': context_before,
-                'context_after': context_after,
-                'relevant_glossary': self._glossary_entries_to_text(relevant_glossary_entries)
+                'text': current_text_clean,
+                'speaker': speaker
             }
-            
-            if story_context:
-                item_for_ai['story_context'] = story_context
-                
             items_with_context.append(item_for_ai)
 
-        json_payload_for_ai = {'strings_to_translate': items_with_context}
+        # 2. Extract scene context for the entire chunk if available
+        room_name = None
+        for item in source_items:
+            if isinstance(item, dict):
+                item_id = item.get('id', 0)
+                item_text = item.get('text', '')
+            else:
+                item_id = 0
+                item_text = str(item)
+            bmg_id = f"{block_label}_Str_{item_id}"
+            cached_ctx = client.get_cached_context(bmg_id, item_text) if client else None
+            if cached_ctx and cached_ctx.get("room"):
+                room_name = cached_ctx.get("room")
+                break
+
+        scene_context = ""
+        if room_name and client:
+            visual_ctx = client.get_room_visual_context(wing_name, room_name)
+            relations = []
+            try:
+                relations = client.get_relations(wing_name)
+            except Exception:
+                pass
+                
+            context_parts = []
+            clean_room = room_name.replace("_", " ")
+            context_parts.append(f"Story Location/Scene: {clean_room}")
+            
+            if visual_ctx:
+                context_parts.append(f"Visual Action Context:\n{visual_ctx}")
+                
+            relevant_relations = []
+            if relations:
+                chunk_speakers = set()
+                for item in items_with_context:
+                    spk = item.get('speaker')
+                    if spk and spk != "Unknown":
+                        chunk_speakers.add(spk.lower())
+                
+                for r in relations:
+                    if r.get("source", "").lower() in chunk_speakers or r.get("target", "").lower() in chunk_speakers:
+                        relevant_relations.append(r)
+                        
+            if relevant_relations:
+                rel_lines = ["\nCharacter Relations & Status (Use for formal/informal tone):"]
+                for r in relevant_relations[:5]:
+                    rel_lines.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
+                context_parts.append("\n".join(rel_lines))
+                
+            scene_context = "\n".join(context_parts)
+
+        # 3. Find relevant glossary terms for the entire chunk
+        combined_chunk_text = " ".join(
+            (item.get('text', '') if isinstance(item, dict) else str(item))
+            for item in source_items
+        )
+        relevant_glossary_entries = []
+        if glossary_manager:
+            relevant_glossary_entries = glossary_manager.get_relevant_terms(combined_chunk_text)
+        glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
+
+        # 4. Build JSON payload
+        json_payload_for_ai = {
+            'strings_to_translate': items_with_context
+        }
+        if scene_context:
+            json_payload_for_ai['scene_context'] = scene_context
+        if glossary_text:
+            json_payload_for_ai['glossary'] = glossary_text
 
         if not is_retry:
             instructions = [
                 'Translate the "text" field for each object in the "strings_to_translate" array into Ukrainian.',
-                'Use "context_before", "context_after", "story_context" (if present), and "relevant_glossary" to maintain consistency.',
                 'Return a single, valid JSON object with a "translated_strings" key.',
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object in the returned array must have the original "id" (integer) and a "translation" (string) field.',
-                'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input array.',
-                'Follow the rules from the system prompt regarding tags and glossary.',
+                'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
+                'Use "scene_context" (if present), "speaker", and "glossary" (if present) to maintain consistency and tone.',
+                'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
         else:
@@ -128,12 +187,12 @@ class AIPromptComposer(BaseTranslationHandler):
                 f'Error: {retry_reason}',
                 'Follow these instructions carefully:',
                 'Translate the "text" field for each object in the "strings_to_translate" array into Ukrainian.',
-                'Use "context_before", "context_after", "story_context" (if present), and "relevant_glossary" to maintain consistency.',
                 'Return a single, valid JSON object with a "translated_strings" key.',
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object must have the original "id" and a "translation" field.',
                 'The number of objects must match the input.',
-                'Follow the rules from the system prompt regarding tags and glossary.',
+                'Use "scene_context" (if present), "speaker", and "glossary" (if present) to maintain consistency and tone.',
+                'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
 
@@ -153,7 +212,6 @@ class AIPromptComposer(BaseTranslationHandler):
             f'Mode: {mode_description}',
         ]
         if block_idx is not None:
-            block_label = self.mw.data_store.block_names.get(str(block_idx), f'Block {block_idx}')
             context_lines.append(f'Block: {block_label} (#{block_idx})')
 
         user_sections = [
@@ -959,7 +1017,7 @@ class AIPromptComposer(BaseTranslationHandler):
         # Distill current text
         distilled_query = distill(text)
         if not distilled_query:
-            return "NONE"
+            return "NONE", None
             
         start_offset = 0
         if words_count < 4:
@@ -976,7 +1034,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 start_offset = start
                 
         if not search_query:
-            return "NONE"
+            return "NONE", None
 
         def line_strip_is_speaker(s: str) -> bool:
             return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
@@ -1129,7 +1187,7 @@ class AIPromptComposer(BaseTranslationHandler):
             start_pos = pos + 1
             
         if not candidates:
-            return "NONE"
+            return "NONE", None
             
         # FILTERING HIERARCHY
         # 1. Keep max context level

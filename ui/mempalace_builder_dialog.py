@@ -134,7 +134,7 @@ class MemePalaceBuilderDialog(QDialog):
         # Auto-fill script path if empty
         if not self.file_path_edit.text().strip():
             script_path = self.composer._find_script_path() if self.composer else None
-            if script_path:
+            if isinstance(script_path, str) and script_path:
                 self.file_path_edit.setText(script_path)
                 self.append_log(f"Auto-discovered game script file: {os.path.basename(script_path)}")
                 
@@ -774,14 +774,16 @@ class MemePalaceBuilderDialog(QDialog):
             if sm:
                 script_path = sm.get("mempalace_script_path", "")
                 wing_name = sm.get("mempalace_wing_name", "")
-                if script_path:
+                if isinstance(script_path, str) and script_path:
                     self.file_path_edit.setText(script_path)
-                if wing_name:
+                if isinstance(wing_name, str) and wing_name:
                     self.wing_edit.setText(wing_name)
                 prevent_sleep_val = sm.get("mempalace_prevent_sleep", True)
-                self.prevent_sleep_checkbox.setChecked(prevent_sleep_val)
+                if isinstance(prevent_sleep_val, bool):
+                    self.prevent_sleep_checkbox.setChecked(prevent_sleep_val)
                 sleep_after_val = sm.get("mempalace_sleep_after_finish", False)
-                self.sleep_after_checkbox.setChecked(sleep_after_val)
+                if isinstance(sleep_after_val, bool):
+                    self.sleep_after_checkbox.setChecked(sleep_after_val)
         except Exception as e:
             log_error(f"Failed to load builder settings: {e}")
 
