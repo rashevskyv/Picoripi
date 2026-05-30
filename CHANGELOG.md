@@ -1,5 +1,19 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.129] - 2026-05-30
+
+### Added
+- **MemePalace Automated Orchestration Pipeline**:
+  - Integrated a new **Start Complete Pipeline** green button into the MemePalace Context Builder dialog.
+  - Implemented sequentially automated execution of the entire MemePalace workflow steps in their correct order:
+    1. *Mining Characters & Terms via AI*
+    2. *Mapping BMG dialogue lines to Story Script Chapters*
+    3. *AI Analyzing and Generating Chapter Summaries*
+    4. *AI Profiling Characters Speech Patterns*
+  - Added smart non-blocking transitions (`_advance_pipeline` and `_abort_pipeline`) to safely move forward on success or gracefully stop on failures with full log output.
+- **Robust Pipeline Test Suite**:
+  - Added a comprehensive unit test `test_mempalace_builder_pipeline_orchestration` in `tests/test_ui/test_mempalace_builder.py` verifying correct step transitions, mock worker execution, and completion callbacks.
+
 ## [0.2.128] - 2026-05-30
 
 ### Added
