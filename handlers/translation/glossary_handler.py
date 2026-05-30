@@ -7,7 +7,11 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from PyQt5.QtWidgets import QAction, QMessageBox, QDialog
+from PyQt5.QtWidgets import (
+    QAction, QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, 
+    QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, 
+    QWidget, QDialogButtonBox
+)
 from PyQt5.QtCore import Qt
 
 from .base_translation_handler import BaseTranslationHandler
@@ -17,6 +21,57 @@ from core.glossary_manager import GlossaryEntry, GlossaryManager, GlossaryOccurr
 from components.glossary_dialog import GlossaryDialog
 from components.glossary_edit_dialog import GlossaryEditDialog
 from utils.logging_utils import log_debug
+
+
+class CategorySelectionDialog(QDialog):
+    """Dialog for choosing and adding categories for glossary AI classification."""
+    def __init__(self, parent, categories: List[str]):
+        super().__init__(parent)
+        self.setWindowTitle("Choose Glossary Categories")
+        self.resize(360, 400)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Select categories to organize your glossary:", self))
+        
+        # Scroll area for checkboxes
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        
+        self.checkboxes = []
+        for cat in categories:
+            cb = QCheckBox(cat, self)
+            cb.setChecked(True)
+            scroll_layout.addWidget(cb)
+            self.checkboxes.append(cb)
+            
+        scroll_layout.addStretch()
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll, 1)
+        
+        # Custom category input
+        layout.addWidget(QLabel("Add custom categories (comma-separated):", self))
+        self.custom_input = QLineEdit(self)
+        self.custom_input.setPlaceholderText("e.g. Items, Weapons, Spells")
+        layout.addWidget(self.custom_input)
+        
+        # Buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+    def get_selected_categories(self) -> List[str]:
+        selected = [cb.text() for cb in self.checkboxes if cb.isChecked()]
+        custom_text = self.custom_input.text().strip()
+        if custom_text:
+            for item in custom_text.split(","):
+                clean_item = item.strip()
+                if clean_item and clean_item not in selected:
+                    selected.append(clean_item)
+        return selected
 
 
 class GlossaryHandler(BaseTranslationHandler):
@@ -30,6 +85,8 @@ class GlossaryHandler(BaseTranslationHandler):
         # Delegates
         self._prompt_manager = GlossaryPromptManager(self.mw, main_handler, self.glossary_manager)
         self._occurrence_updater = GlossaryOccurrenceUpdater(self)
+
+
 
     # ── Public prompt manager proxy (used by TranslationHandler) ─────────
 
@@ -141,6 +198,7 @@ class GlossaryHandler(BaseTranslationHandler):
             update_callback=self._handle_glossary_entry_update,
             delete_callback=self._handle_glossary_entry_delete,
             ai_variation_callback=self._handle_notes_variation_from_dialog,
+            ai_classify_callback=self.classify_glossary_via_ai,
             initial_term=initial_term,
         )
         self.dialog.finished.connect(self._on_glossary_dialog_closed)
@@ -440,3 +498,161 @@ class GlossaryHandler(BaseTranslationHandler):
                 self.mw.statusBar.showMessage(f"Glossary deleted: {original}", 4000)
             return entries, occurrence_map
         return None
+
+    # ── AI Glossary Classification ───────────────────────────────────────
+
+    def classify_glossary_via_ai(self) -> None:
+        entries = self.glossary_manager.get_entries()
+        if not entries:
+            QMessageBox.information(self.mw, "Glossary", "No glossary entries to classify.")
+            return
+
+        provider = self.mw.translation_handler.ai_lifecycle_manager._prepare_provider()
+        if not provider:
+            return
+
+        # 1. Start Stage 1: Ask AI to suggest categories
+        terms_list = "\n".join(f"- {e.original} -> {e.translation}" for e in entries[:150]) # limit to 150 for safety
+        
+        system_prompt = (
+            "You are an expert game translation director. Your task is to analyze a list of glossary terms "
+            "and suggest a set of 4 to 7 highly relevant thematic categories (such as 'Characters', 'Items', "
+            "'Locations', 'Magic', 'Other') to organize them."
+        )
+        user_prompt = f"""
+Analyze the following list of glossary terms:
+{terms_list}
+
+Suggest 4 to 7 thematic categories to organize these terms. Common categories include: "Characters", "Items", "Locations", "Magic", "Other".
+Return the response STRICTLY as a valid JSON list of strings (e.g., ["Characters", "Items", "Locations", "Magic", "Other"]).
+Do not write any markdown formatting like ```json, just output raw JSON text.
+"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        task_details = {
+            "type": "classify_suggest_types",
+            "precomposed_prompt": messages,
+            "attempt": 1,
+            "max_retries": 1,
+            "dialog_steps": ["Analyzing glossary terms...", "Choosing categories...", "Classifying terms...", "Finished!"],
+            "entries": entries
+        }
+        
+        self.main_handler.ui_handler.start_ai_operation("AI Glossary Analyze", model_name=self.main_handler.ai_lifecycle_manager._active_model_name)
+        self.main_handler.ai_lifecycle_manager.run_ai_task(provider, task_details)
+
+    def _handle_classify_suggest_success(self, response, context: dict) -> None:
+        self.main_handler.ui_handler.finish_ai_operation()
+        cleaned = self.mw.translation_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
+        
+        try:
+            suggested_categories = json.loads(cleaned)
+            if not isinstance(suggested_categories, list):
+                suggested_categories = ["Characters", "Items", "Locations", "Magic", "Other"]
+        except Exception:
+            suggested_categories = ["Characters", "Items", "Locations", "Magic", "Other"]
+            
+        # Show Category Selection Dialog
+        dialog = CategorySelectionDialog(self.dialog, suggested_categories)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+            
+        selected_categories = dialog.get_selected_categories()
+        if not selected_categories:
+            QMessageBox.information(self.dialog, "Glossary", "No categories selected. Operation cancelled.")
+            return
+            
+        # 2. Start Stage 2: Classify terms into selected categories
+        provider = self.mw.translation_handler.ai_lifecycle_manager._prepare_provider()
+        if not provider:
+            return
+            
+        entries = context.get("entries", [])
+        terms_data = [{"original": e.original, "translation": e.translation, "notes": e.notes} for e in entries]
+        terms_json = json.dumps(terms_data, ensure_ascii=False)
+        categories_str = ", ".join(f'"{c}"' for c in selected_categories)
+        
+        system_prompt = (
+            "You are an expert game translation director. Your task is to classify a list of glossary terms "
+            f"into the following categories: {categories_str}."
+        )
+        user_prompt = f"""
+Classify each of the following glossary terms into exactly one of these categories: {categories_str}.
+If a term fits multiple categories, assign it to the most relevant one. If it doesn't fit any of the specific categories, assign it to "Other".
+
+Glossary terms to classify:
+{terms_json}
+
+Respond STRICTLY in JSON format as a dictionary where the keys are the original terms and the values are their assigned category from the list.
+Do not write any markdown code blocks (like ```json), just output the raw JSON dictionary.
+"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        task_details = {
+            "type": "classify_apply",
+            "precomposed_prompt": messages,
+            "attempt": 1,
+            "max_retries": 1,
+            "dialog_steps": ["Analyzing glossary terms...", "Choosing categories...", "Classifying terms...", "Finished!"],
+            "entries": entries,
+            "selected_categories": selected_categories
+        }
+        
+        self.main_handler.ui_handler.start_ai_operation("AI Glossary Classify", model_name=self.main_handler.ai_lifecycle_manager._active_model_name)
+        self.main_handler.ai_lifecycle_manager.run_ai_task(provider, task_details)
+
+    def _handle_classify_apply_success(self, response, context: dict) -> None:
+        self.main_handler.ui_handler.finish_ai_operation()
+        cleaned = self.mw.translation_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
+        
+        try:
+            classification_map = json.loads(cleaned)
+        except Exception as e:
+            QMessageBox.warning(self.dialog, "AI Error", f"Failed to parse AI classification: {e}")
+            return
+            
+        if not isinstance(classification_map, dict):
+            QMessageBox.warning(self.dialog, "AI Error", "AI did not return a valid dictionary mapping terms to categories.")
+            return
+            
+        # Update glossary manager categories (sections)
+        updated_count = 0
+        entries = context.get("entries", [])
+        for entry in entries:
+            assigned_cat = classification_map.get(entry.original)
+            if assigned_cat:
+                self.glossary_manager.update_entry(
+                    original=entry.original,
+                    translation=entry.translation,
+                    notes=entry.notes,
+                    section=assigned_cat
+                )
+                updated_count += 1
+                
+        # Save updated glossary to disk
+        self.glossary_manager.save_to_disk()
+        self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
+        self._update_glossary_highlighting()
+        
+        # Hot-reload in glossary dialog if visible
+        if self.dialog:
+            new_entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+            occurrence_map = self.glossary_manager.get_occurrence_map()
+            self.dialog.reload_data(new_entries, occurrence_map)
+            
+        QMessageBox.information(
+            self.dialog if self.dialog else self.mw,
+            "Success",
+            f"Successfully organized {updated_count} glossary terms into categories!"
+        )
+
+    def _handle_classify_error(self, error_message: str, context: dict) -> None:
+        self.main_handler.ui_handler.finish_ai_operation()
+        msg = error_message or "AI request failed."
+        QMessageBox.warning(self.dialog if self.dialog else self.mw, "AI Error", msg)

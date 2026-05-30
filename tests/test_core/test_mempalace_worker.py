@@ -404,5 +404,135 @@ def test_mempalace_client_cache_mtime_invalidation(tmp_path):
     assert ctx_updated["speaker"] == "UPDATED SPEAKER"
 
 
+def test_mempalace_character_profiler_worker():
+    from core.mempalace_worker import MemePalaceCharacterProfilerWorker
+    from core.glossary_manager import GlossaryEntry
+    
+    client = MagicMock()
+    # Mock character lines retrieval
+    client.get_all_character_lines.return_value = {
+        "RUSL": ["Tell me... Do you ever feel a strange sadness as dusk falls?", "I crafted this shield."]
+    }
+    
+    ai_provider = MagicMock()
+    # Mock AI response
+    mock_response = MagicMock()
+    mock_response.text = '{"name_translation": "Руслан", "speech_profile": "Він мужній мечник, говорить спокійно і мудро."}'
+    ai_provider.translate.return_value = mock_response
+    
+    glossary_manager = MagicMock()
+    # Simulate that "RUSL" does not exist yet in glossary
+    glossary_manager.get_entry.return_value = None
+    
+    worker = MemePalaceCharacterProfilerWorker(
+        client=client,
+        ai_provider=ai_provider,
+        wing_name="Zelda_TP",
+        glossary_manager=glossary_manager,
+        target_lang="Ukrainian"
+    )
+    
+    # Run the worker synchronously (as it is a QThread, we can call run() directly for unit testing)
+    worker.run()
+    
+    # Verify that get_all_character_lines was called on client
+    client.get_all_character_lines.assert_called_once_with("Zelda_TP")
+    
+    # Verify that translate was called on ai_provider
+    assert ai_provider.translate.called
+    
+    # Verify that add_entry was called on glossary_manager
+    glossary_manager.add_entry.assert_called_once_with(
+        original="RUSL",
+        translation="Руслан",
+        notes="Він мужній мечник, говорить спокійно і мудро.",
+        section="Characters"
+    )
+    
+    # Verify that save_to_disk was called
+    glossary_manager.save_to_disk.assert_called_once()
+
+
+def test_mempalace_character_profiler_worker_consecutive_failures():
+    from core.mempalace_worker import MemePalaceCharacterProfilerWorker
+    
+    client = MagicMock()
+    # Mock multiple characters to trigger loop multiple times
+    client.get_all_character_lines.return_value = {
+        "CHAR1": ["Line 1"],
+        "CHAR2": ["Line 2"],
+        "CHAR3": ["Line 3"],
+        "CHAR4": ["Line 4"]
+    }
+    
+    ai_provider = MagicMock()
+    # Simulate API failure for all requests
+    ai_provider.translate.side_effect = Exception("API Error")
+    
+    glossary_manager = MagicMock()
+    
+    worker = MemePalaceCharacterProfilerWorker(
+        client=client,
+        ai_provider=ai_provider,
+        wing_name="Zelda_TP",
+        glossary_manager=glossary_manager,
+        target_lang="Ukrainian"
+    )
+    
+    # We expect finished signal to be emitted with success=False due to too many errors
+    finished_called = []
+    def on_finished(success, message):
+        finished_called.append((success, message))
+        
+    worker.finished.connect(on_finished)
+    
+    worker.run()
+    
+    # Should stop after 3 consecutive failures
+    assert len(finished_called) == 1
+    assert finished_called[0][0] is False
+    assert "consecutive AI errors" in finished_called[0][1]
+    
+    # translate should be called exactly 3 times (and not 4)
+    assert ai_provider.translate.call_count == 3
+
+
+def test_mempalace_client_get_all_character_lines(tmp_path):
+    from core.mempalace_client import MemePalaceClient
+    import json
+    
+    db_file = tmp_path / "mempalace_local.db"
+    
+    client = MemePalaceClient()
+    client.db_path = str(db_file)
+    client._init_local_db()
+    
+    metadata = {
+        "timestamp": "01:00",
+        "speaker_map": {
+            "BMG_Str_0": "RUSL",
+            "BMG_Str_1": "MIDNA"
+        }
+    }
+    # Verbatim dialogue drawer format matching get_all_character_lines parsing logic
+    content = "ID: BMG_Str_0 | Text: {Color:Red}Hello Link!{Color:White}\n[BMG_Str_1]: [L-Stick] Hey there!\nBMG_Str_2: Unmapped"
+    
+    client.add_drawer("Zelda_TP", "RoomA", "dialogues", content, metadata)
+    
+    # Run retrieval
+    results = client.get_all_character_lines("Zelda_TP")
+    
+    # Verify speakers mapped and game tags stripped
+    assert "RUSL" in results
+    assert "MIDNA" in results
+    assert "Unmapped" not in results
+    
+    # Tag stripping check (e.g. {Color:Red} -> stripped)
+    assert results["RUSL"][0] == "Hello Link!"
+    # Tag stripping check (e.g. [L-Stick] -> stripped)
+    assert results["MIDNA"][0] == "Hey there!"
+
+
+
 
 

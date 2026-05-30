@@ -12,7 +12,10 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSlot
 
 from core.mempalace_client import MemePalaceClient
-from core.mempalace_worker import MemePalaceScriptAnalyzerWorker, MemePalaceChapterMapperWorker, MemePalaceChapterAIAnalyzerWorker
+from core.mempalace_worker import (
+    MemePalaceScriptAnalyzerWorker, MemePalaceChapterMapperWorker, 
+    MemePalaceChapterAIAnalyzerWorker, MemePalaceCharacterProfilerWorker
+)
 from utils.logging_utils import log_info, log_error
 
 def prevent_sleep():
@@ -257,6 +260,23 @@ class MemePalaceBuilderDialog(QDialog):
         """)
         self.ai_analyze_btn.clicked.connect(self._pre_analyze_script_via_ai)
         char_mine_layout.addWidget(self.ai_analyze_btn)
+
+        self.ai_profile_speech_btn = QPushButton("AI Profile Characters Speech")
+        self.ai_profile_speech_btn.setToolTip("Analyze character speeches from mapped dialogue database using AI.")
+        self.ai_profile_speech_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #8b5cf6;
+                color: white;
+                font-weight: bold;
+                padding: 6px 15px;
+            }
+            QPushButton:hover {
+                background-color: #7c3aed;
+            }
+        """)
+        self.ai_profile_speech_btn.clicked.connect(self._profile_characters_speech_via_ai)
+        char_mine_layout.addWidget(self.ai_profile_speech_btn)
+
         char_mine_layout.addStretch()
         layout.addLayout(char_mine_layout)
 
@@ -516,6 +536,83 @@ class MemePalaceBuilderDialog(QDialog):
             self.append_log("CHARACTER MINING FAILED.")
 
     @pyqtSlot()
+    def _profile_characters_speech_via_ai(self):
+        """Analyze character speech patterns and build rich glossary profiles via AI."""
+        self.save_builder_settings()
+        self._maybe_prevent_sleep()
+
+        ai_provider = None
+        if hasattr(self.mw, "translation_handler") and self.mw.translation_handler:
+            try:
+                ai_provider = self.mw.translation_handler._prepare_provider()
+            except Exception as e:
+                log_error(f"Failed to prepare AI provider: {e}")
+
+        if not ai_provider:
+            QMessageBox.warning(
+                self, "AI Provider Error", 
+                "No active AI Provider configured. Please check your API settings."
+            )
+            return
+
+        self.append_log("Starting AI character speech profiling...")
+        self._set_ui_enabled(False)
+
+        wing_name = self.wing_edit.text().strip()
+
+        gm = getattr(self.mw, 'glossary_manager', None)
+        if not gm:
+            gm = getattr(self.mw, '_glossary_manager', None)
+        if not gm and hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+            gm = getattr(self.mw.translation_handler, '_glossary_manager', None)
+
+        lang_code = getattr(self.mw, 'spellchecker_language', 'uk')
+        target_lang = "Ukrainian" if lang_code == 'uk' else "Russian" if lang_code == 'ru' else "English"
+
+        self.worker = MemePalaceCharacterProfilerWorker(
+            client=self.client,
+            ai_provider=ai_provider,
+            wing_name=wing_name,
+            glossary_manager=gm,
+            target_lang=target_lang,
+            plugin_name=getattr(self.mw, "active_game_plugin", None),
+            composer=self.composer
+        )
+
+        self.worker.progress.connect(self._handle_worker_progress)
+        self.worker.log.connect(self.append_log)
+        self.worker.finished.connect(self._handle_speech_profiling_finished)
+        self.worker.start()
+
+    def _handle_speech_profiling_finished(self, success, message):
+        self._set_ui_enabled(True)
+        self.worker = None
+        self._finish_and_maybe_sleep()
+        self.progress_bar.setValue(100 if success else 0)
+
+        if success:
+            QMessageBox.information(self, "Success", f"Character speech profiling completed!\n\n{message}")
+            self.append_log("CHARACTER SPEECH PROFILING COMPLETED SUCCESSFULLY!")
+            
+            # Hot-reload glossary highlighting in UI
+            try:
+                gh = None
+                if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                    gh = getattr(self.mw.translation_handler, 'glossary_handler', None)
+                if gh:
+                    gh.glossary_manager.refresh_from_disk()
+                    gh._update_glossary_highlighting()
+            except Exception as e:
+                log_error(f"Failed to refresh glossary after speech profiling: {e}")
+        else:
+            if getattr(self, "user_cancelled", False):
+                self.append_log("Character speech profiling stopped by user.")
+                self.user_cancelled = False
+            else:
+                QMessageBox.warning(self, "Failed", f"Character speech profiling failed:\n{message}")
+            self.append_log("CHARACTER SPEECH PROFILING FAILED.")
+
+    @pyqtSlot()
     def _start_chapters_mapping(self):
         """Map BMG text items to chapters."""
         self.save_builder_settings()
@@ -702,6 +799,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     def _set_ui_enabled(self, enabled: bool):
         self.ai_analyze_btn.setEnabled(enabled)
+        self.ai_profile_speech_btn.setEnabled(enabled)
         self.map_chapters_btn.setEnabled(enabled)
         self.analyze_chapter_btn.setEnabled(enabled)
         self.analyze_all_chapters_btn.setEnabled(enabled)

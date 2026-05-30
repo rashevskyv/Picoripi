@@ -3,6 +3,7 @@ import json
 import sqlite3
 import urllib.request
 import urllib.error
+import re
 from typing import Dict, List, Any, Optional
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
@@ -985,3 +986,88 @@ class MemePalaceClient:
             log_info(f"Successfully saved {len(mappings)} BMG mappings for wing '{wing_name}' to local DB.")
         except Exception as e:
             log_error(f"Local DB error in save_mappings_to_db: {e}", exc_info=True)
+
+    def get_all_character_lines(self, wing_name: str) -> Dict[str, List[str]]:
+        """Retrieve and group all dialogue lines spoken by each character from mapped drawers."""
+        results: Dict[str, List[str]] = {}
+        if not self.db_path or not os.path.exists(self.db_path):
+            return results
+
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Fetch all dialogue drawers for this wing
+            cursor.execute("""
+                SELECT d.content, d.metadata 
+                FROM drawers d
+                JOIN rooms r ON d.room_id = r.id
+                JOIN wings w ON r.wing_id = w.id
+                WHERE w.name = ? AND d.name IN ('dialogues', 'dialogue_lines')
+            """, (wing_name,))
+            rows = cursor.fetchall()
+            
+            # Fallback if specific wing has no drawers, fetch all dialogue drawers
+            if not rows:
+                cursor.execute("""
+                    SELECT d.content, d.metadata 
+                    FROM drawers d
+                    WHERE d.name IN ('dialogues', 'dialogue_lines')
+                """)
+                rows = cursor.fetchall()
+                
+            conn.close()
+            
+            # Tag cleaning pattern
+            tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
+            
+            for content, metadata_str in rows:
+                if not content:
+                    continue
+                    
+                try:
+                    meta = json.loads(metadata_str) if metadata_str else {}
+                except Exception:
+                    meta = {}
+                    
+                speaker_map = meta.get("speaker_map") or {}
+                
+                for line in content.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                        
+                    line_id = None
+                    line_text = None
+                    
+                    # Format: ID: BMG_Str_12 | Text: Hello...
+                    if "ID:" in line and "| Text:" in line:
+                        parts = line.split("| Text:", 1)
+                        line_id = parts[0].replace("ID:", "").strip()
+                        line_text = parts[1].strip()
+                    # Format: [BMG_Str_12]: Hello...
+                    elif ":" in line:
+                        parts = line.split(":", 1)
+                        line_id = parts[0].strip()
+                        if line_id.startswith("[") and line_id.endswith("]"):
+                            line_id = line_id[1:-1].strip()
+                        line_text = parts[1].strip()
+                        
+                    if line_id and line_text:
+                        speaker = speaker_map.get(line_id) or speaker_map.get(f"[{line_id}]")
+                        if speaker:
+                            clean_speaker = str(speaker).strip()
+                            if clean_speaker and clean_speaker.lower() not in ("unknown", "none"):
+                                # Strip tags for clean linguistic analysis
+                                clean_text = tag_pattern.sub('', line_text).strip()
+                                # Clean spaces
+                                clean_text = re.sub(r'\s+', ' ', clean_text)
+                                if clean_text:
+                                    results.setdefault(clean_speaker, []).append(clean_text)
+                                    
+            log_info(f"Retrieved dialogue lines for {len(results)} speakers from local database.")
+        except Exception as e:
+            log_error(f"Local DB error in get_all_character_lines: {e}", exc_info=True)
+            
+        return results
+

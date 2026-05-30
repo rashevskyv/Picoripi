@@ -1256,3 +1256,396 @@ Your output must be a valid JSON array of objects. Do not wrap the JSON in markd
         except Exception as e:
             log_error(f"Error in MemePalaceChapterAIAnalyzerWorker: {e}", exc_info=True)
             self.finished.emit(False, f"Error: {e}")
+
+
+class MemePalaceCharacterProfilerWorker(QThread):
+    # Signals for UI communication
+    progress = pyqtSignal(int, int, str)  # current, total, status
+    log = pyqtSignal(str)                 # log message
+    finished = pyqtSignal(bool, str)      # success, message
+
+    def __init__(self, 
+                 client: MemePalaceClient, 
+                 ai_provider: BaseTranslationProvider, 
+                 wing_name: str = "Zelda_TP",
+                 glossary_manager: Optional[Any] = None,
+                 target_lang: str = "Ukrainian",
+                 plugin_name: Optional[str] = None,
+                 composer: Optional[Any] = None):
+        super().__init__()
+        self.client = client
+        self.ai_provider = ai_provider
+        self.wing_name = wing_name
+        self.glossary_manager = glossary_manager
+        self.target_lang = target_lang
+        self.plugin_name = plugin_name
+        self.composer = composer
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True
+        self.log.emit("Character speech profiling cancellation requested...")
+
+    def _load_plugin_prompts(self) -> dict:
+        """Load prompts.json for active plugin if available."""
+        from pathlib import Path
+        prompts_data = {}
+        if self.plugin_name:
+            prompts_path = Path("plugins") / self.plugin_name / "translation_prompts" / "prompts.json"
+            if not prompts_path.exists():
+                prompts_path = Path("plugins") / "common" / "defaults" / "prompts.json"
+            if not prompts_path.exists():
+                prompts_path = Path("translation_prompts") / "prompts.json"
+            
+            if prompts_path.exists():
+                try:
+                    prompts_data = json.loads(prompts_path.read_text("utf-8"))
+                except Exception as e_load:
+                    log_error(f"Failed to load prompts.json for plugin {self.plugin_name}: {e_load}")
+        return prompts_data
+
+    def _get_synthesis_prompts(self, term_name: str, existing_notes: str, details: str, prompts_data: dict) -> Tuple[str, str]:
+        """Resolve Synthesis prompts with per-plugin customizations and fallbacks."""
+        m_section = prompts_data.get("mempalace", {})
+        s_sys = m_section.get("synthesis_system_prompt")
+        s_usr = m_section.get("synthesis_user_prompt")
+
+        if s_sys and s_usr:
+            return s_sys.format(target_lang=self.target_lang), s_usr.format(
+                term_name=term_name,
+                existing_notes=existing_notes,
+                details=details,
+                target_lang=self.target_lang
+            )
+
+        if self.target_lang == "Ukrainian":
+            synth_system_prompt = (
+                "Ви — професійний лексикограф та перекладач відеоігор. Ваше завдання — об'єднати існуючі нотатки/опис "
+                "персонажа у глосарії з новим детальним аналізом його стилю мовлення та характеру від ШІ. Ви повинні синтезувати їх "
+                "у один зв'язний, високоякісний, структурований та детальний опис (notes), написаний виключно українською мовою."
+            )
+            synth_user_prompt = f"""
+Синтезуйте наступну інформацію для персонажа '{term_name}':
+
+Існуючий опис у глосарії (нотатки):
+{existing_notes}
+
+Нові деталі аналізу мовлення та характеру від ШІ:
+{details}
+
+Створіть єдиний, красиво структурований та детальний опис, написаний виключно українською мовою. Уникайте повторень.
+Збережіть увесь попередній контекст, обов'язково переклавши його українською мовою (якщо він був англійською), та гармонійно інтегруйте нову інформацію про характер, манеру мовлення, форми звертання та особливості перекладу.
+Не повертайте нічого, крім фінального синтезованого тексту українською мовою. Не загортайте в блоки markdown або JSON. Поверніть лише чистий текст опису.
+"""
+        else:
+            synth_system_prompt = (
+                f"You are an expert game translation lexicographer. Your task is to combine the existing glossary entry notes "
+                f"with new speech analysis insights. You must synthesize them into one coherent, premium, well-structured, "
+                f"highly detailed description (notes) written strictly in {self.target_lang}."
+            )
+            synth_user_prompt = f"""
+Synthesize the following information for the character '{term_name}':
+
+Existing Glossary Description (Notes):
+{existing_notes}
+
+New AI Speech Analysis Insights:
+{details}
+
+Produce a unified, beautifully structured, and highly detailed description written strictly in {self.target_lang}. Avoid redundancy. 
+Keep any pre-existing context while seamlessly translating it and integrating the new character and speech features.
+Do not output anything else but the synthesized {self.target_lang} text. Do not wrap in markdown blocks or JSON. Just print the final synthesized notes.
+"""
+        return synth_system_prompt, synth_user_prompt
+
+    def run(self):
+        try:
+            self.log.emit("Starting AI Character Speech Profiler...")
+            self.progress.emit(5, 100, "Retrieving dialogue lines from database...")
+
+            # 1. Fetch character dialogue lines from local MemPalace DB
+            char_dialogues = self.client.get_all_character_lines(self.wing_name)
+            
+            # Workspace scan fallback if DB is empty but we have composer
+            if not char_dialogues and self.composer:
+                self.log.emit("No dialogue drawers found in SQLite. Scanning active project workspace strings via composer...")
+                mw = getattr(self.composer, "mw", None)
+                store = getattr(mw, "data_store", None) if mw else None
+                if store and store.data:
+                    char_dialogues = {}
+                    total_blocks = len(store.data)
+                    tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
+                    
+                    for b_idx in range(total_blocks):
+                        if self.is_cancelled:
+                            break
+                        block_strings = store.data[b_idx]
+                        block_label = self.composer._get_block_label(b_idx)
+                        
+                        self.progress.emit(
+                            5 + int((b_idx / total_blocks) * 15),
+                            100,
+                            f"Workspace scan: Mapping block {block_label} ({b_idx+1}/{total_blocks})..."
+                        )
+                        self.log.emit(f"Scanning workspace block '{block_label}' for character dialogues...")
+                        
+                        for s_idx, text in enumerate(block_strings):
+                            if not text or not str(text).strip():
+                                continue
+                                
+                            res = self.composer._find_speaker_in_script(b_idx, s_idx, text)
+                            if res and isinstance(res, (tuple, list)) and len(res) == 2:
+                                speaker, lines_str = res
+                                if speaker and speaker != "NONE":
+                                    clean_speaker = str(speaker).strip()
+                                    if clean_speaker and clean_speaker.lower() not in ("unknown", "none"):
+                                        clean_text = tag_pattern.sub('', text).strip()
+                                        clean_text = re.sub(r'\s+', ' ', clean_text)
+                                        if clean_text:
+                                            char_dialogues.setdefault(clean_speaker, []).append(clean_text)
+            
+            if not char_dialogues:
+                self.finished.emit(False, "No character dialogues found in database or active project workspace. Please map script chapters first.")
+                return
+
+            self.log.emit(f"Found dialogues for {len(char_dialogues)} characters.")
+            
+            if self.is_cancelled:
+                self.finished.emit(False, "Process cancelled by user.")
+                return
+
+            # Prepare prompts configuration
+            prompts_data = self._load_plugin_prompts()
+            
+            # System prompt for profiling (optimized for target language)
+            if self.target_lang == "Ukrainian":
+                system_prompt = (
+                    "Ви — видатний директор з локалізації відеоігор, психолог персонажів та професійний лінгвіст. "
+                    "Ваше завдання — проаналізувати всі репліки, які вимовляє конкретний персонаж гри, та скласти надзвичайно "
+                    "детальний, художній та розлогий мовленнєвий портрет (speech profile) українською мовою для забезпечення абсолютної "
+                    "художньої послідовності та автентичності при перекладі."
+                )
+            else:
+                system_prompt = (
+                    "You are an expert game localization director, character psychologist, and linguist. "
+                    "Your task is to analyze all dialogues spoken by a specific character to compile a comprehensive, "
+                    "high-quality, and deeply detailed speech profile to ensure consistency in localized translations."
+                )
+
+            total_characters = len(char_dialogues)
+            processed_count = 0
+            stats_updated = 0
+            stats_added = 0
+            stats_failed = 0
+            stats_empty = 0
+            consecutive_failures = 0
+
+            for char_name, lines in char_dialogues.items():
+                if self.is_cancelled:
+                    break
+
+                self.progress.emit(
+                    20 + int((processed_count / total_characters) * 75),
+                    100,
+                    f"Profiling character speech {processed_count + 1}/{total_characters}: {char_name}..."
+                )
+
+                self.log.emit(f"Processing character '{char_name}' with {len(lines)} total lines...")
+
+                # Sample up to 80 representative lines to fit context window and prevent token bloat
+                sampled_lines = lines
+                if len(lines) > 80:
+                    self.log.emit(f"Character '{char_name}' has many lines ({len(lines)}). Sampling 80 representative dialogues...")
+                    step = len(lines) / 80
+                    sampled_lines = [lines[int(i * step)] for i in range(80)]
+
+                # Format dialogues block
+                dialogue_text_block = "\n".join(f'- "{line}"' for line in sampled_lines)
+
+                # Formulate user prompt
+                if self.target_lang == "Ukrainian":
+                    user_prompt = f"""
+Проаналізуйте наступні репліки, які вимовляє персонаж '{char_name}' у грі:
+
+---
+{dialogue_text_block}
+---
+
+Створити надзвичайно детальний, художній, преміальний та глибокий мовленнєвий портрет персонажа українською мовою. 
+Ваш аналіз має бути дуже розлогим, з великою кількістю деталей та конкретних рекомендацій для перекладача.
+
+Обов'язково структуруйте опис (поле "speech_profile" у JSON) на такі чіткі розділи з відповідними емодзі-заголовками:
+
+📌 **Хто цей персонаж (Загальний опис та роль)**:
+[Напишіть детальний опис того, ким є цей персонаж у світі гри, яка його роль у сюжеті, наскільки він важливий]
+
+🎭 **Характер та психологічний портрет**:
+[Детально проаналізуйте його характер, емоційний стан, темперамент, манеру поведінки, життєві орієнтири]
+
+🗣️ **Особливості мовлення та лексика**:
+[Опишіть його стиль спілкування: багатий чи бідний словниковий запас, чи використовує він сленг, архаїзми, професійний жаргон, унікальні вигуки, слова-паразити чи цікаві/незвичайні слова. Який у нього тон і темп мовлення]
+
+👥 **Відносини з іншими персонажами та соціальний статус**:
+[Як цей персонаж ставиться до інших героїв гри, як його статус впливає на стиль розмови]
+
+📝 **Форми звертання та граматичні рекомендації**:
+[Чітко визначте форми звертання: чи говорить він до інших неформально (на "ти") чи формально/шанобливо (на "ви"). Як інші мають звертатися до нього. Які граматичні особливості (наприклад, фемінітиви, специфічні закінчення дієслів чи особлива побудова речень) слід використовувати при перекладі його реплік українською мовою]
+
+💡 **Рекомендації для перекладача (Як його перекладати)**:
+[Дайте конкретні практичні поради перекладачу: які емоційні відтінки зберігати, які унікальні українські відповідники чи вирази підібрати, щоб повністю розкрити характер цього персонажа в локалізації]
+
+Поверніть відповідь ВИКЛЮЧНО у форматі JSON. Не обгортайте JSON у блоки markdown (не пишіть ```json) і не додавайте жодного іншого супровідного тексту.
+Структура JSON має бути такою:
+{{
+  "name_translation": "Природний переклад або транслітерація імені персонажа українською мовою (наприклад, 'Руслан', 'Колін', 'Мідна')",
+  "speech_profile": "[Сюди запишіть весь згенерований розлогий структурований портрет українською мовою з усіма вищенаведеними розділами та заголовками]"
+}}
+"""
+                else:
+                    user_prompt = f"""
+Analyze the following dialogues spoken by the character '{char_name}':
+
+---
+{dialogue_text_block}
+---
+
+Determine and synthesize:
+1. Character personality, mood, and role.
+2. Speech style, vocabulary richness, tone, and register (formal vs informal).
+3. Specific address conventions (does he speak informally on "ти" or formally/respectfully on "ви" to others in translation).
+4. Unique catchphrases, interesting or unusual words, and general stylistic patterns of his speech.
+
+Respond ONLY with a valid JSON object. Do not wrap in markdown json block or add any conversational text.
+JSON Structure:
+{{
+  "name_translation": "Natural translation or transliteration of the character's name to {self.target_lang} (e.g. 'Rusl')",
+  "speech_profile": "A beautifully detailed, multi-paragraph structured profile written strictly in {self.target_lang} describing the character's speech features, style, relationships, and translation recommendations."
+}}
+"""
+
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+
+                try:
+                    # Query AI
+                    response = self.ai_provider.translate(messages, session=None)
+                    consecutive_failures = 0
+                    
+                    if self.is_cancelled:
+                        break
+
+                    # Parse JSON
+                    data = robust_json_loads(response.text)
+                    name_translation = data.get("name_translation", char_name).strip()
+                    speech_profile = data.get("speech_profile", "").strip()
+
+                    if not speech_profile:
+                        self.log.emit(f"WARNING: AI returned empty speech profile for '{char_name}'. Skipping.")
+                        stats_empty += 1
+                        processed_count += 1
+                        continue
+
+                    self.log.emit(f"AI Speech Profiler: Successfully generated profile for '{char_name}' (Translated as '{name_translation}').")
+
+                    # 2. Update Glossary Entry
+                    if self.glossary_manager:
+                        # Look up existing entry by original or translated name
+                        existing_entry = self.glossary_manager.get_entry(char_name) or self.glossary_manager.get_entry(name_translation)
+                        
+                        if existing_entry:
+                            # Synthesize existing notes with new speech profile
+                            self.log.emit(f"Entry '{existing_entry.original}' exists. Synthesizing notes with AI Speech Profile...")
+                            existing_notes = existing_entry.notes or ""
+                            
+                            synth_sys, synth_usr = self._get_synthesis_prompts(
+                                existing_entry.original, existing_notes, speech_profile, prompts_data
+                            )
+                            synth_messages = [
+                                {"role": "system", "content": synth_sys},
+                                {"role": "user", "content": synth_usr}
+                            ]
+                            
+                            try:
+                                synth_response = self.ai_provider.translate(synth_messages, session=None)
+                                final_notes = synth_response.text.strip()
+                                
+                                self.glossary_manager.update_entry(
+                                    original=existing_entry.original,
+                                    translation=existing_entry.translation,
+                                    notes=final_notes
+                                )
+                                stats_updated += 1
+                                self.log.emit(f"SUCCESS: Synthesized speech profile for existing character '{existing_entry.original}'.")
+                            except Exception as e_synth:
+                                log_error(f"Failed to synthesize speech notes for {char_name}: {e_synth}")
+                                # Fallback: append profile to notes directly
+                                fallback_notes = f"{existing_notes}\n\nСтиль мовлення: {speech_profile}"
+                                self.glossary_manager.update_entry(
+                                    original=existing_entry.original,
+                                    translation=existing_entry.translation,
+                                    notes=fallback_notes
+                                )
+                                stats_updated += 1
+                                self.log.emit(f"FALLBACK: Appended speech profile directly for existing character '{existing_entry.original}'.")
+                        else:
+                            # Add new glossary entry in Characters section
+                            self.glossary_manager.add_entry(
+                                original=char_name,
+                                translation=name_translation,
+                                notes=speech_profile,
+                                section="Characters"
+                            )
+                            stats_added += 1
+                            self.log.emit(f"SUCCESS: Created new Characters entry '{char_name}' -> '{name_translation}' with AI speech profile.")
+
+                except Exception as e_proc:
+                    log_error(f"Failed to process speech profile for {char_name}: {e_proc}")
+                    self.log.emit(f"WARNING: Speech profiling failed for '{char_name}': {str(e_proc)}")
+                    stats_failed += 1
+                    
+                    consecutive_failures += 1
+                    if consecutive_failures >= 3:
+                        self.log.emit("Too many consecutive AI errors. Stopping character speech profiling to prevent flooding.")
+                        self.finished.emit(False, f"Profiling stopped due to multiple consecutive AI errors (last error: {e_proc}).")
+                        return
+
+                processed_count += 1
+
+            if self.is_cancelled:
+                self.finished.emit(False, "Process cancelled by user.")
+                return
+
+            # Save all glossary updates to disk
+            if self.glossary_manager:
+                try:
+                    self.progress.emit(95, 100, "Saving glossary database to disk...")
+                    self.glossary_manager.save_to_disk()
+                    self.log.emit("Successfully saved updated glossary (.md table) to disk.")
+                except Exception as disk_err:
+                    log_error(f"Failed to save glossary to disk: {disk_err}")
+                    self.log.emit(f"ERROR saving glossary to disk: {disk_err}")
+
+            self.progress.emit(100, 100, "Speech profiling and glossary updates completed!")
+            
+            # Format high-quality descriptive success message with statistics
+            stat_msg = (
+                f"Successfully completed character speech profiling!\n\n"
+                f"📊 Execution Statistics:\n"
+                f"• Total characters processed: {processed_count}\n"
+                f"• Successfully updated in Glossary: {stats_updated}\n"
+                f"• Newly added to Glossary: {stats_added}\n"
+                f"• Failed/skipped due to API errors: {stats_failed}\n"
+                f"• Empty AI profiles received: {stats_empty}\n\n"
+                f"You can find the generated profiles directly in the Picoripi Glossary editor (Characters tab) "
+                f"or as tooltip previews when hovering over these character names in the main translation window."
+            )
+            self.finished.emit(True, stat_msg)
+
+        except Exception as e:
+            log_error(f"Error in MemePalaceCharacterProfilerWorker: {e}", exc_info=True)
+            self.log.emit(f"FATAL ERROR: {str(e)}")
+            self.finished.emit(False, f"Error occurred: {str(e)}")
+
+
