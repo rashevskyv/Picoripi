@@ -172,6 +172,27 @@ def test_GlossaryManager_persist(manager, tmp_path):
     assert "| Orange |" in text
     assert manager._raw_text == text
 
+
+def test_GlossaryManager_persist_new_sections(manager, tmp_path):
+    f = tmp_path / "glossary.md"
+    manager._glossary_path = f
+    
+    manager.add_entry("Apple", "Яблуко", "")
+    manager._section_order = ["Fruits"]
+    manager.add_entry("Orange", "Апельсин", "", section="Fruits")
+    
+    # Add a brand new section not present in _section_order
+    manager.add_entry("Sword", "Меч", "", section="Weapons")
+    manager.save_to_disk()
+    
+    text = f.read_text(encoding="utf-8")
+    assert "| Apple |" in text
+    assert "## Fruits" in text
+    assert "| Orange |" in text
+    assert "## Weapons" in text
+    assert "| Sword |" in text
+
+
 def test_GlossaryManager_build_regex():
     pat = GlossaryManager._build_regex("magic potion")
     assert pat.search("magic potion")

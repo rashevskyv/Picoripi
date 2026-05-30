@@ -1,5 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.128] - 2026-05-30
+
+### Added
+- **AI-Powered Glossary Categorization & Dynamic Tabbed Interface**:
+  - Replaced the legacy flat glossary table with a beautiful, dynamic `QTabWidget` interface. The editor now automatically scans, constructs, and hot-reloads distinct tabs for all active glossary sections (such as "Characters", "Items", "Locations"), alongside a comprehensive "All" tab and an optional "Unassigned" tab.
+  - Implemented an elegant purple **Organize via AI** button. Clicking this triggers a highly sophisticated, two-stage AI workflow:
+    - *Stage 1 (Thematic Suggestions)*: The AI analyzes active glossary terms and suggests 4 to 7 highly relevant thematic categories.
+    - *Stage 2 (Interactive Checklist & Dynamic Classification)*: The user is presented with a custom checkable dialog allowing them to select and add custom categories. The AI then dynamically classifies all glossary terms into the chosen categories, updates the on-disk markdown file, and hot-reloads the glossary dialog in real time.
+  - Implemented smart navigation UX: Double-clicking an occurrence in the editor dynamically switches the tab to the corresponding category and highlights the selected row.
+
+### Fixed
+- **AttributeError on Empty Glossary Dialog Initialization**: Fixed a critical bug where opening the Glossary Dialog without a specific target word (via *Tools -> Open Glossary...*) would trigger an `AttributeError` due to direct legacy access to `self._entry_table` (which was initialized to `None`). Replaced all direct references with a dynamic `self._active_table()` call.
+- **AttributeError in AI Glossary Classification UI Actions**: Fixed an `AttributeError` during AI classification when attempting to trigger non-blocking status-bar messages via `self.mw.ui_handler`. Correctly mapped the UI worker callbacks to use `self.main_handler.ui_handler` for precise status tracking and animation.
+- **Glossary Dynamic Section Preservation on Markdown Generation**: Fixed a critical serialization bug where saving the glossary back to the markdown file on disk would silently delete all entries assigned to dynamically created categories. This occurred because `_generate_markdown()` only outputted sections explicitly matching the static `self._section_order` list. Enhanced the generator to dynamically discover all active sections, preserving the original order of known categories while seamlessly appending new ones to the file.
+- **Background API Flood Protection for Character Speech Profiling**: Integrated a consecutive failure detection threshold (max 3) within `MemePalaceCharacterProfilerWorker` to gracefully abort profiling and emit a helpful warning message if the underlying AI provider is misconfigured or has missing credentials, completely preventing system log flooding.
+
 ## [0.2.127] - 2026-05-29
 
 ### Added

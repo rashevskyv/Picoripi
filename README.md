@@ -1,6 +1,6 @@
-# Picoripi v0.2.127
+# Picoripi v0.2.128
 
-The "Picoripi" (v0.2.127) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.128) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -42,6 +42,9 @@ The "Picoripi" (v0.2.127) is a desktop application built with **Python** and **P
 
 ### Glossary Management
 - Intelligent recognition and highlighting of glossary terms throughout the entire text using high-performance **Aho-Corasick** algorithm.
+- **Dynamic Tabbed Interface**: Organize and browse glossary entries through a beautiful tabbed (`QTabWidget`) view, automatically dividing entries into categories like "Characters", "Items", "Locations", "Magic", "Other", alongside a master "All" tab.
+- **Organize via AI**: Elegant purple button in the glossary dialog that triggers a robust, two-stage AI categorization process. The AI first suggests custom thematic categories based on active terms, prompts the user with an interactive checkbox list, and then dynamically classifies the entire glossary, writing changes directly to the markdown file on disk with a real-time UI reload.
+- **Smart Category Navigation**: Opening a glossary entry from the context menu of translation editors automatically switches the active tab to the entry's category and scrolls/highlights the corresponding row.
 - **Translation Glossary Bridge**: Automatic highlighting of glossary terms in the translation field, now supporting **multi-line matching** and **multiple translation variations** (separated by `;`).
 - **Slavic Morphology Support**: Intelligent matching of inflected word forms (like "Меча", "Мечем") for Slavic languages using localized stemming.
 - **Interactive Tooltips**: Hovering over terms in either editor shows a tooltip with original/translation and dictionary notes. Responsive tooltips correctly track position even for multi-line terms.

@@ -58,6 +58,8 @@ class TranslationHandler(BaseHandler):
         self.ai_lifecycle_manager.register_handler('glossary_occurrence_update', self.glossary_handler._handle_glossary_occurrence_update_success)
         self.ai_lifecycle_manager.register_handler('glossary_occurrence_batch_update', self.glossary_handler._handle_glossary_occurrence_batch_success)
         self.ai_lifecycle_manager.register_handler('glossary_notes_variation', self.glossary_handler._handle_glossary_notes_variation_success)
+        self.ai_lifecycle_manager.register_handler('classify_suggest_types', self.glossary_handler._handle_classify_suggest_success, self.glossary_handler._handle_classify_error)
+        self.ai_lifecycle_manager.register_handler('classify_apply', self.glossary_handler._handle_classify_apply_success, self.glossary_handler._handle_classify_error)
         
         # Block translation has a chunk handler
         self.ai_lifecycle_manager.register_handler('translate_block_chunked', 

@@ -272,7 +272,7 @@ class GlossaryManager:
         self._persist()
         return new_entry
 
-    def update_entry(self, original: str, translation: str, notes: str) -> Optional[GlossaryEntry]:
+    def update_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None) -> Optional[GlossaryEntry]:
         original_key = (original or '').strip()
         updated_translation = translation.strip()
         updated_notes = notes.strip()
@@ -285,7 +285,7 @@ class GlossaryManager:
                     original=entry.original,
                     translation=updated_translation,
                     notes=updated_notes,
-                    section=entry.section,
+                    section=section if section is not None else entry.section,
                 )
                 new_entries = list(self._entries)
                 new_entries[idx] = updated_entry
@@ -397,7 +397,17 @@ class GlossaryManager:
             if entry.section:
                 section_to_entries.setdefault(entry.section, []).append(entry)
 
-        for section in self._section_order:
+        # Collect active sections preserving original order and appending new ones dynamically
+        all_sections_present = {entry.section for entry in self._entries if entry.section}
+        active_sections = []
+        for s in self._section_order:
+            if s in all_sections_present:
+                active_sections.append(s)
+        for s in sorted(all_sections_present):
+            if s not in active_sections:
+                active_sections.append(s)
+
+        for section in active_sections:
             section_entries = section_to_entries.get(section, [])
             if not section_entries:
                 continue

@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
     QPlainTextEdit,
     QStyledItemDelegate,
     QStyle,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -107,6 +108,7 @@ class GlossaryDialog(QDialog):
             Callable[[str], Optional[Tuple[Sequence[GlossaryEntry], Dict[str, List[GlossaryOccurrence]]]]]
         ] = None,
         ai_variation_callback: Optional[Callable[[GlossaryEntry], None]] = None,
+        ai_classify_callback: Optional[Callable[[], None]] = None,
         initial_term: Optional[str] = None,
     ) -> None:
         super().__init__(parent)
@@ -133,9 +135,13 @@ class GlossaryDialog(QDialog):
         self._update_callback = update_callback
         self._delete_callback = delete_callback
         self._ai_variation_callback = ai_variation_callback
+        self._ai_classify_callback = ai_classify_callback
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
         self._is_populating = False
+
+        self._tables: Dict[str, QTableWidget] = {}
+        self._entry_table: Optional[QTableWidget] = None # Legacy compatibility
 
         layout = QVBoxLayout(self)
 
@@ -154,31 +160,10 @@ class GlossaryDialog(QDialog):
         splitter = QSplitter(Qt.Horizontal, self)
         layout.addWidget(splitter, 1)
 
-        self._entry_table = QTableWidget(self)
-        self._entry_table.setColumnCount(4)
-        self._entry_table.setHorizontalHeaderLabels(["Term", "Translation", "Notes", "Count"])
-        self._entry_table.setSelectionMode(QTableWidget.SingleSelection)
-        self._entry_table.setSelectionBehavior(QTableWidget.SelectRows)
-        header = self._entry_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.Interactive)
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self._entry_table.cellClicked.connect(self._on_entry_selected)
-        self._entry_table.currentCellChanged.connect(self._on_entry_current_changed)
-        self._entry_table.setSortingEnabled(True)
-        self._entry_table.setContextMenuPolicy(Qt.CustomContextMenu)
-        self._entry_table.customContextMenuRequested.connect(self._on_entry_context_menu)
-        if self._update_callback:
-            self._entry_table.setEditTriggers(
-                QTableWidget.DoubleClicked
-                | QTableWidget.EditKeyPressed
-                | QTableWidget.AnyKeyPressed
-            )
-            self._entry_table.itemChanged.connect(self._on_entry_edited)
-        else:
-            self._entry_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        splitter.addWidget(self._entry_table)
+        self._tab_widget = QTabWidget(self)
+        self._tab_widget.currentChanged.connect(self._on_tab_changed)
+        splitter.addWidget(self._tab_widget)
+
         right_panel = QWidget(self)
         right_layout = QVBoxLayout(right_panel)
         splitter.addWidget(right_panel)
@@ -213,11 +198,20 @@ class GlossaryDialog(QDialog):
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
         right_layout.addWidget(self._occurrence_list, 1)
         button_box = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        
         self._save_button = QPushButton("Save Changes", self)
         self._save_button.clicked.connect(self._save_editor_changes)
         button_box.addButton(self._save_button, QDialogButtonBox.ActionRole)
         if self._update_callback is None:
             self._save_button.setVisible(False)
+            
+        self._ai_classify_button = QPushButton("Organize via AI", self)
+        self._ai_classify_button.setStyleSheet("background-color: #8b5cf6; color: white; font-weight: bold;")
+        self._ai_classify_button.clicked.connect(self._on_ai_classify_clicked)
+        button_box.addButton(self._ai_classify_button, QDialogButtonBox.ActionRole)
+        if self._ai_classify_callback is None:
+            self._ai_classify_button.setVisible(False)
+            
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
         self._translation_edit.textChanged.connect(self._on_editor_content_changed)
@@ -229,52 +223,174 @@ class GlossaryDialog(QDialog):
         if initial_term:
             QTimer.singleShot(0, lambda: self._select_initial_term(initial_term))
         elif self._filtered_entries:
-            self._entry_table.selectRow(0)
+            self._active_table().selectRow(0)
             self._show_entry_for_row(0)
 
+    def _active_table(self) -> QTableWidget:
+        if not hasattr(self, '_tab_widget') or self._tab_widget.count() == 0:
+            # Fallback legacy table if it somehow exists
+            return self._entry_table if self._entry_table else QTableWidget(self)
+        widget = self._tab_widget.currentWidget()
+        if isinstance(widget, QTableWidget):
+            return widget
+        return self._entry_table if self._entry_table else QTableWidget(self)
+
+    def _on_tab_changed(self, index: int) -> None:
+        if self._is_populating:
+            return
+        active_table = self._active_table()
+        row = active_table.currentRow()
+        self._show_entry_for_row(row)
+
+    def _on_ai_classify_clicked(self) -> None:
+        if self._ai_classify_callback:
+            self._ai_classify_callback()
+
     def _populate_entries(self, entries: Sequence[GlossaryEntry]) -> None:
-        self._entry_table.setSortingEnabled(False)
         self._is_populating = True
-        self._entry_table.blockSignals(True)
-        self._entry_table.setRowCount(len(entries))
-        for row, entry in enumerate(entries):
-            occurrences = self._occurrences.get(entry.original, [])
-            values = [
-                entry.original,
-                entry.translation,
-                entry.notes,
-                str(len(occurrences)),
-            ]
-            for col, value in enumerate(values):
-                item = QTableWidgetItem(value)
-                if col == 3:
-                    item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                if col == 0:
-                    item.setData(Qt.UserRole, entry)
-                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                if col == 3:
-                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                self._entry_table.setItem(row, col, item)
-        self._entry_table.resizeColumnToContents(0)
-        self._entry_table.resizeColumnToContents(1)
-        self._entry_table.resizeColumnToContents(3)
-        self._entry_table.setSortingEnabled(True)
-        self._entry_table.blockSignals(False)
+        
+        # Save current selected term and tab to restore after population
+        selected_term = self._current_entry.original if self._current_entry else None
+        current_tab_text = self._tab_widget.tabText(self._tab_widget.currentIndex()) if hasattr(self, '_tab_widget') and self._tab_widget.count() > 0 else "All"
+        
+        if hasattr(self, '_tab_widget'):
+            self._tab_widget.blockSignals(True)
+            self._tab_widget.clear()
+            self._tables.clear()
+        
+        # Gather all sections present in self._all_entries
+        sections = sorted(list({entry.section for entry in self._all_entries if entry.section}))
+        
+        has_unassigned = any(not entry.section for entry in entries)
+        
+        tabs_to_create = ["All"] + sections
+        if has_unassigned:
+            tabs_to_create.append("Unassigned")
+            
+        for tab_name in tabs_to_create:
+            if tab_name == "All":
+                tab_entries = [e for e in entries]
+            elif tab_name == "Unassigned":
+                tab_entries = [e for e in entries if not e.section]
+            else:
+                tab_entries = [e for e in entries if e.section == tab_name]
+                
+            table = QTableWidget(self)
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(["Term", "Translation", "Notes", "Count"])
+            table.setSelectionMode(QTableWidget.SingleSelection)
+            table.setSelectionBehavior(QTableWidget.SelectRows)
+            
+            header = table.horizontalHeader()
+            header.setSectionResizeMode(0, QHeaderView.Interactive)
+            header.setSectionResizeMode(1, QHeaderView.Interactive)
+            header.setSectionResizeMode(2, QHeaderView.Stretch)
+            header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+            
+            table.cellClicked.connect(self._on_entry_selected)
+            table.currentCellChanged.connect(self._on_entry_current_changed)
+            table.setContextMenuPolicy(Qt.CustomContextMenu)
+            table.customContextMenuRequested.connect(self._on_entry_context_menu)
+            
+            if self._update_callback:
+                table.setEditTriggers(
+                    QTableWidget.DoubleClicked
+                    | QTableWidget.EditKeyPressed
+                    | QTableWidget.AnyKeyPressed
+                )
+                table.itemChanged.connect(self._on_entry_edited)
+            else:
+                table.setEditTriggers(QTableWidget.NoEditTriggers)
+                
+            # Populate this table
+            table.setSortingEnabled(False)
+            table.blockSignals(True)
+            table.setRowCount(len(tab_entries))
+            
+            for row, entry in enumerate(tab_entries):
+                occurrences = self._occurrences.get(entry.original, [])
+                values = [
+                    entry.original,
+                    entry.translation,
+                    entry.notes,
+                    str(len(occurrences)),
+                ]
+                for col, value in enumerate(values):
+                    item = QTableWidgetItem(value)
+                    if col == 3:
+                        item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                    if col == 0:
+                        item.setData(Qt.UserRole, entry)
+                        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                    if col == 3:
+                        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                    table.setItem(row, col, item)
+                    
+            table.resizeColumnToContents(0)
+            table.resizeColumnToContents(1)
+            table.resizeColumnToContents(3)
+            table.setSortingEnabled(True)
+            table.blockSignals(False)
+            
+            self._tables[tab_name] = table
+            self._tab_widget.addTab(table, tab_name)
+            
+        restore_idx = 0
+        for idx in range(self._tab_widget.count()):
+            if self._tab_widget.tabText(idx) == current_tab_text:
+                restore_idx = idx
+                break
+        self._tab_widget.setCurrentIndex(restore_idx)
+        self._tab_widget.blockSignals(False)
         self._is_populating = False
+        
+        if selected_term:
+            self._select_initial_term(selected_term)
+        elif self._active_table().rowCount() > 0:
+            self._active_table().selectRow(0)
+            self._show_entry_for_row(0)
+        else:
+            self._clear_entry_details()
+
     def _select_initial_term(self, term: str) -> None:
         if not term:
             return
         
         term_to_find = term.strip()
-
-        for row in range(self._entry_table.rowCount()):
-            item = self._entry_table.item(row, 0)
+        
+        # 1. Find which section this term belongs to
+        target_section = "All"
+        for entry in self._all_entries:
+            if entry.original.strip() == term_to_find:
+                target_section = entry.section if entry.section else "Unassigned"
+                break
+                
+        # 2. Switch to the corresponding tab
+        if hasattr(self, '_tab_widget'):
+            self._tab_widget.blockSignals(True)
+            found_tab = False
+            for idx in range(self._tab_widget.count()):
+                if self._tab_widget.tabText(idx) == target_section:
+                    self._tab_widget.setCurrentIndex(idx)
+                    found_tab = True
+                    break
+            if not found_tab:
+                for idx in range(self._tab_widget.count()):
+                    if self._tab_widget.tabText(idx) == "All":
+                        self._tab_widget.setCurrentIndex(idx)
+                        break
+            self._tab_widget.blockSignals(False)
+            
+        # 3. Select inside active table
+        active_table = self._active_table()
+        for row in range(active_table.rowCount()):
+            item = active_table.item(row, 0)
             if not item: continue
             
             entry = item.data(Qt.UserRole)
             if isinstance(entry, GlossaryEntry) and entry.original.strip() == term_to_find:
-                self._entry_table.setCurrentCell(row, 0)
-                self._entry_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtCenter)
+                active_table.setCurrentCell(row, 0)
+                active_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtCenter)
                 self._show_entry_for_row(row)
                 return
     def _show_entry_for_row(self, row: int) -> None:
@@ -304,8 +420,8 @@ class GlossaryDialog(QDialog):
         entry = self._entry_for_row(row)
         if not entry:
             return
-        translation_item = self._entry_table.item(row, 1)
-        notes_item = self._entry_table.item(row, 2)
+        translation_item = self._active_table().item(row, 1)
+        notes_item = self._active_table().item(row, 2)
         new_translation = translation_item.text().strip() if translation_item else ''
         new_notes = notes_item.text().strip() if notes_item else ''
         if new_translation == entry.translation and new_notes == entry.notes:
@@ -317,12 +433,12 @@ class GlossaryDialog(QDialog):
                 self._mark_editor_dirty(False)
             return
         self._is_populating = True
-        self._entry_table.blockSignals(True)
+        self._active_table().blockSignals(True)
         if translation_item:
             translation_item.setText(entry.translation)
         if notes_item:
             notes_item.setText(entry.notes)
-        self._entry_table.blockSignals(False)
+        self._active_table().blockSignals(False)
         self._is_populating = False
         if self._current_entry and self._current_entry.original == entry.original:
             self._populate_entry_details(entry)
@@ -442,7 +558,7 @@ class GlossaryDialog(QDialog):
         self._pending_select_term = None
         self._apply_filter(self._search_field.text())
     def _on_entry_context_menu(self, pos) -> None:
-        row = self._entry_table.rowAt(pos.y())
+        row = self._active_table().rowAt(pos.y())
         if row < 0:
             return
         entry = self._entry_for_row(row)
@@ -451,9 +567,9 @@ class GlossaryDialog(QDialog):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete Entry")
         delete_action.setEnabled(self._delete_callback is not None)
-        selected_action = menu.exec_(self._entry_table.viewport().mapToGlobal(pos))
+        selected_action = menu.exec_(self._active_table().viewport().mapToGlobal(pos))
         if selected_action == delete_action:
-            self._entry_table.selectRow(row)
+            self._active_table().selectRow(row)
             self._attempt_entry_delete(entry)
     def _load_dialog_state(self) -> None:
         data = self._read_settings_file()
@@ -538,7 +654,10 @@ class GlossaryDialog(QDialog):
     def _entry_for_row(self, row: int) -> Optional[GlossaryEntry]:
         if row < 0:
             return None
-        item = self._entry_table.item(row, 0)
+        active_table = self._active_table()
+        if row >= active_table.rowCount():
+            return None
+        item = active_table.item(row, 0)
         if not item:
             return None
         entry = item.data(Qt.UserRole)
@@ -570,8 +689,8 @@ class GlossaryDialog(QDialog):
             self._notes_variation_busy = False
             self._notes_variation_button.setText(self._notes_variation_default_text)
             self._notes_variation_button.setEnabled(False)
-        self._mark_editor_dirty(False)
         self._update_editor_enabled_state()
+
     def _apply_filter(self, text: str) -> None:
         pattern = text.strip().lower()
         if not pattern:
@@ -579,7 +698,7 @@ class GlossaryDialog(QDialog):
         else:
             def matches(entry: GlossaryEntry) -> bool:
                 haystack = " ".join(
-                    filter(None, [entry.original, entry.translation, entry.notes])
+                     filter(None, [entry.original, entry.translation, entry.notes])
                 ).lower()
                 return pattern in haystack
             self._filtered_entries = [entry for entry in self._all_entries if matches(entry)]
@@ -589,13 +708,13 @@ class GlossaryDialog(QDialog):
             self._pending_select_term = None
             return
         if self._filtered_entries:
-            self._entry_table.selectRow(0)
+            self._active_table().selectRow(0)
             self._show_entry_for_row(0)
         else:
             self._clear_entry_details()
             self._occurrence_list.clear()
             self._occurrence_label.setText("Occurrences: 0")
-
+ 
     def reload_data(
         self,
         entries: Sequence[GlossaryEntry],
@@ -617,7 +736,7 @@ class GlossaryDialog(QDialog):
         if selected_term:
             self._select_initial_term(selected_term)
         elif self._filtered_entries:
-            self._entry_table.selectRow(0)
+            self._active_table().selectRow(0)
             self._show_entry_for_row(0)
 
 
