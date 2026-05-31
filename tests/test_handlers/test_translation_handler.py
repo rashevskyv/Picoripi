@@ -273,3 +273,41 @@ def test_th_translate_selected_lines(th):
     with patch.object(th, 'translate_current_string') as mock_curr:
         th.translate_selected_lines()
         mock_curr.assert_called_once()
+
+
+def test_translate_all_blocks_chronologically(th):
+    th.mw.data_store.data = [["s1", "s2"], ["s3"]]
+    th.glossary_handler._get_original_block.side_effect = lambda idx: ["s1", "s2"] if idx == 0 else ["s3"]
+    th.glossary_handler._get_original_string.side_effect = lambda b, s: f"str_{b}_{s}"
+    
+    th.prompt_composer._get_wing_name.return_value = "Zelda_TP"
+    mock_client = MagicMock()
+    th.prompt_composer._get_mempalace_client.return_value = mock_client
+    th.prompt_composer._get_block_label.side_effect = lambda idx: f"block_{idx}"
+    
+    # Mock MemePalace mappings: block_1 has script_line 5, block_0 has script_line 10
+    mock_client.get_script_mapping.side_effect = lambda wing, bmg_id: {"script_line": 10} if "block_0" in bmg_id else {"script_line": 5}
+    mock_client.get_cached_context.return_value = {"room": "dungeon"}
+    mock_client.get_room_visual_context.return_value = "Dark room description"
+    
+    provider = MagicMock()
+    th.ai_lifecycle_manager._prepare_provider.return_value = provider
+    
+    with patch.object(th, '_initiate_batch_translation') as mock_init:
+        th.translate_all_blocks_chronologically()
+        mock_init.assert_called_once()
+        
+        task_details = mock_init.call_args[0][0]
+        assert task_details['type'] == 'translate_block_chunked'
+        assert task_details['block_idx'] == 999999
+        
+        # Verify chronological sorting order: block 1 (script_line 5) comes before block 0 (script_line 10)
+        source_items = task_details['source_items']
+        assert len(source_items) == 3
+        # temp_id_map should map temp_id -> (real_block_idx, real_string_idx)
+        # block 1 has 1 item: (1, 0)
+        # block 0 has 2 items: (0, 0), (0, 1)
+        assert task_details['temp_id_map'][0] == (1, 0)
+        assert task_details['temp_id_map'][1] == (0, 0)
+        assert task_details['temp_id_map'][2] == (0, 1)
+

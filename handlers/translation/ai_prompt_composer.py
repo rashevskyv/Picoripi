@@ -98,6 +98,8 @@ class AIPromptComposer(BaseTranslationHandler):
                 'text': current_text_clean,
                 'speaker': speaker
             }
+            if isinstance(item, dict) and item.get('scene_context'):
+                item_for_ai['scene_context'] = item['scene_context']
             items_with_context.append(item_for_ai)
 
         # 2. Extract scene context for the entire chunk if available
@@ -116,7 +118,13 @@ class AIPromptComposer(BaseTranslationHandler):
                 break
 
         scene_context = ""
-        if room_name and client:
+        # Try to get scene context directly from items first
+        for item in source_items:
+            if isinstance(item, dict) and item.get('scene_context'):
+                scene_context = item['scene_context']
+                break
+
+        if not scene_context and room_name and client:
             visual_ctx = client.get_room_visual_context(wing_name, room_name)
             relations = []
             try:
@@ -151,14 +159,33 @@ class AIPromptComposer(BaseTranslationHandler):
                 
             scene_context = "\n".join(context_parts)
 
-        # 3. Find relevant glossary terms for the entire chunk
+        # 3. Find relevant glossary terms for the entire chunk and next chunks (Lookahead)
         combined_chunk_text = " ".join(
             (item.get('text', '') if isinstance(item, dict) else str(item))
             for item in source_items
         )
+
+        lookahead_text = combined_chunk_text
+        try:
+            if source_items and all_source_items:
+                first_item_id = source_items[0].get('id', 0)
+                start_idx = 0
+                for idx, item in enumerate(all_source_items):
+                    if isinstance(item, dict) and item.get('id') == first_item_id:
+                        start_idx = idx
+                        break
+                
+                lookahead_items = all_source_items[start_idx:start_idx + 60]
+                lookahead_text = " ".join(
+                    (item.get('text', '') if isinstance(item, dict) else str(item))
+                    for item in lookahead_items
+                )
+        except Exception as e:
+            log_debug(f"AIPromptComposer: Error calculating lookahead glossary text: {e}")
+
         relevant_glossary_entries = []
         if glossary_manager:
-            relevant_glossary_entries = glossary_manager.get_relevant_terms(combined_chunk_text)
+            relevant_glossary_entries = glossary_manager.get_relevant_terms(lookahead_text)
         glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
         # 4. Build JSON payload

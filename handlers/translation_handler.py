@@ -676,10 +676,20 @@ class TranslationHandler(BaseHandler):
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.begin_group()
 
+            temp_id_map = context.get('temp_id_map')
+            modified_blocks = set()
+
             for item in translated_strings:
-                string_idx, translated_text = item["id"], item["translation"]
-                final_text = self._format_and_wrap_translation(translated_text, block_idx, string_idx)
-                self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE")
+                temp_id, translated_text = item["id"], item["translation"]
+                if temp_id_map and temp_id in temp_id_map:
+                    real_block_idx, real_string_idx = temp_id_map[temp_id]
+                else:
+                    real_block_idx = block_idx
+                    real_string_idx = temp_id
+
+                modified_blocks.add(real_block_idx)
+                final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
+                self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE")
             
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("TRANSLATE")
@@ -687,7 +697,10 @@ class TranslationHandler(BaseHandler):
             if block_idx in self.translation_progress:
                 self.translation_progress[block_idx]['completed_chunks'].add(chunk_index)
 
-            self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+            self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
+            
+            current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
+            self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
             self.translated_chunks_count = len(self.translation_progress.get(block_idx, {}).get('completed_chunks', set()))
             self.ui_handler.status_dialog.update_progress(self.translated_chunks_count)
             
@@ -696,7 +709,9 @@ class TranslationHandler(BaseHandler):
                 self.ui_handler.finish_ai_operation()
                 self.ui_updater.update_text_views()
                 if hasattr(self.mw, 'app_action_handler'):
-                    self.mw.issue_scan_handler.rescan_issues_for_single_block(block_idx, show_message_on_completion=False)
+                    for m_block in modified_blocks:
+                        if m_block != 999999:
+                            self.mw.issue_scan_handler.rescan_issues_for_single_block(m_block, show_message_on_completion=False)
                 
                 if block_idx in self.translation_progress:
                     del self.translation_progress[block_idx]
@@ -722,20 +737,35 @@ class TranslationHandler(BaseHandler):
                 self.mw.undo_manager.begin_group()
                 
             self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
+            
+            temp_id_map = context.get('temp_id_map')
+            modified_blocks = set()
+
             for item in translated_strings:
-                string_idx, translated_text = item["id"], item["translation"]
-                final_text = self._format_and_wrap_translation(translated_text, context['block_idx'], string_idx)
-                self.data_processor.update_edited_data(context['block_idx'], string_idx, final_text, action_type="TRANSLATE")
+                temp_id, translated_text = item["id"], item["translation"]
+                if temp_id_map and temp_id in temp_id_map:
+                    real_block_idx, real_string_idx = temp_id_map[temp_id]
+                else:
+                    real_block_idx = context['block_idx']
+                    real_string_idx = temp_id
+
+                modified_blocks.add(real_block_idx)
+                final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
+                self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE")
 
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("TRANSLATE")
 
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_text, response=response)
             self.ui_handler.finish_ai_operation()
-            self.ui_updater.populate_strings_for_block(context['block_idx'], getattr(self.mw, 'current_category_name', None), force=True)
+            
+            current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
+            self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
             self.ui_updater.update_text_views()
             if hasattr(self.mw, 'app_action_handler'):
-                self.mw.issue_scan_handler.rescan_issues_for_single_block(context['block_idx'], show_message_on_completion=False)
+                for m_block in modified_blocks:
+                    if m_block != 999999:
+                        self.mw.issue_scan_handler.rescan_issues_for_single_block(m_block, show_message_on_completion=False)
 
         except (json.JSONDecodeError, ValueError) as e:
             self._handle_ai_error(f"Validation failed: {e}", context)
@@ -912,3 +942,120 @@ class TranslationHandler(BaseHandler):
             self.translate_preview_selection(QPoint(0, 0))
         else:
             self.translate_current_string()
+
+    def translate_all_blocks_chronologically(self) -> None:
+        if self.is_ai_running:
+            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            return
+            
+        data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
+        if not isinstance(data_source, list) or not data_source:
+            QMessageBox.information(self.mw, "AI Translation", "No data available to translate.")
+            return
+
+        self.start_new_session = True
+        operation_title = "AI Translation (All Blocks Chronological)"
+        
+        self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
+        from components.ai_status_dialog import AIStatusDialog
+        self.ui_handler.update_ai_operation_step(0, "Preparing chronological data...", AIStatusDialog.STATUS_IN_PROGRESS)
+        from PyQt5.QtWidgets import QApplication
+        QApplication.processEvents()
+
+        # 1. Gather all dialogue strings across all blocks
+        all_project_items = []
+        for b_idx in range(len(data_source)):
+            block_strings = self.glossary_handler._get_original_block(b_idx)
+            if not block_strings:
+                continue
+            for s_idx in range(len(block_strings)):
+                original_text = str(self.glossary_handler._get_original_string(b_idx, s_idx) or "")
+                all_project_items.append({
+                    'block_idx': b_idx,
+                    'string_idx': s_idx,
+                    'text': original_text
+                })
+
+        if not all_project_items:
+            self.ui_handler.finish_ai_operation()
+            QMessageBox.information(self.mw, "AI Translation", "No dialogues found to translate.")
+            return
+
+        # 2. Sort chronologically using MemePalace mappings
+        wing_name = self.prompt_composer._get_wing_name()
+        client = self.prompt_composer._get_mempalace_client()
+        block_names_map = {b_idx: self.prompt_composer._get_block_label(b_idx) for b_idx in range(len(data_source))}
+        
+        scored_items = []
+        for item in all_project_items:
+            b_idx = item['block_idx']
+            s_idx = item['string_idx']
+            block_label = block_names_map[b_idx]
+            bmg_id = f"{block_label}_Str_{s_idx}"
+            
+            script_line = 999999
+            if client:
+                mapping = client.get_script_mapping(wing_name, bmg_id)
+                if mapping and mapping.get("script_line"):
+                    script_line = mapping["script_line"]
+            scored_items.append((item, script_line))
+            
+        scored_items.sort(key=lambda x: x[1])
+        sorted_items = [x[0] for x in scored_items]
+
+        # Save pre-translation state for backup/revert
+        for b_idx in range(len(data_source)):
+            self.pre_translation_state[b_idx] = self.data_processor.get_block_texts(b_idx)
+
+        # 3. Build source items and temp ID mappings
+        source_items = []
+        temp_id_map = {}
+        for temp_id, item in enumerate(sorted_items):
+            scene_context = ""
+            if client:
+                b_idx = item['block_idx']
+                s_idx = item['string_idx']
+                block_label = block_names_map[b_idx]
+                bmg_id = f"{block_label}_Str_{s_idx}"
+                cached = client.get_cached_context(bmg_id, item['text'])
+                if cached and cached.get("room"):
+                    room = cached.get("room")
+                    visual = client.get_room_visual_context(wing_name, room)
+                    if visual:
+                        scene_context = f"Scene: {room.replace('_', ' ')}\n{visual}"
+                    else:
+                        scene_context = f"Scene: {room.replace('_', ' ')}"
+            
+            source_item = {
+                'id': temp_id,
+                'text': item['text']
+            }
+            if scene_context:
+                source_item['scene_context'] = scene_context
+                
+            source_items.append(source_item)
+            temp_id_map[temp_id] = (item['block_idx'], item['string_idx'])
+
+        provider = self.ai_lifecycle_manager._prepare_provider()
+        if not provider:
+            self.ui_handler.finish_ai_operation()
+            return
+
+        base_timeout = self._resolve_base_timeout(provider)
+        block_timeout = base_timeout * 10
+
+        target_block_idx = 999999
+        task_details = {
+            'type': 'translate_block_chunked',
+            'provider': provider,
+            'source_items': source_items,
+            'attempt': 1,
+            'max_retries': 4,
+            'block_idx': target_block_idx,
+            'temp_id_map': temp_id_map,
+            'mode_description': "all blocks chronologically",
+            'provider_settings_override': {'timeout': block_timeout},
+            'timeout_seconds': block_timeout,
+            'session_reset_attempted': False
+        }
+        self._initiate_batch_translation(task_details)

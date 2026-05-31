@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.131] - 2026-05-31
+
+### Added
+- **Chronological Dialogue Translation**: Integrated a project-wide narrative-oriented translation pipeline. Dialogues from all blocks are collected and sorted chronologically based on their actual script lines in the MemePalace database before being sent to the AI translator.
+- **Context-Aware Dialogue Translation**: Automatically queries and merges scene/room visual descriptions from MemePalace client mappings directly into translation batch items.
+- **Narrative Session History Compression**: Implemented automatic translation history summarization. When the narrative exchange context buffer size exceeds `MAX_HISTORY_MESSAGES`, an LLM summary of the story events, style, and tone is generated and injected into the subsequent system prompts, preserving long-range story context.
+- **Chronological Translation Unit Tests**: Added a complete unit test `test_translate_all_blocks_chronologically` in `tests/test_handlers/test_translation_handler.py` verifying sorting, temp ID mapping, and batch initialization.
+
+### Fixed
+- **AttributeError in Tree Context Menu Translation**: Fixed a crash where choosing "AI: Translate All Blocks (UA Chronological)" from the tree context menu failed with `AttributeError: 'TranslationHandler' object has no attribute 'composer'`. Corrected the reference to `self.prompt_composer`.
+
 ## [0.2.130] - 2026-05-31
 
 ### Added
