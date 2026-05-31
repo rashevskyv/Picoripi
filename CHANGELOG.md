@@ -1,6 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.130] - 2026-05-31
+
+### Added
+- **Glossary `profiled` Field**: Added a `profiled` boolean field to `GlossaryEntry` in `core/glossary_manager.py`. This flag persists to the glossary JSON file and indicates whether a character entry has already received a detailed AI speech profile. When `profiled=True`, the MemePalace worker skips the entry during batch profiling runs.
+- **Profiled Checkbox in Glossary UI**: Exposed the `profiled` flag as a checkbox in the Glossary dialog. Users can manually tick or untick the checkbox to force reprocessing of specific characters in the next profiling pass.
+- **Incremental Reprofiling Logic**: The MemePalace character profiler worker (`core/mempalace_worker.py`) now uses a composite check combining the `profiled` marker and the line count of existing notes (threshold: `< 3` lines). If a character has `profiled=True` but fewer than 3 lines in its notes, the `profiled` flag is automatically reset and the character is requeued for AI profiling. This guards against empty or minimal AI responses being silently treated as complete profiles.
+- **Quick Glossary Replace-All**: Added a **"Replace All (No AI)"** button to the translation update dialog. Clicking it performs an immediate, AI-free replacement of the selected term across all strings in the project using the new source→target mapping, without invoking any AI endpoint.
+
+### Fixed
+- **MemePalace Stop Button Cancels Profiling Correctly**: Fixed a bug where clicking the **Stop** button during an AI profiling run would not actually cancel the active worker. The worker now respects the `_stop_requested` flag set by the Stop button and exits the profiling loop cleanly without completing remaining entries.
+- **Glossary Tab Auto-Switch Bug**: Fixed a bug where typing in the Glossary search field or editing any entry would unexpectedly switch the active tab to "Item". The root cause was an unconditional tab index reset being triggered on every glossary reload signal. The tab is now preserved on reload and only reset when explicitly opening a fresh dialog session.
+- **UI Test Teardown Segfault (`0xC0000409`)**: Resolved a critical C++ segfault occurring during `tests/test_ui/test_glossary_ui_logic.py` teardown. The issue was caused by Qt's garbage collector destroying the parent widget before the child dialog. Fixed by setting `parent=None` in all test dialogs and adding explicit `deleteLater()` + `processEvents()` cleanup calls.
+
 ## [0.2.129] - 2026-05-30
+
 
 ### Added
 - **MemePalace Automated Orchestration Pipeline**:

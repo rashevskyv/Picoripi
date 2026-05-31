@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtCore import QPoint, Qt
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
@@ -144,3 +144,104 @@ def test_glossary_highlighted_after_set_plain_text(qapp):
     assert len(user_data.matches) > 0, \
         "Block should have at least one glossary match for 'Link'. " \
         "Without the fix (rehighlight after setPlainText) this list would be empty."
+
+
+def test_glossary_translation_quick_replace_all(qapp):
+    from components.glossary_translation_update_dialog import GlossaryTranslationUpdateDialog
+    from core.glossary_manager import GlossaryOccurrence, GlossaryEntry
+    from PyQt5.QtWidgets import QWidget
+    
+    mock_parent = QWidget()
+    entry = GlossaryEntry("t", "new")
+    occ1 = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "This is old translation")
+    occ2 = GlossaryOccurrence(entry, 0, 1, 0, 0, 0, "Another old value")
+    
+    applied = {}
+    def mock_apply(occ, text):
+        applied[id(occ)] = text
+        
+    def mock_get_current(occ):
+        if occ.string_idx == 0:
+            return "This is old translation"
+        return "Another old value"
+        
+    dialog = GlossaryTranslationUpdateDialog(
+        parent=None,
+        term="t",
+        old_translation="old",
+        new_translation="new",
+        occurrences=[occ1, occ2],
+        get_original_text=lambda occ: "orig",
+        get_current_translation=mock_get_current,
+        apply_translation=mock_apply,
+        ai_request_single=None,
+        ai_request_all=None
+    )
+    
+    # Verify the button was created
+    assert dialog._quick_replace_all_button is not None
+    
+    # Mock confirmation box to return Yes
+    with patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QMessageBox.Yes), \
+         patch('PyQt5.QtWidgets.QMessageBox.information'):
+        dialog._run_quick_replace_all()
+        
+    # Check that both occurrences had their old value replaced by the new value
+    assert applied[id(occ1)] == "This is new translation"
+    assert applied[id(occ2)] == "Another new value"
+    assert dialog._status[id(occ1)] == 'applied'
+    assert dialog._status[id(occ2)] == 'applied'
+    
+    dialog.deleteLater()
+    QApplication.processEvents()
+
+
+def test_glossary_dialog_profiled_checkbox(qapp):
+    from components.glossary_dialog import GlossaryDialog
+    from core.glossary_manager import GlossaryEntry
+    from PyQt5.QtWidgets import QWidget
+    
+    mock_parent = QWidget()
+    entry1 = GlossaryEntry("Link", "Лінк", "Hero", "Characters", profiled=True)
+    entry2 = GlossaryEntry("Zelda", "Зельда", "Princess", "Characters", profiled=False)
+    
+    update_called = []
+    def mock_update(original, translation, notes, profiled=None):
+        update_called.append((original, translation, notes, profiled))
+        # Return new entries list and empty occurrence map to satisfy the signature
+        return [GlossaryEntry(original, translation, notes, profiled=profiled if profiled is not None else False)], {}
+        
+    dialog = GlossaryDialog(
+        parent=None,
+        entries=[entry1, entry2],
+        occurrence_map={},
+        update_callback=mock_update,
+        delete_callback=None,
+        jump_callback=None,
+        ai_classify_callback=None,
+        ai_variation_callback=None,
+        initial_term="Link"
+    )
+    
+    # 1. Verify checkbox exists
+    assert dialog._profiled_checkbox is not None
+    
+    # 2. Check initial state for 'Link' (profiled=True)
+    assert dialog._profiled_checkbox.isChecked() is True
+    
+    # 3. Select 'Zelda' (profiled=False)
+    dialog._select_initial_term("Zelda", switch_tab=False)
+    assert dialog._current_entry.original == "Zelda"
+    assert dialog._profiled_checkbox.isChecked() is False
+    
+    # 4. Check the checkbox for 'Zelda' and save changes
+    dialog._profiled_checkbox.setChecked(True)
+    dialog._save_editor_changes()
+    
+    # Verify update callback was called with profiled=True
+    assert len(update_called) == 1
+    assert update_called[0] == ("Zelda", "Зельда", "Princess", True)
+    
+    dialog.deleteLater()
+    QApplication.processEvents()
+

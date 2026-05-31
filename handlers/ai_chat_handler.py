@@ -156,7 +156,7 @@ class AIChatHandler(BaseHandler):
             return
 
         self._thread = QThread()
-        self._worker = AIWorker(provider, None, task_details)
+        self._worker = AIWorker(provider, None, task_details, self.mw)
         self._worker.moveToThread(self._thread)
 
         self._thread.started.connect(self._worker.run)

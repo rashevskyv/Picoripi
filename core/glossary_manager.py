@@ -19,6 +19,7 @@ class GlossaryEntry:
     translation: str
     notes: str = ""
     section: Optional[str] = None
+    profiled: bool = False
 
     def is_valid(self) -> bool:
         return bool(self.original and self.translation)
@@ -72,7 +73,7 @@ class GlossaryManager:
             return ""
         cleaned = unicodedata.normalize('NFKD', value)
         stripped = ''.join(ch for ch in cleaned if not unicodedata.combining(ch))
-        stripped = stripped.lower()
+        stripped = stripped.lower().replace('#', ' ')
         stripped = re.sub(r"\s+", " ", stripped)
         return stripped.strip()
 
@@ -83,12 +84,46 @@ class GlossaryManager:
         glossary_path: Optional[Path],
         raw_text: str,
     ) -> None:
-        """Populate glossary from text buffer."""
+        """Populate glossary from text buffer (either JSON or Markdown)."""
         self._plugin_name = plugin_name
         self._glossary_path = glossary_path
         sanitized_text = (raw_text or "").replace('\uFEFF', '')
         self._raw_text = sanitized_text
-        self._entries = self._parse_markdown(self._raw_text)
+        
+        # Check if text is JSON
+        is_json = False
+        if glossary_path and glossary_path.suffix.lower() == '.json':
+            is_json = True
+        elif not glossary_path and sanitized_text.strip().startswith(('[', '{')):
+            is_json = True
+            
+        if is_json:
+            try:
+                import json
+                data = json.loads(sanitized_text) if sanitized_text.strip() else []
+                self._entries = []
+                self._section_order = []
+                sections_seen = set()
+                for item in data:
+                    entry = GlossaryEntry(
+                        original=item.get("original", ""),
+                        translation=item.get("translation", ""),
+                        notes=item.get("notes", ""),
+                        section=item.get("section"),
+                        profiled=bool(item.get("profiled", False))
+                    )
+                    if entry.is_valid():
+                        self._entries.append(entry)
+                        sec = entry.section
+                        if sec and sec not in sections_seen:
+                            sections_seen.add(sec)
+                            self._section_order.append(sec)
+            except Exception as e:
+                log_debug(f"GlossaryManager: Failed to parse JSON glossary: {e}")
+                self._entries = []
+        else:
+            self._entries = self._parse_markdown(self._raw_text)
+            
         self._build_pattern_cache()
         log_debug(
             f"GlossaryManager: loaded {len(self._entries)} entries for plugin "
@@ -251,18 +286,19 @@ class GlossaryManager:
         self._session_changes.clear()
 
 
-    def add_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None) -> Optional[GlossaryEntry]:
+    def add_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: bool = False) -> Optional[GlossaryEntry]:
         original_key = (original or '').strip()
         if not original_key:
             return None
         existing = next((entry for entry in self._entries if entry.original == original_key), None)
         if existing:
-            return self.update_entry(original_key, translation, notes)
+            return self.update_entry(original_key, translation, notes, profiled=profiled)
         new_entry = GlossaryEntry(
             original=original_key,
             translation=translation.strip(),
             notes=notes.strip(),
             section=section,
+            profiled=profiled
         )
         self._session_changes[original_key] = new_entry
         new_entries = list(self._entries)
@@ -272,7 +308,7 @@ class GlossaryManager:
         self._persist()
         return new_entry
 
-    def update_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None) -> Optional[GlossaryEntry]:
+    def update_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: Optional[bool] = None) -> Optional[GlossaryEntry]:
         original_key = (original or '').strip()
         updated_translation = translation.strip()
         updated_notes = notes.strip()
@@ -286,6 +322,7 @@ class GlossaryManager:
                     translation=updated_translation,
                     notes=updated_notes,
                     section=section if section is not None else entry.section,
+                    profiled=profiled if profiled is not None else entry.profiled
                 )
                 new_entries = list(self._entries)
                 new_entries[idx] = updated_entry
@@ -353,10 +390,17 @@ class GlossaryManager:
                 if len(parts) < 3:
                     continue
                 header_check = [p.lower() for p in parts[:3]]
-                if header_check[0] in {'\u043e\u0440\u0438\u0433\u0456\u043d\u0430\u043b', 'original'} and header_check[1] in {'\u043f\u0435\u0440\u0435\u043a\u043b\u0430\u0434', 'translation'}:
+                if header_check[0] in {'оригінал', 'original'} and header_check[1] in {'переклад', 'translation'}:
                     continue
                 original, translation = parts[0], parts[1]
                 notes = parts[2] if len(parts) >= 3 else ""
+                # Replace <br> / <br/> with \n to restore newlines inside notes
+                notes = re.sub(r'<br\s*/?>', '\n', notes, flags=re.IGNORECASE)
+                notes = notes.replace(r'\|', '|')
+                
+                original = original.replace(r'\|', '|')
+                translation = translation.replace(r'\|', '|')
+                
                 entry = GlossaryEntry(original=original, translation=translation, notes=notes, section=current_section)
                 if entry.is_valid():
                     entries.append(entry)
@@ -368,6 +412,12 @@ class GlossaryManager:
                 while len(segments) < 3:
                     segments.append('')
                 original, translation, notes = [segment.strip() for segment in segments[:3]]
+                notes = re.sub(r'<br\s*/?>', '\n', notes, flags=re.IGNORECASE)
+                notes = notes.replace(r'\|', '|')
+                
+                original = original.replace(r'\|', '|')
+                translation = translation.replace(r'\|', '|')
+                
                 entry = GlossaryEntry(original=original, translation=translation, notes=notes, section=current_section)
                 if entry.is_valid():
                     entries.append(entry)
@@ -377,7 +427,15 @@ class GlossaryManager:
     def _table_lines(self, entries: Sequence[GlossaryEntry]) -> List[str]:
         lines = ['| Original | Translation | Notes |', '|----------|-------------|-------|']
         for entry in entries:
-            lines.append(f"| {entry.original} | {entry.translation} | {entry.notes} |")
+            # Escape newlines as <br> and pipe characters as \| inside markdown table cells
+            safe_notes = (entry.notes or "").replace('\n', '<br>')
+            safe_notes = safe_notes.replace('|', r'\|')
+            
+            # Keep original and translation single-line and pipe-safe just in case
+            safe_orig = (entry.original or "").replace('\n', ' ').replace('|', r'\|')
+            safe_trans = (entry.translation or "").replace('\n', ' ').replace('|', r'\|')
+            
+            lines.append(f"| {safe_orig} | {safe_trans} | {safe_notes} |")
         return lines
 
     def _generate_markdown(self) -> str:
@@ -423,17 +481,58 @@ class GlossaryManager:
         return markdown
 
     def _persist(self, write_only: bool = False) -> None:
-        markdown = self._generate_markdown()
-        self._raw_text = markdown
         if self._glossary_path:
-            self._glossary_path.write_text(markdown, encoding='utf-8')
+            # Migration logic: if current path is .md, migrate it to .json!
+            if self._glossary_path.suffix.lower() == '.md':
+                json_path = self._glossary_path.with_suffix('.json')
+                
+                # Create .bak file for safety before deleting
+                bak_path = self._glossary_path.with_suffix('.md.bak')
+                try:
+                    if self._glossary_path.exists():
+                        if bak_path.exists():
+                            bak_path.unlink()
+                        self._glossary_path.rename(bak_path)
+                        log_debug(f"GlossaryManager: Renamed legacy glossary {self._glossary_path.name} to backup {bak_path.name}")
+                except Exception as e:
+                    log_debug(f"GlossaryManager: Failed to rename legacy glossary to backup: {e}")
+                
+                self._glossary_path = json_path
+
+            # Serialize entries to JSON
+            import json
+            data_to_save = [
+                {
+                    "original": entry.original,
+                    "translation": entry.translation,
+                    "notes": entry.notes,
+                    "section": entry.section,
+                    "profiled": entry.profiled
+                }
+                for entry in self._entries
+            ]
+            
+            try:
+                raw_json = json.dumps(data_to_save, ensure_ascii=False, indent=2) + "\n"
+                self._glossary_path.write_text(raw_json, encoding='utf-8')
+                self._raw_text = raw_json
+                log_debug(f"GlossaryManager: Persisted {len(self._entries)} entries to {self._glossary_path}")
+            except Exception as e:
+                log_debug(f"GlossaryManager: Failed to write JSON glossary: {e}")
+                
             if not write_only:
-                self.load_from_text(
-                    plugin_name=self._plugin_name,
-                    glossary_path=self._glossary_path,
-                    raw_text=markdown,
-                )
+                try:
+                    self.load_from_text(
+                        plugin_name=self._plugin_name,
+                        glossary_path=self._glossary_path,
+                        raw_text=self._raw_text,
+                    )
+                except Exception:
+                    pass
         else:
+            # In-memory only (e.g. tests)
+            # Make sure _raw_text is in sync (we generate Markdown for compatibility/tests that check get_raw_text)
+            self._raw_text = self._generate_markdown()
             self._build_pattern_cache()
 
     def _build_pattern_cache(self) -> None:

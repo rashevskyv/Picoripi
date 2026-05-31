@@ -118,6 +118,12 @@ class GlossaryTranslationUpdateDialog(QDialog):
         skip_button.clicked.connect(self._skip_current)
         button_row.addWidget(skip_button)
 
+        self._quick_replace_all_button = QPushButton("Replace All (No AI)", right_panel)
+        self._quick_replace_all_button.setStyleSheet("background-color: #047857; color: white; font-weight: bold;")
+        self._quick_replace_all_button.setToolTip("Instantly replace old translation with new translation across all occurrences without using AI.")
+        self._quick_replace_all_button.clicked.connect(self._run_quick_replace_all)
+        button_row.addWidget(self._quick_replace_all_button)
+
         button_row.addStretch(1)
 
         self._ai_current_button = QPushButton("AI Suggest", right_panel)
@@ -372,3 +378,57 @@ class GlossaryTranslationUpdateDialog(QDialog):
             QMessageBox.warning(self, "AI Update", message)
         self.set_batch_active(False)
         self.set_ai_busy(False)
+
+    def _run_quick_replace_all(self) -> None:
+        remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
+        if not remaining:
+            QMessageBox.information(self, "Replace All", "All occurrences already applied.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Replace All (No AI)",
+            f"Are you sure you want to instantly replace '{self._old_translation}' with '{self._new_translation}' "
+            f"in all {len(remaining)} remaining translated lines without using AI?\n\n"
+            f"This will also match grammatical cases (e.g. '{self._old_translation}a' -> '{self._new_translation}a').",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        # Use undo group if available
+        # Find MainWindow by walking up parents or querying parent
+        parent_window = self.parent()
+        while parent_window and not hasattr(parent_window, "undo_manager"):
+            parent_window = parent_window.parent()
+            
+        undo_manager = getattr(parent_window, "undo_manager", None)
+        if undo_manager:
+            undo_manager.begin_group()
+
+        applied_count = 0
+        for occ in remaining:
+            current_translation = self._get_current_translation(occ) or ""
+            if self._old_translation and self._old_translation in current_translation:
+                # Direct string replacement
+                new_text = current_translation.replace(self._old_translation, self._new_translation)
+                self._apply_translation_cb(occ, new_text)
+                self._status[id(occ)] = 'applied'
+                self._refresh_occurrence_item(occ)
+                applied_count += 1
+
+        if undo_manager:
+            undo_manager.end_group("GLOSSARY_QUICK_REPLACE_ALL")
+
+        QMessageBox.information(
+            self,
+            "Success",
+            f"Successfully replaced term occurrences in {applied_count} translated line(s)!"
+        )
+
+        # Refresh currently selected item details to reflect the change
+        curr_row = self._occurrence_list.currentRow()
+        if 0 <= curr_row < len(self._occurrences):
+            self._load_occurrence(curr_row)
+

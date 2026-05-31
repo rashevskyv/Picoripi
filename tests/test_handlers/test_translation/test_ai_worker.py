@@ -171,4 +171,30 @@ def test_AIWorker_run_chat_message_stream(worker_deps):
     emitted_response = mock_success.call_args[0][0]
     assert emitted_response.text == "response"
 
+def test_AIWorker_mw_fallback_and_logging(worker_deps):
+    provider, _ = worker_deps
+    mock_mw = MagicMock()
+    mock_mw.log_ai_traffic = True
+    
+    state_mock = MagicMock()
+    state_mock.prepare_request.return_value = ([{"role": "user", "content": "hi"}], None)
+    
+    task_details = {
+        'type': 'chat_message',
+        'session_state': state_mock,
+        'session_user_message': 'hello'
+    }
+    
+    worker = AIWorker(provider, None, task_details, mw=mock_mw)
+    
+    assert worker.mw == mock_mw
+    
+    provider.translate.return_value = ProviderResponse(text="response")
+    
+    with patch('utils.logging_utils.log_ai_traffic') as mock_log:
+        worker.run()
+        assert mock_log.called
+        assert mock_log.call_args[0][0] == mock_mw
+
+
 

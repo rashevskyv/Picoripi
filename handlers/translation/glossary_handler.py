@@ -458,11 +458,12 @@ class GlossaryHandler(BaseTranslationHandler):
 
     # ── Entry update/delete callbacks (called from GlossaryDialog) ────────
 
-    def _handle_glossary_entry_update(self, original: str, translation: str, notes: str):
+    def _handle_glossary_entry_update(self, original: str, translation: str, notes: str, profiled: Optional[bool] = None):
         previous_entry = self.glossary_manager.get_entry(original)
         previous_translation = previous_entry.translation if previous_entry else None
 
-        if self.glossary_manager.update_entry(original, translation, notes):
+        if self.glossary_manager.update_entry(original, translation, notes, profiled=profiled):
+            self.glossary_manager.save_to_disk()
             data_source = getattr(self.mw.data_store, "data", [])
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
@@ -489,6 +490,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
     def _handle_glossary_entry_delete(self, original: str):
         if self.glossary_manager.delete_entry(original):
+            self.glossary_manager.save_to_disk()
             data_source = getattr(self.mw.data_store, "data", [])
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())

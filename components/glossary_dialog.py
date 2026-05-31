@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from PyQt5.QtCore import Qt, QRect, QSize, QTimer
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -174,6 +175,8 @@ class GlossaryDialog(QDialog):
         right_layout.addWidget(translation_label)
         self._translation_edit = QLineEdit(self)
         right_layout.addWidget(self._translation_edit)
+        self._profiled_checkbox = QCheckBox("Profiled via AI (Speech Profile generated)", self)
+        right_layout.addWidget(self._profiled_checkbox)
         notes_row = QHBoxLayout()
         notes_label = QLabel("Notes:", self)
         notes_row.addWidget(notes_label)
@@ -216,6 +219,7 @@ class GlossaryDialog(QDialog):
         layout.addWidget(button_box)
         self._translation_edit.textChanged.connect(self._on_editor_content_changed)
         self._notes_edit.textChanged.connect(self._on_editor_content_changed)
+        self._profiled_checkbox.stateChanged.connect(self._on_editor_content_changed)
         self._update_editor_enabled_state()
         self._load_dialog_state()
         self._populate_entries(self._filtered_entries)
@@ -345,14 +349,14 @@ class GlossaryDialog(QDialog):
         self._is_populating = False
         
         if selected_term:
-            self._select_initial_term(selected_term)
+            self._select_initial_term(selected_term, switch_tab=False)
         elif self._active_table().rowCount() > 0:
             self._active_table().selectRow(0)
             self._show_entry_for_row(0)
         else:
             self._clear_entry_details()
 
-    def _select_initial_term(self, term: str) -> None:
+    def _select_initial_term(self, term: str, switch_tab: bool = True) -> None:
         if not term:
             return
         
@@ -365,8 +369,8 @@ class GlossaryDialog(QDialog):
                 target_section = entry.section if entry.section else "Unassigned"
                 break
                 
-        # 2. Switch to the corresponding tab
-        if hasattr(self, '_tab_widget'):
+        # 2. Switch to the corresponding tab if requested
+        if switch_tab and hasattr(self, '_tab_widget'):
             self._tab_widget.blockSignals(True)
             found_tab = False
             for idx in range(self._tab_widget.count()):
@@ -485,9 +489,11 @@ class GlossaryDialog(QDialog):
             return
         current_translation = self._translation_edit.text().strip()
         current_notes = self._notes_edit.toPlainText().strip()
+        current_profiled = self._profiled_checkbox.isChecked()
         has_changes = (
             current_translation != self._current_entry.translation
             or current_notes != self._current_entry.notes
+            or current_profiled != self._current_entry.profiled
         )
         self._mark_editor_dirty(has_changes)
     def _mark_editor_dirty(self, dirty: bool) -> None:
@@ -497,6 +503,7 @@ class GlossaryDialog(QDialog):
         can_edit = self._update_callback is not None and self._current_entry is not None
         self._translation_edit.setReadOnly(not can_edit)
         self._notes_edit.setReadOnly(not can_edit)
+        self._profiled_checkbox.setEnabled(can_edit)
         if hasattr(self, '_notes_variation_button'):
             has_callback = self._ai_variation_callback is not None
             self._notes_variation_button.setVisible(has_callback)
@@ -514,18 +521,19 @@ class GlossaryDialog(QDialog):
             return
         new_translation = self._translation_edit.text().strip()
         new_notes = self._notes_edit.toPlainText().strip()
+        new_profiled = self._profiled_checkbox.isChecked()
         entry = self._current_entry
-        if new_translation == entry.translation and new_notes == entry.notes:
+        if new_translation == entry.translation and new_notes == entry.notes and new_profiled == entry.profiled:
             self._mark_editor_dirty(False)
             return
-        if not self._attempt_entry_update(entry, new_translation, new_notes):
+        if not self._attempt_entry_update(entry, new_translation, new_notes, new_profiled):
             self._populate_entry_details(entry)
             return
         self._mark_editor_dirty(False)
-    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str) -> bool:
+    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None) -> bool:
         if not self._update_callback:
             return False
-        result = self._update_callback(entry.original, new_translation, new_notes)
+        result = self._update_callback(entry.original, new_translation, new_notes, profiled)
         if not result:
             return False
         new_entries, new_occurrence_map = result
@@ -672,6 +680,7 @@ class GlossaryDialog(QDialog):
         self._original_label.setText(f"Term: {entry.original}")
         self._translation_edit.setText(entry.translation or '')
         self._notes_edit.setPlainText(entry.notes or '')
+        self._profiled_checkbox.setChecked(entry.profiled)
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
@@ -684,6 +693,7 @@ class GlossaryDialog(QDialog):
         self._original_label.setText('Nothing selected')
         self._translation_edit.clear()
         self._notes_edit.clear()
+        self._profiled_checkbox.setChecked(False)
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
@@ -704,7 +714,7 @@ class GlossaryDialog(QDialog):
             self._filtered_entries = [entry for entry in self._all_entries if matches(entry)]
         self._populate_entries(self._filtered_entries)
         if self._pending_select_term:
-            self._select_initial_term(self._pending_select_term)
+            self._select_initial_term(self._pending_select_term, switch_tab=False)
             self._pending_select_term = None
             return
         if self._filtered_entries:
@@ -734,7 +744,7 @@ class GlossaryDialog(QDialog):
         
         # Restore selection if possible, otherwise select first row
         if selected_term:
-            self._select_initial_term(selected_term)
+            self._select_initial_term(selected_term, switch_tab=False)
         elif self._filtered_entries:
             self._active_table().selectRow(0)
             self._show_entry_for_row(0)

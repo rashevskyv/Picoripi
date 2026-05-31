@@ -517,18 +517,14 @@ if __name__ == '__main__':
         import shutil
         old_local_settings = "settings.json"
         if os.path.exists(old_local_settings):
-            os.makedirs(os.path.dirname(SETTINGS_FILE_PATH), exist_ok=True)
-            # Backup existing new settings if it exists just in case
-            if os.path.exists(SETTINGS_FILE_PATH):
-                backup_path = SETTINGS_FILE_PATH + ".bak"
-                try:
-                    if os.path.exists(backup_path):
-                        os.remove(backup_path)
-                    os.rename(SETTINGS_FILE_PATH, backup_path)
-                except Exception as backup_err:
-                    log_warning(f"Could not backup existing settings: {backup_err}")
-            shutil.copy2(old_local_settings, SETTINGS_FILE_PATH)
-            # Rename old local settings file to prevent repeated migration
+            if not os.path.exists(SETTINGS_FILE_PATH):
+                os.makedirs(os.path.dirname(SETTINGS_FILE_PATH), exist_ok=True)
+                shutil.copy2(old_local_settings, SETTINGS_FILE_PATH)
+                log_info(f"Successfully migrated settings from {old_local_settings} to {SETTINGS_FILE_PATH}")
+            else:
+                log_info(f"Settings file already exists in home directory. Skipping migration of local {old_local_settings}.")
+            
+            # Rename old local settings file to prevent repeated checks
             migrated_old_path = old_local_settings + ".migrated"
             try:
                 if os.path.exists(migrated_old_path):
@@ -536,7 +532,6 @@ if __name__ == '__main__':
                 os.rename(old_local_settings, migrated_old_path)
             except Exception as rename_err:
                 log_warning(f"Could not rename old settings file: {rename_err}")
-            log_info(f"Successfully migrated settings from {old_local_settings} to {SETTINGS_FILE_PATH}")
     except Exception as e:
         log_error(f"Error migrating settings: {e}", exc_info=True)
 
