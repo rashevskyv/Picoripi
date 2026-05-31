@@ -65,27 +65,30 @@ def test_BlockListUpdater_update_block_item_text_with_problem_count(updater):
     item.setData(0, Qt.UserRole, 0)
     updater.mw.block_list_widget.addTopLevelItem(item)
     
-    updater.mw.current_game_rules.get_short_problem_name.side_effect = lambda p: "width" if p == "prob1" else "empty"
-
     updater.update_block_item_text_with_problem_count(0)
     
-    expected_text = "Block Zero (1 width)"
+    expected_text = "Block Zero (1)"
     assert item.text(0) == expected_text
+    assert "Width Error" in item.toolTip(0)
 
     item1 = QTreeWidgetItem(["Block 1Base"])
     item1.setData(0, Qt.UserRole, 1)
     updater.mw.block_list_widget.addTopLevelItem(item1)
     
     updater.update_block_item_text_with_problem_count(1)
-    expected_text1 = "Block One (1 width, 1 empty)"
+    expected_text1 = "Block One (2)"
     assert item1.text(0) == expected_text1
+    assert "Width Error" in item1.toolTip(0)
+    assert "Empty Odd Line Error" in item1.toolTip(0)
 
 def test_BlockListUpdater_clear_all_problem_block_highlights_and_text(updater):
     # Setup tree item
-    item = QTreeWidgetItem(["Block Zero (1 width)"])
+    item = QTreeWidgetItem(["Block Zero (1)"])
     item.setData(0, Qt.UserRole, 0)
+    item.setToolTip(0, "Some Error")
     updater.mw.block_list_widget.addTopLevelItem(item)
     
     updater.clear_all_problem_block_highlights_and_text()
     
     assert item.text(0) == "Block Zero"
+    assert item.toolTip(0) == ""

@@ -58,10 +58,7 @@ def test_AIPromptComposer_prepare_glossary_for_prompt_full(composer):
     session_state.glossary_sent = False
     
     prompt = composer._prepare_glossary_for_prompt("Base", session_state)
-    assert "Base" in prompt
-    assert "GLOSSARY" in prompt
-    assert "| Term | Тлумач |" in prompt
-    assert session_state.glossary_sent is True
+    assert prompt == "Base"  # Now returns system_prompt as-is for glossary unification
 
 def test_AIPromptComposer_prepare_glossary_for_prompt_updates(composer):
     gm = MagicMock()
@@ -73,7 +70,4 @@ def test_AIPromptComposer_prepare_glossary_for_prompt_updates(composer):
     session_state.glossary_sent = True # Already sent once
     
     prompt = composer._prepare_glossary_for_prompt("Base", session_state)
-    assert "GLOSSARY UPDATES" in prompt
-    assert "New" in prompt
-    assert "GLOSSARY DELETIONS" in prompt
-    assert "Deleted" in prompt
+    assert prompt == "Base"  # Now returns system_prompt as-is for glossary unification

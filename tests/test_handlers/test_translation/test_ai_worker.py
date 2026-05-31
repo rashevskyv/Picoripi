@@ -197,4 +197,43 @@ def test_AIWorker_mw_fallback_and_logging(worker_deps):
         assert mock_log.call_args[0][0] == mock_mw
 
 
+def test_AIWorker_detail_updated_signal(worker_deps):
+    provider, prompt_composer = worker_deps
+    
+    # Mock MemePalaceClient
+    mock_client = MagicMock()
+    mock_client.get_script_mapping.return_value = {
+        "script_line": 123,
+        "chapter_num": 4,
+        "chapter_title": "Arbitrary Chapter Name"
+    }
+    prompt_composer._get_mempalace_client.return_value = mock_client
+    prompt_composer._get_wing_name.return_value = "Zelda_TP"
+    prompt_composer._get_block_label.return_value = "d_mn08"
+    
+    task_details = {
+        'type': 'translate_block_chunked',
+        'source_items': [{'id': 10, 'text': 'A'}],
+        'composer_args': {}
+    }
+    worker = AIWorker(provider, prompt_composer, task_details)
+    
+    mock_detail_updated = MagicMock()
+    worker.detail_updated.connect(mock_detail_updated)
+    
+    response = ProviderResponse(text='{"translated_strings": [{"id": 10, "translation": "TransA"}]}')
+    provider.translate.return_value = response
+    
+    worker.run()
+    
+    mock_detail_updated.assert_called_once()
+    emitted_text = mock_detail_updated.call_args[0][0]
+    assert "Chapter 4" in emitted_text
+    assert "Arbitrary Chapter Name" in emitted_text
+    assert "d_mn08" in emitted_text
+    assert "Line: 10" in emitted_text
+    assert "Script Line: 123" in emitted_text
+
+
+
 

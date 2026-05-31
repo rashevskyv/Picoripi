@@ -60,17 +60,18 @@ class PreviewUpdater(BaseUIUpdater):
              # If no filtering is active, use all
              displayed_indices = list(range(len(self.mw.data_store.data[block_idx])))
 
-        # OPTIMIZATION: Collect only strings with problems to avoid scanning 5000+ items
+        # OPTIMIZATION: Collect only strings with active problems to avoid scanning 5000+ items
         problem_string_indices = set()
+        detection_config = getattr(self.mw, 'detection_enabled', {})
         if hasattr(self.mw.data_store, 'problems_per_subline'):
-            for key in self.mw.data_store.problems_per_subline:
+            for key, problems in self.mw.data_store.problems_per_subline.items():
                 if key[0] == block_idx:
-                    problem_string_indices.add(key[1])
+                    if any(detection_config.get(p_id, True) for p_id in problems):
+                        problem_string_indices.add(key[1])
 
         for preview_idx, real_idx in enumerate(displayed_indices):
             if real_idx in problem_string_indices:
-                if self.mw.list_selection_handler._data_string_has_any_problem(block_idx, real_idx):
-                    preview_edit.addProblemLineHighlight(preview_idx)
+                preview_edit.addProblemLineHighlight(preview_idx)
         
         # Highlight categorized strings if enabled
         if getattr(self.mw.data_store, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:

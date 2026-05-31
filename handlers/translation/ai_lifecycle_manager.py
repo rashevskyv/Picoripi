@@ -85,6 +85,7 @@ class AILifecycleManager(BaseTranslationHandler):
 
         self.thread.started.connect(self.worker.run)
         self.worker.step_updated.connect(self.main_handler.ui_handler.update_ai_operation_step)
+        self.worker.detail_updated.connect(self.main_handler.ui_handler.status_dialog.set_detail_text)
         self.worker.finished.connect(self.thread.quit)
         self.thread.finished.connect(self._on_thread_finished)
 

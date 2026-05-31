@@ -1,6 +1,6 @@
-# Picoripi v0.2.131
+# Picoripi v0.2.132
 
-The "Picoripi" (v0.2.131) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.132) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -8,6 +8,7 @@ The "Picoripi" (v0.2.131) is a desktop application built with **Python** and **P
 - Create, load, and save `.uiproj` projects that encapsulate all files and settings for a translation effort.
 - Organize strings into **virtual folders (categories)** for logical grouping of translated texts.
 - **Visual Status Tracking**: Unsaved changes propagate via clear asterisk (*) indicators up the project tree. Virtual folders display their own specialized error counts and custom cloud icons for easy identification.
+- **Progress Shading (Progress Visualisation)**: Tree widget file plates dynamically render a smooth, semi-transparent green progress bar (`QColor(46, 139, 87, 25)`) left-to-right beneath the file name proportional to the file translation completion rate.
 - **Robust Tree Interaction**: Support for **inline renaming** of both blocks and virtual folders, with advanced data role handling to prevent UI metadata from interfering with raw names.
 - **Transparent Archive Support (.arc, .rarc, .ark)**: Fully native, in-memory archive management. Automatically parses, edits, and packs RARC and U8 archive containers (including Yaz0 compressed archives) directly in RAM. Zero temporary folder creation and no external executable dependencies, keeping files completely virtualized until final save.
 - **Archive Block Extensions**: Archive blocks automatically display their original file extensions (e.g. `.bmg`) in the project tree. Inline renaming dynamically strips the extension for clean editing and restores it afterwards.
@@ -18,6 +19,7 @@ The "Picoripi" (v0.2.131) is a desktop application built with **Python** and **P
 ### Advanced Text Editing
 - Specialized multi-line editor (`LineNumberedTextEdit`) that calculates **pixel-perfect width** of every character based on game-specific fonts.
 - Visual feedback (red and yellow markers) for text that exceeds the game's displayable width limit.
+- **Soft Shading for Translated Lines**: Renders a delicate, pastel-green background shade (`QColor(46, 139, 87, 40)`) under line numbers inside translation editors and preview panels for all successfully translated dialogue lines, enabling rapid orientation while scrolling long blocks.
 - Syntax highlighting for game control codes and tags (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
 - Convenient insertion of control codes (button icons) through a visual interface and context menus.
 - **Dynamic Guidelines**: Dynamic vertical line guidelines (ticks) rendered individually for each visible line inside the translation inputs. Proportional pixel position is computed dynamically based on the game's actual font mapping widths ($text\_w \times \frac{limit\_px}{width\_px}$), highlighting in red upon width limit violations, providing an accurate, lag-free visual estimation of the remaining space.
@@ -28,6 +30,7 @@ The "Picoripi" (v0.2.131) is a desktop application built with **Python** and **P
 - Game-specific logic handled by a robust plugin system in the `plugins/` directory.
 - Each plugin defines its own rules for text parsing, tag handling, font metrics, and problem analysis.
 - Custom font maps (`font_map.json`) for pixel-perfect character width calculation.
+- **Standardized Script Guidelines**: Fully supports a standardized script formatting guideline (`[Chapter: ...]`, `{Action: ...}`, `SPEAKER: dialogue`) built directly into `BaseGameRules.parse_walkthrough_transcript()` to dynamically weave context timelines with backward compatibility for classic plain scripts.
 - **Fonts Directory Path**: Ability to specify a custom local directory path (`fonts_dir_path`) under the **Plugin -> File Paths** tab. Fonts inside this folder (both `.json` and `.bfn` files) are dynamically loaded and merged with the active plugin's defaults.
 - **Background Archive Extractor**: Automatically scans game archives (`.arc`, `.rarc`, `.u8`) inside the user-specified Fonts Directory. Unpacks these containers in memory and dynamically registers their nested fonts under `{archive}/{font_name}` for real-time width calculation and text layout rendering.
 - **Dynamic Override & Reloading**: Custom fonts elegantly override defaults with the same filename. Modifying this path immediately refreshes the font list in settings without requiring an application restart.
@@ -36,8 +39,10 @@ The "Picoripi" (v0.2.131) is a desktop application built with **Python** and **P
 ### AI-Assisted Translation
 - Integration with **OpenAI**, **Google Gemini**, and **DeepL** directly in the interface.
 - Built-in **AI Chat** window for interacting with AI within the development environment.
+- **Unified AI Translation Base & Dynamic Glossary**: Dynamically extracts and injects only relevant glossary terms matching the active translation segment (`glossary_manager.get_relevant_terms(text)`) across all translation modes, ensuring 100% glossary priority without polluting the system prompt.
+- **Dialogue-Aware Surrounding Context**: The prompt composer automatically gathers up to 3 preceding and 3 succeeding dialogue lines in their best translated (or original) state, transmitting a rich surrounding dialogue context to the LLM to preserve tone, continuity, and formal/informal address tags.
 - Automatic batch translation of glossary terms or specific phrases while preserving game context.
-- **Translation Variations**: Generate creative alternative translations for overly long sentences.
+- **Translation Variations**: Generate creative alternative translations for overly long sentences, now fully enriched with dynamic glossary and surrounding context.
 - Configurable AI prompts for fine-tuning translation quality.
 
 ### Glossary Management

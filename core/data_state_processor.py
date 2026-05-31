@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QProgressDialog
 from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_warning, log_error
 
@@ -52,7 +52,28 @@ class DataStateProcessor:
         num_strings = len(self.mw.data_store.data[block_idx])
         return [self.get_current_string_text(block_idx, i)[0] for i in range(num_strings)]
 
-    def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT") -> bool:
+    def is_string_translated(self, block_idx: int, string_idx: int) -> bool:
+        """
+        Checks whether a string has a valid translation.
+        A string is considered translated if its current edited or file translation 
+        is non-empty and differs from the original source text.
+        """
+        if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
+            return False
+        
+        block_original = self.mw.data_store.data[block_idx]
+        if not isinstance(block_original, list) or not (0 <= string_idx < len(block_original)):
+            return False
+            
+        original_text = str(block_original[string_idx])
+        current_text, source = self.get_current_string_text(block_idx, string_idx)
+        
+        if not current_text or not current_text.strip():
+            return False
+            
+        return current_text.strip() != original_text.strip()
+
+    def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT", skip_ui_refresh: bool = False) -> bool:
         edit_key = (block_idx, string_idx)
         
         # Get old text for undo
@@ -71,6 +92,33 @@ class DataStateProcessor:
                 del self.mw.data_store.edited_data[edit_key]
         else:
             self.mw.data_store.edited_data[edit_key] = new_text
+
+        # Update translation metadata in .uiproj Block objects
+        if original_text is not None and new_text and new_text.strip() != original_text.strip():
+            try:
+                if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                    proj_b_idx = getattr(self.mw, 'block_to_project_file_map', {}).get(block_idx, block_idx)
+                    if 0 <= proj_b_idx < len(self.mw.project_manager.project.blocks):
+                        block = self.mw.project_manager.project.blocks[proj_b_idx]
+                        if not isinstance(block.metadata, dict):
+                            block.metadata = {}
+                        if "translation_status" not in block.metadata:
+                            block.metadata["translation_status"] = {}
+                        
+                        import datetime
+                        now_str = datetime.datetime.now().isoformat()
+                        
+                        model_name = "User Edit"
+                        if action_type == "TRANSLATE" and hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                            model_name = getattr(self.mw.translation_handler.ai_lifecycle_manager, '_active_model_name', 'AI Model')
+                            
+                        block.metadata["translation_status"][str(string_idx)] = {
+                            "ai_model": model_name,
+                            "timestamp": now_str,
+                            "approved": action_type == "USER_APPROVED"
+                        }
+            except Exception as e:
+                log_debug(f"DSP: Failed to update translation metadata in Block: {e}")
 
         # Update unsaved block indices for the indicator (asterisk)
         if edit_key in self.mw.data_store.edited_data:
@@ -92,7 +140,7 @@ class DataStateProcessor:
             log_debug(f"DSP.update_edited_data: Unsaved changes status changed to {self.mw.data_store.unsaved_changes}")
         
         # Explicitly trigger tree item refresh to show/hide asterisk
-        if hasattr(self.mw, 'ui_updater'):
+        if not skip_ui_refresh and hasattr(self.mw, 'ui_updater'):
             self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
 
         return unsaved_status_actually_changed
@@ -105,23 +153,44 @@ class DataStateProcessor:
         if has_undo:
             self.mw.undo_manager.begin_group()
             
+        show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater')
+        progress = None
+        if show_progress:
+            from PyQt5.QtCore import Qt
+            progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, len(string_indices), self.mw)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(500)
+            progress.setValue(0)
+
         try:
-            for s_idx in string_indices:
+            for i, s_idx in enumerate(string_indices):
+                if progress and progress.wasCanceled():
+                    break
+                
                 # We specifically use self.mw.data_store.data here because "Original" refers to the source text (left panel)
                 original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data_store.data, "original_source_data")
                 
                 if original_text is not None:
                     # Recording this as a REVERT action
-                    self.update_edited_data(block_idx, s_idx, original_text, action_type="REVERT")
+                    self.update_edited_data(block_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
+                
+                if progress:
+                    progress.setValue(i + 1)
+                    from PyQt5.QtWidgets import QApplication
+                    QApplication.processEvents()
         finally:
+            if progress:
+                progress.setValue(len(string_indices))
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT")
+            
+            # Explicitly refresh the tree widget once at the end
+            if hasattr(self.mw, 'ui_updater'):
+                self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
             
         if hasattr(self.mw, 'ui_updater'):
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit and self.mw.current_game_rules:
-                from PyQt5.QtGui import QTextCursor
-                
                 old_scrollbar_value = preview_edit.verticalScrollBar().value()
                 
                 # Prevent triggering events during the text updates
@@ -136,29 +205,29 @@ class DataStateProcessor:
                         else:
                             target_indices = []
                     
-                    preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
-                    cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                    # Generate all preview lines (this is very fast)
+                    preview_lines = []
+                    for real_idx in target_indices:
+                        if 0 <= real_idx < len(self.mw.data_store.data[block_idx]):
+                            text_for_preview_raw, _ = self.get_current_string_text(block_idx, real_idx)
+                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                            preview_lines.append(preview_line_text)
+
+                    preview_full_text = "\n".join(preview_lines)
                     
-                    for s_idx in string_indices:
-                        if s_idx in target_indices:
-                            preview_idx = target_indices.index(s_idx)
-                            if 0 <= preview_idx < preview_edit.document().blockCount():
-                                text_for_preview_raw, _ = self.get_current_string_text(block_idx, s_idx)
-                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                                
-                                block = preview_edit.document().findBlockByNumber(preview_idx)
-                                if block.isValid() and block.text() != preview_line_text:
-                                    cursor = QTextCursor(block)
-                                    cursor.setPosition(block.position())
-                                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
-                                    cursor.insertText(preview_line_text)
-                                    
-                                    # Update local cache
-                                    if preview_updater and hasattr(preview_updater, '_preview_cache'):
-                                        if cache_key in preview_updater._preview_cache:
-                                            cache = preview_updater._preview_cache[cache_key]
-                                            if 0 <= preview_idx < len(cache['lines']):
-                                                cache['lines'][preview_idx] = preview_line_text
+                    # Update preview editor instantly
+                    if preview_edit.toPlainText() != preview_full_text:
+                        preview_edit.setPlainText(preview_full_text)
+                    
+                    # Update local cache to match the new text
+                    preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
+                    if preview_updater and hasattr(preview_updater, '_preview_cache'):
+                        cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                        preview_updater._preview_cache[cache_key] = {
+                            'lines': preview_lines,
+                            'next_index': len(target_indices),
+                            'target_indices': target_indices
+                        }
                     
                     # Refresh highlights
                     if hasattr(preview_edit, 'highlightManager'):
@@ -171,6 +240,7 @@ class DataStateProcessor:
                         if 0 <= preview_idx_to_select < preview_edit.document().blockCount():
                             preview_edit.set_selected_lines([preview_idx_to_select])
                     
+                    # Restore scrollbar position perfectly
                     preview_edit.verticalScrollBar().setValue(old_scrollbar_value)
                     if hasattr(preview_edit, 'lineNumberArea'):
                         preview_edit.lineNumberArea.update()
@@ -210,15 +280,42 @@ class DataStateProcessor:
         if has_undo:
             self.mw.undo_manager.begin_group()
             
+        total_strings = 0
+        for b_idx in block_indices:
+            if 0 <= b_idx < len(self.mw.data_store.data):
+                total_strings += len(self.mw.data_store.data[b_idx])
+                
+        show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
+        progress = None
+        if show_progress:
+            from PyQt5.QtCore import Qt
+            progress = QProgressDialog("Reverting blocks to original...", "Cancel", 0, total_strings, self.mw)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(500)
+            progress.setValue(0)
+
+        processed = 0
         try:
             for b_idx in block_indices:
+                if progress and progress.wasCanceled():
+                    break
                 if 0 <= b_idx < len(self.mw.data_store.data):
                     num_strings = len(self.mw.data_store.data[b_idx])
                     for s_idx in range(num_strings):
+                        if progress and progress.wasCanceled():
+                            break
                         original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
                         if original_text is not None:
-                            self.update_edited_data(b_idx, s_idx, original_text, action_type="REVERT")
+                            self.update_edited_data(b_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
+                        
+                        processed += 1
+                        if progress:
+                            progress.setValue(processed)
+                            from PyQt5.QtWidgets import QApplication
+                            QApplication.processEvents()
         finally:
+            if progress:
+                progress.setValue(total_strings)
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT_BLOCKS")
             
@@ -226,9 +323,9 @@ class DataStateProcessor:
             if self.mw.data_store.current_block_idx in block_indices:
                 self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
                 self.mw.ui_updater.update_text_views()
-            else:
-                for b_idx in block_indices:
-                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+            
+            for b_idx in block_indices:
+                self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
 
 
     def save_current_edits(self, ask_confirmation: bool = True) -> bool:
@@ -566,6 +663,10 @@ class DataStateProcessor:
                     self.mw.data_store.edited_file_data = output_data_list
 
                     if ask_confirmation: QMessageBox.information(self.mw, "Project Saved", "All project translation files saved successfully.")
+                    
+                    if hasattr(self.mw, 'issue_scan_handler'):
+                        self.mw.issue_scan_handler._save_issues_cache()
+
                     return True
                 else: 
                     # Try to restore keys on failure
@@ -619,6 +720,10 @@ class DataStateProcessor:
                     self.mw.data_store.edited_file_data = reloaded_edited_data
     
                     if ask_confirmation: QMessageBox.information(self.mw, "Saved", f"Changes saved to\n'{Path(self.mw.data_store.edited_json_path).name}'.")
+                    
+                    if hasattr(self.mw, 'issue_scan_handler'):
+                        self.mw.issue_scan_handler._save_issues_cache()
+
                     return True
                 else: return False
         except Exception as e:

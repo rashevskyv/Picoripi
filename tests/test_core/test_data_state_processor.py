@@ -207,3 +207,69 @@ def test_revert_edited_file_to_original_single_file(mock_save, mock_info, mock_q
     assert mock_mw.edited_data == {}
     mock_save.assert_called_once()
     mock_info.assert_called_once()
+
+
+@patch("core.data_state_processor.QMessageBox.information")
+@patch("core.data_state_processor.save_json_file")
+def test_save_current_edits_triggers_issue_cache_save(mock_save, mock_info, dsp, mock_mw):
+    mock_mw.unsaved_changes = True
+    mock_mw.edited_data = {(0, 0): "edited_0_0"}
+    mock_save.return_value = True
+    
+    mock_mw.issue_scan_handler = MagicMock()
+    
+    result = dsp.save_current_edits(ask_confirmation=False)
+    
+    assert result is True
+    mock_mw.issue_scan_handler._save_issues_cache.assert_called_once()
+
+
+@patch("core.data_state_processor.QProgressDialog")
+def test_revert_strings_to_original_with_progress_dialog(mock_dialog, dsp, mock_mw):
+    mock_dialog.return_value.wasCanceled.return_value = False
+    
+    # Setup many string indices (> 20)
+    mock_mw.data_store.data = [["original"] * 25]
+    mock_mw.edited_data = {(0, idx): f"changed_{idx}" for idx in range(25)}
+    string_indices = list(range(25))
+    
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.reset_mock()
+    
+    dsp.revert_strings_to_original(0, string_indices)
+    
+    # Progress dialog should be created and updated
+    mock_dialog.assert_called_once()
+    mock_dialog_inst = mock_dialog.return_value
+    mock_dialog_inst.setValue.assert_called()
+    
+    # Check that update_block_item_text_with_problem_count was called only ONCE in the end (not 25 times!)
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(0)
+    
+    # Data should be reverted
+    assert mock_mw.edited_data == {}
+
+
+@patch("core.data_state_processor.QProgressDialog")
+def test_revert_blocks_to_original_with_progress_dialog(mock_dialog, dsp, mock_mw):
+    mock_dialog.return_value.wasCanceled.return_value = False
+    
+    # Setup data to have a large total string count (> 20)
+    mock_mw.data_store.data = [["s"] * 15, ["s"] * 10]
+    mock_mw.edited_data = {(0, 0): "changed0", (1, 0): "changed1"}
+    
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.reset_mock()
+    
+    dsp.revert_blocks_to_original([0, 1])
+    
+    # Progress dialog should be created and updated
+    mock_dialog.assert_called_once()
+    
+    # update_block_item_text_with_problem_count should be called once for each block
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_any_call(0)
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_any_call(1)
+    
+    # Data should be reverted
+    assert (0, 0) not in mock_mw.edited_data
+    assert (1, 0) not in mock_mw.edited_data
+
+

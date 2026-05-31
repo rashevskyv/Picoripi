@@ -586,7 +586,12 @@ class TranslationHandler(BaseHandler):
         if task_type == 'translate_block_chunked' and block_idx is not None:
             if not context.get('is_resume', False):
                 self.reset_translation_session()
-                self.translation_progress[block_idx] = {'completed_chunks': set(), 'total_chunks': 0}
+                self.translation_progress[block_idx] = {
+                    'completed_chunks': set(),
+                    'total_chunks': 0,
+                    'source_items': context.get('source_items', []),
+                    'temp_id_map': context.get('temp_id_map', {})
+                }
             
             context['chunks_to_skip'] = self.translation_progress.get(block_idx, {}).get('completed_chunks', set())
 
@@ -689,13 +694,17 @@ class TranslationHandler(BaseHandler):
 
                 modified_blocks.add(real_block_idx)
                 final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
-                self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE")
+                self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
             
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("TRANSLATE")
             
             if block_idx in self.translation_progress:
                 self.translation_progress[block_idx]['completed_chunks'].add(chunk_index)
+
+            # Refresh tree indicators for all modified blocks once
+            for m_block in modified_blocks:
+                self.ui_updater.update_block_item_text_with_problem_count(m_block)
 
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
             
@@ -951,6 +960,65 @@ class TranslationHandler(BaseHandler):
         data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
         if not isinstance(data_source, list) or not data_source:
             QMessageBox.information(self.mw, "AI Translation", "No data available to translate.")
+            return
+
+        target_block_idx = 999999
+        is_resume = False
+        progress_entry = self.translation_progress.get(target_block_idx)
+        if progress_entry and progress_entry.get('completed_chunks') and progress_entry.get('source_items'):
+            completed = len(progress_entry['completed_chunks'])
+            total = progress_entry.get('total_chunks', 0)
+            if total > 0 and completed < total:
+                msg = f"An interrupted chronological translation session was found ({completed}/{total} chunks completed).\n\nWould you like to resume it?"
+                choice = QMessageBox.question(
+                    self.mw, 
+                    "Resume Chronological Translation", 
+                    msg, 
+                    QMessageBox.Yes | QMessageBox.No, 
+                    QMessageBox.Yes
+                )
+                if choice == QMessageBox.Yes:
+                    is_resume = True
+                else:
+                    self.translation_progress.pop(target_block_idx, None)
+                    self.pre_translation_state.pop(target_block_idx, None)
+
+        if is_resume:
+            source_items = progress_entry.get('source_items', [])
+            temp_id_map = progress_entry.get('temp_id_map', {})
+            
+            operation_title = "Resuming AI Translation (All Blocks Chronological)"
+            self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
+            
+            provider = self.ai_lifecycle_manager._prepare_provider()
+            if not provider:
+                self.ui_handler.finish_ai_operation()
+                return
+
+            base_timeout = self._resolve_base_timeout(provider)
+            block_timeout = base_timeout * 10
+
+            task_details = {
+                'type': 'translate_block_chunked',
+                'provider': provider,
+                'source_items': source_items,
+                'attempt': 1,
+                'max_retries': 4,
+                'block_idx': target_block_idx,
+                'temp_id_map': temp_id_map,
+                'mode_description': "all blocks chronologically",
+                'provider_settings_override': {'timeout': block_timeout},
+                'timeout_seconds': block_timeout,
+                'is_resume': True,
+                'session_reset_attempted': progress_entry.get('session_reset_attempted', False)
+            }
+            if progress_entry.get('custom_user_header'):
+                task_details['custom_user_header'] = progress_entry.get('custom_user_header')
+                task_details['custom_user_label'] = progress_entry.get('custom_user_label')
+            if progress_entry.get('system_prompt_override'):
+                task_details['system_prompt_override'] = progress_entry.get('system_prompt_override')
+                
+            self._initiate_batch_translation(task_details)
             return
 
         self.start_new_session = True

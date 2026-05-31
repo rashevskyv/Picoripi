@@ -75,10 +75,20 @@ class AIStatusDialog(QDialog):
         main_layout.addLayout(animation_layout)
         main_layout.addStretch(1)
 
+        self.detail_label = QLabel("", self)
+        detail_font = QFont(self.title_label.font())
+        detail_font.setPointSize(max(detail_font.pointSize() - 3, 8))
+        detail_font.setItalic(True)
+        self.detail_label.setFont(detail_font)
+        self.detail_label.setAlignment(Qt.AlignCenter)
+        self.detail_label.setWordWrap(True)
+        self.detail_label.setVisible(False)
+        main_layout.addWidget(self.detail_label)
+
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setFormat('%p%')
+        self.progress_bar.setFormat('%p% (%v/%m chunks)')
         self.progress_bar.setVisible(False)
         main_layout.addWidget(self.progress_bar)
 
@@ -99,11 +109,15 @@ class AIStatusDialog(QDialog):
     def setup_progress_bar(self, total_chunks: int, completed_chunks: int = 0):
         self.progress_bar.setRange(0, total_chunks)
         self.progress_bar.setValue(completed_chunks)
-        self.progress_bar.setFormat('%p%')
+        self.progress_bar.setFormat('%p% (%v/%m chunks)')
         self.progress_bar.setVisible(True)
 
     def update_progress(self, completed_chunks: int):
         self.progress_bar.setValue(completed_chunks)
+
+    def set_detail_text(self, text: str):
+        self.detail_label.setText(text)
+        self.detail_label.setVisible(bool(text))
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -116,13 +130,15 @@ class AIStatusDialog(QDialog):
     def start(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
         self.title_label.setText(title)
         self._set_model_name(model_name)
+        self.detail_label.clear()
+        self.detail_label.setVisible(False)
         for i, label in enumerate(self.step_labels):
             self._update_label_style(label, self.STATUS_PENDING, self.steps[i])
 
         if is_chunked:
             self.progress_bar.setRange(0, 100)
             self.progress_bar.setValue(0)
-            self.progress_bar.setFormat('%p%')
+            self.progress_bar.setFormat('%p% (%v/%m chunks)')
             self.progress_bar.setVisible(False)
         else:
             self.progress_bar.setRange(0, 0)
@@ -134,6 +150,8 @@ class AIStatusDialog(QDialog):
 
     def finish(self):
         self._set_model_name(None)
+        self.detail_label.clear()
+        self.detail_label.setVisible(False)
         self.hide()
 
     def _set_model_name(self, model_name: Optional[str]) -> None:

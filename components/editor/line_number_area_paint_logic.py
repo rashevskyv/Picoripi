@@ -133,6 +133,14 @@ class LNETLineNumberAreaPaintLogic:
                         if current_q_block_number_in_editor_doc in edited_sublines:
                             is_unsaved = True
 
+                    # Check if the row has a valid translation to show soft-green background under line number
+                    is_translated = False
+                    if hasattr(main_window_ref, 'data_processor') and main_window_ref.data_processor:
+                        if is_preview and real_idx != -1:
+                            is_translated = main_window_ref.data_processor.is_string_translated(current_block_idx_data_mw, real_idx)
+                        elif is_editor and current_string_idx_data_mw != -1:
+                            is_translated = main_window_ref.data_processor.is_string_translated(current_block_idx_data_mw, current_string_idx_data_mw)
+
                     if is_unsaved and display_number_for_line_area:
                         display_number_for_line_area = f"* {display_number_for_line_area}"
 
@@ -155,6 +163,9 @@ class LNETLineNumberAreaPaintLogic:
                         right_col_w = number_part_width - left_col_w
                         
                         painter.fillRect(0, top, left_col_w, line_height, bg_color_string_zebra)
+                        if is_translated:
+                            green_bg = QColor(46, 139, 87, 40)
+                            painter.fillRect(0, top, left_col_w, line_height, green_bg)
                         painter.fillRect(left_col_w, top, right_col_w, line_height, bg_color_subline_zebra)
                         
                         painter.setPen(number_text_color_const)
@@ -166,6 +177,9 @@ class LNETLineNumberAreaPaintLogic:
                         painter.drawText(QRect(left_col_w, top, right_col_w - 3, line_height), Qt.AlignRight | Qt.AlignVCenter, subline_number_text)
                     else:
                         painter.fillRect(number_part_rect, bg_color_number_area)
+                        if is_translated:
+                            green_bg = QColor(46, 139, 87, 40)
+                            painter.fillRect(number_part_rect, green_bg)
                         painter.setPen(number_text_color_const)
                         painter.drawText(QRect(0, top, number_part_width - 3, line_height), Qt.AlignRight | Qt.AlignVCenter, display_number_for_line_area)
 
