@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.135] - 2026-05-31
+
+### Fixed
+- **Progress Calculations Exclude Untranslatable Strings**: Refactored the progress tracking architecture to exclude empty or tag-only original strings from the calculation entirely. Instead of marking them as "translated" (which incorrectly colored empty slots in green), they are now ignored in both numerator and denominator when calculating block progress. `is_string_translated()` correctly returns False for untranslatable rows, preventing incorrect UI highlighting while still allowing fully translated text blocks to reach a 100% progress color fill.
+- **Robust Progress Calculations Unit Tests**: Updated unit tests to verify the `string_needs_translation` and `is_string_translated` logic for empty/tag-only strings inside `tests/test_handlers/test_translation/test_surrounding_context_and_metadata.py`.
+
 ## [0.2.134] - 2026-05-31
 
 ### Fixed

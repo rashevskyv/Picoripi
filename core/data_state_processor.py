@@ -52,12 +52,11 @@ class DataStateProcessor:
         num_strings = len(self.mw.data_store.data[block_idx])
         return [self.get_current_string_text(block_idx, i)[0] for i in range(num_strings)]
 
-    def is_string_translated(self, block_idx: int, string_idx: int) -> bool:
+    def string_needs_translation(self, block_idx: int, string_idx: int) -> bool:
         """
-        Checks whether a string has a valid translation.
-        A string is considered translated if:
-        1. Its original source text is empty or contains only tags/whitespace (doesn't need translation).
-        2. Its current edited translation is non-empty and differs from the original source text.
+        Checks whether a string needs manual translation.
+        A string does not need translation if its original source text is empty 
+        or contains only tags and whitespace.
         """
         if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return False
@@ -67,14 +66,20 @@ class DataStateProcessor:
             return False
             
         original_text = str(block_original[string_idx])
-        
-        # Check if original text needs translation at all
-        # Strip curly and square bracket tags, and whitespace
         import re
         cleaned_original = re.sub(r'\{[^}]*\}|\[[^\]]*\]', '', original_text).strip()
-        if not cleaned_original:
-            return True
+        return bool(cleaned_original)
+
+    def is_string_translated(self, block_idx: int, string_idx: int) -> bool:
+        """
+        Checks whether a string has a valid translation.
+        A string is considered translated if its original text needs translation
+        and its current edited translation is non-empty and differs from the original source text.
+        """
+        if not self.string_needs_translation(block_idx, string_idx):
+            return False
             
+        original_text = str(self.mw.data_store.data[block_idx][string_idx])
         current_text, source = self.get_current_string_text(block_idx, string_idx)
         
         if not current_text or not current_text.strip():
