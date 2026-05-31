@@ -239,6 +239,9 @@ class AIWorker(QObject):
                 for k in range(0, len(scene_less_items), 12):
                     chunks.append(scene_less_items[k:k+12])
 
+                # Save calculated chunks directly inside task_details for reliable sequential parsing in callbacks
+                self.task_details['calculated_chunks'] = chunks
+
                 chunks_to_skip = self.task_details.get('chunks_to_skip', set())
                 self.total_chunks_calculated.emit(len(chunks), len(chunks_to_skip))
                 session_state = self.task_details.get('session_state')
