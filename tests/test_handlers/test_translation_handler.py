@@ -366,4 +366,47 @@ def test_translate_all_blocks_chronologically_resume_no(mock_box, th):
         assert task_details.get('is_resume') is not True
         assert 999999 not in th.translation_progress  # Re-initialized session will not be created because _initiate_batch_translation is mocked
 
+def test_th_handle_chunk_translated_updates_title(th):
+    # Setup context and progress
+    th.translation_progress = {
+        0: {
+            'completed_chunks': set(),
+            'total_chunks': 1,
+            'source_items': [{'id': 0, 'text': 's'}],
+            'temp_id_map': {0: (0, 0)}
+        }
+    }
+    context = {
+        'block_idx': 0,
+        'temp_id_map': {0: (0, 0)},
+        'calculated_chunks': [[{'id': 0, 'text': 's'}]]
+    }
+    chunk_text = json.dumps({
+        'translated_strings': [{'id': 0, 'translation': 'trans'}]
+    })
+    
+    th._handle_chunk_translated(0, chunk_text, context)
+    
+    # Check that update_title was called to show asterisk
+    th.ui_updater.update_title.assert_called_once()
+
+def test_th_handle_preview_translation_success_updates_title(th):
+    context = {
+        'block_idx': 0,
+        'source_items': [{'id': 0, 'text': 's'}],
+        'temp_id_map': {0: (0, 0)}
+    }
+    response = ProviderResponse(
+        text=json.dumps({
+            'translated_strings': [{'id': 0, 'translation': 'trans'}]
+        })
+    )
+    th.ai_lifecycle_manager._clean_model_output.return_value = response.text
+    
+    th._handle_preview_translation_success(response, context)
+    
+    # Check that update_title was called to show asterisk
+    th.ui_updater.update_title.assert_called_once()
+
+
 

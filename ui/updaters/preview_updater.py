@@ -513,6 +513,15 @@ class PreviewUpdater(BaseUIUpdater):
                 
                 edited_widget.setPlainText(edited_text_for_display_converted)
 
+                # Sync subline asterisks immediately after programmatic text update
+                if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+                    if hasattr(self.mw, 'text_operation_handler'):
+                        self.mw.text_operation_handler.sync_subline_asterisks(
+                            self.mw.data_store.current_block_idx, 
+                            self.mw.data_store.current_string_idx, 
+                            edited_text_raw
+                        )
+
                 restored_cursor = edited_widget.textCursor()
                 new_edited_anchor_pos = min(saved_edited_anchor_pos, len(edited_text_for_display_converted))
                 new_edited_cursor_pos = min(saved_edited_cursor_pos, len(edited_text_for_display_converted))

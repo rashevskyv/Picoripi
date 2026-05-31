@@ -755,6 +755,8 @@ class TranslationHandler(BaseHandler):
             for m_block in modified_blocks:
                 self.ui_updater.update_block_item_text_with_problem_count(m_block)
 
+            self.ui_updater.update_title()
+
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
             
             current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
@@ -820,6 +822,7 @@ class TranslationHandler(BaseHandler):
             current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
             self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
             self.ui_updater.update_text_views()
+            self.ui_updater.update_title()
             if hasattr(self.mw, 'app_action_handler'):
                 for m_block in modified_blocks:
                     if m_block != 999999:
