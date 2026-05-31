@@ -55,8 +55,9 @@ class DataStateProcessor:
     def is_string_translated(self, block_idx: int, string_idx: int) -> bool:
         """
         Checks whether a string has a valid translation.
-        A string is considered translated if its current edited or file translation 
-        is non-empty and differs from the original source text.
+        A string is considered translated if:
+        1. Its original source text is empty or contains only tags/whitespace (doesn't need translation).
+        2. Its current edited translation is non-empty and differs from the original source text.
         """
         if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return False
@@ -66,6 +67,14 @@ class DataStateProcessor:
             return False
             
         original_text = str(block_original[string_idx])
+        
+        # Check if original text needs translation at all
+        # Strip curly and square bracket tags, and whitespace
+        import re
+        cleaned_original = re.sub(r'\{[^}]*\}|\[[^\]]*\]', '', original_text).strip()
+        if not cleaned_original:
+            return True
+            
         current_text, source = self.get_current_string_text(block_idx, string_idx)
         
         if not current_text or not current_text.strip():
