@@ -25,6 +25,9 @@ class SettingsDialogUiMixin:
         self.font_size_spinbox = LabeledSpinBox("Application Font Size:", 6, 24, 10, parent=self)
         layout.addRow(self.font_size_spinbox)
         
+        self.tooltip_font_size_spinbox = LabeledSpinBox("Tooltip Font Size:", 6, 32, 11, parent=self)
+        layout.addRow(self.tooltip_font_size_spinbox)
+        
         self.show_spaces_checkbox = QCheckBox("Show special spaces as dots", self)
         layout.addRow(self.show_spaces_checkbox)
         

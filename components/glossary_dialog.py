@@ -110,6 +110,7 @@ class GlossaryDialog(QDialog):
         ] = None,
         ai_variation_callback: Optional[Callable[[GlossaryEntry], None]] = None,
         ai_classify_callback: Optional[Callable[[], None]] = None,
+        global_replace_callback: Optional[Callable[[str, str], None]] = None,
         initial_term: Optional[str] = None,
     ) -> None:
         super().__init__(parent)
@@ -137,6 +138,7 @@ class GlossaryDialog(QDialog):
         self._delete_callback = delete_callback
         self._ai_variation_callback = ai_variation_callback
         self._ai_classify_callback = ai_classify_callback
+        self._global_replace_callback = global_replace_callback
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
         self._is_populating = False
@@ -207,6 +209,13 @@ class GlossaryDialog(QDialog):
         button_box.addButton(self._save_button, QDialogButtonBox.ActionRole)
         if self._update_callback is None:
             self._save_button.setVisible(False)
+
+        self._global_replace_button = QPushButton("Global Replace...", self)
+        self._global_replace_button.setStyleSheet("background-color: #0d9488; color: white; font-weight: bold;")
+        self._global_replace_button.clicked.connect(self._on_global_replace_clicked)
+        button_box.addButton(self._global_replace_button, QDialogButtonBox.ActionRole)
+        if self._update_callback is None or self._global_replace_callback is None:
+            self._global_replace_button.setVisible(False)
             
         self._ai_classify_button = QPushButton("Organize via AI", self)
         self._ai_classify_button.setStyleSheet("background-color: #8b5cf6; color: white; font-weight: bold;")
@@ -249,6 +258,47 @@ class GlossaryDialog(QDialog):
     def _on_ai_classify_clicked(self) -> None:
         if self._ai_classify_callback:
             self._ai_classify_callback()
+
+    def _on_global_replace_clicked(self) -> None:
+        if not self._global_replace_callback:
+            return
+            
+        from PyQt5.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QVBoxLayout
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Global Replace in Glossary")
+        dialog.resize(380, 160)
+        dialog.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        
+        layout = QVBoxLayout(dialog)
+        form = QFormLayout()
+        
+        find_edit = QLineEdit(dialog)
+        find_edit.setPlaceholderText("e.g. goron")
+        form.addRow("Find word/phrase:", find_edit)
+        
+        replace_edit = QLineEdit(dialog)
+        replace_edit.setPlaceholderText("e.g. goron new")
+        form.addRow("Replace with:", replace_edit)
+        
+        layout.addLayout(form)
+        
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=dialog)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+        
+        if dialog.exec_() != QDialog.Accepted:
+            return
+            
+        find_text = find_edit.text().strip()
+        replace_text = replace_edit.text().strip()
+        
+        if not find_text:
+            QMessageBox.warning(self, "Global Replace", "Find word cannot be empty.")
+            return
+            
+        self._global_replace_callback(find_text, replace_text)
 
     def _populate_entries(self, entries: Sequence[GlossaryEntry]) -> None:
         self._is_populating = True

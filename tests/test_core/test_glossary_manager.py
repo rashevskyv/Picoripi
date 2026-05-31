@@ -284,3 +284,41 @@ def test_GlossaryManager_profiled_field(manager, tmp_path):
     manager.refresh_from_disk()
     assert manager.get_entry("Apple").profiled is True
 
+
+def test_preserve_case():
+    from core.glossary_manager import preserve_case
+    assert preserve_case("ГОРОН", "ґорон") == "ҐОРОН"
+    assert preserve_case("Горон", "ґорон") == "Ґорон"
+    assert preserve_case("горон", "ґорон") == "ґорон"
+    assert preserve_case("", "ґорон") == "ґорон"
+    assert preserve_case("Горон", "") == ""
+    assert preserve_case("GoRoN", "ґорон") == "Ґорон"
+
+
+def test_replace_preserve_case():
+    from core.glossary_manager import replace_preserve_case
+    text = "Я зустрів Горона, а також ГОРОН і горонські скелі."
+    replaced = replace_preserve_case(text, "горон", "ґорон")
+    assert replaced == "Я зустрів Ґорона, а також ҐОРОН і ґоронські скелі."
+    
+    assert replace_preserve_case("", "горон", "ґорон") == ""
+    assert replace_preserve_case("тест", "", "ґорон") == "тест"
+
+
+def test_GlossaryManager_global_replace(manager):
+    e1 = GlossaryEntry("Link", "Лінк", "Горонський герой")
+    e2 = GlossaryEntry("Goron Elder", "Старійшина Горонів", "Старійшина")
+    manager._entries = [e1, e2]
+    
+    modified = manager.global_replace("горон", "ґорон")
+    
+    assert len(manager.get_entries()) == 2
+    assert manager.get_entry("Link").notes == "Ґоронський герой"
+    assert manager.get_entry("Goron Elder").translation == "Старійшина Ґоронів"
+    
+    assert len(modified) == 1
+    assert modified[0][0].original == "Goron Elder"
+    assert modified[0][1] == "Старійшина Горонів"
+    assert modified[0][2].translation == "Старійшина Ґоронів"
+
+

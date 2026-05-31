@@ -87,4 +87,7 @@ class LNETTooltipLogic:
                 else:
                     tooltip_lines.append(desc)
         
-        return "<br><br>".join(tooltip_lines) if tooltip_lines else None
+        if tooltip_lines:
+            font_size = getattr(self.editor.window(), 'tooltip_font_size', 11)
+            return f"<div style='font-size: {font_size}px;'>" + "<br><br>".join(tooltip_lines) + "</div>"
+        return None

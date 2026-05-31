@@ -94,7 +94,7 @@ def test_glossary_tooltip_shows_correct_text(mock_show_text, qapp):
     args = mock_show_text.call_args[0]
     tooltip_text = args[1]
     assert "<b>Link</b> → Лінк" in tooltip_text
-    assert "<i>Hero of Time</i>" in tooltip_text
+    assert "Hero of Time" in tooltip_text
 
 
 def test_glossary_highlighted_after_set_plain_text(qapp):

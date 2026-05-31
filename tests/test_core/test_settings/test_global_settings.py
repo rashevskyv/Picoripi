@@ -13,6 +13,7 @@ def mock_mw():
     mw.tree_font_size = 12
     mw.preview_font_size = 12
     mw.editors_font_size = 12
+    mw.tooltip_font_size = 11
     mw.active_game_plugin = "test_plugin"
     mw.show_multiple_spaces_as_dots = True
     mw.space_dot_color_hex = "#123456"
@@ -166,3 +167,21 @@ def test_GlobalSettings_saves_and_loads_translation_config(mock_mw, tmp_path):
     assert mock_mw.translation_config["provider"] == "gemini"
     assert mock_mw.translation_config["providers"]["gemini"]["api_key"] == "test-key-123"
     assert mock_mw.translation_config["providers"]["gemini"]["model"] == "gemini-test-model"
+
+def test_GlobalSettings_saves_and_loads_tooltip_font_size(mock_mw, tmp_path):
+    f = tmp_path / "settings.json"
+    s = GlobalSettings(mock_mw, f)
+    
+    mock_mw.tooltip_font_size = 18
+    s.save({})
+    
+    assert f.exists()
+    saved = json.loads(f.read_text())
+    assert saved["tooltip_font_size"] == 18
+    
+    # Reset and load
+    mock_mw.tooltip_font_size = 11
+    d = {}
+    s.load(d)
+    assert d["tooltip_font_size"] == 18
+    assert mock_mw.tooltip_font_size == 18

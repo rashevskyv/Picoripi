@@ -645,3 +645,89 @@ class GlossaryManager:
         # Pattern: Stem + any trailing Cyrillic characters (optional)
         # We use [а-яА-ЯіїІїЄєґҐ']* to match optional endings
         return rf"{re.escape(stem)}[а-яА-ЯіїІїЄєґҐ']*"
+
+    def global_replace(self, find_word: str, replace_word: str) -> List[Tuple[GlossaryEntry, str, GlossaryEntry]]:
+        """
+        Replaces find_word with replace_word in all entries of the glossary
+        (original, translation, notes), keeping the case.
+        Returns a list of tuples: (old_entry, old_translation, new_entry)
+        for entries where the translation has changed.
+        """
+        if not find_word:
+            return []
+
+        modified_entries: List[Tuple[GlossaryEntry, str, GlossaryEntry]] = []
+        new_entries: List[GlossaryEntry] = []
+
+        for entry in self._entries:
+            has_find = (
+                re.search(re.escape(find_word), entry.original, re.IGNORECASE) is not None
+                or re.search(re.escape(find_word), entry.translation, re.IGNORECASE) is not None
+                or re.search(re.escape(find_word), entry.notes, re.IGNORECASE) is not None
+            )
+
+            if has_find:
+                new_original = replace_preserve_case(entry.original, find_word, replace_word)
+                new_translation = replace_preserve_case(entry.translation, find_word, replace_word)
+                new_notes = replace_preserve_case(entry.notes, find_word, replace_word)
+
+                new_entry = GlossaryEntry(
+                    original=new_original,
+                    translation=new_translation,
+                    notes=new_notes,
+                    section=entry.section,
+                    profiled=entry.profiled
+                )
+
+                new_entries.append(new_entry)
+
+                # Record in session changes
+                if entry.original != new_original:
+                    self._session_changes[entry.original] = None
+                    self._session_changes[new_original] = new_entry
+                else:
+                    self._session_changes[entry.original] = new_entry
+
+                # If translation changed, we track it for project updates
+                if entry.translation != new_translation:
+                    modified_entries.append((entry, entry.translation, new_entry))
+            else:
+                new_entries.append(entry)
+
+        if modified_entries or len(new_entries) != len(self._entries) or any(e1 != e2 for e1, e2 in zip(self._entries, new_entries)):
+            self._entries = new_entries
+            self._occurrence_index = {}
+            self._persist()
+
+        return modified_entries
+
+
+def preserve_case(match_text: str, replacement: str) -> str:
+    """
+    Detects the casing of match_text and returns replacement with the same casing.
+    Supports ALL CAPS, Title Case (Capitalized), and lowercase.
+    """
+    if not match_text or not replacement:
+        return replacement
+    if match_text.isupper():
+        return replacement.upper()
+    if match_text.islower():
+        return replacement.lower()
+    if match_text[0].isupper():
+        return replacement[0].upper() + replacement[1:]
+    return replacement
+
+
+def replace_preserve_case(text: str, find_word: str, replace_word: str) -> str:
+    """
+    Case-insensitive substring replacement that preserves the case of the matched portion.
+    """
+    if not text or not find_word:
+        return text
+    
+    pattern = re.compile(re.escape(find_word), re.IGNORECASE)
+    
+    def repl(match):
+        return preserve_case(match.group(0), replace_word)
+        
+    return pattern.sub(repl, text)

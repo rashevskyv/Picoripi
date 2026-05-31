@@ -55,3 +55,45 @@ def test_AIStatusDialog_start_and_finish(qapp):
     dialog.finish()
     assert dialog.detail_label.isHidden() is True
     assert dialog.detail_label.text() == ""
+
+
+def test_AIStatusDialog_modeless_and_sleep_checkboxes(qapp):
+    dialog = AIStatusDialog()
+    assert dialog.isModal() is False
+    assert dialog.prevent_sleep_checkbox is not None
+    assert dialog.prevent_sleep_checkbox.isChecked() is True
+    assert dialog.sleep_after_checkbox is not None
+    assert dialog.sleep_after_checkbox.isChecked() is False
+
+
+from unittest.mock import patch, ANY
+
+@patch('components.ai_status_dialog.prevent_sleep')
+@patch('components.ai_status_dialog.restore_sleep')
+@patch('components.ai_status_dialog.put_to_sleep')
+def test_AIStatusDialog_sleep_handling(mock_put, mock_restore, mock_prevent, qapp):
+    dialog = AIStatusDialog()
+    
+    # 1. Start with prevent sleep active
+    dialog.prevent_sleep_checkbox.setChecked(True)
+    dialog.start("Test title")
+    mock_prevent.assert_called_once()
+    
+    # 2. Toggle prevent sleep checkbox while visible
+    dialog.prevent_sleep_checkbox.setChecked(False)
+    mock_restore.assert_called_once()
+    
+    dialog.prevent_sleep_checkbox.setChecked(True)
+    assert mock_prevent.call_count == 2
+    
+    # 3. Finish, should call restore_sleep
+    mock_restore.reset_mock()
+    dialog.finish()
+    mock_restore.assert_called_once()
+    
+    # 4. Finish with sleep_after checked
+    dialog.sleep_after_checkbox.setChecked(True)
+    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_timer:
+        dialog.finish()
+        mock_timer.assert_called_once_with(5000, ANY)
+
