@@ -6,6 +6,15 @@ from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
 
 class BlockListUpdater(BaseUIUpdater):
+    def __init__(self, main_window, data_processor):
+        super().__init__(main_window, data_processor)
+        self._block_items_cache = {}  # {block_idx: [QTreeWidgetItem, ...]}
+
+    def _register_item_in_cache(self, item: QTreeWidgetItem):
+        block_idx = item.data(0, Qt.UserRole)
+        if block_idx is not None:
+            self._block_items_cache.setdefault(block_idx, []).append(item)
+
     def _get_block_display_name_with_ext(self, block_idx: int, base_display_name: str) -> str:
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
             pm = self.mw.project_manager
@@ -200,8 +209,8 @@ class BlockListUpdater(BaseUIUpdater):
 
     def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
         display_name_with_issues = base_display_name
-        issue_texts = []
         tooltip_lines = []
+        total_issues = sum(problem_counts.values())
         
         sorted_problem_ids_for_display = sorted(
             problem_counts.keys(),
@@ -211,16 +220,13 @@ class BlockListUpdater(BaseUIUpdater):
         for problem_id in sorted_problem_ids_for_display:
             count_sublines = problem_counts[problem_id]
             if count_sublines > 0:
-                short_name = self.mw.current_game_rules.get_short_problem_name(problem_id)
-                issue_texts.append(f"{count_sublines} {short_name}")
-                
                 prob_def = problem_definitions.get(problem_id, {})
                 full_name = prob_def.get("name", problem_id)
                 desc = prob_def.get("description", "")
                 tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
         
-        if issue_texts:
-            display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
+        if total_issues > 0:
+            display_name_with_issues = f"{base_display_name} ({total_issues})"
             
         item.setText(0, display_name_with_issues)
         
@@ -236,6 +242,7 @@ class BlockListUpdater(BaseUIUpdater):
         block_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts)
         
         item = self.mw.block_list_widget.create_item(display_name_with_ext, block_idx, Qt.UserRole)
+        self._register_item_in_cache(item)
         self._apply_issues_and_tooltip(item, display_name_with_ext, block_problem_counts, problem_definitions)
         
         item.setData(0, Qt.UserRole + 4, display_name_with_ext)
@@ -252,6 +259,7 @@ class BlockListUpdater(BaseUIUpdater):
                     cat_item = QTreeWidgetItem([cat.name])
                     cat_item.setFlags(cat_item.flags() | Qt.ItemIsEditable)
                     cat_item.setData(0, Qt.UserRole, block_idx)
+                    self._register_item_in_cache(cat_item)
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
                     cat_item.setData(0, Qt.UserRole + 4, cat.name)
                     cat_item.setData(0, Qt.EditRole, cat.name)
@@ -354,6 +362,7 @@ class BlockListUpdater(BaseUIUpdater):
         
         if block_idx_for_icon is not None:
             folder_item.setData(0, Qt.UserRole, block_idx_for_icon) # For indicator strips
+            self._register_item_in_cache(folder_item)
             
         parent_item.addChild(folder_item)
         
@@ -411,6 +420,7 @@ class BlockListUpdater(BaseUIUpdater):
         
         try:
             self.mw.block_list_widget.clear()
+            self._block_items_cache.clear()
             if not self.mw.data_store.data: 
                 return
             
@@ -515,14 +525,15 @@ class BlockListUpdater(BaseUIUpdater):
         if not hasattr(self.mw, 'block_list_widget'):
             return
         
-        # Find ALL tree items representing this block (could be multiple if categories are listed as sub-items)
-        items_to_update = []
-        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-        while iterator.value():
-            tree_item = iterator.value()
-            if tree_item.data(0, Qt.UserRole) == block_idx:
-                items_to_update.append(tree_item)
-            iterator += 1
+        items_to_update = self._block_items_cache.get(block_idx, [])
+        if not items_to_update:
+            # Fallback for unit tests where items are added manually without populate_blocks
+            iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+            while iterator.value():
+                tree_item = iterator.value()
+                if tree_item.data(0, Qt.UserRole) == block_idx:
+                    items_to_update.append(tree_item)
+                iterator += 1
 
         if not items_to_update: return
 
@@ -540,26 +551,7 @@ class BlockListUpdater(BaseUIUpdater):
                     base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
                     
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name)
-                
-                display_name_with_issues = base_display_name
-                issue_texts = []
-
-                sorted_problem_ids_for_display = sorted(
-                    block_problem_counts.keys(),
-                    key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)
-                )
-
-                for problem_id in sorted_problem_ids_for_display:
-                    count_sublines = block_problem_counts[problem_id]
-                    if count_sublines > 0:
-                        short_name = self.mw.current_game_rules.get_short_problem_name(problem_id)
-                        issue_texts.append(f"{count_sublines} {short_name}")
-
-                if issue_texts:
-                    display_name_with_issues = f"{base_display_name} ({', '.join(issue_texts)})"
-                
-                if item.text(0) != display_name_with_issues:
-                    item.setText(0, display_name_with_issues)
+                self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         finally:
             self.mw.block_list_widget.blockSignals(False)
             
@@ -584,6 +576,7 @@ class BlockListUpdater(BaseUIUpdater):
                 
                 if item.text(0) != base_display_name: 
                     item.setText(0, base_display_name) 
+                item.setToolTip(0, "") 
             iterator += 1
 
         if hasattr(self.mw, 'block_list_widget'):

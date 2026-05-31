@@ -21,6 +21,7 @@ def test_save_current_edits_native_packing():
     
     mw.data_store.json_path = "original.json"
     mw.data_store.edited_json_path = "edited.json"
+    mw.issue_scan_handler = MagicMock()
     
     # Enable project mode mocks
     mw.project_manager = MagicMock()
@@ -96,3 +97,6 @@ def test_save_current_edits_native_packing():
          # Verify packed bytes were written to the correct absolute destination archive path
          mock_path.assert_any_call("C:/Temp/project/translation/bmgres.arc")
          mock_path_instance.write_bytes.assert_called_once_with(b"PACKED_ARC_BYTES")
+         
+         # Verify issues cache saving was triggered
+         mw.issue_scan_handler._save_issues_cache.assert_called_once()

@@ -186,6 +186,40 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
         # 1. Calculate Problem Colors Early
         problem_indicator_colors_to_draw = []
+
+        # Progress bar fill (Progress Visualisation)
+        percentage = 0.0
+        if main_window and hasattr(main_window, 'data_processor') and main_window.data_processor:
+            try:
+                pm = getattr(main_window, 'project_manager', None)
+                project = pm.project if pm else None
+                if category_name and project and block_idx_data is not None:
+                    block_map = getattr(main_window, 'block_to_project_file_map', {})
+                    proj_b_idx = block_map.get(block_idx_data, block_idx_data)
+                    if 0 <= proj_b_idx < len(project.blocks):
+                        block = project.blocks[proj_b_idx]
+                        category = next((c for c in block.categories if c.name == category_name), None)
+                        if category and category.line_indices:
+                            translated = sum(1 for l_idx in category.line_indices if main_window.data_processor.is_string_translated(block_idx_data, l_idx))
+                            percentage = translated / len(category.line_indices)
+                elif block_idx_data is not None and not category_name:
+                    ds = getattr(main_window, 'data_store', None)
+                    if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
+                        block_data = ds.data[block_idx_data]
+                        if isinstance(block_data, list) and block_data:
+                            translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
+                            percentage = translated / len(block_data)
+            except Exception as e:
+                log_debug(f"CustomListItemDelegate: Error calculating progress percentage: {e}")
+
+        if percentage > 0.0:
+            x_start = item_rect.left() + current_number_area_width
+            fill_w = int((item_rect.width() - current_number_area_width) * percentage)
+            if fill_w > 0:
+                progress_rect = QRect(x_start, item_rect.top(), fill_w, item_rect.height())
+                # Soft pastel-green background with 25 alpha (SeaGreen color)
+                progress_color = QColor(46, 139, 87, 25)
+                painter.fillRect(progress_rect, progress_color)
         if problem_definitions and block_problem_counts:
             sorted_block_problem_ids = sorted(
                 block_problem_counts.keys(),

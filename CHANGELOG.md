@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.132] - 2026-05-31
+
+### Added
+- **Unified AI Translation Base**: Unified glossary processing for all AI translation tasks. The AI prompt composer now dynamically extracts and injects only relevant glossary terms matching the translation segment via `glossary_manager.get_relevant_terms(text)` across single string translations, batch block translations, and variations.
+- **Surrounding Dialogue Context**: Integrated rich, surrounding dialogue context. When translating a single string, a selection of strings, or variations, the prompt composer gathers up to 3 preceding and 3 succeeding dialogue rows in their best current translation (or original) state, enabling the LLM to preserve tone, character relationship, and formal address (ty/vy).
+- **Standardized Script Formatting**: Created a comprehensive markdown guideline for game script preparation and successfully upgraded `BaseGameRules.parse_walkthrough_transcript()` to support standardized `[Chapter: ...]`, `{Action: ...}`, and uppercase speaker tag separations with 100% backward compatibility.
+- **Persistent Translation Metadata**: Enhanced the `update_edited_data()` pipeline in `DataStateProcessor` to dynamically track and serialize translation details (AI model, timestamp, approval state) directly into `.uiproj` Block objects without polluting the filesystem.
+- **Progress Visualisation in UI**: Implemented soft pastel-green shading (`QColor(46, 139, 87, 40)`) under line numbers for translated strings in editors and preview, alongside smooth, semi-transparent green progress bars (`QColor(46, 139, 87, 25)`) dynamically rendered left-to-right across tree widget plates in the project tree proportional to file completion rate.
+
+### Fixed
+- **Outdated Glossary Unit Tests**: Updated obsolete prompt composer tests (`test_AIPromptComposer_prepare_glossary_for_prompt_full` and `test_AIPromptComposer_prepare_glossary_for_prompt_updates`) in `tests/test_handlers/test_ai_prompt_composer.py` to match the new unified glossary injection pipeline.
+
 ## [0.2.131] - 2026-05-31
 
 ### Added

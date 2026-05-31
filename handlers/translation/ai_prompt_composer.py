@@ -157,7 +157,98 @@ class AIPromptComposer(BaseTranslationHandler):
                     rel_lines.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
                 context_parts.append("\n".join(rel_lines))
                 
+            # Collect surrounding dialogue context for the batch chunk (Surrounding Translated Context)
+            surrounding_context_lines = []
+            if block_idx is not None and block_idx != -1 and source_items:
+                try:
+                    ds = getattr(self.mw, 'data_store', None)
+                    if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx < len(ds.data):
+                        block_data = ds.data[block_idx]
+                        if isinstance(block_data, list):
+                            N = len(block_data)
+                            item_ids = []
+                            for item in source_items:
+                                if isinstance(item, dict):
+                                    item_ids.append(item.get('id', 0))
+                                else:
+                                    item_ids.append(0)
+                            if item_ids:
+                                first_idx = min(item_ids)
+                                last_idx = max(item_ids)
+                                K = 3
+                                before_indices = list(range(max(0, first_idx - K), first_idx))
+                                after_indices = list(range(last_idx + 1, min(N, last_idx + K + 1)))
+                                
+                                if before_indices:
+                                    surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
+                                    for i in before_indices:
+                                        orig_text = str(block_data[i]).replace('\n', ' ')
+                                        curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
+                                        curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                        if curr_trans_clean and curr_trans_clean != orig_text:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                        else:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                                            
+                                if after_indices:
+                                    surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
+                                    for i in after_indices:
+                                        orig_text = str(block_data[i]).replace('\n', ' ')
+                                        curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
+                                        curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                        if curr_trans_clean and curr_trans_clean != orig_text:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                        else:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                except Exception as e:
+                    log_debug(f"AIPromptComposer: Error fetching batch surrounding context: {e}")
+
+            if surrounding_context_lines:
+                context_parts.append("\n" + "\n".join(surrounding_context_lines))
             scene_context = "\n".join(context_parts)
+
+        # Fallback surrounding context if no MemePalace scene context is built but dialogue boundaries exist
+        if not scene_context and block_idx is not None and block_idx != -1 and source_items:
+            try:
+                ds = getattr(self.mw, 'data_store', None)
+                if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx < len(ds.data):
+                    block_data = ds.data[block_idx]
+                    if isinstance(block_data, list):
+                        N = len(block_data)
+                        item_ids = [item.get('id', 0) if isinstance(item, dict) else 0 for item in source_items]
+                        if item_ids:
+                            first_idx = min(item_ids)
+                            last_idx = max(item_ids)
+                            K = 3
+                            before_indices = list(range(max(0, first_idx - K), first_idx))
+                            after_indices = list(range(last_idx + 1, min(N, last_idx + K + 1)))
+                            surrounding_context_lines = []
+                            
+                            if before_indices:
+                                surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
+                                for i in before_indices:
+                                    orig_text = str(block_data[i]).replace('\n', ' ')
+                                    curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
+                                    curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                    if curr_trans_clean and curr_trans_clean != orig_text:
+                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                    else:
+                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                                        
+                            if after_indices:
+                                surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
+                                for i in after_indices:
+                                    orig_text = str(block_data[i]).replace('\n', ' ')
+                                    curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
+                                    curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                    if curr_trans_clean and curr_trans_clean != orig_text:
+                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                    else:
+                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                            if surrounding_context_lines:
+                                scene_context = "\n".join(surrounding_context_lines)
+            except Exception as e:
+                log_debug(f"AIPromptComposer: Error fetching batch surrounding context fallback: {e}")
 
         # 3. Find relevant glossary terms for the entire chunk and next chunks (Lookahead)
         combined_chunk_text = " ".join(
@@ -293,7 +384,15 @@ class AIPromptComposer(BaseTranslationHandler):
         request_type: str = 'translation',
         current_translation: Optional[str] = None,
     ) -> Tuple[str, str]:
-        combined_system = self._prepare_glossary_for_prompt(system_prompt, session_state)
+        # Fetch relevant glossary terms for this single string or variation
+        glossary_text = ""
+        glossary_manager = self.main_handler._glossary_manager
+        if glossary_manager and source_text:
+            relevant_glossary_entries = glossary_manager.get_relevant_terms(source_text)
+            if relevant_glossary_entries:
+                glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
+
+        combined_system = system_prompt
 
         context_lines: List[str] = []
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
@@ -311,6 +410,37 @@ class AIPromptComposer(BaseTranslationHandler):
             story_context = self._fetch_story_context(block_idx, string_idx, source_text)
             if story_context:
                 context_lines.append(f"Story Context:\n{story_context}")
+
+        # Fetch surrounding dialogue context (Surrounding Translated Context)
+        if block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
+            try:
+                ds = getattr(self.mw, 'data_store', None)
+                if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx < len(ds.data):
+                    block_data = ds.data[block_idx]
+                    if isinstance(block_data, list):
+                        N = len(block_data)
+                        K = 3
+                        start_i = max(0, string_idx - K)
+                        end_i = min(N - 1, string_idx + K)
+                        dialogue_lines = []
+                        for i in range(start_i, end_i + 1):
+                            if i == string_idx:
+                                dialogue_lines.append(f"- [Row #{i}] (Target - Translate this now): \"{source_text.replace(chr(10), ' ')}\"")
+                            else:
+                                orig_text = str(block_data[i]).replace('\n', ' ')
+                                curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
+                                curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                if curr_trans_clean and curr_trans_clean != orig_text:
+                                    dialogue_lines.append(
+                                        f"- [Row #{i}] (Original): \"{orig_text}\"\n"
+                                        f"            (Current Translation): \"{curr_trans_clean}\""
+                                    )
+                                else:
+                                    dialogue_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                        if dialogue_lines:
+                            context_lines.append("Surrounding Dialogue Context:\n" + "\n".join(dialogue_lines))
+            except Exception as e:
+                log_debug(f"AIPromptComposer: Error fetching surrounding dialogue context: {e}")
 
         if request_type == 'variation_list':
             instructions = [
@@ -338,6 +468,9 @@ class AIPromptComposer(BaseTranslationHandler):
             ]
 
         user_sections: List[str] = ['\n'.join(context_lines), '\n'.join(instructions)]
+        if glossary_text:
+            user_sections.append(f"GLOSSARY (use with absolute priority):\n{glossary_text}")
+
         if request_type == 'variation_list' and current_translation:
             user_sections.append('Current translation:')
             user_sections.append(str(current_translation))
@@ -453,54 +586,8 @@ class AIPromptComposer(BaseTranslationHandler):
         session_state: Optional[TranslationSessionState],
         is_batch_translation: bool = False,
     ) -> str:
-        """Prepare the system prompt with the full glossary or just updates."""
-        system_prompt = (system_prompt or "").strip()
-        glossary_manager = self.main_handler._glossary_manager
-        if not glossary_manager:
-            return system_prompt
-
-        # For batch translation, we assume relevant glossary is in the user prompt.
-        if is_batch_translation:
-            return system_prompt
-
-        # Case 1: No session or glossary already sent, but there are updates.
-        if session_state and session_state.glossary_sent:
-            changes = glossary_manager.get_session_changes()
-            if not changes:
-                return system_prompt  # No updates to send
-
-            added_updated = [v for v in changes.values() if v is not None]
-            deleted_keys = [k for k, v in changes.items() if v is None]
-
-            update_sections = []
-            if added_updated:
-                update_sections.append(
-                    "GLOSSARY UPDATES (add or modify these terms):\n"
-                    + self._glossary_entries_to_text(added_updated)
-                )
-            if deleted_keys:
-                deleted_list = ", ".join(f'"{key}"' for key in deleted_keys)
-                update_sections.append(f"GLOSSARY DELETIONS (remove these terms):\n{deleted_list}")
-
-            # Append updates and clear them from the manager
-            if update_sections:
-                system_prompt += "\n\n" + "\n\n".join(update_sections)
-            glossary_manager.clear_session_changes()
-            return system_prompt
-
-        # Case 2: First time sending in a session, or no session. Send full glossary.
-        full_glossary_text = self._glossary_entries_to_text(glossary_manager.get_entries())
-        if not full_glossary_text:
-            return system_prompt  # Nothing to send
-
-        if session_state:
-            session_state.glossary_sent = True
-        glossary_manager.clear_session_changes()  # Clear any pending changes
-
-        return (
-            f"{system_prompt}\n\n"
-            f"GLOSSARY (use with absolute priority):\n{full_glossary_text}"
-        )
+        """Prepare the system prompt. Now returns the system prompt as-is for glossary unification."""
+        return (system_prompt or "").strip()
 
     def _get_mempalace_client(self) -> Optional[MemePalaceClient]:
         """Dynamically get or initialize MemePalaceClient for current project directory."""

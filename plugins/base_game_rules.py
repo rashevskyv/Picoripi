@@ -236,8 +236,9 @@ class BaseGameRules:
                     elif isinstance(data, dict) and "lines" in data:
                         transcript_list = data["lines"]
             else:
-                # Highly advanced text parser for GameFAQ scripts
-                # Supports Act/Chapter detection, speaker blocks, and action descriptions in brackets [...]
+                # Highly advanced text parser for structured and GameFAQ scripts
+                # Supports standardized [Chapter: ...], {Action: ...}, classical SPEAKER: dialogue, 
+                # as well as classic bracketed descriptions and uppercase gutter speakers.
                 with open(file_path, "r", encoding="cp1252", errors="replace") as f:
                     lines = f.readlines()
                 
@@ -255,28 +256,57 @@ class BaseGameRules:
                         last_brackets = ""
                         continue
                     
-                    # 2. Detect Chapter / Act changes to split into Rooms
-                    chapter_match = re.search(r'(Chapter\s+[IVXLCDM\d]+|ACT\s+[A-Z]+|Act\s+[A-Za-z]+)', line)
-                    if chapter_match:
-                        # Clean chapter name to be clean room name
-                        clean_ch = re.sub(r'[^a-zA-Z0-9_\s]', '', line).strip()
+                    # 2. Detect Standard Chapter / Location tags (e.g. [Chapter: Prologue])
+                    chapter_location_match = re.match(r'^\[(Chapter|Location):\s*(.*)\]$', line)
+                    if chapter_location_match:
+                        clean_ch = re.sub(r'[^a-zA-Z0-9_\s]', '', chapter_location_match.group(2)).strip()
                         clean_ch = "_".join(clean_ch.split())
                         if len(clean_ch) > 3:
                             current_chapter = clean_ch
                         last_brackets = "" # Reset micro-scene boundary on new chapter
                         continue
+                    
+                    # 3. Detect Standard Action / Context tags (e.g. {Action: Zelda sighs})
+                    action_match = re.match(r'^\{(Action|Context):\s*(.*)\}$', line)
+                    if action_match:
+                        last_brackets = action_match.group(2).strip()
+                        continue
 
-                    # 3. Detect action descriptions in brackets [...]
+                    # 4. Fallback: Detect classic GameFAQ Chapter / Act changes
+                    chapter_match = re.search(r'(Chapter\s+[IVXLCDM\d]+|ACT\s+[A-Z]+|Act\s+[A-Za-z]+)', line)
+                    if chapter_match:
+                        clean_ch = re.sub(r'[^a-zA-Z0-9_\s]', '', line).strip()
+                        clean_ch = "_".join(clean_ch.split())
+                        if len(clean_ch) > 3:
+                            current_chapter = clean_ch
+                        last_brackets = ""
+                        continue
+
+                    # 5. Fallback: Detect classic action descriptions in brackets [...]
                     if line.startswith("[") and line.endswith("]"):
                         last_brackets = line[1:-1].strip()
                         continue
 
-                    # 4. Detect Speaker (Uppercase words on a separate line, e.g. "MIDNA" or "PRINCESS ZELDA")
+                    # 6. Detect Standard Inline Speaker dialogue (e.g. "ZELDA: I must find Link.")
+                    speaker_dialogue_match = re.match(r'^([A-Z][A-Z\s]+):\s*(.*)$', line)
+                    if speaker_dialogue_match:
+                        last_speaker = speaker_dialogue_match.group(1).strip()
+                        text = speaker_dialogue_match.group(2).strip()
+                        context_note = f"Action: {last_brackets}" if last_brackets else ""
+                        transcript_list.append({
+                            "text": text,
+                            "speaker": last_speaker,
+                            "timestamp": context_note or f"Scene_{idx}",
+                            "room": current_chapter
+                        })
+                        continue
+
+                    # 7. Fallback: Detect Speaker (Uppercase words on a separate line, e.g. "MIDNA")
                     if line.isupper() and len(line) >= 2 and not line.startswith("ACT") and not line.startswith("CHAPTER") and not line.startswith("VERSION"):
                         last_speaker = line
                         continue
 
-                    # 5. Dialogue lines
+                    # 8. Classic Dialogue lines (fallback for flat text)
                     text = line
                     context_note = f"Action: {last_brackets}" if last_brackets else ""
                     

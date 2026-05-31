@@ -231,7 +231,7 @@ def test_th_handle_chunk_translated(th):
     chunk_text = '{"translated_strings": [{"id": 0, "translation": "t"}]}'
     th.ai_lifecycle_manager._trim_trailing_whitespace_from_lines.return_value = "t"
     th._handle_chunk_translated(0, chunk_text, ctx)
-    th.data_processor.update_edited_data.assert_called_with(1, 0, "t", action_type="TRANSLATE")
+    th.data_processor.update_edited_data.assert_called_with(1, 0, "t", action_type="TRANSLATE", skip_ui_refresh=True)
     th.ui_handler.finish_ai_operation.assert_called_once()
     assert 1 not in th.translation_progress
 
@@ -310,4 +310,60 @@ def test_translate_all_blocks_chronologically(th):
         assert task_details['temp_id_map'][0] == (1, 0)
         assert task_details['temp_id_map'][1] == (0, 0)
         assert task_details['temp_id_map'][2] == (0, 1)
+
+
+@patch('handlers.translation_handler.QMessageBox')
+def test_translate_all_blocks_chronologically_resume_yes(mock_box, th):
+    th.mw.data_store.data = [["s1"]]
+    th.translation_progress = {
+        999999: {
+            'completed_chunks': {0, 1},
+            'total_chunks': 5,
+            'source_items': [{'id': 0, 'text': 's'}],
+            'temp_id_map': {0: (0, 0)}
+        }
+    }
+    
+    mock_box.question.return_value = mock_box.Yes
+    provider = MagicMock()
+    th.ai_lifecycle_manager._prepare_provider.return_value = provider
+    
+    with patch.object(th, '_initiate_batch_translation') as mock_init:
+        th.translate_all_blocks_chronologically()
+        
+        mock_init.assert_called_once()
+        task_details = mock_init.call_args[0][0]
+        assert task_details['is_resume'] is True
+        assert task_details['block_idx'] == 999999
+        assert task_details['source_items'] == [{'id': 0, 'text': 's'}]
+        assert task_details['temp_id_map'] == {0: (0, 0)}
+
+
+@patch('handlers.translation_handler.QMessageBox')
+def test_translate_all_blocks_chronologically_resume_no(mock_box, th):
+    th.mw.data_store.data = [["s1"]]
+    th.translation_progress = {
+        999999: {
+            'completed_chunks': {0, 1},
+            'total_chunks': 5,
+            'source_items': [{'id': 0, 'text': 's'}],
+            'temp_id_map': {0: (0, 0)}
+        }
+    }
+    
+    mock_box.question.return_value = mock_box.No
+    provider = MagicMock()
+    th.ai_lifecycle_manager._prepare_provider.return_value = provider
+    th.glossary_handler._get_original_block.return_value = ["s1"]
+    th.glossary_handler._get_original_string.return_value = "s1"
+    
+    with patch.object(th, '_initiate_batch_translation') as mock_init:
+        th.translate_all_blocks_chronologically()
+        
+        mock_init.assert_called_once()
+        task_details = mock_init.call_args[0][0]
+        # Should NOT be resume because user clicked NO (Start Over)
+        assert task_details.get('is_resume') is not True
+        assert 999999 not in th.translation_progress  # Re-initialized session will not be created because _initiate_batch_translation is mocked
+
 

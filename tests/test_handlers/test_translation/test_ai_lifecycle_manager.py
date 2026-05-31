@@ -78,6 +78,11 @@ def test_ailm_run_ai_task(mock_thread, mock_worker, ailm):
     mock_worker_inst.moveToThread.assert_called_with(mock_thread_inst)
     mock_thread_inst.start.assert_called_once()
     
+    # Check that detail_updated connects to set_detail_text
+    mock_worker_inst.detail_updated.connect.assert_called_with(
+        ailm.main_handler.ui_handler.status_dialog.set_detail_text
+    )
+    
     # Chunked task check
     ailm.run_ai_task(mock_provider, {'type': 'translate_block_chunked'})
     # Worker signals connected differently

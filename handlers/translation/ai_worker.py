@@ -16,6 +16,7 @@ class AIWorker(QObject):
     translation_cancelled = pyqtSignal()
     progress_updated = pyqtSignal(int)
     chunk_received = pyqtSignal(dict, str)
+    detail_updated = pyqtSignal(str)
 
     def __init__(self, provider: BaseTranslationProvider, prompt_composer: Optional[AIPromptComposer], task_details: Dict[str, Any], mw: Any = None):
         super().__init__()
@@ -283,6 +284,44 @@ class AIWorker(QObject):
                         messages, session_payload = session_state.prepare_request(user_message)
                     else:
                         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+                    # Determine line and chapter details for UI progress dialog
+                    detail_parts = []
+                    if chunk:
+                        first_item = chunk[0]
+                        if isinstance(first_item, dict):
+                            item_id = first_item.get('id', 0)
+                        else:
+                            item_id = 0
+                            
+                        bmg_id = f"{block_label}_Str_{item_id}"
+                        script_line = None
+                        chapter_num = None
+                        chapter_title = None
+                        
+                        if client:
+                            try:
+                                mapping = client.get_script_mapping(wing_name, bmg_id)
+                                if mapping:
+                                    script_line = mapping.get("script_line")
+                                    chapter_num = mapping.get("chapter_num")
+                                    chapter_title = mapping.get("chapter_title")
+                            except Exception as e:
+                                log_debug(f"AIWorker: Failed to get script mapping: {e}")
+                                
+                        if chapter_title or chapter_num is not None:
+                            ch_str = f"Chapter {chapter_num}" if chapter_num is not None else "Chapter"
+                            if chapter_title:
+                                ch_str += f": {chapter_title}"
+                            detail_parts.append(ch_str)
+                            
+                        file_line_str = f"File: {block_label}.bmg | Line: {item_id}"
+                        if script_line is not None:
+                            file_line_str += f" (Script Line: {script_line})"
+                        detail_parts.append(file_line_str)
+                        
+                    detail_text = " | ".join(detail_parts) if detail_parts else f"File: {block_label}.bmg"
+                    self.detail_updated.emit(detail_text)
 
                     self.progress_updated.emit(i + 1)
                     self.step_updated.emit(1, f"Translating chunk {i + 1}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)

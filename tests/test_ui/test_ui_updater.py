@@ -134,7 +134,8 @@ def test_UIUpdater_update_block_item_text_with_problem_count(updater):
     updater.block_list_updater._get_aggregated_problems_for_block = MagicMock(return_value={"prob1": 2})
     
     updater.update_block_item_text_with_problem_count(0)
-    assert item.text(0) == "Block 0 Base (2 P1)"
+    assert item.text(0) == "Block 0 Base (2)"
+    assert "prob1" in item.toolTip(0) or "2 sublines" in item.toolTip(0)
 
 def test_UIUpdater_synchronize_original_cursor(updater, mock_mw):
     mock_edited_cursor = MagicMock()
