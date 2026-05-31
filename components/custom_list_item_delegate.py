@@ -200,15 +200,23 @@ class CustomListItemDelegate(QStyledItemDelegate):
                         block = project.blocks[proj_b_idx]
                         category = next((c for c in block.categories if c.name == category_name), None)
                         if category and category.line_indices:
-                            translated = sum(1 for l_idx in category.line_indices if main_window.data_processor.is_string_translated(block_idx_data, l_idx))
-                            percentage = translated / len(category.line_indices)
+                            total_needs = sum(1 for l_idx in category.line_indices if main_window.data_processor.string_needs_translation(block_idx_data, l_idx))
+                            if total_needs > 0:
+                                translated = sum(1 for l_idx in category.line_indices if main_window.data_processor.is_string_translated(block_idx_data, l_idx))
+                                percentage = translated / total_needs
+                            else:
+                                percentage = 1.0 # No strings need translation, treat as fully complete
                 elif block_idx_data is not None and not category_name:
                     ds = getattr(main_window, 'data_store', None)
                     if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
                         block_data = ds.data[block_idx_data]
                         if isinstance(block_data, list) and block_data:
-                            translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
-                            percentage = translated / len(block_data)
+                            total_needs = sum(1 for i in range(len(block_data)) if main_window.data_processor.string_needs_translation(block_idx_data, i))
+                            if total_needs > 0:
+                                translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
+                                percentage = translated / total_needs
+                            else:
+                                percentage = 1.0
             except Exception as e:
                 log_debug(f"CustomListItemDelegate: Error calculating progress percentage: {e}")
 
