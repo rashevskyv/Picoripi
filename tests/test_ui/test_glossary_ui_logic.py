@@ -245,3 +245,42 @@ def test_glossary_dialog_profiled_checkbox(qapp):
     dialog.deleteLater()
     QApplication.processEvents()
 
+
+@patch('PyQt5.QtWidgets.QToolTip.showText')
+def test_glossary_tooltip_resets_on_leave_event(mock_show_text, qapp):
+    editor = LineNumberedTextEdit()
+    editor._last_tooltip_state = ("State", 0)
+    editor._current_combined_tooltip = "Tooltip"
+    
+    # Trigger leaveEvent
+    from PyQt5.QtCore import QEvent
+    event = QEvent(QEvent.Leave)
+    editor.leaveEvent(event)
+    
+    assert editor._last_tooltip_state is None
+    assert editor._current_combined_tooltip is None
+
+@patch('PyQt5.QtWidgets.QToolTip.showText')
+@patch('PyQt5.QtWidgets.QToolTip.isVisible', return_value=False)
+def test_glossary_tooltip_reappears_when_hidden_by_timeout(mock_is_visible, mock_show_text, qapp):
+    editor = LineNumberedTextEdit()
+    entry = GlossaryEntry("Link", "Лінк")
+    editor._find_glossary_entry_at = MagicMock(return_value=entry)
+    
+    # Even if _last_tooltip_state matches current_state, it should show again if not visible
+    editor._last_tooltip_state = ("<b>Link</b> → Лінк", 0)
+    editor._current_combined_tooltip = "<b>Link</b> → Лінк"
+    
+    from PyQt5.QtGui import QMouseEvent
+    from PyQt5.QtCore import QEvent
+    
+    mock_cursor = MagicMock()
+    mock_cursor.block().blockNumber.return_value = 0
+    editor.cursorForPosition = MagicMock(return_value=mock_cursor)
+    
+    event = QMouseEvent(QEvent.MouseMove, QPoint(5, 5), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
+    editor.mouseMoveEvent(event)
+    
+    assert mock_show_text.called
+
+

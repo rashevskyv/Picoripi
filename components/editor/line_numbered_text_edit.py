@@ -177,7 +177,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         last_state = getattr(self, '_last_tooltip_state', None)
 
         if tooltip_text:
-            if current_state != last_state:
+            if current_state != last_state or not QToolTip.isVisible():
                 QToolTip.showText(self.mapToGlobal(event.pos()), tooltip_text, self)
                 self._last_tooltip_state = current_state
                 self._current_combined_tooltip = tooltip_text
@@ -373,6 +373,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if getattr(self, '_current_combined_tooltip', None):
             QToolTip.hideText()
             self._current_combined_tooltip = None
+        self._last_tooltip_state = None
         self._hovered_glossary_entry = None
         self._hovered_warning_text = None
         super().leaveEvent(event)
