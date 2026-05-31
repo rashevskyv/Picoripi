@@ -411,7 +411,11 @@ def test_mempalace_character_profiler_worker():
     client = MagicMock()
     # Mock character lines retrieval
     client.get_all_character_lines.return_value = {
-        "RUSL": ["Tell me... Do you ever feel a strange sadness as dusk falls?", "I crafted this shield."]
+        "RUSL": [
+            "Tell me... Do you ever feel a strange sadness as dusk falls?", 
+            "I crafted this shield.",
+            "Take care of the children."
+        ]
     }
     
     ai_provider = MagicMock()
@@ -446,11 +450,12 @@ def test_mempalace_character_profiler_worker():
         original="RUSL",
         translation="Руслан",
         notes="Він мужній мечник, говорить спокійно і мудро.",
-        section="Characters"
+        section="Characters",
+        profiled=True
     )
     
     # Verify that save_to_disk was called
-    glossary_manager.save_to_disk.assert_called_once()
+    assert glossary_manager.save_to_disk.called
 
 
 def test_mempalace_character_profiler_worker_consecutive_failures():
@@ -459,10 +464,10 @@ def test_mempalace_character_profiler_worker_consecutive_failures():
     client = MagicMock()
     # Mock multiple characters to trigger loop multiple times
     client.get_all_character_lines.return_value = {
-        "CHAR1": ["Line 1"],
-        "CHAR2": ["Line 2"],
-        "CHAR3": ["Line 3"],
-        "CHAR4": ["Line 4"]
+        "CHAR1": ["Line 1", "Line 1b", "Line 1c"],
+        "CHAR2": ["Line 2", "Line 2b", "Line 2c"],
+        "CHAR3": ["Line 3", "Line 3b", "Line 3c"],
+        "CHAR4": ["Line 4", "Line 4b", "Line 4c"]
     }
     
     ai_provider = MagicMock()

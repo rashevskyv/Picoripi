@@ -269,7 +269,7 @@ def test_gh_handle_glossary_entry_update(gh):
     gh.glossary_manager.update_entry.return_value = True
     
     gh._handle_glossary_entry_update("old", "new", "nn")
-    gh.glossary_manager.update_entry.assert_called_with("old", "new", "nn")
+    gh.glossary_manager.update_entry.assert_called_with("old", "new", "nn", profiled=None)
     gh._prompt_manager._update_glossary_highlighting.assert_called()
 
 def test_gh_handle_glossary_entry_delete(gh):

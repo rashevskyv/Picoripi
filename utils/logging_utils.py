@@ -179,6 +179,61 @@ def log_warning(message: str, category: str = "general"):
 def log_error(message: str, exc_info=False, category: str = "general"):
     _log_message(logging.ERROR, message, category, exc_info)
 
+def log_ai_traffic(mw, task_type: str, messages: list, response_text: str = None, error: str = None):
+    """
+    Log AI request and response traffic dynamically to both the main debug log
+    (app_debug.txt) and a separate ai_traffic.log file in the workspace root
+    if the 'log_ai_traffic' setting is enabled.
+    """
+    log_enabled = False
+    if mw:
+        # Check standard attribute
+        log_enabled = getattr(mw, 'log_ai_traffic', False)
+        # Fallback to settings if available
+        if not log_enabled and hasattr(mw, 'settings_manager') and mw.settings_manager:
+            log_enabled = mw.settings_manager.get("log_ai_traffic", False)
+            
+    if not log_enabled:
+        return
+
+    import json
+    import datetime
+    import os
+    
+    # 1. Log to app_debug.txt
+    log_msg = f"[AI Traffic] Task: {task_type}\n"
+    log_msg += f"--- MESSAGES SENT ---\n{json.dumps(messages, indent=2, ensure_ascii=False)}\n"
+    if response_text is not None:
+        log_msg += f"--- RESPONSE RECEIVED ---\n{response_text}\n"
+    if error is not None:
+        log_msg += f"--- ERROR ---\n{error}\n"
+    
+    log_info(log_msg, category="ai")
+    
+    # 2. Log to a separate file ai_traffic.log in workspace root
+    try:
+        log_file = os.path.join(os.getcwd(), "ai_traffic.log")
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"==================== {timestamp} ====================\n")
+            f.write(f"Task Type: {task_type}\n")
+            f.write("--- MESSAGES SENT ---\n")
+            f.write(json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
+            if response_text is not None:
+                f.write("--- RESPONSE RECEIVED ---\n")
+                f.write(response_text + "\n")
+            if error is not None:
+                f.write("--- ERROR ---\n")
+                f.write(error + "\n")
+            f.write("="*60 + "\n\n")
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"Failed to write to ai_traffic.log: {e}")
+
 if __name__ == '__main__':
     log_debug("Test generic debug")
     log_info("Test file action", category="file_ops")

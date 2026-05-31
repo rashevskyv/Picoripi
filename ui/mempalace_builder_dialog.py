@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QFileDialog, QProgressBar, QTextEdit, 
     QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView,
-    QCheckBox
+    QCheckBox, QSplitter, QWidget
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, pyqtSlot
@@ -65,6 +65,10 @@ class MemePalaceBuilderDialog(QDialog):
         self.should_sleep_after = False
         self.pipeline_running = False
         self.pipeline_step = 0
+        self.saved_pipeline_running = False
+        self.saved_pipeline_step = 0
+        self.saved_pipeline_wing = ""
+        self.saved_pipeline_script = ""
 
         # Styles & Theme
         self.setStyleSheet("""
@@ -82,9 +86,15 @@ class MemePalaceBuilderDialog(QDialog):
                 padding: 6px;
                 font-size: 13px;
                 background-color: #ffffff;
+                color: #333333;
             }
             QLineEdit:focus {
                 border: 1px solid #0078d7;
+            }
+            QLineEdit:disabled {
+                background-color: #f3f3f3;
+                color: #a19f9d;
+                border: 1px solid #e1dfdd;
             }
             QPushButton {
                 background-color: #0078d7;
@@ -129,6 +139,15 @@ class MemePalaceBuilderDialog(QDialog):
                 color: #d4d4d4;
                 font-family: 'Consolas', 'Courier New', monospace;
                 font-size: 12px;
+            }
+            QSplitter::handle {
+                background-color: #e1dfdd;
+            }
+            QSplitter::handle:vertical {
+                height: 5px;
+            }
+            QSplitter::handle:hover {
+                background-color: #0078d7;
             }
         """)
 
@@ -185,16 +204,53 @@ class MemePalaceBuilderDialog(QDialog):
                     return getattr(self.mw, name)
             self.composer = AIPromptComposer(DummyHandler(self.mw))
 
+    def _save_pipeline_state(self):
+        """Persist current pipeline session variables into global settings."""
+        try:
+            sm = getattr(self.mw, 'settings_manager', None)
+            if sm:
+                sm.set("mempalace_pipeline_running", self.pipeline_running)
+                sm.set("mempalace_pipeline_step", self.pipeline_step)
+                sm.set("mempalace_pipeline_wing", self.wing_edit.text().strip())
+                sm.set("mempalace_pipeline_script", self.file_path_edit.text().strip())
+                sm.save_settings()
+                
+                # Keep local variables in sync
+                self.saved_pipeline_running = self.pipeline_running
+                self.saved_pipeline_step = self.pipeline_step
+                self.saved_pipeline_wing = self.wing_edit.text().strip()
+                self.saved_pipeline_script = self.file_path_edit.text().strip()
+        except Exception as e:
+            log_error(f"Failed to save pipeline state: {e}")
+
+    def _update_pipeline_btn_text(self):
+        """Update Complete Pipeline button label based on saved session state."""
+        has_saved = getattr(self, "saved_pipeline_running", False) and getattr(self, "saved_pipeline_step", 0) > 0
+        if has_saved:
+            step = self.saved_pipeline_step
+            self.pipeline_btn.setText(f"Continue Pipeline (Step {step}/4)")
+            self.pipeline_btn.setToolTip(f"Continue incomplete pipeline session from Step {step} or start a new one.")
+        else:
+            self.pipeline_btn.setText("Start Complete Pipeline")
+            self.pipeline_btn.setToolTip("Sequentially execute all MemePalace steps step-by-step automatically.")
+
     def _setup_ui(self):
+        # Main layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
+
+        # Upper Container QWidget
+        upper_widget = QWidget()
+        upper_layout = QVBoxLayout(upper_widget)
+        upper_layout.setContentsMargins(0, 0, 0, 0)
+        upper_layout.setSpacing(10)
 
         # Title
         title_label = QLabel("MemePalace Context Builder")
         title_label.setFont(QFont("Segoe UI", 16, QFont.Bold))
         title_label.setStyleSheet("color: #0078d7; margin-bottom: 2px;")
-        layout.addWidget(title_label)
+        upper_layout.addWidget(title_label)
 
         desc_label = QLabel(
             "Extract characters and terms from script introduction, map BMG translation strings, "
@@ -202,7 +258,7 @@ class MemePalaceBuilderDialog(QDialog):
         )
         desc_label.setStyleSheet("color: #666666; font-size: 12px; margin-bottom: 5px;")
         desc_label.setWordWrap(True)
-        layout.addWidget(desc_label)
+        upper_layout.addWidget(desc_label)
 
         # Configuration Row
         config_layout = QHBoxLayout()
@@ -215,8 +271,8 @@ class MemePalaceBuilderDialog(QDialog):
         self.file_path_edit.setPlaceholderText("Path to zelda_tp_script.txt...")
         config_layout.addWidget(self.file_path_edit)
 
-        browse_btn = QPushButton("Browse...")
-        browse_btn.setStyleSheet("""
+        self.browse_btn = QPushButton("Browse...")
+        self.browse_btn.setStyleSheet("""
             QPushButton {
                 background-color: #f3f3f3;
                 color: #333333;
@@ -228,9 +284,14 @@ class MemePalaceBuilderDialog(QDialog):
             QPushButton:hover {
                 background-color: #eaeaea;
             }
+            QPushButton:disabled {
+                background-color: #f3f3f3;
+                color: #a19f9d;
+                border: 1px solid #e1dfdd;
+            }
         """)
-        browse_btn.clicked.connect(self._browse_script_file)
-        config_layout.addWidget(browse_btn)
+        self.browse_btn.clicked.connect(self._browse_script_file)
+        config_layout.addWidget(self.browse_btn)
 
         self.wing_edit = QLineEdit("Zelda_TP")
         self.wing_edit.setMaximumWidth(120)
@@ -241,7 +302,7 @@ class MemePalaceBuilderDialog(QDialog):
         config_layout.addWidget(QLabel("Wing:"))
         config_layout.addWidget(self.wing_edit)
 
-        layout.addLayout(config_layout)
+        upper_layout.addLayout(config_layout)
 
         # Character mining row
         char_mine_layout = QHBoxLayout()
@@ -259,6 +320,10 @@ class MemePalaceBuilderDialog(QDialog):
             QPushButton:hover {
                 background-color: #4b2475;
             }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
         """)
         self.ai_analyze_btn.clicked.connect(self._pre_analyze_script_via_ai)
         char_mine_layout.addWidget(self.ai_analyze_btn)
@@ -275,15 +340,19 @@ class MemePalaceBuilderDialog(QDialog):
             QPushButton:hover {
                 background-color: #7c3aed;
             }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
         """)
         self.ai_profile_speech_btn.clicked.connect(self._profile_characters_speech_via_ai)
         char_mine_layout.addWidget(self.ai_profile_speech_btn)
 
         char_mine_layout.addStretch()
-        layout.addLayout(char_mine_layout)
+        upper_layout.addLayout(char_mine_layout)
 
         # Chapters section title
-        layout.addWidget(QLabel("<b>Script Chapters & Bidirectional Mapping:</b>"))
+        upper_layout.addWidget(QLabel("<b>Script Chapters & Bidirectional Mapping:</b>"))
 
         # Table for chapters list
         self.table = QTableWidget()
@@ -294,7 +363,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.ExtendedSelection)
         self.table.setMinimumHeight(150)
-        layout.addWidget(self.table)
+        upper_layout.addWidget(self.table)
 
         # Chapter Action Row
         ch_action_row = QHBoxLayout()
@@ -305,32 +374,66 @@ class MemePalaceBuilderDialog(QDialog):
         ch_action_row.addWidget(self.map_chapters_btn)
 
         self.analyze_chapter_btn = QPushButton("AI Analyze Selected Chapters")
-        self.analyze_chapter_btn.setStyleSheet("background-color: #5c2d91;")
+        self.analyze_chapter_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #5c2d91;
+                color: white;
+                font-weight: bold;
+                border: none;
+                border-radius: 4px;
+                padding: 7px 15px;
+            }
+            QPushButton:hover {
+                background-color: #4b2475;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         self.analyze_chapter_btn.clicked.connect(self._analyze_selected_chapter)
         ch_action_row.addWidget(self.analyze_chapter_btn)
 
         self.analyze_all_chapters_btn = QPushButton("AI Analyze All Chapters")
-        self.analyze_all_chapters_btn.setStyleSheet("background-color: #5c2d91;")
+        self.analyze_all_chapters_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #5c2d91;
+                color: white;
+                font-weight: bold;
+                border: none;
+                border-radius: 4px;
+                padding: 7px 15px;
+            }
+            QPushButton:hover {
+                background-color: #4b2475;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         self.analyze_all_chapters_btn.clicked.connect(self._analyze_all_chapters)
         ch_action_row.addWidget(self.analyze_all_chapters_btn)
         
         ch_action_row.addStretch()
-        layout.addLayout(ch_action_row)
+        upper_layout.addLayout(ch_action_row)
 
         # Sleep options
         sleep_layout = QHBoxLayout()
         self.prevent_sleep_checkbox = QCheckBox("Prevent computer sleep during analysis")
         self.prevent_sleep_checkbox.setToolTip("Keep the computer awake while AI analysis is running.")
         self.prevent_sleep_checkbox.setChecked(True)
+        self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
         
         self.sleep_after_checkbox = QCheckBox("Put computer to sleep when finished")
         self.sleep_after_checkbox.setToolTip("Suspend/Sleep the computer automatically after all tasks complete.")
         self.sleep_after_checkbox.setChecked(False)
+        self.sleep_after_checkbox.toggled.connect(self._handle_sleep_after_toggled)
         
         sleep_layout.addWidget(self.prevent_sleep_checkbox)
         sleep_layout.addWidget(self.sleep_after_checkbox)
         sleep_layout.addStretch()
-        layout.addLayout(sleep_layout)
+        upper_layout.addLayout(sleep_layout)
 
         # Progress Bar
         self.progress_bar = QProgressBar()
@@ -346,14 +449,29 @@ class MemePalaceBuilderDialog(QDialog):
                 background-color: #0078d7;
             }
         """)
-        layout.addWidget(self.progress_bar)
+        upper_layout.addWidget(self.progress_bar)
+
+        # Lower Container QWidget
+        lower_widget = QWidget()
+        lower_layout = QVBoxLayout(lower_widget)
+        lower_layout.setContentsMargins(0, 0, 0, 0)
+        lower_layout.setSpacing(5)
 
         # Log Window
-        layout.addWidget(QLabel("Execution Log:"))
+        lower_layout.addWidget(QLabel("Execution Log:"))
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setMaximumHeight(100)
-        layout.addWidget(self.log_text)
+        self.log_text.setMinimumHeight(60)
+        lower_layout.addWidget(self.log_text)
+
+        # QSplitter
+        self.splitter = QSplitter(Qt.Vertical)
+        self.splitter.addWidget(upper_widget)
+        self.splitter.addWidget(lower_widget)
+        self.splitter.setStretchFactor(0, 4)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([430, 110])
+        layout.addWidget(self.splitter)
 
         # Bottom Buttons
         btn_row = QHBoxLayout()
@@ -371,6 +489,10 @@ class MemePalaceBuilderDialog(QDialog):
             }
             QPushButton:hover {
                 background-color: #800000;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
             }
         """)
         self.clear_btn.clicked.connect(self._clear_database)
@@ -423,15 +545,35 @@ class MemePalaceBuilderDialog(QDialog):
     def _maybe_prevent_sleep(self):
         if self.prevent_sleep_checkbox.isChecked():
             prevent_sleep()
-        self.should_sleep_after = self.sleep_after_checkbox.isChecked()
 
     def _finish_and_maybe_sleep(self):
         restore_sleep()
-        if getattr(self, "should_sleep_after", False) and not getattr(self, "user_cancelled", False):
-            self.append_log("All tasks completed! Suspending system in 5 seconds...")
+        if self.sleep_after_checkbox.isChecked() and not getattr(self, "user_cancelled", False):
+            self.append_log("[System] All tasks completed! Suspending system in 5 seconds...")
             from PyQt5.QtCore import QTimer
             QTimer.singleShot(5000, put_to_sleep)
-        self.should_sleep_after = False
+
+    def _handle_prevent_sleep_toggled(self, checked: bool):
+        # Save settings immediately
+        self.save_builder_settings()
+        
+        # If execution is currently active (worker is running), apply sleep state change immediately!
+        if self.worker and self.worker.isRunning():
+            if checked:
+                prevent_sleep()
+                self.append_log("[System] Sleep prevention activated dynamically during execution.")
+            else:
+                restore_sleep()
+                self.append_log("[System] Sleep prevention deactivated dynamically during execution.")
+
+    def _handle_sleep_after_toggled(self, checked: bool):
+        # Save settings immediately
+        self.save_builder_settings()
+        if self.worker and self.worker.isRunning():
+            if checked:
+                self.append_log("[System] Scheduled computer sleep upon task completion.")
+            else:
+                self.append_log("[System] Cancelled scheduled computer sleep upon task completion.")
 
     def refresh_chapters_list(self):
         """Reload chapters from local DB."""
@@ -534,7 +676,8 @@ class MemePalaceBuilderDialog(QDialog):
             wing_name=wing_name,
             glossary_manager=gm,
             target_lang=target_lang,
-            plugin_name=getattr(self.mw, "active_game_plugin", None)
+            plugin_name=getattr(self.mw, "active_game_plugin", None),
+            mw=self.mw
         )
 
         self.worker.progress.connect(self._handle_worker_progress)
@@ -569,9 +712,10 @@ class MemePalaceBuilderDialog(QDialog):
         else:
             if getattr(self, "user_cancelled", False):
                 self.append_log("Character mining stopped by user.")
-                self.user_cancelled = False
                 self.pipeline_running = False
                 self._finish_and_maybe_sleep()
+                self.user_cancelled = False
+                self._update_pipeline_btn_text()
             else:
                 self.append_log("CHARACTER MINING FAILED.")
                 if getattr(self, "pipeline_running", False):
@@ -614,7 +758,8 @@ class MemePalaceBuilderDialog(QDialog):
             glossary_manager=gm,
             target_lang=target_lang,
             plugin_name=getattr(self.mw, "active_game_plugin", None),
-            composer=self.composer
+            composer=self.composer,
+            mw=self.mw
         )
 
         self.worker.progress.connect(self._handle_worker_progress)
@@ -638,6 +783,11 @@ class MemePalaceBuilderDialog(QDialog):
                 if gh:
                     gh.glossary_manager.refresh_from_disk()
                     gh._update_glossary_highlighting()
+                    if gh.dialog and gh.dialog.isVisible():
+                        entries = sorted(gh.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+                        data_source = getattr(self.mw.data_store, "data", [])
+                        occurrence_map = gh.glossary_manager.build_occurrence_index(data_source)
+                        gh.dialog.reload_data(entries, occurrence_map)
             except Exception as e:
                 log_error(f"Failed to refresh glossary after speech profiling: {e}")
 
@@ -649,9 +799,10 @@ class MemePalaceBuilderDialog(QDialog):
         else:
             if getattr(self, "user_cancelled", False):
                 self.append_log("Character speech profiling stopped by user.")
-                self.user_cancelled = False
                 self.pipeline_running = False
                 self._finish_and_maybe_sleep()
+                self.user_cancelled = False
+                self._update_pipeline_btn_text()
             else:
                 self.append_log("CHARACTER SPEECH PROFILING FAILED.")
                 if getattr(self, "pipeline_running", False):
@@ -702,6 +853,7 @@ class MemePalaceBuilderDialog(QDialog):
                 self.append_log("Chapters mapping stopped by user.")
                 self.user_cancelled = False
                 self.pipeline_running = False
+                self._update_pipeline_btn_text()
             else:
                 if getattr(self, "pipeline_running", False):
                     self._abort_pipeline(message)
@@ -732,7 +884,6 @@ class MemePalaceBuilderDialog(QDialog):
         self._process_analysis_queue()
 
     def _handle_chapter_analysis_finished(self, success, message):
-        self._set_ui_enabled(True)
         self.worker = None
 
         if success:
@@ -743,6 +894,7 @@ class MemePalaceBuilderDialog(QDialog):
             if self.analysis_queue:
                 self._process_analysis_queue()
             else:
+                self._set_ui_enabled(True)
                 self.progress_bar.setValue(100)
                 if getattr(self, "pipeline_running", False):
                     self._advance_pipeline()
@@ -750,12 +902,14 @@ class MemePalaceBuilderDialog(QDialog):
                     QMessageBox.information(self, "Finished", "All selected chapters successfully analyzed via AI!")
                     self._finish_and_maybe_sleep()
         else:
+            self._set_ui_enabled(True)
             self.refresh_chapters_list()
             if getattr(self, "user_cancelled", False):
                 self.append_log("Chapter analysis stopped by user.")
-                self.user_cancelled = False
                 self.pipeline_running = False
                 self._finish_and_maybe_sleep()
+                self.user_cancelled = False
+                self._update_pipeline_btn_text()
             else:
                 if getattr(self, "pipeline_running", False):
                     self._abort_pipeline(message)
@@ -807,7 +961,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     @pyqtSlot()
     def _start_complete_pipeline(self):
-        """Start the complete MemePalace orchestration pipeline sequentially."""
+        """Start or resume the complete MemePalace orchestration pipeline sequentially."""
         file_path = self.file_path_edit.text().strip()
         if not file_path or not os.path.exists(file_path):
             QMessageBox.warning(self, "Validation Error", "Please select a valid game script file first.")
@@ -817,23 +971,57 @@ class MemePalaceBuilderDialog(QDialog):
         if not ai_provider:
             return
 
-        reply = QMessageBox.question(
-            self, "Run Complete Pipeline",
-            "This will sequentially execute all MemePalace steps step-by-step:\n"
-            "1. Mine Characters & Terms via AI\n"
-            "2. Map BMG to Script Chapters\n"
-            "3. AI Analyze All Chapters\n"
-            "4. AI Profile Characters Speech\n\n"
-            "This process can take several minutes. Do you want to start the complete pipeline?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-        )
-        if reply != QMessageBox.Yes:
-            return
+        has_saved = getattr(self, "saved_pipeline_running", False) and getattr(self, "saved_pipeline_step", 0) > 0
+        
+        if has_saved:
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Resume Pipeline Session")
+            msg_box.setIcon(QMessageBox.Question)
+            msg_box.setText(
+                f"An incomplete MemePalace pipeline session was found at Step {self.saved_pipeline_step}/4.\n\n"
+                f"Do you want to continue the session from Step {self.saved_pipeline_step} or start a new session from the beginning?"
+            )
+            
+            continue_btn = msg_box.addButton("Continue", QMessageBox.AcceptRole)
+            start_over_btn = msg_box.addButton("Start Over", QMessageBox.DestructiveRole)
+            cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
+            
+            msg_box.setDefaultButton(continue_btn)
+            msg_box.exec_()
+            
+            clicked = msg_box.clickedButton()
+            if clicked == cancel_btn:
+                return
+            elif clicked == start_over_btn:
+                self.pipeline_running = True
+                self.pipeline_step = 1
+            else:
+                self.pipeline_running = True
+                self.pipeline_step = self.saved_pipeline_step
+                if getattr(self, "saved_pipeline_wing", ""):
+                    self.wing_edit.setText(self.saved_pipeline_wing)
+                if getattr(self, "saved_pipeline_script", "") and os.path.exists(self.saved_pipeline_script):
+                    self.file_path_edit.setText(self.saved_pipeline_script)
+        else:
+            reply = QMessageBox.question(
+                self, "Run Complete Pipeline",
+                "This will sequentially execute all MemePalace steps step-by-step:\n"
+                "1. Mine Characters & Terms via AI\n"
+                "2. Map BMG to Script Chapters\n"
+                "3. AI Analyze All Chapters\n"
+                "4. AI Profile Characters Speech\n\n"
+                "This process can take several minutes. Do you want to start the complete pipeline?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply != QMessageBox.Yes:
+                return
 
-        self.pipeline_running = True
-        self.pipeline_step = 1
+            self.pipeline_running = True
+            self.pipeline_step = 1
+
         self.append_log(">>> STARTING COMPLETE MEMEPALACE PIPELINE <<<")
         self._maybe_prevent_sleep()
+        self._save_pipeline_state()
         self._run_pipeline_current_step()
 
     def _run_pipeline_current_step(self):
@@ -845,6 +1033,11 @@ class MemePalaceBuilderDialog(QDialog):
         if not ai_provider:
             self._abort_pipeline("AI Provider unavailable.")
             return
+
+        # Reset chapter analysis counts for other steps to prevent progress calculations bug (100% bug)
+        if self.pipeline_step != 3:
+            self.analysis_total_count = 0
+            self.analysis_completed_count = 0
 
         if self.pipeline_step == 1:
             self.append_log("--- STEP 1/4: Mining Characters & Terms via AI ---")
@@ -865,10 +1058,12 @@ class MemePalaceBuilderDialog(QDialog):
 
         self.pipeline_step += 1
         if self.pipeline_step <= 4:
+            self._save_pipeline_state()
             self._run_pipeline_current_step()
         else:
             self.pipeline_running = False
             self.pipeline_step = 0
+            self._save_pipeline_state()
             self._set_ui_enabled(True)
             self.progress_bar.setValue(100)
             self.append_log(">>> COMPLETE MEMEPALACE PIPELINE FINISHED SUCCESSFULLY! <<<")
@@ -879,9 +1074,28 @@ class MemePalaceBuilderDialog(QDialog):
                 "and character speech profiles fully synthesized and loaded into the Glossary!"
             )
             self._finish_and_maybe_sleep()
+            self._update_pipeline_btn_text()
 
     def _abort_pipeline(self, error_message):
         step = getattr(self, "pipeline_step", 1)
+        
+        # Save session as interrupted but recoverable
+        try:
+            sm = getattr(self.mw, 'settings_manager', None)
+            if sm:
+                sm.set("mempalace_pipeline_running", True)
+                sm.set("mempalace_pipeline_step", step)
+                sm.set("mempalace_pipeline_wing", self.wing_edit.text().strip())
+                sm.set("mempalace_pipeline_script", self.file_path_edit.text().strip())
+                sm.save_settings()
+                
+                self.saved_pipeline_running = True
+                self.saved_pipeline_step = step
+                self.saved_pipeline_wing = self.wing_edit.text().strip()
+                self.saved_pipeline_script = self.file_path_edit.text().strip()
+        except Exception:
+            pass
+
         self.pipeline_running = False
         self.pipeline_step = 0
         self._set_ui_enabled(True)
@@ -892,6 +1106,7 @@ class MemePalaceBuilderDialog(QDialog):
             f"MemePalace Pipeline aborted at Step {step} due to error:\n{error_message}"
         )
         self._finish_and_maybe_sleep()
+        self._update_pipeline_btn_text()
 
     def _process_analysis_queue(self):
         """Process queue sequentially."""
@@ -939,7 +1154,8 @@ class MemePalaceBuilderDialog(QDialog):
             num=num,
             title=title,
             content=content,
-            start_line=start_line
+            start_line=start_line,
+            mw=self.mw
         )
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
@@ -957,6 +1173,19 @@ class MemePalaceBuilderDialog(QDialog):
                 self.progress_bar.setValue(int((current / total) * 100))
         self.append_log(text)
 
+        # Hot-reload glossary dialog if it is visible during profiling updates in real time
+        try:
+            gh = None
+            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                gh = getattr(self.mw.translation_handler, 'glossary_handler', None)
+            if gh and gh.dialog and gh.dialog.isVisible():
+                entries = sorted(gh.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+                data_source = getattr(self.mw.data_store, "data", [])
+                occurrence_map = gh.glossary_manager.build_occurrence_index(data_source)
+                gh.dialog.reload_data(entries, occurrence_map)
+        except Exception as e:
+            log_error(f"Failed to hot-reload glossary dialog during worker progress: {e}")
+
 
     def _set_ui_enabled(self, enabled: bool):
         self.ai_analyze_btn.setEnabled(enabled)
@@ -969,12 +1198,45 @@ class MemePalaceBuilderDialog(QDialog):
         self.file_path_edit.setEnabled(enabled)
         self.wing_edit.setEnabled(enabled)
         self.clear_btn.setEnabled(enabled)
-        self.prevent_sleep_checkbox.setEnabled(enabled)
-        self.sleep_after_checkbox.setEnabled(enabled)
+        self.browse_btn.setEnabled(enabled)
         if enabled:
             self.cancel_btn.setText("Close")
+            self.cancel_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #e1dfdd;
+                    color: #333333;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 7px 15px;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: #d2d0ce;
+                }
+            """)
         else:
-            self.cancel_btn.setText("Cancel")
+            self.cancel_btn.setText("Stop")
+            self.cancel_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #a80000;
+                    color: white;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 7px 15px;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: #800000;
+                }
+                QPushButton:pressed {
+                    background-color: #600000;
+                }
+                QPushButton:disabled {
+                    background-color: #cccccc;
+                    color: #666666;
+                }
+            """)
 
     @pyqtSlot()
     def _clear_database(self):
@@ -1017,12 +1279,32 @@ class MemePalaceBuilderDialog(QDialog):
         restore_sleep()
         if self.worker and self.worker.isRunning():
             self.user_cancelled = True
+            
+            # Save pipeline session as interrupted if it was running!
+            if getattr(self, "pipeline_running", False) and getattr(self, "pipeline_step", 0) > 0:
+                try:
+                    sm = getattr(self.mw, 'settings_manager', None)
+                    if sm:
+                        sm.set("mempalace_pipeline_running", True)
+                        sm.set("mempalace_pipeline_step", self.pipeline_step)
+                        sm.set("mempalace_pipeline_wing", self.wing_edit.text().strip())
+                        sm.set("mempalace_pipeline_script", self.file_path_edit.text().strip())
+                        sm.save_settings()
+                        
+                        self.saved_pipeline_running = True
+                        self.saved_pipeline_step = self.pipeline_step
+                        self.saved_pipeline_wing = self.wing_edit.text().strip()
+                        self.saved_pipeline_script = self.file_path_edit.text().strip()
+                except Exception:
+                    pass
+
             self.analysis_queue = []
             self.analysis_total_count = 0
             self.analysis_completed_count = 0
             self.worker.cancel()
             self.append_log("Worker cancellation requested...")
             self.cancel_btn.setEnabled(False)
+            self._update_pipeline_btn_text()
         else:
             self.save_builder_settings()
             self.close()
@@ -1044,6 +1326,13 @@ class MemePalaceBuilderDialog(QDialog):
                 sleep_after_val = sm.get("mempalace_sleep_after_finish", False)
                 if isinstance(sleep_after_val, bool):
                     self.sleep_after_checkbox.setChecked(sleep_after_val)
+                
+                # Load saved pipeline session
+                self.saved_pipeline_running = sm.get("mempalace_pipeline_running", False)
+                self.saved_pipeline_step = sm.get("mempalace_pipeline_step", 0)
+                self.saved_pipeline_wing = sm.get("mempalace_pipeline_wing", "")
+                self.saved_pipeline_script = sm.get("mempalace_pipeline_script", "")
+                self._update_pipeline_btn_text()
         except Exception as e:
             log_error(f"Failed to load builder settings: {e}")
 

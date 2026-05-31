@@ -20,6 +20,8 @@ def test_GlossaryManager_normalize_term():
     assert GlossaryManager.normalize_term("  Hello  World ") == "hello world"
     assert GlossaryManager.normalize_term("Pokémon") == "pokemon"
     assert GlossaryManager.normalize_term("HÉLLÔ") == "hello"
+    assert GlossaryManager.normalize_term("CHILD #1") == "child 1"
+    assert GlossaryManager.normalize_term("Дитина #1") == "дитина 1"
 
 def test_GlossaryManager_load_from_text(manager):
     md = """# My Glossary
@@ -158,7 +160,7 @@ def test_GlossaryManager_crud_entry(manager):
     assert manager.delete_entry("") is False
 
 def test_GlossaryManager_persist(manager, tmp_path):
-    f = tmp_path / "glossary.md"
+    f = tmp_path / "glossary.json"
     manager._glossary_path = f
     
     manager.add_entry("Apple", "Яблуко", "")
@@ -167,14 +169,15 @@ def test_GlossaryManager_persist(manager, tmp_path):
     manager.save_to_disk()
     
     text = f.read_text(encoding="utf-8")
-    assert "| Apple |" in text
-    assert "## Fruits" in text
-    assert "| Orange |" in text
+    assert "Apple" in text
+    assert "Яблуко" in text
+    assert "Fruits" in text
+    assert "Orange" in text
     assert manager._raw_text == text
 
 
 def test_GlossaryManager_persist_new_sections(manager, tmp_path):
-    f = tmp_path / "glossary.md"
+    f = tmp_path / "glossary.json"
     manager._glossary_path = f
     
     manager.add_entry("Apple", "Яблуко", "")
@@ -186,11 +189,11 @@ def test_GlossaryManager_persist_new_sections(manager, tmp_path):
     manager.save_to_disk()
     
     text = f.read_text(encoding="utf-8")
-    assert "| Apple |" in text
-    assert "## Fruits" in text
-    assert "| Orange |" in text
-    assert "## Weapons" in text
-    assert "| Sword |" in text
+    assert "Apple" in text
+    assert "Fruits" in text
+    assert "Orange" in text
+    assert "Weapons" in text
+    assert "Sword" in text
 
 
 def test_GlossaryManager_build_regex():
@@ -232,3 +235,52 @@ def test_GlossaryManager_prefilter_logic(manager):
     # 5. Multiple matches
     matches = manager.find_matches("Master Sword !!! +1 Shield")
     assert len(matches) == 3
+
+def test_GlossaryManager_multiline_notes_and_pipe_escaping(manager, tmp_path):
+    g_path = tmp_path / "glossary.json"
+    manager._glossary_path = g_path
+    
+    entry_original = "WHITE CUCCO"
+    entry_translation = "Білий Куко"
+    entry_notes = "📌 **Хто цей персонаж (Загальний опис та роль)**:\nЦе біла курка.\n\n🎭 **Характер**:\nСпокійний."
+    
+    manager.add_entry(entry_original, entry_translation, entry_notes)
+    
+    persisted_text = g_path.read_text(encoding="utf-8")
+    assert "WHITE CUCCO" in persisted_text
+    
+    manager.refresh_from_disk()
+    loaded_entry = manager.get_entry(entry_original)
+    
+    assert loaded_entry is not None
+    assert loaded_entry.notes == entry_notes
+    assert "\n" in loaded_entry.notes
+
+
+def test_GlossaryManager_profiled_field(manager, tmp_path):
+    f = tmp_path / "glossary.json"
+    manager._glossary_path = f
+    
+    # 1. Add entry with profiled=True
+    manager.add_entry("Apple", "Яблуко", "Note", profiled=True)
+    assert manager.get_entry("Apple").profiled is True
+    
+    # 2. Add entry with default profiled (False)
+    manager.add_entry("Banana", "Банан", "Note")
+    assert manager.get_entry("Banana").profiled is False
+    
+    # 3. Update entry to profiled=False
+    manager.update_entry("Apple", "Яблуко", "Note", profiled=False)
+    assert manager.get_entry("Apple").profiled is False
+    
+    # 4. Save and reload from disk
+    manager.save_to_disk()
+    manager.refresh_from_disk()
+    assert manager.get_entry("Apple").profiled is False
+    
+    # 5. Set profiled=True and save again
+    manager.update_entry("Apple", "Яблуко", "Note", profiled=True)
+    manager.save_to_disk()
+    manager.refresh_from_disk()
+    assert manager.get_entry("Apple").profiled is True
+

@@ -5,7 +5,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from typing import List, Dict, Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
-from utils.logging_utils import log_info, log_error, log_debug
+from utils.logging_utils import log_info, log_error, log_debug, log_ai_traffic
 
 
 def robust_json_loads(text: str) -> dict:
@@ -504,8 +504,12 @@ JSON format example (assuming target language is Ukrainian):
                 {"role": "user", "content": user_prompt}
             ]
 
+            mw = getattr(self.glossary_manager, 'mw', None) if self.glossary_manager else None
+
             try:
+                log_ai_traffic(mw, "mempalace_scene_annotation", messages)
                 response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+                log_ai_traffic(mw, "mempalace_scene_annotation", messages, response_text=response.text)
                 
                 # Parse JSON safely
                 cleaned_text = response.text.strip()
@@ -553,6 +557,7 @@ JSON format example (assuming target language is Ukrainian):
                     )
                     
             except Exception as e:
+                log_ai_traffic(mw, "mempalace_scene_annotation", messages, error=str(e))
                 log_error(f"Error querying AI in worker for scene {idx}: {e}")
                 self.log.emit(f"[Scene {idx+1}] AI Annotation failed: {str(e)}. Saving local fallback only.")
                 
@@ -578,7 +583,8 @@ class MemePalaceScriptAnalyzerWorker(QThread):
                  wing_name: str = "Zelda_TP",
                  glossary_manager: Optional[Any] = None,
                  target_lang: str = "Ukrainian",
-                 plugin_name: Optional[str] = None):
+                 plugin_name: Optional[str] = None,
+                 mw=None):
         super().__init__()
         self.client = client
         self.file_path = file_path
@@ -587,6 +593,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
         self.glossary_manager = glossary_manager
         self.target_lang = target_lang
         self.plugin_name = plugin_name
+        self.mw = mw or (getattr(glossary_manager, 'mw', None) if glossary_manager else None)
         self.is_cancelled = False
 
     def cancel(self):
@@ -872,7 +879,13 @@ JSON structure:
                 {"role": "user", "content": user_prompt}
             ]
 
-            response = self.ai_provider.translate(messages, session=None)
+            log_ai_traffic(self.mw, "mempalace_terminology_mining", messages)
+            try:
+                response = self.ai_provider.translate(messages, session=None)
+                log_ai_traffic(self.mw, "mempalace_terminology_mining", messages, response_text=response.text)
+            except Exception as e_mining:
+                log_ai_traffic(self.mw, "mempalace_terminology_mining", messages, error=str(e_mining))
+                raise e_mining
             
             if self.is_cancelled:
                 self.finished.emit(False, "Process cancelled by user.")
@@ -958,7 +971,9 @@ JSON structure:
                         ]
                         
                         try:
+                            log_ai_traffic(self.mw, "mempalace_notes_synthesis", synth_messages)
                             synth_response = self.ai_provider.translate(synth_messages, session=None)
+                            log_ai_traffic(self.mw, "mempalace_notes_synthesis", synth_messages, response_text=synth_response.text)
                             synthesized_notes = synth_response.text.strip()
                             
                             # Safely update the entry in the glossary
@@ -969,6 +984,7 @@ JSON structure:
                             )
                             self.log.emit(f"SUCCESS: Synthesized entry for '{term_name}' (notes updated in {self.target_lang}, translation '{existing_entry.translation}' kept).")
                         except Exception as e_synth:
+                            log_ai_traffic(self.mw, "mempalace_notes_synthesis", synth_messages, error=str(e_synth))
                             log_error(f"Failed to synthesize notes for existing term {term_name}: {e_synth}")
                             self.log.emit(f"WARNING: Notes synthesis failed for '{term_name}': {str(e_synth)}")
                     
@@ -1001,7 +1017,9 @@ JSON structure:
                         ]
                         
                         try:
+                            log_ai_traffic(self.mw, "mempalace_new_term_creation", new_term_messages)
                             new_term_response = self.ai_provider.translate(new_term_messages, session=None)
+                            log_ai_traffic(self.mw, "mempalace_new_term_creation", new_term_messages, response_text=new_term_response.text)
                             term_data = robust_json_loads(new_term_response.text)
                             translated_name = term_data.get("translation", term_name).strip()
                             synthesized_notes = term_data.get("notes", "").strip()
@@ -1016,6 +1034,7 @@ JSON structure:
                             )
                             self.log.emit(f"SUCCESS: Created new entry '{term_name}' -> '{translated_name}' in section '{section}' with description in {self.target_lang}.")
                         except Exception as e_new:
+                            log_ai_traffic(self.mw, "mempalace_new_term_creation", new_term_messages, error=str(e_new))
                             log_error(f"Failed to translate and save new term {term_name}: {e_new}")
                             self.log.emit(f"WARNING: Creation failed for new term '{term_name}': {str(e_new)}")
 
@@ -1162,7 +1181,7 @@ class MemePalaceChapterAIAnalyzerWorker(QThread):
     log = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
 
-    def __init__(self, client: MemePalaceClient, ai_provider, chapter_id: int, num: str, title: str, content: str, start_line: int = 1, target_lang: str = "Ukrainian"):
+    def __init__(self, client: MemePalaceClient, ai_provider, chapter_id: int, num: str, title: str, content: str, start_line: int = 1, target_lang: str = "Ukrainian", mw=None):
         super().__init__()
         self.client = client
         self.ai_provider = ai_provider
@@ -1172,6 +1191,7 @@ class MemePalaceChapterAIAnalyzerWorker(QThread):
         self.content = content
         self.start_line = start_line
         self.target_lang = target_lang
+        self.mw = mw
         self.is_cancelled = False
 
     def cancel(self):
@@ -1225,8 +1245,13 @@ Your output must be a valid JSON array of objects. Do not wrap the JSON in markd
             self.progress.emit(30, 100, "Sending request to AI...")
             self.log.emit("Sending request to AI provider. This might take 10-20 seconds...")
             
-            from core.translation.providers import ProviderResponse
-            response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+            log_ai_traffic(self.mw, "mempalace_chapter_analysis", messages)
+            try:
+                response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+                log_ai_traffic(self.mw, "mempalace_chapter_analysis", messages, response_text=response.text)
+            except Exception as e_ch:
+                log_ai_traffic(self.mw, "mempalace_chapter_analysis", messages, error=str(e_ch))
+                raise e_ch
             
             if self.is_cancelled:
                 self.finished.emit(False, "Process cancelled.")
@@ -1271,7 +1296,8 @@ class MemePalaceCharacterProfilerWorker(QThread):
                  glossary_manager: Optional[Any] = None,
                  target_lang: str = "Ukrainian",
                  plugin_name: Optional[str] = None,
-                 composer: Optional[Any] = None):
+                 composer: Optional[Any] = None,
+                 mw=None):
         super().__init__()
         self.client = client
         self.ai_provider = ai_provider
@@ -1280,11 +1306,143 @@ class MemePalaceCharacterProfilerWorker(QThread):
         self.target_lang = target_lang
         self.plugin_name = plugin_name
         self.composer = composer
+        self.mw = mw or (getattr(composer, 'mw', None) if composer else None) or (getattr(glossary_manager, 'mw', None) if glossary_manager else None)
         self.is_cancelled = False
 
     def cancel(self):
         self.is_cancelled = True
         self.log.emit("Character speech profiling cancellation requested...")
+
+    def _fetch_zelda_wiki_description(self, char_name: str) -> str:
+        """Search and fetch character description from Zelda Fandom Wiki."""
+        import urllib.request
+        import urllib.parse
+        import json
+        import re
+        from utils.logging_utils import log_warning, log_info
+
+        # Search specifically within Twilight Princess context
+        query = f"{char_name} Twilight Princess"
+        try:
+            # 1. Search page on Zelda Wiki
+            search_url = f"https://zelda.fandom.com/api.php?action=query&list=search&srsearch={urllib.parse.quote(query)}&format=json"
+            req = urllib.request.Request(
+                search_url, 
+                headers={"User-Agent": "Picoripi Localization Tool/1.0 (Contact: admin@picoripi.org)"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                search_results = data.get("query", {}).get("search", [])
+                if not search_results:
+                    return ""
+                
+                # Find the most relevant title
+                title = search_results[0].get("title")
+                if not title:
+                    return ""
+                    
+            # 2. Fetch page introduction (extract) with redirects resolved
+            extract_url = f"https://zelda.fandom.com/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles={urllib.parse.quote(title)}&redirects=1&format=json"
+            req_extract = urllib.request.Request(
+                extract_url,
+                headers={"User-Agent": "Picoripi Localization Tool/1.0 (Contact: admin@picoripi.org)"}
+            )
+            with urllib.request.urlopen(req_extract, timeout=5) as response:
+                data_extract = json.loads(response.read().decode('utf-8'))
+                pages = data_extract.get("query", {}).get("pages", {})
+                for page_id, page_data in pages.items():
+                    extract = page_data.get("extract", "")
+                    if extract and extract.strip():
+                        log_info(f"Successfully retrieved Zelda Wiki extract for '{char_name}' (Title: {title})")
+                        return self._translate_wiki_to_target_lang(title, extract.strip())
+
+            # 3. Fallback: Fetch raw Wikitext content from revisions if extract was empty (common with complex templates/infoboxes)
+            log_info(f"Zelda Wiki extract was empty for '{char_name}'. Fetching raw Wikitext revisions content fallback...")
+            revisions_url = f"https://zelda.fandom.com/api.php?action=query&prop=revisions&rvprop=content&rvslots=main&titles={urllib.parse.quote(title)}&redirects=1&format=json"
+            req_rev = urllib.request.Request(
+                revisions_url,
+                headers={"User-Agent": "Picoripi Localization Tool/1.0 (Contact: admin@picoripi.org)"}
+            )
+            with urllib.request.urlopen(req_rev, timeout=5) as response:
+                data_rev = json.loads(response.read().decode('utf-8'))
+                pages_rev = data_rev.get("query", {}).get("pages", {})
+                for page_id, page_data in pages_rev.items():
+                    revisions = page_data.get("revisions", [])
+                    if revisions:
+                        slots = revisions[0].get("slots", {})
+                        raw_text = ""
+                        if "main" in slots:
+                            raw_text = slots["main"].get("*", "") or slots["main"].get("content", "")
+                        if not raw_text:
+                            raw_text = revisions[0].get("*", "") or revisions[0].get("content", "")
+                        
+                        if raw_text:
+                            # Basic cleanup of wikitext to make it digestible
+                            clean_text = raw_text
+                            for _ in range(5):
+                                clean_text = re.sub(r'\{\{[^{}]*\}\}', '', clean_text)
+                            clean_text = re.sub(r'\[\[(?:File|Category|Image):[^\]]+\]\]', '', clean_text, flags=re.IGNORECASE)
+                            clean_text = re.sub(r'\[\[[^\]|]+\|([^\]]+)\]\]', r'\1', clean_text)
+                            clean_text = re.sub(r'\[\[([^\]]+)\]\]', r'\1', clean_text)
+                            clean_text = re.sub(r'<!--.*?-->', '', clean_text, flags=re.DOTALL)
+                            clean_text = clean_text.strip()
+                            if len(clean_text) > 1500:
+                                clean_text = clean_text[:1500] + "..."
+                                
+                            log_info(f"Successfully retrieved raw Wikitext for '{char_name}' (Title: {title})")
+                            return self._translate_wiki_to_target_lang(title, clean_text)
+        except Exception as e:
+            log_warning(f"Zelda Wiki lookup failed for '{char_name}': {e}")
+        return ""
+
+    def _translate_wiki_to_target_lang(self, title: str, text: str) -> str:
+        """Translate Zelda Wiki description to the target language immediately using AI."""
+        if not text or not text.strip():
+            return ""
+        
+        # If target language is already English, no translation needed
+        if self.target_lang == "English":
+            return f"Page: {title}\n{text}"
+            
+        from utils.logging_utils import log_info, log_error
+        
+        if self.target_lang == "Ukrainian":
+            system_prompt = (
+                "Ви — професійний перекладач відеоігор та редактор локалізації. Ваше завдання — зробити точний, "
+                "літературний переклад вступного опису персонажа з англійської Вікіпедії на українську мову. "
+                "Переклад має бути максимально природним та художнім."
+            )
+            user_prompt = f"""
+Перекладіть наступний опис персонажа '{title}' з гри The Legend of Zelda на українську мову:
+
+{text}
+
+Поверніть ЛИШЕ готовий переклад українською мовою. Не додавайте жодних вступних чи пояснювальних фраз.
+"""
+        else:
+            system_prompt = (
+                f"You are an expert game translation editor. Translate the provided Zelda character description "
+                f"from English into {self.target_lang}. Keep it highly professional and natural."
+            )
+            user_prompt = f"""
+Translate the following character description for '{title}' into {self.target_lang}:
+
+{text}
+
+Return ONLY the translated text. Do not add any introduction or meta comments.
+"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        try:
+            response = self.ai_provider.translate(messages, session=None)
+            translated = response.text.strip()
+            log_info(f"Successfully translated Zelda Wiki context for '{title}' to {self.target_lang}")
+            return f"Page: {title}\n{translated}"
+        except Exception as e:
+            log_error(f"Failed to translate Zelda Wiki description for '{title}': {e}")
+            return f"Page: {title} (Original English Context)\n{text}"
 
     def _load_plugin_prompts(self) -> dict:
         """Load prompts.json for active plugin if available."""
@@ -1404,6 +1562,13 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                                         if clean_text:
                                             char_dialogues.setdefault(clean_speaker, []).append(clean_text)
             
+            # Filter out minor characters with fewer than 3 lines to speed up profiling and save API costs
+            original_char_count = len(char_dialogues)
+            char_dialogues = {speaker: d_lines for speaker, d_lines in char_dialogues.items() if len(d_lines) >= 3}
+            filtered_count = original_char_count - len(char_dialogues)
+            if filtered_count > 0:
+                self.log.emit(f"Filtered out {filtered_count} minor characters with fewer than 3 dialogue lines to speed up profiling.")
+
             if not char_dialogues:
                 self.finished.emit(False, "No character dialogues found in database or active project workspace. Please map script chapters first.")
                 return
@@ -1444,6 +1609,93 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 if self.is_cancelled:
                     break
 
+                # Skip already profiled characters to support incremental resumption
+                if self.glossary_manager:
+                    existing_entry = self.glossary_manager.get_entry(char_name)
+                    if existing_entry:
+                        has_marker = bool(existing_entry.profiled)
+                        has_profile = False
+                        if existing_entry.notes:
+                            has_profile = ("📌" in existing_entry.notes and 
+                                           "🗣️" in existing_entry.notes and 
+                                           "💡" in existing_entry.notes)
+                        
+                        note_lines = [line.strip() for line in existing_entry.notes.splitlines() if line.strip()] if existing_entry.notes else []
+                        line_count = len(note_lines)
+                        
+                        skip = False
+                        
+                        # 1. Якщо одночасно є і маркер і профайл
+                        if has_marker and has_profile:
+                            if line_count < 3:
+                                # Опис неповний (<3 рядків) -> знімаємо profiled, запускаємо наново!
+                                skip = False
+                                try:
+                                    self.glossary_manager.update_entry(
+                                        original=existing_entry.original,
+                                        translation=existing_entry.translation,
+                                        notes=existing_entry.notes,
+                                        profiled=False
+                                    )
+                                    self.glossary_manager.save_to_disk()
+                                    self.log.emit(f"Character '{char_name}' is marked as Profiled but has <3 lines. Clearing profiled and re-profiling...")
+                                except Exception as e_unmark:
+                                    log_error(f"Failed to clear profiled for {char_name}: {e_unmark}")
+                            else:
+                                # Все гаразд -> скіпаємо
+                                skip = True
+                            
+                        # 2. Якщо є профайл і немає маркера, або якщо є маркер і немає профайла
+                        elif (has_profile and not has_marker) or (has_marker and not has_profile):
+                            if line_count < 3:
+                                # Знімаємо profiled, якщо раптом стояла (у випадку has_marker and not has_profile)
+                                if has_marker:
+                                    try:
+                                        self.glossary_manager.update_entry(
+                                            original=existing_entry.original,
+                                            translation=existing_entry.translation,
+                                            notes=existing_entry.notes,
+                                            profiled=False
+                                        )
+                                        self.glossary_manager.save_to_disk()
+                                    except Exception:
+                                        pass
+                                skip = False  # запускаємо
+                            else:
+                                # якщо більше або дорівнює трьох строк, помічаємо як Profiled і скіпаємо
+                                skip = True
+                                try:
+                                    self.glossary_manager.update_entry(
+                                        original=existing_entry.original,
+                                        translation=existing_entry.translation,
+                                        notes=existing_entry.notes,
+                                        profiled=True
+                                    )
+                                    self.glossary_manager.save_to_disk()
+                                except Exception as e_mark:
+                                    log_error(f"Failed to auto-mark profiled for {char_name}: {e_mark}")
+                                    
+                        # 3. Якщо є профайл і >= 3 строк
+                        elif has_profile and line_count >= 3:
+                            skip = True
+                            if not has_marker:
+                                try:
+                                    self.glossary_manager.update_entry(
+                                        original=existing_entry.original,
+                                        translation=existing_entry.translation,
+                                        notes=existing_entry.notes,
+                                        profiled=True
+                                    )
+                                    self.glossary_manager.save_to_disk()
+                                except Exception:
+                                    pass
+                                    
+                        if skip:
+                            self.log.emit(f"Character '{char_name}' already has a completed speech profile. Skipping (incremental resume).")
+                            stats_updated += 1
+                            processed_count += 1
+                            continue
+
                 self.progress.emit(
                     20 + int((processed_count / total_characters) * 75),
                     100,
@@ -1452,74 +1704,138 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
 
                 self.log.emit(f"Processing character '{char_name}' with {len(lines)} total lines...")
 
-                # Sample up to 80 representative lines to fit context window and prevent token bloat
-                sampled_lines = lines
-                if len(lines) > 80:
-                    self.log.emit(f"Character '{char_name}' has many lines ({len(lines)}). Sampling 80 representative dialogues...")
-                    step = len(lines) / 80
-                    sampled_lines = [lines[int(i * step)] for i in range(80)]
+                # 1. Fetch Wiki context from Zelda Wiki to secure factual grounding
+                self.log.emit(f"AI Speech Profiler: Searching Zelda Wiki context for '{char_name}'...")
+                wiki_context = self._fetch_zelda_wiki_description(char_name)
+                if wiki_context:
+                    self.log.emit(f"AI Speech Profiler: Found Zelda Wiki description for '{char_name}'.")
+                else:
+                    self.log.emit(f"AI Speech Profiler: No Zelda Wiki description found for '{char_name}' (using script dialogue only).")
+
+                # 2. Filter out non-informative short dialogue lines (< 3 words) and enrich with timeline chapter context
+                clean_lines = []
+                tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
+                for line in lines:
+                    # Clean tags before counting words
+                    text_no_tags = tag_pattern.sub('', line).strip()
+                    words = [w for w in text_no_tags.split() if w.strip()]
+                    if len(words) < 3: # Skip short/non-informative lines like "No", "Huh", "Yes"
+                        continue
+                    
+                    # Try to fetch timeline room context (chapter name)
+                    ctx = None
+                    if self.client:
+                        try:
+                            ctx = self.client.get_cached_context("", line)
+                        except Exception:
+                            ctx = None
+                            
+                    if ctx:
+                        room = ctx.get("room", "Unknown Chapter")
+                        if self.target_lang == "Ukrainian":
+                            clean_lines.append(f'[У главі "{room}"]: "{line}"')
+                        else:
+                            clean_lines.append(f'[In Chapter "{room}"]: "{line}"')
+                    else:
+                        clean_lines.append(f'"{line}"')
+
+                # 3. Sample up to 80 representative lines to fit context window and prevent token bloat
+                sampled_lines = clean_lines
+                if len(clean_lines) > 80:
+                    self.log.emit(f"Character '{char_name}' has many informative lines ({len(clean_lines)}). Sampling 80 representative dialogues...")
+                    step = len(clean_lines) / 80
+                    sampled_lines = [clean_lines[int(i * step)] for i in range(80)]
 
                 # Format dialogues block
-                dialogue_text_block = "\n".join(f'- "{line}"' for line in sampled_lines)
+                dialogue_text_block = "\n".join(f'- {line}' for line in sampled_lines)
 
                 # Formulate user prompt
                 if self.target_lang == "Ukrainian":
+                    wiki_section = ""
+                    if wiki_context:
+                        wiki_section = f"\n--- Wiki Context (Джерело істини з Zelda Wiki) ---\n{wiki_context}\n"
+                        
                     user_prompt = f"""
-Проаналізуйте наступні репліки, які вимовляє персонаж '{char_name}' у грі:
-
----
+Проаналізуйте наступну інформацію для персонажа '{char_name}':
+{wiki_section}
+--- Характерні діалоги персонажа у грі ---
 {dialogue_text_block}
 ---
 
-Створити надзвичайно детальний, художній, преміальний та глибокий мовленнєвий портрет персонажа українською мовою. 
-Ваш аналіз має бути дуже розлогим, з великою кількістю деталей та конкретних рекомендацій для перекладача.
+Створіть високоякісний, структурований та НАДЗВИЧАЙНО КОНЦЕНТРОВАНИЙ мовленнєвий портрет українською мовою.
+УНИКАЙТЕ БУДЬ-ЯКОЇ ВОДИ та очевидних банальностей! Кожен розділ має бути ультра-коротким (максимум 2-3 інформативні речення, до 40-50 слів), але містити саму суть і конкретні поради.
+
+ВАЖЛИВО: Якщо цей "персонаж" насправді є службовим тегом розповіді/системи (наприклад, "NARRATIVE", "SYSTEM") або якщо про нього немає реального лору та індивідуального стилю мовлення для аналізу, обов'язково поверніть "speech_profile": "" (порожній рядок) в JSON, щоб ми могли пропустити його профілювання. Не генеруйте порожній шаблон із самих лише заголовків без реального змісту! Кожен заповнений розділ обов'язково повинен містити реальний детальний художній опис з інформативними реченнями.
 
 Обов'язково структуруйте опис (поле "speech_profile" у JSON) на такі чіткі розділи з відповідними емодзі-заголовками:
 
 📌 **Хто цей персонаж (Загальний опис та роль)**:
-[Напишіть детальний опис того, ким є цей персонаж у світі гри, яка його роль у сюжеті, наскільки він важливий]
+[Коротко (до 2 речень): хто він згідно з лором Вікіпедії, його роль у сюжеті. Базуйтеся САМЕ на наданому Wiki Context (якщо є) і не галюцинуйте!]
 
 🎭 **Характер та психологічний портрет**:
-[Детально проаналізуйте його характер, емоційний стан, темперамент, манеру поведінки, життєві орієнтири]
+[Коротко (до 2 речень): ключові риси характеру, емоційний стан, манера поведінки]
 
 🗣️ **Особливості мовлення та лексика**:
-[Опишіть його стиль спілкування: багатий чи бідний словниковий запас, чи використовує він сленг, архаїзми, професійний жаргон, унікальні вигуки, слова-паразити чи цікаві/незвичайні слова. Який у нього тон і темп мовлення]
+[Коротко (до 2 речень): стиль спілкування, характерні вигуки, слова-паразити чи унікальні слова. Тон і темп.]
 
 👥 **Відносини з іншими персонажами та соціальний статус**:
-[Як цей персонаж ставиться до інших героїв гри, як його статус впливає на стиль розмови]
+[Коротко (до 2 речень): ставлення до Лінка та інших героїв, соціальне становище]
 
 📝 **Форми звертання та граматичні рекомендації**:
-[Чітко визначте форми звертання: чи говорить він до інших неформально (на "ти") чи формально/шанобливо (на "ви"). Як інші мають звертатися до нього. Які граматичні особливості (наприклад, фемінітиви, специфічні закінчення дієслів чи особлива побудова речень) слід використовувати при перекладі його реплік українською мовою]
+[Коротко (до 2 речень): як він звертається до інших (неформально на 'ти' чи формально на 'ви'), граматичні особливості при перекладі]
 
 💡 **Рекомендації для перекладача (Як його перекладати)**:
-[Дайте конкретні практичні поради перекладачу: які емоційні відтінки зберігати, які унікальні українські відповідники чи вирази підібрати, щоб повністю розкрити характер цього персонажа в локалізації]
+[Коротко (до 2 речень): конкретні практичні поради перекладачу: які емоційні відтінки чи унікальні українські вирази підібрати]
 
 Поверніть відповідь ВИКЛЮЧНО у форматі JSON. Не обгортайте JSON у блоки markdown (не пишіть ```json) і не додавайте жодного іншого супровідного тексту.
 Структура JSON має бути такою:
 {{
-  "name_translation": "Природний переклад або транслітерація імені персонажа українською мовою (наприклад, 'Руслан', 'Колін', 'Мідна')",
-  "speech_profile": "[Сюди запишіть весь згенерований розлогий структурований портрет українською мовою з усіма вищенаведеними розділами та заголовками]"
+  "name_translation": "Природний переклад або транслітерація імені персонажа українською мовою (наприклад, 'Тріл')",
+  "speech_profile": "[Сюди запишіть весь згенерований стислий структурований портрет українською мовою з усіма вищенаведеними розділами та заголовками]"
 }}
 """
                 else:
+                    wiki_section = ""
+                    if wiki_context:
+                        wiki_section = f"\n--- Wiki Context (Source of Truth) ---\n{wiki_context}\n"
+                        
                     user_prompt = f"""
-Analyze the following dialogues spoken by the character '{char_name}':
-
----
+Analyze the following information for the character '{char_name}':
+{wiki_section}
+--- Representative Dialogues ---
 {dialogue_text_block}
 ---
 
-Determine and synthesize:
-1. Character personality, mood, and role.
-2. Speech style, vocabulary richness, tone, and register (formal vs informal).
-3. Specific address conventions (does he speak informally on "ти" or formally/respectfully on "ви" to others in translation).
-4. Unique catchphrases, interesting or unusual words, and general stylistic patterns of his speech.
+Create a premium, structured, and EXTREMELY CONCISE speech profile written strictly in {self.target_lang}.
+AVOID ANY WATER or redundancy! Each section must be ultra-short (maximum 2-3 sentences, up to 40-50 words), focusing only on crucial facts and translation advice.
 
-Respond ONLY with a valid JSON object. Do not wrap in markdown json block or add any conversational text.
+IMPORTANT: If this "character" is actually a narrative/system tag (like "NARRATIVE", "SYSTEM") or has no real lore and distinct speech pattern to analyze, you MUST return "speech_profile": "" (empty string) in JSON so we can skip profiling them. Do not generate an empty template of headings without real content! Each filled section must contain a substantial description with informative sentences.
+
+Structure the description (the "speech_profile" field in JSON) into these exact sections with emoji headings:
+
+📌 **Who is this character (General description & role)**:
+[Briefly (up to 2 sentences): who they are based on the Wiki Context, their role in the game.]
+
+🎭 **Personality and psychological portrait**:
+[Briefly (up to 2 sentences): core traits, emotional state, temperament.]
+
+🗣️ **Speech features and vocabulary**:
+[Briefly (up to 2 sentences): speech style, register, tone, and tempo.]
+
+👥 **Relationships with other characters and social status**:
+[Briefly (up to 2 sentences): how they relate to Link and others, social standing.]
+
+📝 **Forms of address and grammatical recommendations**:
+[Briefly (up to 2 sentences): formal vs informal address, specific grammar tips for {self.target_lang} translation.]
+
+💡 **Recommendations for the translator (How to translate)**:
+[Briefly (up to 2 sentences): practical tips, specific vocabulary choices or emotional nuances to capture.]
+
+Respond ONLY with a valid JSON object. Do not wrap in markdown json blocks or add any conversational text.
 JSON Structure:
 {{
-  "name_translation": "Natural translation or transliteration of the character's name to {self.target_lang} (e.g. 'Rusl')",
-  "speech_profile": "A beautifully detailed, multi-paragraph structured profile written strictly in {self.target_lang} describing the character's speech features, style, relationships, and translation recommendations."
+  "name_translation": "Natural translation or transliteration of the character's name to {self.target_lang} (e.g. 'Trill')",
+  "speech_profile": "[Put the entire synthesized concise structured profile here with all headings listed above]"
 }}
 """
 
@@ -1530,7 +1846,9 @@ JSON Structure:
 
                 try:
                     # Query AI
+                    log_ai_traffic(self.mw, "mempalace_speech_profiling", messages)
                     response = self.ai_provider.translate(messages, session=None)
+                    log_ai_traffic(self.mw, "mempalace_speech_profiling", messages, response_text=response.text)
                     consecutive_failures = 0
                     
                     if self.is_cancelled:
@@ -1568,24 +1886,29 @@ JSON Structure:
                             ]
                             
                             try:
+                                log_ai_traffic(self.mw, "mempalace_speech_profile_synthesis", synth_messages)
                                 synth_response = self.ai_provider.translate(synth_messages, session=None)
+                                log_ai_traffic(self.mw, "mempalace_speech_profile_synthesis", synth_messages, response_text=synth_response.text)
                                 final_notes = synth_response.text.strip()
                                 
                                 self.glossary_manager.update_entry(
                                     original=existing_entry.original,
                                     translation=existing_entry.translation,
-                                    notes=final_notes
+                                    notes=final_notes,
+                                    profiled=True
                                 )
                                 stats_updated += 1
                                 self.log.emit(f"SUCCESS: Synthesized speech profile for existing character '{existing_entry.original}'.")
                             except Exception as e_synth:
+                                log_ai_traffic(self.mw, "mempalace_speech_profile_synthesis", synth_messages, error=str(e_synth))
                                 log_error(f"Failed to synthesize speech notes for {char_name}: {e_synth}")
                                 # Fallback: append profile to notes directly
                                 fallback_notes = f"{existing_notes}\n\nСтиль мовлення: {speech_profile}"
                                 self.glossary_manager.update_entry(
                                     original=existing_entry.original,
                                     translation=existing_entry.translation,
-                                    notes=fallback_notes
+                                    notes=fallback_notes,
+                                    profiled=True
                                 )
                                 stats_updated += 1
                                 self.log.emit(f"FALLBACK: Appended speech profile directly for existing character '{existing_entry.original}'.")
@@ -1595,10 +1918,16 @@ JSON Structure:
                                 original=char_name,
                                 translation=name_translation,
                                 notes=speech_profile,
-                                section="Characters"
+                                section="Characters",
+                                profiled=True
                             )
                             stats_added += 1
                             self.log.emit(f"SUCCESS: Created new Characters entry '{char_name}' -> '{name_translation}' with AI speech profile.")
+                        
+                        try:
+                            self.glossary_manager.save_to_disk()
+                        except Exception as e_save:
+                            log_error(f"Failed to auto-save glossary for {char_name}: {e_save}")
 
                 except Exception as e_proc:
                     log_error(f"Failed to process speech profile for {char_name}: {e_proc}")

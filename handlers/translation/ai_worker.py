@@ -17,61 +17,28 @@ class AIWorker(QObject):
     progress_updated = pyqtSignal(int)
     chunk_received = pyqtSignal(dict, str)
 
-    def __init__(self, provider: BaseTranslationProvider, prompt_composer: AIPromptComposer, task_details: Dict[str, Any]):
+    def __init__(self, provider: BaseTranslationProvider, prompt_composer: Optional[AIPromptComposer], task_details: Dict[str, Any], mw: Any = None):
         super().__init__()
         self.provider = provider
         self.prompt_composer = prompt_composer
         self.task_details = task_details
+        self._mw = mw
         self.is_cancelled = False
         self._last_messages = None
 
-    def _log_ai_traffic(self, messages: List[Dict[str, str]], response_text: Optional[str] = None, error: Optional[str] = None):
-        log_enabled = False
-        if self.prompt_composer and self.prompt_composer.mw:
-            log_enabled = getattr(self.prompt_composer.mw, 'log_ai_traffic', False)
-            
-        if not log_enabled:
-            return
+    @property
+    def mw(self) -> Optional[Any]:
+        if self._mw is not None:
+            return self._mw
+        if self.prompt_composer and hasattr(self.prompt_composer, 'mw'):
+            return self.prompt_composer.mw
+        return None
 
-        from utils.logging_utils import log_info
-        import datetime
-        import os
-        
+    def _log_ai_traffic(self, messages: List[Dict[str, str]], response_text: Optional[str] = None, error: Optional[str] = None):
+        from utils.logging_utils import log_ai_traffic
         task_type = self.task_details.get('type', 'unknown')
-        
-        # 1. Log to app_debug.txt via standard logger
-        log_msg = f"[AI Traffic] Task: {task_type}\n"
-        log_msg += f"--- MESSAGES SENT ---\n{json.dumps(messages, indent=2, ensure_ascii=False)}\n"
-        if response_text is not None:
-            log_msg += f"--- RESPONSE RECEIVED ---\n{response_text}\n"
-        if error is not None:
-            log_msg += f"--- ERROR ---\n{error}\n"
-        
-        log_info(log_msg, category="ai")
-        
-        # 2. Log to a separate file ai_traffic.log in workspace root
-        try:
-            log_file = os.path.join(os.getcwd(), "ai_traffic.log")
-            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(f"==================== {timestamp} ====================\n")
-                f.write(f"Task Type: {task_type}\n")
-                f.write("--- MESSAGES SENT ---\n")
-                f.write(json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
-                if response_text is not None:
-                    f.write("--- RESPONSE RECEIVED ---\n")
-                    f.write(response_text + "\n")
-                if error is not None:
-                    f.write("--- ERROR ---\n")
-                    f.write(error + "\n")
-                f.write("="*60 + "\n\n")
-                f.flush()
-                try:
-                    os.fsync(f.fileno())
-                except Exception:
-                    pass
-        except Exception as e:
-            log_debug(f"AIWorker: Failed to write to ai_traffic.log: {e}")
+        mw = self.mw
+        log_ai_traffic(mw, task_type, messages, response_text, error)
 
     def cancel(self):
         log_debug("AIWorker: Cancellation requested.")
@@ -104,8 +71,9 @@ class AIWorker(QObject):
         
         # Truncate the ai_traffic.log file at the very start of a new session (not retry or resume)
         log_enabled = False
-        if self.prompt_composer and self.prompt_composer.mw:
-            log_enabled = getattr(self.prompt_composer.mw, 'log_ai_traffic', False)
+        mw = self.mw
+        if mw:
+            log_enabled = getattr(mw, 'log_ai_traffic', False)
         
         if log_enabled:
             is_retry = self.task_details.get('attempt', 1) > 1

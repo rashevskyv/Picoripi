@@ -88,13 +88,23 @@ class GlossaryPromptManager:
             QMessageBox.critical(self._mw, "AI Translation", "System prompt not defined in prompts.json.")
             return None, None
 
-        glossary_path = self._resolve_file("glossary.md", plugin_name)
+        json_path = self._resolve_file("glossary.json", plugin_name)
+        md_path = self._resolve_file("glossary.md", plugin_name)
+        
+        glossary_path = json_path
+        if md_path and md_path.exists():
+            if not json_path or not json_path.exists() or md_path.stat().st_mtime > json_path.stat().st_mtime:
+                glossary_path = md_path
+        elif not json_path:
+            plugin_dir = self._plugin_dir(plugin_name)
+            glossary_path = (plugin_dir / "glossary.json") if plugin_dir else (self._fallback_dir() / "glossary.json")
+
         glossary_text = ""
-        if glossary_path:
+        if glossary_path and glossary_path.exists():
             try:
                 glossary_text = glossary_path.read_text("utf-8").strip()
             except Exception as e:
-                QMessageBox.warning(self._mw, "AI Translation", f"Failed to read glossary.md: {e}")
+                QMessageBox.warning(self._mw, "AI Translation", f"Failed to read glossary: {e}")
 
         self._current_glossary_path = glossary_path
         self._current_plugin_name = plugin_name
@@ -110,9 +120,20 @@ class GlossaryPromptManager:
     def initialize_highlighting(self) -> None:
         """Pre-load glossary text for syntax highlighting without a full prompts load."""
         plugin_name = getattr(self._mw, "active_game_plugin", None)
-        glossary_path = self._resolve_file("glossary.md", plugin_name)
+        
+        json_path = self._resolve_file("glossary.json", plugin_name)
+        md_path = self._resolve_file("glossary.md", plugin_name)
+        
+        glossary_path = json_path
+        if md_path and md_path.exists():
+            if not json_path or not json_path.exists() or md_path.stat().st_mtime > json_path.stat().st_mtime:
+                glossary_path = md_path
+        elif not json_path:
+            plugin_dir = self._plugin_dir(plugin_name)
+            glossary_path = (plugin_dir / "glossary.json") if plugin_dir else (self._fallback_dir() / "glossary.json")
+
         glossary_text = ""
-        if glossary_path:
+        if glossary_path and glossary_path.exists():
             try:
                 glossary_text = glossary_path.read_text(encoding="utf-8")
             except Exception as exc:

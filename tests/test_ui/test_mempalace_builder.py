@@ -85,3 +85,79 @@ def test_mempalace_builder_pipeline_orchestration(qapp):
         assert dialog.pipeline_running is False
         assert dialog.pipeline_step == 0
         mock_info.assert_called_once()
+
+
+def test_mempalace_builder_pipeline_session_persistence(qapp):
+    mock_mw = MagicMock()
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = None
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.data = [["Line"]]
+    mock_mw.data_store.block_names = {"0": "zel_00"}
+    
+    # Mock settings manager
+    mock_settings = {}
+    mock_mw.settings_manager = MagicMock()
+    def mock_set(key, val):
+        mock_settings[key] = val
+    def mock_get(key, default=None):
+        return mock_settings.get(key, default)
+    mock_mw.settings_manager.set.side_effect = mock_set
+    mock_mw.settings_manager.get.side_effect = mock_get
+    
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    
+    # 1. Start pipeline at step 2
+    dialog.pipeline_running = True
+    dialog.pipeline_step = 2
+    dialog.wing_edit.setText("Zelda_TEST")
+    dialog.file_path_edit.setText("d:/test/script.txt")
+    
+    # 2. Persist state
+    dialog._save_pipeline_state()
+    assert mock_settings["mempalace_pipeline_running"] is True
+    assert mock_settings["mempalace_pipeline_step"] == 2
+    assert mock_settings["mempalace_pipeline_wing"] == "Zelda_TEST"
+    assert mock_settings["mempalace_pipeline_script"] == "d:/test/script.txt"
+    
+    # 3. Create a new dialog and load settings to verify recovery
+    dialog2 = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog2.load_builder_settings()
+    assert dialog2.saved_pipeline_running is True
+    assert dialog2.saved_pipeline_step == 2
+    assert dialog2.saved_pipeline_wing == "Zelda_TEST"
+    assert dialog2.saved_pipeline_script == "d:/test/script.txt"
+    assert "Continue Pipeline (Step 2/4)" in dialog2.pipeline_btn.text()
+
+
+def test_mempalace_builder_sleep_checkboxes_enabled_during_execution(qapp):
+    mock_mw = MagicMock()
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = None
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.data = [["Line"]]
+    mock_mw.data_store.block_names = {"0": "zel_00"}
+    mock_mw.settings_manager = MagicMock()
+    
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    
+    # Verify checkboxes are enabled initially
+    assert dialog.prevent_sleep_checkbox.isEnabled() is True
+    assert dialog.sleep_after_checkbox.isEnabled() is True
+    
+    # Simulate background task running (UI disabled)
+    dialog._set_ui_enabled(False)
+    
+    # Checkboxes MUST remain enabled for dynamic toggling by user at any time
+    assert dialog.prevent_sleep_checkbox.isEnabled() is True
+    assert dialog.sleep_after_checkbox.isEnabled() is True
+    
+    # Restore normal state
+    dialog._set_ui_enabled(True)
+    assert dialog.prevent_sleep_checkbox.isEnabled() is True
+    assert dialog.sleep_after_checkbox.isEnabled() is True
+
