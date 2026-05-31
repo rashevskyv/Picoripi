@@ -9,14 +9,14 @@ def test_DataStateProcessor_is_string_translated():
     # Setup mock MainWindow and DataStore
     mw = MagicMock()
     ds = MagicMock()
-    ds.data = [["Original Text 1", "Original Text 2"]]
-    ds.edited_file_data = [["Original Text 1", "Original Text 2"]]
+    ds.data = [["Original Text 1", "Original Text 2", "", "{escape:0014} [PLAYER]"]]
+    ds.edited_file_data = [["Original Text 1", "Original Text 2", "", "{escape:0014} [PLAYER]"]]
     ds.edited_data = {}
     mw.data_store = ds
     
     dsp = DataStateProcessor(mw)
     
-    # 1. Initially it should not be translated
+    # 1. Initially it should not be translated for standard text
     assert not dsp.is_string_translated(0, 0)
     
     # 2. Add an identical text, should still be False
@@ -30,6 +30,12 @@ def test_DataStateProcessor_is_string_translated():
     # 4. Add a valid translation, should be True
     ds.edited_data[(0, 0)] = "Перекладений текст 1"
     assert dsp.is_string_translated(0, 0)
+
+    # 5. Empty original strings should immediately return True (doesn't need translation)
+    assert dsp.is_string_translated(0, 2)
+
+    # 6. Tag-only/whitespace original strings should immediately return True (doesn't need translation)
+    assert dsp.is_string_translated(0, 3)
 
 def test_DataStateProcessor_update_edited_data_metadata():
     mw = MagicMock()

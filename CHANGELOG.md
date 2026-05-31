@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.134] - 2026-05-31
+
+### Fixed
+- **Intelligent Block Progress Calculations**: Fixed a bug where blocks containing empty or tag-only original strings would never reach a 100% progress color fill because empty strings were considered "untranslated" by `is_string_translated()`. They are now treated as "completed" by default since they do not need manual translation, which ensures correct 100% green progress bar fill on fully completed files.
+- **Robust Progress State Unit Tests**: Added regression tests verifying that empty original strings and strings containing only tags/whitespace correctly return True in `is_string_translated()` inside `tests/test_handlers/test_translation/test_surrounding_context_and_metadata.py`.
+
 ## [0.2.133] - 2026-05-31
 
 ### Fixed
