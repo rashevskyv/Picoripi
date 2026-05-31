@@ -258,10 +258,12 @@ class AILifecycleManager(BaseTranslationHandler):
         if not state or not isinstance(user_content, str):
             return
         conversation_id = response.conversation_id if isinstance(response, ProviderResponse) else None
+        provider = context.get('provider') if isinstance(context, dict) else None
         state.record_exchange(
             user_content=user_content,
             assistant_content=assistant_content or '',
             conversation_id=conversation_id,
+            provider=provider,
         )
 
     def _clean_model_output(self, raw_output: Union[str, ProviderResponse], expect_json: bool = False) -> str:

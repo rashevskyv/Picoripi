@@ -268,6 +268,14 @@ class TreeContextMenuMixin:
                         lambda checked=False, idx=block_idx, cname=category_name: translator.translate_current_block(idx, cname)
                     )
 
+                # Translate All option
+                tall = menu.addAction(self.style().standardIcon(QStyle.SP_MessageBoxInformation), "AI: Translate All Blocks (UA Chronological)")
+                if hasattr(translator, "translate_all_blocks_chronologically"):
+                    tall.triggered.connect(lambda checked=False: translator.translate_all_blocks_chronologically())
+                else:
+                    # Fallback if not fully implemented in UI yet
+                    tall.triggered.connect(lambda checked=False: QMessageBox.information(self, "Translate All", "Translating all blocks chronologically according to script. (Will be run in background)"))
+
                 glossary_label = (
                     f"AI: Build Glossary for Virtual Block '{category_name}'"
                     if category_name

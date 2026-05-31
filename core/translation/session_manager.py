@@ -48,6 +48,7 @@ class TranslationSessionState:
         user_content: str,
         assistant_content: str,
         conversation_id: Optional[str],
+        provider: Optional[Any] = None,
     ) -> None:
         """Record the exchange and persist the conversation identifier."""
         self.bootstrapped = True
@@ -56,7 +57,72 @@ class TranslationSessionState:
         self.history.append({"role": "user", "content": user_content})
         self.history.append({"role": "assistant", "content": assistant_content})
         if len(self.history) > (MAX_HISTORY_MESSAGES * 2):
-            self.history = self.history[-(MAX_HISTORY_MESSAGES * 2):]
+            if provider:
+                self.compress_history(provider)
+            else:
+                self.history = self.history[-(MAX_HISTORY_MESSAGES * 2):]
+
+    def compress_history(self, provider: Any) -> None:
+        """Compress the oldest part of the history when it exceeds limits using the provider."""
+        if len(self.history) <= (MAX_HISTORY_MESSAGES * 2):
+            return
+            
+        from utils.logging_utils import log_debug, log_error
+        
+        num_messages_to_compress = MAX_HISTORY_MESSAGES
+        messages_to_compress = self.history[:num_messages_to_compress]
+        
+        log_debug(f"TranslationSessionState: Compressing older history ({len(messages_to_compress)} messages)...")
+        
+        # Pull any existing summary out of the first system message in history
+        previous_summary = ""
+        history_str_list = []
+        for msg in messages_to_compress:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "system":
+                # Extract previous summary text if present
+                previous_summary = content
+            else:
+                history_str_list.append(f"{role.upper()}: {content}")
+                
+        history_text = "\n\n".join(history_str_list)
+        
+        compression_sys_prompt = (
+            "You are an AI game localization assistant. Summarize the style, tone, character voices, "
+            "and key translation decisions from the provided translation history. "
+            "Focus strictly on Ukrainian translation details (e.g., formal/informal tone, "
+            "specific character speech traits, name translations). Keep the summary under 150 words."
+        )
+        
+        user_prompt = ""
+        if previous_summary:
+            user_prompt += f"Previous Style/Context Summary:\n{previous_summary}\n\n"
+        user_prompt += f"New Translation History to Summarize:\n\n{history_text}"
+        
+        compression_messages = [
+            {"role": "system", "content": compression_sys_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        try:
+            response = provider.translate(compression_messages)
+            summary_text = response.text.strip() if response and response.text else ""
+            
+            if summary_text:
+                log_debug("TranslationSessionState: History compressed successfully.")
+                summary_message = {
+                    "role": "system",
+                    "content": f"Style and context summary of earlier translated dialogue:\n{summary_text}"
+                }
+                remaining_history = self.history[num_messages_to_compress:]
+                self.history = [summary_message] + remaining_history
+            else:
+                log_debug("TranslationSessionState: Compression returned empty result. Truncating.")
+                self.history = self.history[num_messages_to_compress:]
+        except Exception as e:
+            log_error(f"TranslationSessionState: Failed to compress history: {e}")
+            self.history = self.history[num_messages_to_compress:]
 
 
 class TranslationSessionManager:
