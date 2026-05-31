@@ -258,7 +258,7 @@ class TranslationHandler(BaseHandler):
             if block_idx in self.translation_progress:
                 del self.translation_progress[block_idx]
 
-            self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None))
+            self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
             self.ui_updater.update_text_views()
         else:
             if block_idx in self.pre_translation_state:

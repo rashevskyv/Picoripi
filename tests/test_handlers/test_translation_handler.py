@@ -155,6 +155,7 @@ def test_th_prompt_for_revert_after_cancel(mock_box, th):
     th.data_processor.update_edited_data.assert_any_call(1, 0, "orig1")
     th.data_processor.update_edited_data.assert_any_call(1, 1, "orig2")
     assert 1 not in th.pre_translation_state
+    th.ui_updater.populate_strings_for_block.assert_called_with(1, ANY, force=True)
     
     # No revert chosen (which is QMessageBox.Yes)
     th.ui_handler.reset_mock()

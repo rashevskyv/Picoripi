@@ -453,6 +453,11 @@ class MainWindow(QMainWindow):
     @editors_font_size.setter
     def editors_font_size(self, val): self.settings_manager.set('editors_font_size', val)
 
+    @property
+    def tooltip_font_size(self): return self.settings_manager.get('tooltip_font_size', 11)
+    @tooltip_font_size.setter
+    def tooltip_font_size(self, val): self.settings_manager.set('tooltip_font_size', val)
+
 
     def handle_zoom(self, delta: int, target: str = 'all'):
         """Handle zooming in/out by adjusting font size and updating UI."""

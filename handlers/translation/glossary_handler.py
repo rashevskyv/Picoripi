@@ -199,6 +199,7 @@ class GlossaryHandler(BaseTranslationHandler):
             delete_callback=self._handle_glossary_entry_delete,
             ai_variation_callback=self._handle_notes_variation_from_dialog,
             ai_classify_callback=self.classify_glossary_via_ai,
+            global_replace_callback=self.global_replace_glossary,
             initial_term=initial_term,
         )
         self.dialog.finished.connect(self._on_glossary_dialog_closed)
@@ -658,3 +659,75 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         self.main_handler.ui_handler.finish_ai_operation()
         msg = error_message or "AI request failed."
         QMessageBox.warning(self.dialog if self.dialog else self.mw, "AI Error", msg)
+
+    def global_replace_glossary(self, find_word: str, replace_word: str) -> None:
+        # Build occurrence index BEFORE replacing so we know where old original terms were
+        data_source = getattr(self.mw.data_store, "data", [])
+        occurrence_map_before = self.glossary_manager.build_occurrence_index(data_source)
+
+        modified_list = self.glossary_manager.global_replace(find_word, replace_word)
+        if not modified_list:
+            QMessageBox.information(
+                self.dialog if self.dialog else self.mw,
+                "Global Replace",
+                f"No occurrences of '{find_word}' found in the glossary."
+            )
+            return
+
+        # Hot-reload in glossary dialog if visible
+        if self.dialog:
+            new_entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+            # Rebuild index on updated glossary to keep dialog occurrences in sync
+            occurrence_map_after = self.glossary_manager.build_occurrence_index(data_source)
+            self.dialog.reload_data(new_entries, occurrence_map_after)
+            
+        self._update_glossary_highlighting()
+        self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
+
+        # Filter and compile valid updates
+        valid_updates = []
+        for old_entry, previous_translation, updated_entry in modified_list:
+            occurrences = occurrence_map_before.get(old_entry.original, [])
+            filtered = [
+                occ for occ in occurrences
+                if self.data_processor.is_string_translated(occ.block_idx, occ.string_idx)
+            ]
+            if filtered:
+                # Compile updated occurrences pointing to the new entry
+                updated_occurrences = []
+                for occ in filtered:
+                    updated_occ = GlossaryOccurrence(
+                        entry=updated_entry,
+                        block_idx=occ.block_idx,
+                        string_idx=occ.string_idx,
+                        line_idx=occ.line_idx,
+                        start=occ.start,
+                        end=occ.end,
+                        line_text=occ.line_text
+                    )
+                    updated_occurrences.append(updated_occ)
+                
+                valid_updates.append((updated_entry, previous_translation, updated_occurrences))
+
+        if not valid_updates:
+            if self.mw.statusBar:
+                self.mw.statusBar.showMessage("Glossary replaced. No translated project occurrences need updating.", 4000)
+            return
+
+        # Sequential showing of update dialogs
+        def show_next_update():
+            if not valid_updates:
+                return
+            entry, prev_trans, occs = valid_updates.pop(0)
+            
+            self._occurrence_updater.show_translation_update_dialog(
+                entry=entry,
+                previous_translation=prev_trans,
+                occurrences=occs
+            )
+            
+            if self._occurrence_updater.translation_update_dialog:
+                self._occurrence_updater.translation_update_dialog.finished.connect(show_next_update)
+
+        show_next_update()
+

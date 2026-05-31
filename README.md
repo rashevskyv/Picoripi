@@ -1,6 +1,6 @@
-# Picoripi v0.2.137
+# Picoripi v0.2.138
 
-The "Picoripi" (v0.2.137) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.138) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -52,7 +52,7 @@ The "Picoripi" (v0.2.137) is a desktop application built with **Python** and **P
 - **Smart Category Navigation**: Opening a glossary entry from the context menu of translation editors automatically switches the active tab to the entry's category and scrolls/highlights the corresponding row.
 - **Translation Glossary Bridge**: Automatic highlighting of glossary terms in the translation field, now supporting **multi-line matching** and **multiple translation variations** (separated by `;`).
 - **Slavic Morphology Support**: Intelligent matching of inflected word forms (like "Меча", "Мечем") for Slavic languages using localized stemming.
-- **Interactive Tooltips**: Hovering over terms in either editor shows a tooltip with original/translation and dictionary notes. Responsive tooltips correctly track position even for multi-line terms.
+- **Interactive & Configurable Tooltips**: Hovering over terms displays a beautifully formatted tooltip containing the original word, translations, and notes formatted in complete Markdown (e.g. bold formatting, single-line breaks). Includes a global `"tooltip_font_size"` setting to dynamically scale both glossary and warning tooltips (from 6px to 32px) directly from the Global settings tab. Responsive tooltips correctly track position even for multi-line terms.
 - Quick access to notes and contextual explanations for specific terms.
 - Full CRUD operations: create, edit, search, and delete glossary entries.
 - **AI-powered glossary fill**: Automatically suggest translations for glossary terms using AI.

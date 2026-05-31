@@ -55,6 +55,15 @@ class GlossaryOccurrenceUpdater:
             self.translation_update_dialog.activateWindow()
             return
 
+        filtered_occurrences = [
+            occ for occ in occurrences
+            if self._main_handler.data_processor.is_string_translated(occ.block_idx, occ.string_idx)
+        ]
+        if not filtered_occurrences:
+            if self._mw.statusBar:
+                self._mw.statusBar.showMessage("No translated occurrences found to update.", 4000)
+            return
+
         self._current_translation_entry = entry
         self._previous_translation_value = previous_translation
         self._pending_ai_occurrences = []
@@ -64,7 +73,7 @@ class GlossaryOccurrenceUpdater:
             term=entry.original,
             old_translation=previous_translation,
             new_translation=entry.translation,
-            occurrences=occurrences,
+            occurrences=filtered_occurrences,
             get_original_text=self._get_occurrence_original_text,
             get_current_translation=self._get_occurrence_translation_text,
             apply_translation=self._apply_occurrence_translation,

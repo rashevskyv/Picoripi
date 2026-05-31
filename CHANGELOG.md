@@ -1,5 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.138] - 2026-05-31
+
+### Added
+- **Configurable Tooltip Font Size**: Introduced a new user setting `"tooltip_font_size"` that allows dynamic scaling of all HTML-based tooltips (both glossary tooltips and real-time issue warnings).
+- **Settings UI Control**: Added a new numeric spinbox `"Tooltip Font Size:"` under the *Global* tab in the Settings Dialog, with a valid range of 6px to 32px (defaulting to 11px).
+- **Dynamic Tooltip Scaling**:
+  - Upgraded glossary tooltips in `LineNumberedTextEdit` to dynamically read and apply the configured `tooltip_font_size` across terms and notes.
+  - Upgraded real-time issue warning tooltips in `LNETTooltipLogic` to scale responsively by wrapping their content inside a dynamically-sized `div` container.
+- **Robust Settings Unit Tests**: Added a regression test `test_GlobalSettings_saves_and_loads_tooltip_font_size` in `tests/test_core/test_settings/test_global_settings.py` verifying that the tooltip font size is persisted and reloaded correctly in `settings.json`.
+
+### Fixed
+- **Markdown Notes Rendering in Glossary Tooltips**: Upgraded glossary tooltips to render notes formatted with full Markdown syntax (bold text, lists, line breaks) using the `markdown` library with the `nl2br` extension for single-line breaks.
+- **Glossary Highlights Regression**: Fixed a critical bug in `text_operation_handler.py` where glossary highlighting was lost in the translation editor. Decoupled the syntax highlighter by retrieving the active `_glossary_manager` directly through the active editor's `highlighter`.
+- **Sync Issues on Block Revert**: Resolved a sync issue where cancel/revert on AI block translations would revert text fields but fail to refresh the preview tree. Added `force=True` to the string loading queue to clear preview cache on block revert.
+
 ## [0.2.137] - 2026-05-31
 
 ### Fixed

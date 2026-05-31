@@ -207,3 +207,33 @@ def test_gou_request_glossary_notes_variation(mock_box, updater):
     
     assert updater.request_glossary_notes_variation(term="t", translation="tr", current_notes="n", context_line="ctx", dialog=None)
     updater._main_handler.ai_lifecycle_manager.run_ai_task.assert_called_once()
+
+
+def test_gou_show_translation_update_dialog_filtering(mock_gh, updater):
+    updater._main_handler.data_processor.is_string_translated.side_effect = lambda b, s: s == 1
+    
+    entry = GlossaryEntry("t", "tr")
+    occ0 = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "line0")
+    occ1 = GlossaryOccurrence(entry, 0, 1, 0, 0, 0, "line1")
+    
+    with patch('handlers.translation.glossary_occurrence_updater.GlossaryTranslationUpdateDialog') as mock_dialog:
+        updater.show_translation_update_dialog(entry=entry, previous_translation="old", occurrences=[occ0, occ1])
+        
+        mock_dialog.assert_called_once()
+        kwargs = mock_dialog.call_args[1]
+        assert len(kwargs['occurrences']) == 1
+        assert kwargs['occurrences'][0] == occ1
+
+
+def test_gou_show_translation_update_dialog_no_translated_occurrences(mock_gh, updater):
+    updater._main_handler.data_processor.is_string_translated.return_value = False
+    
+    entry = GlossaryEntry("t", "tr")
+    occ = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "line")
+    
+    with patch('handlers.translation.glossary_occurrence_updater.GlossaryTranslationUpdateDialog') as mock_dialog:
+        updater.show_translation_update_dialog(entry=entry, previous_translation="old", occurrences=[occ])
+        
+        mock_dialog.assert_not_called()
+        updater._mw.statusBar.showMessage.assert_called_with("No translated occurrences found to update.", 4000)
+

@@ -253,7 +253,7 @@ class TextOperationHandler(BaseHandler):
                 font_map=dict(font_map_for_string),
                 width_threshold=width_threshold_for_string,
                 analyzer=analyzer,
-                glossary_manager=getattr(edited_edit, '_glossary_manager', None),
+                glossary_manager=getattr(getattr(edited_edit, 'highlighter', None), '_glossary_manager', None),
                 spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
                 source_text=source_text,
                 active_word=active_word,

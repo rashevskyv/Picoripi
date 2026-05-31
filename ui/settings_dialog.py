@@ -196,6 +196,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self._populate_font_list(current_plugin_dir_name)
         
         self.font_size_spinbox.setValue(self.mw.current_font_size)
+        self.tooltip_font_size_spinbox.setValue(getattr(self.mw, 'tooltip_font_size', 11))
         self.show_spaces_checkbox.setChecked(self.mw.show_multiple_spaces_as_dots)
         self.space_dot_color_picker.setColor(QColor(self.mw.space_dot_color_hex))
         self.restore_session_checkbox.setChecked(self.mw.restore_unsaved_on_startup)
@@ -431,7 +432,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
         return {
             'theme': self.theme_combo.currentText().lower(), 'active_game_plugin': selected_dir_name,
-            'font_size': self.font_size_spinbox.value(), 'show_multiple_spaces_as_dots': self.show_spaces_checkbox.isChecked(),
+            'font_size': self.font_size_spinbox.value(),
+            'tooltip_font_size': self.tooltip_font_size_spinbox.value(),
+            'show_multiple_spaces_as_dots': self.show_spaces_checkbox.isChecked(),
             'space_dot_color_hex': self.space_dot_color_picker.color().name(), 'restore_unsaved_on_startup': self.restore_session_checkbox.isChecked(),
             'prompt_editor_enabled': self.prompt_editor_checkbox.isChecked(),
             'preview_enabled': self.preview_enabled_checkbox.isChecked(),

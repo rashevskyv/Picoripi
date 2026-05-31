@@ -1,9 +1,38 @@
 # components/ai_status_dialog.py ---
 import os
+import ctypes
 from typing import Optional
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QWidget, QProgressBar, QDialogButtonBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QWidget, QProgressBar, QDialogButtonBox, QCheckBox
 from PyQt5.QtGui import QMovie, QFont, QPalette
 from PyQt5.QtCore import Qt, QSize, pyqtSignal, QEvent
+from utils.logging_utils import log_info, log_error
+
+def prevent_sleep():
+    if os.name == 'nt':
+        try:
+            # ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+            log_info("System sleep prevention activated for AI operation.")
+        except Exception as e:
+            log_error(f"Failed to set sleep prevention: {e}")
+
+def restore_sleep():
+    if os.name == 'nt':
+        try:
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+            log_info("System sleep prevention deactivated.")
+        except Exception as e:
+            log_error(f"Failed to restore sleep state: {e}")
+
+def put_to_sleep():
+    if os.name == 'nt':
+        try:
+            # SetSuspendState(False, True, False) -> sleep
+            ctypes.windll.powrprof.SetSuspendState(0, 1, 0)
+            log_info("System suspended successfully after AI operation.")
+        except Exception as e:
+            log_error(f"Failed to suspend system: {e}")
+            os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
 
 class AIStatusDialog(QDialog):
     cancelled = pyqtSignal()
@@ -15,7 +44,7 @@ class AIStatusDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("AI Operation")
-        self.setModal(True)
+        self.setModal(False)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setMinimumWidth(450)
         self.setSizeGripEnabled(False)
@@ -92,6 +121,23 @@ class AIStatusDialog(QDialog):
         self.progress_bar.setVisible(False)
         main_layout.addWidget(self.progress_bar)
 
+        # Sleep options
+        sleep_layout = QHBoxLayout()
+        self.prevent_sleep_checkbox = QCheckBox("Prevent computer sleep", self)
+        self.prevent_sleep_checkbox.setToolTip("Keep the computer awake while AI operation is running.")
+        self.prevent_sleep_checkbox.setChecked(True)
+        self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
+        
+        self.sleep_after_checkbox = QCheckBox("Put computer to sleep when finished", self)
+        self.sleep_after_checkbox.setToolTip("Suspend/Sleep the computer automatically after the AI task completes.")
+        self.sleep_after_checkbox.setChecked(False)
+        self.sleep_after_checkbox.toggled.connect(self._handle_sleep_after_toggled)
+        
+        sleep_layout.addWidget(self.prevent_sleep_checkbox)
+        sleep_layout.addWidget(self.sleep_after_checkbox)
+        sleep_layout.addStretch()
+        main_layout.addLayout(sleep_layout)
+
         self.button_box = QDialogButtonBox(self)
         self.cancel_button = self.button_box.addButton("Cancel", QDialogButtonBox.RejectRole)
         main_layout.addWidget(self.button_box)
@@ -101,10 +147,12 @@ class AIStatusDialog(QDialog):
     def on_cancel(self):
         self.cancelled.emit()
         self.reject()
+        restore_sleep()
 
     def closeEvent(self, event: QEvent):
         self.cancelled.emit()
         super().closeEvent(event)
+        restore_sleep()
 
     def setup_progress_bar(self, total_chunks: int, completed_chunks: int = 0):
         self.progress_bar.setRange(0, total_chunks)
@@ -146,13 +194,31 @@ class AIStatusDialog(QDialog):
             self.progress_bar.setFormat("Processing...")
             self.progress_bar.setVisible(True)
 
-        self.open()
+        if self.prevent_sleep_checkbox.isChecked():
+            prevent_sleep()
+
+        self.show()
 
     def finish(self):
         self._set_model_name(None)
         self.detail_label.clear()
         self.detail_label.setVisible(False)
         self.hide()
+        
+        restore_sleep()
+        if self.sleep_after_checkbox.isChecked():
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(5000, put_to_sleep)
+
+    def _handle_prevent_sleep_toggled(self, checked: bool):
+        if self.isVisible():
+            if checked:
+                prevent_sleep()
+            else:
+                restore_sleep()
+
+    def _handle_sleep_after_toggled(self, checked: bool):
+        pass
 
     def _set_model_name(self, model_name: Optional[str]) -> None:
         text = (model_name or '').strip()
