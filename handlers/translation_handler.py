@@ -428,6 +428,9 @@ class TranslationHandler(BaseHandler):
             f"Starting block AI translation for block {target_block_idx} with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
         )
 
+        # Always build temp_id_map to prevent index shifting bugs during segment reordering
+        temp_id_map = {idx: (target_block_idx, idx) for idx in target_indices if idx < len(block_strings)}
+
         task_details = {
             'type': 'translate_block_chunked',
             'provider': provider,
@@ -435,13 +438,13 @@ class TranslationHandler(BaseHandler):
             'attempt': 1,
             'max_retries': 4,
             'block_idx': target_block_idx,
+            'temp_id_map': temp_id_map,
             'mode_description': f"block {target_block_idx + 1}" if not category_name else f"category '{category_name}' in block {target_block_idx + 1}",
             'provider_settings_override': {'timeout': block_timeout},
             'timeout_seconds': block_timeout,
             'session_reset_attempted': False
         }
         self._initiate_batch_translation(task_details)
-
     def resume_block_translation(self, block_idx: int) -> None:
         if block_idx not in self.translation_progress:
             QMessageBox.information(self.mw, "Resume Translation", "No active translation session found for this block.")
@@ -473,6 +476,10 @@ class TranslationHandler(BaseHandler):
 
         operation_title = f"Resuming Translation (Block {target_block_idx + 1})"
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
+        # Recover or rebuild temp_id_map for safe segment mapping during resume
+        temp_id_map = progress_entry.get('temp_id_map', {})
+        if not temp_id_map:
+            temp_id_map = {item['id']: (target_block_idx, item['id']) for item in source_items if isinstance(item, dict) and 'id' in item}
 
         task_details = {
             'type': 'translate_block_chunked',
@@ -481,6 +488,7 @@ class TranslationHandler(BaseHandler):
             'attempt': 1,
             'max_retries': 4,
             'block_idx': target_block_idx,
+            'temp_id_map': temp_id_map,
             'mode_description': f"block {target_block_idx + 1}",
             'provider_settings_override': {'timeout': block_timeout},
             'timeout_seconds': block_timeout,
@@ -677,24 +685,65 @@ class TranslationHandler(BaseHandler):
         try:
             block_idx = context['block_idx']
             parsed_json = json.loads(chunk_text)
-            translated_strings = parsed_json.get("translated_strings")
+            translated_strings = parsed_json.get("translated_strings", [])
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.begin_group()
 
             temp_id_map = context.get('temp_id_map')
             modified_blocks = set()
 
-            for item in translated_strings:
-                temp_id, translated_text = item["id"], item["translation"]
-                if temp_id_map and temp_id in temp_id_map:
-                    real_block_idx, real_string_idx = temp_id_map[temp_id]
-                else:
-                    real_block_idx = block_idx
-                    real_string_idx = temp_id
+            # Retrieve calculated chunks for robust sequential mapping in case AI returns sequential/reordered IDs
+            chunks = context.get('calculated_chunks')
+            current_chunk = chunks[chunk_index] if (chunks and chunk_index < len(chunks)) else None
 
-                modified_blocks.add(real_block_idx)
-                final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
-                self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+            for idx_in_response, item in enumerate(translated_strings):
+                temp_id, translated_text = item["id"], item["translation"]
+                
+                # 1. First, try to resolve real block/string indices using sequential order inside the chunk
+                # (Highly robust against LLMs completely changing ID format or returning sequential indices 0, 1, 2...)
+                resolved = False
+                if current_chunk and idx_in_response < len(current_chunk):
+                    orig_item = current_chunk[idx_in_response]
+                    orig_id = orig_item.get('id') if isinstance(orig_item, dict) else None
+                    if orig_id is not None:
+                        if temp_id_map and orig_id in temp_id_map:
+                            real_block_idx, real_string_idx = temp_id_map[orig_id]
+                            resolved = True
+                        elif not temp_id_map:
+                            real_block_idx = block_idx
+                            real_string_idx = orig_id
+                            resolved = True
+                
+                # 2. Fallback to mapping by ID in temp_id_map (with type-safe conversions)
+                if not resolved:
+                    if temp_id_map:
+                        # Try integer conversion
+                        try:
+                            int_id = int(temp_id)
+                            if int_id in temp_id_map:
+                                real_block_idx, real_string_idx = temp_id_map[int_id]
+                                resolved = True
+                        except (ValueError, TypeError):
+                            pass
+                        
+                        # Try string key fallback
+                        if not resolved:
+                            str_id = str(temp_id)
+                            if str_id in temp_id_map:
+                                real_block_idx, real_string_idx = temp_id_map[str_id]
+                                resolved = True
+                    else:
+                        try:
+                            real_block_idx = block_idx
+                            real_string_idx = int(temp_id)
+                            resolved = True
+                        except (ValueError, TypeError):
+                            pass
+
+                if resolved:
+                    modified_blocks.add(real_block_idx)
+                    final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
+                    self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
             
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("TRANSLATE")

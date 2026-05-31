@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.136] - 2026-05-31
+
+### Fixed
+- **Index Shifting in Block Translation**: Fixed a critical regression where dialogue translations could shift and align with incorrect original strings, or empty slots could receive texts. This was caused by the chronological scene-based reordering in `AIWorker.run()` for chunked block translation, which altered the original block sequence. If the AI returned simplified sequential IDs (e.g., `0, 1, 2...`) instead of the sparse segment keys, they were incorrectly mapped as direct block row indices when `temp_id_map` was absent.
+- **Robust Sequential Mapping**: Implemented a highly resilient **sequence-based mapping** in `TranslationHandler._handle_chunk_translated()`. Translations returned by the AI are now matched step-by-step with the original items of the sent chunk in sequential order (since LLMs consistently preserve translation order). It safely extracts the true block and string indices from the sent chunk data and `temp_id_map`. Additionally, a fallback maps via `temp_id_map` using safe type conversions (handling both `int` and `str` key formats).
+- **Persistent Chunk Tracking**: Updated `AIWorker.run()` to store the dynamically calculated/ordered scene chunks directly inside `self.task_details['calculated_chunks']`, making them available for reliable sequential parsing in callbacks.
+- **Always-On Temp ID Maps**: Updated `translate_current_block()` and `resume_block_translation()` to always generate and pass a valid `temp_id_map` into the translation task details, preventing any segment index mismatching.
+
 ## [0.2.135] - 2026-05-31
 
 ### Fixed
