@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.133] - 2026-05-31
+
+### Fixed
+- **Persistent Glossary Tooltips in Editor**: Fixed a UX bug where hovering over a glossary word in the translation editor would fail to display the tooltip again after it had been hidden by timeout or after the mouse briefly left the text editor viewport. Added state resetting (`_last_tooltip_state = None`) in `leaveEvent()` and bypassed caching limits in `mouseMoveEvent()` if `not QToolTip.isVisible()`, ensuring buttery-smooth and highly responsive tooltips on repeated hovering.
+- **Robust Tooltip Unit Tests**: Added regression tests `test_glossary_tooltip_resets_on_leave_event` and `test_glossary_tooltip_reappears_when_hidden_by_timeout` in `tests/test_ui/test_glossary_ui_logic.py` verifying correct state resetting and visibility overrides.
+
 ## [0.2.132] - 2026-05-31
 
 ### Added
