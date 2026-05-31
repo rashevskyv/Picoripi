@@ -243,3 +243,25 @@ class TestPreviewUpdater:
         assert first_insert_arg == "Hello 200"
 
         assert not updater._lazy_load_timer.isActive()
+
+    def test_populate_strings_syncs_subline_asterisks(self, updater):
+        edited_edit = MagicMock()
+        edited_edit.toPlainText.return_value = "new text"
+        updater.mw.edited_text_edit = edited_edit
+        
+        updater.mw.data_store.current_block_idx = 0
+        updater.mw.data_store.current_string_idx = 0
+        
+        # Mock get_current_string_text to return different texts so update triggers
+        updater.data_processor.get_current_string_text.return_value = ("different text", None)
+        
+        # Mock text_operation_handler
+        toh = MagicMock()
+        updater.mw.text_operation_handler = toh
+        
+        # Trigger update_text_views
+        updater.update_text_views()
+        
+        # Verify sync_subline_asterisks was called
+        toh.sync_subline_asterisks.assert_called_once_with(0, 0, "different text")
+

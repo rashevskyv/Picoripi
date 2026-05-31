@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.137] - 2026-05-31
+
+### Fixed
+- **Unsaved Changes Indicator in Window Title**: Fixed a bug where the window title asterisk (`*`) indicating unsaved changes did not appear when blocks were translated programmatically in the background via AI (batch block translations or chunked previews). Added explicit `self.ui_updater.update_title()` triggers immediately inside `TranslationHandler._handle_chunk_translated()` and `TranslationHandler._handle_preview_translation_success()` callbacks.
+- **Granular Subline Asterisk Synchronization**: Enhanced the `update_text_views` pipeline in `PreviewUpdater`. When text is programmatically replaced inside the translation editor (such as immediately after a background AI translation finishes for the current string), `sync_subline_asterisks()` is now dynamically invoked on the spot. This ensures that subline asterisks on the gutter update instantaneously without requiring the user to navigate away and back.
+- **Robust Integration Unit Tests**: Added complete regression tests `test_th_handle_chunk_translated_updates_title` and `test_th_handle_preview_translation_success_updates_title` in `tests/test_handlers/test_translation_handler.py`, alongside `test_populate_strings_syncs_subline_asterisks` in `tests/test_ui/test_updaters/test_small_updaters.py` verifying seamless asterisk propagation.
+
 ## [0.2.136] - 2026-05-31
 
 ### Fixed
