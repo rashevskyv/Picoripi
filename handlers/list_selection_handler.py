@@ -45,22 +45,108 @@ class ListSelectionHandler(BaseHandler):
 
         self.mw.is_programmatically_changing_text = True
         try:
+            is_virtual_row = current_item.data(0, Qt.UserRole + 12)
+            if is_virtual_row:
+                b_idx = current_item.data(0, Qt.UserRole)
+                s_idx = current_item.data(0, Qt.UserRole + 1)
+                ch_id = current_item.data(0, Qt.UserRole + 11)
+                
+                self.mw.data_store.current_block_idx = b_idx
+                self.mw.data_store.current_string_idx = s_idx
+                self.mw.data_store.current_chapter_id = ch_id
+                self.mw.data_store.current_category_name = None
+                
+                # Fetch mappings from MemePalace client
+                chapter_mappings = []
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    client = composer.prompt_composer._get_mempalace_client()
+                    if client:
+                        wing_name = composer.prompt_composer._get_wing_name()
+                        mappings = client.get_chapter_mappings(wing_name, ch_id)
+                        for m in mappings:
+                            bmg_id = m.get("bmg_id")
+                            indices = self.resolve_bmg_id_to_indices(bmg_id)
+                            if indices:
+                                chapter_mappings.append(indices)
+                self.mw.data_store.chapter_mappings = chapter_mappings
+                
+                self.ui_updater.populate_strings_for_block(-2)
+                
+                # Find relative index for preview
+                rel_idx = -1
+                displayed_indices = self._get_displayed_indices()
+                target_tuple = (b_idx, s_idx)
+                if target_tuple in displayed_indices:
+                    rel_idx = displayed_indices.index(target_tuple)
+                
+                if rel_idx != -1:
+                    QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
+                else:
+                    self.ui_updater.update_text_views()
+                    
+                self.ui_updater.update_statusbar_paths()
+                self._update_block_toolbar_button_states(-2)
+                return
+
             block_index = current_item.data(0, Qt.UserRole)
             category_name = current_item.data(0, Qt.UserRole + 10)
+            chapter_id = current_item.data(0, Qt.UserRole + 11)
             
+            if chapter_id is not None:
+                # Chapter item selected
+                self.mw.data_store.current_block_idx = -2
+                self.mw.data_store.current_category_name = None
+                self.mw.data_store.current_chapter_id = chapter_id
+                
+                # Fetch mappings from MemePalace client
+                chapter_mappings = []
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    client = composer.prompt_composer._get_mempalace_client()
+                    if client:
+                        wing_name = composer.prompt_composer._get_wing_name()
+                        mappings = client.get_chapter_mappings(wing_name, chapter_id)
+                        for m in mappings:
+                            bmg_id = m.get("bmg_id")
+                            indices = self.resolve_bmg_id_to_indices(bmg_id)
+                            if indices:
+                                chapter_mappings.append(indices)
+                self.mw.data_store.chapter_mappings = chapter_mappings
+                
+                self.ui_updater.populate_strings_for_block(-2)
+                
+                if chapter_mappings:
+                    first_mapping = chapter_mappings[0]
+                    self.mw.data_store.current_block_idx = first_mapping[0]
+                    self.mw.data_store.current_string_idx = first_mapping[1]
+                    QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
+                else:
+                    self.mw.data_store.current_block_idx = -1
+                    self.mw.data_store.current_string_idx = -1
+                    self.ui_updater.update_text_views()
+                    
+                self.ui_updater.update_statusbar_paths()
+                self._update_block_toolbar_button_states(-2)
+                return
+
             if block_index is None:
                 self.mw.data_store.current_block_idx = -1
                 self.mw.data_store.current_string_idx = -1
                 self.mw.data_store.current_category_name = None
+                self.mw.data_store.current_chapter_id = None
+                self.mw.data_store.chapter_mappings = []
                 self.ui_updater.populate_strings_for_block(-1)
                 if hasattr(self.mw, 'string_settings_updater'):
                     self.mw.string_settings_updater.update_string_settings_panel()
                 self._update_block_toolbar_button_states(-1)
                 return
 
-            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name:
+            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or self.mw.data_store.current_chapter_id is not None:
                 self.mw.data_store.current_block_idx = block_index
                 self.mw.data_store.current_category_name = category_name
+                self.mw.data_store.current_chapter_id = None
+                self.mw.data_store.chapter_mappings = []
                 
                 # Restore selection logic
                 target_string_idx = -1
@@ -91,7 +177,6 @@ class ListSelectionHandler(BaseHandler):
                     
                     if rel_idx != -1:
                         # Schedule selection to avoid recursion issues
-                        from PyQt5.QtCore import QTimer
                         QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
                 else:
                     self.ui_updater.update_text_views()
@@ -132,7 +217,15 @@ class ListSelectionHandler(BaseHandler):
             )
 
         current_item = self.mw.block_list_widget.currentItem()
-        if has_project and current_item:
+        is_chapter = False
+        if current_item:
+            from unittest.mock import MagicMock
+            role_val = current_item.data(0, Qt.UserRole)
+            ch_val = current_item.data(0, Qt.UserRole + 11)
+            if not isinstance(role_val, MagicMock):
+                is_chapter = (role_val == -2 or ch_val is not None)
+
+        if has_project and current_item and not is_chapter:
             parent = current_item.parent() or self.mw.block_list_widget.invisibleRootItem()
             index = parent.indexOfChild(current_item)
             is_first = index == 0
@@ -186,16 +279,61 @@ class ListSelectionHandler(BaseHandler):
                 )
 
 
+    def resolve_bmg_id_to_indices(self, bmg_id: str) -> Optional[Tuple[int, int]]:
+        """Resolve a BMG ID like 'main_Str_125' to (block_idx, string_idx)."""
+        if not bmg_id or "_Str_" not in bmg_id:
+            return None
+        try:
+            parts = bmg_id.rsplit("_Str_", 1)
+            if len(parts) != 2:
+                return None
+            block_label, s_idx_str = parts
+            s_idx = int(s_idx_str)
+            
+            # Special case for general 'BMG' prefix (e.g. BMG_Str_0 in Zelda TP)
+            if block_label == "BMG":
+                for b_idx in range(len(self.mw.data_store.data)):
+                    composer = getattr(self.mw, "translation_handler", None)
+                    if composer and hasattr(composer, "prompt_composer"):
+                        label = composer.prompt_composer._get_block_label(b_idx)
+                    else:
+                        label = f"Block_{b_idx}"
+                    if label == "BMG" or "zel_00" in label.lower() or b_idx == 0:
+                        return b_idx, s_idx
+            
+            for b_idx in range(len(self.mw.data_store.data)):
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    label = composer.prompt_composer._get_block_label(b_idx)
+                else:
+                    label = f"Block_{b_idx}"
+                if label == block_label:
+                    return b_idx, s_idx
+        except Exception as e:
+            log_debug(f"Failed to resolve bmg_id {bmg_id}: {e}")
+        return None
+
     def select_string_by_absolute_index(self, absolute_idx: int) -> None:
         """Select a string using its absolute index in block data, handling relative mapping automatically."""
         if absolute_idx == -1: return
 
         rel_idx: int = -1
         displayed_indices = self._get_displayed_indices()
-        if absolute_idx in displayed_indices:
-            rel_idx = displayed_indices.index(absolute_idx)
+        
+        is_chapter = getattr(self.mw.data_store, 'current_block_idx', -1) == -2
+        if is_chapter:
+            target_tuple = None
+            for item in displayed_indices:
+                if isinstance(item, tuple) and len(item) == 2 and item[1] == absolute_idx:
+                    target_tuple = item
+                    break
+            if target_tuple is not None:
+                rel_idx = displayed_indices.index(target_tuple)
         else:
-            rel_idx = absolute_idx # Fallback if no mapping exists
+            if absolute_idx in displayed_indices:
+                rel_idx = displayed_indices.index(absolute_idx)
+            else:
+                rel_idx = absolute_idx # Fallback if no mapping exists
 
         # If strings are not yet populated (e.g. initial load), displayed_string_indices might be empty.
         # string_selected_from_preview will handle further validation.
@@ -221,7 +359,15 @@ class ListSelectionHandler(BaseHandler):
             else:
                 real_idx = -1
 
-        if self.mw.data_store.current_block_idx == -1 or real_idx == -1:
+        curr_b_idx = self.mw.data_store.current_block_idx
+        curr_s_idx = -1
+        
+        if isinstance(real_idx, tuple) and len(real_idx) == 2:
+            curr_b_idx, curr_s_idx = real_idx
+        else:
+            curr_s_idx = real_idx
+
+        if curr_b_idx == -1 or curr_s_idx == -1:
             self.mw.data_store.current_string_idx = -1
             if preview_edit and hasattr(preview_edit, 'highlightManager'):
                  preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
@@ -232,9 +378,9 @@ class ListSelectionHandler(BaseHandler):
             return
 
         is_valid_line = False
-        if 0 <= self.mw.data_store.current_block_idx < len(self.mw.data_store.data) and \
-           isinstance(self.mw.data_store.data[self.mw.data_store.current_block_idx], list) and \
-           0 <= real_idx < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]):
+        if 0 <= curr_b_idx < len(self.mw.data_store.data) and \
+           isinstance(self.mw.data_store.data[curr_b_idx], list) and \
+           0 <= curr_s_idx < len(self.mw.data_store.data[curr_b_idx]):
             is_valid_line = True
         
         previous_string_idx = self.mw.data_store.current_string_idx
@@ -244,35 +390,39 @@ class ListSelectionHandler(BaseHandler):
             if preview_edit and hasattr(preview_edit, 'highlightManager'):
                 preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
         else:
-            self.mw.data_store.current_string_idx = real_idx
+            # Update current_block_idx if we switched to a different block inside the chapter view
+            if self.mw.data_store.current_block_idx != curr_b_idx:
+                self.mw.data_store.current_block_idx = curr_b_idx
+
+            self.mw.data_store.current_string_idx = curr_s_idx
             self.mw.data_store.edited_sublines.clear() # Clear editor sublines on line change
             
             # Restore subline asterisks if the selected line has unsaved changes in memory
-            if (self.mw.data_store.current_block_idx, real_idx) in self.mw.data_store.edited_data:
-                current_text = self.mw.data_store.edited_data[(self.mw.data_store.current_block_idx, real_idx)]
+            if (curr_b_idx, curr_s_idx) in self.mw.data_store.edited_data:
+                current_text = self.mw.data_store.edited_data[(curr_b_idx, curr_s_idx)]
                 if hasattr(self.mw, 'text_operation_handler'):
                     self.mw.text_operation_handler.sync_subline_asterisks(
-                        self.mw.data_store.current_block_idx, real_idx, current_text
+                        curr_b_idx, curr_s_idx, current_text
                     )
 
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
                 cat = getattr(self.mw.data_store, 'current_category_name', None)
                 self.mw.undo_manager.record_navigation(
-                    self.mw.data_store.current_block_idx, real_idx, 
-                    self.mw.data_store.current_block_idx, previous_string_idx,
+                    curr_b_idx, curr_s_idx, 
+                    curr_b_idx, previous_string_idx,
                     cat, cat
                 )
 
             if previous_string_idx != self.mw.data_store.current_string_idx and previous_string_idx != -1:
-                self.ui_updater.update_block_item_text_with_problem_count(self.mw.data_store.current_block_idx)
+                self.ui_updater.update_block_item_text_with_problem_count(curr_b_idx)
             
             # Save selection to project
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                 project = self.mw.project_manager.project
                 if hasattr(self.mw, 'block_to_project_file_map'):
-                    project_block_idx = self.mw.block_to_project_file_map.get(self.mw.data_store.current_block_idx)
+                    project_block_idx = self.mw.block_to_project_file_map.get(curr_b_idx)
                     if project_block_idx is not None and project_block_idx < len(project.blocks):
-                        project.blocks[project_block_idx].last_selected_string_idx = real_idx
+                        project.blocks[project_block_idx].last_selected_string_idx = curr_s_idx
 
         self.ui_updater.update_text_views()
         if hasattr(self.mw, 'string_settings_updater'):
@@ -286,8 +436,16 @@ class ListSelectionHandler(BaseHandler):
             # Find relative index for preview
             rel_idx = -1
             displayed_indices = self._get_displayed_indices()
-            if self.mw.data_store.current_string_idx in displayed_indices:
-                rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
+            
+            # Check if we are in chapter mode by checking if first element is a tuple or current_chapter_id is set
+            is_chapter = getattr(self.mw.data_store, 'current_chapter_id', None) is not None or (displayed_indices and isinstance(displayed_indices[0], tuple))
+            if is_chapter:
+                target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                if target_tuple in displayed_indices:
+                    rel_idx = displayed_indices.index(target_tuple)
+            else:
+                if self.mw.data_store.current_string_idx in displayed_indices:
+                    rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
 
             if rel_idx != -1 and hasattr(preview_edit, 'set_selected_lines'): 
                 preview_edit.set_selected_lines([rel_idx])
@@ -585,8 +743,14 @@ class ListSelectionHandler(BaseHandler):
                         # Find the relative index for the current string to highlight it
                         rel_idx = -1
                         displayed_indices = self._get_displayed_indices()
-                        if self.mw.data_store.current_string_idx in displayed_indices:
-                            rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
+                        is_chapter = getattr(self.mw.data_store, 'current_chapter_id', None) is not None or (displayed_indices and isinstance(displayed_indices[0], tuple))
+                        if is_chapter:
+                            target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                            if target_tuple in displayed_indices:
+                                rel_idx = displayed_indices.index(target_tuple)
+                        else:
+                            if self.mw.data_store.current_string_idx in displayed_indices:
+                                rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
                         if rel_idx != -1:
                             preview_edit.set_selected_lines([rel_idx])
                 return
@@ -624,9 +788,14 @@ class ListSelectionHandler(BaseHandler):
         # If only one selected, update current_string_idx
         if len(abs_indices) == 1:
             target_idx = abs_indices[0]
-            if self.mw.data_store.current_string_idx != target_idx:
-                # Update current_string_idx so other views follow
-                self.mw.data_store.current_string_idx = target_idx
+            target_b_idx = self.mw.data_store.current_block_idx
+            target_s_idx = target_idx
+            if isinstance(target_idx, tuple) and len(target_idx) == 2:
+                target_b_idx, target_s_idx = target_idx
+            
+            if self.mw.data_store.current_string_idx != target_s_idx or self.mw.data_store.current_block_idx != target_b_idx:
+                self.mw.data_store.current_block_idx = target_b_idx
+                self.mw.data_store.current_string_idx = target_s_idx
                 self.ui_updater.update_text_views()
                 if hasattr(self.mw, 'string_settings_updater'):
                     self.mw.string_settings_updater.update_string_settings_panel()

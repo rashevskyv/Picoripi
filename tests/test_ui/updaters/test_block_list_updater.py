@@ -92,3 +92,58 @@ def test_BlockListUpdater_clear_all_problem_block_highlights_and_text(updater):
     
     assert item.text(0) == "Block Zero"
     assert item.toolTip(0) == ""
+
+
+def test_BlockListUpdater_populate_chapters(updater):
+    # Setup mock for mempalace client and chapters
+    mock_client = MagicMock()
+    mock_client.get_all_chapters.return_value = [
+        {"num": "Act 1, Ch 1", "title": "Ordon Village", "id": 10},
+        {"num": "Act 2, Ch 1", "title": "Faron Woods", "id": 20}
+    ]
+    mock_client.get_chapter_mappings.return_value = [
+        {"bmg_id": "main_Str_10", "script_line": 100, "bmg_text": "Hello World"}
+    ]
+    
+    # Mock translation_handler and prompt_composer
+    composer = MagicMock()
+    composer.prompt_composer._get_mempalace_client.return_value = mock_client
+    composer.prompt_composer._get_wing_name.return_value = "tp"
+    updater.mw.translation_handler = composer
+    updater.mw.current_wing_name = "tp"
+    
+    # Mock selection handler resolve_bmg_id_to_indices
+    updater.mw.list_selection_handler = MagicMock()
+    updater.mw.list_selection_handler.resolve_bmg_id_to_indices.return_value = (0, 10)
+    
+    # Mock block list widget custom create_item method
+    mock_item = QTreeWidgetItem()
+    updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
+    
+    # Populate blocks should fetch chapters and add tree nodes
+    updater.populate_blocks()
+    
+    # Find "Chapters" root node in block list widget
+    root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
+    chapters_root = None
+    for r in root_items:
+        if r.text(0) == "Chapters":
+            chapters_root = r
+            break
+            
+    assert chapters_root is not None
+    assert chapters_root.childCount() == 2 # Act 1 and Act 2
+    
+    act1 = chapters_root.child(0)
+    assert act1.text(0) == "Act 1"
+    assert act1.childCount() == 1
+    
+    ch1 = act1.child(0)
+    assert "Chapter 1: Ordon Village" in ch1.text(0)
+    assert ch1.data(0, Qt.UserRole) == -2
+    assert ch1.data(0, Qt.UserRole + 11) == 10
+    
+    # Verify that no dialogue child rows are nested under ch1 (redundant to preview panel)
+    assert ch1.childCount() == 0
+
+

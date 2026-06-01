@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Optional, Any
+from typing import List, Dict, Set, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from utils.logging_utils import log_debug
 
@@ -26,8 +26,10 @@ class AppDataStore:
     current_block_idx: int = -1
     current_string_idx: int = -1
     selected_string_indices: List[int] = field(default_factory=list)
-    displayed_string_indices: List[int] = field(default_factory=list) # Absolute indices of strings shown in preview
+    displayed_string_indices: List[Any] = field(default_factory=list) # Absolute indices/tuples of strings shown in preview
     current_category_name: Optional[str] = None
+    current_chapter_id: Optional[int] = None
+    chapter_mappings: List[Tuple[int, int]] = field(default_factory=list) # List of (block_idx, string_idx) for selected chapter
     
     # Virtual Block Display Options
     highlight_categorized: bool = False
@@ -55,6 +57,8 @@ class AppDataStore:
         self.unsaved_block_indices = set()
         self.current_block_idx = -1
         self.current_string_idx = -1
+        self.current_chapter_id = None
+        self.chapter_mappings = []
         self.problems_per_subline = {}
         self.edited_sublines = set()
         log_debug("AppDataStore: Data cleared")

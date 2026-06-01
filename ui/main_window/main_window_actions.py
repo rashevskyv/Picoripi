@@ -67,6 +67,7 @@ class TagAliasDialog(QDialog):
             
         self.force_checkbox.stateChanged.connect(self._on_force_changed)
         self.alias_edit.textChanged.connect(self._on_text_changed)
+        self.alias_edit.returnPressed.connect(self.accept)
         
         # Custom width field
         layout.addWidget(QLabel("Custom width in pixels (leave empty for none):", self))
@@ -75,6 +76,7 @@ class TagAliasDialog(QDialog):
         if current_width is not None:
             self.width_edit.setText(str(current_width))
         layout.addWidget(self.width_edit)
+        self.width_edit.returnPressed.connect(self.accept)
         
         # Buttons
         buttons_layout = QHBoxLayout()
@@ -89,7 +91,15 @@ class TagAliasDialog(QDialog):
         buttons_layout.addWidget(self.cancel_button)
         layout.addLayout(buttons_layout)
         self._is_initializing = False
-        self.alias_edit.setFocus()
+        
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, self.alias_edit.setFocus)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(50, self.alias_edit.setFocus)
+        QTimer.singleShot(100, self.alias_edit.selectAll)
 
     def _on_force_changed(self, state):
         is_checked = self.force_checkbox.isChecked()

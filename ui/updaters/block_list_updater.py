@@ -60,8 +60,12 @@ class BlockListUpdater(BaseUIUpdater):
             block_idx = item.data(0, Qt.UserRole)
             category_name = item.data(0, Qt.UserRole + 10)
             folder_id = item.data(0, Qt.UserRole + 1)
+            chapter_id = item.data(0, Qt.UserRole + 11)
             
-            if folder_id is not None:
+            if chapter_id is not None:
+                item_id = f"chapter_{chapter_id}"
+                item_type = 'chapter'
+            elif folder_id is not None:
                 item_id = f"folder_{folder_id}"
                 item_type = 'folder'
             elif category_name is not None:
@@ -154,8 +158,11 @@ class BlockListUpdater(BaseUIUpdater):
         block_idx = item.data(0, Qt.UserRole)
         category_name = item.data(0, Qt.UserRole + 10)
         folder_id = item.data(0, Qt.UserRole + 1)
+        chapter_id = item.data(0, Qt.UserRole + 11)
         
-        if folder_id is not None:
+        if chapter_id is not None:
+            return f"chapter_{chapter_id}"
+        elif folder_id is not None:
             return f"folder_{folder_id}"
         elif category_name is not None:
             parent = item.parent()
@@ -166,12 +173,42 @@ class BlockListUpdater(BaseUIUpdater):
             return f"block_{block_idx}"
         return None
 
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None) -> dict:
+    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None) -> dict:
         problem_counts = {}
-        if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data_store.data)):
+        if not self.mw.current_game_rules:
+            return problem_counts
+        
+        is_chapter = (block_idx == -2)
+        if not is_chapter and not (0 <= block_idx < len(self.mw.data_store.data)):
             return problem_counts
         
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
+        problem_counts = {pid: 0 for pid in problem_definitions.keys()}
+        detection_config = getattr(self.mw, 'detection_enabled', {})
+
+        if is_chapter:
+            mappings = []
+            if chapter_id is not None:
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    client = composer.prompt_composer._get_mempalace_client()
+                    if client:
+                        wing_name = composer.prompt_composer._get_wing_name()
+                        mappings = client.get_chapter_mappings(wing_name, chapter_id)
+            ch_mappings = set()
+            for m in mappings:
+                bmg_id = m.get("bmg_id")
+                indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                if indices:
+                    ch_mappings.add(indices)
+            
+            for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
+                if (b_idx, s_idx) in ch_mappings:
+                    filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
+                    for p_id in filtered_problems:
+                        if p_id in problem_counts:
+                            problem_counts[p_id] += 1
+            return problem_counts
         
         if pre_aggregated_counts is not None and category_name is None:
             # Fast path: use the pre-calculated problem counts for this block (only for full blocks)
@@ -179,9 +216,6 @@ class BlockListUpdater(BaseUIUpdater):
             return {pid: block_counts.get(pid, 0) for pid in problem_definitions.keys()}
         
         # Slow path/Category path
-        problem_counts = {pid: 0 for pid in problem_definitions.keys()}
-        detection_config = getattr(self.mw, 'detection_enabled', {})
-        
         # Determine which strings to check
         target_indices = None
         if category_name:
@@ -513,6 +547,77 @@ class BlockListUpdater(BaseUIUpdater):
                         block_item.setSelected(True)
                         if block_item.childCount() > 0:
                             block_item.setExpanded(True)
+
+            # 3. Add virtual Chapters folder hierarchy from MemePalace if available
+            try:
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    client = composer.prompt_composer._get_mempalace_client()
+                    if client:
+                        wing_name = composer.prompt_composer._get_wing_name()
+                        chapters = client.get_all_chapters(wing_name)
+                        if chapters:
+                            chapters_root = QTreeWidgetItem(["Chapters"])
+                            chapters_root.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
+                            chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemIsEditable)
+                            
+                            act_nodes = {}
+                            for ch in chapters:
+                                num = ch.get("num", "")
+                                title = ch.get("title", "")
+                                ch_id = ch.get("id")
+                                
+                                # Parse Act and Chapter
+                                import re
+                                m = re.search(r'Act\s+([^,]+),\s*Ch\s+(.+)', num, re.IGNORECASE)
+                                if m:
+                                    act_part = m.group(1).strip()
+                                    ch_part = m.group(2).strip()
+                                    act_name = f"Act {act_part}"
+                                    ch_name = f"Chapter {ch_part}: {title}"
+                                else:
+                                    m2 = re.search(r'Act\s+([^,]+)', num, re.IGNORECASE)
+                                    if m2:
+                                        act_part = m2.group(1).strip()
+                                        act_name = f"Act {act_part}"
+                                        ch_name = f"Chapter {num}: {title}"
+                                    else:
+                                        act_name = "Act 1"
+                                        ch_name = f"Chapter {num}: {title}"
+                                
+                                if act_name not in act_nodes:
+                                    act_item = QTreeWidgetItem([act_name])
+                                    act_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
+                                    act_item.setFlags(act_item.flags() & ~Qt.ItemIsEditable)
+                                    chapters_root.addChild(act_item)
+                                    act_nodes[act_name] = act_item
+                                
+                                ch_item = QTreeWidgetItem([ch_name])
+                                ch_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
+                                ch_item.setFlags(ch_item.flags() & ~Qt.ItemIsEditable)
+                                ch_item.setData(0, Qt.UserRole, -2) # Special block index for chapters
+                                ch_item.setData(0, Qt.UserRole + 11, ch_id) # Store chapter ID
+                                ch_item.setData(0, Qt.UserRole + 4, ch_name)
+                                ch_item.setData(0, Qt.EditRole, ch_name)
+                                
+                                self._register_item_in_cache(ch_item)
+                                problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
+                                ch_problem_counts = self._get_aggregated_problems_for_block(-2, chapter_id=ch_id)
+                                self._apply_issues_and_tooltip(ch_item, ch_name, ch_problem_counts, problem_definitions)
+                                
+                                act_nodes[act_name].addChild(ch_item)
+                                
+                                # Restore chapter selection
+                                if current_selection_block_idx == -2 and getattr(self.mw.data_store, 'current_chapter_id', None) == ch_id:
+                                    self.mw.block_list_widget.setCurrentItem(ch_item)
+                                    ch_item.setSelected(True)
+                                    act_nodes[act_name].setExpanded(True)
+                                    chapters_root.setExpanded(True)
+                                    
+                            self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
+            except Exception as e:
+                from utils.logging_utils import log_error
+                log_error(f"Error populating Chapters folder: {e}", exc_info=True)
         finally:
             self.mw.block_list_widget._is_programmatic_expansion = False
             self.mw.block_list_widget.blockSignals(False)
@@ -542,7 +647,11 @@ class BlockListUpdater(BaseUIUpdater):
         self.mw.block_list_widget.blockSignals(True)
         try:
             for item in items_to_update:
+                is_virtual_row = item.data(0, Qt.UserRole + 12)
+                if is_virtual_row:
+                    continue
                 category_name = item.data(0, Qt.UserRole + 10)
+                ch_id = item.data(0, Qt.UserRole + 11)
                 
                 # Try to use stored base name to preserve folder path in compacted view
                 base_display_name = item.data(0, Qt.UserRole + 4)
@@ -550,7 +659,7 @@ class BlockListUpdater(BaseUIUpdater):
                     base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                     base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
                     
-                block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name)
+                block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=ch_id)
                 self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         finally:
             self.mw.block_list_widget.blockSignals(False)

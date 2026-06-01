@@ -115,29 +115,41 @@ class PreviewUpdater(BaseUIUpdater):
 
         preview_edit.highlightManager.clearAllProblemHighlights()
         
-        if not (0 <= block_idx < len(self.mw.data_store.data)):
+        is_chapter = (block_idx == -2)
+        if not is_chapter and not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
         displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
         if not displayed_indices:
              # If no filtering is active, use all
-             displayed_indices = list(range(len(self.mw.data_store.data[block_idx])))
+             if is_chapter:
+                 displayed_indices = list(getattr(self.mw.data_store, 'chapter_mappings', []))
+             else:
+                 displayed_indices = list(range(len(self.mw.data_store.data[block_idx])))
 
         # OPTIMIZATION: Collect only strings with active problems to avoid scanning 5000+ items
         problem_string_indices = set()
         detection_config = getattr(self.mw, 'detection_enabled', {})
         if hasattr(self.mw.data_store, 'problems_per_subline'):
             for key, problems in self.mw.data_store.problems_per_subline.items():
-                if key[0] == block_idx:
+                if is_chapter:
                     if any(detection_config.get(p_id, True) for p_id in problems):
-                        problem_string_indices.add(key[1])
+                        problem_string_indices.add((key[0], key[1]))
+                else:
+                    if key[0] == block_idx:
+                        if any(detection_config.get(p_id, True) for p_id in problems):
+                            problem_string_indices.add(key[1])
 
         for preview_idx, real_idx in enumerate(displayed_indices):
-            if real_idx in problem_string_indices:
-                preview_edit.addProblemLineHighlight(preview_idx)
+            if is_chapter:
+                if real_idx in problem_string_indices:
+                    preview_edit.addProblemLineHighlight(preview_idx)
+            else:
+                if real_idx in problem_string_indices:
+                    preview_edit.addProblemLineHighlight(preview_idx)
         
         # Highlight categorized strings if enabled
-        if getattr(self.mw.data_store, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
+        if not is_chapter and getattr(self.mw.data_store, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
             categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
             if categorized_indices:
                 preview_indices = []
@@ -290,7 +302,8 @@ class PreviewUpdater(BaseUIUpdater):
             self._last_populated_block_idx = block_idx
             self._last_populated_category_name = category_name
 
-        if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
+        is_chapter = (block_idx == -2)
+        if not is_chapter and (block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list)):
             self._preview_cache.clear()
             self.mw.data_store.displayed_string_indices = []
             if preview_edit:
@@ -307,7 +320,9 @@ class PreviewUpdater(BaseUIUpdater):
         if preview_edit and self.mw.current_game_rules:
             # Determine which indices to show
             target_indices = []
-            if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+            if is_chapter:
+                target_indices = list(getattr(self.mw.data_store, 'chapter_mappings', []))
+            elif category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                 pm = self.mw.project_manager
                 block_map = getattr(self.mw, 'block_to_project_file_map', {})
                 proj_b_idx = block_map.get(block_idx, block_idx)
@@ -317,7 +332,7 @@ class PreviewUpdater(BaseUIUpdater):
                     if category:
                         target_indices = category.line_indices
 
-            if not target_indices and not category_name:
+            if not is_chapter and not target_indices and not category_name:
                 target_indices = list(range(len(self.mw.data_store.data[block_idx])))
                 # Filter out categorized if "Hide moved" is enabled
                 if getattr(self.mw.data_store, 'hide_categorized', False):
@@ -325,7 +340,15 @@ class PreviewUpdater(BaseUIUpdater):
                     target_indices = [idx for idx in target_indices if idx not in categorized_indices]
             
             # Re-verify indices are within bounds
-            target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data_store.data[block_idx])]
+            if is_chapter:
+                target_indices = [
+                    i for i in target_indices 
+                    if isinstance(i, tuple) and len(i) == 2 and 
+                       0 <= i[0] < len(self.mw.data_store.data) and 
+                       0 <= i[1] < len(self.mw.data_store.data[i[0]])
+                ]
+            else:
+                target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data_store.data[block_idx])]
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
             if not old_indices and hasattr(self.mw, 'displayed_string_indices'):
@@ -337,12 +360,16 @@ class PreviewUpdater(BaseUIUpdater):
                 empty_streak_start = -1
                 empty_streak_count = 0
                 for idx in target_indices:
-                    orig_text = self.data_processor._get_string_from_source(block_idx, idx, self.mw.data_store.data, "readonly")
-                    edited_text, _ = self.data_processor.get_current_string_text(block_idx, idx)
+                    b_idx = block_idx
+                    s_idx = idx
+                    if isinstance(idx, tuple):
+                        b_idx, s_idx = idx
+                    orig_text = self.data_processor._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "readonly")
+                    edited_text, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                     is_empty = (not orig_text or not orig_text.strip()) and (not edited_text or not str(edited_text).strip())
                     if is_empty:
                         if empty_streak_count == 0:
-                            empty_streak_start = idx
+                            empty_streak_start = s_idx
                         empty_streak_count += 1
                     else:
                         if empty_streak_count > 0:
@@ -371,8 +398,13 @@ class PreviewUpdater(BaseUIUpdater):
 
             # Map current_string_idx to preview index if possible
             preview_idx_to_select = -1
-            if self.mw.data_store.current_string_idx in target_indices:
-                preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+            if is_chapter:
+                target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                if target_tuple in target_indices:
+                    preview_idx_to_select = target_indices.index(target_tuple)
+            else:
+                if self.mw.data_store.current_string_idx in target_indices:
+                    preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
 
             # Set override_total_lines to prevent dynamic width change
             if len(target_indices) > 0:
@@ -396,7 +428,11 @@ class PreviewUpdater(BaseUIUpdater):
                                 if real_idx == -1:
                                     preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
                                 else:
-                                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                    b_idx = block_idx
+                                    s_idx = real_idx
+                                    if isinstance(real_idx, tuple):
+                                        b_idx, s_idx = real_idx
+                                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                     preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                                 cache['lines'][idx_offset] = preview_line_text
                 elif force and cache_key in self._preview_cache:
@@ -437,7 +473,11 @@ class PreviewUpdater(BaseUIUpdater):
                             if real_idx == -1:
                                 preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
                             else:
-                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                b_idx = block_idx
+                                s_idx = real_idx
+                                if isinstance(real_idx, tuple):
+                                    b_idx, s_idx = real_idx
+                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines[idx_offset] = preview_line_text
                         
@@ -458,7 +498,11 @@ class PreviewUpdater(BaseUIUpdater):
                             if real_idx == -1:
                                 preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
                             else:
-                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                b_idx = block_idx
+                                s_idx = real_idx
+                                if isinstance(real_idx, tuple):
+                                    b_idx, s_idx = real_idx
+                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines.append(preview_line_text)
                         
@@ -515,7 +559,11 @@ class PreviewUpdater(BaseUIUpdater):
                 if real_idx == -1:
                     preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
                 else:
-                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                    b_idx = block_idx
+                    s_idx = real_idx
+                    if isinstance(real_idx, tuple):
+                        b_idx, s_idx = real_idx
+                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                     preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                 preview_lines.append(preview_line_text)
                 
@@ -551,8 +599,14 @@ class PreviewUpdater(BaseUIUpdater):
             self._apply_highlights_for_block(block_idx)
             
             preview_idx_to_select = -1
-            if self.mw.data_store.current_string_idx in target_indices:
-                preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
+            is_chapter = (block_idx == -2)
+            if is_chapter:
+                target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                if target_tuple in target_indices:
+                    preview_idx_to_select = target_indices.index(target_tuple)
+            else:
+                if self.mw.data_store.current_string_idx in target_indices:
+                    preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
 
             if preview_idx_to_select != -1 and \
                hasattr(preview_edit, 'set_selected_lines') and \

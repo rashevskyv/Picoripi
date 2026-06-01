@@ -138,7 +138,11 @@ class CustomListItemDelegate(QStyledItemDelegate):
             unsaved_blocks = getattr(ds, 'unsaved_block_indices', set()) if ds else set()
 
             # 1. Determine Unsaved changes (*)
-            if category_name:
+            is_virtual_row = index.data(Qt.UserRole + 12)
+            if is_virtual_row:
+                s_idx_data = index.data(Qt.UserRole + 1)
+                has_unsaved_changes_in_item = (block_idx_data, s_idx_data) in edited_keys
+            elif category_name:
                 # ITEM is a Category (Virtual Sub-block)
                 # Show star ONLY if this specific category has edited lines
                 if project and block_idx_data is not None:
@@ -181,7 +185,20 @@ class CustomListItemDelegate(QStyledItemDelegate):
                     problem_definitions = main_window.current_game_rules.get_problem_definitions()
 
                 if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
-                    block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name)
+                    if is_virtual_row:
+                        s_idx_data = index.data(Qt.UserRole + 1)
+                        block_problem_counts = {}
+                        detection_config = getattr(main_window, 'detection_enabled', {})
+                        probs_dict = getattr(ds, 'problems_per_subline', {}) if ds else {}
+                        problem_ids = set()
+                        for key, p_set in probs_dict.items():
+                            if key[0] == block_idx_data and key[1] == s_idx_data:
+                                problem_ids.update(p_set)
+                        filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
+                        block_problem_counts = {p_id: 1 for p_id in filtered_problems}
+                    else:
+                        ch_id = index.data(Qt.UserRole + 11)
+                        block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name, chapter_id=ch_id)
 
 
         # 1. Calculate Problem Colors Early
@@ -189,7 +206,8 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
         # Progress bar fill (Progress Visualisation)
         percentage = 0.0
-        if main_window and hasattr(main_window, 'data_processor') and main_window.data_processor:
+        is_virtual_row = index.data(Qt.UserRole + 12)
+        if not is_virtual_row and main_window and hasattr(main_window, 'data_processor') and main_window.data_processor:
             try:
                 pm = getattr(main_window, 'project_manager', None)
                 project = pm.project if pm else None
@@ -351,7 +369,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         # Calculate available text space
         string_count_text = ""
         count_width = 0
-        if main_window and block_idx_data is not None and hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'data'):
+        if not is_virtual_row and main_window and block_idx_data is not None and hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'data'):
             count = 0
             if category_name and hasattr(main_window, 'project_manager') and main_window.project_manager.project:
                 pm = main_window.project_manager
@@ -446,21 +464,22 @@ class CustomListItemDelegate(QStyledItemDelegate):
         if number_rect.contains(mouse_pos):
             block_idx = index.data(Qt.UserRole)
             category_name = index.data(Qt.UserRole + 10)
+            ch_id = index.data(Qt.UserRole + 11)
             if block_idx is not None:
-                tooltip_text = self._get_problems_tooltip_text(main_window, block_idx, category_name)
+                tooltip_text = self._get_problems_tooltip_text(main_window, block_idx, category_name, ch_id)
                 if tooltip_text:
                     QToolTip.showText(event.globalPos(), tooltip_text, view)
                     return
         
         QToolTip.hideText()
 
-    def _get_problems_tooltip_text(self, main_window, block_idx, category_name=None) -> str:
+    def _get_problems_tooltip_text(self, main_window, block_idx, category_name=None, chapter_id=None) -> str:
         problem_definitions = {}
         if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
             problem_definitions = main_window.current_game_rules.get_problem_definitions()
         
         if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
-            block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name)
+            block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=chapter_id)
             tooltip_lines = []
             if problem_definitions and block_problem_counts:
                 sorted_ids = sorted(block_problem_counts.keys(), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))

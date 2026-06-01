@@ -33,8 +33,8 @@ class UIUpdater:
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         self.preview_updater.highlight_glossary_occurrence(occurrence)
 
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None) -> dict:
-        return self.block_list_updater._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts, category_name)
+    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None) -> dict:
+        return self.block_list_updater._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts, category_name, chapter_id)
 
 
     def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
