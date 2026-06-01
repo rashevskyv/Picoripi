@@ -81,6 +81,7 @@ class AIPromptComposer(BaseTranslationHandler):
         session_state: Optional[TranslationSessionState] = None,
         is_retry: bool = False,
         retry_reason: str = '',
+        temp_id_map: Optional[Dict] = None,
     ) -> Tuple[str, str, Dict]:
         placeholder_map: Dict = {}
         glossary_manager = self.main_handler._glossary_manager
@@ -111,14 +112,22 @@ class AIPromptComposer(BaseTranslationHandler):
 
             # Resolve speaker
             speaker = None
+            real_b_idx = block_idx
+            real_s_idx = item_id
+            if temp_id_map and item_id in temp_id_map:
+                real_b_idx, real_s_idx = temp_id_map[item_id]
+            elif temp_id_map and str(item_id) in temp_id_map:
+                real_b_idx, real_s_idx = temp_id_map[str(item_id)]
+            real_block_label = self._get_block_label(real_b_idx)
+
             if client:
-                bmg_id = f"{block_label}_Str_{item_id}"
+                bmg_id = f"{real_block_label}_Str_{real_s_idx}"
                 cached_ctx = client.get_cached_context(bmg_id, current_text)
                 if cached_ctx:
                     speaker = cached_ctx.get("speaker")
                     
             if not speaker:
-                script_res = self._find_speaker_in_script(block_idx, item_id, current_text)
+                script_res = self._find_speaker_in_script(real_b_idx, real_s_idx, current_text)
                 if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
                     raw_spk = script_res[0]
                     speaker = self._translate_speaker(raw_spk) if raw_spk else None
@@ -144,7 +153,16 @@ class AIPromptComposer(BaseTranslationHandler):
             else:
                 item_id = 0
                 item_text = str(item)
-            bmg_id = f"{block_label}_Str_{item_id}"
+            
+            real_b_idx = block_idx
+            real_s_idx = item_id
+            if temp_id_map and item_id in temp_id_map:
+                real_b_idx, real_s_idx = temp_id_map[item_id]
+            elif temp_id_map and str(item_id) in temp_id_map:
+                real_b_idx, real_s_idx = temp_id_map[str(item_id)]
+            real_block_label = self._get_block_label(real_b_idx)
+            
+            bmg_id = f"{real_block_label}_Str_{real_s_idx}"
             cached_ctx = client.get_cached_context(bmg_id, item_text) if client else None
             if cached_ctx and cached_ctx.get("room"):
                 room_name = cached_ctx.get("room")
@@ -195,44 +213,62 @@ class AIPromptComposer(BaseTranslationHandler):
             if block_idx is not None and block_idx != -1 and source_items:
                 try:
                     ds = getattr(self.mw, 'data_store', None)
-                    if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx < len(ds.data):
-                        block_data = ds.data[block_idx]
-                        if isinstance(block_data, list):
-                            N = len(block_data)
-                            item_ids = []
-                            for item in source_items:
-                                if isinstance(item, dict):
-                                    item_ids.append(item.get('id', 0))
-                                else:
-                                    item_ids.append(0)
-                            if item_ids:
-                                first_idx = min(item_ids)
-                                last_idx = max(item_ids)
-                                K = 3
-                                before_indices = list(range(max(0, first_idx - K), first_idx))
-                                after_indices = list(range(last_idx + 1, min(N, last_idx + K + 1)))
+                    if ds and hasattr(ds, 'data') and ds.data:
+                        item_ids = []
+                        for item in source_items:
+                            if isinstance(item, dict):
+                                item_ids.append(item.get('id', 0))
+                            else:
+                                item_ids.append(0)
+                        if item_ids:
+                            if block_idx == -2 and temp_id_map:
+                                first_temp_id = item_ids[0]
+                                last_temp_id = item_ids[-1]
+                                real_block_idx, first_s_idx = None, None
+                                if first_temp_id in temp_id_map:
+                                    real_block_idx, first_s_idx = temp_id_map[first_temp_id]
+                                elif str(first_temp_id) in temp_id_map:
+                                    real_block_idx, first_s_idx = temp_id_map[str(first_temp_id)]
                                 
-                                if before_indices:
-                                    surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
-                                    for i in before_indices:
-                                        orig_text = str(block_data[i]).replace('\n', ' ')
-                                        curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
-                                        curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
-                                        if curr_trans_clean and curr_trans_clean != orig_text:
-                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
-                                        else:
-                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
-                                            
-                                if after_indices:
-                                    surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
-                                    for i in after_indices:
-                                        orig_text = str(block_data[i]).replace('\n', ' ')
-                                        curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
-                                        curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
-                                        if curr_trans_clean and curr_trans_clean != orig_text:
-                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
-                                        else:
-                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                                _, last_s_idx = None, None
+                                if last_temp_id in temp_id_map:
+                                    _, last_s_idx = temp_id_map[last_temp_id]
+                                elif str(last_temp_id) in temp_id_map:
+                                    _, last_s_idx = temp_id_map[str(last_temp_id)]
+                            else:
+                                real_block_idx = block_idx
+                                first_s_idx = min(item_ids)
+                                last_s_idx = max(item_ids)
+
+                            if real_block_idx is not None and 0 <= real_block_idx < len(ds.data):
+                                block_data = ds.data[real_block_idx]
+                                if isinstance(block_data, list):
+                                    N = len(block_data)
+                                    K = 3
+                                    before_indices = list(range(max(0, first_s_idx - K), first_s_idx))
+                                    after_indices = list(range(last_s_idx + 1, min(N, last_s_idx + K + 1)))
+                                    
+                                    if before_indices:
+                                        surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
+                                        for i in before_indices:
+                                            orig_text = str(block_data[i]).replace('\n', ' ')
+                                            curr_trans, _ = self.data_processor.get_current_string_text(real_block_idx, i)
+                                            curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                            if curr_trans_clean and curr_trans_clean != orig_text:
+                                                surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                            else:
+                                                surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                                                
+                                    if after_indices:
+                                        surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
+                                        for i in after_indices:
+                                            orig_text = str(block_data[i]).replace('\n', ' ')
+                                            curr_trans, _ = self.data_processor.get_current_string_text(real_block_idx, i)
+                                            curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                            if curr_trans_clean and curr_trans_clean != orig_text:
+                                                surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                            else:
+                                                surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
                 except Exception as e:
                     log_debug(f"AIPromptComposer: Error fetching batch surrounding context: {e}")
 
@@ -244,42 +280,60 @@ class AIPromptComposer(BaseTranslationHandler):
         if not scene_context and block_idx is not None and block_idx != -1 and source_items:
             try:
                 ds = getattr(self.mw, 'data_store', None)
-                if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx < len(ds.data):
-                    block_data = ds.data[block_idx]
-                    if isinstance(block_data, list):
-                        N = len(block_data)
-                        item_ids = [item.get('id', 0) if isinstance(item, dict) else 0 for item in source_items]
-                        if item_ids:
-                            first_idx = min(item_ids)
-                            last_idx = max(item_ids)
-                            K = 3
-                            before_indices = list(range(max(0, first_idx - K), first_idx))
-                            after_indices = list(range(last_idx + 1, min(N, last_idx + K + 1)))
-                            surrounding_context_lines = []
+                if ds and hasattr(ds, 'data') and ds.data:
+                    item_ids = [item.get('id', 0) if isinstance(item, dict) else 0 for item in source_items]
+                    if item_ids:
+                        if block_idx == -2 and temp_id_map:
+                            first_temp_id = item_ids[0]
+                            last_temp_id = item_ids[-1]
+                            real_block_idx, first_s_idx = None, None
+                            if first_temp_id in temp_id_map:
+                                real_block_idx, first_s_idx = temp_id_map[first_temp_id]
+                            elif str(first_temp_id) in temp_id_map:
+                                real_block_idx, first_s_idx = temp_id_map[str(first_temp_id)]
                             
-                            if before_indices:
-                                surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
-                                for i in before_indices:
-                                    orig_text = str(block_data[i]).replace('\n', ' ')
-                                    curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
-                                    curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
-                                    if curr_trans_clean and curr_trans_clean != orig_text:
-                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
-                                    else:
-                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
-                                        
-                            if after_indices:
-                                surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
-                                for i in after_indices:
-                                    orig_text = str(block_data[i]).replace('\n', ' ')
-                                    curr_trans, _ = self.data_processor.get_current_string_text(block_idx, i)
-                                    curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
-                                    if curr_trans_clean and curr_trans_clean != orig_text:
-                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
-                                    else:
-                                        surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
-                            if surrounding_context_lines:
-                                scene_context = "\n".join(surrounding_context_lines)
+                            _, last_s_idx = None, None
+                            if last_temp_id in temp_id_map:
+                                _, last_s_idx = temp_id_map[last_temp_id]
+                            elif str(last_temp_id) in temp_id_map:
+                                _, last_s_idx = temp_id_map[str(last_temp_id)]
+                        else:
+                            real_block_idx = block_idx
+                            first_s_idx = min(item_ids)
+                            last_s_idx = max(item_ids)
+
+                        if real_block_idx is not None and 0 <= real_block_idx < len(ds.data):
+                            block_data = ds.data[real_block_idx]
+                            if isinstance(block_data, list):
+                                N = len(block_data)
+                                K = 3
+                                before_indices = list(range(max(0, first_s_idx - K), first_s_idx))
+                                after_indices = list(range(last_s_idx + 1, min(N, last_s_idx + K + 1)))
+                                surrounding_context_lines = []
+                                
+                                if before_indices:
+                                    surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
+                                    for i in before_indices:
+                                        orig_text = str(block_data[i]).replace('\n', ' ')
+                                        curr_trans, _ = self.data_processor.get_current_string_text(real_block_idx, i)
+                                        curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                        if curr_trans_clean and curr_trans_clean != orig_text:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                        else:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                                            
+                                if after_indices:
+                                    surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
+                                    for i in after_indices:
+                                        orig_text = str(block_data[i]).replace('\n', ' ')
+                                        curr_trans, _ = self.data_processor.get_current_string_text(real_block_idx, i)
+                                        curr_trans_clean = curr_trans.replace('\n', ' ') if curr_trans else ""
+                                        if curr_trans_clean and curr_trans_clean != orig_text:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
+                                        else:
+                                            surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
+                                if surrounding_context_lines:
+                                    scene_context = "\n".join(surrounding_context_lines)
             except Exception as e:
                 log_debug(f"AIPromptComposer: Error fetching batch surrounding context fallback: {e}")
 

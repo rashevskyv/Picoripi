@@ -85,3 +85,69 @@ def test_AIPromptComposer_restore_placeholders(composer):
     translated_lower = "натисни {l-stick}, щоб дати знак!"
     res_lower = composer.restore_placeholders(translated_lower, placeholder_map=None, key=None)
     assert res_lower == "натисни {escape:3:0009}, щоб дати знак!"
+
+
+def test_AIPromptComposer_compose_batch_request_chapter(composer):
+    all_items = [{"id": 0, "text": "Hello, world!"}]
+    source_items = [{"id": 0, "text": "Hello, world!"}]
+    temp_id_map = {0: (3, 5)} # temp_id 0 corresponds to block 3, string 5
+    
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    
+    composer.mw.current_game_rules.get_display_name.return_value = "Zelda: TP"
+    composer.mw.project_manager = None
+    
+    # Configure mock data_store
+    data_store = MagicMock()
+    data_store.block_names = {"3": "Block 3", "-2": "Chapter 2"}
+    composer.mw.data_store = data_store
+    
+    # Mock script path and file opening so _find_speaker_in_script resolves speaker
+    composer._find_script_path = MagicMock(return_value="/dummy/script.txt")
+    
+    import os
+    original_exists = os.path.exists
+    def mock_exists(path):
+        if path == "/dummy/script.txt":
+            return True
+        return original_exists(path)
+        
+    import builtins
+    original_open = builtins.open
+    def mock_open(file, *args, **kwargs):
+        if str(file) == "/dummy/script.txt":
+            from unittest.mock import mock_open as m_open
+            # _find_speaker_in_script:
+            # Line index 5 is line 6. But let's check:
+            # 1. Direct DB mapping is not used here (client returns None or does not map).
+            # 2. Distilled query fallback will read Cp1252.
+            # Let's provide a file where the speaker is RUSL on line 2, and text matches on line 3.
+            # If line 3 is "Hello, world!", len(re.findall('\w+', text)) = 2.
+            # In _find_speaker_in_script:
+            # distilled_query = "helloworld"
+            # search_query = "helloworld"
+            # It matches on line 3, line_num = 3.
+            # It scans backwards from line 2 to find uppercase speaker "RUSL".
+            file_content = "[Metadata]\nRUSL\nHello, world!\n"
+            return m_open(read_data=file_content)()
+        return original_open(file, *args, **kwargs)
+        
+    from unittest.mock import patch
+    with patch("os.path.exists", mock_exists), patch("builtins.open", mock_open):
+        system, user, pmap = composer.compose_batch_request(
+            "SysPrompt", 
+            source_items, 
+            all_items, 
+            block_idx=-2, 
+            mode_description="ChapterMode",
+            temp_id_map=temp_id_map
+        )
+        
+    assert "Hello, world!" in user
+    assert "Zelda: TP" in user
+    assert "Chapter 2" in user
+    # Check that speaker was successfully resolved to RUSL!
+    assert '"speaker": "RUSL"' in user
+
+

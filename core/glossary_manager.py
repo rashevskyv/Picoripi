@@ -688,9 +688,8 @@ class GlossaryManager:
                 else:
                     self._session_changes[entry.original] = new_entry
 
-                # If translation changed, we track it for project updates
-                if entry.translation != new_translation:
-                    modified_entries.append((entry, entry.translation, new_entry))
+                # Track all modified entries (original, translation, or notes)
+                modified_entries.append((entry, entry.translation, new_entry))
             else:
                 new_entries.append(entry)
 

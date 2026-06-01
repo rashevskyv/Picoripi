@@ -118,10 +118,11 @@ class StringSettingsUpdater(BaseUIUpdater):
                     speaker_text = f"Speaker: {trans_spk} ({raw_spk})"
                     
                     tooltip_text = ""
+                    font_size = getattr(self.mw, 'tooltip_font_size', 11)
                     if matched_lines_str:
-                        tooltip_text = f"Matching lines in script: {matched_lines_str}"
+                        tooltip_text = f"<div style='font-size: {font_size}px;'>Matching lines in script: <font color='#2e7d32'><b>{matched_lines_str}</b></font></div>"
                     else:
-                        tooltip_text = "Speaker for the current line mapped from MemePalace"
+                        tooltip_text = f"<div style='font-size: {font_size}px;'>Speaker for the current line mapped from MemePalace</div>"
                         
                     # Fetch speaker details from glossary
                     glossary_manager = None
@@ -135,12 +136,17 @@ class StringSettingsUpdater(BaseUIUpdater):
                             if entry:
                                 info = f"• <b>{entry.original}</b>"
                                 if entry.translation:
-                                    info += f" —> {entry.translation}"
+                                    info += f" —> <font color='#2e7d32'><b>{entry.translation}</b></font>"
                                 if entry.notes:
-                                    info += f" ({entry.notes})"
+                                    try:
+                                        import markdown
+                                        notes_html = markdown.markdown(entry.notes, extensions=['nl2br'])
+                                        info += f"<br><div style='margin-left: 15px; font-weight: normal;'>{notes_html}</div>"
+                                    except Exception:
+                                        info += f"<br><div style='margin-left: 15px; font-style: italic; font-weight: normal;'>{entry.notes}</div>"
                                 glossary_infos.append(info)
                         if glossary_infos:
-                            tooltip_text += "<br><br><b>Glossary Info:</b><br>" + "<br>".join(glossary_infos)
+                            tooltip_text += f"<br><div style='font-size: {font_size}px;'><b>Glossary Info:</b><br>" + "<br>".join(glossary_infos) + "</div>"
                             
                     self.mw.speaker_label.setToolTip(tooltip_text)
             else:
