@@ -846,6 +846,31 @@ class MemePalaceClient:
             log_error(f"Local DB error in get_script_mapping: {e}")
         return None
 
+    def get_chapter_mappings(self, wing_name: str, chapter_id: int) -> List[Dict[str, Any]]:
+        """Retrieve all BMG mappings for a specific chapter."""
+        results = []
+        if not self.db_path or not os.path.exists(self.db_path):
+            return results
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT bmg_id, script_line, bmg_text 
+                FROM script_mappings 
+                WHERE chapter_id = ?
+                ORDER BY script_line
+            """, (chapter_id,))
+            rows = cursor.fetchall()
+            conn.close()
+            for row in rows:
+                results.append({
+                    "bmg_id": row[0],
+                    "script_line": row[1],
+                    "bmg_text": row[2]
+                })
+        except Exception as e:
+            log_error(f"Local DB error in get_chapter_mappings: {e}")
+        return results
 
     def get_all_chapters(self, wing_name: str) -> List[Dict[str, Any]]:
         """Retrieve all chapters and their mapping counts for a wing."""

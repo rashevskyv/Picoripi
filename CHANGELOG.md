@@ -1,5 +1,25 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.144] - 2026-06-01
+
+### Added
+- **Narrative Navigation via Acts & Chapters (MemePalace Integration)**:
+  - Added a virtual hierarchical tree navigation structure `Chapters -> Act -> Chapter` directly inside the left Blocks panel on the bottom.
+  - Dynamically parses acts and chapters based on local MemePalace SQLite database timeline mappings (format: `"Act X, Ch Y"`).
+  - Actively mapped dialogue counts are now displayed next to each virtual chapter node in real-time (e.g., `[76]`, `[148]`).
+  - Supports smooth chronological navigation. Selecting a chapter populates all corresponding dialogue lines across various physical `.bmg` blocks straight into the central preview panel.
+- **Full Context Menu for Virtual Chapters**:
+  - Permitted right-click context menus for all virtual chapters (`block_idx == -2`), matching physical blocks behavior. Translators can now seamlessly rename chapters, delete them, assign custom fonts, toggle color markers, and rescan issues.
+  - Standardized safety: the root `"Chapters"` folder and `"Act X"` sub-folders remain locked as read-only structures.
+
+### Fixed
+- **Name Resolution for BMG-Prefix Mappings in Twilight Princess**:
+  - Implemented automatic mapping resolution for BMG-prefixed mappings (e.g., `BMG_Str_X`). Correctly translates dynamic `BMG` block labels to physical block index 0 (`zel_00.bmg`). This ensures chapters successfully map and display correct dialogue lines instead of showing `[0]` count.
+- **Scope UnboundLocalError with QTimer**:
+  - Resolved `UnboundLocalError: cannot access local variable 'QTimer' where it is not associated with a value` during block selection. Removed duplicate local `QTimer` import definitions from inside `block_selected` in `handlers/list_selection_handler.py` to prevent Python scope hoisting issues.
+- **Error Populating Chapters Folder AttributeError**:
+  - Fixed a crash when populating chapters on project load where `self.mw.mempalace_client` was accessed directly. The client is now safely resolved dynamically through `translation_handler.prompt_composer._get_mempalace_client()`.
+
 ## [0.2.143] - 2026-06-01
 
 ### Added

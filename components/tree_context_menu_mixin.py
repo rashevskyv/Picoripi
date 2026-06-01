@@ -11,6 +11,16 @@ class TreeContextMenuMixin:
 
     def show_context_menu(self, pos):
         item = self.itemAt(pos)
+        if item:
+            text = item.text(0)
+            role_val = item.data(0, Qt.UserRole)
+            ch_id = item.data(0, Qt.UserRole + 11)
+            
+            parent = item.parent()
+            if text == "Chapters" or (parent and parent.text(0) == "Chapters"):
+                # "Chapters" root and "Act X" folders are read-only structures
+                return
+
         selected_items = self.selectedItems()
 
         if item and item not in selected_items:
@@ -147,12 +157,14 @@ class TreeContextMenuMixin:
                 )
             menu.addSeparator()
 
-        # ── 5. Block actions ─────────────────────────────────────────────────
         if block_idx is not None:
             ds = getattr(main_window, 'data_store', None)
-            block_name = (
-                ds.block_names.get(str(block_idx), f"Block {block_idx}") if ds else f"Block {block_idx}"
-            )
+            if block_idx == -2:
+                block_name = item.text(0)
+            else:
+                block_name = (
+                    ds.block_names.get(str(block_idx), f"Block {block_idx}") if ds else f"Block {block_idx}"
+                )
 
             if compaction_type == 2:
                 h = menu.addAction(self.style().standardIcon(QStyle.SP_FileIcon), f"BLOCK: {block_name}")

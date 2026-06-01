@@ -126,3 +126,26 @@ def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, moc
     # Views and highlighters are refreshed
     mock_mw.helper.reconfigure_all_highlighters.assert_called_once()
     mock_mw.ui_updater.update_text_views.assert_called_once()
+
+
+def test_tag_alias_dialog_focus_and_return_pressed(qtbot):
+    from ui.main_window.main_window_actions import TagAliasDialog
+    from PyQt5.QtWidgets import QDialog
+
+    dialog = TagAliasDialog(
+        parent=None,
+        original_tag="{Color:Red}",
+        current_alias="{RedColor}",
+        current_width=100
+    )
+    qtbot.addWidget(dialog)
+
+    # Check returnPressed is connected and triggers accept
+    with patch.object(dialog, 'accept') as mock_accept:
+        dialog.alias_edit.returnPressed.emit()
+        mock_accept.assert_called_once()
+
+    with patch.object(dialog, 'accept') as mock_accept:
+        dialog.width_edit.returnPressed.emit()
+        mock_accept.assert_called_once()
+

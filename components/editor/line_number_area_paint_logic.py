@@ -125,8 +125,13 @@ class LNETLineNumberAreaPaintLogic:
                     # 3. Handle unsaved status
                     is_unsaved = False
                     if is_preview:
-                        if hasattr(main_window_ref, 'data_store') and (current_block_idx_data_mw, real_idx) in main_window_ref.data_store.edited_data:
-                            is_unsaved = True
+                        if hasattr(main_window_ref, 'data_store'):
+                            if isinstance(real_idx, tuple):
+                                if real_idx in main_window_ref.data_store.edited_data:
+                                    is_unsaved = True
+                            else:
+                                if (current_block_idx_data_mw, real_idx) in main_window_ref.data_store.edited_data:
+                                    is_unsaved = True
                     elif is_editor and current_string_idx_data_mw != -1:
                         ds = getattr(main_window_ref, 'data_store', None)
                         edited_sublines = getattr(ds, 'edited_sublines', set()) if ds else set()
@@ -137,7 +142,10 @@ class LNETLineNumberAreaPaintLogic:
                     is_translated = False
                     if hasattr(main_window_ref, 'data_processor') and main_window_ref.data_processor:
                         if is_preview and real_idx != -1:
-                            is_translated = main_window_ref.data_processor.is_string_translated(current_block_idx_data_mw, real_idx)
+                            if isinstance(real_idx, tuple):
+                                is_translated = main_window_ref.data_processor.is_string_translated(real_idx[0], real_idx[1])
+                            else:
+                                is_translated = main_window_ref.data_processor.is_string_translated(current_block_idx_data_mw, real_idx)
                         elif is_editor and current_string_idx_data_mw != -1:
                             is_translated = main_window_ref.data_processor.is_string_translated(current_block_idx_data_mw, current_string_idx_data_mw)
 
@@ -192,8 +200,12 @@ class LNETLineNumberAreaPaintLogic:
                             problem_ids = probs_dict.get(problem_key, set())
                         elif is_preview:
                             for key, p_set in probs_dict.items():
-                                if key[0] == current_block_idx_data_mw and key[1] == real_idx:
-                                    problem_ids.update(p_set)
+                                if isinstance(real_idx, tuple):
+                                    if key[0] == real_idx[0] and key[1] == real_idx[1]:
+                                        problem_ids.update(p_set)
+                                else:
+                                    if key[0] == current_block_idx_data_mw and key[1] == real_idx:
+                                        problem_ids.update(p_set)
 
                     filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
                     if is_editor and filtered_problems:
@@ -217,7 +229,10 @@ class LNETLineNumberAreaPaintLogic:
                             # Draw metadata indicators in preview area
                             string_meta = {}
                             if hasattr(main_window_ref, 'data_store') and hasattr(main_window_ref.data_store, 'string_metadata'):
-                                string_meta = main_window_ref.data_store.string_metadata.get((current_block_idx_data_mw, real_idx), {})
+                                if isinstance(real_idx, tuple):
+                                    string_meta = main_window_ref.data_store.string_metadata.get(real_idx, {})
+                                else:
+                                    string_meta = main_window_ref.data_store.string_metadata.get((current_block_idx_data_mw, real_idx), {})
                             
                             indicator_x_start = number_part_width + 2
                             has_custom_font = "font_file" in string_meta
