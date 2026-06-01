@@ -21,6 +21,24 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             return False
         return last_char in SENTENCE_END_PUNCTUATION_CHARS_ZBMG
 
+    def _calculate_width(self, text: str, font_map: dict) -> int:
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
+        
+        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
+            if hasattr(self.mw.current_game_rules, 'calculate_string_width_override'):
+                override_val = self.mw.current_game_rules.calculate_string_width_override(text, font_map)
+                if override_val is not None:
+                    return override_val
+                    
+        return calculate_string_width(
+            text, 
+            font_map, 
+            default_char_width=6,
+            icon_sequences=icon_sequences, 
+            default_tag_mappings=default_tag_mappings
+        )
+
     def _check_short_line_zbmg(self, current_subline_text: str, next_subline_text: str, font_map: dict, threshold: int) -> bool:
         current_subline_no_tags_stripped = remove_all_tags(current_subline_text).strip()
         if not current_subline_no_tags_stripped or self._ends_with_sentence_punctuation_zbmg(current_subline_no_tags_stripped):
@@ -32,11 +50,9 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         if not first_word_next:
             return False
         
-        # Calculate width using BMG overrides
-        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-        width_current_rstripped = calculate_string_width(current_subline_text.rstrip(), font_map, icon_sequences=icon_sequences)
-        width_first_word_next = calculate_string_width(first_word_next, font_map, icon_sequences=icon_sequences)
-        space_width = calculate_string_width(" ", font_map, icon_sequences=icon_sequences)
+        width_current_rstripped = self._calculate_width(current_subline_text.rstrip(), font_map)
+        width_first_word_next = self._calculate_width(first_word_next, font_map)
+        space_width = self._calculate_width(" ", font_map)
         return (threshold - width_current_rstripped) >= (width_first_word_next + space_width)
 
     def check_for_empty_first_line_of_page(self, text: str) -> List[int]:
@@ -65,10 +81,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             if line_idx < len(problems_per_subline):
                 problems_per_subline[line_idx].add(self.problem_ids.PROBLEM_EMPTY_FIRST_LINE_OF_PAGE)
         
-        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-        
         for i, subline in enumerate(sublines):
-            pixel_width_subline = calculate_string_width(subline.rstrip(), font_map, icon_sequences=icon_sequences)
+            pixel_width_subline = self._calculate_width(subline.rstrip(), font_map)
             if pixel_width_subline > threshold:
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
             next_subline = sublines[i + 1] if i + 1 < len(sublines) else None

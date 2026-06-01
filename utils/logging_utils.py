@@ -109,13 +109,32 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
                             f.truncate(0)
                 except Exception:
                     pass
+                
+                # Clean up old backup files from previous RotatingFileHandler instances
+                for i in range(1, 6):
+                    try:
+                        backup_path = Path(str(log_path) + f".{i}")
+                        if backup_path.exists():
+                            backup_path.unlink()
+                    except Exception:
+                        pass
+                        
+                # Also truncate ai_traffic.log in workspace root upon startup
+                try:
+                    import os
+                    ai_log_path = Path(os.getcwd()) / "ai_traffic.log"
+                    if ai_log_path.exists():
+                        with open(ai_log_path, 'w', encoding='utf-8') as f:
+                            f.truncate(0)
+                except Exception:
+                    pass
+                    
                 _cleared_paths.add(log_path)
             
-            # Use SafeRotatingFileHandler: 2MB per file, max 5 backups
-            _file_handler = SafeRotatingFileHandler(
+            # Use a standard FileHandler in write mode to overwrite the log file at startup, as requested
+            _file_handler = logging.FileHandler(
                 str(log_path), 
-                maxBytes=2 * 1024 * 1024, 
-                backupCount=5, 
+                mode='w', 
                 encoding='utf-8'
             )
             _file_handler.setLevel(logging.DEBUG)

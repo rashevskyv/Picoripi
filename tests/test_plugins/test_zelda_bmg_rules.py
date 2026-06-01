@@ -148,3 +148,59 @@ def test_synthetic_empty_glyph_mapping():
     data, block_names = rules.load_data_from_json_obj(bmg_bytes)
     assert len(data) == 1
     assert data[0][0] == "яabc"
+
+
+def test_autofix_width_exceeded_with_tag():
+    rules = GameRules()
+    setup_test_mappings(rules)
+    
+    # We want a font map where each character has a specific width.
+    # We map the actual Cyrillic characters used in our test string to width 10.
+    font_map = {}
+    for char in "Ось чому самотність завжди пронизуєгодинусутінків. ":
+        font_map[char] = {"width": 10} # 10 pixels per character
+        
+    # The text we want to test:
+    # "Ось чому самотність завжди пронизує{color:red} годину\nсутінків{color:white}..."
+    # "Ось чому самотність завжди пронизує" -> 35 characters (including spaces).
+    # With 10 pixels per character, the width is 350 pixels.
+    # "{color:red}" is a tag, so its width should be 0.
+    # " годину" is 7 characters -> 70 pixels.
+    # So "Ось чому самотність завжди пронизує{color:red} годину" has width 350 + 0 + 70 = 420 pixels.
+    # Let's set the threshold to 360 pixels.
+    # Under 360 pixels, the text before tag fits (350 <= 360), but the whole line does not (420 > 360).
+    # So the word "годину" should be wrapped to the next line.
+    
+    text = "Ось чому самотність завжди пронизує{color:red} годину\nсутінків{color:white}..."
+    
+    fixed_text, changed = rules.autofix_data_string(text, font_map, 360)
+    
+    print("FIXED TEXT:", repr(fixed_text))
+    assert changed is True
+    # Verify that "годину" is wrapped to the second line
+    lines = fixed_text.split('\n')
+    assert len(lines) >= 2
+    assert "годину" in lines[1]
+
+
+def test_autofix_zelda_bmg_no_remerge_bug():
+    rules = GameRules()
+    setup_test_mappings(rules)
+    
+    font_map = {}
+    for char in "This is a very long text to test the split and no remerge bug with pause tag {pause} and word herenext line text.":
+        font_map[char] = {"width": 10}
+        
+    text = "This is a very long text to test the split and no remerge bug with pause tag {pause} and word here\nnext line text."
+    
+    fixed_text, changed = rules.autofix_data_string(text, font_map, 800)
+    
+    print("FIXED:", repr(fixed_text))
+    lines = fixed_text.split('\n')
+    # "and word here" must be wrapped to the second line because of threshold 800
+    assert len(lines) >= 2
+    assert "and word here" in lines[1]
+
+
+
+

@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.149] - 2026-06-01
+
+### Fixed
+- **Auto-fix race condition and text reverting**:
+  - Resolved a critical race condition where programmatic changes made by `Auto-fix` were reverted because `text_edited()` deferred saving (250ms timer) while `update_text_views()` read old data synchronously.
+  - Implemented immediate synchronous database update via `data_processor.update_edited_data()` and cancelled active debounce timers.
+- **Zelda BMG character width discrepancies in Problem Analyzer**:
+  - Integrated `_calculate_width` helper in Zelda BMG problem analyzer and text fixer to respect game-specific tag aliases and defaults for correct line-shortness thresholds.
+  - Added test cases in `test_zelda_bmg_rules.py` verifying word wrap splits and tag width limits.
+- **Console log handler file truncation and startup cleanup**:
+  - Replaced rotating backup logs with single-write FileHandler to clear the log file at startup. Added clean up logic to delete old log files.
+
 ## [0.2.148] - 2026-06-01
 
 ### Added
