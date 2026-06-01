@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMessageBox, QApplication, QPlainTextEdit
 from PyQt5.QtGui import QTextCursor, QTextBlock
 from PyQt5.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_info
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 
@@ -578,6 +578,9 @@ class TextOperationHandler(BaseHandler):
         result_dialog.exec_()
         
     def auto_fix_current_string(self) -> None:
+        self._auto_fix_current_string_impl()
+
+    def _auto_fix_current_string_impl(self) -> None:
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
@@ -602,40 +605,45 @@ class TextOperationHandler(BaseHandler):
         )
         
         if changed:
+            block_idx = self.mw.data_store.current_block_idx
+            string_idx = self.mw.data_store.current_string_idx
             visual_text_for_editor = self.mw.current_game_rules.get_text_representation_for_editor(fixed_data)
             
             # Save cursor position
-            original_cursor = edited_text_edit.textCursor()
-            original_cursor_pos = original_cursor.position()
+            original_cursor_pos = edited_text_edit.textCursor().position()
             
-            # Insert text, preserving undo history
+            # 1. Save fixed data to edited_data FIRST (synchronously), before any UI update.
+            #    This is critical: update_text_views() reads from edited_data, so it must be
+            #    updated before calling it, otherwise it restores the old text.
+            if hasattr(self.mw, 'undo_manager'):
+                self.mw.undo_manager.begin_group()
+            self.data_processor.update_edited_data(block_idx, string_idx, fixed_data, action_type="AUTOFIX")
+            if hasattr(self.mw, 'undo_manager'):
+                self.mw.undo_manager.end_group("AUTOFIX")
+
+            # 2. Cancel any pending debounce timer so it doesn't overwrite
+            #    the just-saved data with the pre-fix editor text.
+            if self.preview_update_timer.isActive():
+                self.preview_update_timer.stop()
+
+            # 3. Update the editor widget to show the fixed text (programmatically).
             self.mw.is_programmatically_changing_text = True
             cursor = edited_text_edit.textCursor()
             cursor.beginEditBlock()
             cursor.select(QTextCursor.Document)
             cursor.insertText(visual_text_for_editor)
             cursor.endEditBlock()
-            
+            self.mw.is_programmatically_changing_text = False
+
             # Restore cursor position
-            new_doc_len = edited_text_edit.document().characterCount() -1
+            new_doc_len = edited_text_edit.document().characterCount() - 1
             final_cursor_pos = min(original_cursor_pos, new_doc_len if new_doc_len >= 0 else 0)
             restored_cursor = edited_text_edit.textCursor()
             restored_cursor.setPosition(final_cursor_pos)
             edited_text_edit.setTextCursor(restored_cursor)
-            
-            # Call text_edited manually to update data
-            self.mw.is_programmatically_changing_text = False
-            
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.begin_group()
-                
-            self.text_edited() # This will record the change via update_edited_data
-            
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.end_group("AUTOFIX")
-            
-            # Explicitly update other UI elements
-            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+
+            # 4. Refresh UI: preview list and text views.
+            self.mw.ui_updater.populate_strings_for_block(block_idx)
             self.mw.ui_updater.update_text_views()
 
             if hasattr(self.mw, 'statusBar'):

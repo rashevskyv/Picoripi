@@ -8,6 +8,23 @@ class GenericTextFixer:
         self.tag_manager = tag_manager_ref
         self.problem_analyzer = problem_analyzer_ref
 
+    def _calculate_width(self, text: str, font_map: dict) -> int:
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
+        
+        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
+            if hasattr(self.mw.current_game_rules, 'calculate_string_width_override'):
+                override_val = self.mw.current_game_rules.calculate_string_width_override(text, font_map)
+                if override_val is not None:
+                    return override_val
+                    
+        return calculate_string_width(
+            text, 
+            font_map, 
+            icon_sequences=icon_sequences, 
+            default_tag_mappings=default_tag_mappings
+        )
+
     def _extract_first_word_with_tags_generic(self, text: str) -> Tuple[str, str]:
         if not text.strip(): return "", text
         first_word_text = ""
@@ -38,13 +55,13 @@ class GenericTextFixer:
         final_lines = []
 
         for line in sub_lines:
-            while calculate_string_width(line, font_map) > threshold:
+            while self._calculate_width(line, font_map) > threshold:
                 made_change = True
                 line_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
                 best_split_point = -1
                 for j in range(len(line_parts) - 1, 0, -1):
                     line_part_one = "".join(line_parts[:j]).rstrip()
-                    if calculate_string_width(line_part_one, font_map) <= threshold:
+                    if self._calculate_width(line_part_one, font_map) <= threshold:
                         best_split_point = j
                         break
                 if best_split_point == -1 and len(line_parts) > 1:
@@ -64,3 +81,4 @@ class GenericTextFixer:
 
         final_text = "\n".join(final_lines)
         return final_text, final_text != original_text
+
