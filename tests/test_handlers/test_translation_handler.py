@@ -15,6 +15,7 @@ def mock_deps():
     mw.data_store.current_block_idx = 1
     mw.data_store.current_string_idx = 2
     mw.preview_text_edit = MagicMock()
+    mw.project_manager = None
     dp = MagicMock()
     ui = MagicMock()
     return mw, dp, ui

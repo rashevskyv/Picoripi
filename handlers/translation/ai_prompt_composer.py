@@ -39,7 +39,22 @@ class AIPromptComposer(BaseTranslationHandler):
         *,
         key: Optional[int] = None,
     ) -> str:
-        return translated_text or ''
+        if not translated_text or not placeholder_map or key not in placeholder_map:
+            return translated_text or ''
+            
+        from utils.force_alias import restore_force_aliases_in_translation
+        
+        force_maps = placeholder_map[key]
+        glossary_translations = {}
+        glossary_manager = self.main_handler._glossary_manager
+        if glossary_manager:
+            for mapping in force_maps:
+                word = mapping.word
+                entry = glossary_manager.get_entry(word)
+                if entry and entry.translation:
+                    glossary_translations[word.lower()] = entry.translation
+                    
+        return restore_force_aliases_in_translation(translated_text, force_maps, glossary_translations)
 
     # ------------------------------------------------------------------
     # Prompt composition helpers
@@ -72,8 +87,15 @@ class AIPromptComposer(BaseTranslationHandler):
                 item_id = 0
                 current_text = str(item)
             
+            # Apply force-aliases
+            from utils.force_alias import prepare_text_for_ai
+            tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+            current_text_for_ai, force_maps = prepare_text_for_ai(current_text, tag_mappings)
+            if force_maps:
+                placeholder_map[item_id] = force_maps
+            
             # Remove line breaks inside sentences for AI translation
-            current_text_clean = current_text.replace('\n', ' ')
+            current_text_clean = current_text_for_ai.replace('\n', ' ')
             current_text_clean = re.sub(r' +', ' ', current_text_clean).strip()
 
             # Resolve speaker

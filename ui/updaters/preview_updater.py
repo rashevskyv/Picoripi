@@ -298,7 +298,19 @@ class PreviewUpdater(BaseUIUpdater):
             # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
             if should_regenerate:
                 cache_key = (block_idx, category_name)
-                if force and cache_key in self._preview_cache:
+                
+                # If force refresh but the block/category didn't change, preserve the 
+                # lazy-loaded state (next_index) so the scroll position can be restored accurately.
+                if force and not block_changed and cache_key in self._preview_cache:
+                    cache = self._preview_cache[cache_key]
+                    if cache.get('target_indices') == target_indices:
+                        for idx_offset in range(cache['next_index']):
+                            if idx_offset < len(target_indices):
+                                real_idx = target_indices[idx_offset]
+                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                                cache['lines'][idx_offset] = preview_line_text
+                elif force and cache_key in self._preview_cache:
                     del self._preview_cache[cache_key]
 
                 initial_chunk_size = max(200, preview_idx_to_select + 50)
@@ -316,7 +328,8 @@ class PreviewUpdater(BaseUIUpdater):
                     self._lazy_load_next_index = cache['next_index']
                     
                     preview_full_text = "\n".join(cache['lines'])
-                    preview_edit.setPlainText(preview_full_text)
+                    if preview_edit.toPlainText() != preview_full_text:
+                        preview_edit.setPlainText(preview_full_text)
                     
                     if self._lazy_load_next_index < len(target_indices):
                         self._lazy_load_timer.start(15)

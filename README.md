@@ -1,6 +1,6 @@
-# Picoripi v0.2.139
-
-The "Picoripi" (v0.2.139) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+# Picoripi v0.2.140
+ 
+The "Picoripi" (v0.2.140) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -43,6 +43,7 @@ The "Picoripi" (v0.2.139) is a desktop application built with **Python** and **P
 - **Dialogue-Aware Surrounding Context**: The prompt composer automatically gathers up to 3 preceding and 3 succeeding dialogue lines in their best translated (or original) state, transmitting a rich surrounding dialogue context to the LLM to preserve tone, continuity, and formal/informal address tags.
 - Automatic batch translation of glossary terms or specific phrases while preserving game context.
 - **Translation Variations**: Generate creative alternative translations for overly long sentences, now fully enriched with dynamic glossary and surrounding context.
+- **Force-Alias Tag Preservation (`F:` prefix)**: Tags whose aliases begin with `F:` (e.g., `{F:Link}` aliasing `{escape:0:0000}`) are automatically converted to plain-text words before being sent to the AI, then restored back to tag form after translation. This ensures character names (like Link or Epona) are treated as real words in the AI prompt instead of being stripped as opaque control codes.
 - Configurable AI prompts for fine-tuning translation quality.
 
 ### Glossary Management
@@ -77,6 +78,7 @@ The "Picoripi" (v0.2.139) is a desktop application built with **Python** and **P
 - **Double-Click Line Sync**: Double-clicking the line number area in any translation editor instantly scrolls and highlights the currently edited string inside the "Strings in block" preview panel.
 - **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
 - **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).
+- **External Script Runner**: Execute user-configured scripts (like custom ROM build pipelines and emulator launches) directly from a console icon button (`>_`) on the main toolbar. Runs fully asynchronously via `subprocess.Popen` in a new, dedicated console window (`CREATE_NEW_CONSOLE` on Windows) inside the script's parent directory to ensure relative paths resolve perfectly.
 
 ### MemePalace Context Integration
 - **Chronological Story Timeline Mapping**: Connects raw, flat game dialogue strings to a structured chronological timeline (e.g., walkthroughs or parsed YouTube captions) and stores them in a local SQLite database.

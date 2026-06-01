@@ -28,6 +28,11 @@ class SettingsDialogUiMixin:
         self.tooltip_font_size_spinbox = LabeledSpinBox("Tooltip Font Size:", 6, 32, 11, parent=self)
         layout.addRow(self.tooltip_font_size_spinbox)
         
+        self.external_script_path_edit = QLineEdit(self)
+        self.external_script_path_edit.setPlaceholderText("Path to .bat, .cmd, .exe, etc.")
+        self.external_script_selector = self._create_script_selector(self.external_script_path_edit)
+        layout.addRow(QLabel("External Tool/Script Path:"), self.external_script_selector)
+        
         self.show_spaces_checkbox = QCheckBox("Show special spaces as dots", self)
         layout.addRow(self.show_spaces_checkbox)
         
