@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.142] - 2026-06-01
+
+### Added
+- **Force Alias UI Improvements & Interactive Popup**:
+  - Added a detailed description tooltip to the "Force alias" checkbox inside `TagAliasDialog` explaining the rationale behind name locking (e.g. hardcoding 'Link' and 'Epona' for proper grammatical inflections in Slavic translations).
+  - Implemented an interactive informational dialog (`QMessageBox`) that appears when the user manually checks the "Force alias" option, explaining how it permanently converts the tag into plain text in the final exported script.
+  - Implemented real-time validation via `textChanged` to automatically strip manual `F:` or `f:` prefix inputs in the text editor to avoid duplication when the force alias option is enabled.
+
 ## [0.2.141] - 2026-06-01
 
 ### Added

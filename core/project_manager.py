@@ -576,6 +576,8 @@ class ProjectManager:
             # Apply each project-specific setting to MainWindow
             settings_loaded = 0
             for setting_name, value in settings.items():
+                if setting_name == 'default_tag_mappings':
+                    continue
                 if hasattr(main_window, setting_name):
                     setattr(main_window, setting_name, value)
                     settings_loaded += 1

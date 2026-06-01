@@ -105,69 +105,9 @@ def restore_force_aliases_in_translation(
     force_mappings: List[ForceAliasMapping],
     glossary_translations: Dict[str, str],
 ) -> str:
-    """Replace translated Force-alias words back with the original game tags.
+    """For Force aliases, we do not perform any reverse restoration.
 
-    For each Force-alias mapping we look up all known translations of the word
-    in ``glossary_translations`` (semicolon-separated) plus the original English
-    word itself.  We search for these forms in *translated_text* and replace
-    the **first** occurrence with the original game tag.
-
-    Parameters
-    ----------
-    translated_text:
-        The text returned by the AI (in target language).
-    force_mappings:
-        The list produced by :func:`extract_force_aliases`.
-    glossary_translations:
-        A dict mapping each Force-alias word (case-insensitive key) to the
-        semicolon-separated translation string from the glossary.
-        E.g. ``{"link": "Лінк; Лінку; Лінкові; Лінком"}``.
+    They remain as plain, translated text in the final output (e.g. 'Лінку'),
+    which permanently freezes the dynamic name tag as plain text.
     """
-    if not translated_text or not force_mappings:
-        return translated_text or ""
-
-    result = translated_text
-    for mapping in force_mappings:
-        word = mapping.word
-        original_tag = mapping.original_tag
-
-        # Collect all forms to search for: glossary translations + original word
-        forms: List[str] = []
-        translation_str = glossary_translations.get(word.lower(), "")
-        if translation_str:
-            forms.extend(v.strip() for v in translation_str.split(";") if v.strip())
-        # Always include the original English word as fallback
-        forms.append(word)
-
-        # Sort forms by length descending to match longest first
-        forms.sort(key=len, reverse=True)
-
-        replaced = False
-        for form in forms:
-            if not form:
-                continue
-            # Build a word-boundary-aware pattern (works for both Latin and Cyrillic)
-            escaped = re.escape(form)
-            pattern = re.compile(
-                r'(?<![а-яА-ЯіїІЇЄєґҐa-zA-Z0-9])'
-                + escaped
-                + r'(?![а-яА-ЯіїІЇЄєґҐa-zA-Z0-9])',
-                re.IGNORECASE,
-            )
-            match = pattern.search(result)
-            if match:
-                result = result[:match.start()] + original_tag + result[match.end():]
-                replaced = True
-                break
-
-        if not replaced:
-            # Desperate fallback: simple case-insensitive search without boundaries
-            for form in forms:
-                if not form:
-                    continue
-                idx = result.lower().find(form.lower())
-                if idx != -1:
-                    result = result[:idx] + original_tag + result[idx + len(form):]
-                    break
-
-    return result
+    return translated_text or ""

@@ -1,7 +1,7 @@
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import QThread, pyqtSignal
 from utils.logging_utils import log_info, log_error
@@ -12,10 +12,11 @@ from ui.settings_dialog import SettingsDialog
 
 class TagAliasDialog(QDialog):
     def __init__(self, parent, title: str, original_tag: str, current_alias: str = "", current_width: int = None):
+        self._is_initializing = True
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
-        self.resize(380, 200)
+        self.resize(380, 245)
         
         layout = QVBoxLayout(self)
         
@@ -23,14 +24,47 @@ class TagAliasDialog(QDialog):
         self.info_label = QLabel(f"Original tag: <b>{original_tag}</b>", self)
         layout.addWidget(self.info_label)
         
+        # Force alias checkbox
+        self.force_checkbox = QCheckBox("Force alias (convert tag to permanent plain text)", self)
+        self.force_checkbox.setToolTip(
+            "Force alias permanently replaces the dynamic name tag (e.g. player or horse name) "
+            "with its plain text translation in the final exported game.\n\n"
+            "Why do we do this?\n"
+            "In the original game, character and horse names are customizable, but we lock them "
+            "to 'Link' and 'Epona' without options. This allows us to correctly inflect them grammatically "
+            "in our Slavic translation (e.g. 'Лінку', 'Епоні') and handle addressing properly.\n"
+            "The AI receives the plain name (e.g. 'Link') to translate/inflect, and the exported game "
+            "will store it as plain text without restoring the control code."
+        )
+        layout.addWidget(self.force_checkbox)
+        
         # Alias field
         layout.addWidget(QLabel("Alias name (will be enclosed in curly braces):", self))
+        
+        alias_input_layout = QHBoxLayout()
+        self.prefix_label = QLabel("F:", self)
+        self.prefix_label.setStyleSheet("font-weight: bold; font-size: 11pt; color: #808080;")
         self.alias_edit = QLineEdit(self)
+        alias_input_layout.addWidget(self.prefix_label)
+        alias_input_layout.addWidget(self.alias_edit)
+        layout.addLayout(alias_input_layout)
+        
+        # Populate initial values
         display_alias = current_alias
         if display_alias.startswith('{') and display_alias.endswith('}'):
             display_alias = display_alias[1:-1]
-        self.alias_edit.setText(display_alias)
-        layout.addWidget(self.alias_edit)
+            
+        if display_alias.lower().startswith('f:'):
+            self.force_checkbox.setChecked(True)
+            self.alias_edit.setText(display_alias[2:])
+            self.prefix_label.setVisible(True)
+        else:
+            self.force_checkbox.setChecked(False)
+            self.alias_edit.setText(display_alias)
+            self.prefix_label.setVisible(False)
+            
+        self.force_checkbox.stateChanged.connect(self._on_force_changed)
+        self.alias_edit.textChanged.connect(self._on_text_changed)
         
         # Custom width field
         layout.addWidget(QLabel("Custom width in pixels (leave empty for none):", self))
@@ -52,11 +86,44 @@ class TagAliasDialog(QDialog):
         buttons_layout.addWidget(self.ok_button)
         buttons_layout.addWidget(self.cancel_button)
         layout.addLayout(buttons_layout)
+        self._is_initializing = False
+
+    def _on_force_changed(self, state):
+        is_checked = self.force_checkbox.isChecked()
+        self.prefix_label.setVisible(is_checked)
+        
+        # Remove F: from text field if user checked the box
+        text = self.alias_edit.text().strip()
+        if is_checked and text.lower().startswith('f:'):
+            self.alias_edit.setText(text[2:])
+            
+        # Show informational popup if manually checked by the user
+        if is_checked and not self._is_initializing:
+            QMessageBox.information(
+                self,
+                "Force Alias Enabled",
+                "You have enabled the Force Alias option for this tag.\n\n"
+                "This permanently replaces the dynamic name tag with its plain text translation in the final exported game.\n\n"
+                "In the original game, character and horse names are customizable, but we lock them to 'Link' and 'Epona'. "
+                "This allows us to grammatically inflect them properly in our Slavic translation (e.g. 'Лінку', 'Епоні') and handle addressing properly.\n\n"
+                "The AI will translate the name (e.g., 'Link' to 'Лінку'), and it will remain as plain text in the exported game."
+            )
+
+    def _on_text_changed(self, text):
+        # If Force Alias is enabled, prevent user from typing the 'F:' prefix manually inside the text field
+        if self.force_checkbox.isChecked() and text.lower().startswith('f:'):
+            self.alias_edit.setText(text[2:])
 
     def get_data(self) -> tuple[str, int | None]:
         alias = self.alias_edit.text().strip()
+        alias = alias.lstrip('{').rstrip('}')
+        if alias.lower().startswith('f:'):
+            alias = alias[2:]
+            
         if alias:
-            if not alias.startswith('{') or not alias.endswith('}'):
+            if self.force_checkbox.isChecked():
+                alias = f"{{F:{alias}}}"
+            else:
                 alias = f"{{{alias}}}"
         
         width_str = self.width_edit.text().strip()
