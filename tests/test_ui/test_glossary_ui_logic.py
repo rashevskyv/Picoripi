@@ -284,3 +284,60 @@ def test_glossary_tooltip_reappears_when_hidden_by_timeout(mock_is_visible, mock
     assert mock_show_text.called
 
 
+def test_resolve_glossary_path(tmp_path):
+    """Test that _resolve_glossary_path respects priority levels and modification times."""
+    import os
+    import time
+    
+    mock_mw = MagicMock()
+    main_handler = MagicMock()
+    mock_glossary = MagicMock()
+    
+    gpm = GlossaryPromptManager(mock_mw, main_handler, mock_glossary)
+    
+    # Override directories to use tmp_path
+    def mock_plugin_dir(plugin_name):
+        return tmp_path / "plugins" / plugin_name / "translation_prompts" if plugin_name else None
+        
+    gpm._plugin_dir = mock_plugin_dir
+    gpm._fallback_dir = lambda: tmp_path / "translation_prompts"
+    
+    # Case 1: Plugin dir is empty, common dir is empty, global fallback is empty
+    # Returns the absolute default fallback (plugin_dir/glossary.json or fallback/glossary.json)
+    path = gpm._resolve_glossary_path("test_plugin")
+    assert path == tmp_path / "plugins" / "test_plugin" / "translation_prompts" / "glossary.json"
+    
+    # Case 2: Only global fallback directory exists with json
+    fallback_dir = tmp_path / "translation_prompts"
+    fallback_dir.mkdir(parents=True, exist_ok=True)
+    fallback_json = fallback_dir / "glossary.json"
+    fallback_json.write_text("[]", encoding="utf-8")
+    
+    path = gpm._resolve_glossary_path("test_plugin")
+    assert path == fallback_json
+    
+    # Case 3: Both global fallback json and md exist - returns newer
+    fallback_md = fallback_dir / "glossary.md"
+    fallback_md.write_text("markdown", encoding="utf-8")
+    
+    # Set fallback_md mtime to be newer
+    os.utime(fallback_json, (time.time() - 100, time.time() - 100))
+    os.utime(fallback_md, (time.time(), time.time()))
+    
+    path = gpm._resolve_glossary_path("test_plugin")
+    assert path == fallback_md
+    
+    # Case 4: Plugin directory has a glossary file - should override fallback
+    plugin_dir = tmp_path / "plugins" / "test_plugin" / "translation_prompts"
+    plugin_dir.mkdir(parents=True, exist_ok=True)
+    plugin_json = plugin_dir / "glossary.json"
+    plugin_json.write_text("[]", encoding="utf-8")
+    
+    # Even if plugin_json is older than fallback_md, plugin-level takes absolute precedence
+    os.utime(plugin_json, (time.time() - 200, time.time() - 200))
+    
+    path = gpm._resolve_glossary_path("test_plugin")
+    assert path == plugin_json
+
+
+

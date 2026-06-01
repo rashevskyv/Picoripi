@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.139] - 2026-06-01
+
+### Added
+- **AI JSON Normalization Retries**: Improved the AI translation pipeline by adding a specific fallback prompt when the model returns malformed JSON or truncates its response. The `AILifecycleManager` now detects parsing failures and automatically retries with a strict formatting reminder.
+
+### Fixed
+- **Preview Scroll Jumping During Background Translation**: Fixed a highly disruptive bug where the string list (`preview_text_edit`) would unexpectedly reset its scrollbar to the very top whenever a background AI translation finished or when manually typing in the translation field. The `PreviewUpdater` now strictly preserves the vertical scroll position for any updates occurring within the same block.
+- **Robust Glossary Path Resolving**: Resolved an issue where glossary highlights in the editor would fail to appear (both in translated and untranslated text). Refactored `GlossaryPromptManager._resolve_glossary_path()` to use a strict hierarchical priority system (Level 0 Override -> Level 1 Project -> Level 2 Base Game) and a localized `mtime` cache.
+- **Test Suite Stabilization**: Fixed a critical mocking issue where 3 translation handler tests crashed with a `TypeError` due to a `MagicMock` object being passed into `save_progress_to_metadata`. Added type-safe isinstance checks for `MagicMock` inside the production function to guarantee robust unit testing without regressions.
+
 ## [0.2.138] - 2026-05-31
 
 ### Added

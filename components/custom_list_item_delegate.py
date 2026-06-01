@@ -205,7 +205,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                                 translated = sum(1 for l_idx in category.line_indices if main_window.data_processor.is_string_translated(block_idx_data, l_idx))
                                 percentage = translated / total_needs
                             else:
-                                percentage = 1.0 # No strings need translation, treat as fully complete
+                                percentage = 0.0 # No strings need translation, do not treat as fully complete
                 elif block_idx_data is not None and not category_name:
                     ds = getattr(main_window, 'data_store', None)
                     if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
@@ -216,7 +216,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                                 translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
                                 percentage = translated / total_needs
                             else:
-                                percentage = 1.0
+                                percentage = 0.0
             except Exception as e:
                 log_debug(f"CustomListItemDelegate: Error calculating progress percentage: {e}")
 
