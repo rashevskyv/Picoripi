@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.152] - 2026-06-01
+
+### Fixed
+- **Glossary Global Replace Flow & UI Synchronization**:
+  - Upgraded `global_replace` in `GlossaryManager` to track and return all modified glossary entries (including changes in original terms and descriptions/notes), rather than restricting returns to translation changes only.
+  - Implemented smart filtering inside `global_replace_glossary` in `GlossaryHandler` to skip project-wide string translation synchronizations for entries where the translation column was not altered.
+  - Resolved a critical bug where performing a global replace on glossary term notes (e.g., changing "Русл" to "Расл") erroneously reported "No occurrences found in the glossary" and failed to refresh the dynamic UI, despite saving successfully to disk.
+
 ## [0.2.151] - 2026-06-01
 
 ### Fixed

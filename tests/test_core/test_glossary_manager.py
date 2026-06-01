@@ -316,9 +316,14 @@ def test_GlossaryManager_global_replace(manager):
     assert manager.get_entry("Link").notes == "Ґоронський герой"
     assert manager.get_entry("Goron Elder").translation == "Старійшина Ґоронів"
     
-    assert len(modified) == 1
-    assert modified[0][0].original == "Goron Elder"
-    assert modified[0][1] == "Старійшина Горонів"
-    assert modified[0][2].translation == "Старійшина Ґоронів"
+    assert len(modified) == 2
+    # e1 notes modified, translation unchanged
+    assert modified[0][0].original == "Link"
+    assert modified[0][1] == "Лінк"
+    assert modified[0][2].translation == "Лінк"
+    # e2 translation modified
+    assert modified[1][0].original == "Goron Elder"
+    assert modified[1][1] == "Старійшина Горонів"
+    assert modified[1][2].translation == "Старійшина Ґоронів"
 
 

@@ -687,6 +687,8 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         # Filter and compile valid updates
         valid_updates = []
         for old_entry, previous_translation, updated_entry in modified_list:
+            if previous_translation == updated_entry.translation:
+                continue
             occurrences = occurrence_map_before.get(old_entry.original, [])
             filtered = [
                 occ for occ in occurrences

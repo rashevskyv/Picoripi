@@ -255,7 +255,8 @@ class LayoutBuilder:
         string_settings_layout.setContentsMargins(0, 5, 0, 5)
 
         self.mw.speaker_label = QLabel("")
-        self.mw.speaker_label.setStyleSheet("font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px;")
+        self.mw.speaker_label.setObjectName("speaker_label")
+        self.mw.speaker_label.setStyleSheet("QLabel#speaker_label { font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px; }")
         self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
         string_settings_layout.addWidget(self.mw.speaker_label)
 

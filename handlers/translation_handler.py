@@ -930,6 +930,7 @@ class TranslationHandler(BaseHandler):
             'mode_description': context['mode_description'], 'is_retry': (context['attempt'] > 1),
             'retry_reason': context.get('last_error', ''),
             'session_state': session_state,
+            'temp_id_map': context.get('temp_id_map'),
         }
         context['composer_args'] = composer_args
 
