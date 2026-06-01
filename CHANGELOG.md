@@ -1,5 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.140] - 2026-06-01
+
+### Added
+- **Asynchronous External Script Runner**: Added a dedicated console prompt icon button (`>_`) to the main toolbar to quickly compile ROMs or launch emulators directly from the application.
+- **Configurable Tool/Script Path**: Added an "External Tool/Script Path" option to the *Global* tab in Settings with a specialized file browsing selector dialog supporting executable files (`.bat`, `.cmd`, `.exe`, `.py`, `.sh`).
+- **Asynchronous Execution & CWD Resolution**:
+  - Scripts are executed asynchronously in a separate process (`subprocess.Popen`) so that the main UI remains highly responsive.
+  - The working directory (CWD) is automatically resolved to the parent directory of the script to ensure local relative paths inside batch files resolve correctly.
+  - On Windows platforms, the process is spawned in a brand new console window (`CREATE_NEW_CONSOLE`) allowing real-time inspection of compilation logs and emulator output.
+- **Force-Alias Translation Mechanism (`F:` prefix)**: Introduced a powerful tag preservation system for AI translation. Tags whose aliases begin with `F:` (e.g., `{F:Link}` aliasing `{escape:0:0000}`) are automatically converted to their plain-text word equivalents before being sent to the AI translator. After translation, the words are restored back to their original tag form. This allows proper name tags (like player name or horse name) to be contextually translated as real words instead of being stripped as opaque control codes.
+  - Created `utils/force_alias.py` with `prepare_text_for_ai()` and `restore_force_alias_placeholders()` functions.
+  - Integrated into `AIPromptComposer.compose_batch_request()` for pre-processing and `TranslationHandler._handle_chunk_translated()` for post-processing.
+  - Relevant glossary terms matching force-alias words are automatically included in the AI prompt for context.
+
+### Fixed
+- **Sleep Prevention on Manual AI Cancellation**: Fixed a bug where the computer would enter sleep mode even when the user manually cancelled an AI translation operation. The `AIStatusDialog` now correctly sets `user_cancelled = True` through a unified `reject()` override, ensuring that the "Put computer to sleep when finished" checkbox is honored only for operations that complete automatically without human intervention. Also fixed potential duplicate signal connections in `TranslationUIHandler.start_ai_operation()` that could cause multiple cancel handlers to fire.
+
 ## [0.2.139] - 2026-06-01
 
 ### Added

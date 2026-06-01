@@ -118,6 +118,33 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         except Exception:
             return code
 
+    def _create_script_selector(self, line_edit: QLineEdit):
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        layout.addWidget(line_edit)
+        
+        browse_button = QPushButton("...")
+        browse_button.setFixedSize(24, 24)
+        browse_button.clicked.connect(lambda: self._browse_for_script(line_edit))
+        layout.addWidget(browse_button)
+        
+        return widget
+
+    def _browse_for_script(self, line_edit: QLineEdit):
+        start_dir = line_edit.text().strip() if line_edit.text() else ""
+        if start_dir:
+            try:
+                start_dir = str(Path(start_dir).parent.as_posix())
+            except Exception:
+                start_dir = ""
+        
+        filter_str = "Scripts/Executables (*.bat *.cmd *.exe *.py *.sh);;All Files (*)"
+        path, _ = QFileDialog.getOpenFileName(self, "Select External Script/Tool", start_dir, filter_str)
+        if path:
+            line_edit.setText(path)
+
     def _create_path_selector(self, line_edit: QLineEdit):
         widget = QWidget()
         layout = QHBoxLayout(widget)
@@ -197,6 +224,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         
         self.font_size_spinbox.setValue(self.mw.current_font_size)
         self.tooltip_font_size_spinbox.setValue(getattr(self.mw, 'tooltip_font_size', 11))
+        self.external_script_path_edit.setText(getattr(self.mw, 'external_script_path', ""))
         self.show_spaces_checkbox.setChecked(self.mw.show_multiple_spaces_as_dots)
         self.space_dot_color_picker.setColor(QColor(self.mw.space_dot_color_hex))
         self.restore_session_checkbox.setChecked(self.mw.restore_unsaved_on_startup)
@@ -434,6 +462,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'theme': self.theme_combo.currentText().lower(), 'active_game_plugin': selected_dir_name,
             'font_size': self.font_size_spinbox.value(),
             'tooltip_font_size': self.tooltip_font_size_spinbox.value(),
+            'external_script_path': self.external_script_path_edit.text().strip(),
             'show_multiple_spaces_as_dots': self.show_spaces_checkbox.isChecked(),
             'space_dot_color_hex': self.space_dot_color_picker.color().name(), 'restore_unsaved_on_startup': self.restore_session_checkbox.isChecked(),
             'prompt_editor_enabled': self.prompt_editor_checkbox.isChecked(),

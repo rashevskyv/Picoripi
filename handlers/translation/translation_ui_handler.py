@@ -183,6 +183,10 @@ class TranslationUIHandler(BaseTranslationHandler):
     def start_ai_operation(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
         self._set_ai_controls_enabled(False)
         self.status_dialog.start(title, is_chunked, model_name=model_name)
+        try:
+            self.status_dialog.cancelled.disconnect(self._handle_dialog_rejection)
+        except TypeError:
+            pass # Signal was not connected yet
         self.status_dialog.cancelled.connect(self._handle_dialog_rejection)
 
     def _handle_dialog_rejection(self):

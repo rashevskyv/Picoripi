@@ -48,6 +48,7 @@ class AIStatusDialog(QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setMinimumWidth(450)
         self.setSizeGripEnabled(False)
+        self.user_cancelled = False
 
         self.steps = [
             "Preparing request...",
@@ -145,11 +146,16 @@ class AIStatusDialog(QDialog):
         self.button_box.rejected.connect(self.on_cancel)
 
     def on_cancel(self):
-        self.cancelled.emit()
         self.reject()
+
+    def reject(self):
+        self.user_cancelled = True
+        self.cancelled.emit()
+        super().reject()
         restore_sleep()
 
     def closeEvent(self, event: QEvent):
+        self.user_cancelled = True
         self.cancelled.emit()
         super().closeEvent(event)
         restore_sleep()
@@ -176,6 +182,7 @@ class AIStatusDialog(QDialog):
         super().hideEvent(event)
 
     def start(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
+        self.user_cancelled = False
         self.title_label.setText(title)
         self._set_model_name(model_name)
         self.detail_label.clear()
@@ -206,7 +213,7 @@ class AIStatusDialog(QDialog):
         self.hide()
         
         restore_sleep()
-        if self.sleep_after_checkbox.isChecked():
+        if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False):
             from PyQt5.QtCore import QTimer
             QTimer.singleShot(5000, put_to_sleep)
 

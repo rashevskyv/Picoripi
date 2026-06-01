@@ -14,6 +14,7 @@ def mock_mw():
     mw.preview_font_size = 12
     mw.editors_font_size = 12
     mw.tooltip_font_size = 11
+    mw.external_script_path = ""
     mw.active_game_plugin = "test_plugin"
     mw.show_multiple_spaces_as_dots = True
     mw.space_dot_color_hex = "#123456"

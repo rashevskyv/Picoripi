@@ -77,18 +77,12 @@ class TranslationHandler(BaseHandler):
         """Saves translation progress for a single block into the block's project metadata."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
-        
-        from unittest.mock import MagicMock
-        if isinstance(block_idx, MagicMock):
-            return
             
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        if isinstance(block_map, MagicMock):
+        if not isinstance(block_map, dict):
             block_map = {}
             
         proj_block_idx = block_map.get(block_idx, block_idx)
-        if isinstance(proj_block_idx, MagicMock):
-            return
             
         if proj_block_idx < 0 or proj_block_idx >= len(self.mw.project_manager.project.blocks):
             return
@@ -791,6 +785,10 @@ class TranslationHandler(BaseHandler):
 
             for idx_in_response, item in enumerate(translated_strings):
                 temp_id, translated_text = item["id"], item["translation"]
+                
+                p_map = context.get('placeholder_map', {})
+                if p_map:
+                    translated_text = self.prompt_composer.restore_placeholders(translated_text, p_map, key=temp_id)
                 
                 # 1. First, try to resolve real block/string indices using sequential order inside the chunk
                 # (Highly robust against LLMs completely changing ID format or returning sequential indices 0, 1, 2...)
