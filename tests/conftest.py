@@ -109,6 +109,7 @@ def mock_mw(qapp):
     mw.data_store.data = []
     mw.data_store.problems_per_subline = {}
     mw.string_metadata = {}
+    mw.data_store.current_chapter_id = None
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 240
     mw.current_game_rules = MagicMock()

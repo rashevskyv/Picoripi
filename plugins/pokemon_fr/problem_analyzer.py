@@ -53,12 +53,13 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         space_width = calculate_string_width(" ", font_map)
         return (width_current + space_width + width_first_word_next) <= threshold
 
-    def analyze_data_string(self, data_string: str, font_map: dict, threshold: int) -> List[Set[str]]:
+    def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
         if not data_string:
             return []
         sublines_with_tags = self._get_sublines_from_data_string(data_string)
         problems_per_subline_idx = [set() for _ in sublines_with_tags]
         is_only_one_subline_in_total = len(sublines_with_tags) == 1
+        limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
         for i, (text_part, newline_tag) in enumerate(sublines_with_tags):
             text_part_no_tags = remove_all_tags(text_part)
             width = calculate_string_width(text_part, font_map)
@@ -66,9 +67,9 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                 problems_per_subline_idx[i].add(self.problem_ids['TAG'])
             if not text_part_no_tags.strip():
                 if i < len(sublines_with_tags) - 1:
-                    problems_per_subline_idx[i].add(self.problem_ids['EMPTY'])
-            if width > threshold:
-                problems_per_subline_idx[i].add(self.problem_ids['WIDTH'])
+                     problems_per_subline_idx[i].add(self.problem_ids['EMPTY'])
+            if width > limit:
+                 problems_per_subline_idx[i].add(self.problem_ids['WIDTH'])
             if i + 1 < len(sublines_with_tags):
                 next_text_part, _ = sublines_with_tags[i+1]
                 if self._check_short_line(text_part, next_text_part, font_map, threshold):
@@ -88,4 +89,10 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return problems_per_subline_idx
 
     def analyze_subline(self, text: str, **kwargs) -> Set[str]:
-        return super().analyze_subline(text, None, 0, 0, True, kwargs.get('editor_font_map', {}), kwargs.get('editor_line_width_threshold', 0), "")
+        return super().analyze_subline(
+            text, None, 0, 0, True, 
+            kwargs.get('editor_font_map', {}), 
+            kwargs.get('editor_line_width_threshold', 0), 
+            "", 
+            logical_hard_limit=kwargs.get('logical_hard_limit', None)
+        )

@@ -1,6 +1,6 @@
-# Picoripi v0.2.149
+# Picoripi v0.2.151
  
-The "Picoripi" (v0.2.149) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.151) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -46,7 +46,15 @@ The "Picoripi" (v0.2.149) is a desktop application built with **Python** and **P
 - **Dialogue-Aware Surrounding Context**: The prompt composer automatically gathers up to 3 preceding and 3 succeeding dialogue lines in their best translated (or original) state, transmitting a rich surrounding dialogue context to the LLM to preserve tone, continuity, and formal/informal address tags.
 - Automatic batch translation of glossary terms or specific phrases while preserving game context.
 - **Translation Variations**: Generate creative alternative translations for overly long sentences, now fully enriched with dynamic glossary and surrounding context.
-- **Force-Alias Tag to Plain-Text Conversion (`F:` prefix)**: Tags whose aliases begin with `F:` (e.g., `{F:Link}` mapping to `{escape:0:0000}`) are automatically converted to plain-text words before being sent to the AI, allowing character names (like 'Link' or 'Epona') to be treated as real words in the AI prompt for correct grammatical inflections in translations. The translated word remains as plain text in the final translation (not restored back to the original control code), permanently baking the name into the game script to ensure perfect grammar and tone in Slavic languages.
+- **Force-Alias Translation Mechanism (`F:` prefix)**: Introduced a powerful tag preservation system for AI translation. Tags whose aliases begin with `F:` (e.g., `{F:Link}` aliasing `{escape:0:0000}`) are automatically converted to their plain-text word equivalents before being sent to the AI translator. After translation, the words are restored back to their original tag form. This allows proper name tags (like player name or horse name) to be contextually translated as real words instead of being stripped as opaque control codes.
+  - Created `utils/force_alias.py` with `prepare_text_for_ai()` and `restore_force_alias_placeholders()` functions.
+  - Integrated into `AIPromptComposer.compose_batch_request()` for pre-processing and `TranslationHandler._handle_chunk_translated()` for post-processing.
+  - Relevant glossary terms matching force-alias words are automatically included in the AI prompt for context.
+- **Smart Balanced Wrapping and Page Building**:
+  - Implemented an elegant proportional text layout and word wrap algorithm inside `_format_and_wrap_translation` in `handlers/translation_handler.py`.
+  - Proportional word wrap balances lines by fitting words up to `line_width_warning_threshold_pixels` (desired width), but allowing a single word to cross the warning threshold if the total width remains below `game_dialog_max_width_pixels` (hard maximum width limit) without breaking.
+  - Evaluates and separates dialogue lines into clean, logical pages based on `lines_per_page`.
+  - Strictly preserves sentence integrity: entire sentences are pushed to a fresh page using the active plugin's page break indicator (e.g. `\p`, `\l`) if they would otherwise split awkwardly across pages.
 - Configurable AI prompts for fine-tuning translation quality.
 
 ### Glossary Management

@@ -91,3 +91,15 @@ def test_ZeldaWW_autofix_integration(mock_calc_pa, mock_calc_tf, rules):
     fixed, changed = rules.autofix_data_string(text, {}, 200)
     assert changed is True
     assert fixed == "[Tag] word"
+
+def test_ZeldaWW_analyze_data_string_width_with_logical_limit(rules):
+    # Width (250) exceeds editor threshold (200), but is less than logical limit (300)
+    with patch('plugins.zelda_ww.problem_analyzer.calculate_string_width', return_value=250):
+        problems = rules.problem_analyzer.analyze_data_string("Long line", {}, 200, logical_hard_limit=300)
+        assert rules.problem_ids.PROBLEM_WIDTH_EXCEEDED not in problems[0]
+
+def test_ZeldaWW_analyze_data_string_width_exceeds_logical_limit(rules):
+    # Width (250) exceeds both editor threshold (200) and logical limit (240)
+    with patch('plugins.zelda_ww.problem_analyzer.calculate_string_width', return_value=250):
+        problems = rules.problem_analyzer.analyze_data_string("Long line", {}, 200, logical_hard_limit=240)
+        assert rules.problem_ids.PROBLEM_WIDTH_EXCEEDED in problems[0]

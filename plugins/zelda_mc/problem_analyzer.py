@@ -74,9 +74,10 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                         editor_font_map: dict,
                         editor_line_width_threshold: int,
                         full_data_string_text_for_logical_check: str,
-                        is_target_for_debug: bool = False) -> Set[str]:
+                        is_target_for_debug: bool = False,
+                        logical_hard_limit: Optional[int] = None) -> Set[str]:
 
-        found_problems = super().analyze_subline(text, next_text, subline_number_in_data_string, qtextblock_number_in_editor, is_last_subline_in_data_string, editor_font_map, editor_line_width_threshold, full_data_string_text_for_logical_check, is_target_for_debug)
+        found_problems = super().analyze_subline(text, next_text, subline_number_in_data_string, qtextblock_number_in_editor, is_last_subline_in_data_string, editor_font_map, editor_line_width_threshold, full_data_string_text_for_logical_check, is_target_for_debug, logical_hard_limit=logical_hard_limit)
         
         text_with_spaces = convert_dots_to_spaces_from_editor(text)
         next_text_with_spaces = convert_dots_to_spaces_from_editor(next_text) if next_text is not None else None

@@ -59,11 +59,21 @@ class LNETPaintEventLogic:
         if not font_map and hasattr(main_window, 'font_map'):
             font_map = main_window.font_map
 
+        block_idx = -1
+        string_idx = -1
         if hasattr(main_window, 'data_store') and hasattr(main_window, 'helper'):
             block_idx = main_window.data_store.current_block_idx
             string_idx = main_window.data_store.current_string_idx
             if block_idx != -1 and string_idx != -1:
                 font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)
+
+        # Calculate max allowed physical width (Game Dialog Limit)
+        max_allowed_width = getattr(main_window, 'game_dialog_max_width_pixels', limit_px)
+        if block_idx != -1 and string_idx != -1:
+            string_meta = getattr(main_window, 'string_metadata', {}).get((block_idx, string_idx), {})
+            if "width" in string_meta:
+                max_allowed_width = string_meta["width"]
+                limit_px = string_meta["width"]
 
         sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
         left_margin = viewport_offset.x() + self.editor.document().documentMargin()
@@ -123,7 +133,7 @@ class LNETPaintEventLogic:
                 block_text_raw = convert_dots_to_spaces_from_editor(block.text())
                 block_width_px = calculate_string_width(block_text_raw.rstrip(), font_map, icon_sequences=sequences)
 
-                # Determine pen styling based on the whole block's width
+                # Determine pen styling based on the guideline limit (Editor Line Width or custom width)
                 if block_width_px > limit_px:
                     pen_guide = QPen(QColor(255, 0, 0, 180))
                     pen_guide.setWidth(2)

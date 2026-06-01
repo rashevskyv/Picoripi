@@ -2,5 +2,10 @@
     "{color:red}": "{escape:255:000001}",
     "{color:white}": "{escape:255:000000}",
     "{F:Link}": "{escape:0:0000}",
-    "{pause}": "{escape:0:0007002d}"
+    "{pause}": "{escape:0:0007002d}",
+    "{color:blue}": "{escape:255:000003}",
+    "{(L)}": "{escape:0:000d}",
+    "{(A)}": "{escape:0:000a}",
+    "{(B)}": "{escape:0:000b}",
+    "{(R)}": "{escape:0:000e}"
 }

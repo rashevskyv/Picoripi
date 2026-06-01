@@ -116,7 +116,8 @@ class BaseGameRules:
                         editor_font_map: dict,
                         editor_line_width_threshold: int,
                         full_data_string_text_for_logical_check: str,
-                        is_target_for_debug: bool = False) -> Set[str]:
+                        is_target_for_debug: bool = False,
+                        logical_hard_limit: Optional[int] = None) -> Set[str]:
         return set()
 
     def autofix_data_string(self,
@@ -185,7 +186,8 @@ class BaseGameRules:
             val = self.mw.newline_display_symbol
             if isinstance(val, str):
                 newline_symbol = val
-        return data_string.replace('\n', newline_symbol)
+        aliased = self.replace_tags_with_aliases(str(data_string))
+        return aliased.replace('\n', newline_symbol)
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         return []

@@ -12,6 +12,7 @@ def mock_deps():
     mw = MagicMock()
     mw.data_store = mw
     mw.translation_config = {}
+    mw.string_metadata = {}
     mw.data_store.current_block_idx = 1
     mw.data_store.current_string_idx = 2
     mw.preview_text_edit = MagicMock()
@@ -23,6 +24,8 @@ def mock_deps():
 @pytest.fixture
 def th(mock_deps):
     mw, dp, ui = mock_deps
+    mw.current_game_rules.convert_editor_text_to_data.side_effect = lambda x: x
+    mw.current_game_rules.get_shift_enter_char.return_value = "\n"
     
     with patch('handlers.translation_handler.GlossaryHandler'), \
          patch('handlers.translation_handler.AIPromptComposer'), \
@@ -542,6 +545,66 @@ def test_save_and_load_progress_metadata(th):
     assert loaded['completed_chunks'] == {0, 1}  # converted back to set
     assert loaded['temp_id_map'] == {0: (0, 0)}  # keys converted to int
     assert loaded['custom_user_header'] == 'Header'
+
+
+def test_format_and_wrap_translation_balanced_and_page_building(th):
+    # Setup mock settings on th.mw
+    th.mw.game_dialog_max_width_pixels = 460
+    th.mw.line_width_warning_threshold_pixels = 410
+    th.mw.lines_per_page = 2
+    
+    # We will mock calculate_string_width to simplify testing.
+    # Let's say: each character has a width of 10.
+    # Warning threshold (410px) = 41 chars
+    # Max width (460px) = 46 chars
+    with patch('handlers.translation_handler.calculate_string_width') as mock_width, \
+         patch('handlers.translation_handler.remove_all_tags') as mock_remove_tags:
+        
+        mock_width.side_effect = lambda text, *args, **kwargs: len(text) * 10
+        mock_remove_tags.side_effect = lambda text: text
+        
+        # Mock current game rules with shift enter and editor translation
+        mock_rules = MagicMock()
+        mock_rules.get_shift_enter_char.return_value = "[P]\n"
+        # Mock convert_editor_text_to_data: just replace [P]\n with \p
+        mock_rules.convert_editor_text_to_data.side_effect = lambda text: text.replace("[P]\n", "\\p")
+        th.mw.current_game_rules = mock_rules
+        
+        # Test Case 1: Balanced wrapping of a sentence
+        # ShortWord (90px) + NextWord (80px) = 170px.
+        # Adding AnotherWord (110px) -> 290px <= 410px.
+        # Let's construct long words.
+        # Word 1: 20 chars (200px)
+        # Word 2: 22 chars (220px)
+        # Word 1 + space + Word 2 -> 20 + 1 + 22 = 43 chars (430px).
+        # 430px > 410px (warning threshold) but <= 460px (max width).
+        # So they must stay on the same line!
+        # Word 3: 15 chars (150px)
+        # Adding Word 3 would make 430px + 10px (space) + 150px = 590px > 460px.
+        # So Word 3 must wrap to line 2.
+        w1 = "a" * 20
+        w2 = "b" * 22
+        w3 = "c" * 15
+        text_to_wrap = f"{w1} {w2} {w3}"
+        res = th._format_and_wrap_translation(text_to_wrap, 0, 0)
+        assert res == f"{w1} {w2}\n{w3}"
+        
+        # Test Case 2: Page building / sentence integrity
+        # Sentence 1: "SentenceA." -> 10 chars (1 line)
+        # Sentence 2: WordOne + space + WordTwo + space + WordThree.
+        # Let's make WordOne = 23 chars, WordTwo = 23 chars.
+        # WordOne (230px). Adding WordTwo (230px) -> 230 + 10 + 230 = 470px > 460px.
+        # So WordTwo wraps to line 2.
+        # Sentence 2 has 2 lines: "WordOne", "WordTwo WordThree."
+        # lines_per_page = 2.
+        # Sentence 1 (1 line) + Sentence 2 (2 lines) = 3 lines total.
+        # Sentence 2 cannot fit on page 1, so it must start on page 2.
+        # Page 1: "SentenceA."
+        # Page 2: "WordOne\nWordTwo WordThree."
+        # joined by shift_enter_char [P]\n, then converted (replace [P]\n with \p)
+        text_integrity = "SentenceA. 12345678901234567890123 12345678901234567890123 WordThree."
+        res = th._format_and_wrap_translation(text_integrity, 0, 0)
+        assert res == "SentenceA.\\p12345678901234567890123\n12345678901234567890123 WordThree."
 
 
 

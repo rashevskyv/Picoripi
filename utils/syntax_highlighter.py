@@ -544,8 +544,18 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
 
     def highlightBlock(self, text):
-        previous_color_state = self.previousBlockState()
-        if previous_color_state == -1: previous_color_state = self.STATE_DEFAULT
+        # In preview_text_edit each line is an independent game string,
+        # so color must NOT bleed from one string to the next.
+        _is_preview_widget = (
+            self._editor_widget_ref is not None
+            and hasattr(self._editor_widget_ref, 'objectName')
+            and self._editor_widget_ref.objectName() == 'preview_text_edit'
+        )
+        if _is_preview_widget:
+            previous_color_state = self.STATE_DEFAULT
+        else:
+            previous_color_state = self.previousBlockState()
+            if previous_color_state == -1: previous_color_state = self.STATE_DEFAULT
 
         format_map = {
             self.STATE_DEFAULT: self.color_default_format,
@@ -737,4 +747,5 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                     combined_format.setFontWeight(self.icon_sequence_format.fontWeight())
                 self.setFormat(start, length, combined_format)
 
-        self.setCurrentBlockState(current_block_color_state)
+        # In preview_text_edit, never carry colour state to the next line.
+        self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)

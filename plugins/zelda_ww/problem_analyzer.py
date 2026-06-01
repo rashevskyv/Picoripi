@@ -50,16 +50,17 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                             problem_lines.append(i)
         return problem_lines
 
-    def analyze_data_string(self, data_string: str, font_map: dict, threshold: int) -> List[Set[str]]:
+    def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
         sublines = data_string.split('\n')
         problems_per_subline = [set() for _ in sublines]
         empty_first_lines = self.check_for_empty_first_line_of_page(data_string)
         for line_idx in empty_first_lines:
             if line_idx < len(problems_per_subline):
                 problems_per_subline[line_idx].add(self.problem_ids.PROBLEM_EMPTY_FIRST_LINE_OF_PAGE)
+        limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
         for i, subline in enumerate(sublines):
             pixel_width_subline = calculate_string_width(subline.rstrip(), font_map)
-            if pixel_width_subline > threshold:
+            if pixel_width_subline > limit:
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
             next_subline = sublines[i + 1] if i + 1 < len(sublines) else None
             if next_subline is not None:
