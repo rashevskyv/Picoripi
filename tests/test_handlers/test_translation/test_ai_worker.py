@@ -36,6 +36,14 @@ def test_AIWorkerclean_json_response(worker_deps):
     assert worker._clean_json_response("Some text { \"a\": 1 } more text") == '{ "a": 1 }'
     assert worker._clean_json_response("Just text") == "Just text"
     assert worker._clean_json_response("") == ""
+    
+    # Тести для видалення trailing commas
+    invalid_json_object = '{"a": 1, "b": "hello",}'
+    assert worker._clean_json_response(invalid_json_object) == '{"a": 1, "b": "hello" }'
+    
+    # Тест на ігнорування коми всередині лапок
+    json_with_comma_in_string = '{"a": "привіт, }"}'
+    assert worker._clean_json_response(json_with_comma_in_string) == '{"a": "привіт, }"}'
 
 def test_AIWorker_run_chat_message(worker_deps):
     provider, prompt_composer = worker_deps
@@ -233,6 +241,43 @@ def test_AIWorker_detail_updated_signal(worker_deps):
     assert "d_mn08" in emitted_text
     assert "Line: 10" in emitted_text
     assert "Script Line: 123" in emitted_text
+
+def test_AIWorker_retry_adds_reminder(worker_deps):
+    provider, prompt_composer = worker_deps
+    
+    # 1. Test batch block translation attempt > 1
+    task_details = {
+        'type': 'translate_block_chunked',
+        'source_items': ['A'],
+        'composer_args': {},
+        'attempt': 2
+    }
+    worker = AIWorker(provider, prompt_composer, task_details)
+    
+    provider.translate.return_value = ProviderResponse(text='{"translated_strings": ["TransA"]}')
+    
+    worker.run()
+    
+    # Verify that translator was called with messages having the retry reminder
+    call_messages = provider.translate.call_args[0][0]
+    assert isinstance(call_messages, list)
+    system_content = next(msg['content'] for msg in call_messages if msg.get('role') == 'system')
+    assert "IMPORTANT REMINDER FOR RETRY" in system_content
+    assert "trailing commas" in system_content
+
+    # 2. Test other task attempt > 1 (e.g. translate_single)
+    task_details_single = {
+        'type': 'translate_single',
+        'composer_args': {'system_prompt': 'sys', 'user_prompt': 'user'},
+        'attempt': 3,
+        'dialog_steps': ['1', '2', '3']
+    }
+    worker_single = AIWorker(provider, prompt_composer, task_details_single)
+    worker_single.run()
+    
+    call_messages_single = provider.translate.call_args[0][0]
+    system_content_single = next(msg['content'] for msg in call_messages_single if msg.get('role') == 'system')
+    assert "IMPORTANT REMINDER FOR RETRY" in system_content_single
 
 
 

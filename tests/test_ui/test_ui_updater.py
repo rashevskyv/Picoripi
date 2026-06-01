@@ -674,3 +674,36 @@ def test_UIUpdater_synchronize_original_cursor_no_text(updater, mock_mw):
     # When current_block_idx==-1, original cursor sync still tells highlightManager to clear position
     mock_mw.original_text_edit.highlightManager.setLinkedCursorPosition.assert_called_with(-1, -1)
 
+
+@patch.object(PreviewUpdater, 'update_text_views')
+@patch.object(PreviewUpdater, '_apply_highlights_for_block')
+def test_UIUpdater_populate_strings_preserves_scrollbar(mock_hl, mock_ut, updater, mock_mw):
+    """Test that vertical scrollbar value is preserved when the block has not changed."""
+    mock_mw.data = [["s1", "s2", "s3"]]
+    mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
+    
+    mock_scroll = MagicMock()
+    mock_scroll.value.return_value = 42
+    
+    mock_mw.preview_text_edit = MagicMock()
+    mock_mw.preview_text_edit.verticalScrollBar.return_value = mock_scroll
+    mock_mw.preview_text_edit.highlightManager = MagicMock()
+    mock_mw.preview_text_edit.document.return_value.blockCount.return_value = 3
+    mock_mw.preview_text_edit.toPlainText.return_value = ""
+    mock_mw.project_manager = None
+    updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
+    
+    mock_mw.current_string_idx = 1
+    mock_mw.displayed_string_indices = []
+    
+    # Pre-set last populated block to make block_changed = False
+    updater.preview_updater._last_populated_block_idx = 0
+    updater.preview_updater._last_populated_category_name = None
+    
+    updater.populate_strings_for_block(0, force=True)
+    
+    # Verify scrollbar value was preserved and set back to 42
+    mock_scroll.setValue.assert_called_with(42)
+
+

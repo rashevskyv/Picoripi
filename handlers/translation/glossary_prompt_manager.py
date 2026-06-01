@@ -51,6 +51,51 @@ class GlossaryPromptManager:
         ]
         return next((p for p in candidates if p and p.exists()), None)
 
+    def _resolve_glossary_path(self, plugin_name: Optional[str]) -> Optional[Path]:
+        """
+        Resolves the best available glossary path for the given plugin_name.
+        Prioritizes the plugin directory, then common defaults, and finally global fallback.
+        At each level, if both glossary.json and glossary.md exist, it returns the newer one.
+        """
+        # 1. Try plugin directory first
+        plugin_dir = self._plugin_dir(plugin_name)
+        if plugin_dir and plugin_dir.exists():
+            json_p = plugin_dir / "glossary.json"
+            md_p = plugin_dir / "glossary.md"
+            if json_p.exists() and md_p.exists():
+                return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
+            if json_p.exists():
+                return json_p
+            if md_p.exists():
+                return md_p
+
+        # 2. Try common defaults
+        common_dir = Path("plugins", "common", "defaults")
+        if common_dir.exists():
+            json_p = common_dir / "glossary.json"
+            md_p = common_dir / "glossary.md"
+            if json_p.exists() and md_p.exists():
+                return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
+            if json_p.exists():
+                return json_p
+            if md_p.exists():
+                return md_p
+
+        # 3. Fallback directory
+        fallback_dir = self._fallback_dir()
+        if fallback_dir.exists():
+            json_p = fallback_dir / "glossary.json"
+            md_p = fallback_dir / "glossary.md"
+            if json_p.exists() and md_p.exists():
+                return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
+            if json_p.exists():
+                return json_p
+            if md_p.exists():
+                return md_p
+
+        # Absolute default fallback
+        return (plugin_dir / "glossary.json") if plugin_dir else (fallback_dir / "glossary.json")
+
     # ── Public: load prompts (cached) ───────────────────────────────────
 
     def load_prompts(self) -> Tuple[Optional[str], Optional[str]]:
@@ -88,16 +133,7 @@ class GlossaryPromptManager:
             QMessageBox.critical(self._mw, "AI Translation", "System prompt not defined in prompts.json.")
             return None, None
 
-        json_path = self._resolve_file("glossary.json", plugin_name)
-        md_path = self._resolve_file("glossary.md", plugin_name)
-        
-        glossary_path = json_path
-        if md_path and md_path.exists():
-            if not json_path or not json_path.exists() or md_path.stat().st_mtime > json_path.stat().st_mtime:
-                glossary_path = md_path
-        elif not json_path:
-            plugin_dir = self._plugin_dir(plugin_name)
-            glossary_path = (plugin_dir / "glossary.json") if plugin_dir else (self._fallback_dir() / "glossary.json")
+        glossary_path = self._resolve_glossary_path(plugin_name)
 
         glossary_text = ""
         if glossary_path and glossary_path.exists():
@@ -121,16 +157,7 @@ class GlossaryPromptManager:
         """Pre-load glossary text for syntax highlighting without a full prompts load."""
         plugin_name = getattr(self._mw, "active_game_plugin", None)
         
-        json_path = self._resolve_file("glossary.json", plugin_name)
-        md_path = self._resolve_file("glossary.md", plugin_name)
-        
-        glossary_path = json_path
-        if md_path and md_path.exists():
-            if not json_path or not json_path.exists() or md_path.stat().st_mtime > json_path.stat().st_mtime:
-                glossary_path = md_path
-        elif not json_path:
-            plugin_dir = self._plugin_dir(plugin_name)
-            glossary_path = (plugin_dir / "glossary.json") if plugin_dir else (self._fallback_dir() / "glossary.json")
+        glossary_path = self._resolve_glossary_path(plugin_name)
 
         glossary_text = ""
         if glossary_path and glossary_path.exists():

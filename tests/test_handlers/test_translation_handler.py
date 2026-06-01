@@ -410,4 +410,52 @@ def test_th_handle_preview_translation_success_updates_title(th):
     th.ui_updater.update_title.assert_called_once()
 
 
+def test_save_and_load_progress_metadata(th):
+    # Setup mock project and blocks
+    mock_block = MagicMock()
+    mock_block.metadata = {}
+    
+    th.mw.project_manager = MagicMock()
+    th.mw.project_manager.project = MagicMock()
+    th.mw.project_manager.project.blocks = [mock_block]
+    
+    th.mw.block_to_project_file_map = {0: 0}
+    
+    # 1. Save progress
+    th.translation_progress = {
+        0: {
+            'completed_chunks': {0, 1},
+            'total_chunks': 3,
+            'source_items': [{'id': 0, 'text': 'src'}],
+            'temp_id_map': {0: (0, 0)},
+            'custom_user_header': 'Header',
+            'custom_user_label': 'Label',
+            'system_prompt_override': 'Prompt',
+            'session_reset_attempted': False
+        }
+    }
+    
+    th.save_progress_to_metadata(0)
+    
+    # Assert it was saved into mock_block.metadata
+    assert 'translation_progress' in mock_block.metadata
+    saved = mock_block.metadata['translation_progress']
+    assert saved['total_chunks'] == 3
+    assert saved['completed_chunks'] == [0, 1]  # converted to list
+    assert saved['custom_user_header'] == 'Header'
+    th.mw.project_manager.save.assert_called()
+    
+    # 2. Load progress
+    th.translation_progress.clear()
+    th.load_progress_from_metadata()
+    
+    assert 0 in th.translation_progress
+    loaded = th.translation_progress[0]
+    assert loaded['total_chunks'] == 3
+    assert loaded['completed_chunks'] == {0, 1}  # converted back to set
+    assert loaded['temp_id_map'] == {0: (0, 0)}  # keys converted to int
+    assert loaded['custom_user_header'] == 'Header'
+
+
+
 

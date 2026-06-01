@@ -119,6 +119,9 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.active_game_plugin = info['plugin']
                 self.mw.load_game_plugin()
                 self.ui_updater.update_plugin_status_label()
+            else:
+                if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                    self.mw.translation_handler.initialize_glossary_highlighting()
 
             # Now sync with plugin awareness
             if self.mw.project_manager:
@@ -179,6 +182,9 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.active_game_plugin = project.plugin_name
                 self.mw.load_game_plugin()
                 self.ui_updater.update_plugin_status_label()
+            else:
+                if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                    self.mw.translation_handler.initialize_glossary_highlighting()
 
             # Load project-specific settings
             if hasattr(self.mw, 'settings_manager'):
@@ -813,6 +819,9 @@ class ProjectActionHandler(BaseHandler):
             self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
 
         self.mw.project_manager.clear_archive_cache()
+
+        if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+            self.mw.translation_handler.load_progress_from_metadata()
 
         # Perform initial scan
         if hasattr(self.mw, 'app_action_handler'):

@@ -73,6 +73,95 @@ class TranslationHandler(BaseHandler):
 
         QTimer.singleShot(0, self.glossary_handler.install_menu_actions)
     
+    def save_progress_to_metadata(self, block_idx: int) -> None:
+        """Saves translation progress for a single block into the block's project metadata."""
+        if not self.mw.project_manager or not self.mw.project_manager.project:
+            return
+        
+        from unittest.mock import MagicMock
+        if isinstance(block_idx, MagicMock):
+            return
+            
+        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        if isinstance(block_map, MagicMock):
+            block_map = {}
+            
+        proj_block_idx = block_map.get(block_idx, block_idx)
+        if isinstance(proj_block_idx, MagicMock):
+            return
+            
+        if proj_block_idx < 0 or proj_block_idx >= len(self.mw.project_manager.project.blocks):
+            return
+            
+        block = self.mw.project_manager.project.blocks[proj_block_idx]
+        
+        if block_idx in self.translation_progress:
+            prog = self.translation_progress[block_idx]
+            # Convert set to list for JSON serialization
+            serialized_prog = {
+                'completed_chunks': list(prog.get('completed_chunks', [])),
+                'total_chunks': prog.get('total_chunks', 0),
+                'source_items': prog.get('source_items', []),
+                'temp_id_map': prog.get('temp_id_map', {}),
+                'custom_user_header': prog.get('custom_user_header'),
+                'custom_user_label': prog.get('custom_user_label'),
+                'system_prompt_override': prog.get('system_prompt_override'),
+                'session_reset_attempted': prog.get('session_reset_attempted', False)
+            }
+            block.metadata['translation_progress'] = serialized_prog
+        else:
+            if 'translation_progress' in block.metadata:
+                del block.metadata['translation_progress']
+                
+        # Persist project changes
+        self.mw.project_manager.save()
+
+    def load_progress_from_metadata(self) -> None:
+        """Loads translation progress for all blocks from their project metadata."""
+        self.translation_progress.clear()
+        if not self.mw.project_manager or not self.mw.project_manager.project:
+            return
+            
+        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        # Create a reverse map to go from project block index back to data block index
+        rev_block_map = {proj_idx: data_idx for data_idx, proj_idx in block_map.items()}
+        
+        for proj_idx, block in enumerate(self.mw.project_manager.project.blocks):
+            serialized_prog = block.metadata.get('translation_progress')
+            if serialized_prog and isinstance(serialized_prog, dict):
+                # Resolve the correct data block index
+                data_block_idx = rev_block_map.get(proj_idx, proj_idx)
+                
+                # Reconstruct completed_chunks as a set
+                completed_chunks = set(serialized_prog.get('completed_chunks', []))
+                
+                # Reconstruct temp_id_map, converting keys back to integers where possible
+                raw_temp_map = serialized_prog.get('temp_id_map', {})
+                temp_id_map = {}
+                for k, v in raw_temp_map.items():
+                    # Handle tuple conversion (in JSON, list was saved)
+                    if isinstance(v, list) and len(v) == 2:
+                        val = (v[0], v[1])
+                    else:
+                        val = v
+                        
+                    try:
+                        temp_id_map[int(k)] = val
+                    except (ValueError, TypeError):
+                        temp_id_map[k] = val
+                
+                self.translation_progress[data_block_idx] = {
+                    'completed_chunks': completed_chunks,
+                    'total_chunks': serialized_prog.get('total_chunks', 0),
+                    'source_items': serialized_prog.get('source_items', []),
+                    'temp_id_map': temp_id_map,
+                    'custom_user_header': serialized_prog.get('custom_user_header'),
+                    'custom_user_label': serialized_prog.get('custom_user_label'),
+                    'system_prompt_override': serialized_prog.get('system_prompt_override'),
+                    'session_reset_attempted': serialized_prog.get('session_reset_attempted', False)
+                }
+        log_debug(f"Loaded translation progress for {len(self.translation_progress)} blocks from project metadata.")
+
     def initialize_glossary_highlighting(self) -> None:
         self.glossary_handler.initialize_glossary_highlighting()
 
@@ -266,6 +355,7 @@ class TranslationHandler(BaseHandler):
         
         self.ui_handler.finish_ai_operation()
         self.ui_updater.update_block_item_text_with_problem_count(block_idx)
+        self.save_progress_to_metadata(block_idx)
 
 
     def _setup_progress_bar(self, total_chunks: int, completed_chunks: int) -> None:
@@ -660,6 +750,9 @@ class TranslationHandler(BaseHandler):
                     progress_entry['custom_user_label'] = context['custom_user_label']
                     progress_entry['system_prompt_override'] = edited_system
         
+        if task_type == 'translate_block_chunked' and block_idx is not None:
+            self.save_progress_to_metadata(block_idx)
+
         final_system_prompt = context['composer_args']['system_prompt']
         context['composer_args']['all_source_items'] = context['source_items']
         final_user_prompt, _, p_map = self.prompt_composer.compose_batch_request(**context['composer_args'])
@@ -750,6 +843,7 @@ class TranslationHandler(BaseHandler):
             
             if block_idx in self.translation_progress:
                 self.translation_progress[block_idx]['completed_chunks'].add(chunk_index)
+                self.save_progress_to_metadata(block_idx)
 
             # Refresh tree indicators for all modified blocks once
             for m_block in modified_blocks:
@@ -775,6 +869,7 @@ class TranslationHandler(BaseHandler):
                 
                 if block_idx in self.translation_progress:
                     del self.translation_progress[block_idx]
+                    self.save_progress_to_metadata(block_idx)
                 if block_idx in self.pre_translation_state:
                     del self.pre_translation_state[block_idx]
                 

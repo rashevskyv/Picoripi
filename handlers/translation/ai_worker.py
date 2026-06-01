@@ -45,6 +45,39 @@ class AIWorker(QObject):
         log_debug("AIWorker: Cancellation requested.")
         self.is_cancelled = True
 
+    def _remove_trailing_commas(self, json_str: str) -> str:
+        if not json_str:
+            return ""
+        in_string = False
+        escape = False
+        chars = list(json_str)
+        i = 0
+        n = len(chars)
+        while i < n:
+            c = chars[i]
+            if escape:
+                escape = False
+                i += 1
+                continue
+            if c == '\\':
+                escape = True
+                i += 1
+                continue
+            if c == '"':
+                in_string = not in_string
+                i += 1
+                continue
+            
+            if not in_string:
+                if c == ',':
+                    j = i + 1
+                    while j < n and chars[j].isspace():
+                        j += 1
+                    if j < n and chars[j] in ('}', ']'):
+                        chars[i] = ' '
+            i += 1
+        return "".join(chars)
+
     def _clean_json_response(self, text: str) -> str:
         if not text:
             return ""
@@ -53,18 +86,33 @@ class AIWorker(QObject):
         import re
         code_block_match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
         if code_block_match:
-            return code_block_match.group(1).strip()
+            cleaned = code_block_match.group(1).strip()
+        else:
+            # 2. If no code blocks, look for the first '{' and last '}'
+            # This handles cases where the AI talks before or after the JSON
+            first_brace = text.find('{')
+            last_brace = text.rfind('}')
             
-        # 2. If no code blocks, look for the first '{' and last '}'
-        # This handles cases where the AI talks before or after the JSON
-        first_brace = text.find('{')
-        last_brace = text.rfind('}')
-        
-        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-            return text[first_brace:last_brace + 1].strip()
-            
-        # 3. Fallback to just stripping whitespace
-        return text.strip()
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                cleaned = text[first_brace:last_brace + 1].strip()
+            else:
+                # 3. Fallback to just stripping whitespace
+                cleaned = text.strip()
+
+        # Check if JSON is valid as is
+        try:
+            json.loads(cleaned)
+            return cleaned
+        except Exception:
+            # Try to normalize trailing commas
+            try:
+                normalized = self._remove_trailing_commas(cleaned)
+                json.loads(normalized)
+                log_debug("AIWorker: Successfully normalized JSON by removing trailing commas.")
+                return normalized
+            except Exception:
+                pass
+        return cleaned
 
     def run(self):
         from components.ai_status_dialog import AIStatusDialog
@@ -330,6 +378,16 @@ class AIWorker(QObject):
                     self.step_updated.emit(1, f"Translating chunk {i + 1}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
 
                     try:
+                        if attempt > 1 and isinstance(messages, list):
+                            for msg in messages:
+                                if isinstance(msg, dict) and msg.get('role') == 'system':
+                                    reminder = (
+                                        "\n\nIMPORTANT REMINDER FOR RETRY:\n"
+                                        "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
+                                        "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
+                                    )
+                                    msg['content'] = msg.get('content', '') + reminder
+                                    break
                         self._last_messages = messages
                         self._log_ai_traffic(messages)
                         response = self.provider.translate(messages, session=session_payload, settings_override=provider_override)
@@ -443,6 +501,18 @@ class AIWorker(QObject):
             
             provider_settings_override = self.task_details.get('provider_settings_override', {})
             provider_settings_override.update(settings_override)
+
+            attempt = self.task_details.get('attempt', 1)
+            if attempt > 1 and isinstance(messages, list):
+                for msg in messages:
+                    if isinstance(msg, dict) and msg.get('role') == 'system':
+                        reminder = (
+                            "\n\nIMPORTANT REMINDER FOR RETRY:\n"
+                            "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
+                            "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
+                        )
+                        msg['content'] = msg.get('content', '') + reminder
+                        break
 
             self._last_messages = messages
             self._log_ai_traffic(messages)

@@ -373,9 +373,9 @@ class PreviewUpdater(BaseUIUpdater):
                0 <= preview_idx_to_select < preview_edit.document().blockCount(): 
                 preview_edit.set_selected_lines([preview_idx_to_select])
 
-            # Only restore scroll value if block changed AND we are NOT intentionally selecting a string
-            # (If we are selecting a string, ensureCursorVisible will be called later in string_selected_from_preview)
-            if block_changed and self.mw.data_store.current_string_idx == -1:
+            # Restore scroll value if block did NOT change (smooth updates during translation/typing)
+            # OR if block changed and we are NOT intentionally selecting a string
+            if not block_changed or self.mw.data_store.current_string_idx == -1:
                 preview_edit.verticalScrollBar().setValue(old_preview_scrollbar_value)
         
         self.update_text_views() 
