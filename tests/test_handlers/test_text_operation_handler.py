@@ -267,11 +267,12 @@ def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_string_idx = 1
     mock_mw.data_store.problems_per_subline = {}
-    mock_mw.ui_updater = MagicMock()
+    handler.ui_updater = MagicMock()
     mock_mw.edited_text_edit = MagicMock()
     
     handler._on_issue_scan_finished(0, 1, "test", [{"PROB_FINISHED"}], [], [], [])
     
     assert (0, 1, 0) in mock_mw.data_store.problems_per_subline
     assert mock_mw.data_store.problems_per_subline[(0, 1, 0)] == {"PROB_FINISHED"}
-    mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
+    handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
+    handler.ui_updater.update_text_views.assert_called()

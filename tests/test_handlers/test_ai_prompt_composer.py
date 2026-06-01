@@ -71,3 +71,17 @@ def test_AIPromptComposer_prepare_glossary_for_prompt_updates(composer):
     
     prompt = composer._prepare_glossary_for_prompt("Base", session_state)
     assert prompt == "Base"  # Now returns system_prompt as-is for glossary unification
+
+def test_AIPromptComposer_restore_placeholders(composer):
+    # Setup normal tag mappings
+    composer.mw.default_tag_mappings = {"{L-Stick}": "{escape:3:0009}"}
+    
+    # 1. Test restoring normal tag aliases
+    translated = "натисни {L-Stick}, щоб дати знак!"
+    res = composer.restore_placeholders(translated, placeholder_map=None, key=None)
+    assert res == "натисни {escape:3:0009}, щоб дати знак!"
+
+    # 2. Test case-insensitivity of normal tag aliases
+    translated_lower = "натисни {l-stick}, щоб дати знак!"
+    res_lower = composer.restore_placeholders(translated_lower, placeholder_map=None, key=None)
+    assert res_lower == "натисни {escape:3:0009}, щоб дати знак!"

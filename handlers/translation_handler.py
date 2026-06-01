@@ -608,6 +608,8 @@ class TranslationHandler(BaseHandler):
         cleaned_text = text.replace('\n', ' ')
         # Normalize double/multiple spaces to single space
         cleaned_text = re.sub(r' +', ' ', cleaned_text).strip()
+        # Remove spaces between tags and punctuation marks (e.g. "{tag} ," -> "{tag},")
+        cleaned_text = re.sub(r'(\{[^}]*\}|\[[^\]]*\])\s+([,\.!?;:…])', r'\1\2', cleaned_text)
         
         # Get font map and recommended width
         font_map = None
@@ -637,7 +639,8 @@ class TranslationHandler(BaseHandler):
             
             # Width calculation including optional space
             width_to_check = current_width
-            current_needs_space = needs_space and not part.isspace() and current_line and not current_line.endswith(" ")
+            is_punctuation = part in (',', '.', '!', '?', ';', ':', '…')
+            current_needs_space = needs_space and not part.isspace() and not is_punctuation and current_line and not current_line.endswith(" ")
             
             if current_needs_space:
                 width_to_check += calculate_string_width(" ", font_map)
@@ -937,6 +940,14 @@ class TranslationHandler(BaseHandler):
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
         
         self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
+        
+        # Write translated text directly to the database to prevent timer desync and immediate UI overwrites
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.begin_group()
+        self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.end_group("TRANSLATE")
+            
         self.ui_handler.apply_full_translation(final_text)
         self.ui_handler.finish_ai_operation()
         self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
@@ -962,6 +973,14 @@ class TranslationHandler(BaseHandler):
             block_idx = self.mw.data_store.current_block_idx
             string_idx = self.mw.data_store.current_string_idx
             final_text = self._format_and_wrap_translation(chosen, block_idx, string_idx)
+            
+            # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
+            if hasattr(self.mw, 'undo_manager'):
+                self.mw.undo_manager.begin_group()
+            self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+            if hasattr(self.mw, 'undo_manager'):
+                self.mw.undo_manager.end_group("TRANSLATE")
+                
             if context.get('is_inline', False):
                 self.ui_handler.apply_inline_variation(final_text)
             else:

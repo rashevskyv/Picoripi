@@ -233,8 +233,8 @@ class TextAutofixLogic:
                     part_no_tags = remove_all_tags(part)
                     part_width = calculate_string_width(part_no_tags, self.mw.font_map)
                     
-                    width_to_check = current_temp_width
-                    current_needs_space_before = needs_space_before_next_part and not part.isspace() and text_fits and not text_fits.endswith(" ")
+                    is_punctuation = part in (',', '.', '!', '?', ';', ':', '…')
+                    current_needs_space_before = needs_space_before_next_part and not part.isspace() and not is_punctuation and text_fits and not text_fits.endswith(" ")
 
                     if current_needs_space_before:
                         width_to_check += calculate_string_width(" ", self.mw.font_map)

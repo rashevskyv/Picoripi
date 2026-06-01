@@ -252,6 +252,7 @@ def test_th_handle_single_translation_success(th):
     th.ai_lifecycle_manager._clean_model_output.return_value = "trans"
     th.ai_lifecycle_manager._trim_trailing_whitespace_from_lines.return_value = "trans"
     th._handle_single_translation_success(ProviderResponse(), ctx)
+    th.data_processor.update_edited_data.assert_called_once()
     th.ui_handler.apply_full_translation.assert_called_with("trans")
     th.ui_handler.finish_ai_operation.assert_called_once()
 
@@ -263,6 +264,7 @@ def test_th_handle_variation_success(mock_box, th):
     th.ui_handler.show_variations_dialog.return_value = "v1"
     
     th._handle_variation_success(ProviderResponse(), ctx)
+    th.data_processor.update_edited_data.assert_called_once()
     th.ui_handler.apply_inline_variation.assert_called_with("v1")
 
 def test_th_translate_selected_lines(th):

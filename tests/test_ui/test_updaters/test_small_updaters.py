@@ -176,10 +176,12 @@ class TestPreviewUpdater:
         updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
         updater.mw.project_manager = None
 
-        mock_dp.get_current_string_text.side_effect = [
-            ("Hello", None),
-            ("World", None),
-        ]
+        def get_text_side_effect(b_idx, r_idx):
+            if r_idx == 0:
+                return ("Hello", None)
+            return ("World", None)
+            
+        mock_dp.get_current_string_text.side_effect = get_text_side_effect
 
         updater.populate_strings_for_block(0, force=True)
 

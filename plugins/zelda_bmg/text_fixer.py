@@ -113,6 +113,8 @@ class TextFixer(GenericTextFixer):
             last_processed_end = match.start("after_space") if char_after_space_content else match.end("space")
             current_pos = last_processed_end
         final_text = "".join(result_parts)
+        # Force remove spaces before punctuation marks after any tags (e.g. "{tag} ," -> "{tag},")
+        final_text = re.sub(r'(\{[^}]*\}|\[[^\]]*\])\s+([,\.!?;:…])', r'\1\2', final_text)
         return final_text, final_text != original_text
 
     def fix_empty_first_line_of_page(self, text: str) -> Tuple[str, bool]:

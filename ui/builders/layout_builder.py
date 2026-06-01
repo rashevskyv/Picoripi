@@ -117,6 +117,12 @@ class LayoutBuilder:
         self.mw.hide_categorized_checkbox.hide()
         preview_header_layout.addWidget(self.mw.hide_categorized_checkbox)
         
+        preview_header_layout.addSpacing(15)
+        self.mw.hide_empty_strings_checkbox = QCheckBox("Hide empty strings")
+        self.mw.hide_empty_strings_checkbox.setToolTip("Collapse consecutive empty strings into a single placeholder.")
+        self.mw.hide_empty_strings_checkbox.setCursor(Qt.PointingHandCursor)
+        preview_header_layout.addWidget(self.mw.hide_empty_strings_checkbox)
+        
         top_right_layout.addLayout(preview_header_layout)
         self.mw.preview_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.preview_text_edit.setObjectName("preview_text_edit")

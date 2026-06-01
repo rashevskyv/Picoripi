@@ -63,7 +63,8 @@ def test_IssueScanHandler_rescan_issues_for_single_block(mock_msg, handler, mock
 
 @patch('PyQt5.QtWidgets.QMessageBox.information')
 def test_IssueScanHandler_rescan_all_tags(mock_msg, handler, mock_mw):
-    with patch.object(handler, '_perform_initial_silent_scan_all_issues') as mock_scan:
+    mock_mw.data_processor.get_current_string_text.return_value = ("test", False)
+    with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:
         handler.rescan_all_tags()
         mock_scan.assert_called_once()
         handler.ui_updater.populate_blocks.assert_called_once()

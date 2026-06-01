@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.141] - 2026-06-01
+
+### Added
+- **Custom Tag Alias Width Support in UI**: Added the ability to specify a custom width (in pixels) for tag aliases directly within the `Add Alias` and `Edit Alias` dialogs.
+  - Replaced standard `QInputDialog.getText` with a custom `TagAliasDialog` that includes an optional custom width field validated via `QIntValidator` (positive integers only).
+  - Implemented `_save_font_overrides_to_disk` in `MainWindowActions` to persistently write custom widths to the active plugin's `font_map.json` configuration on disk.
+  - Automatically reloads the font map (`_apply_font_overrides`) in-memory and triggers a full silent scan/recalculation of all dialogue widths in the project instantly upon alias addition, modification, or removal.
+
+### Fixed
+- **Unwanted Spaces Before Punctuation After Tags**: Fixed a bug in the word wrapping algorithms where a space was incorrectly added before punctuation marks (like commas) that immediately followed game control tags.
+  - Corrected in `_format_and_wrap_translation` inside `handlers/translation_handler.py`.
+  - Corrected in `_fix_width_exceeded` inside `handlers/text_autofix_logic.py`.
+
 ## [0.2.140] - 2026-06-01
 
 ### Added

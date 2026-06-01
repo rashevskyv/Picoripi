@@ -159,6 +159,8 @@ class MainWindowEventHandler:
             self.mw.highlight_categorized_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_highlight_categorized)
         if hasattr(self.mw, 'hide_categorized_checkbox'):
             self.mw.hide_categorized_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_categorized)
+        if hasattr(self.mw, 'hide_empty_strings_checkbox'):
+            self.mw.hide_empty_strings_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_empty_strings)
 
     def keyPressEvent(self, event: QKeyEvent):
         super(self.mw.__class__, self.mw).keyPressEvent(event)

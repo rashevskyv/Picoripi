@@ -263,13 +263,36 @@ class PreviewUpdater(BaseUIUpdater):
             
             # Re-verify indices are within bounds
             target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data_store.data[block_idx])]
-            
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
             if not old_indices and hasattr(self.mw, 'displayed_string_indices'):
                 old_indices = self.mw.displayed_string_indices
+
+            if getattr(self.mw.data_store, 'hide_empty_strings', False):
+                collapsed_indices = []
+                self._placeholder_texts = {}
+                empty_streak_start = -1
+                empty_streak_count = 0
+                for idx in target_indices:
+                    orig_text = self.data_processor._get_string_from_source(block_idx, idx, self.mw.data_store.data, "readonly")
+                    edited_text, _ = self.data_processor.get_current_string_text(block_idx, idx)
+                    is_empty = (not orig_text or not orig_text.strip()) and (not edited_text or not str(edited_text).strip())
+                    if is_empty:
+                        if empty_streak_count == 0:
+                            empty_streak_start = idx
+                        empty_streak_count += 1
+                    else:
+                        if empty_streak_count > 0:
+                            collapsed_indices.append(-1)
+                            self._placeholder_texts[len(collapsed_indices)-1] = f"[{empty_streak_start}-{empty_streak_start+empty_streak_count-1}] {empty_streak_count} empty line(s)"
+                            empty_streak_count = 0
+                        collapsed_indices.append(idx)
+                if empty_streak_count > 0:
+                    collapsed_indices.append(-1)
+                    self._placeholder_texts[len(collapsed_indices)-1] = f"[{empty_streak_start}-{empty_streak_start+empty_streak_count-1}] {empty_streak_count} empty line(s)"
+                target_indices = collapsed_indices
+
             displayed_indices_changed = (target_indices != old_indices)
-            
             self.mw.data_store.displayed_string_indices = target_indices
 
             # Initialize lazy load timer if not exists
@@ -307,8 +330,11 @@ class PreviewUpdater(BaseUIUpdater):
                         for idx_offset in range(cache['next_index']):
                             if idx_offset < len(target_indices):
                                 real_idx = target_indices[idx_offset]
-                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                                if real_idx == -1:
+                                    preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
+                                else:
+                                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                                 cache['lines'][idx_offset] = preview_line_text
                 elif force and cache_key in self._preview_cache:
                     del self._preview_cache[cache_key]
@@ -345,8 +371,11 @@ class PreviewUpdater(BaseUIUpdater):
                         preview_lines = [""] * len(target_indices)
                         chunk_indices = target_indices[:initial_chunk_size]
                         for idx_offset, real_idx in enumerate(chunk_indices):
-                            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                            if real_idx == -1:
+                                preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
+                            else:
+                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines[idx_offset] = preview_line_text
                         
                         # Save to cache
@@ -362,9 +391,12 @@ class PreviewUpdater(BaseUIUpdater):
                     else:
                         self._lazy_load_next_index = len(target_indices)
                         preview_lines = []
-                        for real_idx in target_indices:
-                            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                        for idx_offset, real_idx in enumerate(target_indices):
+                            if real_idx == -1:
+                                preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
+                            else:
+                                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines.append(preview_line_text)
                         
                         # Save to cache
@@ -415,9 +447,13 @@ class PreviewUpdater(BaseUIUpdater):
                 
             chunk_indices = target_indices[start_idx:end_idx]
             preview_lines = []
-            for real_idx in chunk_indices:
-                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+            for offset, real_idx in enumerate(chunk_indices):
+                line_idx = start_idx + offset
+                if real_idx == -1:
+                    preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
+                else:
+                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                 preview_lines.append(preview_line_text)
                 
             _saved_programmatic_flag = self.mw.is_programmatically_changing_text

@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMessageBox, QProgressDialog
 from PyQt5.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug, log_error
+from utils.constants import APP_VERSION
 
 class IssueScanHandler(BaseHandler):
     def __init__(self, main_window, data_processor, ui_updater):
@@ -53,6 +54,7 @@ class IssueScanHandler(BaseHandler):
                 problems_by_block.setdefault(str(b_idx), []).append([s_idx, sub_idx, list(problem_set)])
                 
             cache_data = {
+                "app_version": APP_VERSION,
                 "project_id": self.mw.project_manager.project.id if self.mw.project_manager.project else None,
                 "settings": {
                     "game_dialog_max_width_pixels": getattr(self.mw, 'game_dialog_max_width_pixels', 300),
@@ -179,7 +181,8 @@ class IssueScanHandler(BaseHandler):
         if cache:
             settings = cache.get("settings", {})
             cache_valid = (
-                settings.get("game_dialog_max_width_pixels") == getattr(self.mw, 'game_dialog_max_width_pixels', 300)
+                cache.get("app_version") == APP_VERSION
+                and settings.get("game_dialog_max_width_pixels") == getattr(self.mw, 'game_dialog_max_width_pixels', 300)
                 and settings.get("line_width_warning_threshold_pixels") == getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
                 and settings.get("default_font_file") == getattr(self.mw, 'default_font_file', None)
                 and settings.get("fonts_dir_path") == getattr(self.mw, 'fonts_dir_path', None)

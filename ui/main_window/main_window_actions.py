@@ -1,16 +1,68 @@
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog
+from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import QThread, pyqtSignal
-from utils.logging_utils import log_info
+from utils.logging_utils import log_info, log_error
 import copy
 from pathlib import Path
 import json
 from ui.settings_dialog import SettingsDialog
 
-if TYPE_CHECKING:
-    from main import MainWindow
+class TagAliasDialog(QDialog):
+    def __init__(self, parent, title: str, original_tag: str, current_alias: str = "", current_width: int = None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setModal(True)
+        self.resize(380, 200)
+        
+        layout = QVBoxLayout(self)
+        
+        # Info about original tag
+        self.info_label = QLabel(f"Original tag: <b>{original_tag}</b>", self)
+        layout.addWidget(self.info_label)
+        
+        # Alias field
+        layout.addWidget(QLabel("Alias name (will be enclosed in curly braces):", self))
+        self.alias_edit = QLineEdit(self)
+        display_alias = current_alias
+        if display_alias.startswith('{') and display_alias.endswith('}'):
+            display_alias = display_alias[1:-1]
+        self.alias_edit.setText(display_alias)
+        layout.addWidget(self.alias_edit)
+        
+        # Custom width field
+        layout.addWidget(QLabel("Custom width in pixels (leave empty for none):", self))
+        self.width_edit = QLineEdit(self)
+        self.width_edit.setValidator(QIntValidator(1, 9999, self))
+        if current_width is not None:
+            self.width_edit.setText(str(current_width))
+        layout.addWidget(self.width_edit)
+        
+        # Buttons
+        buttons_layout = QHBoxLayout()
+        self.ok_button = QPushButton("OK", self)
+        self.ok_button.setDefault(True)
+        self.ok_button.clicked.connect(self.accept)
+        
+        self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button.clicked.connect(self.reject)
+        
+        buttons_layout.addWidget(self.ok_button)
+        buttons_layout.addWidget(self.cancel_button)
+        layout.addLayout(buttons_layout)
+
+    def get_data(self) -> tuple[str, int | None]:
+        alias = self.alias_edit.text().strip()
+        if alias:
+            if not alias.startswith('{') or not alias.endswith('}'):
+                alias = f"{{{alias}}}"
+        
+        width_str = self.width_edit.text().strip()
+        width = int(width_str) if width_str.isdigit() else None
+        return alias, width
+
 
 class AliasUpdateWorker(QThread):
     finished_signal = pyqtSignal(object, object, object)
@@ -1074,22 +1126,14 @@ class MainWindowActions:
         QMessageBox.information(self.mw, "Recalculation Complete", "All text widths and issues have been successfully recalculated!")
 
     def add_tag_alias(self, original_tag: str):
-        alias, ok = QInputDialog.getText(
-            self.mw, 
-            "Add Tag Alias", 
-            f"Enter alias for tag '{original_tag}':\n(Will be displayed as {{AliasName}})"
-        )
-        if not ok:
+        dialog = TagAliasDialog(self.mw, "Add Tag Alias", original_tag)
+        if dialog.exec_() != QDialog.Accepted:
             return
             
-        alias = alias.strip()
+        alias, width = dialog.get_data()
         if not alias:
             QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
             return
-            
-        # Ensure it has curly braces
-        if not alias.startswith('{') or not alias.endswith('}'):
-            alias = f"{{{alias}}}"
             
         if not hasattr(self.mw, 'default_tag_mappings'):
             self.mw.default_tag_mappings = {}
@@ -1104,30 +1148,46 @@ class MainWindowActions:
             
         self.mw.default_tag_mappings[alias] = original_tag
         
+        # Apply and save width override
+        if not hasattr(self.mw, 'font_map_overrides') or self.mw.font_map_overrides is None:
+            self.mw.font_map_overrides = {}
+            
+        if width is not None:
+            self.mw.font_map_overrides[alias] = {"width": width}
+        else:
+            self.mw.font_map_overrides.pop(alias, None)
+            
+        # Save width overrides to disk
+        self._save_font_overrides_to_disk()
+        
+        # Apply overrides in memory
+        if hasattr(self.mw, 'font_map_loader') and self.mw.font_map_loader:
+            self.mw.font_map_loader._apply_font_overrides(self.mw.font_map_overrides)
+        
         # Save settings
         if hasattr(self.mw, 'settings_manager'):
             self.mw.settings_manager.save_settings()
             
+        # Trigger recalculation of widths
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+            
         self._refresh_editors_after_alias_change()
 
     def edit_tag_alias(self, alias: str, original_tag: str):
-        new_alias, ok = QInputDialog.getText(
-            self.mw, 
-            "Edit Tag Alias", 
-            f"Edit alias for tag '{original_tag}':",
-            text=alias
-        )
-        if not ok:
+        current_width = None
+        if hasattr(self.mw, 'font_map_overrides') and self.mw.font_map_overrides:
+            current_width = self.mw.font_map_overrides.get(alias, {}).get('width')
+            
+        dialog = TagAliasDialog(self.mw, "Edit Tag Alias", original_tag, current_alias=alias, current_width=current_width)
+        if dialog.exec_() != QDialog.Accepted:
             return
             
+        new_alias, width = dialog.get_data()
         new_alias = new_alias.strip()
         if not new_alias:
             QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
             return
-            
-        # Ensure it has curly braces
-        if not new_alias.startswith('{') or not new_alias.endswith('}'):
-            new_alias = f"{{{new_alias}}}"
             
         if not hasattr(self.mw, 'default_tag_mappings'):
             self.mw.default_tag_mappings = {}
@@ -1140,14 +1200,35 @@ class MainWindowActions:
             )
             return
             
+        # Update mappings
         self.mw.default_tag_mappings.pop(alias, None)
         self.mw.default_tag_mappings[new_alias] = original_tag
         
+        # Update width overrides
+        if not hasattr(self.mw, 'font_map_overrides') or self.mw.font_map_overrides is None:
+            self.mw.font_map_overrides = {}
+            
+        self.mw.font_map_overrides.pop(alias, None)
+        if width is not None:
+            self.mw.font_map_overrides[new_alias] = {"width": width}
+            
+        # Save width overrides to disk
+        self._save_font_overrides_to_disk()
+        
+        # Apply overrides in memory
+        if hasattr(self.mw, 'font_map_loader') and self.mw.font_map_loader:
+            self.mw.font_map_loader._apply_font_overrides(self.mw.font_map_overrides)
+            
         # Clean up stale alias from in-memory edits to prevent desync asynchronously
         def on_complete():
             # Save settings
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_settings()
+                
+            # Trigger recalculation of widths
+            if hasattr(self.mw, 'issue_scan_handler'):
+                self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+                
             self._refresh_editors_after_alias_change()
             
         self._update_aliases_in_edited_data(alias, original_tag, on_complete)
@@ -1164,13 +1245,29 @@ class MainWindowActions:
             if hasattr(self.mw, 'default_tag_mappings'):
                 self.mw.default_tag_mappings.pop(alias, None)
                 
-                # Clean up stale alias from in-memory edits to prevent desync asynchronously
-                def on_complete():
-                    if hasattr(self.mw, 'settings_manager'):
-                        self.mw.settings_manager.save_settings()
-                    self._refresh_editors_after_alias_change()
+            # Remove from overrides
+            if hasattr(self.mw, 'font_map_overrides') and self.mw.font_map_overrides:
+                self.mw.font_map_overrides.pop(alias, None)
+                
+            # Save overrides to disk
+            self._save_font_overrides_to_disk()
+            
+            # Apply overrides in memory
+            if hasattr(self.mw, 'font_map_loader') and self.mw.font_map_loader:
+                self.mw.font_map_loader._apply_font_overrides(self.mw.font_map_overrides)
+                
+            # Clean up stale alias from in-memory edits to prevent desync asynchronously
+            def on_complete():
+                if hasattr(self.mw, 'settings_manager'):
+                    self.mw.settings_manager.save_settings()
                     
-                self._update_aliases_in_edited_data(alias, original_tag, on_complete)
+                # Trigger recalculation of widths
+                if hasattr(self.mw, 'issue_scan_handler'):
+                    self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+                    
+                self._refresh_editors_after_alias_change()
+                
+            self._update_aliases_in_edited_data(alias, original_tag, on_complete)
 
     def _update_aliases_in_edited_data(self, alias: str, original_tag: str, on_complete_callback):
         """Clean up stale alias from in-memory edits in a background thread if needed."""
@@ -1242,6 +1339,22 @@ class MainWindowActions:
             if hasattr(ui, 'update_text_views'):
                 ui.update_text_views()
                 
+
+    def _save_font_overrides_to_disk(self):
+        plugin_name = getattr(self.mw, 'active_game_plugin', None)
+        if not plugin_name:
+            return
+        
+        override_path = Path('plugins') / plugin_name / 'font_map.json'
+        override_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            with override_path.open('w', encoding='utf-8') as f:
+                json.dump(self.mw.font_map_overrides, f, indent=4, ensure_ascii=False)
+            log_info(f"Successfully saved {len(self.mw.font_map_overrides)} overrides to {override_path}")
+        except Exception as e:
+            log_error(f"Failed to save font_map.json to disk: {e}")
+
 
     def run_external_script(self):
         """Asynchronously run configured external script (e.g. ROM builder / emulator)"""

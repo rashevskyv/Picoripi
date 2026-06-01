@@ -75,6 +75,9 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
     if not text:
         return 0
         
+    if SPACE_DOT_SYMBOL in text:
+        text = text.replace(SPACE_DOT_SYMBOL, " ")
+        
     trie, char_widths = _get_trie_and_flat_map(font_map, default_char_width, icon_sequences, strict=strict)
     
     total_width = 0
