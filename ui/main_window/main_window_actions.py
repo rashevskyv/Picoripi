@@ -1476,8 +1476,8 @@ class MainWindowActions:
                 creationflags=creationflags
             )
             
-            if hasattr(self.mw, 'statusBar') and self.mw.statusBar():
-                self.mw.statusBar().showMessage(f"Started script: {path_obj.name}", 3000)
+            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                self.mw.statusBar.showMessage(f"Started script: {path_obj.name}", 3000)
                 
         except Exception as e:
             QMessageBox.critical(

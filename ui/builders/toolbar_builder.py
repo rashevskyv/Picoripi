@@ -47,12 +47,11 @@ class ToolBarBuilder:
         self.mw.run_external_script_action = QAction(cmd_icon, 'Run External Script', self.mw)
         self.mw.run_external_script_action.setToolTip("Run configured external script / build tool")
         
-        self.mw.main_toolbar.addSeparator()
-        self.mw.main_toolbar.addAction(self.mw.run_external_script_action)
-        
-        # Push Help to the far right
+        # Push Help and Script to the far right
         toolbar_spacer = QWidget()
         toolbar_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.mw.main_toolbar.addWidget(toolbar_spacer)
         
+        self.mw.main_toolbar.addAction(self.mw.run_external_script_action)
+        self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.help_shortcuts_action)

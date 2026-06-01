@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.147] - 2026-06-01
+
+### Changed
+- **Toolbar Layout Ergonomics**:
+  - Relocated the External Script Runner `>_` action button to the far right side of the toolbar, immediately to the left of the Help button, improving layout hierarchy and interface balance.
+
+### Fixed
+- **QStatusBar is not callable Exception**:
+  - Fixed a crash/exception `'QStatusBar' object is not callable` in `run_external_script` when launching an external script. Corrected the syntax to access the `statusBar` instance attribute directly instead of calling it as a function.
+
 ## [0.2.146] - 2026-06-01
 
 ### Added
