@@ -28,6 +28,9 @@ class ListSelectionHandler(BaseHandler):
         if self.mw.is_loading_data or self._restoring_selection:
             return
 
+        if hasattr(self.mw, 'editor_operation_handler'):
+            self.mw.editor_operation_handler.stop_and_flush_editor_changes()
+
         if previous_item:
             previous_block_idx = previous_item.data(0, Qt.UserRole)
             if previous_block_idx is not None:
@@ -200,6 +203,10 @@ class ListSelectionHandler(BaseHandler):
 
     def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False) -> None:
         log_debug(f"DIAG_STRING_SELECTED_FROM_PREVIEW: line={line_number}, is_manual={is_manual_click}")
+        
+        if hasattr(self.mw, 'editor_operation_handler'):
+            self.mw.editor_operation_handler.stop_and_flush_editor_changes()
+
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
 
         original_programmatic_state = self.mw.is_programmatically_changing_text
@@ -717,6 +724,12 @@ class ListSelectionHandler(BaseHandler):
     def toggle_hide_categorized(self, checked: bool) -> None:
         """Toggle hiding of categorized strings in parent block."""
         self.mw.data_store.hide_categorized = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+
+    def toggle_hide_empty_strings(self, checked: bool) -> None:
+        """Toggle hiding of empty strings in preview list."""
+        self.mw.data_store.hide_empty_strings = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
 

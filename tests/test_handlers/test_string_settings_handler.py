@@ -61,14 +61,16 @@ def test_StringSettingsHandler_apply_width_to_range(handler):
 def test_StringSettingsHandler_apply_width_to_lines(handler):
     handler.mw.string_metadata = {}
     with patch.object(handler, '_apply_and_rescan'):
-        handler.apply_width_to_lines([0, 3], 180) # Use 180 instead of 200 (default)
+        # Pass dummy list, it should only apply to current_string_idx (0)
+        handler.apply_width_to_lines([0, 3], 180) 
         assert handler.mw.string_metadata[(0, 0)]["width"] == 180
-        assert handler.mw.string_metadata[(0, 3)]["width"] == 180
+        assert (0, 3) not in handler.mw.string_metadata
 
 def test_StringSettingsHandler_apply_and_rescan(handler):
     handler.mw.issue_scan_handler = MagicMock()
     handler._apply_and_rescan()
-    handler.mw.ui_updater.populate_blocks.assert_called()
+    handler.mw.ui_updater.update_block_item_text_with_problem_count.assert_called()
+    handler.mw.ui_updater.update_text_views.assert_called()
 
 def test_StringSettingsHandler_delete_font_if_default(handler):
     handler.mw.string_metadata[(0, 0)] = {"font_file": "old"}

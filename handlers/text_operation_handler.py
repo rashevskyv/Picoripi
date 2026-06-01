@@ -154,6 +154,12 @@ class TextOperationHandler(BaseHandler):
 
         main_window_ref.is_programmatically_changing_text = was_programmatically_changing
         
+    def stop_and_flush_editor_changes(self) -> None:
+        if hasattr(self, 'preview_update_timer') and self.preview_update_timer.isActive():
+            log_debug("Flushing pending editor changes synchronously before selection change.")
+            self.preview_update_timer.stop()
+            self._on_preview_update_timer_timeout()
+
     def text_edited(self) -> None:
         if self.mw.is_programmatically_changing_text:
             return
@@ -182,6 +188,12 @@ class TextOperationHandler(BaseHandler):
             string_idx = self.mw.data_store.current_string_idx
             
         if block_idx == -1 or string_idx == -1:
+            return
+
+        # SAFETY CHECK: If the selection has shifted before this timer could run/flush,
+        # we MUST NOT read the current editor text and save it to the old indices!
+        if block_idx != self.mw.data_store.current_block_idx or string_idx != self.mw.data_store.current_string_idx:
+            log_debug(f"Timer update ignored because selection shifted from ({block_idx}, {string_idx}) to ({self.mw.data_store.current_block_idx}, {self.mw.data_store.current_string_idx})")
             return
             
         edited_edit = getattr(self.mw, 'edited_text_edit', None)
@@ -296,10 +308,9 @@ class TextOperationHandler(BaseHandler):
                 edited_edit.highlighter.set_typing_mode(False, trigger_rehighlight=False)
 
         # 2. Update UI components smoothly (including text views which might reset the editor text)
-        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
-        self._update_preview_content()
+        self.ui_updater.update_block_item_text_with_problem_count(block_idx)
+        self.ui_updater.update_text_views()
         self.mw.ui_updater.update_status_bar()
-        # self.mw.ui_updater.update_text_views()
         
         # 3. Apply highlights to editor and trigger rehighlight to ensure everything is perfectly updated
         if edited_edit:

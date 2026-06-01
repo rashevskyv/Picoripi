@@ -15,9 +15,11 @@ class StringSettingsHandler(BaseHandler):
         if current_block_idx != -1:
             log_debug(f"Refreshing UI for block {current_block_idx}")
             if hasattr(self.mw, 'issue_scan_handler'):
-                self.mw.issue_scan_handler._perform_issues_scan_for_block(current_block_idx)
-            self.mw.ui_updater.populate_blocks()
-            self.mw.ui_updater.populate_strings_for_block(current_block_idx)
+                self.mw.issue_scan_handler.rescan_issues_for_single_block(current_block_idx, show_message_on_completion=False)
+            self.mw.ui_updater.update_block_item_text_with_problem_count(current_block_idx)
+            self.mw.ui_updater.update_text_views()
+            if hasattr(self.mw, 'string_settings_updater'):
+                self.mw.string_settings_updater.update_string_settings_panel()
             
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_string_settings_panel()
@@ -112,7 +114,7 @@ class StringSettingsHandler(BaseHandler):
         current_string_idx_before_rescan: int = self.mw.data_store.current_string_idx
         self._apply_and_rescan()
         if hasattr(self.mw, 'list_selection_handler'):
-            self.mw.list_selection_handler.string_selected_from_preview(current_string_idx_before_rescan)
+            self.mw.list_selection_handler.select_string_by_absolute_index(current_string_idx_before_rescan)
 
 
     def apply_font_to_range(self, start_line: int, end_line: int, font_file: str) -> None:
@@ -210,7 +212,11 @@ class StringSettingsHandler(BaseHandler):
 
             if not self.mw.string_metadata[key]:
                 del self.mw.string_metadata[key]
-        
+
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.set("string_metadata", {str(k): v for k, v in self.mw.string_metadata.items()})
+            self.mw.settings_manager.save_settings()
+
         self._apply_and_rescan()
 
     def apply_width_to_range(self, start_line: int, end_line: int, width: int) -> None:

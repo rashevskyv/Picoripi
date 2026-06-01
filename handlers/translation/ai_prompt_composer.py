@@ -39,22 +39,33 @@ class AIPromptComposer(BaseTranslationHandler):
         *,
         key: Optional[int] = None,
     ) -> str:
-        if not translated_text or not placeholder_map or key not in placeholder_map:
-            return translated_text or ''
+        if not translated_text:
+            return ''
             
-        from utils.force_alias import restore_force_aliases_in_translation
-        
-        force_maps = placeholder_map[key]
-        glossary_translations = {}
-        glossary_manager = self.main_handler._glossary_manager
-        if glossary_manager:
-            for mapping in force_maps:
-                word = mapping.word
-                entry = glossary_manager.get_entry(word)
-                if entry and entry.translation:
-                    glossary_translations[word.lower()] = entry.translation
-                    
-        return restore_force_aliases_in_translation(translated_text, force_maps, glossary_translations)
+        # 1. Restore Force-aliases if they exist
+        if placeholder_map and key in placeholder_map:
+            from utils.force_alias import restore_force_aliases_in_translation
+            force_maps = placeholder_map[key]
+            glossary_translations = {}
+            glossary_manager = self.main_handler._glossary_manager
+            if glossary_manager:
+                for mapping in force_maps:
+                    word = mapping.word
+                    entry = glossary_manager.get_entry(word)
+                    if entry and entry.translation:
+                        glossary_translations[word.lower()] = entry.translation
+            translated_text = restore_force_aliases_in_translation(translated_text, force_maps, glossary_translations)
+
+        # 2. Restore normal tag aliases from default_tag_mappings
+        tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        if tag_mappings:
+            sorted_mappings = sorted(tag_mappings.items(), key=lambda item: len(item[0]), reverse=True)
+            for alias, original_tag in sorted_mappings:
+                if alias and original_tag:
+                    pattern = re.compile(re.escape(alias), re.IGNORECASE)
+                    translated_text = pattern.sub(original_tag, translated_text)
+
+        return translated_text
 
     # ------------------------------------------------------------------
     # Prompt composition helpers
