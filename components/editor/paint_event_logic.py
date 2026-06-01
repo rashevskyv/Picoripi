@@ -54,7 +54,17 @@ class LNETPaintEventLogic:
         )
         
         limit_px = self.editor.line_width_warning_threshold_pixels
+        main_window = self.editor.window()
         font_map = getattr(self.editor, 'font_map', {})
+        if not font_map and hasattr(main_window, 'font_map'):
+            font_map = main_window.font_map
+
+        if hasattr(main_window, 'data_store') and hasattr(main_window, 'helper'):
+            block_idx = main_window.data_store.current_block_idx
+            string_idx = main_window.data_store.current_string_idx
+            if block_idx != -1 and string_idx != -1:
+                font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)
+
         sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
         left_margin = viewport_offset.x() + self.editor.document().documentMargin()
 
@@ -133,63 +143,15 @@ class LNETPaintEventLogic:
                         continue
 
                     block_num = block.blockNumber()
-                    limit_x = getattr(self.editor, 'guideline_positions', {}).get((block_num, i))
-                    if limit_x is None:
-                        # Fallback: calculate on-the-fly and save if not yet cached
-                        from PyQt5.QtGui import QTextCursor
-                        cursor = QTextCursor(self.editor.document())
-                        
-                        line_start = line.textStart()
-                        line_len = line.textLength()
-                        line_text = block_text_raw[line_start:line_start + line_len]
-                        line_text_stripped = line_text.rstrip()
+                    if not hasattr(self.editor, 'guideline_positions'):
+                        self.editor.guideline_positions = {}
 
-                        cursor.setPosition(block.position() + line_start)
-                        x_start = self.editor.cursorRect(cursor).left()
+                    if (block_num, i) not in self.editor.guideline_positions:
+                        self.editor.calculate_block_guidelines(block, font_map, sequences, limit_px)
 
-                        line_game_width = calculate_string_width(line_text_stripped, font_map, icon_sequences=sequences)
-
-                        if line_game_width > 0:
-                            if line_game_width < limit_px:
-                                cursor.setPosition(block.position() + line_start + len(line_text_stripped))
-                                x_end = self.editor.cursorRect(cursor).left()
-                                viewport_text_w = x_end - x_start
-                                limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
-                            else:
-                                found = False
-                                for k in range(1, len(line_text_stripped) + 1):
-                                    prefix = line_text_stripped[:k]
-                                    prefix_w = calculate_string_width(prefix, font_map, icon_sequences=sequences)
-                                    if prefix_w >= limit_px:
-                                        prev_prefix = line_text_stripped[:k-1]
-                                        prev_w = calculate_string_width(prev_prefix, font_map, icon_sequences=sequences)
-                                        
-                                        cursor.setPosition(block.position() + line_start + k - 1)
-                                        x_prev = self.editor.cursorRect(cursor).left()
-                                        
-                                        cursor.setPosition(block.position() + line_start + k)
-                                        x_curr = self.editor.cursorRect(cursor).left()
-                                        
-                                        if prefix_w > prev_w:
-                                            fraction = (limit_px - prev_w) / (prefix_w - prev_w)
-                                        else:
-                                            fraction = 0
-                                        limit_x = x_prev + fraction * (x_curr - x_prev)
-                                        found = True
-                                        break
-                                if not found:
-                                    cursor.setPosition(block.position() + line_start + len(line_text_stripped))
-                                    x_end = self.editor.cursorRect(cursor).left()
-                                    viewport_text_w = x_end - x_start
-                                    limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
-                        else:
-                            fm = self.editor.fontMetrics()
-                            char_w = fm.horizontalAdvance('A')
-                            limit_x = x_start + limit_px * (char_w / 7.5)
-
-                        if not hasattr(self.editor, 'guideline_positions'):
-                            self.editor.guideline_positions = {}
-                        self.editor.guideline_positions[(block_num, i)] = limit_x
+                    limit_x = self.editor.guideline_positions.get((block_num, i))
+                    if limit_x is False or limit_x is None:
+                        continue
 
                     y_top = block_rect.top() + line.rect().top()
                     y_bottom = block_rect.top() + line.rect().bottom()
