@@ -134,18 +134,22 @@ def test_tag_alias_dialog_focus_and_return_pressed(qtbot):
 
     dialog = TagAliasDialog(
         parent=None,
+        title="Test Title",
         original_tag="{Color:Red}",
         current_alias="{RedColor}",
         current_width=100
     )
     qtbot.addWidget(dialog)
 
-    # Check returnPressed is connected and triggers accept
-    with patch.object(dialog, 'accept') as mock_accept:
-        dialog.alias_edit.returnPressed.emit()
-        mock_accept.assert_called_once()
+    accepted_calls = 0
+    def fake_accept():
+        nonlocal accepted_calls
+        accepted_calls += 1
+    dialog.accept = fake_accept
 
-    with patch.object(dialog, 'accept') as mock_accept:
-        dialog.width_edit.returnPressed.emit()
-        mock_accept.assert_called_once()
+    dialog.alias_edit.returnPressed.emit()
+    assert accepted_calls == 1
+
+    dialog.width_edit.returnPressed.emit()
+    assert accepted_calls == 2
 

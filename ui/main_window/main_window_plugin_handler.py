@@ -77,6 +77,10 @@ class MainWindowPluginHandler:
                 GameRulesClass = getattr(game_rules_module, 'GameRules')
                 self.mw.current_game_rules = GameRulesClass(main_window_ref=self.mw)
                 log_info(f"Successfully loaded and instantiated game rules: {GameRulesClass.__name__}")
+                
+                # Load default tag mappings and merge with custom aliases
+                self.mw.default_tag_mappings = self.mw.current_game_rules.get_default_tag_mappings() or {}
+                self._load_custom_aliases()
             else:
                 error_msg = f"Class 'GameRules' not found or not a subclass of BaseGameRules in module {module_path}"
                 log_error(error_msg)
@@ -94,6 +98,24 @@ class MainWindowPluginHandler:
         if hasattr(self.mw, 'translation_handler'):
             self.mw.translation_handler.initialize_glossary_highlighting()
 
+    def _load_custom_aliases(self):
+        if not self.mw.active_game_plugin:
+            return
+        from pathlib import Path
+        import json
+        aliases_path = Path("plugins") / self.mw.active_game_plugin / "aliases.json"
+        if aliases_path.exists():
+            try:
+                with open(aliases_path, 'r', encoding='utf-8') as f:
+                    custom_aliases = json.load(f)
+                if isinstance(custom_aliases, dict):
+                    if not hasattr(self.mw, 'default_tag_mappings') or self.mw.default_tag_mappings is None:
+                        self.mw.default_tag_mappings = {}
+                    self.mw.default_tag_mappings.update(custom_aliases)
+                    log_info(f"Loaded {len(custom_aliases)} custom aliases from {aliases_path}")
+            except Exception as e:
+                log_error(f"Failed to load custom aliases from {aliases_path}: {e}")
+
     def _load_fallback_rules(self, error_message: str = None):
         log_info("Loading fallback game rules.")
         
@@ -108,6 +130,8 @@ class MainWindowPluginHandler:
             from plugins.base_game_rules import BaseGameRules 
             self.mw.current_game_rules = BaseGameRules(main_window_ref=self.mw)
             log_info("Loaded fallback BaseGameRules.")
+            self.mw.default_tag_mappings = self.mw.current_game_rules.get_default_tag_mappings() or {}
+            self._load_custom_aliases()
         except Exception as e:
             log_error(f"CRITICAL ERROR: Could not load fallback game rules: {e}", exc_info=True)
             self.mw.current_game_rules = None

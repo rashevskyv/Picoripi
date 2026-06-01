@@ -577,10 +577,15 @@ class ProjectManager:
             settings_loaded = 0
             for setting_name, value in settings.items():
                 if setting_name == 'default_tag_mappings':
-                    continue
-                if hasattr(main_window, setting_name):
-                    setattr(main_window, setting_name, value)
-                    settings_loaded += 1
+                    if isinstance(value, dict):
+                        if not hasattr(main_window, 'default_tag_mappings') or not main_window.default_tag_mappings:
+                            main_window.default_tag_mappings = {}
+                        main_window.default_tag_mappings.update(value)
+                        settings_loaded += 1
+                else:
+                    if hasattr(main_window, setting_name):
+                        setattr(main_window, setting_name, value)
+                        settings_loaded += 1
 
             log_info(f"Loaded {settings_loaded} project settings from metadata")
             return True

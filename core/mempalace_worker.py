@@ -115,9 +115,21 @@ class MemePalaceWorker(QThread):
         """
         import re
         
+        # Retrieve dynamic name tags from rules if available
+        _dynamic_name_tags = {}
+        mw = getattr(self.glossary_manager, 'mw', None) if self.glossary_manager else None
+        if mw and hasattr(mw, 'current_game_rules') and mw.current_game_rules:
+            try:
+                _dynamic_name_tags = mw.current_game_rules.get_dynamic_name_tags()
+            except Exception:
+                pass
+
         def clean_for_match(text: str) -> str:
             if not text:
                 return ""
+            # Replace known dynamic name tags (e.g. {escape:0:0000} -> "Link") before stripping tags
+            for tag, name in _dynamic_name_tags.items():
+                text = text.replace(tag, name)
             # Remove XML/custom tags like {Color:Red}, [PLAYER], {escape:...}
             text_no_tags = re.sub(r'\{[^}]+\}', '', text)
             text_no_tags = re.sub(r'\[[^]]+\]', '', text_no_tags)

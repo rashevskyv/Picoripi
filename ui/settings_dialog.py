@@ -405,6 +405,45 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
     def get_settings(self) -> dict:
         selected_dir_name = self.plugin_combo.currentData()
         
+        # Read Tag Aliases from table if table exists
+        aliases_dict = {}
+        if hasattr(self, "aliases_table"):
+            for r in range(self.aliases_table.rowCount()):
+                item_alias = self.aliases_table.item(r, 0)
+                item_tag = self.aliases_table.item(r, 1)
+                alias_val = item_alias.text().strip() if item_alias else ""
+                tag_val = item_tag.text().strip() if item_tag else ""
+                if alias_val and tag_val:
+                    aliases_dict[alias_val] = tag_val
+        else:
+            aliases_dict = getattr(self.mw, "default_tag_mappings", {})
+
+        # Read and Save Font Map to file if table exists
+        if hasattr(self, "font_map_table"):
+            new_font_map = {}
+            for r in range(self.font_map_table.rowCount()):
+                item_char = self.font_map_table.item(r, 0)
+                item_width = self.font_map_table.item(r, 1)
+                char_val = item_char.text() if item_char else ""
+                width_val = item_width.text().strip() if item_width else ""
+                if char_val and width_val:
+                    try:
+                        new_font_map[char_val] = {"width": int(width_val)}
+                    except ValueError:
+                        pass
+            
+            # Save to active plugin's font_map.json
+            if selected_dir_name:
+                font_map_path = Path("plugins") / selected_dir_name / "font_map.json"
+                try:
+                    font_map_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(font_map_path, 'w', encoding='utf-8') as f:
+                        json.dump(new_font_map, f, indent=4, ensure_ascii=False)
+                    self.mw.current_font_map = new_font_map
+                    self.rules_changed_requires_rescan = True
+                except Exception as e:
+                    log_debug(f"SettingsDialog: Failed to save font_map.json: {e}")
+        
         autofix_settings = {pid: cb.isChecked() for pid, cb in self.autofix_checkboxes.items()}
         detection_settings = {pid: cb.isChecked() for pid, cb in self.detection_checkboxes.items()}
 
@@ -494,7 +533,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'log_ai_traffic': self.log_ai_traffic_checkbox.isChecked(),
             'log_file_path': self.log_file_path_edit.text(),
             'enabled_log_categories': [cat_id for cat_id, chk in self.log_categories_checkboxes.items() if chk.isChecked()],
-            'context_menu_tags': self._get_tags_from_tables()
+            'context_menu_tags': self._get_tags_from_tables(),
+            'default_tag_mappings': aliases_dict
         }
 
     def _get_tags_from_tables(self):

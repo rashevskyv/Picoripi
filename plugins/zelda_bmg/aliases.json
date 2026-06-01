@@ -1,0 +1,6 @@
+{
+    "{color:red}": "{escape:255:000001}",
+    "{color:white}": "{escape:255:000000}",
+    "{F:Link}": "{escape:0:0000}",
+    "{pause}": "{escape:0:0007002d}"
+}

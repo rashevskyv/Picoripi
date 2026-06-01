@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.148] - 2026-06-01
+
+### Added
+- **Autonomous Tag Aliases Storage (`aliases.json`)**:
+  - Implemented persistent saving of custom tag mappings (aliases) to an independent `aliases.json` file inside the active plugin's directory.
+  - Custom aliases are dynamically loaded and merged with default plugin rules upon startup or plugin switch, fully preserving user mappings even without an active project open.
+  - Integrated immediate mappings saving inside `PluginSettings.save()` and `handle_add_tag_mapping_request()` callbacks.
+
+### Fixed
+- **PyQt5 slot mocking TypeError and sipBadCatcherResult in unit tests**:
+  - Resolved `TypeError: TagAliasDialog.__init__() missing 1 required positional argument: 'title'` inside `test_tag_aliases_logic.py` by providing the required `title` parameter during instantiation.
+  - Eliminated `TypeError: invalid argument to sipBadCatcherResult()` in Qt event loop by replacing `patch.object` slot interception with a robust python fake function.
+
 ## [0.2.147] - 2026-06-01
 
 ### Changed
