@@ -235,9 +235,7 @@ class MainWindow(QMainWindow):
         self.block_handler = MainWindowBlockHandler(self)
 
         # Plugin Setup
-        self.plugin_handler.load_game_plugin() 
-        if self.current_game_rules:
-            self.default_tag_mappings = self.current_game_rules.get_default_tag_mappings()
+        self.plugin_handler.load_game_plugin()
 
         # Complex Handlers
         self.list_selection_handler = ListSelectionHandler(self, self.data_processor, self.ui_updater)

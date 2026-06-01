@@ -1,6 +1,6 @@
-# Picoripi v0.2.147
+# Picoripi v0.2.148
  
-The "Picoripi" (v0.2.147) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.148) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -23,6 +23,7 @@ The "Picoripi" (v0.2.147) is a desktop application built with **Python** and **P
 - Syntax highlighting for game control codes and tags (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
 - Convenient insertion of control codes (button icons) through a visual interface and context menus.
 - **Tag & Alias Width Customisation**: Add custom tag widths (in pixels) directly inside the `Add Alias` or `Edit Alias` dialogues. Width configs are saved persistently to `font_map.json` of the active plugin and trigger instant width recalculation across all texts.
+- **Autonomous Tag Aliases Storage (`aliases.json`)**: Custom tag mappings (aliases) are persistently saved to an independent `aliases.json` file inside the active plugin's directory. Custom aliases are dynamically loaded and merged with default plugin rules upon startup or plugin switch, fully preserving user mappings even without an active project open.
 - **Punctuation and Tag Wrapping Fix**: Enhanced smart word wrapping prevents adding unwanted spaces before punctuation marks (like commas) that immediately follow tags, ensuring correct syntax like `tag, word` instead of `tag , word`.
 - **Dynamic Guidelines**: Dynamic vertical line guidelines (ticks) rendered individually for each visible line inside the translation inputs. Proportional pixel position is computed dynamically based on the game's actual font mapping widths ($text\_w \times \frac{limit\_px}{width\_px}$), highlighting in red upon width limit violations, providing an accurate, lag-free visual estimation of the remaining space. Incomplete tags at the end of character slices during width calculations are safely ignored, preventing incorrect horizontal guidelines from rendering inside tag syntax.
 - **Revert to Original**: Quickly restore original text for individual lines or entire blocks with full undo support.

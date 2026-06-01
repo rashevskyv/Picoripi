@@ -62,14 +62,16 @@ class GameRules(BaseGameRules):
         that contain these tags by treating them as plain text.
 
         Tag format in editor: {escape:<type>:<hex_data>}
-          - Link  -> {escape:0:0001}
+          - Link  -> {escape:0:0000} or {escape:0:0001}
           - Epona -> {escape:0:0022}
         """
         return {
             "{PLAYER}": "Link",
+            "{escape:0:0000}": "Link",
             "{escape:0:0001}": "Link",
             "{escape:0:0022}": "Epona",
         }
+
 
 
     def load_translation_map(self):

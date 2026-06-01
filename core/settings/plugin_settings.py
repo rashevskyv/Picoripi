@@ -189,6 +189,18 @@ class PluginSettings:
 
     def save(self) -> None:
         """Saves current settings to project_settings.json inside the project directory."""
+        # Save custom aliases to aliases.json of the active plugin
+        plugin_name = getattr(self.mw, 'active_game_plugin', None)
+        if plugin_name:
+            aliases_path = Path("plugins") / plugin_name / "aliases.json"
+            try:
+                aliases_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(aliases_path, 'w', encoding='utf-8') as f:
+                    json.dump(getattr(self.mw, 'default_tag_mappings', {}), f, indent=4, ensure_ascii=False)
+                log_info(f"Saved default tag mappings to {aliases_path}")
+            except Exception as e:
+                log_error(f"Failed to save aliases to {aliases_path}: {e}")
+
         project_settings_path = self._get_project_settings_path()
         if not project_settings_path:
             log_warning("No active project loaded. Project settings will not be saved.")

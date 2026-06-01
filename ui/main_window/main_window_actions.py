@@ -494,9 +494,17 @@ class MainWindowActions:
         if reply == QMessageBox.Yes:
             self.mw.default_tag_mappings[bracket_tag] = curly_tag
             log_info(f"Added/Updated mapping: {bracket_tag} -> {curly_tag}. Total mappings: {len(self.mw.default_tag_mappings)}")
+            
+            # Save mappings immediately to both project settings and project metadata
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.save_settings()
+            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                self.mw.project_manager.save_settings_to_project(self.mw)
+                self.mw.project_manager.save()
+
             QMessageBox.information(self.mw, "Tag Mapping Added",
                                     f"Mapping '{bracket_tag}' -> '{curly_tag}' has been added/updated.\n"
-                                    "This change will be saved to the plugin's config file when settings are saved.")
+                                    "This change has been saved to the project settings.")
             if self.mw.data_store.current_block_idx != -1:
                 if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mapping now?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
                     self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)

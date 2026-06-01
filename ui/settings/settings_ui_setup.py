@@ -75,11 +75,15 @@ class SettingsDialogUiMixin:
         detection_tab = QWidget()
         autofix_tab = QWidget()
         context_tags_tab = QWidget()
+        aliases_tab = QWidget()
+        font_map_tab = QWidget()
 
         self.plugin_tabs.addTab(paths_tab, "File Paths")
         self.plugin_tabs.addTab(display_tab, "Display")
         self.plugin_tabs.addTab(rules_tab, "Rules")
         self.plugin_tabs.addTab(context_tags_tab, "Context Tags")
+        self.plugin_tabs.addTab(aliases_tab, "Tag Aliases")
+        self.plugin_tabs.addTab(font_map_tab, "Font Map")
         self.plugin_tabs.addTab(detection_tab, "Detection")
         self.plugin_tabs.addTab(autofix_tab, "Auto-fix")
 
@@ -87,6 +91,8 @@ class SettingsDialogUiMixin:
         self._setup_display_subtab(display_tab)
         self._setup_rules_subtab(rules_tab)
         self._setup_context_tags_subtab(context_tags_tab)
+        self._setup_aliases_subtab(aliases_tab)
+        self._setup_font_map_subtab(font_map_tab)
         
         self.detection_checkboxes.clear()
         self.autofix_checkboxes.clear()
@@ -863,11 +869,284 @@ class SettingsDialogUiMixin:
         
         self._populate_font_list(selected_dir_name)
         
-        if selected_dir_name == self.initial_plugin_name:
-            self.plugin_changed_requires_restart = False
-            return
-
         self.plugin_changed_requires_restart = True
         QMessageBox.information(self, "Plugin Change", "A restart is required to switch the game plugin.", QMessageBox.Ok)
+
+
+    def _setup_aliases_subtab(self, tab):
+        layout = QVBoxLayout(tab)
+        
+        # Search Filter
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("Filter Aliases:"))
+        self.aliases_search_edit = QLineEdit(tab)
+        self.aliases_search_edit.setPlaceholderText("Search by alias or original tag...")
+        self.aliases_search_edit.setClearButtonEnabled(True)
+        self.aliases_search_edit.textChanged.connect(self._filter_aliases_table)
+        search_layout.addWidget(self.aliases_search_edit)
+        layout.addLayout(search_layout)
+        
+        # Table
+        self.aliases_table = QTableWidget(0, 2, tab)
+        self.aliases_table.setHorizontalHeaderLabels(["Alias (e.g. {F:Link})", "Original Tag (e.g. {escape:0:0000})"])
+        self.aliases_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.aliases_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.aliases_table.setSelectionMode(QTableWidget.ExtendedSelection)
+        
+        # Context Menu & double click
+        self.aliases_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.aliases_table.customContextMenuRequested.connect(self._show_aliases_context_menu)
+        self.aliases_table.mouseDoubleClickEvent = lambda e: self._handle_aliases_double_click(e)
+        layout.addWidget(self.aliases_table)
+        
+        btn_row = QHBoxLayout()
+        add_btn = QPushButton("Add Alias", tab)
+        add_btn.clicked.connect(lambda: self._add_alias_row())
+        remove_btn = QPushButton("Remove Alias", tab)
+        remove_btn.clicked.connect(self._remove_alias_row)
+        btn_row.addWidget(add_btn); btn_row.addWidget(remove_btn)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+        
+        # Populate
+        self._populate_aliases_table()
+
+    def _populate_aliases_table(self):
+        self.aliases_table.setRowCount(0)
+        default_tag_mappings = getattr(self.mw, "default_tag_mappings", {})
+        for idx, (alias, orig_tag) in enumerate(default_tag_mappings.items()):
+            self.aliases_table.insertRow(idx)
+            self.aliases_table.setItem(idx, 0, QTableWidgetItem(alias))
+            self.aliases_table.setItem(idx, 1, QTableWidgetItem(orig_tag))
+        self.aliases_table.resizeColumnsToContents()
+
+    def _add_alias_row(self, alias="", orig_tag="", insert_at_row=None):
+        if insert_at_row is not None:
+            row = insert_at_row
+        else:
+            row = self.aliases_table.rowCount()
+        self.aliases_table.insertRow(row)
+        self.aliases_table.setItem(row, 0, QTableWidgetItem(alias))
+        self.aliases_table.setItem(row, 1, QTableWidgetItem(orig_tag))
+
+    def _remove_alias_row(self):
+        curr = self.aliases_table.currentRow()
+        if curr != -1:
+            self.aliases_table.removeRow(curr)
+        elif self.aliases_table.rowCount() > 0:
+            self.aliases_table.removeRow(self.aliases_table.rowCount() - 1)
+
+    def _filter_aliases_table(self, text):
+        search_text = text.lower()
+        for r in range(self.aliases_table.rowCount()):
+            row_matches = False
+            for c in range(self.aliases_table.columnCount()):
+                item = self.aliases_table.item(r, c)
+                cell_text = item.text().lower() if item else ""
+                if search_text in cell_text:
+                    row_matches = True
+                    break
+            self.aliases_table.setRowHidden(r, not row_matches)
+
+    def _handle_aliases_double_click(self, event):
+        item = self.aliases_table.itemAt(event.pos())
+        if item is None:
+            row = self.aliases_table.rowAt(event.pos().y())
+            if row == -1:
+                self._add_alias_row()
+            else:
+                self._add_alias_row(insert_at_row=row + 1)
+        else:
+            QTableWidget.mouseDoubleClickEvent(self.aliases_table, event)
+
+    def _show_aliases_context_menu(self, pos):
+        menu = QMenu(self)
+        item = self.aliases_table.itemAt(pos)
+        clicked_row = item.row() if item else -1
+        if clicked_row == -1:
+            clicked_row = self.aliases_table.rowAt(pos.y())
+            
+        selected_rows = sorted(list(set([i.row() for i in self.aliases_table.selectedItems()])))
+        if clicked_row != -1 and clicked_row not in selected_rows:
+            selected_rows = [clicked_row]
+            
+        add_action = menu.addAction("Add Alias")
+        clone_action = menu.addAction(f"Clone Alias{'es' if len(selected_rows) > 1 else ''}")
+        delete_action = menu.addAction(f"Delete Alias{'es' if len(selected_rows) > 1 else ''}")
+        
+        if not selected_rows:
+            clone_action.setEnabled(False)
+            delete_action.setEnabled(False)
+            
+        action = menu.exec_(self.aliases_table.viewport().mapToGlobal(pos))
+        
+        if action == add_action:
+            if clicked_row != -1:
+                self._add_alias_row(insert_at_row=clicked_row + 1)
+            else:
+                self._add_alias_row()
+        elif action == clone_action:
+            for row in reversed(selected_rows):
+                item0 = self.aliases_table.item(row, 0)
+                item1 = self.aliases_table.item(row, 1)
+                alias = item0.text() if item0 else ""
+                orig = item1.text() if item1 else ""
+                self._add_alias_row(alias=alias, orig_tag=orig, insert_at_row=row + 1)
+        elif action == delete_action:
+            for row in reversed(selected_rows):
+                self.aliases_table.removeRow(row)
+
+
+    def _setup_font_map_subtab(self, tab):
+        layout = QVBoxLayout(tab)
+        
+        # Search Filter
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("Filter Characters:"))
+        self.font_map_search_edit = QLineEdit(tab)
+        self.font_map_search_edit.setPlaceholderText("Search by character or sequence...")
+        self.font_map_search_edit.setClearButtonEnabled(True)
+        self.font_map_search_edit.textChanged.connect(self._filter_font_map_table)
+        search_layout.addWidget(self.font_map_search_edit)
+        layout.addLayout(search_layout)
+        
+        # Table
+        self.font_map_table = QTableWidget(0, 2, tab)
+        self.font_map_table.setHorizontalHeaderLabels(["Character / Sequence", "Width (pixels)"])
+        self.font_map_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.font_map_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.font_map_table.setSelectionMode(QTableWidget.ExtendedSelection)
+        
+        # Context Menu & double click
+        self.font_map_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.font_map_table.customContextMenuRequested.connect(self._show_font_map_context_menu)
+        self.font_map_table.mouseDoubleClickEvent = lambda e: self._handle_font_map_double_click(e)
+        layout.addWidget(self.font_map_table)
+        
+        btn_row = QHBoxLayout()
+        add_btn = QPushButton("Add Character", tab)
+        add_btn.clicked.connect(lambda: self._add_font_map_row())
+        remove_btn = QPushButton("Remove Character", tab)
+        remove_btn.clicked.connect(self._remove_font_map_row)
+        btn_row.addWidget(add_btn); btn_row.addWidget(remove_btn)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+        
+        # Populate
+        self._populate_font_map_table()
+
+    def _populate_font_map_table(self):
+        self.font_map_table.setRowCount(0)
+        
+        # Read from current font_map.json
+        plugin_dir_name = self.plugin_combo.currentData() or getattr(self.mw, 'active_game_plugin', 'zelda_bmg')
+        if not plugin_dir_name:
+            return
+            
+        font_map_path = Path("plugins") / plugin_dir_name / "font_map.json"
+        if not font_map_path.exists():
+            font_map_path = Path("plugins") / "common" / "defaults" / "font_map.json"
+            
+        font_map = {}
+        if font_map_path.exists():
+            try:
+                with open(font_map_path, 'r', encoding='utf-8') as f:
+                    font_map = json.load(f)
+            except Exception as e:
+                log_debug(f"Failed to read font_map.json inside settings setup: {e}")
+                
+        # Fallback to in-memory map
+        if not font_map and hasattr(self.mw, 'current_font_map'):
+            font_map = self.mw.current_font_map or {}
+            
+        for idx, (char, info) in enumerate(font_map.items()):
+            self.font_map_table.insertRow(idx)
+            self.font_map_table.setItem(idx, 0, QTableWidgetItem(char))
+            
+            width_val = ""
+            if isinstance(info, dict):
+                width_val = str(info.get("width", ""))
+            elif isinstance(info, (int, float)):
+                width_val = str(int(info))
+                
+            self.font_map_table.setItem(idx, 1, QTableWidgetItem(width_val))
+            
+        self.font_map_table.resizeColumnsToContents()
+
+    def _add_font_map_row(self, char="", width_val="", insert_at_row=None):
+        if insert_at_row is not None:
+            row = insert_at_row
+        else:
+            row = self.font_map_table.rowCount()
+        self.font_map_table.insertRow(row)
+        self.font_map_table.setItem(row, 0, QTableWidgetItem(char))
+        self.font_map_table.setItem(row, 1, QTableWidgetItem(width_val))
+
+    def _remove_font_map_row(self):
+        curr = self.font_map_table.currentRow()
+        if curr != -1:
+            self.font_map_table.removeRow(curr)
+        elif self.font_map_table.rowCount() > 0:
+            self.font_map_table.removeRow(self.font_map_table.rowCount() - 1)
+
+    def _filter_font_map_table(self, text):
+        search_text = text.lower()
+        for r in range(self.font_map_table.rowCount()):
+            row_matches = False
+            for c in range(self.font_map_table.columnCount()):
+                item = self.font_map_table.item(r, c)
+                cell_text = item.text().lower() if item else ""
+                if search_text in cell_text:
+                    row_matches = True
+                    break
+            self.font_map_table.setRowHidden(r, not row_matches)
+
+    def _handle_font_map_double_click(self, event):
+        item = self.font_map_table.itemAt(event.pos())
+        if item is None:
+            row = self.font_map_table.rowAt(event.pos().y())
+            if row == -1:
+                self._add_font_map_row()
+            else:
+                self._add_font_map_row(insert_at_row=row + 1)
+        else:
+            QTableWidget.mouseDoubleClickEvent(self.font_map_table, event)
+
+    def _show_font_map_context_menu(self, pos):
+        menu = QMenu(self)
+        item = self.font_map_table.itemAt(pos)
+        clicked_row = item.row() if item else -1
+        if clicked_row == -1:
+            clicked_row = self.font_map_table.rowAt(pos.y())
+            
+        selected_rows = sorted(list(set([i.row() for i in self.font_map_table.selectedItems()])))
+        if clicked_row != -1 and clicked_row not in selected_rows:
+            selected_rows = [clicked_row]
+            
+        add_action = menu.addAction("Add Character")
+        clone_action = menu.addAction(f"Clone Character{'s' if len(selected_rows) > 1 else ''}")
+        delete_action = menu.addAction(f"Delete Character{'s' if len(selected_rows) > 1 else ''}")
+        
+        if not selected_rows:
+            clone_action.setEnabled(False)
+            delete_action.setEnabled(False)
+            
+        action = menu.exec_(self.font_map_table.viewport().mapToGlobal(pos))
+        
+        if action == add_action:
+            if clicked_row != -1:
+                self._add_font_map_row(insert_at_row=clicked_row + 1)
+            else:
+                self._add_font_map_row()
+        elif action == clone_action:
+            for row in reversed(selected_rows):
+                item0 = self.font_map_table.item(row, 0)
+                item1 = self.font_map_table.item(row, 1)
+                char = item0.text() if item0 else ""
+                width_val = item1.text() if item1 else ""
+                self._add_font_map_row(char=char, width_val=width_val, insert_at_row=row + 1)
+        elif action == delete_action:
+            for row in reversed(selected_rows):
+                self.font_map_table.removeRow(row)
 
 
