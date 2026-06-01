@@ -275,3 +275,40 @@ class TestPrepareTextForTaglessSearch:
 
     def test_none(self):
         assert prepare_text_for_tagless_search(None) == ""
+
+
+# ── tag width with aliases and forced tags ──────────────────────────
+
+class TestTagWidthAliasesAndForced:
+    def test_forced_tag_measures_text(self, sample_font_map):
+        width = calculate_string_width("{F:abc}", sample_font_map)
+        assert width == 6 + 6 + 5
+
+    def test_tag_without_alias_has_zero_width(self, sample_font_map):
+        width = calculate_string_width("{escape:255:000001}", sample_font_map, default_tag_mappings={})
+        assert width == 0
+
+    def test_tag_with_alias_but_no_width_in_font_map_has_zero_width(self, sample_font_map):
+        mappings = {"{MyAlias}": "{escape:255:000001}"}
+        width = calculate_string_width("{escape:255:000001}", sample_font_map, default_tag_mappings=mappings)
+        assert width == 0
+
+    def test_tag_with_alias_and_custom_width_in_font_map(self, sample_font_map):
+        mappings = {"{MyAlias}": "{escape:255:000001}"}
+        custom_font_map = dict(sample_font_map)
+        custom_font_map["{MyAlias}"] = {"width": 42}
+        width = calculate_string_width("{escape:255:000001}", custom_font_map, default_tag_mappings=mappings)
+        assert width == 42
+
+    def test_tag_with_forced_alias_measures_forced_text(self, sample_font_map):
+        mappings = {"{F:abc}": "{escape:255:000001}"}
+        width = calculate_string_width("{escape:255:000001}", sample_font_map, default_tag_mappings=mappings)
+        assert width == 6 + 6 + 5
+
+    def test_incomplete_tag_at_end_of_string_has_zero_width(self, sample_font_map):
+        width_complete = calculate_string_width("abc", sample_font_map)
+        width_incomplete = calculate_string_width("abc{escape:255", sample_font_map)
+        assert width_complete == width_incomplete
+        
+        width_square_incomplete = calculate_string_width("abc[escape", sample_font_map)
+        assert width_complete == width_square_incomplete

@@ -273,11 +273,15 @@ class TreeContextMenuMixin:
                     action_label = (
                         f"AI: Translate Virtual Block '{category_name}' (UA)"
                         if category_name
-                        else f"AI: Translate Block '{block_name}' (UA)"
+                        else (
+                            f"AI: Translate Chapter '{block_name}' (UA)"
+                            if block_idx == -2
+                            else f"AI: Translate Block '{block_name}' (UA)"
+                        )
                     )
                     ta = menu.addAction(self.style().standardIcon(QStyle.SP_MessageBoxInformation), action_label)
                     ta.triggered.connect(
-                        lambda checked=False, idx=block_idx, cname=category_name: translator.translate_current_block(idx, cname)
+                        lambda checked=False, idx=block_idx, cname=category_name, chid=ch_id: translator.translate_current_block(idx, cname, chid)
                     )
 
                 # Translate All option

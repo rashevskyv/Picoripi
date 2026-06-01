@@ -1,5 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.146] - 2026-06-01
+
+### Added
+- **Visual Progress Bar for Virtual Chapters**:
+  - Implemented visual translation progress tracking for virtual chapters (chapters mapped from MemePalace SQLite database with `block_idx == -2`).
+  - Chapter items in the project tree now render a smooth, semi-transparent pastel green background shading proportional to the chapter's completion rate, perfectly consistent with physical files progress styling.
+
+### Fixed
+- **Incomplete Tags Ignored in Guideline and Width Calculations**:
+  - Fixed a critical rendering issue where vertical guidelines and character limits would jump incorrectly inside tag syntax (such as `{escape:255:00`).
+  - Updated character slicing in width calculations (`_calculate_string_width_impl`) to gracefully identify and break out on incomplete tags at the end of slice, preventing syntax characters (e.g. `{`, `e`, `s`, `c`, `a`, `p`, `e`) from being measured as regular text with standard character widths.
+  - Enhanced tag mapping resolution fallback to safely ignore unmapped tags or return zero width, while correctly measuring forced alias tags (e.g., `{F:Link}` as `"Link"` width).
+- **Test Suite Stability & block_list_updater Icon TypeError**:
+  - Fixed a crash/TypeError in `test_BlockListUpdater_populate_chapters` (where `self.mw.style().standardIcon` returned `MagicMock` instead of `QIcon` during test suite runs) by introducing a type-safe `_set_item_style_icon` helper method that validates the icon object before calling `setIcon()` on the tree item.
+
 ## [0.2.145] - 2026-06-01
 
 ### Fixed

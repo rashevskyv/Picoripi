@@ -213,10 +213,10 @@ class PreviewUpdater(BaseUIUpdater):
                 line_text_with_spaces_and_tags = convert_dots_to_spaces_from_editor(q_block_text_raw_dots)
                 line_text_no_tags_for_width_calc = remove_all_tags(line_text_with_spaces_and_tags).rstrip()
                 
-                if line_text_no_tags_for_width_calc:
+                if line_text_with_spaces_and_tags.rstrip():
                     import re
                     font_map_for_line = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-                    visual_line_width_game_px = calculate_string_width(line_text_no_tags_for_width_calc, font_map_for_line)
+                    visual_line_width_game_px = calculate_string_width(line_text_with_spaces_and_tags.rstrip(), font_map_for_line, default_tag_mappings=getattr(self.mw, 'default_tag_mappings', None))
                     
                     if visual_line_width_game_px > current_threshold_game_px:
                         words_in_no_tag_segment = [{'text': match.group(0), 'start_idx_in_segment': match.start()} for match in re.finditer(r'\S+', line_text_no_tags_for_width_calc)]

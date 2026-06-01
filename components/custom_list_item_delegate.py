@@ -225,16 +225,42 @@ class CustomListItemDelegate(QStyledItemDelegate):
                             else:
                                 percentage = 0.0 # No strings need translation, do not treat as fully complete
                 elif block_idx_data is not None and not category_name:
-                    ds = getattr(main_window, 'data_store', None)
-                    if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
-                        block_data = ds.data[block_idx_data]
-                        if isinstance(block_data, list) and block_data:
-                            total_needs = sum(1 for i in range(len(block_data)) if main_window.data_processor.string_needs_translation(block_idx_data, i))
+                    ch_id_data = index.data(Qt.UserRole + 11)
+                    if block_idx_data == -2 and ch_id_data is not None:
+                        mappings = []
+                        composer = getattr(main_window, "translation_handler", None)
+                        if composer and hasattr(composer, "prompt_composer"):
+                            client = composer.prompt_composer._get_mempalace_client()
+                            if client:
+                                wing_name = composer.prompt_composer._get_wing_name()
+                                mappings = client.get_chapter_mappings(wing_name, ch_id_data)
+                        
+                        ch_mappings = []
+                        for m in mappings:
+                            bmg_id = m.get("bmg_id")
+                            if hasattr(main_window, 'list_selection_handler'):
+                                indices = main_window.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                                if indices:
+                                    ch_mappings.append(indices)
+                                    
+                        if ch_mappings:
+                            total_needs = sum(1 for b_idx, s_idx in ch_mappings if main_window.data_processor.string_needs_translation(b_idx, s_idx))
                             if total_needs > 0:
-                                translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
+                                translated = sum(1 for b_idx, s_idx in ch_mappings if main_window.data_processor.is_string_translated(b_idx, s_idx))
                                 percentage = translated / total_needs
                             else:
                                 percentage = 0.0
+                    else:
+                        ds = getattr(main_window, 'data_store', None)
+                        if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
+                            block_data = ds.data[block_idx_data]
+                            if isinstance(block_data, list) and block_data:
+                                total_needs = sum(1 for i in range(len(block_data)) if main_window.data_processor.string_needs_translation(block_idx_data, i))
+                                if total_needs > 0:
+                                    translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
+                                    percentage = translated / total_needs
+                                else:
+                                    percentage = 0.0
             except Exception as e:
                 log_debug(f"CustomListItemDelegate: Error calculating progress percentage: {e}")
 
