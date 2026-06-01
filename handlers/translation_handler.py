@@ -331,25 +331,60 @@ class TranslationHandler(BaseHandler):
             QMessageBox.Yes
         )
         if reply == QMessageBox.No:
-            if block_idx in self.pre_translation_state:
-                original_texts = self.pre_translation_state[block_idx]
-                for i, text in enumerate(original_texts):
-                    self.data_processor.update_edited_data(block_idx, i, text)
+            if block_idx == -2:
+                # Revert all individual blocks that were modified in the chapter
+                temp_id_map = self.worker.task_details.get('temp_id_map', {})
+                modified_blocks = {b_idx for b_idx, _ in temp_id_map.values()}
+                for b_idx in modified_blocks:
+                    if b_idx in self.pre_translation_state:
+                        original_texts = self.pre_translation_state[b_idx]
+                        for i, text in enumerate(original_texts):
+                            self.data_processor.update_edited_data(b_idx, i, text)
+                        del self.pre_translation_state[b_idx]
                 
-                del self.pre_translation_state[block_idx]
+                if -2 in self.translation_progress:
+                    del self.translation_progress[-2]
+                if -2 in self.pre_translation_state:
+                    del self.pre_translation_state[-2]
+                
+                self.ui_updater.populate_strings_for_block(-2, force=True)
+                self.ui_updater.update_text_views()
+            else:
+                if block_idx in self.pre_translation_state:
+                    original_texts = self.pre_translation_state[block_idx]
+                    for i, text in enumerate(original_texts):
+                        self.data_processor.update_edited_data(block_idx, i, text)
+                    
+                    del self.pre_translation_state[block_idx]
 
-            if block_idx in self.translation_progress:
-                del self.translation_progress[block_idx]
+                if block_idx in self.translation_progress:
+                    del self.translation_progress[block_idx]
 
-            self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
-            self.ui_updater.update_text_views()
+                self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+                self.ui_updater.update_text_views()
         else:
-            if block_idx in self.pre_translation_state:
-                del self.pre_translation_state[block_idx]
+            if block_idx == -2:
+                temp_id_map = self.worker.task_details.get('temp_id_map', {})
+                modified_blocks = {b_idx for b_idx, _ in temp_id_map.values()}
+                for b_idx in modified_blocks:
+                    if b_idx in self.pre_translation_state:
+                        del self.pre_translation_state[b_idx]
+                if -2 in self.pre_translation_state:
+                    del self.pre_translation_state[-2]
+            else:
+                if block_idx in self.pre_translation_state:
+                    del self.pre_translation_state[block_idx]
         
         self.ui_handler.finish_ai_operation()
-        self.ui_updater.update_block_item_text_with_problem_count(block_idx)
-        self.save_progress_to_metadata(block_idx)
+        if block_idx == -2:
+            self.ui_updater.update_block_item_text_with_problem_count(-2)
+            temp_id_map = self.worker.task_details.get('temp_id_map', {}) if self.worker else {}
+            modified_blocks = {b_idx for b_idx, _ in temp_id_map.values()}
+            for b_idx in modified_blocks:
+                self.ui_updater.update_block_item_text_with_problem_count(b_idx)
+        else:
+            self.ui_updater.update_block_item_text_with_problem_count(block_idx)
+            self.save_progress_to_metadata(block_idx)
 
 
     def _setup_progress_bar(self, total_chunks: int, completed_chunks: int) -> None:
@@ -447,7 +482,7 @@ class TranslationHandler(BaseHandler):
         }
         self._initiate_batch_translation(task_details)
 
-    def translate_current_block(self, block_idx: Optional[int] = None, category_name: Optional[str] = None) -> None:
+    def translate_current_block(self, block_idx: Optional[int] = None, category_name: Optional[str] = None, chapter_id: Optional[int] = None) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -462,6 +497,14 @@ class TranslationHandler(BaseHandler):
         operation_title = f"AI Translation (Block {target_block_idx + 1})"
         if category_name:
             operation_title = f"AI Translation ({category_name} in Block {target_block_idx + 1})"
+        elif target_block_idx == -2:
+            operation_title = "AI Translation (Chapter)"
+            if hasattr(self.mw.block_list_widget, 'currentItem') and self.mw.block_list_widget.currentItem():
+                ch_name = self.mw.block_list_widget.currentItem().text(0)
+                if isinstance(ch_name, str):
+                    import re
+                    ch_name = re.sub(r'\s*\(\d+\)$', '', ch_name)
+                    operation_title = f"AI: Translate Chapter '{ch_name}'"
 
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
         from components.ai_status_dialog import AIStatusDialog
@@ -469,51 +512,100 @@ class TranslationHandler(BaseHandler):
         from PyQt5.QtWidgets import QApplication
         QApplication.processEvents()
 
-        data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
-        if not isinstance(data_source, list) or not (0 <= target_block_idx < len(data_source)):
-            self.ui_handler.finish_ai_operation()
-            QMessageBox.information(self.mw, "AI Translation", "No block data available to translate.")
-            return
+        if target_block_idx == -2:
+            if chapter_id is None:
+                chapter_id = getattr(self.mw.data_store, 'current_chapter_id', None)
+            if chapter_id is None:
+                self.ui_handler.finish_ai_operation()
+                QMessageBox.information(self.mw, "AI Translation", "No chapter ID available.")
+                return
 
-        block_strings = self.glossary_handler._get_original_block(target_block_idx)
-        if not block_strings:
-            self.ui_handler.finish_ai_operation()
-            QMessageBox.information(self.mw, "AI Translation", "The selected block is empty.")
-            return
+            chapter_mappings = []
+            client = self.prompt_composer._get_mempalace_client()
+            if client:
+                wing_name = self.prompt_composer._get_wing_name()
+                mappings = client.get_chapter_mappings(wing_name, chapter_id)
+                for m in mappings:
+                    bmg_id = m.get("bmg_id")
+                    indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                    if indices:
+                        chapter_mappings.append(indices)
 
-        # Determine target indices
-        target_indices = range(len(block_strings))
-        if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-            pm = self.mw.project_manager
-            block_map = getattr(self.mw, 'block_to_project_file_map', {})
-            proj_b_idx = block_map.get(target_block_idx, target_block_idx)
-            if proj_b_idx < len(pm.project.blocks):
-                block = pm.project.blocks[proj_b_idx]
-                category = next((c for c in block.get_all_categories_flat() if c.name == category_name), None)
-                if category:
-                    target_indices = category.line_indices
-                    log_debug(f"Translating only category '{category_name}' ({len(target_indices)} lines)")
+            if not chapter_mappings:
+                self.ui_handler.finish_ai_operation()
+                QMessageBox.information(self.mw, "AI Translation", "No lines mapped to this chapter.")
+                return
 
-        self.pre_translation_state[target_block_idx] = self.data_processor.get_block_texts(target_block_idx)
+            # Keep backup of pre-translation state for each block in the chapter
+            chapter_blocks = {b_idx for b_idx, _ in chapter_mappings}
+            for b_idx in chapter_blocks:
+                if b_idx not in self.pre_translation_state:
+                    self.pre_translation_state[b_idx] = self.data_processor.get_block_texts(b_idx)
+            self.pre_translation_state[-2] = True
 
-        source_items = [
-            {"id": idx, "text": str(self.glossary_handler._get_original_string(target_block_idx, idx) or "")}
-            for idx in target_indices if idx < len(block_strings)
-        ]
+            source_items = []
+            temp_id_map = {}
+            for temp_id, (b_idx, s_idx) in enumerate(chapter_mappings):
+                text = str(self.glossary_handler._get_original_string(b_idx, s_idx) or "")
+                source_items.append({"id": temp_id, "text": text})
+                temp_id_map[temp_id] = (b_idx, s_idx)
 
-        provider = self.ai_lifecycle_manager._prepare_provider()
-        if not provider:
-            self.ui_handler.finish_ai_operation()
-            return
+            provider = self.ai_lifecycle_manager._prepare_provider()
+            if not provider:
+                self.ui_handler.finish_ai_operation()
+                return
 
-        base_timeout = self._resolve_base_timeout(provider)
-        block_timeout = base_timeout * 10
-        log_debug(
-            f"Starting block AI translation for block {target_block_idx} with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
-        )
+            base_timeout = self._resolve_base_timeout(provider)
+            block_timeout = base_timeout * 10
+            log_debug(
+                f"Starting chapter AI translation with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
+            )
+        else:
+            data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
+            if not isinstance(data_source, list) or not (0 <= target_block_idx < len(data_source)):
+                self.ui_handler.finish_ai_operation()
+                QMessageBox.information(self.mw, "AI Translation", "No block data available to translate.")
+                return
 
-        # Always build temp_id_map to prevent index shifting bugs during segment reordering
-        temp_id_map = {idx: (target_block_idx, idx) for idx in target_indices if idx < len(block_strings)}
+            block_strings = self.glossary_handler._get_original_block(target_block_idx)
+            if not block_strings:
+                self.ui_handler.finish_ai_operation()
+                QMessageBox.information(self.mw, "AI Translation", "The selected block is empty.")
+                return
+
+            # Determine target indices
+            target_indices = range(len(block_strings))
+            if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                pm = self.mw.project_manager
+                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(target_block_idx, target_block_idx)
+                if proj_b_idx < len(pm.project.blocks):
+                    block = pm.project.blocks[proj_b_idx]
+                    category = next((c for c in block.get_all_categories_flat() if c.name == category_name), None)
+                    if category:
+                        target_indices = category.line_indices
+                        log_debug(f"Translating only category '{category_name}' ({len(target_indices)} lines)")
+
+            self.pre_translation_state[target_block_idx] = self.data_processor.get_block_texts(target_block_idx)
+
+            source_items = [
+                {"id": idx, "text": str(self.glossary_handler._get_original_string(target_block_idx, idx) or "")}
+                for idx in target_indices if idx < len(block_strings)
+            ]
+
+            provider = self.ai_lifecycle_manager._prepare_provider()
+            if not provider:
+                self.ui_handler.finish_ai_operation()
+                return
+
+            base_timeout = self._resolve_base_timeout(provider)
+            block_timeout = base_timeout * 10
+            log_debug(
+                f"Starting block AI translation for block {target_block_idx} with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
+            )
+
+            # Always build temp_id_map to prevent index shifting bugs during segment reordering
+            temp_id_map = {idx: (target_block_idx, idx) for idx in target_indices if idx < len(block_strings)}
 
         task_details = {
             'type': 'translate_block_chunked',
@@ -523,7 +615,10 @@ class TranslationHandler(BaseHandler):
             'max_retries': 4,
             'block_idx': target_block_idx,
             'temp_id_map': temp_id_map,
-            'mode_description': f"block {target_block_idx + 1}" if not category_name else f"category '{category_name}' in block {target_block_idx + 1}",
+            'mode_description': (
+                "chapter" if target_block_idx == -2
+                else (f"block {target_block_idx + 1}" if not category_name else f"category '{category_name}' in block {target_block_idx + 1}")
+            ),
             'provider_settings_override': {'timeout': block_timeout},
             'timeout_seconds': block_timeout,
             'session_reset_attempted': False
@@ -845,6 +940,9 @@ class TranslationHandler(BaseHandler):
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("TRANSLATE")
             
+            if block_idx == -2:
+                modified_blocks.add(-2)
+
             if block_idx in self.translation_progress:
                 self.translation_progress[block_idx]['completed_chunks'].add(chunk_index)
                 self.save_progress_to_metadata(block_idx)
@@ -858,6 +956,8 @@ class TranslationHandler(BaseHandler):
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
             
             current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
+            if hasattr(self.mw, 'data_store') and getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+                current_view_block = -2
             self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
             self.translated_chunks_count = len(self.translation_progress.get(block_idx, {}).get('completed_chunks', set()))
             self.ui_handler.status_dialog.update_progress(self.translated_chunks_count)
@@ -868,14 +968,25 @@ class TranslationHandler(BaseHandler):
                 self.ui_updater.update_text_views()
                 if hasattr(self.mw, 'app_action_handler'):
                     for m_block in modified_blocks:
-                        if m_block != 999999:
+                        if m_block != 999999 and m_block >= 0:
                             self.mw.issue_scan_handler.rescan_issues_for_single_block(m_block, show_message_on_completion=False)
                 
-                if block_idx in self.translation_progress:
-                    del self.translation_progress[block_idx]
-                    self.save_progress_to_metadata(block_idx)
-                if block_idx in self.pre_translation_state:
-                    del self.pre_translation_state[block_idx]
+                if block_idx == -2:
+                    if -2 in self.translation_progress:
+                        del self.translation_progress[-2]
+                    temp_id_map = context.get('temp_id_map', {})
+                    modified_blocks_for_cleanup = {b_idx for b_idx, _ in temp_id_map.values()}
+                    for b_idx in modified_blocks_for_cleanup:
+                        if b_idx in self.pre_translation_state:
+                            del self.pre_translation_state[b_idx]
+                    if -2 in self.pre_translation_state:
+                        del self.pre_translation_state[-2]
+                else:
+                    if block_idx in self.translation_progress:
+                        del self.translation_progress[block_idx]
+                        self.save_progress_to_metadata(block_idx)
+                    if block_idx in self.pre_translation_state:
+                        del self.pre_translation_state[block_idx]
                 
                 # Removed self.reset_translation_session() to allow user to inspect context if needed
 
@@ -927,6 +1038,8 @@ class TranslationHandler(BaseHandler):
             self.ui_handler.finish_ai_operation()
             
             current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
+            if hasattr(self.mw, 'data_store') and getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+                current_view_block = -2
             self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
             self.ui_updater.update_text_views()
             self.ui_updater.update_title()

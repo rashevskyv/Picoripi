@@ -168,6 +168,30 @@ def test_th_prompt_for_revert_after_cancel(mock_box, th):
     th.ui_handler.finish_ai_operation.assert_called_once()
 
 @patch('handlers.translation_handler.QMessageBox')
+def test_th_prompt_for_revert_after_cancel_chapter(mock_box, th):
+    th.ui_handler.reset_mock()
+    th.worker = MagicMock()
+    th.worker.task_details = {
+        'block_idx': -2,
+        'temp_id_map': {0: (0, 0), 1: (0, 1)}
+    }
+    th.pre_translation_state = {
+        0: ["orig0_0", "orig0_1"],
+        -2: True
+    }
+    
+    # Revert chosen (QMessageBox.No)
+    mock_box.question.return_value = mock_box.No
+    th.prompt_for_revert_after_cancel()
+    
+    th.data_processor.update_edited_data.assert_any_call(0, 0, "orig0_0")
+    th.data_processor.update_edited_data.assert_any_call(0, 1, "orig0_1")
+    assert 0 not in th.pre_translation_state
+    assert -2 not in th.pre_translation_state
+    th.ui_updater.populate_strings_for_block.assert_called_with(-2, force=True)
+
+
+@patch('handlers.translation_handler.QMessageBox')
 def test_th_translate_current_string(mock_box, th):
     th.is_ai_running = True
     th.translate_current_string()
@@ -212,6 +236,47 @@ def test_th_translate_current_block(mock_box, th):
         mock_init.assert_called_once()
 
 @patch('handlers.translation_handler.QMessageBox')
+def test_th_translate_current_block_chapter(mock_box, th):
+    th.is_ai_running = False
+    th.mw.data_store.data = [["s1", "s2"], ["s3"]]
+    
+    provider = MagicMock()
+    th.ai_lifecycle_manager._prepare_provider.return_value = provider
+    
+    # Mock mempalace client and mappings
+    mock_client = MagicMock()
+    th.prompt_composer._get_mempalace_client.return_value = mock_client
+    th.prompt_composer._get_wing_name.return_value = "Zelda_TP"
+    
+    mock_client.get_chapter_mappings.return_value = [
+        {"bmg_id": "block_0_Str_0"},
+        {"bmg_id": "block_0_Str_1"}
+    ]
+    th.mw.list_selection_handler.resolve_bmg_id_to_indices.side_effect = lambda bmg_id: (0, 0) if "_Str_0" in bmg_id else (0, 1)
+    
+    th.glossary_handler._get_original_string.side_effect = lambda b, s: f"orig_{b}_{s}"
+    
+    with patch.object(th, '_initiate_batch_translation') as mock_init:
+        th.translate_current_block(-2, chapter_id=12)
+        assert 0 in th.pre_translation_state
+        assert -2 in th.pre_translation_state
+        mock_init.assert_called_once()
+        
+        task_details = mock_init.call_args[0][0]
+        assert task_details['type'] == 'translate_block_chunked'
+        assert task_details['block_idx'] == -2
+        assert task_details['mode_description'] == 'chapter'
+        assert task_details['source_items'] == [
+            {"id": 0, "text": "orig_0_0"},
+            {"id": 1, "text": "orig_0_1"}
+        ]
+        assert task_details['temp_id_map'] == {
+            0: (0, 0),
+            1: (0, 1)
+        }
+
+
+@patch('handlers.translation_handler.QMessageBox')
 def test_th_resume_block_translation(mock_box, th):
     th.translation_progress = {}
     th.resume_block_translation(0)
@@ -237,6 +302,24 @@ def test_th_handle_chunk_translated(th):
     th.data_processor.update_edited_data.assert_called_with(1, 0, "t", action_type="TRANSLATE", skip_ui_refresh=True)
     th.ui_handler.finish_ai_operation.assert_called_once()
     assert 1 not in th.translation_progress
+
+def test_th_handle_chunk_translated_chapter(th):
+    ctx = {
+        'block_idx': -2,
+        'temp_id_map': {0: (0, 0)}
+    }
+    th.translation_progress = {-2: {'completed_chunks': set(), 'total_chunks': 1}}
+    th.mw.data_store.current_chapter_id = 12
+    th.mw.data_store.current_block_idx = 0
+    
+    chunk_text = '{"translated_strings": [{"id": 0, "translation": "t"}]}'
+    th.ai_lifecycle_manager._trim_trailing_whitespace_from_lines.return_value = "t"
+    
+    th._handle_chunk_translated(0, chunk_text, ctx)
+    
+    # Verify that populate_strings_for_block is called with -2, not current_block_idx (0)
+    th.ui_updater.populate_strings_for_block.assert_called_with(-2, ANY, force=True)
+
 
 def test_th_handle_preview_translation_success(th):
     ctx = {'block_idx': 1, 'source_items': [1, 2]}

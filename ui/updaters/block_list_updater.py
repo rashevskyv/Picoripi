@@ -10,6 +10,16 @@ class BlockListUpdater(BaseUIUpdater):
         super().__init__(main_window, data_processor)
         self._block_items_cache = {}  # {block_idx: [QTreeWidgetItem, ...]}
 
+    def _set_item_style_icon(self, item: QTreeWidgetItem, column: int, standard_icon_enum) -> None:
+        try:
+            if hasattr(self.mw, 'style') and self.mw.style():
+                icon = self.mw.style().standardIcon(standard_icon_enum)
+                from PyQt5.QtGui import QIcon
+                if isinstance(icon, QIcon) and not icon.isNull():
+                    item.setIcon(column, icon)
+        except Exception:
+            pass
+
     def _register_item_in_cache(self, item: QTreeWidgetItem):
         block_idx = item.data(0, Qt.UserRole)
         if block_idx is not None:
@@ -297,7 +307,7 @@ class BlockListUpdater(BaseUIUpdater):
                     cat_item.setData(0, Qt.UserRole + 10, cat.name)
                     cat_item.setData(0, Qt.UserRole + 4, cat.name)
                     cat_item.setData(0, Qt.EditRole, cat.name)
-                    cat_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
+                    self._set_item_style_icon(cat_item, 0, QStyle.SP_FileDialogDetailedView)
                     
                     cat_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts=None, category_name=cat.name)
                     self._apply_issues_and_tooltip(cat_item, cat.name, cat_problem_counts, problem_definitions)
@@ -374,9 +384,9 @@ class BlockListUpdater(BaseUIUpdater):
             ))
         )
         if is_archive_folder:
-            folder_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirLinkIcon))
+            self._set_item_style_icon(folder_item, 0, QStyle.SP_DirLinkIcon)
         else:
-            folder_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
+            self._set_item_style_icon(folder_item, 0, QStyle.SP_DirIcon)
         
         folder_item.setData(0, Qt.UserRole + 1, curr_for_children.id)
         folder_item.setData(0, Qt.UserRole + 2, merged_folder_ids)
@@ -558,7 +568,7 @@ class BlockListUpdater(BaseUIUpdater):
                         chapters = client.get_all_chapters(wing_name)
                         if chapters:
                             chapters_root = QTreeWidgetItem(["Chapters"])
-                            chapters_root.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
+                            self._set_item_style_icon(chapters_root, 0, QStyle.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemIsEditable)
                             
                             act_nodes = {}
@@ -587,13 +597,13 @@ class BlockListUpdater(BaseUIUpdater):
                                 
                                 if act_name not in act_nodes:
                                     act_item = QTreeWidgetItem([act_name])
-                                    act_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_DirIcon))
+                                    self._set_item_style_icon(act_item, 0, QStyle.SP_DirIcon)
                                     act_item.setFlags(act_item.flags() & ~Qt.ItemIsEditable)
                                     chapters_root.addChild(act_item)
                                     act_nodes[act_name] = act_item
                                 
                                 ch_item = QTreeWidgetItem([ch_name])
-                                ch_item.setIcon(0, self.mw.style().standardIcon(QStyle.SP_FileDialogDetailedView))
+                                self._set_item_style_icon(ch_item, 0, QStyle.SP_FileDialogDetailedView)
                                 ch_item.setFlags(ch_item.flags() & ~Qt.ItemIsEditable)
                                 ch_item.setData(0, Qt.UserRole, -2) # Special block index for chapters
                                 ch_item.setData(0, Qt.UserRole + 11, ch_id) # Store chapter ID

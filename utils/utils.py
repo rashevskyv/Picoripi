@@ -71,7 +71,55 @@ def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequenc
     return root, flat_widths
 
 
-def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, strict: bool = False) -> Optional[int]:
+def get_active_tag_mappings() -> dict:
+    try:
+        from PyQt5.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            for widget in app.topLevelWidgets():
+                if widget.objectName() == "MainWindow" or widget.__class__.__name__ == "MainWindow":
+                    return getattr(widget, "default_tag_mappings", {})
+    except Exception:
+        pass
+    return {}
+
+def get_tag_width(tag: str, default_tag_mappings: Optional[dict], font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, strict: bool = False) -> int:
+    if tag.startswith('{') and tag.endswith('}'):
+        inner = tag[1:-1]
+        if inner.lower().startswith('f:'):
+            forced_text = inner[2:]
+            return _calculate_string_width_impl(forced_text, font_map, default_char_width, icon_sequences, strict, default_tag_mappings) or 0
+
+    if default_tag_mappings is None:
+        default_tag_mappings = get_active_tag_mappings()
+
+    alias = None
+    if default_tag_mappings:
+        if tag in default_tag_mappings:
+            alias = tag
+        else:
+            for a, orig in default_tag_mappings.items():
+                if orig == tag:
+                    alias = a
+                    break
+
+    if alias:
+        if font_map and alias in font_map:
+            alias_info = font_map.get(alias)
+            if alias_info is not None:
+                if isinstance(alias_info, dict):
+                    return alias_info.get("width", 0)
+                elif isinstance(alias_info, (int, float)):
+                    return int(alias_info)
+        if alias.startswith('{') and alias.endswith('}'):
+            alias_inner = alias[1:-1]
+            if alias_inner.lower().startswith('f:'):
+                forced_text = alias_inner[2:]
+                return _calculate_string_width_impl(forced_text, font_map, default_char_width, icon_sequences, strict, default_tag_mappings) or 0
+
+    return 0
+
+def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, strict: bool = False, default_tag_mappings: Optional[dict] = None) -> Optional[int]:
     if not text:
         return 0
         
@@ -114,13 +162,21 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
         if ch == '[':
             end_index = text.find(']', i)
             if end_index != -1:
+                tag = text[i:end_index + 1]
+                total_width += get_tag_width(tag, default_tag_mappings, font_map, default_char_width, icon_sequences, strict)
                 i = end_index + 1
                 continue
+            else:
+                break
         if ch == '{':
             end_index = text.find('}', i)
             if end_index != -1:
+                tag = text[i:end_index + 1]
+                total_width += get_tag_width(tag, default_tag_mappings, font_map, default_char_width, icon_sequences, strict)
                 i = end_index + 1
                 continue
+            else:
+                break
 
         if strict:
             width = char_widths.get(ch)
@@ -134,17 +190,12 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
     return total_width
 
 
-def calculate_string_width(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None) -> int:
-    return _calculate_string_width_impl(text, font_map, default_char_width, icon_sequences, strict=False)
+def calculate_string_width(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, default_tag_mappings: Optional[dict] = None) -> int:
+    return _calculate_string_width_impl(text, font_map, default_char_width, icon_sequences, strict=False, default_tag_mappings=default_tag_mappings)
 
 
-def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Optional[List[str]] = None) -> Optional[int]:
-    """
-    Calculates string width strictly based on the font_map.
-    If ANY character is missing from the font_map, it returns None.
-    Does not use a default fallback width.
-    """
-    return _calculate_string_width_impl(text, font_map, 8, icon_sequences, strict=True)
+def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Optional[List[str]] = None, default_tag_mappings: Optional[dict] = None) -> Optional[int]:
+    return _calculate_string_width_impl(text, font_map, 8, icon_sequences, strict=True, default_tag_mappings=default_tag_mappings)
 
 def is_fuzzy_match(word1: str, word2: str, threshold: float = 0.8) -> bool:
     """
