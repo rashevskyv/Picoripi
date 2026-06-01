@@ -124,7 +124,14 @@ class JsonTagHighlighter(QSyntaxHighlighter):
     def set_glossary_manager(self, manager: Optional[GlossaryManager]) -> None:
         self._glossary_manager = manager
         mw_enabled = getattr(self.mw, 'glossary_enabled', True) if self.mw else True
-        self._glossary_enabled = bool(mw_enabled and manager and manager.get_entries())
+        
+        # Disable glossary highlighting for preview_text_edit to prevent severe UI freezes on large blocks
+        is_preview = False
+        if self._editor_widget_ref and hasattr(self._editor_widget_ref, 'objectName'):
+            if self._editor_widget_ref.objectName() == 'preview_text_edit':
+                is_preview = True
+                
+        self._glossary_enabled = bool(mw_enabled and manager and manager.get_entries() and not is_preview)
         self._glossary_matches_cache.clear()
         self._glossary_cache_revision = None
         self.rehighlight()
@@ -304,7 +311,14 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
         self.newline_char = newline_symbol
         mw_enabled = getattr(self.mw, 'glossary_enabled', True) if self.mw else True
-        self._glossary_enabled = bool(mw_enabled and self._glossary_manager and self._glossary_manager.get_entries())
+        
+        # Disable glossary highlighting for preview_text_edit to prevent severe UI freezes on large blocks
+        is_preview = False
+        if self._editor_widget_ref and hasattr(self._editor_widget_ref, 'objectName'):
+            if self._editor_widget_ref.objectName() == 'preview_text_edit':
+                is_preview = True
+                
+        self._glossary_enabled = bool(mw_enabled and self._glossary_manager and self._glossary_manager.get_entries() and not is_preview)
         self._glossary_matches_cache.clear()
         self._glossary_cache_revision = None
         if self.document():

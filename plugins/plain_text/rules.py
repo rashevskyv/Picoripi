@@ -81,12 +81,21 @@ class GameRules(BaseGameRules):
         return re.compile(r'\[([^\]]+)\]')
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
-        newline_symbol = getattr(self.mw, "newline_display_symbol", "↵") if self.mw else "↵"
+        newline_symbol = "↵"
+        if self.mw and hasattr(self.mw, "newline_display_symbol"):
+            val = self.mw.newline_display_symbol
+            if isinstance(val, str):
+                newline_symbol = val
         processed = str(data_string)
         processed = processed.replace('\\n', newline_symbol)
         processed = processed.replace('\\r', newline_symbol)
-        return convert_spaces_to_dots_for_display(processed,
-                                                  getattr(self.mw, 'show_multiple_spaces_as_dots', True) if self.mw else True)
+        
+        show_dots = True
+        if self.mw and hasattr(self.mw, "show_multiple_spaces_as_dots"):
+            val = self.mw.show_multiple_spaces_as_dots
+            if isinstance(val, bool):
+                show_dots = val
+        return convert_spaces_to_dots_for_display(processed, show_dots)
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
         processed = str(data_string_subline)

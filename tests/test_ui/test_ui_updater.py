@@ -707,3 +707,31 @@ def test_UIUpdater_populate_strings_preserves_scrollbar(mock_hl, mock_ut, update
     mock_scroll.setValue.assert_called_with(42)
 
 
+def test_PreviewUpdater_pre_cache_all_blocks(updater, mock_mw):
+    from unittest.mock import patch
+    mock_mw.data_store.data = [["s1", "s2"], ["s3"]]
+    mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
+    
+    updater.preview_updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{b}_{r}", False)
+    
+    with patch('PyQt5.QtWidgets.QProgressDialog') as mock_dialog:
+        mock_dialog_instance = MagicMock()
+        mock_dialog.return_value = mock_dialog_instance
+        mock_dialog_instance.wasCanceled.return_value = False
+        
+        updater.preview_updater.pre_cache_all_blocks()
+        
+        cache = updater.preview_updater._preview_cache
+        assert (0, None) in cache
+        assert (1, None) in cache
+        
+        assert cache[(0, None)]['lines'] == ["p_t_0_0", "p_t_0_1"]
+        assert cache[(1, None)]['lines'] == ["p_t_1_0"]
+        assert cache[(0, None)]['next_index'] == 2
+        assert cache[(1, None)]['next_index'] == 1
+        
+        mock_dialog_instance.close.assert_called()
+
+
+

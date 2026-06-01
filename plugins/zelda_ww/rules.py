@@ -113,9 +113,19 @@ class GameRules(BaseGameRules):
         return super().get_short_problem_name(problem_id)
         
     def get_text_representation_for_preview(self, data_string: str) -> str:
-        newline_symbol = getattr(self.mw, "newline_display_symbol", "↵") if self.mw else "↵"
+        newline_symbol = "↵"
+        if self.mw and hasattr(self.mw, "newline_display_symbol"):
+            val = self.mw.newline_display_symbol
+            if isinstance(val, str):
+                newline_symbol = val
         processed_string = str(data_string).replace('\n', newline_symbol)
-        return convert_spaces_to_dots_for_display(processed_string, self.mw.show_multiple_spaces_as_dots)
+        
+        show_dots = False
+        if self.mw and hasattr(self.mw, "show_multiple_spaces_as_dots"):
+            val = self.mw.show_multiple_spaces_as_dots
+            if isinstance(val, bool):
+                show_dots = val
+        return convert_spaces_to_dots_for_display(processed_string, show_dots)
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
         return super().get_text_representation_for_editor(str(data_string_subline))

@@ -61,10 +61,9 @@ def test_StringSettingsHandler_apply_width_to_range(handler):
 def test_StringSettingsHandler_apply_width_to_lines(handler):
     handler.mw.string_metadata = {}
     with patch.object(handler, '_apply_and_rescan'):
-        # Pass dummy list, it should only apply to current_string_idx (0)
         handler.apply_width_to_lines([0, 3], 180) 
         assert handler.mw.string_metadata[(0, 0)]["width"] == 180
-        assert (0, 3) not in handler.mw.string_metadata
+        assert handler.mw.string_metadata[(0, 3)]["width"] == 180
 
 def test_StringSettingsHandler_apply_and_rescan(handler):
     handler.mw.issue_scan_handler = MagicMock()

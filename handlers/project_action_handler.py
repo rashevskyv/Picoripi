@@ -827,6 +827,10 @@ class ProjectActionHandler(BaseHandler):
         if hasattr(self.mw, 'app_action_handler'):
             self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
 
+        # Pre-cache preview data for all blocks
+        if hasattr(self.ui_updater, 'preview_updater'):
+            self.ui_updater.preview_updater.schedule_pre_cache()
+
         # Update UI
         self.ui_updater.populate_blocks()
         self.ui_updater.update_statusbar_paths()
