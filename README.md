@@ -1,6 +1,6 @@
-# Picoripi v0.2.141
+# Picoripi v0.2.142
  
-The "Picoripi" (v0.2.141) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.142) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -45,7 +45,7 @@ The "Picoripi" (v0.2.141) is a desktop application built with **Python** and **P
 - **Dialogue-Aware Surrounding Context**: The prompt composer automatically gathers up to 3 preceding and 3 succeeding dialogue lines in their best translated (or original) state, transmitting a rich surrounding dialogue context to the LLM to preserve tone, continuity, and formal/informal address tags.
 - Automatic batch translation of glossary terms or specific phrases while preserving game context.
 - **Translation Variations**: Generate creative alternative translations for overly long sentences, now fully enriched with dynamic glossary and surrounding context.
-- **Force-Alias Tag Preservation (`F:` prefix)**: Tags whose aliases begin with `F:` (e.g., `{F:Link}` aliasing `{escape:0:0000}`) are automatically converted to plain-text words before being sent to the AI, then restored back to tag form after translation. This ensures character names (like Link or Epona) are treated as real words in the AI prompt instead of being stripped as opaque control codes.
+- **Force-Alias Tag to Plain-Text Conversion (`F:` prefix)**: Tags whose aliases begin with `F:` (e.g., `{F:Link}` mapping to `{escape:0:0000}`) are automatically converted to plain-text words before being sent to the AI, allowing character names (like 'Link' or 'Epona') to be treated as real words in the AI prompt for correct grammatical inflections in translations. The translated word remains as plain text in the final translation (not restored back to the original control code), permanently baking the name into the game script to ensure perfect grammar and tone in Slavic languages.
 - Configurable AI prompts for fine-tuning translation quality.
 
 ### Glossary Management

@@ -895,10 +895,18 @@ class TranslationHandler(BaseHandler):
             self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
             
             temp_id_map = context.get('temp_id_map')
+            p_map = context.get('placeholder_map', {})
             modified_blocks = set()
 
             for item in translated_strings:
                 temp_id, translated_text = item["id"], item["translation"]
+                
+                # Restore placeholders
+                if p_map:
+                    translated_text = self.prompt_composer.restore_placeholders(translated_text, p_map, key=temp_id)
+                else:
+                    translated_text = self.prompt_composer.restore_placeholders(translated_text, None, key=None)
+
                 if temp_id_map and temp_id in temp_id_map:
                     real_block_idx, real_string_idx = temp_id_map[temp_id]
                 else:
@@ -934,6 +942,10 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
         
+        # Restore placeholders
+        p_map = context.get('placeholder_map', {})
+        cleaned_translation = self.prompt_composer.restore_placeholders(cleaned_translation, p_map, key=0)
+        
         block_idx = self.mw.data_store.current_block_idx
         string_idx = self.mw.data_store.current_string_idx
         final_text = self._format_and_wrap_translation(cleaned_translation, block_idx, string_idx)
@@ -968,7 +980,14 @@ class TranslationHandler(BaseHandler):
             
         trimmed = [self.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(v) for v in variants_raw]
         
-        chosen = self.ui_handler.show_variations_dialog(trimmed)
+        # Restore placeholders
+        p_map = context.get('placeholder_map', {})
+        restored_variants = []
+        for v in trimmed:
+            restored_v = self.prompt_composer.restore_placeholders(v, p_map, key=0)
+            restored_variants.append(restored_v)
+            
+        chosen = self.ui_handler.show_variations_dialog(restored_variants)
         if chosen:
             block_idx = self.mw.data_store.current_block_idx
             string_idx = self.mw.data_store.current_string_idx
@@ -1006,10 +1025,16 @@ class TranslationHandler(BaseHandler):
             self.ui_handler.finish_ai_operation()
             return
         
+        # Apply force-aliases
+        from utils.force_alias import prepare_text_for_ai
+        tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        original_text_for_ai, force_maps = prepare_text_for_ai(original_text, tag_mappings)
+        p_map = {0: force_maps} if force_maps else {}
+
         session_state = self._session_manager.get_state()
         composer_args = {
             'system_prompt': system_prompt,
-            'source_text': original_text,
+            'source_text': original_text_for_ai,
             'block_idx': self.mw.data_store.current_block_idx, 'string_idx': self.mw.data_store.current_string_idx,
             'expected_lines': len(original_text.split('\n')), 'current_translation': str(current_translation),
             'request_type': 'variation_list',
@@ -1039,6 +1064,7 @@ class TranslationHandler(BaseHandler):
             'provider_settings_override': {'temperature': 0.7},
             'attempt': 1,
             'max_retries': 1,
+            'placeholder_map': p_map,
         }
         if not self._attach_session_to_task(
             task_details,
@@ -1057,12 +1083,16 @@ class TranslationHandler(BaseHandler):
 
         system_prompt, _ = self.glossary_handler.load_prompts()
         if not system_prompt:
-            return
+            return        # Apply force-aliases
+        from utils.force_alias import prepare_text_for_ai
+        tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        source_text_for_ai, force_maps = prepare_text_for_ai(source_text, tag_mappings)
+        p_map = {0: force_maps} if force_maps else {}
 
         session_state = self._session_manager.get_state()
         composer_args = {
             'system_prompt': system_prompt,
-            'source_text': source_text,
+            'source_text': source_text_for_ai,
             'block_idx': block_idx, 'string_idx': string_idx, 'expected_lines': expected_lines,
             'current_translation': None, 'request_type': 'translation',
             'session_state': session_state,
@@ -1077,7 +1107,7 @@ class TranslationHandler(BaseHandler):
         if edited is None:
             return
         edited_system, edited_user = edited
-
+ 
         precomposed = [
             {"role": "system", "content": edited_system},
             {"role": "user", "content": edited_user},
@@ -1087,6 +1117,7 @@ class TranslationHandler(BaseHandler):
             'composer_args': composer_args,
             'attempt': 1,
             'max_retries': 1,
+            'placeholder_map': p_map,
         }
         if not self._attach_session_to_task(
             task_details,

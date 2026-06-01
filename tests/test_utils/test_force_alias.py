@@ -192,20 +192,19 @@ class TestPrepareTextForAI:
 
 class TestRestoreForceAliasesInTranslation:
     def test_basic_restoration_with_glossary(self):
-        """AI translated 'Link' -> 'Лінку'. We restore it to the original tag."""
+        """Force aliases are not restored to tags; they remain as plain translated text."""
         translated = "У мене є до тебе прохання, Лінку."
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {"link": "Лінк; Лінку; Лінкові; Лінком"}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert result == "У мене є до тебе прохання, {escape:0:0000}."
+        assert result == "У мене є до тебе прохання, Лінку."
 
     def test_restoration_original_english_word(self):
-        """AI kept the English word. We replace it with the tag."""
         translated = "Hello Link, welcome back."
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert result == "Hello {escape:0:0000}, welcome back."
+        assert result == "Hello Link, welcome back."
 
     def test_restoration_multiple_aliases(self):
         translated = "Лінк скачет на Епоні."
@@ -218,25 +217,21 @@ class TestRestoreForceAliasesInTranslation:
             "epona": "Епона; Епоні; Епоною",
         }
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert "{escape:0:0000}" in result
-        assert "{escape:0:0022}" in result
-        assert "Лінк" not in result
-        assert "Епоні" not in result
+        assert result == "Лінк скачет на Епоні."
 
     def test_restoration_longest_form_preferred(self):
-        """Should match 'Лінкові' before 'Лінк' because it's longer."""
         translated = "Дай це Лінкові."
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {"link": "Лінк; Лінкові"}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert result == "Дай це {escape:0:0000}."
+        assert result == "Дай це Лінкові."
 
     def test_restoration_case_insensitive(self):
         translated = "Привіт, лінк!"
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {"link": "Лінк"}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert result == "Привіт, {escape:0:0000}!"
+        assert result == "Привіт, лінк!"
 
     def test_no_force_mappings(self):
         translated = "Hello world"
@@ -249,25 +244,20 @@ class TestRestoreForceAliasesInTranslation:
         assert result == ""
 
     def test_word_boundary_respected(self):
-        """'Лінк' should not match inside 'Лінкольн'."""
         translated = "Лінкольн — не Лінк."
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {"link": "Лінк"}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert "Лінкольн" in result
-        assert result == "Лінкольн — не {escape:0:0000}."
+        assert result == "Лінкольн — не Лінк."
 
     def test_restoration_with_semicolon_separated_translations(self):
-        """All forms from semicolon-separated glossary entries should be checked."""
         translated = "Я бачив Лінком у селі."
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {"link": "Лінк; Лінку; Лінкові; Лінком"}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert "{escape:0:0000}" in result
-        assert "Лінком" not in result
+        assert result == "Я бачив Лінком у селі."
 
     def test_restoration_same_word_appears_twice(self):
-        """If the same Force alias appears twice, both should be restored."""
         translated = "Лінк розмовляє з Лінком."
         force_maps = [
             ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}"),
@@ -275,36 +265,29 @@ class TestRestoreForceAliasesInTranslation:
         ]
         glossary = {"link": "Лінк; Лінком"}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert result.count("{escape:0:0000}") == 2
+        assert result == "Лінк розмовляє з Лінком."
 
     def test_fallback_when_no_glossary_match(self):
-        """If glossary has no entry, fall back to the original English word."""
         translated = "Привіт, Link!"
         force_maps = [ForceAliasMapping(word="Link", original_tag="{escape:0:0000}", alias="{F:Link}")]
         glossary = {}
         result = restore_force_aliases_in_translation(translated, force_maps, glossary)
-        assert result == "Привіт, {escape:0:0000}!"
+        assert result == "Привіт, Link!"
 
     def test_real_world_scenario_full_cycle(self):
-        """End-to-end: original text -> prepare -> (simulate AI) -> restore."""
-        # Step 1: Original game text
         original = "I have a favor to ask of you, {escape:0:0000}."
         tag_mappings = {"{F:Link}": "{escape:0:0000}"}
 
-        # Step 2: Prepare for AI
         prepared, force_maps = prepare_text_for_ai(original, tag_mappings)
         assert prepared == "I have a favor to ask of you, Link."
 
-        # Step 3: Simulate AI translation
         ai_translation = "У мене є до тебе прохання, Лінку."
 
-        # Step 4: Restore tags
         glossary = {"link": "Лінк; Лінку; Лінкові; Лінком"}
         restored = restore_force_aliases_in_translation(ai_translation, force_maps, glossary)
-        assert restored == "У мене є до тебе прохання, {escape:0:0000}."
+        assert restored == "У мене є до тебе прохання, Лінку."
 
     def test_real_world_scenario_horse_name(self):
-        """End-to-end with horse name."""
         original = "Your horse, {escape:0:0022}, is waiting for you."
         tag_mappings = {"{F:Epona}": "{escape:0:0022}"}
 
@@ -315,10 +298,9 @@ class TestRestoreForceAliasesInTranslation:
 
         glossary = {"epona": "Епона; Епони; Епоні; Епоною"}
         restored = restore_force_aliases_in_translation(ai_translation, force_maps, glossary)
-        assert restored == "Ваш кінь, {escape:0:0022}, чекає на вас."
+        assert restored == "Ваш кінь, Епона, чекає на вас."
 
     def test_real_world_scenario_both_player_and_horse(self):
-        """Two Force aliases in the same sentence."""
         original = "{escape:0:0000} mounted {escape:0:0022} and rode away."
         tag_mappings = {
             "{F:Link}": "{escape:0:0000}",
@@ -335,10 +317,7 @@ class TestRestoreForceAliasesInTranslation:
             "epona": "Епона; Епони; Епоні; Епоною; Епону",
         }
         restored = restore_force_aliases_in_translation(ai_translation, force_maps, glossary)
-        assert "{escape:0:0000}" in restored
-        assert "{escape:0:0022}" in restored
-        assert "Лінк" not in restored
-        assert "Епону" not in restored
+        assert restored == "Лінк сів на Епону і поїхав."
 
 
 # ── Integration with GlossaryManager.get_relevant_terms ─────────────
