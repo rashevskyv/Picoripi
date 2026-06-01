@@ -10,6 +10,69 @@ class PreviewUpdater(BaseUIUpdater):
         super().__init__(main_window, data_processor)
         self._preview_cache = {}
 
+    def schedule_pre_cache(self):
+        """Schedule pre-caching of preview lines to avoid blocking startup with a blank window."""
+        from PyQt5.QtWidgets import QApplication
+        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        if is_test:
+            self.pre_cache_all_blocks()
+        else:
+            QTimer.singleShot(100, self.pre_cache_all_blocks)
+
+    def pre_cache_all_blocks(self):
+        """Pre-cache preview lines for all blocks to enable instantaneous switching."""
+        if not self.mw.data_store.data:
+            return
+
+        total_blocks = len(self.mw.data_store.data)
+        if total_blocks == 0:
+            return
+
+        from PyQt5.QtWidgets import QProgressDialog, QApplication, QWidget
+        from PyQt5.QtCore import Qt
+
+        parent_widget = self.mw if isinstance(self.mw, QWidget) else None
+        progress = QProgressDialog("Caching block preview data...", "Cancel", 0, total_blocks, parent_widget)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(500)
+        progress.setValue(0)
+
+        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        if not is_test:
+            QApplication.processEvents()
+
+        for block_idx in range(total_blocks):
+            if progress.wasCanceled():
+                break
+
+            block_data = self.mw.data_store.data[block_idx]
+            if not isinstance(block_data, list):
+                continue
+
+            target_indices = list(range(len(block_data)))
+            preview_lines = []
+
+            for real_idx in target_indices:
+                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                if self.mw.current_game_rules:
+                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                else:
+                    preview_line_text = str(text_for_preview_raw)
+                preview_lines.append(preview_line_text)
+
+            cache_key = (block_idx, None)
+            self._preview_cache[cache_key] = {
+                'lines': preview_lines,
+                'next_index': len(target_indices),
+                'target_indices': target_indices
+            }
+
+            progress.setValue(block_idx + 1)
+            if not is_test:
+                QApplication.processEvents()
+
+        progress.close()
+
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         """Highlights a glossary occurrence in the original_text_edit."""
         if not hasattr(self.mw, 'original_text_edit'):

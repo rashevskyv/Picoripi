@@ -93,8 +93,13 @@ def test_remove_tag_alias_replaces_alias_with_tag_in_edited_data(mock_question, 
     mock_mw.ui_updater.update_text_views.assert_called_once()
 
 
-@patch('ui.main_window.main_window_actions.QInputDialog.getText', return_value=("NewAlias", True))
-def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_input, mock_mw):
+@patch('ui.main_window.main_window_actions.TagAliasDialog')
+def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, mock_mw):
+    mock_dialog = MagicMock()
+    mock_dialog.exec_.return_value = 1  # QDialog.Accepted
+    mock_dialog.get_data.return_value = ("{NewAlias}", None)
+    mock_dialog_class.return_value = mock_dialog
+
     # Setup default mappings and actual window actions
     mock_mw.default_tag_mappings = {"{OldAlias}": "{OldTag}"}
     mock_mw.helper = MagicMock()

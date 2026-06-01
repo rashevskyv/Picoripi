@@ -35,6 +35,7 @@ def th(mock_deps):
         # We should NOT mock ai_lifecycle_manager again so we can verify its methods
         handler.glossary_handler = MagicMock()
         handler.prompt_composer = MagicMock()
+        handler.prompt_composer.restore_placeholders.side_effect = lambda text, *args, **kwargs: text
         handler.ui_handler = MagicMock()
         handler._session_manager = MagicMock()
         

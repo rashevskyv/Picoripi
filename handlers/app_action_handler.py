@@ -127,6 +127,8 @@ class AppActionHandler(BaseHandler):
             self.mw.data_store.unsaved_changes = False
             
             self._perform_initial_silent_scan_all_issues()
+            if hasattr(self.ui_updater, 'preview_updater'):
+                self.ui_updater.preview_updater.schedule_pre_cache()
             self.ui_updater.update_title()
             self.ui_updater.update_statusbar_paths()
             self.ui_updater.populate_blocks()
@@ -285,6 +287,8 @@ class AppActionHandler(BaseHandler):
                 self.mw.edited_text_edit.clear()
 
             self._perform_initial_silent_scan_all_issues()
+            if hasattr(self.ui_updater, 'preview_updater'):
+                self.ui_updater.preview_updater.schedule_pre_cache()
             
             self.ui_updater.update_title()
             self.ui_updater.update_statusbar_paths()

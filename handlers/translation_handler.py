@@ -603,6 +603,9 @@ class TranslationHandler(BaseHandler):
         """
         if not text:
             return ""
+
+        if not isinstance(text, str):
+            text = str(text)
             
         # Clean incoming translation: replace all newlines with spaces
         cleaned_text = text.replace('\n', ' ')

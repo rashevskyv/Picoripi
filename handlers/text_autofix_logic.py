@@ -228,6 +228,7 @@ class TextAutofixLogic:
                 current_temp_width = 0
                 last_fit_index = -1
                 needs_space_before_next_part = False
+                width_to_check = 0
 
                 for i, part in enumerate(line_parts):
                     part_no_tags = remove_all_tags(part)

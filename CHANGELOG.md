@@ -1,5 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.143] - 2026-06-01
+
+### Added
+- **Focus in Alias Input Field**:
+  - The alias input text field inside `TagAliasDialog` now automatically receives keyboard focus upon window initialization, allowing users to type and submit (via Enter) immediately without manual clicks.
+
+### Fixed
+- **UI Performance and Instability Fixes (Large Blocks & Startup Lag)**:
+  - Fixed a 4-second UI freeze when switching to large blocks (5000+ lines). Completely disabled Aho-Corasick glossary highlighting for `preview_text_edit` in `JsonTagHighlighter` (`utils/syntax_highlighter.py`), as glossary matching is unnecessary for readonly preview fields.
+  - Eliminated the 3-second startup lag (white window) on application and project load. Refactored block pre-caching (`pre_cache_all_blocks`) to run asynchronously via a non-blocking `QTimer.singleShot(100)` handler (`schedule_pre_cache` in `ui/updaters/preview_updater.py`), allowing the main window interface to render instantly.
+  - Optimized the `QProgressDialog` behavior by changing its minimum display duration to 500 ms, preventing the dialog from flickering on small files.
+- **Test Suite Stabilization & Bug Fixes**:
+  - Fixed `UnboundLocalError: cannot access local variable 'width_to_check'` in `_fix_width_exceeded` within `handlers/text_autofix_logic.py` by initializing the variable `width_to_check = 0` before the loop.
+  - Fixed `TypeError` in `_format_and_wrap_translation` within `handlers/translation_handler.py` by safely checking for `str` type and casting non-string parameters. Configured `prompt_composer.restore_placeholders` mock in `test_translation_handler.py` to return the input string to prevent `MagicMock` type leakage during testing.
+  - Fixed `test_IssueScanHandler_rescan_all_tags` in `tests/test_handlers/test_issue_scan_handler.py` by adding `qapp` event loop processing (`qapp.processEvents()`) to let the async timer trigger the scan mock successfully.
+  - Corrected test assertion in `test_StringSettingsHandler_apply_width_to_lines` to reflect that `apply_width_to_lines` correctly assigns the width setting to all line indices passed in `line_indices`.
+
 ## [0.2.142] - 2026-06-01
 
 ### Added

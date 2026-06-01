@@ -13,7 +13,9 @@ from ui.settings_dialog import SettingsDialog
 class TagAliasDialog(QDialog):
     def __init__(self, parent, title: str, original_tag: str, current_alias: str = "", current_width: int = None):
         self._is_initializing = True
-        super().__init__(parent)
+        from PyQt5.QtWidgets import QWidget
+        parent_widget = parent if isinstance(parent, QWidget) else None
+        super().__init__(parent_widget)
         self.setWindowTitle(title)
         self.setModal(True)
         self.resize(380, 245)
@@ -87,6 +89,7 @@ class TagAliasDialog(QDialog):
         buttons_layout.addWidget(self.cancel_button)
         layout.addLayout(buttons_layout)
         self._is_initializing = False
+        self.alias_edit.setFocus()
 
     def _on_force_changed(self, state):
         is_checked = self.force_checkbox.isChecked()

@@ -180,7 +180,11 @@ class BaseGameRules:
         return result
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
-        newline_symbol = getattr(self.mw, "newline_display_symbol", "↵") if self.mw else "↵"
+        newline_symbol = "↵"
+        if self.mw and hasattr(self.mw, "newline_display_symbol"):
+            val = self.mw.newline_display_symbol
+            if isinstance(val, str):
+                newline_symbol = val
         return data_string.replace('\n', newline_symbol)
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
