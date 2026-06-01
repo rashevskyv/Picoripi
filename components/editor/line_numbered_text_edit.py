@@ -240,94 +240,134 @@ class LineNumberedTextEdit(QPlainTextEdit):
         from PyQt5.QtCore import QTimer
         QTimer.singleShot(0, self.recalculate_guidelines)
 
+    def calculate_block_guidelines(self, block, font_map, sequences, limit_px) -> None:
+        from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
+        from PyQt5.QtGui import QTextCursor
+
+        if not hasattr(self, 'guideline_positions'):
+            self.guideline_positions = {}
+
+        layout = block.layout()
+        if not layout:
+            return
+
+        block_text_raw = convert_dots_to_spaces_from_editor(block.text())
+        block_num = block.blockNumber()
+
+        # Initialize all visual lines of this block to False (default: no guideline)
+        for i in range(layout.lineCount()):
+            self.guideline_positions[(block_num, i)] = False
+
+        block_width_px = calculate_string_width(block_text_raw.rstrip(), font_map, icon_sequences=sequences)
+        is_exceeded = (block_width_px > limit_px)
+
+        cursor = QTextCursor(self.document())
+
+        if is_exceeded:
+            # Find the exact character index k (1-based) where the threshold is crossed
+            found = False
+            for k in range(1, len(block_text_raw) + 1):
+                prefix = block_text_raw[:k]
+                prefix_w = calculate_string_width(prefix, font_map, icon_sequences=sequences)
+                if prefix_w >= limit_px:
+                    prev_prefix = block_text_raw[:k-1]
+                    prev_w = calculate_string_width(prev_prefix, font_map, icon_sequences=sequences)
+
+                    # Find which visual line contains character index k - 1
+                    found_line = -1
+                    for i in range(layout.lineCount()):
+                        line = layout.lineAt(i)
+                        if not line.isValid():
+                            continue
+                        line_start = line.textStart()
+                        line_len = line.textLength()
+                        is_last = (i == layout.lineCount() - 1)
+                        if line_start <= k - 1 < line_start + line_len or (is_last and k - 1 == line_start + line_len):
+                            found_line = i
+                            break
+
+                    if found_line != -1:
+                        line = layout.lineAt(found_line)
+
+                        cursor.setPosition(block.position() + k - 1)
+                        x_prev = self.cursorRect(cursor).left()
+
+                        cursor.setPosition(block.position() + k)
+                        x_curr = self.cursorRect(cursor).left()
+
+                        if prefix_w > prev_w:
+                            fraction = (limit_px - prev_w) / (prefix_w - prev_w)
+                        else:
+                            fraction = 0
+                        limit_x = x_prev + fraction * (x_curr - x_prev)
+                        self.guideline_positions[(block_num, found_line)] = limit_x
+                        found = True
+                        break
+            # Fallback if somehow not found (should not happen if block_width_px > limit_px)
+            if not found and layout.lineCount() > 0:
+                last_idx = layout.lineCount() - 1
+                line = layout.lineAt(last_idx)
+                cursor.setPosition(block.position() + line.textStart() + line.textLength())
+                self.guideline_positions[(block_num, last_idx)] = self.cursorRect(cursor).left()
+        else:
+            # Not exceeded: green dashed line on the last visual line
+            if layout.lineCount() > 0:
+                last_idx = layout.lineCount() - 1
+                line = layout.lineAt(last_idx)
+                if line.isValid():
+                    line_start = line.textStart()
+                    line_len = line.textLength()
+                    line_text = block_text_raw[line_start:line_start + line_len]
+                    line_text_stripped = line_text.rstrip()
+
+                    cumulative_width_before_last_line = calculate_string_width(
+                        block_text_raw[:line_start], font_map, icon_sequences=sequences
+                    )
+                    last_line_game_width = calculate_string_width(
+                        line_text_stripped, font_map, icon_sequences=sequences
+                    )
+
+                    cursor.setPosition(block.position() + line_start)
+                    x_start = self.cursorRect(cursor).left()
+
+                    remaining_px = limit_px - cumulative_width_before_last_line
+
+                    if last_line_game_width > 0:
+                        cursor.setPosition(block.position() + line_start + len(line_text_stripped))
+                        x_end = self.cursorRect(cursor).left()
+                        viewport_text_w = x_end - x_start
+
+                        limit_x = x_start + viewport_text_w * (remaining_px / last_line_game_width)
+                    else:
+                        fm = self.fontMetrics()
+                        char_w = fm.horizontalAdvance('A')
+                        limit_x = x_start + remaining_px * (char_w / 7.5)
+
+                    self.guideline_positions[(block_num, last_idx)] = limit_x
+
     def recalculate_guidelines(self) -> None:
         self.guideline_positions = {}
         if not self.show_width_guideline or self.line_width_warning_threshold_pixels <= 0:
             return
 
-        from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
-        from PyQt5.QtGui import QTextCursor
-        
         main_window = self.window()
         font_map = getattr(self, 'font_map', {})
         if not font_map and hasattr(main_window, 'font_map'):
             font_map = main_window.font_map
-            
+
         if hasattr(main_window, 'data_store') and hasattr(main_window, 'helper'):
             block_idx = main_window.data_store.current_block_idx
             string_idx = main_window.data_store.current_string_idx
             if block_idx != -1 and string_idx != -1:
                 font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)
-                
+
         sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
         limit_px = self.line_width_warning_threshold_pixels
-        
+
         block = self.firstVisibleBlock()
-        cursor = QTextCursor(self.document())
-        
+
         while block.isValid():
-            layout = block.layout()
-            if layout:
-                block_text_raw = convert_dots_to_spaces_from_editor(block.text())
-                block_num = block.blockNumber()
-                
-                for i in range(layout.lineCount()):
-                    line = layout.lineAt(i)
-                    if not line.isValid():
-                        continue
-                        
-                    line_start = line.textStart()
-                    line_len = line.textLength()
-                    line_text = block_text_raw[line_start:line_start + line_len]
-                    line_text_stripped = line_text.rstrip()
-                    
-                    cursor.setPosition(block.position() + line_start)
-                    x_start = self.cursorRect(cursor).left()
-                    
-                    line_game_width = calculate_string_width(line_text_stripped, font_map, icon_sequences=sequences)
-                    
-                    if line_game_width > 0:
-                        if line_game_width < limit_px:
-                            # Y < X: відступаємо на X - Y ігрових пікселів вправо від останнього символу
-                            cursor.setPosition(block.position() + line_start + len(line_text_stripped))
-                            x_end = self.cursorRect(cursor).left()
-                            viewport_text_w = x_end - x_start
-                            
-                            limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
-                        else:
-                            # Y >= X: заморожуємо на X ігрових пікселях від початку
-                            found = False
-                            for k in range(1, len(line_text_stripped) + 1):
-                                prefix = line_text_stripped[:k]
-                                prefix_w = calculate_string_width(prefix, font_map, icon_sequences=sequences)
-                                if prefix_w >= limit_px:
-                                    prev_prefix = line_text_stripped[:k-1]
-                                    prev_w = calculate_string_width(prev_prefix, font_map, icon_sequences=sequences)
-                                    
-                                    cursor.setPosition(block.position() + line_start + k - 1)
-                                    x_prev = self.cursorRect(cursor).left()
-                                    
-                                    cursor.setPosition(block.position() + line_start + k)
-                                    x_curr = self.cursorRect(cursor).left()
-                                    
-                                    if prefix_w > prev_w:
-                                        fraction = (limit_px - prev_w) / (prefix_w - prev_w)
-                                    else:
-                                        fraction = 0
-                                    limit_x = x_prev + fraction * (x_curr - x_prev)
-                                    found = True
-                                    break
-                            if not found:
-                                cursor.setPosition(block.position() + line_start + len(line_text_stripped))
-                                x_end = self.cursorRect(cursor).left()
-                                viewport_text_w = x_end - x_start
-                                limit_x = x_start + viewport_text_w * (limit_px / line_game_width)
-                    else:
-                        fm = self.fontMetrics()
-                        char_w = fm.horizontalAdvance('A')
-                        limit_x = x_start + limit_px * (char_w / 7.5)
-                        
-                    self.guideline_positions[(block_num, i)] = limit_x
+            self.calculate_block_guidelines(block, font_map, sequences, limit_px)
             block = block.next()
         self.viewport().update()
 

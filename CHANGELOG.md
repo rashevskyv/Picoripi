@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.145] - 2026-06-01
+
+### Fixed
+- **Accumulative Width Calculation for Wrapped Lines**:
+  - Fixed an issue where the vertical line guideline warning (width threshold tick) recalculated itself starting from zero for each visually wrapped segment of a single logical line. It now correctly computes and displays a single guideline at the cumulative end of the logical line.
+- **Guideline Color De-synchronization**:
+  - Fixed an issue where the editor guidelines failed to dynamically recolor (red on threshold violation, green/blue otherwise) when typing Cyrillic text. Resolved by ensuring consistent font map resolution (via active plugins) within both background recalculation and the paint event cycle.
+
 ## [0.2.144] - 2026-06-01
 
 ### Added
