@@ -52,6 +52,8 @@ class AsyncIssueScanner(QRunnable):
         active_word: str = "",
         warnings_enabled: bool = True,
         glossary_enabled: bool = True,
+        editor_text: str = "",
+        logical_hard_limit: Optional[int] = None,
     ):
         super().__init__()
         self.setAutoDelete(True)
@@ -69,6 +71,8 @@ class AsyncIssueScanner(QRunnable):
         self.active_word = active_word
         self.warnings_enabled = warnings_enabled
         self.glossary_enabled = glossary_enabled
+        self.editor_text = editor_text if editor_text else text
+        self.logical_hard_limit = logical_hard_limit
 
         self._cancel_event = threading.Event()
 
@@ -152,7 +156,7 @@ class AsyncIssueScanner(QRunnable):
 
         if hasattr(self.analyzer, "analyze_data_string"):
             problems = self.analyzer.analyze_data_string(
-                self.text, self.font_map, self.width_threshold
+                self.text, self.font_map, self.width_threshold, self.logical_hard_limit
             )
             return problems if isinstance(problems, list) else []
 
@@ -172,6 +176,7 @@ class AsyncIssueScanner(QRunnable):
                     editor_font_map=self.font_map,
                     editor_line_width_threshold=self.width_threshold,
                     full_data_string_text_for_logical_check=self.text,
+                    logical_hard_limit=self.logical_hard_limit,
                 )
                 problems_in_string.append(problems)
             return problems_in_string
@@ -187,7 +192,7 @@ class AsyncIssueScanner(QRunnable):
         ):
             return []
         try:
-            matches = self.glossary_manager.find_matches(self.text)
+            matches = self.glossary_manager.find_matches(self.editor_text)
         except Exception:
             return []
         out = []
@@ -216,7 +221,7 @@ class AsyncIssueScanner(QRunnable):
                     return translation_matches
                 regex = self.glossary_manager.build_translation_regex(entry.translation)
                 if regex:
-                    for match in regex.finditer(self.text):
+                    for match in regex.finditer(self.editor_text):
                         translation_matches.append(
                             {
                                 "start": match.start(),
@@ -239,7 +244,7 @@ class AsyncIssueScanner(QRunnable):
         WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
         spellcheck_matches: list = []
         try:
-            text_with_spaces = self.text.replace("·", " ")
+            text_with_spaces = self.editor_text.replace("·", " ")
             for match in WORD_PATTERN.finditer(text_with_spaces):
                 if self.is_cancelled():
                     return spellcheck_matches

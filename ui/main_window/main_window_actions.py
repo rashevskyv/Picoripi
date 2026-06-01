@@ -1426,6 +1426,12 @@ class MainWindowActions:
         if ui:
             if hasattr(ui, 'update_text_views'):
                 ui.update_text_views()
+
+        # Force a scan on the currently edited string so that highlights (glossary, spellcheck)
+        # are recalculated using the new alias lengths immediately.
+        toh = getattr(self.mw, 'text_operation_handler', None)
+        if toh and self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+            toh.text_edited()
                 
 
     def _save_font_overrides_to_disk(self):

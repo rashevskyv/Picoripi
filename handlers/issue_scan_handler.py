@@ -57,6 +57,7 @@ class IssueScanHandler(BaseHandler):
                 "app_version": APP_VERSION,
                 "project_id": self.mw.project_manager.project.id if self.mw.project_manager.project else None,
                 "settings": {
+                    "cache_format_version": 2,
                     "game_dialog_max_width_pixels": getattr(self.mw, 'game_dialog_max_width_pixels', 300),
                     "line_width_warning_threshold_pixels": getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
                     "default_font_file": getattr(self.mw, 'default_font_file', None),
@@ -113,12 +114,13 @@ class IssueScanHandler(BaseHandler):
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
             
             string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-            width_threshold_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+            width_threshold_for_string = string_meta.get("width", getattr(self.mw, 'line_width_warning_threshold_pixels', 280))
+            logical_hard_limit_for_string = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
             
             all_problems_for_string = [] # List of sets, one per subline
             
             if hasattr(analyzer, 'analyze_data_string'):
-                all_problems_for_string = analyzer.analyze_data_string(text, font_map_for_string, width_threshold_for_string)
+                all_problems_for_string = analyzer.analyze_data_string(text, font_map_for_string, width_threshold_for_string, logical_hard_limit_for_string)
             elif hasattr(analyzer, 'analyze_subline'):
                 sublines = text.split('\n')
                 for i, subline in enumerate(sublines):
@@ -127,7 +129,8 @@ class IssueScanHandler(BaseHandler):
                         text=subline, next_text=next_subline, subline_number_in_data_string=i, qtextblock_number_in_editor=i,
                         is_last_subline_in_data_string=(i == len(sublines) - 1), editor_font_map=font_map_for_string,
                         editor_line_width_threshold=width_threshold_for_string,
-                        full_data_string_text_for_logical_check=text
+                        full_data_string_text_for_logical_check=text,
+                        logical_hard_limit=logical_hard_limit_for_string
                     )
                     all_problems_for_string.append(problems)
             
@@ -182,6 +185,7 @@ class IssueScanHandler(BaseHandler):
             settings = cache.get("settings", {})
             cache_valid = (
                 cache.get("app_version") == APP_VERSION
+                and settings.get("cache_format_version") == 2
                 and settings.get("game_dialog_max_width_pixels") == getattr(self.mw, 'game_dialog_max_width_pixels', 300)
                 and settings.get("line_width_warning_threshold_pixels") == getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
                 and settings.get("default_font_file") == getattr(self.mw, 'default_font_file', None)

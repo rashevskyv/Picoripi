@@ -150,7 +150,8 @@ class GameRules(BaseGameRules):
             val = self.mw.newline_display_symbol
             if isinstance(val, str):
                 newline_symbol = val
-        processed_string = str(data_string).replace('\n', newline_symbol)
+        aliased = self.replace_tags_with_aliases(str(data_string))
+        processed_string = aliased.replace('\n', newline_symbol)
         
         show_dots = False
         if self.mw and hasattr(self.mw, "show_multiple_spaces_as_dots"):
@@ -174,11 +175,13 @@ class GameRules(BaseGameRules):
                         editor_font_map: dict,
                         editor_line_width_threshold: int,
                         full_data_string_text_for_logical_check: str,
-                        is_target_for_debug: bool = False) -> Set[str]:
+                        is_target_for_debug: bool = False,
+                        logical_hard_limit: Optional[int] = None) -> Set[str]:
         return self.problem_analyzer.analyze_subline(
             text, next_text, subline_number_in_data_string, qtextblock_number_in_editor,
             is_last_subline_in_data_string, editor_font_map, editor_line_width_threshold,
-            full_data_string_text_for_logical_check, is_target_for_debug
+            full_data_string_text_for_logical_check, is_target_for_debug,
+            logical_hard_limit=logical_hard_limit
         )
 
     def autofix_data_string(self,

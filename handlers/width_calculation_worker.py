@@ -63,7 +63,8 @@ class WidthCalculationWorker(QThread):
             
             font_map_for_string = self.font_map_helper.get_font_map_for_string(self.block_idx, data_str_idx)
             string_meta = self.mw_settings.get('string_metadata', {}).get((self.block_idx, data_str_idx), {})
-            editor_warning_threshold = string_meta.get("width", self.mw_settings.get('game_dialog_max_width_pixels', 400))
+            editor_warning_threshold = string_meta.get("width", self.mw_settings.get('line_width_warning_threshold_pixels', 280))
+            logical_hard_limit = string_meta.get("width", self.mw_settings.get('game_dialog_max_width_pixels', 300))
 
             line_report_parts = [f"Data Line {data_str_idx + 1}:"]
             
@@ -99,8 +100,8 @@ class WidthCalculationWorker(QThread):
                 
                 total_game_width = calculate_string_width(game_like_text, font_map_for_string)
                 game_status = "OK"
-                if total_game_width > self.mw_settings.get('game_dialog_max_width_pixels', 400):
-                    game_status = f"EXCEEDS GAME DIALOG LIMIT ({total_game_width - self.mw_settings.get('game_dialog_max_width_pixels', 400)}px)"
+                if total_game_width > logical_hard_limit:
+                    game_status = f"EXCEEDS GAME DIALOG LIMIT ({total_game_width - logical_hard_limit}px)"
                 line_report_parts.append(f"    Total (game dialog, rstripped): {total_game_width}px ({game_status})")
 
                 for subline_idx, sub_line_text in enumerate(logical_sublines):
@@ -126,7 +127,7 @@ class WidthCalculationWorker(QThread):
                     # Problem Analysis logic (stays the same as it depends on the specified/active font)
                     current_subline_problems: set = set()
                     if hasattr(analyzer, 'analyze_data_string'):
-                        problems_per_subline_list = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold)
+                        problems_per_subline_list = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold, logical_hard_limit)
                         current_subline_problems = problems_per_subline_list[subline_idx] if subline_idx < len(problems_per_subline_list) else set()
                     elif hasattr(analyzer, 'analyze_subline'):
                         next_subline = logical_sublines[subline_idx+1] if subline_idx + 1 < len(logical_sublines) else None
@@ -136,7 +137,8 @@ class WidthCalculationWorker(QThread):
                             is_last_subline_in_data_string=(subline_idx == len(logical_sublines) - 1), 
                             editor_font_map=font_map_for_string,
                             editor_line_width_threshold=editor_warning_threshold,
-                            full_data_string_text_for_logical_check=text_to_analyze
+                            full_data_string_text_for_logical_check=text_to_analyze,
+                            logical_hard_limit=logical_hard_limit
                         )
                     
                     statuses: List[str] = []

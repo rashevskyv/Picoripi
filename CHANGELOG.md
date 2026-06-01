@@ -1,5 +1,26 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.151] - 2026-06-01
+
+### Fixed
+- **Width Guideline and Hard Warning Split**:
+  - Re-anchored vertical line guidelines to correctly turn red upon crossing the desired `line_width_warning_threshold_pixels` (e.g. 422px), rather than the hard game dialog limit.
+  - Eliminated premature red width-limit warning markers in the line numbers column for string lengths between the warning threshold (422px) and the game maximum width limit (460px).
+  - Ensured auto-fix and background width calculations default back to the warning threshold for smart page/word wrap targets.
+  - Introduced `"cache_format_version": 2` settings validation to safely invalidate old cached issue scans containing deprecated warnings.
+
+## [0.2.150] - 2026-06-01
+
+### Added
+- **Balanced Proportional Word Wrapping**:
+  - Implemented a sophisticated proportional word wrap algorithm in `_format_and_wrap_translation` within `handlers/translation_handler.py`.
+  - The algorithm fits words up to `line_width_warning_threshold_pixels` (desired width), but allows a single word to cross the warning threshold if the total width remains below `game_dialog_max_width_pixels` (hard maximum limit), providing an excellent visual balance.
+- **Sentence Integrity Page Building**:
+  - Separates translated lines into pages according to `lines_per_page`.
+  - Ensures sentence integrity by keeping entire sentences together. If adding a sentence would exceed the page limit, it is pushed to a new page using the active game's page break indicator (e.g. `\p`, `\l`).
+- **Comprehensive Proportional Test Suites**:
+  - Introduced automated real-world and randomized wrapping test routines simulating typical GBA, DS, GameCube, and Wii screen resolution configurations and proportional font letter widths.
+
 ## [0.2.149] - 2026-06-01
 
 ### Fixed

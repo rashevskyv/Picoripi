@@ -50,12 +50,14 @@ class GenericProblemAnalyzer:
                         editor_font_map: dict,
                         editor_line_width_threshold: int,
                         full_data_string_text_for_logical_check: str,
-                        is_target_for_debug: bool = False) -> Set[str]:
+                        is_target_for_debug: bool = False,
+                        logical_hard_limit: Optional[int] = None) -> Set[str]:
         found_problems = set()
         
         # Common width check
+        limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', editor_line_width_threshold)
         pixel_width = calculate_string_width(text.rstrip(), editor_font_map)
-        if pixel_width > editor_line_width_threshold:
+        if pixel_width > limit:
             if hasattr(self.problem_ids, 'PROBLEM_WIDTH_EXCEEDED'):
                 found_problems.add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
             elif 'WIDTH' in self.problem_ids:

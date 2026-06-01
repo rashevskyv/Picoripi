@@ -112,7 +112,7 @@ class TextAutofixLogic:
 
     def _fix_short_lines(self, text: str, width_threshold: int = None) -> str:
         if width_threshold is None:
-            width_threshold = getattr(self.mw, 'game_dialog_max_width_pixels', 200)
+            width_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
             return text
@@ -200,7 +200,7 @@ class TextAutofixLogic:
 
     def _fix_width_exceeded(self, text: str, width_threshold: int = None) -> str:
         if width_threshold is None:
-            width_threshold = getattr(self.mw, 'game_dialog_max_width_pixels', 200)
+            width_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
         sub_lines = text.split('\n')
         made_change_overall = False
         
@@ -417,7 +417,7 @@ class TextAutofixLogic:
         edited_text_edit = self.mw.edited_text_edit
         
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-        width_threshold = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+        width_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
         
         while iterations < max_iterations:
             text_before_pass = modified_text

@@ -275,7 +275,7 @@ class LayoutBuilder:
             reset_action = menu.addAction("Reset to Plugin Default")
             action = menu.exec_(self.mw.width_spinbox.mapToGlobal(pos))
             if action == reset_action:
-                self.mw.width_spinbox.setValue(getattr(self.mw, 'line_width_warning_threshold_pixels', 208))
+                self.mw.width_spinbox.setValue(getattr(self.mw, 'game_dialog_max_width_pixels', 300))
 
         self.mw.width_spinbox.customContextMenuRequested.connect(show_width_context_menu)
         string_settings_layout.addWidget(self.mw.width_spinbox)

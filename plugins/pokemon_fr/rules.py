@@ -77,7 +77,8 @@ class GameRules(BaseGameRules):
             if isinstance(val, str):
                 newline_symbol = val
         
-        processed_string = str(data_string).replace('\\p', P_NEWLINE_MARKER)
+        aliased = self.replace_tags_with_aliases(str(data_string))
+        processed_string = aliased.replace('\\p', P_NEWLINE_MARKER)
         processed_string = processed_string.replace('\\l', L_NEWLINE_MARKER)
         processed_string = processed_string.replace('\\n', newline_symbol)
         
@@ -132,12 +133,14 @@ class GameRules(BaseGameRules):
                         editor_font_map: dict,
                         editor_line_width_threshold: int,
                         full_data_string_text_for_logical_check: str,
-                        is_target_for_debug: bool = False) -> Set[str]:
+                        is_target_for_debug: bool = False,
+                        logical_hard_limit: Optional[int] = None) -> Set[str]:
         
         problems_per_subline = self.problem_analyzer.analyze_data_string(
             full_data_string_text_for_logical_check,
             editor_font_map,
-            editor_line_width_threshold
+            editor_line_width_threshold,
+            logical_hard_limit
         )
         
         if qtextblock_number_in_editor < len(problems_per_subline):
