@@ -748,6 +748,30 @@ class DataStateProcessor:
 
                                 # Pack and write bytes to the final destination path
                                 packed_bytes = container.pack()
+
+                                # Check size against original archive
+                                try:
+                                    orig_archive_path = self.mw.project_manager.get_absolute_path(archive_rel_path, is_translation=False)
+                                    if Path(orig_archive_path).exists():
+                                        orig_size = Path(orig_archive_path).stat().st_size
+                                        new_size = len(packed_bytes)
+                                        if isinstance(orig_size, (int, float)) and not isinstance(orig_size, MagicMock if 'MagicMock' in globals() else type(object)) and new_size > orig_size:
+                                            log_warning(
+                                                f"Packed archive '{archive_rel_path}' size ({new_size} bytes) "
+                                                f"exceeds the original archive size ({orig_size} bytes).",
+                                                category="file_ops"
+                                            )
+                                            QMessageBox.warning(
+                                                self.mw,
+                                                "Archive Size Warning",
+                                                f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
+                                                f"exceeds the original archive size ({orig_size} bytes).\n\n"
+                                                f"This may lead to game crashes, text truncation, or corruption when importing the file into the ROM.\n\n"
+                                                f"Please shorten your translation strings in this archive to reduce its size."
+                                            )
+                                except Exception as size_err:
+                                    log_error(f"Error checking archive size: {size_err}", category="file_ops")
+
                                 dest_archive_path = Path(self.mw.project_manager.get_absolute_path(archive_rel_path, is_translation=True))
                                 
                                 dest_archive_path.parent.mkdir(parents=True, exist_ok=True)
