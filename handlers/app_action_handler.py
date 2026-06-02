@@ -296,6 +296,10 @@ class AppActionHandler(BaseHandler):
 
             if hasattr(self.mw, 'close_project_action') and self.mw.close_project_action:
                 self.mw.close_project_action.setEnabled(True)
+            for act_name in ['save_translated_action', 'restore_translated_action', 'export_translations_action', 'import_translations_action']:
+                act = getattr(self.mw, act_name, None)
+                if act:
+                    act.setEnabled(True)
 
             # Restore UI State (Session)
             if original_file_path and hasattr(self.mw, 'settings_manager'):

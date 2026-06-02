@@ -50,6 +50,22 @@ class ProjectActionHandler(BaseHandler):
             'import_bmg_json_action': {
                 'enabled_tip': "Import BMG text content from an exported JSON file into the currently selected block",
                 'disabled_tip': "Import BMG from JSON is only available when a project is open."
+            },
+            'save_translated_action': {
+                'enabled_tip': "Save current translation to local backup database",
+                'disabled_tip': "No project or file is open"
+            },
+            'restore_translated_action': {
+                'enabled_tip': "Restore last saved translation for this string",
+                'disabled_tip': "No project or file is open"
+            },
+            'export_translations_action': {
+                'enabled_tip': "Export all current project/file translations to a JSON file",
+                'disabled_tip': "No project or file is open"
+            },
+            'import_translations_action': {
+                'enabled_tip': "Import translations from an exported JSON file",
+                'disabled_tip': "No project or file is open"
             }
         }
         for action_name, tips in actions_map.items():

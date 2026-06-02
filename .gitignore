@@ -28,3 +28,11 @@ session_state.json
 tmp_benchmark.py
 *.bak
 *.migrated
+
+# Exclude temporary game rule rulesets and plugins
+/plugins/ENG/
+/plugins/UA/
+/plugins/MagicMock/
+/plugins/test_plugin/
+/image.png
+

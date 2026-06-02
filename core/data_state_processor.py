@@ -159,16 +159,27 @@ class DataStateProcessor:
 
         return unsaved_status_actually_changed
 
-    def revert_strings_to_original(self, block_idx: int, string_indices: List[int]) -> None:
+    def revert_strings_to_original(self, block_idx: int, string_indices: List[int], progress_dialog=None, progress_offset: int = 0) -> int:
         """Reverts multiple strings in a block to their original state (from the loaded file)."""
-        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data'): return
+        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data'): return 0
         
+        # Auto-save translation before reverting
+        if hasattr(self.mw, 'saved_translations_manager') and self.mw.saved_translations_manager:
+            to_save = []
+            for s_idx in string_indices:
+                curr_text, _ = self.get_current_string_text(block_idx, s_idx)
+                original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data_store.data, "original_source_data")
+                if curr_text and curr_text != original_text:
+                    to_save.append((s_idx, curr_text))
+            if to_save:
+                self.mw.saved_translations_manager.save_translations_bulk(block_idx, to_save)
+
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:
             self.mw.undo_manager.begin_group()
             
-        show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater')
-        progress = None
+        show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater') and progress_dialog is None
+        progress = progress_dialog
         if show_progress:
             from PyQt5.QtCore import Qt
             progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, len(string_indices), self.mw)
@@ -176,6 +187,7 @@ class DataStateProcessor:
             progress.setMinimumDuration(500)
             progress.setValue(0)
 
+        processed = 0
         try:
             for i, s_idx in enumerate(string_indices):
                 if progress and progress.wasCanceled():
@@ -188,12 +200,16 @@ class DataStateProcessor:
                     # Recording this as a REVERT action
                     self.update_edited_data(block_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
                 
+                processed += 1
                 if progress:
-                    progress.setValue(i + 1)
+                    if progress_dialog is not None:
+                        progress.setValue(progress_offset + processed)
+                    else:
+                        progress.setValue(processed)
                     from PyQt5.QtWidgets import QApplication
                     QApplication.processEvents()
         finally:
-            if progress:
+            if show_progress and progress:
                 progress.setValue(len(string_indices))
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT")
@@ -202,7 +218,7 @@ class DataStateProcessor:
             if hasattr(self.mw, 'ui_updater'):
                 self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
             
-        if hasattr(self.mw, 'ui_updater'):
+        if hasattr(self.mw, 'ui_updater') and getattr(self.mw.data_store, 'current_block_idx', -1) == block_idx:
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit and self.mw.current_game_rules:
                 old_scrollbar_value = preview_edit.verticalScrollBar().value()
@@ -222,8 +238,13 @@ class DataStateProcessor:
                     # Generate all preview lines (this is very fast)
                     preview_lines = []
                     for real_idx in target_indices:
-                        if 0 <= real_idx < len(self.mw.data_store.data[block_idx]):
-                            text_for_preview_raw, _ = self.get_current_string_text(block_idx, real_idx)
+                        if isinstance(real_idx, tuple) and len(real_idx) == 2:
+                            b, s = real_idx
+                        else:
+                            b, s = block_idx, real_idx
+                            
+                        if 0 <= b < len(self.mw.data_store.data) and 0 <= s < len(self.mw.data_store.data[b]):
+                            text_for_preview_raw, _ = self.get_current_string_text(b, s)
                             preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines.append(preview_line_text)
 
@@ -263,6 +284,8 @@ class DataStateProcessor:
             
             # Fast update for original and edited text views
             self.mw.ui_updater.update_text_views()
+            
+        return processed
 
     def perform_revert_strings(self, block_idx: int, string_indices: List[Any], confirm: bool = True) -> None:
         """Unified revert function with optional confirmation and UI updates."""
@@ -300,19 +323,38 @@ class DataStateProcessor:
             has_undo = hasattr(self.mw, 'undo_manager')
             if has_undo:
                 self.mw.undo_manager.begin_group()
+                
+            total_strings = len(string_indices)
+            show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
+            progress = None
+            if show_progress:
+                from PyQt5.QtCore import Qt
+                progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, total_strings, self.mw)
+                progress.setWindowModality(Qt.WindowModal)
+                progress.setMinimumDuration(500)
+                progress.setValue(0)
+                
+            processed = 0
             try:
                 for b_idx, s_indices in grouped.items():
-                    self.revert_strings_to_original(b_idx, s_indices)
+                    if progress and progress.wasCanceled():
+                        break
+                    p_count = self.revert_strings_to_original(b_idx, s_indices, progress_dialog=progress, progress_offset=processed)
+                    processed += p_count
             finally:
+                if show_progress and progress:
+                    progress.setValue(total_strings)
                 if has_undo:
                     self.mw.undo_manager.end_group("REVERT")
             
-            # Refresh tree items and chapter preview
+            # Refresh tree items and active preview
             if hasattr(self.mw, 'ui_updater'):
                 for b_idx in grouped.keys():
                     self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
-                # Re-populate preview for chapter (-2)
-                self.mw.ui_updater.populate_strings_for_block(-2, force=True)
+                # Re-populate preview for the current block/category
+                curr_block = getattr(self.mw.data_store, 'current_block_idx', -1)
+                curr_cat = getattr(self.mw.data_store, 'current_category_name', None)
+                self.mw.ui_updater.populate_strings_for_block(curr_block, curr_cat, force=True)
                 self.mw.ui_updater.update_text_views()
         else:
             self.revert_strings_to_original(block_idx, string_indices)
@@ -330,6 +372,20 @@ class DataStateProcessor:
         """Reverts entire blocks to their state from the loaded edited file (or original)."""
         if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'data') or not self.mw.data_store.data: return
         
+        # Auto-save translation before reverting blocks
+        if hasattr(self.mw, 'saved_translations_manager') and self.mw.saved_translations_manager:
+            for b_idx in block_indices:
+                if 0 <= b_idx < len(self.mw.data_store.data):
+                    to_save = []
+                    num_strings = len(self.mw.data_store.data[b_idx])
+                    for s_idx in range(num_strings):
+                        curr_text, _ = self.get_current_string_text(b_idx, s_idx)
+                        original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
+                        if curr_text and curr_text != original_text:
+                            to_save.append((s_idx, curr_text))
+                    if to_save:
+                        self.mw.saved_translations_manager.save_translations_bulk(b_idx, to_save)
+
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:
             self.mw.undo_manager.begin_group()

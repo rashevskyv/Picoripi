@@ -280,6 +280,10 @@ class LNETContextMenuLogic:
                 menu.addSeparator()
                 revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), "Revert String to Original")
                 revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [main_window.data_store.current_string_idx]))
+                
+                if hasattr(main_window, 'saved_translations_manager') and main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx):
+                    restore_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowForward), "Restore Translated")
+                    restore_action.triggered.connect(lambda: main_window.saved_translations_manager.restore_translation(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx))
         
         if self.editor.objectName() == "preview_text_edit":
             if not custom_actions_added: menu.addSeparator(); custom_actions_added = True
@@ -337,6 +341,12 @@ class LNETContextMenuLogic:
                 if real_indices:
                     revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, real_indices))
+                    
+                    if hasattr(main_window, 'saved_translations_manager'):
+                        any_saved = any(main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, idx) for idx in real_indices)
+                        if any_saved:
+                            restore_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowForward), f"Restore Translated for {len(real_indices)} Line(s)")
+                            restore_action.triggered.connect(lambda: main_window.saved_translations_manager.restore_translations_for_strings(main_window.data_store.current_block_idx, real_indices))
             else:
                 # No lines selected, try the line under cursor
                 cursor = self.editor.cursorForPosition(position_in_widget_coords)
@@ -346,6 +356,10 @@ class LNETContextMenuLogic:
                     menu.addSeparator()
                     revert_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [real_idx]))
+                    
+                    if hasattr(main_window, 'saved_translations_manager') and main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, real_idx):
+                        restore_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowForward), f"Restore Translated for Line {line_val + 1}")
+                        restore_action.triggered.connect(lambda: main_window.saved_translations_manager.restore_translation(main_window.data_store.current_block_idx, real_idx))
 
         prettify_standard_context_menu(menu, main_window.style())
 

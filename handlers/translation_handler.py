@@ -1301,7 +1301,10 @@ class TranslationHandler(BaseHandler):
             
         self.ui_handler.apply_full_translation(final_text)
         self.ui_handler.finish_ai_operation()
-        self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+        refresh_idx = block_idx
+        if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+            refresh_idx = -2
+        self.ui_updater.populate_strings_for_block(refresh_idx, getattr(self.mw, 'current_category_name', None), force=True)
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
         self.ai_lifecycle_manager.on_task_finished(context)

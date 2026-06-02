@@ -430,13 +430,17 @@ class TextOperationHandler(BaseHandler):
                 elif hasattr(self.ui_updater, 'update_title'): 
                     self.ui_updater.update_title()
             
+            # Rescan issues for this pasted string so warnings update immediately
+            self._rescan_issues_for_current_string(block_idx, current_target_string_idx, final_text_to_apply)
+            
             old_text_for_this_line = self.mw.before_paste_edited_data_snapshot.get((block_idx, current_target_string_idx), original_text_for_tags)
             if final_text_to_apply != old_text_for_this_line:
                  any_change_applied_to_data = True
             successfully_processed_count += 1
         
-        self.mw.ui_updater.populate_blocks()
-        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+        # Smoothly update problem counts in block list instead of full rebuild
+        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, force=True)
         self.mw.ui_updater.update_text_views()
         
 
@@ -475,8 +479,14 @@ class TextOperationHandler(BaseHandler):
             elif hasattr(self.ui_updater, 'update_title'): 
                 self.ui_updater.update_title()
 
-        self.mw.ui_updater.populate_blocks()
-        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+        # Update problem analysis for this reverted string immediately
+        self._rescan_issues_for_current_string(block_idx, line_index, original_text)
+
+        # Update block list tree counts smoothly without rebuilding the tree or resetting focus/selection
+        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+        
+        # Update strings preview list with force=True to ensure it regenerates cached values
+        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, force=True)
         self.mw.ui_updater.update_text_views()
         
 

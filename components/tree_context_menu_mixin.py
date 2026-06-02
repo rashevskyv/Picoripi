@@ -59,12 +59,33 @@ class TreeContextMenuMixin:
                 add_dir.triggered.connect(pah.import_directory_action)
             menu.addSeparator()
 
-        # ── Empty-space click: only "Create Folder" ──────────────────────────
+        # ── Empty-space click: "Create Folder", "Translate All", "Revert All", "Restore All" ──
         if not item:
             act = menu.addAction(
                 self.style().standardIcon(QStyle.SP_FileDialogNewFolder), "Create Folder"
             )
             act.triggered.connect(self._create_folder_at_cursor)
+            
+            has_data = bool(getattr(main_window, 'data_store', None) and getattr(main_window.data_store, 'data', None))
+            
+            menu.addSeparator()
+            
+            translator = getattr(main_window, 'translation_handler', None)
+            if translator:
+                tall = menu.addAction(self.style().standardIcon(QStyle.SP_MessageBoxInformation), "AI: Translate All Blocks (UA Chronological)")
+                tall.setEnabled(has_data)
+                tall.triggered.connect(lambda: translator.translate_all_blocks_chronologically() if hasattr(translator, "translate_all_blocks_chronologically") else None)
+                
+            rall = menu.addAction(self.style().standardIcon(QStyle.SP_ArrowBack), "Revert All Blocks to Original")
+            rall.setEnabled(has_data)
+            rall.triggered.connect(self._revert_all_blocks_to_original)
+            
+            stm = getattr(main_window, 'saved_translations_manager', None)
+            if stm:
+                rst_all = menu.addAction(self.style().standardIcon(QStyle.SP_ArrowForward), "Restore All Translations")
+                rst_all.setEnabled(has_data)
+                rst_all.triggered.connect(lambda: stm.restore_all_saved_translations_action())
+                
             menu.exec_(self.mapToGlobal(pos))
             return
 
@@ -304,24 +325,49 @@ class TreeContextMenuMixin:
 
             # Revert to original
             menu.addSeparator()
-            sel_block_indices = []
-            for s_item in self.selectedItems():
-                b = s_item.data(0, Qt.UserRole)
-                if b is not None and b not in sel_block_indices:
-                    sel_block_indices.append(b)
+            selected_strings = self._get_selected_strings_by_block()
+            total_strings = sum(len(s) for s in selected_strings.values())
+            
+            if total_strings > 0:
+                if len(selected_strings) > 1:
+                    label = f"Revert selected blocks to original ({total_strings} strings)"
+                elif category_name:
+                    label = f"Revert Virtual Block '{category_name}' to original ({total_strings} strings)"
+                elif block_idx == -2:
+                    label = f"Revert Chapter '{block_name}' to original ({total_strings} strings)"
+                else:
+                    label = f"Revert '{block_name}' to original ({total_strings} strings)"
+                    
+                rv = menu.addAction(
+                    self.style().standardIcon(QStyle.SP_ArrowBack),
+                    label,
+                )
+                rv.triggered.connect(self._revert_selected_to_original)
 
-            if len(sel_block_indices) > 1:
-                rv = menu.addAction(
-                    self.style().standardIcon(QStyle.SP_ArrowBack),
-                    f"Revert {len(sel_block_indices)} selected blocks to original",
-                )
-                rv.triggered.connect(lambda: self._revert_blocks_to_original(sel_block_indices))
-            else:
-                rv = menu.addAction(
-                    self.style().standardIcon(QStyle.SP_ArrowBack),
-                    f"Revert '{block_name}' to original",
-                )
-                rv.triggered.connect(lambda: self._revert_blocks_to_original([block_idx]))
+            # Restore Translated Option in Context Menu
+            if hasattr(main_window, 'saved_translations_manager') and main_window.saved_translations_manager:
+                selected_strings = self._get_selected_strings_by_block()
+                any_saved = False
+                for b_idx, s_indices in selected_strings.items():
+                    if any(main_window.saved_translations_manager.has_saved_translation(b_idx, s_idx) for s_idx in s_indices):
+                        any_saved = True
+                        break
+                if any_saved:
+                    label = "Restore Translated"
+                    if block_idx == -2:
+                        label = f"Restore Translated for Chapter '{block_name}'"
+                    elif category_name:
+                        label = f"Restore Translated for Virtual Block '{category_name}'"
+                    elif len(selected_strings) > 1:
+                        label = f"Restore Translated for {len(selected_strings)} selected blocks"
+                    else:
+                        label = f"Restore Translated for '{block_name}'"
+                        
+                    rs = menu.addAction(
+                        self.style().standardIcon(QStyle.SP_ArrowForward),
+                        label,
+                    )
+                    rs.triggered.connect(self._restore_selected_translations)
 
             # BFN Editor for .bfn files
             is_bfn = False
@@ -356,23 +402,149 @@ class TreeContextMenuMixin:
 
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _revert_blocks_to_original(self, block_indices: list):
+    def _revert_selected_to_original(self):
         main_window = self.window()
         if not hasattr(main_window, 'data_processor'):
             return
+            
+        selected_strings = self._get_selected_strings_by_block()
+        if not selected_strings:
+            return
+            
+        total_strings = sum(len(s_indices) for s_indices in selected_strings.values())
+        
         reply = QMessageBox.question(
             self,
             "Revert to Original",
-            f"Are you sure you want to revert {len(block_indices)} block(s) to their original state?\n\n"
-            "All unsaved changes in these blocks will be lost.",
+            f"Are you sure you want to revert {total_strings} string(s) to their original state?\n\n"
+            "All unsaved changes for these strings will be lost.",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
         if reply == QMessageBox.No:
             return
-        main_window.data_processor.revert_blocks_to_original(block_indices)
+            
+        flat_list = []
+        for b_idx, s_indices in selected_strings.items():
+            for s_idx in s_indices:
+                flat_list.append((b_idx, s_idx))
+                
+        main_window.data_processor.perform_revert_strings(-2, flat_list, confirm=False)
 
     def _show_block_properties(self, block_idx: int):
         from .block_properties_dialog import BlockPropertiesDialog
         dialog = BlockPropertiesDialog(self.window(), block_idx)
         dialog.exec_()
+
+    def _get_selected_strings_by_block(self) -> dict:
+        main_window = self.window()
+        selected_strings = {}
+        
+        for item in self.selectedItems():
+            block_idx = item.data(0, Qt.UserRole)
+            category_name = item.data(0, Qt.UserRole + 10)
+            ch_id = item.data(0, Qt.UserRole + 11)
+            
+            if block_idx == -2:
+                # Chapter
+                composer = getattr(main_window, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    client = composer.prompt_composer._get_mempalace_client()
+                    if client:
+                        wing_name = composer.prompt_composer._get_wing_name()
+                        mappings = client.get_chapter_mappings(wing_name, ch_id)
+                        for m in mappings:
+                            bmg_id = m.get("bmg_id")
+                            indices = main_window.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                            if indices:
+                                b_idx, s_idx = indices
+                                selected_strings.setdefault(b_idx, []).append(s_idx)
+            elif category_name:
+                # Virtual block/category
+                if block_idx >= 0 and main_window.project_manager and main_window.project_manager.project:
+                    pm = main_window.project_manager
+                    block_map = getattr(main_window, 'block_to_project_file_map', {})
+                    proj_b_idx = block_map.get(block_idx, block_idx)
+                    if proj_b_idx < len(pm.project.blocks):
+                        block = pm.project.blocks[proj_b_idx]
+                        category = next((c for c in block.categories if c.name == category_name), None)
+                        if category:
+                            for s_idx in category.line_indices:
+                                selected_strings.setdefault(block_idx, []).append(s_idx)
+            elif block_idx is not None and block_idx >= 0:
+                # Standard Block
+                if main_window.data_store and main_window.data_store.data and block_idx < len(main_window.data_store.data):
+                    num_strings = len(main_window.data_store.data[block_idx])
+                    selected_strings[block_idx] = list(range(num_strings))
+                    
+        return selected_strings
+
+    def _restore_selected_translations(self):
+        main_window = self.window()
+        if not hasattr(main_window, 'saved_translations_manager'):
+            return
+            
+        selected_strings = self._get_selected_strings_by_block()
+        if not selected_strings:
+            return
+            
+        to_restore_count = 0
+        for b_idx, s_indices in selected_strings.items():
+            for s_idx in s_indices:
+                if main_window.saved_translations_manager.has_saved_translation(b_idx, s_idx):
+                    to_restore_count += 1
+                    
+        if to_restore_count == 0:
+            QMessageBox.information(self, "Restore Translation", "No saved translations found for the selection.")
+            return
+            
+        reply = QMessageBox.question(
+            self,
+            "Restore Translations",
+            f"Are you sure you want to restore saved translations for {to_restore_count} string(s)?\n\n"
+            "This will overwrite current edits in memory.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply == QMessageBox.No:
+            return
+            
+        has_undo = hasattr(main_window, 'undo_manager')
+        if has_undo:
+            main_window.undo_manager.begin_group()
+            
+        try:
+            for b_idx, s_indices in selected_strings.items():
+                saved_s_indices = [s_idx for s_idx in s_indices if main_window.saved_translations_manager.has_saved_translation(b_idx, s_idx)]
+                if saved_s_indices:
+                    main_window.saved_translations_manager.restore_translations_for_strings(b_idx, saved_s_indices)
+        finally:
+            if has_undo:
+                main_window.undo_manager.end_group("RESTORE_STRINGS")
+
+    def _revert_all_blocks_to_original(self):
+        main_window = self.window()
+        if not hasattr(main_window, 'data_processor') or not main_window.data_store.data:
+            return
+            
+        num_blocks = len(main_window.data_store.data)
+        total_strings = sum(len(main_window.data_store.data[b_idx]) for b_idx in range(num_blocks))
+        
+        reply = QMessageBox.question(
+            self,
+            "Revert All Blocks",
+            f"Are you sure you want to revert all {total_strings} string(s) across {num_blocks} block(s) to their original state?\n\n"
+            "All unsaved changes in the entire project will be lost.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply == QMessageBox.No:
+            return
+            
+        flat_list = []
+        for b_idx in range(num_blocks):
+            num_strings = len(main_window.data_store.data[b_idx])
+            for s_idx in range(num_strings):
+                flat_list.append((b_idx, s_idx))
+                
+        main_window.data_processor.perform_revert_strings(-2, flat_list, confirm=False)

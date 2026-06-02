@@ -43,6 +43,7 @@ from core.data_store import AppDataStore
 from core.translation.config import build_default_translation_config
 from core.spellchecker_manager import SpellcheckerManager
 from core.project_manager import ProjectManager
+from core.saved_translations_manager import SavedTranslationsManager
 
 from plugins.base_game_rules import BaseGameRules
 
@@ -221,6 +222,7 @@ class MainWindow(QMainWindow):
         self.helper = MainWindowHelper(self)
         self.actions = MainWindowActions(self)
         self.data_processor = DataStateProcessor(self)
+        self.saved_translations_manager = SavedTranslationsManager(self)
         self.ui_updater = UIUpdater(self, self.data_processor)
         self.undo_manager = UndoManager(self)
         
@@ -267,6 +269,11 @@ class MainWindow(QMainWindow):
         self.find_action = None
         self.auto_fix_action = None
         self.open_ai_chat_action = None
+        self.restore_translation_button = None
+        self.save_translated_action = None
+        self.restore_translated_action = None
+        self.export_translations_action = None
+        self.import_translations_action = None
         self.main_vertical_layout = None
         self.auto_fix_button: Optional[QPushButton] = None 
         self.ai_translate_button: Optional[QPushButton] = None

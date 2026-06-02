@@ -129,6 +129,17 @@ class MainWindowEventHandler:
             if hasattr(self.mw.search_panel_widget, 'advanced_search_requested'):
                 self.mw.search_panel_widget.advanced_search_requested.connect(self.mw.helper.open_advanced_search)
         
+        if hasattr(self.mw, 'restore_translation_button') and self.mw.restore_translation_button:
+            self.mw.restore_translation_button.clicked.connect(self.mw.saved_translations_manager.restore_translation_action)
+        if hasattr(self.mw, 'save_translated_action') and self.mw.save_translated_action:
+            self.mw.save_translated_action.triggered.connect(self.mw.saved_translations_manager.save_translation_action)
+        if hasattr(self.mw, 'restore_translated_action') and self.mw.restore_translated_action:
+            self.mw.restore_translated_action.triggered.connect(self.mw.saved_translations_manager.restore_translation_action)
+        if hasattr(self.mw, 'export_translations_action') and self.mw.export_translations_action:
+            self.mw.export_translations_action.triggered.connect(self.mw.saved_translations_manager.export_translations_to_json_action)
+        if hasattr(self.mw, 'import_translations_action') and self.mw.import_translations_action:
+            self.mw.import_translations_action.triggered.connect(self.mw.saved_translations_manager.import_translations_from_json_action)
+
         if hasattr(self.mw, 'ai_translate_button') and self.mw.ai_translate_button:
             self.mw.ai_translate_button.clicked.connect(self.mw.translation_handler.translate_current_string)
         if hasattr(self.mw, 'ai_variation_button') and self.mw.ai_variation_button:
