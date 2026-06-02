@@ -281,7 +281,14 @@ class ListSelectionHandler(BaseHandler):
 
     def resolve_bmg_id_to_indices(self, bmg_id: str) -> Optional[Tuple[int, int]]:
         """Resolve a BMG ID like 'main_Str_125' to (block_idx, string_idx)."""
-        if not bmg_id or "_Str_" not in bmg_id:
+        if not bmg_id:
+            return None
+            
+        # Strip square brackets commonly used in database mappings/transcripts
+        if bmg_id.startswith("[") and bmg_id.endswith("]"):
+            bmg_id = bmg_id[1:-1]
+            
+        if "_Str_" not in bmg_id:
             return None
         try:
             parts = bmg_id.rsplit("_Str_", 1)

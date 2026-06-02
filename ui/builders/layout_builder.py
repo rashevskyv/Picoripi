@@ -195,6 +195,62 @@ class LayoutBuilder:
         painter_s.end()
         story_icon = QIcon(pixmap_s)
         
+        # Create a dynamic beautiful icon for Restore Translation (document sheet with a blue arrow pointing right)
+        pixmap_r = QPixmap(32, 32)
+        pixmap_r.fill(Qt.transparent)
+        painter_r = QPainter(pixmap_r)
+        painter_r.setRenderHint(QPainter.Antialiasing, True)
+        
+        # Draw document sheet (sheet of paper)
+        painter_r.setPen(QColor("#7f8c8d")) # Gray outline
+        painter_r.setBrush(QColor("#ffffff")) # White filled paper
+        
+        from PyQt5.QtGui import QPolygonF
+        from PyQt5.QtCore import QPointF
+        paper_poly = QPolygonF([
+            QPointF(4, 4),
+            QPointF(14, 4),
+            QPointF(20, 10),
+            QPointF(20, 26),
+            QPointF(4, 26)
+        ])
+        painter_r.drawPolygon(paper_poly)
+        
+        # Draw fold corner line
+        painter_r.drawLine(14, 4, 14, 10)
+        painter_r.drawLine(14, 10, 20, 10)
+        
+        # Draw some decorative text lines on the paper
+        painter_r.setPen(QColor("#bdc3c7"))
+        painter_r.drawLine(7, 10, 11, 10)
+        painter_r.drawLine(7, 14, 15, 14)
+        painter_r.drawLine(7, 18, 17, 18)
+        painter_r.drawLine(7, 22, 13, 22)
+        
+        # Draw blue arrow coming out of the sheet pointing right
+        painter_r.setPen(QColor("#0078d7"))
+        painter_r.setBrush(QColor("#0078d7"))
+        
+        # Thicker line for the arrow shaft
+        arrow_pen = painter_r.pen()
+        arrow_pen.setColor(QColor("#0078d7"))
+        arrow_pen.setWidth(3)
+        painter_r.setPen(arrow_pen)
+        painter_r.drawLine(10, 15, 23, 15)
+        
+        # Arrow head points
+        arrow_head = QPolygonF([
+            QPointF(19, 10),
+            QPointF(26, 15),
+            QPointF(19, 20)
+        ])
+        painter_r.setPen(Qt.NoPen)
+        painter_r.setBrush(QColor("#0078d7"))
+        painter_r.drawPolygon(arrow_head)
+        
+        painter_r.end()
+        restore_icon = QIcon(pixmap_r)
+
         self.mw.revert_string_button = QPushButton()
         self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowForward))
         self.mw.revert_string_button.setToolTip("Revert current string to original file content")
@@ -203,6 +259,17 @@ class LayoutBuilder:
         self.mw.revert_string_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
         
         middle_layout.addWidget(self.mw.revert_string_button, 0, Qt.AlignCenter)
+        
+        middle_layout.addSpacing(6)
+        
+        self.mw.restore_translation_button = QPushButton()
+        self.mw.restore_translation_button.setIcon(restore_icon)
+        self.mw.restore_translation_button.setToolTip("Restore last saved/reverted translation (Ctrl+Shift+T)")
+        self.mw.restore_translation_button.setFixedWidth(30)
+        self.mw.restore_translation_button.setCursor(Qt.PointingHandCursor)
+        self.mw.restore_translation_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
+        
+        middle_layout.addWidget(self.mw.restore_translation_button, 0, Qt.AlignCenter)
         
         middle_layout.addSpacing(6)
         

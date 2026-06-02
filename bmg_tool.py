@@ -127,12 +127,11 @@ class BMGFile:
             elif sec_magic == b'MID1':
                 count, entry_len, unk = struct.unpack_from(se + 'HHI', sec_data, 8)
                 self.mid1_unk = unk
-                # entry_len == 0 is a Twilight Princess quirk: IDs are stored
-                # contiguously after the 16-byte header. Compute real stride.
-                if entry_len == 0 and count > 0:
-                    data_bytes = len(sec_data) - 16
-                    computed = data_bytes // count
-                    # Only trust if it divides cleanly into a sensible size
+                # In Twilight Princess, entry_len can be 0 or 4096 (0x1000) which are header quirks.
+                # Compute real stride based on section size and entry count if it's not 4 or 8.
+                data_bytes = len(sec_data) - 16
+                computed = data_bytes // count if count > 0 else 4
+                if entry_len not in (4, 8) and count > 0:
                     real_entry_len = computed if computed in (4, 8) else 4
                 else:
                     real_entry_len = entry_len if entry_len > 0 else 4

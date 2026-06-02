@@ -172,8 +172,16 @@ class ProjectManager:
 
             self.project = Project.from_dict(data)
             
-            # Migration: if no virtual folders exist (or version < 1.1), create them from file structure
-            if (self.project.version < "1.1" or not self.project.virtual_folders) and self.project.blocks:
+            # Migration: if no virtual folders exist (or version < 1.1 or virtual folders are empty of blocks), create them from file structure
+            def has_any_blocks(folders) -> bool:
+                for f in folders:
+                    if f.block_ids:
+                        return True
+                    if has_any_blocks(f.children):
+                        return True
+                return False
+
+            if (self.project.version < "1.1" or not self.project.virtual_folders or not has_any_blocks(self.project.virtual_folders)) and self.project.blocks:
                 self._migrate_file_structure_to_virtual_folders()
 
             log_info(f"Loaded project '{self.project.name}' from {self.project_dir}")

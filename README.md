@@ -1,6 +1,6 @@
-# Picoripi v0.2.153
+# Picoripi v0.2.154
  
-The "Picoripi" (v0.2.153) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.154) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -10,7 +10,7 @@ The "Picoripi" (v0.2.153) is a desktop application built with **Python** and **P
 - **Visual Status Tracking**: Unsaved changes propagate via clear asterisk (*) indicators up the project tree. Virtual folders display their own specialized error counts and custom cloud icons for easy identification.
 - **Progress Shading (Progress Visualisation)**: Tree widget file plates dynamically render a smooth, semi-transparent green progress bar (`QColor(46, 139, 87, 25)`) left-to-right beneath the file name proportional to the file translation completion rate. Fully supports **virtual chapters** progress calculations and styling.
 - **Robust Tree Interaction**: Support for **inline renaming** of both blocks and virtual folders, with advanced data role handling to prevent UI metadata from interfering with raw names.
-- **Transparent Archive Support (.arc, .rarc, .ark)**: Fully native, in-memory archive management. Automatically parses, edits, and packs RARC and U8 archive containers (including Yaz0 compressed archives) directly in RAM. Zero temporary folder creation and no external executable dependencies, keeping files completely virtualized until final save.
+- **Transparent Archive Support (.arc, .rarc, .ark)**: Fully native, in-memory archive management. Automatically parses, edits, and packs RARC and U8 archive containers (including highly-optimized Yaz0 compressed archives with fast LZ77 lazy evaluation) directly in RAM. This ensures byte-perfect, console-compatible compressed archives, preventing memory overflow bugs on real hardware. Zero temporary folder creation and no external executable dependencies, keeping files completely virtualized until final save.
 - **Archive Block Extensions**: Archive blocks automatically display their original file extensions (e.g. `.bmg`) in the project tree. Inline renaming dynamically strips the extension for clean editing and restores it afterwards.
 - **Block Properties**: Access a detailed "Properties..." window from the context menu to inspect metadata, original/translation paths, modified state, internal data/project indices, and disk file sizes.
 - Automatic synchronization of local files with project data during work.

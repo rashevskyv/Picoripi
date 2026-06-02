@@ -453,6 +453,13 @@ class BlockListUpdater(BaseUIUpdater):
             if current_item:
                 current_selection_block_idx = current_item.data(0, Qt.UserRole)
                 current_selection_folder_id = current_item.data(0, Qt.UserRole + 1)
+            else:
+                # Robust fallback using data_store selection state
+                if hasattr(self.mw, 'data_store'):
+                    if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+                        current_selection_block_idx = -2
+                    elif getattr(self.mw.data_store, 'current_block_idx', -1) != -1:
+                        current_selection_block_idx = self.mw.data_store.current_block_idx
         
         # Save scroll position
         v_scroll = self.mw.block_list_widget.verticalScrollBar().value()

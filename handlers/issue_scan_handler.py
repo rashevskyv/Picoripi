@@ -282,11 +282,43 @@ class IssueScanHandler(BaseHandler):
         target_block_idx = block_idx if block_idx != -1 else self.mw.data_store.current_block_idx
         if target_block_idx == -1: return
         
-        self._perform_issues_scan_for_block(target_block_idx)
-        self.ui_updater.update_block_item_text_with_problem_count(target_block_idx)
-        
-        if show_message_on_completion:
-            QMessageBox.information(self.mw, "Scan Complete", f"Issue scan for block {target_block_idx} complete.")
+        if target_block_idx == -2:
+            unique_blocks = set()
+            if hasattr(self.mw.data_store, 'chapter_mappings') and self.mw.data_store.chapter_mappings:
+                for b_idx, s_idx in self.mw.data_store.chapter_mappings:
+                    unique_blocks.add(b_idx)
+            else:
+                # Fallback: if we don't have chapter_mappings in data_store, we can retrieve them using the selected chapter ID
+                chapter_id = getattr(self.mw.data_store, 'current_chapter_id', None)
+                if chapter_id is not None:
+                    composer = getattr(self.mw, "translation_handler", None)
+                    if composer and hasattr(composer, "prompt_composer"):
+                        client = composer.prompt_composer._get_mempalace_client()
+                        if client:
+                            wing_name = composer.prompt_composer._get_wing_name()
+                            mappings = client.get_chapter_mappings(wing_name, chapter_id)
+                            for m in mappings:
+                                bmg_id = m.get("bmg_id")
+                                indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                                if indices:
+                                    unique_blocks.add(indices[0])
+
+            # Scan all unique physical blocks included in the chapter
+            for b_idx in unique_blocks:
+                self._perform_issues_scan_for_block(b_idx)
+                self.ui_updater.update_block_item_text_with_problem_count(b_idx)
+            
+            # Also update the chapter item itself in the tree
+            self.ui_updater.update_block_item_text_with_problem_count(-2)
+            
+            if show_message_on_completion:
+                QMessageBox.information(self.mw, "Scan Complete", "Issue scan for chapter complete.")
+        else:
+            self._perform_issues_scan_for_block(target_block_idx)
+            self.ui_updater.update_block_item_text_with_problem_count(target_block_idx)
+            
+            if show_message_on_completion:
+                QMessageBox.information(self.mw, "Scan Complete", f"Issue scan for block {target_block_idx} complete.")
         
         # Save the updated issues cache
         self._save_issues_cache()

@@ -134,3 +134,23 @@ def test_u8_container_with_files():
     new_container = U8Container(packed)
     assert new_container.list_files() == ["test.txt"]
     assert new_container.read_file("test.txt") == b"WORLD"
+
+
+def test_yaz0_compression_ratio_against_original():
+    # If the original file exists, let's check our compression ratio.
+    original_path = Path(r"e:\Emulators\RomHacking\ZELDA\TP_UA\ISO\ENG\root\res\Msgus\bmgres.arc")
+    if not original_path.exists():
+        pytest.skip("Original ENG bmgres.arc not found. Skipping ratio test.")
+
+    raw_original = original_path.read_bytes()
+    decompressed = decompress(raw_original)
+
+    compressed_new = compress(decompressed)
+
+    # Size should be extremely close (within 3% of the original highly optimized size)
+    ratio = len(compressed_new) / len(raw_original)
+    assert ratio < 1.03, f"Compression ratio is too high: {ratio:.2%}. Size was {len(compressed_new)} instead of {len(raw_original)}"
+
+    # Ensure it is 100% losslessly decompressible back to the same data
+    decompressed_new = decompress(compressed_new)
+    assert decompressed_new == decompressed

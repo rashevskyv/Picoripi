@@ -88,6 +88,15 @@ class MenuBuilder:
         file_menu.addAction(self.mw.revert_action)
         file_menu.addSeparator()
 
+        self.mw.export_translations_action = QAction(QIcon.fromTheme("document-export"), '&Export Translations to JSON...', self.mw)
+        self.mw.export_translations_action.setEnabled(False)
+        file_menu.addAction(self.mw.export_translations_action)
+
+        self.mw.import_translations_action = QAction(QIcon.fromTheme("document-import"), '&Import Translations from JSON...', self.mw)
+        self.mw.import_translations_action.setEnabled(False)
+        file_menu.addAction(self.mw.import_translations_action)
+        file_menu.addSeparator()
+
         self.mw.reload_tag_mappings_action = QAction(QIcon.fromTheme("preferences-system"), 'Reload &Tag Mappings from Settings', self.mw)
         file_menu.addAction(self.mw.reload_tag_mappings_action)
         file_menu.addSeparator()
@@ -125,6 +134,60 @@ class MenuBuilder:
         self.mw.redo_typing_action = QAction(redo_icon, '&Redo Typing', self.mw)
         self.mw.redo_typing_action.setShortcuts([QKeySequence.Redo, QKeySequence('Ctrl+Shift+Z')])
         edit_menu.addAction(self.mw.redo_typing_action)
+        edit_menu.addSeparator()
+
+        # Create a dynamic beautiful icon for Restore Translation (document sheet with a blue arrow pointing right)
+        pixmap_r = QPixmap(32, 32)
+        pixmap_r.fill(Qt.transparent)
+        painter_r = QPainter(pixmap_r)
+        painter_r.setRenderHint(QPainter.Antialiasing, True)
+        painter_r.setPen(QColor("#7f8c8d"))
+        painter_r.setBrush(QColor("#ffffff"))
+        
+        from PyQt5.QtGui import QPolygonF
+        from PyQt5.QtCore import QPointF
+        paper_poly = QPolygonF([
+            QPointF(4, 4),
+            QPointF(14, 4),
+            QPointF(20, 10),
+            QPointF(20, 26),
+            QPointF(4, 26)
+        ])
+        painter_r.drawPolygon(paper_poly)
+        painter_r.drawLine(14, 4, 14, 10)
+        painter_r.drawLine(14, 10, 20, 10)
+        painter_r.setPen(QColor("#bdc3c7"))
+        painter_r.drawLine(7, 10, 11, 10)
+        painter_r.drawLine(7, 14, 15, 14)
+        painter_r.drawLine(7, 18, 17, 18)
+        painter_r.drawLine(7, 22, 13, 22)
+        painter_r.setPen(QColor("#0078d7"))
+        painter_r.setBrush(QColor("#0078d7"))
+        arrow_pen = painter_r.pen()
+        arrow_pen.setColor(QColor("#0078d7"))
+        arrow_pen.setWidth(3)
+        painter_r.setPen(arrow_pen)
+        painter_r.drawLine(10, 15, 23, 15)
+        arrow_head = QPolygonF([
+            QPointF(19, 10),
+            QPointF(26, 15),
+            QPointF(19, 20)
+        ])
+        painter_r.setPen(Qt.NoPen)
+        painter_r.setBrush(QColor("#0078d7"))
+        painter_r.drawPolygon(arrow_head)
+        painter_r.end()
+        menu_restore_icon = QIcon(pixmap_r)
+
+        self.mw.save_translated_action = QAction(QIcon.fromTheme("document-save"), '&Save Translated', self.mw)
+        self.mw.save_translated_action.setShortcut('Ctrl+T')
+        self.mw.save_translated_action.setEnabled(False)
+        edit_menu.addAction(self.mw.save_translated_action)
+
+        self.mw.restore_translated_action = QAction(menu_restore_icon, '&Restore Translated', self.mw)
+        self.mw.restore_translated_action.setShortcut('Ctrl+Shift+T')
+        self.mw.restore_translated_action.setEnabled(False)
+        edit_menu.addAction(self.mw.restore_translated_action)
         edit_menu.addSeparator()
 
         self.mw.undo_paste_action = QAction(undo_icon, 'Undo &Paste Block', self.mw)

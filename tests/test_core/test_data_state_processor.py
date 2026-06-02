@@ -273,3 +273,29 @@ def test_revert_blocks_to_original_with_progress_dialog(mock_dialog, dsp, mock_m
     assert (1, 0) not in mock_mw.edited_data
 
 
+@patch("core.data_state_processor.QProgressDialog")
+def test_perform_revert_strings_chapter_progress_dialog(mock_dialog, dsp, mock_mw):
+    mock_dialog.return_value.wasCanceled.return_value = False
+    
+    # Setup data to have a large total string count (> 20)
+    mock_mw.data_store.data = [["s"] * 15, ["s"] * 10]
+    mock_mw.edited_data = {(0, idx): f"changed0_{idx}" for idx in range(15)}
+    mock_mw.edited_data.update({(1, idx): f"changed1_{idx}" for idx in range(10)})
+    
+    flat_list = []
+    for b_idx in [0, 1]:
+        for s_idx in range(len(mock_mw.data_store.data[b_idx])):
+            flat_list.append((b_idx, s_idx))
+            
+    mock_mw.ui_updater.update_block_item_text_with_problem_count.reset_mock()
+    
+    # Call with block_idx=-2 (chapter/multi-block revert)
+    dsp.perform_revert_strings(-2, flat_list, confirm=False)
+    
+    # Unified progress dialog should be created only once
+    mock_dialog.assert_called_once()
+    
+    # And data should be completely reverted
+    assert mock_mw.edited_data == {}
+
+

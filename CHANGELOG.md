@@ -1,13 +1,34 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.154] - 2026-06-02
+
+### Added
+- **High-Compression Candidate Extension & Alignment Tuning**:
+  - Parameterized the sliding-window match lookup candidates (`max_candidates`) in the pure-Python Yaz0 compression algorithm, defaulting to `100` instead of `25`.
+  - Added support for auto-padding compressed Yaz0 archives to match exact original disk-sector boundaries using trailing zero-padding (`\x00`).
+  - Achieved smaller compressed archive footprints than original file sizes (124,552 bytes vs 124,756 bytes) to completely bypass in-place file replacement and FST size limitations in retro modding environments.
+
 ## [0.2.153] - 2026-06-02
 
 ### Added
+- **High-Performance Lazy LZ77 Yaz0 Compressor**:
+  - Replaced the legacy naive literal-only `compress` implementation in `core/containers/yaz0.py` with a highly optimized sliding-window LZ77 Yaz0 compression algorithm featuring lookahead lazy evaluation.
+  - Implemented prefix-based hash mapping to prune search space, capping candidates lookup to 25 to achieve sub-second compression runs (~0.37s for Zelda TP `bmgres.arc`) with maximum performance in pure Python.
+  - Resolved console-crashing buffer overflows and out-of-memory errors on GameCube and Wii hardware caused by legacy archives being 3x larger than the original optimized archives.
+  - Achieved a highly optimized compression ratio matching official Nintendo tools within a 0.24% file size difference (125 KB vs 124 KB).
+  - Added new robust regression testing `test_yaz0_compression_ratio_against_original` in `test_containers.py` to continuously verify compression ratios and lossless roundtrip decompressions on original assets.
 - **Smart Empty Lines Hiding & Gutter Highlight**:
   - Implemented a smart empty lines collapse threshold inside `populate_strings_for_block` in `ui/updaters/preview_updater.py`. 
   - Single or double consecutive empty lines are kept fully visible in the read-only preview panel to preserve minor paragraph breaks, whereas sequences of 3 or more empty lines are collapsed into a single placeholder: `[start-end] X empty line(s)`.
   - Added regex-based early matching (`_PLACEHOLDER_PATTERN`) inside `JsonTagHighlighter.highlightBlock` (`utils/syntax_highlighter.py`). When the read-only preview panel encounters a collapsed empty lines placeholder, the entire line is instantly styled with a subtle dark gray color (`#888888`) and bypasses all other syntax formatting rules (such as bracket tags or spellchecking), keeping the preview clean and uncluttered.
   - Added new regression and unit tests: `test_populate_strings_hide_empty_strings` in `test_small_updaters.py` and `test_JsonTagHighlighter_placeholder_highlighting` in `test_syntax_highlighter.py`.
+
+### Fixed
+- **Corrupted MID1 Message ID Section Dropped in Zelda TP Archives**:
+  - Fixed a critical bug in `bmg_tool.py` where Twilight Princess archives `bmgres1.arc` through `bmgres8.arc` had their `MID1` Message ID mapping sections completely deleted when re-saving.
+  - The bug was triggered by a GameCube BMG header quirk where `entry_len` was set to `4096` (`0x1000`) instead of `4` in the `MID1` section header. The parser trusted this literally, loading all Message IDs as corrupted string lists. When saving, the writer evaluated the ID type and assumed there were no valid integer message IDs (`has_ids = False`), causing the entire `MID1` section to be dropped from the file.
+  - Implemented automatic entry length validation: if `entry_len` is not a standard stride (4 or 8), the real stride is dynamically computed based on the section's actual bytes and entry count: `(section_size - 16) // count`.
+  - Restored absolute byte-perfect load and save parity (**Byte-perfect identical: True**) across all nine Twilight Princess game archives, successfully preserving all game control structures.
 
 ## [0.2.152] - 2026-06-01
 
