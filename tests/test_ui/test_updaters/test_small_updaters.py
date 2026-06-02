@@ -267,3 +267,74 @@ class TestPreviewUpdater:
         # Verify sync_subline_asterisks was called
         toh.sync_subline_asterisks.assert_called_once_with(0, 0, "different text")
 
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_hide_translated(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 2
+        updater.mw.preview_text_edit = preview_edit
+        updater.mw.data_store.data = [["line0", "line1", "line2"]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.data_store.hide_translated = True
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+
+        mock_dp.is_string_translated.side_effect = lambda b, s: s == 0
+
+        def get_text_side_effect(b_idx, r_idx):
+            if r_idx == 0:
+                return ("Hello Translated", None)
+            elif r_idx == 1:
+                return ("World Untranslated", None)
+            return ("Another Untranslated", None)
+            
+        mock_dp.get_current_string_text.side_effect = get_text_side_effect
+
+        updater.populate_strings_for_block(0, force=True)
+
+        preview_edit.setPlainText.assert_called_once_with("World Untranslated\nAnother Untranslated")
+        assert updater.mw.data_store.displayed_string_indices == [1, 2]
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_hide_empty_strings(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 8
+        updater.mw.preview_text_edit = preview_edit
+        
+        # 10 lines: 
+        # 0: non-empty
+        # 1: empty
+        # 2: non-empty
+        # 3: empty
+        # 4: empty
+        # 5: non-empty
+        # 6: empty
+        # 7: empty
+        # 8: empty
+        # 9: non-empty
+        updater.mw.data_store.data = [["line" + str(i) for i in range(10)]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.data_store.hide_empty_strings = True
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+
+        def get_text_side_effect(b_idx, r_idx):
+            is_empty = r_idx in [1, 3, 4, 6, 7, 8]
+            txt = "" if is_empty else f"line{r_idx}"
+            return (txt, None)
+
+        mock_dp.get_current_string_text.side_effect = get_text_side_effect
+        mock_dp._get_string_from_source.side_effect = lambda b, s, d, mode: get_text_side_effect(b, s)[0]
+
+        updater.populate_strings_for_block(0, force=True)
+
+        expected_indices = [0, 1, 2, 3, 4, 5, -1, 9]
+        assert updater.mw.data_store.displayed_string_indices == expected_indices
+        assert updater._placeholder_texts[6] == "[6-8] 3 empty line(s)"
+
+

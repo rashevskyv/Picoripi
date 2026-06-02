@@ -185,6 +185,8 @@ def test_ListSelectionHandler_toggles(handler):
     assert handler.mw.data_store.highlight_categorized is True
     handler.toggle_hide_categorized(False)
     assert handler.mw.data_store.hide_categorized is False
+    handler.toggle_hide_translated(True)
+    assert handler.mw.data_store.hide_translated is True
 
 # --- New missing coverage tests ---
 

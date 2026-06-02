@@ -3,7 +3,8 @@ import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from .config import (PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE,
-                     PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_TAG_WARNING)
+                     PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_TAG_WARNING,
+                     PROBLEM_BAD_SPACING)
 
 SENTENCE_END_PUNCTUATION_CHARS = ['.', '!', '?']
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
@@ -18,6 +19,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             'SINGLE': PROBLEM_SINGLE_WORD_SUBLINE,
             'SINGLE_NON_START': PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
             'TAG': PROBLEM_TAG_WARNING,
+            'BAD_SPACING': PROBLEM_BAD_SPACING
         }
 
     def _get_sublines_from_data_string(self, data_string: str) -> List[Tuple[str, str]]:
@@ -60,6 +62,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         problems_per_subline_idx = [set() for _ in sublines_with_tags]
         is_only_one_subline_in_total = len(sublines_with_tags) == 1
         limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
+        if not isinstance(limit, (int, float)):
+            limit = threshold
         for i, (text_part, newline_tag) in enumerate(sublines_with_tags):
             text_part_no_tags = remove_all_tags(text_part)
             width = calculate_string_width(text_part, font_map)
@@ -70,6 +74,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                      problems_per_subline_idx[i].add(self.problem_ids['EMPTY'])
             if width > limit:
                  problems_per_subline_idx[i].add(self.problem_ids['WIDTH'])
+            if self._check_bad_spacing(text_part):
+                 problems_per_subline_idx[i].add(self.problem_ids['BAD_SPACING'])
             if i + 1 < len(sublines_with_tags):
                 next_text_part, _ = sublines_with_tags[i+1]
                 if self._check_short_line(text_part, next_text_part, font_map, threshold):

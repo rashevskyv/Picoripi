@@ -108,6 +108,15 @@ def test_JsonTagHighlighter_highlightBlock_rules(highlighter):
     # Should find 4 formats matching our rules
     assert hl.setFormat.call_count >= 4
 
+def test_JsonTagHighlighter_forced_alias_spacing(highlighter):
+    hl, doc = highlighter
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+    hl.setFormat.reset_mock()
+    hl.highlightBlock("{F:Link} safely along it.")
+    for call_args in hl.setFormat.call_args_list:
+        start, length, fmt = call_args[0]
+        assert fmt != hl.bad_spacing_format
+
 def test_JsonTagHighlighter_icon_cache(highlighter):
     hl, doc = highlighter
     doc.setPlainText("Hello [Icon1] World")
@@ -200,3 +209,162 @@ def test_should_highlight_icons_for_preview(highlighter, mock_mw):
     
     parent_mock.objectName.return_value = 'edited_text_edit'
     assert hl._should_highlight_icons() is True
+
+def test_JsonTagHighlighter_translation_glossary_bridge(qapp, mock_mw):
+    from core.glossary_manager import GlossaryManager, GlossaryEntry
+    
+    # 1. Setup glossary manager with a term
+    gm = GlossaryManager()
+    entry = GlossaryEntry(original="Hyrule", translation="Гайрул", notes="World")
+    gm._entries = [entry]
+    gm._build_pattern_cache()
+    
+    doc = QTextDocument()
+    
+    # 2. Setup original editor with text containing dot representations of spaces
+    orig_editor = MagicMock()
+    orig_editor.toPlainText.return_value = "Kingdom·of·Hyrule"
+    
+    edited_editor_mock = MagicMock()
+    edited_editor_mock.objectName.return_value = 'edited_text_edit'
+    
+    hl = JsonTagHighlighter(doc, main_window_ref=mock_mw, editor_widget_ref=edited_editor_mock)
+    hl.set_glossary_manager(gm)
+    
+    # Enable translation mode
+    hl.set_translation_mode(True, source_editor_ref=orig_editor)
+    
+    # Mocking block methods for highlightBlock
+    hl.currentBlock = MagicMock()
+    hl.currentBlock().blockNumber.return_value = 0
+    hl.currentBlock().position.return_value = 0
+    
+    hl.setFormat = MagicMock()
+    hl.setCurrentBlockUserData = MagicMock()
+    
+    # Trigger rebuild translation glossary cache manually
+    hl._rebuild_translation_glossary_cache()
+    
+    # Verify the cache has correctly matched "Гайрул" in the translation text "королівство Гайрул"
+    text_trans = "королівство Гайрул"
+    doc.setPlainText(text_trans)
+    hl.highlightBlock(text_trans)
+    
+    # Should find translation matches and apply formats
+    args, kwargs = hl.setCurrentBlockUserData.call_args
+    user_data = args[0]
+    assert user_data is not None
+    assert len(user_data.matches) == 1
+    assert user_data.matches[0].entry.original == "Hyrule"
+    assert user_data.matches[0].entry.translation == "Гайрул"
+
+def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
+    from core.glossary_manager import GlossaryManager, GlossaryEntry
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    
+    # 1. Setup glossary
+    gm = GlossaryManager()
+    entry = GlossaryEntry(original="Castle", translation="Замок", notes="Location")
+    gm._entries = [entry]
+    gm._build_pattern_cache()
+    
+    # Setup mock window with fields needed by LineNumberedTextEdit
+    mw = mock_mw
+    mw.original_text_edit = LineNumberedTextEdit(parent=None)
+    mw.original_text_edit.highlighter.mw = mw
+    mw.original_text_edit.setObjectName("original_text_edit")
+    mw.original_text_edit.setPlainText("Castle")
+    
+    edited_edit = LineNumberedTextEdit(parent=None)
+    edited_edit.highlighter.mw = mw
+    edited_edit.setObjectName("edited_text_edit")
+    mw.edited_text_edit = edited_edit
+    
+    # Set glossary and translation mode
+    edited_edit.set_glossary_manager(gm)
+    edited_edit.highlighter.set_translation_mode(True, source_editor_ref=mw.original_text_edit)
+    
+    # 2. Simulate text change / typing lifecycle - First setPlainText
+    edited_edit.setPlainText("Тут є Замок")
+    edited_edit.highlighter.rehighlight()
+    
+    # Verify that the word "Замок" is marked for underlining in block user data
+    block = edited_edit.document().firstBlock()
+    user_data = block.userData()
+    assert user_data is not None
+    assert len(user_data.matches) == 1
+    assert user_data.matches[0].entry.original == "Castle"
+    assert user_data.matches[0].entry.translation == "Замок"
+    
+    # 3. Simulate second setPlainText to verify cache revision invalidation works flawlessly
+    edited_edit.setPlainText("Великий Замок стоїть")
+    edited_edit.highlighter.rehighlight()
+    
+    block = edited_edit.document().firstBlock()
+    user_data = block.userData()
+    assert user_data is not None, "Cache should be invalidated and rebuilt on subsequent setPlainText"
+    assert len(user_data.matches) == 1
+    assert user_data.matches[0].entry.translation == "Замок"
+    
+    # 4. Simulate typing mode (typing bypasses synchronous highlights)
+    edited_edit.highlighter.set_typing_mode(True)
+    edited_edit.setPlainText("Замок знову")
+    edited_edit.highlighter.rehighlight()
+    
+    block = edited_edit.document().firstBlock()
+    user_data = block.userData()
+    # In typing mode with no async matches yet, the synchronous fallback is bypassed
+    assert user_data is None or len(user_data.matches) == 0
+    
+    # 5. Simulate asynchronous scan results coming in
+    async_matches = [
+        {
+            'start': 0,
+            'end': 5,
+            'original': 'Castle',
+            'translation': 'Замок',
+            'notes': 'Location'
+        }
+    ]
+    edited_edit.highlighter._async_translation_matches = async_matches
+    edited_edit.highlighter.set_typing_mode(False)  # Exiting typing mode triggers rehighlight
+    edited_edit.highlighter.rehighlight()
+    
+    block = edited_edit.document().firstBlock()
+    user_data = block.userData()
+    assert user_data is not None, "Async matches should be successfully applied and reflected in block user data"
+    assert len(user_data.matches) == 1
+    assert user_data.matches[0].entry.translation == "Замок"
+
+def test_JsonTagHighlighter_placeholder_highlighting(highlighter):
+    hl, doc = highlighter
+    
+    # 1. Test when it IS preview_text_edit and matches pattern
+    hl._editor_widget_ref.objectName.return_value = 'preview_text_edit'
+    hl.setFormat.reset_mock()
+    text = "[198-200] 3 empty line(s)"
+    hl.highlightBlock(text)
+    
+    # setFormat should be called exactly once for the whole length
+    hl.setFormat.assert_called_once_with(0, len(text), hl.placeholder_format)
+    
+    # 2. Test when it IS preview_text_edit but does NOT match pattern
+    hl.setFormat.reset_mock()
+    text_normal = "[198-200] 3 line(s)"
+    hl.highlightBlock(text_normal)
+    # should be called for basic color and possibly bracket rules
+    assert hl.setFormat.call_count >= 2
+    
+    # 3. Test when it is NOT preview_text_edit but matches pattern
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+    hl.setFormat.reset_mock()
+    text_other = "[198-200] 3 empty line(s)"
+    hl.highlightBlock(text_other)
+    # placeholder_format should NOT be used
+    for call_args in hl.setFormat.call_args_list:
+        fmt = call_args[0][2]
+        assert fmt != hl.placeholder_format
+
+
+
+

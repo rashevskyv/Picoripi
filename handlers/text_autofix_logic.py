@@ -12,7 +12,7 @@ PUNCTUATION_CHARS_AFTER_TAG_LIST = [',', '.', '!', '?']
 PUNCTUATION_PATTERN = re.compile(r"^[,\.!?]$")
 QUOTES_PATTERN = re.compile(r"^[\"']$")
 WORD_CHAR_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
-ANY_TAG_RE_PATTERN = r"(\{[^}]*\}|\[[^\]]*\])"
+ANY_TAG_RE_PATTERN = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
 COLOR_WHITE_TAG_PATTERN = re.compile(r"\{Color:White\}", re.IGNORECASE)
 
 class TextAutofixLogic:

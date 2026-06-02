@@ -226,6 +226,21 @@ class LineNumberedTextEdit(QPlainTextEdit):
             self.highlighter._async_glossary_matches = None
             self.highlighter._async_translation_matches = None
             self.highlighter._async_spellcheck_matches = None
+            
+            # Reset cache revisions and local matches maps so a full rebuild is forced
+            self.highlighter._glossary_cache_revision = None
+            if hasattr(self.highlighter, '_glossary_matches_cache') and self.highlighter._glossary_matches_cache:
+                self.highlighter._glossary_matches_cache.clear()
+                
+            self.highlighter._translation_cache_revision = None
+            if hasattr(self.highlighter, '_translation_matches_cache') and self.highlighter._translation_matches_cache:
+                self.highlighter._translation_matches_cache.clear()
+                
+            if hasattr(self.highlighter, '_icon_cache_revision'):
+                self.highlighter._icon_cache_revision = None
+            if hasattr(self.highlighter, '_icon_sequences_cache') and self.highlighter._icon_sequences_cache:
+                self.highlighter._icon_sequences_cache.clear()
+                
         super().setPlainText(text)
         # If we have an active glossary, we must re-trigger highlighting
         # because set_glossary_manager ran while the editor was empty,

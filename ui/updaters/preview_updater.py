@@ -349,6 +349,19 @@ class PreviewUpdater(BaseUIUpdater):
                 ]
             else:
                 target_indices = [i for i in target_indices if 0 <= i < len(self.mw.data_store.data[block_idx])]
+
+            if getattr(self.mw.data_store, 'hide_translated', False) is True:
+                filtered_indices = []
+                for idx in target_indices:
+                    if is_chapter:
+                        b_idx, s_idx = idx
+                    else:
+                        b_idx = block_idx
+                        s_idx = idx
+                    if not self.data_processor.is_string_translated(b_idx, s_idx):
+                        filtered_indices.append(idx)
+                target_indices = filtered_indices
+
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
             if not old_indices and hasattr(self.mw, 'displayed_string_indices'):
@@ -357,8 +370,7 @@ class PreviewUpdater(BaseUIUpdater):
             if getattr(self.mw.data_store, 'hide_empty_strings', False):
                 collapsed_indices = []
                 self._placeholder_texts = {}
-                empty_streak_start = -1
-                empty_streak_count = 0
+                streak_indices = []
                 for idx in target_indices:
                     b_idx = block_idx
                     s_idx = idx
@@ -368,18 +380,28 @@ class PreviewUpdater(BaseUIUpdater):
                     edited_text, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                     is_empty = (not orig_text or not orig_text.strip()) and (not edited_text or not str(edited_text).strip())
                     if is_empty:
-                        if empty_streak_count == 0:
-                            empty_streak_start = s_idx
-                        empty_streak_count += 1
+                        streak_indices.append(idx)
                     else:
-                        if empty_streak_count > 0:
-                            collapsed_indices.append(-1)
-                            self._placeholder_texts[len(collapsed_indices)-1] = f"[{empty_streak_start}-{empty_streak_start+empty_streak_count-1}] {empty_streak_count} empty line(s)"
-                            empty_streak_count = 0
+                        if streak_indices:
+                            if len(streak_indices) < 3:
+                                collapsed_indices.extend(streak_indices)
+                            else:
+                                collapsed_indices.append(-1)
+                                start_idx = streak_indices[0][1] if isinstance(streak_indices[0], tuple) else streak_indices[0]
+                                end_idx = streak_indices[-1][1] if isinstance(streak_indices[-1], tuple) else streak_indices[-1]
+                                count = len(streak_indices)
+                                self._placeholder_texts[len(collapsed_indices)-1] = f"[{start_idx}-{end_idx}] {count} empty line(s)"
+                            streak_indices = []
                         collapsed_indices.append(idx)
-                if empty_streak_count > 0:
-                    collapsed_indices.append(-1)
-                    self._placeholder_texts[len(collapsed_indices)-1] = f"[{empty_streak_start}-{empty_streak_start+empty_streak_count-1}] {empty_streak_count} empty line(s)"
+                if streak_indices:
+                    if len(streak_indices) < 3:
+                        collapsed_indices.extend(streak_indices)
+                    else:
+                        collapsed_indices.append(-1)
+                        start_idx = streak_indices[0][1] if isinstance(streak_indices[0], tuple) else streak_indices[0]
+                        end_idx = streak_indices[-1][1] if isinstance(streak_indices[-1], tuple) else streak_indices[-1]
+                        count = len(streak_indices)
+                        self._placeholder_texts[len(collapsed_indices)-1] = f"[{start_idx}-{end_idx}] {count} empty line(s)"
                 target_indices = collapsed_indices
 
             displayed_indices_changed = (target_indices != old_indices)
@@ -646,6 +668,47 @@ class PreviewUpdater(BaseUIUpdater):
             if original_text_raw is None: original_text_raw = ""
             edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
             if edited_text_raw is None: edited_text_raw = ""
+
+        # Update the corresponding line in preview_text_edit and in the cache dynamically
+        if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+            preview_edit = getattr(self.mw, 'preview_text_edit', None)
+            if preview_edit:
+                is_chapter = (self.mw.data_store.current_block_idx == -2)
+                displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+                
+                preview_idx = -1
+                if is_chapter:
+                    target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                    if target_tuple in displayed_indices:
+                        preview_idx = displayed_indices.index(target_tuple)
+                else:
+                    if self.mw.data_store.current_string_idx in displayed_indices:
+                        preview_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
+                
+                if preview_idx != -1:
+                    if self.mw.current_game_rules:
+                        preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(edited_text_raw))
+                    else:
+                        preview_line_text = str(edited_text_raw)
+                        
+                    cache_key = (self.mw.data_store.current_block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                    if cache_key in self._preview_cache:
+                        cache = self._preview_cache[cache_key]
+                        if preview_idx < len(cache['lines']):
+                            cache['lines'][preview_idx] = preview_line_text
+                            
+                    doc = preview_edit.document()
+                    block = doc.findBlockByNumber(preview_idx)
+                    if block.isValid() and block.text() != preview_line_text:
+                        _saved_prog = self.mw.is_programmatically_changing_text
+                        self.mw.is_programmatically_changing_text = True
+                        try:
+                            cursor = QTextCursor(doc)
+                            cursor.setPosition(block.position())
+                            cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                            cursor.insertText(preview_line_text)
+                        finally:
+                            self.mw.is_programmatically_changing_text = _saved_prog
         
         if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
             original_text_for_display_processed = str(self.mw.current_game_rules.get_text_representation_for_editor(str(original_text_raw)))

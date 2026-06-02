@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.153] - 2026-06-02
+
+### Added
+- **Smart Empty Lines Hiding & Gutter Highlight**:
+  - Implemented a smart empty lines collapse threshold inside `populate_strings_for_block` in `ui/updaters/preview_updater.py`. 
+  - Single or double consecutive empty lines are kept fully visible in the read-only preview panel to preserve minor paragraph breaks, whereas sequences of 3 or more empty lines are collapsed into a single placeholder: `[start-end] X empty line(s)`.
+  - Added regex-based early matching (`_PLACEHOLDER_PATTERN`) inside `JsonTagHighlighter.highlightBlock` (`utils/syntax_highlighter.py`). When the read-only preview panel encounters a collapsed empty lines placeholder, the entire line is instantly styled with a subtle dark gray color (`#888888`) and bypasses all other syntax formatting rules (such as bracket tags or spellchecking), keeping the preview clean and uncluttered.
+  - Added new regression and unit tests: `test_populate_strings_hide_empty_strings` in `test_small_updaters.py` and `test_JsonTagHighlighter_placeholder_highlighting` in `test_syntax_highlighter.py`.
+
 ## [0.2.152] - 2026-06-01
 
 ### Fixed

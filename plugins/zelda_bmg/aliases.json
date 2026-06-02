@@ -7,5 +7,7 @@
     "{(L)}": "{escape:0:000d}",
     "{(A)}": "{escape:0:000a}",
     "{(B)}": "{escape:0:000b}",
-    "{(R)}": "{escape:0:000e}"
+    "{(R)}": "{escape:0:000e}",
+    "{F:Epona}": "{escape:0:0022}",
+    "{pause2}": "{escape:0:0007003c}"
 }

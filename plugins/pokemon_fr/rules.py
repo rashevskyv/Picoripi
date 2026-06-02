@@ -3,7 +3,7 @@ from collections import OrderedDict
 from PyQt5.QtGui import QTextCharFormat, QColor, QFont
 from plugins.base_game_rules import BaseGameRules
 from .config import (PROBLEM_DEFINITIONS, DEFAULT_AUTOFIX_SETTINGS, DEFAULT_DETECTION_SETTINGS, DEFAULT_TAG_MAPPINGS_POKEMON_FR, 
-                     P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER, CONTROL_CODES)
+                     P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER, CONTROL_CODES, PROBLEM_BAD_SPACING)
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
@@ -124,6 +124,11 @@ class GameRules(BaseGameRules):
     def get_default_tag_mappings(self) -> Dict[str, str]:
         return DEFAULT_TAG_MAPPINGS_POKEMON_FR
 
+    def get_short_problem_name(self, problem_id: str) -> str:
+        if problem_id == PROBLEM_BAD_SPACING:
+            return "Spacing"
+        return super().get_short_problem_name(problem_id)
+
     def analyze_subline(self,
                         text: str,
                         next_text: Optional[str],
@@ -154,4 +159,6 @@ class GameRules(BaseGameRules):
         )
 
     def process_pasted_segment(self, segment_to_insert: str, *args, **kwargs) -> Tuple[str, str, str]:
-        return segment_to_insert, "OK", ""
+        from utils.utils import clean_spaces
+        cleaned_segment = clean_spaces(segment_to_insert)
+        return cleaned_segment, "OK", ""

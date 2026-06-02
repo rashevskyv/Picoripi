@@ -126,6 +126,8 @@ class MainWindowEventHandler:
             self.mw.search_panel_widget.close_requested.connect(self.mw.helper.hide_search_panel)
             self.mw.search_panel_widget.find_next_requested.connect(self.mw.helper.handle_panel_find_next)
             self.mw.search_panel_widget.find_previous_requested.connect(self.mw.helper.handle_panel_find_previous)
+            if hasattr(self.mw.search_panel_widget, 'advanced_search_requested'):
+                self.mw.search_panel_widget.advanced_search_requested.connect(self.mw.helper.open_advanced_search)
         
         if hasattr(self.mw, 'ai_translate_button') and self.mw.ai_translate_button:
             self.mw.ai_translate_button.clicked.connect(self.mw.translation_handler.translate_current_string)
@@ -161,6 +163,8 @@ class MainWindowEventHandler:
             self.mw.hide_categorized_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_categorized)
         if hasattr(self.mw, 'hide_empty_strings_checkbox'):
             self.mw.hide_empty_strings_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_empty_strings)
+        if hasattr(self.mw, 'hide_translated_checkbox'):
+            self.mw.hide_translated_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translated)
 
     def keyPressEvent(self, event: QKeyEvent):
         super(self.mw.__class__, self.mw).keyPressEvent(event)

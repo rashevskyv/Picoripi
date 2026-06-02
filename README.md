@@ -1,6 +1,6 @@
-# Picoripi v0.2.152
+# Picoripi v0.2.153
  
-The "Picoripi" (v0.2.152) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The "Picoripi" (v0.2.153) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
 
 ## Features
 
@@ -86,6 +86,7 @@ The "Picoripi" (v0.2.152) is a desktop application built with **Python** and **P
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
 - **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
 - **Global Performance Toggles**: Enable or disable heavy systems (Live BFN Dialog Preview, real-time warning scans, and glossary matches) inside the Global Settings tab. Bypassing these subsystems completely eliminates typing lag (input latency) during rapid text entry on any hardware.
+- **Smart Empty Lines Collapse**: When "Hide empty strings" is enabled, single or double consecutive empty lines are kept fully visible, while sequences of 3 or more empty lines are collapsed into a clean, dark gray (`#888888`) placeholder `[start-end] X empty line(s)` to optimize visual space without hiding minor layout breaks.
 - **Double-Click Line Sync**: Double-clicking the line number area in any translation editor instantly scrolls and highlights the currently edited string inside the "Strings in block" preview panel.
 - **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
 - **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).

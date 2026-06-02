@@ -7,12 +7,85 @@ from .logging_utils import log_debug
 
 SPACE_DOT_SYMBOL = "·"
 ALL_TAGS_PATTERN = re.compile(r'\[[^\]]*\]|\{[^}]*\}|' + re.escape(P_VISUAL_EDITOR_MARKER) + r'|' + re.escape(L_VISUAL_EDITOR_MARKER))
+FORCED_ALIAS_PATTERN = re.compile(r'\{[Ff]:([^}]*)\}')
 DEFAULT_CHAR_WIDTH_FALLBACK = 6
 
 def remove_all_tags(text: str) -> str:
     if text is None:
         return ""
+    text = FORCED_ALIAS_PATTERN.sub(r"\1", text)
     return ALL_TAGS_PATTERN.sub("", text)
+
+def clean_spaces(text: str) -> str:
+    if text is None:
+        return ""
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    
+    # Регулярний вираз для порожніх початкових/кінцевих тегів (фігурні теги або колірні квадратні теги)
+    empty_tags_subpattern = r"(?:\{(?!f:|F:)[^}]*\}|\[(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|/C)\])*"
+    leading_space_pat = re.compile(rf"^{empty_tags_subpattern}[ ·]")
+    trailing_space_pat = re.compile(rf"[ ·]{empty_tags_subpattern}$")
+    
+    non_forced_tags_pattern = re.compile(
+        r'\[[^\]]*\]|\{(?!f:|F:)[^}]*\}|' +
+        re.escape(P_VISUAL_EDITOR_MARKER) + r'|' +
+        re.escape(L_VISUAL_EDITOR_MARKER)
+    )
+    
+    for line in lines:
+        parts = re.split(f"({non_forced_tags_pattern.pattern})", line)
+        
+        # 1. Strip leading spaces: if line starts with leading space (optionally after empty tags), strip across tags.
+        starts_with_space = bool(leading_space_pat.match(line))
+        if starts_with_space:
+            for i in range(0, len(parts), 2):
+                stripped = parts[i].lstrip(" ")
+                if stripped:
+                    parts[i] = stripped
+                    break
+                else:
+                    parts[i] = ""
+        elif parts:
+            parts[0] = parts[0].lstrip(" ")
+            
+        # 2. Strip trailing spaces: if line ends with trailing space (optionally before empty tags), strip across tags.
+        ends_with_space = bool(trailing_space_pat.search(line))
+        if ends_with_space:
+            start_idx = len(parts) - 1 if len(parts) % 2 != 0 else len(parts) - 2
+            for i in range(start_idx, -1, -2):
+                stripped = parts[i].rstrip(" ")
+                if stripped:
+                    parts[i] = stripped
+                    break
+                else:
+                    parts[i] = ""
+        elif len(parts) % 2 != 0 and parts:
+            parts[-1] = parts[-1].rstrip(" ")
+            
+        # 3. Collapse consecutive spaces inside each text part
+        for i in range(len(parts)):
+            if i % 2 == 0:
+                parts[i] = re.sub(r' {2,}', ' ', parts[i])
+                
+        # 4. Collapse consecutive spaces across tags (skipping empty parts)
+        last_ended_with_space = False
+        if parts:
+            if parts[0]:
+                last_ended_with_space = parts[0].endswith(" ")
+            
+            for i in range(2, len(parts), 2):
+                if parts[i].startswith(" "):
+                    if last_ended_with_space:
+                        parts[i] = parts[i].lstrip(" ")
+                
+                if parts[i]:
+                    last_ended_with_space = parts[i].endswith(" ")
+                
+        cleaned_lines.append("".join(parts))
+        
+    return "\n".join(cleaned_lines)
 
 class TrieNode:
     __slots__ = ('children', 'width', 'length')
@@ -247,6 +320,7 @@ def convert_dots_to_spaces_from_editor(text: str) -> str:
 def remove_curly_tags(text: str) -> str:
     if text is None:
         return ""
+    text = FORCED_ALIAS_PATTERN.sub(r"\1", text)
     return re.sub(r"\{[^}]*\}", "", text)
 
 def convert_raw_to_display_text(raw_text: str, show_dots: bool, newline_char_for_preview: str = "") -> str:
@@ -264,8 +338,8 @@ def prepare_text_for_tagless_search(text: str, keep_original_case: bool = False)
     if text is None:
         return ""
     
-    # Remove all bracket and curly tags
-    no_tags_text = ALL_TAGS_PATTERN.sub("", text)
+    # Remove all bracket and curly tags (correctly replacing forced aliases with their words)
+    no_tags_text = remove_all_tags(text)
     
     # Replace Zelda-style '+' separators with spaces
     text_with_normalized_plus = no_tags_text.replace('+', ' ')

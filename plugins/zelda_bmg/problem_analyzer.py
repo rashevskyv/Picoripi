@@ -82,10 +82,14 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                 problems_per_subline[line_idx].add(self.problem_ids.PROBLEM_EMPTY_FIRST_LINE_OF_PAGE)
         
         limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
+        if not isinstance(limit, (int, float)):
+            limit = threshold
         for i, subline in enumerate(sublines):
             pixel_width_subline = self._calculate_width(subline.rstrip(), font_map)
             if pixel_width_subline > limit:
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
+            if self._check_bad_spacing(subline):
+                problems_per_subline[i].add(self.problem_ids.PROBLEM_BAD_SPACING)
             next_subline = sublines[i + 1] if i + 1 < len(sublines) else None
             if next_subline is not None:
                 if self._check_short_line_zbmg(subline, next_subline, font_map, threshold):

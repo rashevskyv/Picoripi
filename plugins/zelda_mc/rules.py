@@ -18,7 +18,8 @@ from .config import (
     PROBLEM_SINGLE_WORD_SUBLINE,
     PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
     COLOR_MARKER_DEFINITIONS,
-    CONTROL_CODES
+    CONTROL_CODES,
+    PROBLEM_BAD_SPACING
 )
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
@@ -33,6 +34,7 @@ class ProblemIDs:
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
     PROBLEM_SINGLE_WORD_SUBLINE = PROBLEM_SINGLE_WORD_SUBLINE
     PROBLEM_SINGLE_WORD_SUBLINE_NON_START = PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    PROBLEM_BAD_SPACING = PROBLEM_BAD_SPACING
 
 class GameRules(BaseGameRules):
 
@@ -91,6 +93,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE: return "1Word"
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
         if problem_id == PROBLEM_TAG_WARNING: return "Tag"
+        if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
         return super().get_short_problem_name(problem_id)
 
     def get_plugin_actions(self) -> List[Dict[str, Any]]:
@@ -196,8 +199,10 @@ class GameRules(BaseGameRules):
                                segment_to_insert: str,
                                original_text_for_tags: str,
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
+        from utils.utils import clean_spaces
+        cleaned_segment = clean_spaces(segment_to_insert)
         return process_segment_tags_aggressively_zmc(
-            segment_to_insert,
+            cleaned_segment,
             original_text_for_tags,
             editor_player_tag_const
         )

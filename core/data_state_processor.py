@@ -264,13 +264,20 @@ class DataStateProcessor:
             # Fast update for original and edited text views
             self.mw.ui_updater.update_text_views()
 
-    def perform_revert_strings(self, block_idx: int, string_indices: List[int], confirm: bool = True) -> None:
+    def perform_revert_strings(self, block_idx: int, string_indices: List[Any], confirm: bool = True) -> None:
         """Unified revert function with optional confirmation and UI updates."""
         if not string_indices or block_idx == -1: return
         
+        is_chapter_revert = False
+        if block_idx == -2 or (string_indices and isinstance(string_indices[0], tuple)):
+            is_chapter_revert = True
+
         if confirm:
             num = len(string_indices)
-            msg = f"Revert {num} string(s) in this block to original?" if num > 1 else "Revert this string to original?"
+            if is_chapter_revert:
+                msg = f"Revert {num} string(s) in this chapter to original?" if num > 1 else "Revert this string to original?"
+            else:
+                msg = f"Revert {num} string(s) in this block to original?" if num > 1 else "Revert this string to original?"
             reply = QMessageBox.question(
                 self.mw, 'Revert to Original', 
                 msg + "\n\nUnsaved changes for these strings will be lost.",
@@ -278,11 +285,44 @@ class DataStateProcessor:
             )
             if reply == QMessageBox.No: return
             
-        self.revert_strings_to_original(block_idx, string_indices)
+        if is_chapter_revert:
+            # Group strings by block_idx
+            grouped = {}
+            for item in string_indices:
+                if isinstance(item, tuple) and len(item) == 2:
+                    b_idx, s_idx = item
+                else:
+                    b_idx = block_idx
+                    s_idx = item
+                grouped.setdefault(b_idx, []).append(s_idx)
+            
+            # Perform revert for each block
+            has_undo = hasattr(self.mw, 'undo_manager')
+            if has_undo:
+                self.mw.undo_manager.begin_group()
+            try:
+                for b_idx, s_indices in grouped.items():
+                    self.revert_strings_to_original(b_idx, s_indices)
+            finally:
+                if has_undo:
+                    self.mw.undo_manager.end_group("REVERT")
+            
+            # Refresh tree items and chapter preview
+            if hasattr(self.mw, 'ui_updater'):
+                for b_idx in grouped.keys():
+                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                # Re-populate preview for chapter (-2)
+                self.mw.ui_updater.populate_strings_for_block(-2, force=True)
+                self.mw.ui_updater.update_text_views()
+        else:
+            self.revert_strings_to_original(block_idx, string_indices)
         
         if hasattr(self.mw, 'statusBar'):
             if len(string_indices) == 1:
-                self.mw.statusBar.showMessage(f"String {string_indices[0] + 1} reverted to original.", 2000)
+                if is_chapter_revert:
+                    self.mw.statusBar.showMessage("String reverted to original.", 2000)
+                else:
+                    self.mw.statusBar.showMessage(f"String {string_indices[0] + 1} reverted to original.", 2000)
             else:
                 self.mw.statusBar.showMessage(f"{len(string_indices)} strings reverted to original.", 2000)
 

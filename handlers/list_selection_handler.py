@@ -902,6 +902,12 @@ class ListSelectionHandler(BaseHandler):
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
 
+    def toggle_hide_translated(self, checked: bool) -> None:
+        """Toggle hiding of translated strings in preview list."""
+        self.mw.data_store.hide_translated = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+
     def scroll_to_current_string_in_preview(self) -> None:
         """Scroll and focus the preview text edit to the currently selected string."""
         preview_edit = getattr(self.mw, 'preview_text_edit', None)

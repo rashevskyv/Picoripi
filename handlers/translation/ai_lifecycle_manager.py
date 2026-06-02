@@ -117,6 +117,13 @@ class AILifecycleManager(BaseTranslationHandler):
         self.is_ai_running = False
         self.main_handler.is_ai_running = False
 
+        # If the status dialog is still active (running), close it cleanly now that the thread has fully finished
+        if hasattr(self.main_handler.ui_handler, 'status_dialog'):
+            dialog = self.main_handler.ui_handler.status_dialog
+            if getattr(dialog, 'is_running', False):
+                success = not getattr(dialog, 'user_cancelled', False)
+                self.main_handler.ui_handler.finish_ai_operation(success=success)
+
         if self._retry_context and not self._is_waiting_retry_delay:
             log_debug("AILifecycleManager: A retry context was found. Initiating immediate retry.")
             self._perform_retry()
@@ -164,7 +171,7 @@ class AILifecycleManager(BaseTranslationHandler):
         )
 
         if task_type in ['fill_glossary', 'glossary_occurrence_update', 'glossary_occurrence_batch_update', 'glossary_notes_variation']:
-            self.main_handler.ui_handler.finish_ai_operation()
+            self.main_handler.ui_handler.finish_ai_operation(success=False)
             if task_type == 'fill_glossary':
                 self.main_handler.glossary_handler._handle_ai_fill_error(error_message, context)
             elif task_type in ['glossary_occurrence_update', 'glossary_occurrence_batch_update']:
@@ -249,7 +256,7 @@ class AILifecycleManager(BaseTranslationHandler):
                     # Fall through to the final failure handling below
                     pass
 
-        self.main_handler.ui_handler.finish_ai_operation()
+        self.main_handler.ui_handler.finish_ai_operation(success=False)
         failure_message = f"Operation failed after {max_attempts} attempts while processing {mode}.\n\nLast error: {error_message}"
         QMessageBox.critical(self.mw, "AI Operation Failed", failure_message)
 
@@ -324,6 +331,6 @@ class AILifecycleManager(BaseTranslationHandler):
             QTimer.singleShot(0, lambda: self.main_handler._initiate_batch_translation(retry_context))
         else:
             log_warning(f"A retry was requested for an unhandled task type: {task_type}")
-            self.main_handler.ui_handler.finish_ai_operation()
+            self.main_handler.ui_handler.finish_ai_operation(success=False)
             QMessageBox.critical(self.mw, "AI Operation Failed", f"Retry logic not implemented for task '{task_type}'.")
 

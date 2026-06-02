@@ -13,6 +13,7 @@ PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY = "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY"
 PROBLEM_SINGLE_WORD_SUBLINE = "ZBMG_SINGLE_WORD_SUBLINE" 
 PROBLEM_SINGLE_WORD_SUBLINE_NON_START = "ZBMG_SINGLE_WORD_SUBLINE_NON_START"
 PROBLEM_EMPTY_FIRST_LINE_OF_PAGE = "ZBMG_EMPTY_FIRST_LINE_OF_PAGE"
+PROBLEM_BAD_SPACING = "ZBMG_BAD_SPACING"
 
 PRIORITY_TAG_CRITICAL = 1 
 PRIORITY_TAG_WARNING = 2
@@ -81,6 +82,12 @@ PROBLEM_DEFINITIONS = {
         "color": COLOR_EMPTY_FIRST_LINE,
         "priority": PRIORITY_EMPTY_FIRST_LINE,
         "description": "The first line of a 4-line page is empty, but subsequent lines on the page are not."
+    },
+    PROBLEM_BAD_SPACING: {
+        "name": "Bad Spacing",
+        "color": COLOR_WARNING_TAG,
+        "priority": PRIORITY_TAG_WARNING,
+        "description": "Double spaces or line starting with a space (ignoring tags)."
     }
 }
 
