@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.155] - 2026-06-02
+
+### Added
+- **Archive Size Verification Warning**:
+  - Implemented automatic file size checking for all modified archives against their original counterparts during native packing inside `core/data_state_processor.py`.
+  - Added a visual warning popup (`QMessageBox.warning`) that alerts the user if any packed translation archive exceeds the original on-disk size, prompting them to shorten translation strings to avoid ROM crashes and truncation.
+  - Added unit test validation coverage inside `test_data_state_processor_native_packing.py`.
+
 ## [0.2.154] - 2026-06-02
 
 ### Added

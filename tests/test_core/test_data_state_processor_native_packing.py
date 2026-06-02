@@ -100,3 +100,61 @@ def test_save_current_edits_native_packing():
          
          # Verify issues cache saving was triggered
          mw.issue_scan_handler._save_issues_cache.assert_called_once()
+
+
+def test_save_current_edits_native_packing_exceeds_size():
+    mw = MagicMock()
+    mw.data_store = mw
+    mw.data_store.data = [["original_0_0"]]
+    mw.data_store.edited_file_data = []
+    mw.data_store.edited_data = {(0, 0): "translated_0_0"}
+    mw.data_store.block_names = {0: "Block0"}
+    mw.data_store.unsaved_changes = True
+    mw.data_store.unsaved_block_indices = {0}
+    mw.data_store.current_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.data_store.json_path = "original.json"
+    mw.data_store.edited_json_path = "edited.json"
+    mw.issue_scan_handler = MagicMock()
+
+    mw.project_manager = MagicMock()
+    mw.project_manager.project = MagicMock()
+    mock_block = MagicMock()
+    mock_block.translation_file = ".extracted/translation/bmgres.arc/zel_unit.bmg"
+    mw.project_manager.project.blocks = [mock_block]
+    mw.block_to_project_file_map = {0: 0}
+
+    mw.current_game_rules = MagicMock()
+    mw.current_game_rules.original_keys = ["key0"]
+    mw.current_game_rules.save_data_to_json_obj.return_value = b"NEW_BMG_BYTES"
+    mw.current_game_rules.load_data_from_json_obj.return_value = (mw.data_store.data, None)
+
+    def mock_get_absolute_path(rel_path, is_translation=False):
+        return f"C:/Temp/project/translation/{rel_path}"
+    mw.project_manager.get_absolute_path.side_effect = mock_get_absolute_path
+
+    mock_container = MagicMock()
+    mock_container.pack.return_value = b"PACKED_ARC_BYTES_OF_SIZE_16" # 27 bytes
+    mw.project_manager.get_archive_container.return_value = mock_container
+
+    dsp = DataStateProcessor(mw)
+
+    with patch("core.containers.ContainerManager.open") as mock_cm_open, \
+         patch("bmg_tool.BMGFile") as mock_bmg_file, \
+         patch("core.data_state_processor.Path") as mock_path, \
+         patch("PyQt5.QtWidgets.QMessageBox.warning") as mock_warning:
+
+         mock_path_instance = MagicMock()
+         mock_path_instance.exists.return_value = True
+         # Mock original size to be 10 bytes (smaller than 27 bytes of packed bytes)
+         mock_path_instance.stat.return_value.st_size = 10
+         mock_path.return_value = mock_path_instance
+
+         result = dsp.save_current_edits(ask_confirmation=False)
+
+         assert result is True
+         # QMessageBox warning popup must be triggered
+         mock_warning.assert_called_once()
+         args, kwargs = mock_warning.call_args
+         assert "Archive Size Warning" in args
+         assert "exceeds the original archive size" in args[2]
