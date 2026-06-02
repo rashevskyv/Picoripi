@@ -53,7 +53,8 @@
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": false,
         "ZBMG_SINGLE_WORD_SUBLINE": false,
         "ZBMG_SINGLE_WORD_SUBLINE_NON_START": false,
-        "ZBMG_SHORT_LINE": false
+        "ZBMG_SHORT_LINE": false,
+        "ZBMG_BAD_SPACING": true
     },
     "detection_enabled": {
         "ZBMG_TAG_WARNING": true,
@@ -63,7 +64,8 @@
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": true,
         "ZBMG_SINGLE_WORD_SUBLINE": true,
         "ZBMG_SINGLE_WORD_SUBLINE_NON_START": true,
-        "ZBMG_SHORT_LINE": true
+        "ZBMG_SHORT_LINE": true,
+        "ZBMG_BAD_SPACING": true
     },
     "translation_config": {},
     "context_menu_tags": {

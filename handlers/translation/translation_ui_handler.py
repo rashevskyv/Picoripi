@@ -197,8 +197,8 @@ class TranslationUIHandler(BaseTranslationHandler):
     def update_ai_operation_step(self, step_index: int, text: str, status: int):
         self.status_dialog.update_step(step_index, text, status)
 
-    def finish_ai_operation(self):
-        self.status_dialog.finish()
+    def finish_ai_operation(self, success: bool = True):
+        self.status_dialog.finish(success)
         self._set_ai_controls_enabled(True)
 
     def merge_session_instructions(self, instructions: str, message: str) -> str:

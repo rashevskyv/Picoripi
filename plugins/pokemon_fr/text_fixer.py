@@ -105,4 +105,6 @@ class TextFixer(GenericTextFixer):
                 modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold)
             if modified_text == text_before_pass:
                 break
-        return modified_text, modified_text != original_text
+        from utils.utils import clean_spaces
+        final_text = clean_spaces(modified_text)
+        return final_text, final_text != original_text

@@ -5,7 +5,7 @@ from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to
 from plugins.common.text_fixer import GenericTextFixer
 
 WORD_CHAR_PATTERN_ZMC = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
-ANY_TAG_RE_PATTERN_ZMC = r"(\{[^}]*\}|\[[^\]]*\])"
+ANY_TAG_RE_PATTERN_ZMC = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
 COLOR_WHITE_TAG_PATTERN_ZMC = re.compile(r"\{Color:White\}", re.IGNORECASE)
 PUNCTUATION_PATTERN_ZMC = re.compile(r"^[,\.!?]$")
 
@@ -190,4 +190,8 @@ class TextFixer(GenericTextFixer):
         final_text, changed4 = self._cleanup_spaces_around_tags_zmc(splitted_text)
         final_text, changed5 = self._fix_leading_spaces_in_sublines_zmc(final_text)
         
-        return final_text, (changed1 or changed2 or changed3 or changed4 or changed5)
+        from utils.utils import clean_spaces
+        cleaned_text = clean_spaces(final_text)
+        changed6 = cleaned_text != final_text
+        
+        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6)

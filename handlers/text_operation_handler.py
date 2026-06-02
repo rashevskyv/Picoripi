@@ -631,6 +631,9 @@ class TextOperationHandler(BaseHandler):
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("AUTOFIX")
 
+            # 1.1 Rescan issues for the fixed text so that UI updates with correct highlights immediately
+            self._rescan_issues_for_current_string(block_idx, string_idx, fixed_data)
+
             # 2. Cancel any pending debounce timer so it doesn't overwrite
             #    the just-saved data with the pre-fix editor text.
             if self.preview_update_timer.isActive():

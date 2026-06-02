@@ -49,6 +49,8 @@ class AIStatusDialog(QDialog):
         self.setMinimumWidth(450)
         self.setSizeGripEnabled(False)
         self.user_cancelled = False
+        self.is_running = False
+        self.operation_title = "AI Operation"
 
         self.steps = [
             "Preparing request...",
@@ -149,16 +151,24 @@ class AIStatusDialog(QDialog):
         self.reject()
 
     def reject(self):
-        self.user_cancelled = True
-        self.cancelled.emit()
-        super().reject()
-        restore_sleep()
+        if getattr(self, 'is_running', False):
+            self.user_cancelled = True
+            self.cancelled.emit()
+            self.title_label.setText("Cancelling AI Operation...")
+            self.detail_label.setText("Please wait for the current request to abort cleanly...")
+            self.detail_label.setVisible(True)
+            self.cancel_button.setEnabled(False)
+        else:
+            super().reject()
+            restore_sleep()
 
     def closeEvent(self, event: QEvent):
-        self.user_cancelled = True
-        self.cancelled.emit()
-        super().closeEvent(event)
-        restore_sleep()
+        if getattr(self, 'is_running', False):
+            event.ignore()
+            self.reject()
+        else:
+            super().closeEvent(event)
+            restore_sleep()
 
     def setup_progress_bar(self, total_chunks: int, completed_chunks: int = 0):
         self.progress_bar.setRange(0, total_chunks)
@@ -183,6 +193,9 @@ class AIStatusDialog(QDialog):
 
     def start(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
         self.user_cancelled = False
+        self.is_running = True
+        self.operation_title = title
+        self.cancel_button.setEnabled(True)
         self.title_label.setText(title)
         self._set_model_name(model_name)
         self.detail_label.clear()
@@ -206,14 +219,26 @@ class AIStatusDialog(QDialog):
 
         self.show()
 
-    def finish(self):
+    def finish(self, success: bool = True):
+        self.is_running = False
+        self.cancel_button.setEnabled(True)
         self._set_model_name(None)
         self.detail_label.clear()
         self.detail_label.setVisible(False)
         self.hide()
         
         restore_sleep()
-        if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False):
+        
+        # Show structured popup notification to the user (suppressed during unit tests)
+        import sys
+        if 'pytest' not in sys.modules:
+            from PyQt5.QtWidgets import QMessageBox
+            if getattr(self, 'user_cancelled', False):
+                QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} was cancelled.")
+            elif success:
+                QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} finished.")
+
+        if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False) and success:
             from PyQt5.QtCore import QTimer
             QTimer.singleShot(5000, put_to_sleep)
 

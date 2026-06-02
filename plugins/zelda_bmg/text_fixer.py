@@ -143,4 +143,6 @@ class TextFixer(GenericTextFixer):
             if not changed_merge and not changed_split:
                 break
         cleaned_text, _ = self._cleanup_spaces_around_tags_zbmg(modified_text)
-        return cleaned_text, cleaned_text != original_text
+        from utils.utils import clean_spaces
+        final_text = clean_spaces(cleaned_text)
+        return final_text, final_text != original_text

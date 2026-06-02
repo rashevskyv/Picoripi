@@ -123,6 +123,12 @@ class LayoutBuilder:
         self.mw.hide_empty_strings_checkbox.setCursor(Qt.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.hide_empty_strings_checkbox)
         
+        preview_header_layout.addSpacing(15)
+        self.mw.hide_translated_checkbox = QCheckBox("Hide translated")
+        self.mw.hide_translated_checkbox.setToolTip("Hide strings that have already been translated.")
+        self.mw.hide_translated_checkbox.setCursor(Qt.PointingHandCursor)
+        preview_header_layout.addWidget(self.mw.hide_translated_checkbox)
+        
         top_right_layout.addLayout(preview_header_layout)
         self.mw.preview_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.preview_text_edit.setObjectName("preview_text_edit")

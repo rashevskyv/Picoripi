@@ -98,7 +98,7 @@ class MainWindowHelper:
 
     def toggle_search_panel(self):
         if self.mw.search_panel_widget.isVisible():
-            self.hide_search_panel()
+            self.mw.search_panel_widget.focus_search_input()
         else:
             self.mw.search_panel_widget.setVisible(True)
             # Fix: added is_fuzzy to unpacking
@@ -116,6 +116,132 @@ class MainWindowHelper:
     def hide_search_panel(self):
         self.mw.search_panel_widget.setVisible(False)
         self.mw.search_handler.clear_all_search_highlights()
+
+    def open_advanced_search(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
+        try:
+            log_debug(f"MainWindowHelper: open_advanced_search called for Q='{query}'")
+            
+            block_idx = self.mw.data_store.current_block_idx
+            if block_idx == -1:
+                QMessageBox.warning(self.mw, "Advanced Search", "No active block selected.")
+                return
+
+            block_data = self.mw.data_store.data[block_idx]
+            if not isinstance(block_data, list):
+                return
+
+            edited_data = self.mw.data_store.edited_data
+            
+            all_translated_lines = []
+            for string_idx in range(len(block_data)):
+                text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+                if text is not None:
+                    all_translated_lines.append((string_idx, text))
+
+            # Filter lines that actually contain the query
+            text_parts = []
+            line_numbers = []
+
+            import re
+            if query:
+                if is_fuzzy:
+                    word_pattern = re.compile(r'\w+')
+                    from utils.utils import is_fuzzy_match
+                    for string_idx, text in all_translated_lines:
+                        text_with_spaces = text.replace('·', ' ')
+                        has_match = False
+                        for match in word_pattern.finditer(text_with_spaces):
+                            word = match.group(0)
+                            if is_fuzzy_match(query, word, threshold=0.75):
+                                has_match = True
+                                break
+                        if has_match:
+                            text_parts.append(text)
+                            subline_count = text.count('\n') + 1
+                            for _ in range(subline_count):
+                                line_numbers.append(string_idx)
+                else:
+                    compare_query = query if case_sensitive else query.lower()
+                    for string_idx, text in all_translated_lines:
+                        text_with_spaces = text.replace('·', ' ')
+                        compare_text = text_with_spaces if case_sensitive else text_with_spaces.lower()
+                        if compare_query in compare_text:
+                            text_parts.append(text)
+                            subline_count = text.count('\n') + 1
+                            for _ in range(subline_count):
+                                line_numbers.append(string_idx)
+            else:
+                # If query is empty, load all lines in the block
+                for string_idx, text in all_translated_lines:
+                    text_parts.append(text)
+                    subline_count = text.count('\n') + 1
+                    for _ in range(subline_count):
+                        line_numbers.append(string_idx)
+
+            if query and not text_parts:
+                QMessageBox.information(self.mw, "Advanced Search", f"No matches found for \"{query}\" in this block.")
+                return
+
+            text_to_check = '\n'.join(text_parts)
+            
+            from dialogs.search_review_dialog import SearchReviewDialog
+            dialog = SearchReviewDialog(self.mw, text_to_check, query,
+                                       starting_line_number=0, line_numbers=line_numbers,
+                                       case_sensitive=case_sensitive, is_fuzzy=is_fuzzy)
+
+            if dialog.exec_():
+                corrected_text = dialog.get_corrected_text()
+                corrected_lines = corrected_text.split('\n')
+
+                # Reconstruct multi-line strings using our ZIP logic
+                grouped_lines = {}
+                for line_text, s_idx in zip(corrected_lines, dialog.line_numbers):
+                    if s_idx is not None:
+                        if s_idx not in grouped_lines:
+                            grouped_lines[s_idx] = []
+                        grouped_lines[s_idx].append(line_text)
+
+                changes_made = False
+
+                undo_manager = getattr(self.mw, "undo_manager", None)
+                if undo_manager:
+                    undo_manager.begin_group()
+
+                for string_idx, lines_list in grouped_lines.items():
+                    new_text = '\n'.join(lines_list)
+                    old_text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+                    if new_text != old_text:
+                        key = (block_idx, string_idx)
+                        edited_data[key] = new_text
+                        changes_made = True
+                        
+                        # Restore subline asterisks if this is the currently edited string
+                        if string_idx == self.mw.data_store.current_string_idx:
+                            if hasattr(self.mw, 'text_operation_handler'):
+                                self.mw.text_operation_handler.sync_subline_asterisks(
+                                    block_idx, string_idx, new_text
+                                )
+
+                if undo_manager:
+                    undo_manager.end_group("ADVANCED_SEARCH_REPLACE")
+
+                if changes_made:
+                    self.mw.data_store.unsaved_changes = True
+                    self.mw.data_store.unsaved_block_indices.add(block_idx)
+                    
+                    if hasattr(self.mw, 'ui_updater'):
+                        self.mw.ui_updater.populate_strings_for_block(block_idx)
+                        self.mw.ui_updater.update_text_views()
+                        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+                        
+                    if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+                        if hasattr(self.mw.edited_text_edit, 'lineNumberArea'):
+                            self.mw.edited_text_edit.lineNumberArea.update()
+                            
+                    QMessageBox.information(self.mw, "Advanced Search", "Replacements applied successfully!")
+        except Exception as e:
+            log_error(f"MainWindowHelper: Error in open_advanced_search: {e}", exc_info=True)
+            QMessageBox.critical(self.mw, "Error", f"An error occurred: {e}")
 
     def load_all_data_for_path(self, original_file_path, manually_set_edited_path=None, is_initial_load_from_settings=False):
         self.mw.app_action_handler.load_all_data_for_path(original_file_path, manually_set_edited_path, is_initial_load_from_settings)

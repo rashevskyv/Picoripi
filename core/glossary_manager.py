@@ -572,7 +572,7 @@ class GlossaryManager:
         if not term:
             return re.compile(r"(?!x)x")
 
-        separator_pattern = r"(?:\s+|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
+        separator_pattern = r"(?:\s+|·|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
         
         parts = [p for p in re.split(r'\s+', term) if p]
         if not parts:
@@ -606,7 +606,7 @@ class GlossaryManager:
             return None
 
         patterns = []
-        sep = r"(?:\s+|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
+        sep = r"(?:\s+|·|[\u2028\u2029\u200B\u200C\u200D]|<[^>]+>|\{[^}]+\}|\[[^\]]+\])+"
 
         for var in variations:
             words = var.split()

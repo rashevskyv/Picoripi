@@ -15,7 +15,7 @@ from PyQt5.QtGui import (
 from PyQt5.QtWidgets import QWidget, QMainWindow
 
 from .logging_utils import log_debug
-from .utils import SPACE_DOT_SYMBOL
+from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor
 from plugins.common.markers import P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from core.glossary_manager import GlossaryManager, GlossaryMatch, GlossaryEntry
 
@@ -26,7 +26,13 @@ _COLOR_TAG_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+_PLACEHOLDER_PATTERN = re.compile(r"^\[\d+-\d+\] \d+ empty line\(s\)$")
+
 _WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
+
+_DOUBLE_SPACE_PATTERN = re.compile(r"[ ·]{2,}")
+_LEADING_SPACE_PATTERN = re.compile(r"^(?:\{(?!f:|F:)[^}]*\}|\[[^\]]*\])*([ ·]+)")
+_TAG_SPLIT_SPACE_PATTERN = re.compile(r"[ ·](?:\{(?!f:|F:)[^}]*\}|\[[^\]]*\])+[ ·]")
 
 class JsonTagHighlighter(QSyntaxHighlighter):
     class GlossaryBlockData(QTextBlockUserData):
@@ -95,7 +101,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self.space_dot_format = QTextCharFormat()
         self.p_marker_format = QTextCharFormat()
         self.l_marker_format = QTextCharFormat()
-
+        self.bad_spacing_format = QTextCharFormat()
+        self.placeholder_format = QTextCharFormat()
 
         self.red_text_format = QTextCharFormat()
         self.green_text_format = QTextCharFormat()
@@ -309,6 +316,19 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         except Exception:
             pass
 
+        # Configure bad spacing format (soft red background + red wavy underline)
+        self.bad_spacing_format = QTextCharFormat()
+        self.bad_spacing_format.setFontUnderline(True)
+        self.bad_spacing_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        if current_theme == 'dark':
+            self.bad_spacing_format.setBackground(QColor(255, 80, 80, 50))
+            self.bad_spacing_format.setUnderlineColor(QColor(255, 100, 100))
+        else:
+            self.bad_spacing_format.setBackground(QColor(255, 0, 0, 30))
+            self.bad_spacing_format.setUnderlineColor(QColor(255, 0, 0, 150))
+
+        self.placeholder_format.setForeground(QColor("#888888"))
+
         self.newline_char = newline_symbol
         mw_enabled = getattr(self.mw, 'glossary_enabled', True) if self.mw else True
         
@@ -393,7 +413,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self._translation_cache_revision = revision
         self._translation_matches_cache.clear()
 
-        source_text = self._source_editor_ref.toPlainText()
+        source_text_raw = self._source_editor_ref.toPlainText()
+        source_text = convert_dots_to_spaces_from_editor(source_text_raw)
         # Find entries that occur in the source document
         source_matches = self._glossary_manager.get_relevant_terms(source_text)
         if not source_matches:
@@ -551,6 +572,11 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             and hasattr(self._editor_widget_ref, 'objectName')
             and self._editor_widget_ref.objectName() == 'preview_text_edit'
         )
+        if _is_preview_widget and _PLACEHOLDER_PATTERN.match(text):
+            self.setFormat(0, len(text), self.placeholder_format)
+            self.setCurrentBlockState(self.STATE_DEFAULT)
+            return
+
         if _is_preview_widget:
             previous_color_state = self.STATE_DEFAULT
         else:
@@ -746,6 +772,23 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 if self.icon_sequence_format.fontWeight() != QFont.Normal:
                     combined_format.setFontWeight(self.icon_sequence_format.fontWeight())
                 self.setFormat(start, length, combined_format)
+
+        # Highlight bad spacing: double spaces, leading spaces, and spaces split by tags
+        # (Only in the editor text edits, not in preview_text_edit)
+        if _is_preview_widget is False:
+            # 1. Double spaces
+            for match in _DOUBLE_SPACE_PATTERN.finditer(text):
+                start, end = match.span()
+                self.setFormat(start, end - start, self.bad_spacing_format)
+            # 2. Leading spaces
+            for match in _LEADING_SPACE_PATTERN.finditer(text):
+                start, end = match.span(1)
+                self.setFormat(start, end - start, self.bad_spacing_format)
+            # 3. Tag split spaces
+            for match in _TAG_SPLIT_SPACE_PATTERN.finditer(text):
+                start, end = match.span()
+                self.setFormat(start, 1, self.bad_spacing_format)
+                self.setFormat(end - 1, 1, self.bad_spacing_format)
 
         # In preview_text_edit, never carry colour state to the next line.
         self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)

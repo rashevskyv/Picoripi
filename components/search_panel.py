@@ -8,6 +8,7 @@ import collections
 class SearchPanelWidget(QWidget):
     find_next_requested = pyqtSignal(str, bool, bool, bool, bool) # + is_fuzzy
     find_previous_requested = pyqtSignal(str, bool, bool, bool, bool) # + is_fuzzy
+    advanced_search_requested = pyqtSignal(str, bool, bool, bool, bool)
     close_requested = pyqtSignal()
 
     MAX_HISTORY_ITEMS = 20
@@ -31,10 +32,12 @@ class SearchPanelWidget(QWidget):
         
         self.find_next_button = QPushButton("Next", self)
         self.find_previous_button = QPushButton("Prev", self)
+        self.advanced_button = QPushButton("Advance", self)
         
         button_width = 75 
         self.find_next_button.setFixedWidth(button_width)
         self.find_previous_button.setFixedWidth(button_width)
+        self.advanced_button.setFixedWidth(button_width)
         
         self.case_sensitive_checkbox = QCheckBox("Aa", self)
         self.case_sensitive_checkbox.setToolTip("Case sensitive")
@@ -61,6 +64,7 @@ class SearchPanelWidget(QWidget):
         left_layout.addWidget(self.search_query_edit)
         left_layout.addWidget(self.find_previous_button)
         left_layout.addWidget(self.find_next_button)
+        left_layout.addWidget(self.advanced_button)
         
         options_layout = QHBoxLayout()
         options_layout.setSpacing(8)
@@ -77,6 +81,7 @@ class SearchPanelWidget(QWidget):
 
         self.find_next_button.clicked.connect(self._on_find_next)
         self.find_previous_button.clicked.connect(self._on_find_previous)
+        self.advanced_button.clicked.connect(self._on_advanced_clicked)
         self.search_query_edit.lineEdit().returnPressed.connect(self._on_find_next)
         self.search_query_edit.activated[str].connect(self._on_find_next_from_combobox_activation)
         self.close_search_panel_button.clicked.connect(self.close_requested)
@@ -140,6 +145,16 @@ class SearchPanelWidget(QWidget):
         if query:
             self._add_to_history(query)
             self.find_previous_requested.emit(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
+
+    def _on_advanced_clicked(self):
+        query = self.search_query_edit.currentText()
+        case_sensitive = self.case_sensitive_checkbox.isChecked()
+        search_in_original = self.search_in_original_checkbox.isChecked()
+        ignore_tags = self.ignore_tags_newlines_checkbox.isChecked()
+        is_fuzzy = self.fuzzy_search_checkbox.isChecked()
+        if query:
+            self._add_to_history(query)
+        self.advanced_search_requested.emit(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def get_search_parameters(self) -> tuple[str, bool, bool, bool, bool]:
         query = self.search_query_edit.currentText()

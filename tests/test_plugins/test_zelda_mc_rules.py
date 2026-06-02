@@ -57,14 +57,14 @@ def test_ZeldaMC_color_marker_definitions(rules):
     assert isinstance(defs, dict)
     assert len(defs) > 0
 
-@patch('plugins.zelda_mc.problem_analyzer.calculate_string_width', return_value=250)
+@patch('plugins.common.problem_analyzer.calculate_string_width', return_value=250)
 def test_ZeldaMC_analyze_subline_with_logical_limit(mock_calc, rules):
     # Width (250) exceeds editor threshold (200), but is less than logical limit (300)
     problems = rules.analyze_subline("test", None, 0, 0, True, {}, 200, "test", logical_hard_limit=300)
     # Since logical_hard_limit is 300 and width is 250, ZMC_WIDTH_EXCEEDED should NOT be triggered
     assert "ZMC_WIDTH_EXCEEDED" not in problems
 
-@patch('plugins.zelda_mc.problem_analyzer.calculate_string_width', return_value=250)
+@patch('plugins.common.problem_analyzer.calculate_string_width', return_value=250)
 def test_ZeldaMC_analyze_subline_exceeds_logical_limit(mock_calc, rules):
     # Width (250) exceeds both editor threshold (200) and logical limit (240)
     problems = rules.analyze_subline("test", None, 0, 0, True, {}, 200, "test", logical_hard_limit=240)

@@ -215,7 +215,9 @@ class AsyncIssueScanner(QRunnable):
             return []
         translation_matches: list = []
         try:
-            source_matches = self.glossary_manager.get_relevant_terms(self.source_text)
+            from utils.utils import convert_dots_to_spaces_from_editor
+            source_text_clean = convert_dots_to_spaces_from_editor(self.source_text)
+            source_matches = self.glossary_manager.get_relevant_terms(source_text_clean)
             for entry in source_matches:
                 if self.is_cancelled():
                     return translation_matches

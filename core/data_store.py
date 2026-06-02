@@ -34,6 +34,7 @@ class AppDataStore:
     # Virtual Block Display Options
     highlight_categorized: bool = False
     hide_categorized: bool = False
+    hide_translated: bool = False
     
     # Analysis & Problems
     problems_per_subline: Dict[int, Set[str]] = field(default_factory=dict)
@@ -61,6 +62,7 @@ class AppDataStore:
         self.chapter_mappings = []
         self.problems_per_subline = {}
         self.edited_sublines = set()
+        self.hide_translated = False
         log_debug("AppDataStore: Data cleared")
 
     def mark_dirty(self, block_idx: int):

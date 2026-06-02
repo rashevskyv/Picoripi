@@ -429,7 +429,22 @@ class TranslationHandler(BaseHandler):
         if start_line is None: return
 
         string_indices = list(range(start_line, end_line + 1))
-        source_items = [{"id": idx, "text": str(self.glossary_handler._get_original_string(block_idx, idx))} for idx in string_indices]
+        
+        displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+        source_items = []
+        temp_id_map = {}
+        for idx in string_indices:
+            if idx < len(displayed_indices):
+                real_idx = displayed_indices[idx]
+                if isinstance(real_idx, tuple):
+                    r_block_idx, r_string_idx = real_idx
+                else:
+                    r_block_idx = block_idx
+                    r_string_idx = real_idx
+                
+                text_raw = str(self.glossary_handler._get_original_string(r_block_idx, r_string_idx) or "")
+                source_items.append({"id": idx, "text": text_raw})
+                temp_id_map[idx] = (r_block_idx, r_string_idx)
 
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return
@@ -479,6 +494,7 @@ class TranslationHandler(BaseHandler):
                 {"role": "user", "content": edited_user}
             ],
             'placeholder_map': p_map,
+            'temp_id_map': temp_id_map,
         }
         self._initiate_batch_translation(task_details)
 
@@ -706,6 +722,8 @@ class TranslationHandler(BaseHandler):
         cleaned_text = text.replace('\n', ' ')
         # Normalize double/multiple spaces to single space
         cleaned_text = re.sub(r' +', ' ', cleaned_text).strip()
+        # Remove spaces immediately following leading tags
+        cleaned_text = re.sub(r'^((?:\{[^}]*\}|\[[^\]]*\])*)\s+', r'\1', cleaned_text)
         # Remove spaces between tags and punctuation marks (e.g. "{tag} ," -> "{tag},")
         cleaned_text = re.sub(r'(\{[^}]*\}|\[[^\]]*\])\s+([,\.!?;:…])', r'\1\2', cleaned_text)
 
@@ -886,6 +904,36 @@ class TranslationHandler(BaseHandler):
             page_strings.append("\n".join(page_lines))
 
         formatted_editor_text = shift_enter_char.join(page_strings)
+
+        # Clean each line: remove leading spaces and double spaces, treating regular tags
+        # {tag}/[tag] as zero-width (ignored for spacing purposes) but forced aliases
+        # {f:...}/{F:...} as actual text.
+        _token_re = re.compile(
+            r'(\{[fF]:[^}]*\})'           # group 1: forced alias → counts as text
+            r'|(\{(?![fF]:)[^}]*\}|\[[^\]]*\])'  # group 2: regular tag → zero-width
+            r'|( +)'                        # group 3: spaces
+            r'|([^ \{\[\]]+)'              # group 4: regular text
+        )
+        clean_lines = []
+        for raw_line in formatted_editor_text.split('\n'):
+            tokens = _token_re.findall(raw_line)
+            result = []
+            last_is_space = True   # True = no visible text seen yet (leading position)
+            for forced_alias, reg_tag, spaces, text in tokens:
+                if forced_alias or text:
+                    result.append(forced_alias if forced_alias else text)
+                    last_is_space = False
+                elif reg_tag:
+                    # Zero-width: keep in output but don't affect space state
+                    result.append(reg_tag)
+                elif spaces:
+                    if not last_is_space:
+                        # Not leading/consecutive → keep exactly one space
+                        result.append(' ')
+                        last_is_space = True
+                    # else: leading or double space after invisible tags → skip
+            clean_lines.append(''.join(result).rstrip())
+        formatted_editor_text = '\n'.join(clean_lines)
 
         # Convert to data format expected by update_edited_data
         final_data_text = formatted_editor_text
@@ -1078,7 +1126,7 @@ class TranslationHandler(BaseHandler):
                 self.ui_updater.update_block_item_text_with_problem_count(m_block)
 
             self.ui_updater.update_title()
-
+            
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
             
             current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
@@ -1136,22 +1184,66 @@ class TranslationHandler(BaseHandler):
             
             temp_id_map = context.get('temp_id_map')
             p_map = context.get('placeholder_map', {})
+            source_items = context.get('source_items', [])
             modified_blocks = set()
 
-            for item in translated_strings:
+            for idx_in_response, item in enumerate(translated_strings):
                 temp_id, translated_text = item["id"], item["translation"]
                 
-                # Restore placeholders
+                resolved_orig_id = None
+                if idx_in_response < len(source_items):
+                    orig_item = source_items[idx_in_response]
+                    if isinstance(orig_item, dict):
+                        resolved_orig_id = orig_item.get('id')
+                
+                # Restore placeholders using sequential mapping key first, fallback to temp_id
+                restore_key = resolved_orig_id if resolved_orig_id is not None else temp_id
                 if p_map:
-                    translated_text = self.prompt_composer.restore_placeholders(translated_text, p_map, key=temp_id)
+                    translated_text = self.prompt_composer.restore_placeholders(translated_text, p_map, key=restore_key)
                 else:
                     translated_text = self.prompt_composer.restore_placeholders(translated_text, None, key=None)
 
-                if temp_id_map and temp_id in temp_id_map:
-                    real_block_idx, real_string_idx = temp_id_map[temp_id]
-                else:
+                # 1. Try sequential order inside source_items first
+                resolved = False
+                if resolved_orig_id is not None:
+                    if temp_id_map and resolved_orig_id in temp_id_map:
+                        real_block_idx, real_string_idx = temp_id_map[resolved_orig_id]
+                        resolved = True
+                    elif not temp_id_map:
+                        real_block_idx = context['block_idx']
+                        real_string_idx = resolved_orig_id
+                        resolved = True
+
+                # 2. Fallback to mapping by ID in temp_id_map (with type-safe conversions)
+                if not resolved:
+                    if temp_id_map:
+                        try:
+                            int_id = int(temp_id)
+                            if int_id in temp_id_map:
+                                real_block_idx, real_string_idx = temp_id_map[int_id]
+                                resolved = True
+                        except (ValueError, TypeError):
+                            pass
+                        
+                        if not resolved:
+                            str_id = str(temp_id)
+                            if str_id in temp_id_map:
+                                real_block_idx, real_string_idx = temp_id_map[str_id]
+                                resolved = True
+                    else:
+                        try:
+                            real_block_idx = context['block_idx']
+                            real_string_idx = int(temp_id)
+                            resolved = True
+                        except (ValueError, TypeError):
+                            pass
+                
+                if not resolved:
                     real_block_idx = context['block_idx']
-                    real_string_idx = temp_id
+                    try:
+                        real_string_idx = int(temp_id)
+                    except (ValueError, TypeError):
+                        real_string_idx = temp_id
 
                 modified_blocks.add(real_block_idx)
                 final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
@@ -1161,6 +1253,11 @@ class TranslationHandler(BaseHandler):
                 self.mw.undo_manager.end_group("TRANSLATE")
 
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_text, response=response)
+
+            # Refresh tree indicators for all modified blocks once
+            for m_block in modified_blocks:
+                self.ui_updater.update_block_item_text_with_problem_count(m_block)
+
             self.ui_handler.finish_ai_operation()
             
             current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
