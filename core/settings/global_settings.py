@@ -86,7 +86,8 @@ class GlobalSettings:
             "mempalace_selected_blocks": [],
             "mempalace_builder_width": 650,
             "mempalace_builder_height": 500,
-            "log_ai_traffic": False
+            "log_ai_traffic": False,
+            "show_force_alias_warning": True
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -229,7 +230,8 @@ class GlobalSettings:
             "mempalace_selected_blocks": settings_dict.get("mempalace_selected_blocks", []),
             "mempalace_builder_width": settings_dict.get("mempalace_builder_width", 650),
             "mempalace_builder_height": settings_dict.get("mempalace_builder_height", 500),
-            "log_ai_traffic": False if type(getattr(self.mw, 'log_ai_traffic', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'log_ai_traffic', False))
+            "log_ai_traffic": False if type(getattr(self.mw, 'log_ai_traffic', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'log_ai_traffic', False)),
+            "show_force_alias_warning": True if type(getattr(self.mw, 'show_force_alias_warning', True)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'show_force_alias_warning', True))
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

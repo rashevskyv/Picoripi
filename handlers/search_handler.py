@@ -248,8 +248,15 @@ class SearchHandler(BaseHandler):
                 iterator += 1
         
         if self.mw.data_store.current_string_idx != string_idx_match_in_data or self.mw.data_store.current_block_idx != block_idx_match_in_data:
-             self.mw.list_selection_handler.string_selected_from_preview(string_idx_match_in_data)
+            self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
         QApplication.processEvents()
+
+        # Get relative index for preview_text_edit highlights
+        displayed_indices = self.mw.list_selection_handler._get_displayed_indices()
+        rel_idx = string_idx_match_in_data
+        if displayed_indices and string_idx_match_in_data in displayed_indices:
+            rel_idx = displayed_indices.index(string_idx_match_in_data)
+
 
         if was_search_tagless_and_newline_agnostic:
             temp_query_for_words = self.current_query
@@ -267,8 +274,8 @@ class SearchHandler(BaseHandler):
                     continue
 
                 found_overall_match_in_editor = False
-                qtextblock_start_idx = string_idx_match_in_data if editor == self.mw.preview_text_edit else 0
-                qtextblock_end_idx = string_idx_match_in_data if editor == self.mw.preview_text_edit else editor.document().blockCount() - 1
+                qtextblock_start_idx = rel_idx if editor == self.mw.preview_text_edit else 0
+                qtextblock_end_idx = rel_idx if editor == self.mw.preview_text_edit else editor.document().blockCount() - 1
 
                 for current_widget_qblock_idx in range(qtextblock_start_idx, qtextblock_end_idx + 1):
                     widget_block = editor.document().findBlockByNumber(current_widget_qblock_idx)
@@ -384,7 +391,7 @@ class SearchHandler(BaseHandler):
             log_debug(f"PreciseSearch: Match is the {occurrence_in_qtextblock_raw}-th occ in its raw QTextBlock.")
 
             editors_to_process_precise = [
-                (self.mw.preview_text_edit, True, string_idx_match_in_data),
+                (self.mw.preview_text_edit, True, rel_idx),
                 (self.mw.original_text_edit, False, target_qtextblock_idx_in_editor),
                 (self.mw.edited_text_edit, False, target_qtextblock_idx_in_editor)
             ]

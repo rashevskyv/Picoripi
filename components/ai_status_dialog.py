@@ -219,7 +219,7 @@ class AIStatusDialog(QDialog):
 
         self.show()
 
-    def finish(self, success: bool = True):
+    def finish(self, success: bool = True, show_popup: bool = True):
         self.is_running = False
         self.cancel_button.setEnabled(True)
         self._set_model_name(None)
@@ -231,7 +231,7 @@ class AIStatusDialog(QDialog):
         
         # Show structured popup notification to the user (suppressed during unit tests)
         import sys
-        if 'pytest' not in sys.modules:
+        if 'pytest' not in sys.modules and show_popup:
             from PyQt5.QtWidgets import QMessageBox
             if getattr(self, 'user_cancelled', False):
                 QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} was cancelled.")

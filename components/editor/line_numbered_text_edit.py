@@ -129,6 +129,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.tag_helpers = LNETTagHelpers(self)
         self.hi_wrappers = LNETHighlightWrappers(self)
         self.keyboard_handler = LNETKeyboardHandler(self)
+        self.custom_double_click_handler = None
 
         lnet_editor_setup.update_auxiliary_widths(self)
         self.highlightManager.update_zebra_stripes()
@@ -247,7 +248,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         # so rehighlight() did nothing at that time.
         if text and hasattr(self, 'highlighter') and self.highlighter:
             highlighter = self.highlighter
-            if getattr(highlighter, '_glossary_enabled', False):
+            if getattr(highlighter, '_glossary_enabled', False) or getattr(highlighter, '_is_translation_mode', False):
                 highlighter.rehighlight()
         # Defer guideline recalculation so Qt has time to finalize block layouts.
         # Without this, QTextBlock.layout().lineAt() returns invalid lines immediately
@@ -580,6 +581,15 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
     def super_mouseReleaseEvent(self, event: QMouseEvent):
         super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent):
+        if self.custom_double_click_handler:
+            self.custom_double_click_handler(event)
+        else:
+            super().mouseDoubleClickEvent(event)
+
+    def super_mouseDoubleClickEvent(self, event: QMouseEvent):
+        super().mouseDoubleClickEvent(event)
 
     def _get_icon_sequences(self) -> List[str]:
         if self.objectName() == 'preview_text_edit':

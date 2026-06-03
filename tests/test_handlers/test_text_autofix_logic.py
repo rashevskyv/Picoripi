@@ -156,6 +156,20 @@ def test_TextAutofixLogic_fix_blue_sublines_corner(mock_autofix, mock_mw):
 def test_TextAutofixLogic_cleanup_spaces_corner(mock_autofix, mock_mw):
     assert mock_autofix._cleanup_spaces_around_tags("{Color:White} ,") == "{Color:White},"
     assert mock_autofix._cleanup_spaces_around_tags("no spaces here") == "no spaces here"
+    
+    # Spaces before words for white/closing tags should be preserved
+    assert mock_autofix._cleanup_spaces_around_tags("{Color:White} word") == "{Color:White} word"
+    assert mock_autofix._cleanup_spaces_around_tags("{color:white} word") == "{color:white} word"
+    assert mock_autofix._cleanup_spaces_around_tags("{escape:255:000000} word") == "{escape:255:000000} word"
+    assert mock_autofix._cleanup_spaces_around_tags("{color_default} word") == "{color_default} word"
+
+    # Spaces before punctuation for white/closing tags should be removed
+    assert mock_autofix._cleanup_spaces_around_tags("{Color:White} ,") == "{Color:White},"
+    assert mock_autofix._cleanup_spaces_around_tags("{escape:255:000000} .") == "{escape:255:000000}."
+    assert mock_autofix._cleanup_spaces_around_tags("{color_default} !") == "{color_default}!"
+
+    # Spaces after non-white tags before words should be removed
+    assert mock_autofix._cleanup_spaces_around_tags("{Color:Red} word") == "{Color:Red}word"
 
 @patch('PyQt5.QtWidgets.QMessageBox.warning')
 def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix, mock_mw):

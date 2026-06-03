@@ -9,5 +9,12 @@
     "{(B)}": "{escape:0:000b}",
     "{(R)}": "{escape:0:000e}",
     "{F:Epona}": "{escape:0:0022}",
-    "{pause2}": "{escape:0:0007003c}"
+    "{pause2}": "{escape:0:0007003c}",
+    "{color:green}": "{escape:255:000002}",
+    "{F:◄}": "{escape:0:0014}",
+    "{F:▼}": "{escape:0:0017}",
+    "{(analog stick)}": "{escape:0:0013}",
+    "{(C-Stick)}": "{escape:0:000c}",
+    "{pause3}": "{escape:0:0007000f}",
+    "{(▲)}": "{escape:0:0016}"
 }

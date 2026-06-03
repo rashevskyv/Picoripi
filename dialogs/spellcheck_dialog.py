@@ -10,12 +10,12 @@ from dialogs.base_text_review_dialog import BaseTextReviewDialog
 class SpellcheckDialog(BaseTextReviewDialog):
     """Interactive dialog for spellchecking text with suggestions."""
 
-    def __init__(self, parent, text: str, spellchecker_manager, starting_line_number: int = 0, line_numbers: List[int] = None):
+    def __init__(self, parent, text: str, spellchecker_manager, starting_line_number: int = 0, line_numbers: List[int] = None, block_idx: int = -1):
         log_debug("SpellcheckDialog: __init__ started")
         self.spellchecker_manager = spellchecker_manager
         self.starting_line_number = starting_line_number # Deprecated, kept for compatibility
         
-        super().__init__(parent, "Spellcheck", text, line_numbers)
+        super().__init__(parent, "Spellcheck", text, line_numbers, block_idx)
         
         # Mapping base class variables to spellcheck specific names for easier logic
         # misspelled_words will be used as items_to_review
@@ -133,7 +133,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
                 display_line_num = self.line_numbers[line_idx]
             else:
                 display_line_num = self.starting_line_number + line_idx + 1
-            self.misspelled_list.addItem(f"Line {display_line_num}: {word}")
+            self.misspelled_list.addItem(f"[{self.block_name}] String {display_line_num}: {word}")
 
     def show_current_item(self):
         """Display current misspelled word and its suggestions."""
@@ -148,13 +148,14 @@ class SpellcheckDialog(BaseTextReviewDialog):
         start, end, word, line_idx = self.items_to_review[self.current_item_index]
         total = len(self.items_to_review)
         current = self.current_item_index + 1
-        self.status_label.setText(f"Word {current} of {total}")
 
         if self.line_numbers and line_idx < len(self.line_numbers):
             display_line_num = self.line_numbers[line_idx]
         else:
             display_line_num = self.starting_line_number + line_idx + 1
-        self.word_label.setText(f"Line {display_line_num}: \"{word}\"")
+            
+        self.status_label.setText(f"Word {current} of {total} | Block: {self.block_name} | String: {display_line_num}")
+        self.word_label.setText(f"[{self.block_name}] String {display_line_num}: \"{word}\"")
 
         cursor = self.text_edit.textCursor()
         cursor.setPosition(start)

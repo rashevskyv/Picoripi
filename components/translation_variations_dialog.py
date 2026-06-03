@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 class TranslationVariationsDialog(QDialog):
     """Show multiple translation options and allow the user to pick one."""
 
-    def __init__(self, parent=None, variations: Optional[Iterable[str]] = None) -> None:
+    def __init__(self, parent=None, variations: Optional[Iterable[str]] = None, show_refresh: bool = False) -> None:
         super().__init__(parent)
         self.setWindowTitle("AI Translation Variations")
         self.resize(720, 520)
@@ -44,6 +44,12 @@ class TranslationVariationsDialog(QDialog):
         layout.addLayout(lists_layout)
 
         self._buttons = QDialogButtonBox(self)
+        
+        if show_refresh:
+            self._refresh_button = QPushButton("Refresh", self)
+            self._refresh_button.clicked.connect(self._on_refresh)
+            self._buttons.addButton(self._refresh_button, QDialogButtonBox.ActionRole)
+
         self._apply_button = QPushButton("Apply", self)
         self._apply_button.clicked.connect(self._apply_current_selection)
         self._buttons.addButton(self._apply_button, QDialogButtonBox.AcceptRole)
@@ -53,6 +59,9 @@ class TranslationVariationsDialog(QDialog):
 
         if variations:
             self._populate_variations(list(variations))
+
+    def _on_refresh(self) -> None:
+        self.done(2)
 
     def _populate_variations(self, variations: List[str]) -> None:
         self._list.clear()

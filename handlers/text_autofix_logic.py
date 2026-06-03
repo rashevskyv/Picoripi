@@ -13,7 +13,7 @@ PUNCTUATION_PATTERN = re.compile(r"^[,\.!?]$")
 QUOTES_PATTERN = re.compile(r"^[\"']$")
 WORD_CHAR_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 ANY_TAG_RE_PATTERN = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
-COLOR_WHITE_TAG_PATTERN = re.compile(r"\{Color:White\}", re.IGNORECASE)
+COLOR_WHITE_TAG_PATTERN = re.compile(r"\{(Color:White|color_default|escape:255:000000)\}", re.IGNORECASE)
 
 class TextAutofixLogic:
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):

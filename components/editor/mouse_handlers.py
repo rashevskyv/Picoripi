@@ -227,6 +227,18 @@ class LNETMouseHandlers:
         actual_main_window = self.editor.window()
         if hasattr(actual_main_window, 'list_selection_handler') and actual_main_window.list_selection_handler:
             actual_main_window.list_selection_handler.scroll_to_current_string_in_preview()
+        elif hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers:
+            line_idx = self._get_line_index_from_y(y_pos)
+            if line_idx != -1 and line_idx < len(self.editor.custom_line_numbers):
+                string_number = self.editor.custom_line_numbers[line_idx]
+                if string_number is None:
+                    for i in range(line_idx - 1, -1, -1):
+                        if i < len(self.editor.custom_line_numbers):
+                            if self.editor.custom_line_numbers[i] is not None:
+                                string_number = self.editor.custom_line_numbers[i]
+                                break
+                if string_number is not None and hasattr(actual_main_window, '_navigate_to_string_in_main_window'):
+                    actual_main_window._navigate_to_string_in_main_window(string_number)
 
     def handle_line_number_area_mouse_move(self, event):
         """Show tooltip when hovering over the line number area."""

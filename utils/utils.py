@@ -10,9 +10,16 @@ ALL_TAGS_PATTERN = re.compile(r'\[[^\]]*\]|\{[^}]*\}|' + re.escape(P_VISUAL_EDIT
 FORCED_ALIAS_PATTERN = re.compile(r'\{[Ff]:([^}]*)\}')
 DEFAULT_CHAR_WIDTH_FALLBACK = 6
 
-def remove_all_tags(text: str) -> str:
+def remove_all_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     if text is None:
         return ""
+    if tag_mappings is None:
+        tag_mappings = get_active_tag_mappings()
+    if tag_mappings:
+        sorted_mappings = sorted(tag_mappings.items(), key=lambda item: len(item[1]), reverse=True)
+        for alias, original_tag in sorted_mappings:
+            if original_tag:
+                text = text.replace(original_tag, alias)
     text = FORCED_ALIAS_PATTERN.sub(r"\1", text)
     return ALL_TAGS_PATTERN.sub("", text)
 
@@ -20,16 +27,25 @@ def clean_spaces(text: str) -> str:
     if text is None:
         return ""
     
+    # Get active tag mappings and build lookahead prefix
+    mappings = get_active_tag_mappings()
+    forced_inners = ["f:", "F:"]
+    if mappings:
+        for alias, original in mappings.items():
+            if alias.lower().startswith("{f:") and original.startswith("{") and original.endswith("}"):
+                forced_inners.append(re.escape(original[1:-1]))
+    lookahead = "|".join(forced_inners)
+    
     lines = text.split('\n')
     cleaned_lines = []
     
     # Регулярний вираз для порожніх початкових/кінцевих тегів (фігурні теги або колірні квадратні теги)
-    empty_tags_subpattern = r"(?:\{(?!f:|F:)[^}]*\}|\[(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|/C)\])*"
+    empty_tags_subpattern = rf"(?:\{{(?!(?:{lookahead}))[^}}]*\}}|\[(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|/C)\])*"
     leading_space_pat = re.compile(rf"^{empty_tags_subpattern}[ ·]")
     trailing_space_pat = re.compile(rf"[ ·]{empty_tags_subpattern}$")
     
     non_forced_tags_pattern = re.compile(
-        r'\[[^\]]*\]|\{(?!f:|F:)[^}]*\}|' +
+        rf'\[[^\]]*\]|\{{(?!(?:{lookahead}))[^}}]*\}}|' +
         re.escape(P_VISUAL_EDITOR_MARKER) + r'|' +
         re.escape(L_VISUAL_EDITOR_MARKER)
     )
@@ -317,9 +333,16 @@ def convert_dots_to_spaces_from_editor(text: str) -> str:
         return ""
     return text.replace(SPACE_DOT_SYMBOL, " ")
 
-def remove_curly_tags(text: str) -> str:
+def remove_curly_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     if text is None:
         return ""
+    if tag_mappings is None:
+        tag_mappings = get_active_tag_mappings()
+    if tag_mappings:
+        sorted_mappings = sorted(tag_mappings.items(), key=lambda item: len(item[1]), reverse=True)
+        for alias, original_tag in sorted_mappings:
+            if original_tag:
+                text = text.replace(original_tag, alias)
     text = FORCED_ALIAS_PATTERN.sub(r"\1", text)
     return re.sub(r"\{[^}]*\}", "", text)
 

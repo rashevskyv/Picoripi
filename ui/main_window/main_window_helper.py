@@ -132,27 +132,41 @@ class MainWindowHelper:
 
             edited_data = self.mw.data_store.edited_data
             
-            all_translated_lines = []
+            all_lines = []
             for string_idx in range(len(block_data)):
-                text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+                if search_in_original:
+                    text = self.mw.data_processor._get_string_from_source(
+                        block_idx, string_idx, self.mw.data_store.data, "dialog_original"
+                    )
+                else:
+                    text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
                 if text is not None:
-                    all_translated_lines.append((string_idx, text))
+                    all_lines.append((string_idx, text))
 
             # Filter lines that actually contain the query
             text_parts = []
             line_numbers = []
 
             import re
-            if query:
+            from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match
+
+            effective_query = query
+            if ignore_tags and query:
+                effective_query = prepare_text_for_tagless_search(query)
+
+            if query and effective_query:
                 if is_fuzzy:
                     word_pattern = re.compile(r'\w+')
-                    from utils.utils import is_fuzzy_match
-                    for string_idx, text in all_translated_lines:
-                        text_with_spaces = text.replace('·', ' ')
+                    for string_idx, text in all_lines:
+                        if ignore_tags:
+                            text_for_search = prepare_text_for_tagless_search(text)
+                        else:
+                            text_for_search = text.replace('·', ' ')
+
                         has_match = False
-                        for match in word_pattern.finditer(text_with_spaces):
+                        for match in word_pattern.finditer(text_for_search):
                             word = match.group(0)
-                            if is_fuzzy_match(query, word, threshold=0.75):
+                            if is_fuzzy_match(effective_query, word, threshold=0.75):
                                 has_match = True
                                 break
                         if has_match:
@@ -161,18 +175,22 @@ class MainWindowHelper:
                             for _ in range(subline_count):
                                 line_numbers.append(string_idx)
                 else:
-                    compare_query = query if case_sensitive else query.lower()
-                    for string_idx, text in all_translated_lines:
-                        text_with_spaces = text.replace('·', ' ')
-                        compare_text = text_with_spaces if case_sensitive else text_with_spaces.lower()
+                    compare_query = effective_query if case_sensitive else effective_query.lower()
+                    for string_idx, text in all_lines:
+                        if ignore_tags:
+                            text_for_search = prepare_text_for_tagless_search(text)
+                        else:
+                            text_for_search = text.replace('·', ' ')
+
+                        compare_text = text_for_search if case_sensitive else text_for_search.lower()
                         if compare_query in compare_text:
                             text_parts.append(text)
                             subline_count = text.count('\n') + 1
                             for _ in range(subline_count):
                                 line_numbers.append(string_idx)
             else:
-                # If query is empty, load all lines in the block
-                for string_idx, text in all_translated_lines:
+                # If query is empty or effective_query is empty, load all lines in the block
+                for string_idx, text in all_lines:
                     text_parts.append(text)
                     subline_count = text.count('\n') + 1
                     for _ in range(subline_count):
@@ -187,7 +205,9 @@ class MainWindowHelper:
             from dialogs.search_review_dialog import SearchReviewDialog
             dialog = SearchReviewDialog(self.mw, text_to_check, query,
                                        starting_line_number=0, line_numbers=line_numbers,
-                                       case_sensitive=case_sensitive, is_fuzzy=is_fuzzy)
+                                       case_sensitive=case_sensitive, is_fuzzy=is_fuzzy,
+                                       search_in_original=search_in_original, ignore_tags=ignore_tags,
+                                       block_idx=block_idx)
 
             if dialog.exec_():
                 corrected_text = dialog.get_corrected_text()
