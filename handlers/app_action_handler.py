@@ -306,38 +306,6 @@ class AppActionHandler(BaseHandler):
                  state = self.mw.settings_manager.session_state.get_state_for_file(str(original_file_path))
                  if state:
                      self.ui_updater.apply_tree_state(state)
-                     
-                     # Apply cursor and scroll positions
-                     if self.mw.edited_text_edit:
-                         def _apply_scroll() -> None:
-                             self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
-                             self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
-                             if self.mw.preview_text_edit:
-                                 self.mw.preview_text_edit.verticalScrollBar().setValue(state.get("preview_v_scroll", 0))
-                             if self.mw.original_text_edit:
-                                 self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
-                             
-                             cursor_pos = state.get("cursor_pos", 0)
-                             try:
-                                 doc_len = self.mw.edited_text_edit.document().characterCount() - 1
-                             except Exception:
-                                 doc_len = 0
-                             
-                             try:
-                                 # Safely convert to int, ignoring mocks during tests
-                                 c_pos = int(cursor_pos) if not hasattr(cursor_pos, '_mock_name') else 0
-                                 d_len = int(doc_len) if not hasattr(doc_len, '_mock_name') else 0
-                                 pos_to_set = min(c_pos, max(0, d_len))
-                             except Exception:
-                                 pos_to_set = 0
-                                 
-                             cursor = self.mw.edited_text_edit.textCursor()
-                             cursor.setPosition(pos_to_set)
-                             self.mw.edited_text_edit.setTextCursor(cursor)
-                             self.mw.edited_text_edit.ensureCursorVisible()
-
-                         from PyQt5.QtCore import QTimer
-                         QTimer.singleShot(200, _apply_scroll)
 
     def reload_original_data_action(self) -> None:
         log_info("Reload Original action triggered.")

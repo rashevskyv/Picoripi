@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.159] - 2026-06-03
+
+### Fixed
+- **Unified Search Line Selection**:
+  - Fixed a search navigation bug where the found string was not visually highlighted or updated in the `StringsInBlock` list if it matched the currently active string index. Now, selecting a found match unconditionally updates `StringsInBlock` and synchronizes both original and translation editor views.
+- **AI Variations Caching Polish**:
+  - Modified the AI Variations logic to display cached variants instantly even if the current translation has been modified, preventing unwanted automatic AI token consumption. Users can fetch updated variations manually using the "Refresh" button in the variations window.
+- **Global Settings Mock Serialization Fix**:
+  - Added strict type checking for `translation_presets`, `current_translation_preset`, `variations_window_geometry`, and `variations_splitter_state` when saving settings. This prevents serialization of `MagicMock` instances during unit test runs, resolving multiple `TypeError` test crashes.
+
 ## [0.2.158] - 2026-06-03
 
 ### Added

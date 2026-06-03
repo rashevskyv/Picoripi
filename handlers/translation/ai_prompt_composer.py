@@ -535,7 +535,8 @@ class AIPromptComposer(BaseTranslationHandler):
                 f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
                 'Follow the glossary and preserve all tags exactly as they appear.',
                 'Follow the tone of the original text.',
-                'Return the response as a JSON array with 10 strings and no additional commentary.',
+                'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
+                'Do NOT wrap the array in an object (e.g. do not use {"variations": [...]}). Return only valid JSON without any markdown or extra commentary.',
             ]
         elif request_type == 'glossary_notes_variation':
             instructions = [
@@ -543,7 +544,8 @@ class AIPromptComposer(BaseTranslationHandler):
                 'Each description should be 1-2 sentences and stay under 60 words.',
                 'Preserve any tags/placeholders exactly as provided.',
                 'Keep the description informative and suitable for a glossary entry.',
-                'Return the response as a JSON array with 5 strings and no additional commentary.',
+                'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
+                'Do NOT wrap the array in an object. Return only valid JSON without any markdown or extra commentary.',
             ]
         else:
             instructions = [

@@ -247,8 +247,7 @@ class SearchHandler(BaseHandler):
                     break
                 iterator += 1
         
-        if self.mw.data_store.current_string_idx != string_idx_match_in_data or self.mw.data_store.current_block_idx != block_idx_match_in_data:
-            self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
+        self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
         QApplication.processEvents()
 
         # Get relative index for preview_text_edit highlights

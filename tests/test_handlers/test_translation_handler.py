@@ -608,5 +608,36 @@ def test_format_and_wrap_translation_balanced_and_page_building(th):
         assert res == "SentenceA.\\p12345678901234567890123\n12345678901234567890123 WordThree."
 
 
+def test_th_parse_variation_payload_robust(th):
+    from handlers.translation.translation_ui_handler import TranslationUIHandler
+    ui_handler = TranslationUIHandler(th)
+
+    # Test JSON list of strings (raw)
+    raw_json_list = '["variant 1", "variant 2"]'
+    assert ui_handler.parse_variation_payload(raw_json_list) == ["variant 1", "variant 2"]
+
+    # Test JSON code block with list
+    json_code_block = '```json\n["block v1", "block v2"]\n```'
+    assert ui_handler.parse_variation_payload(json_code_block) == ["block v1", "block v2"]
+
+    # Test dictionary with list under "variations" key
+    dict_variations = '{"variations": ["dict v1", "dict v2"]}'
+    assert ui_handler.parse_variation_payload(dict_variations) == ["dict v1", "dict v2"]
+
+    # Test JSON code block with dictionary under "options" key
+    dict_code_block = '```json\n{\n  "options": ["opt v1", "opt v2"]\n}\n```'
+    assert ui_handler.parse_variation_payload(dict_code_block) == ["opt v1", "opt v2"]
+
+    # Test dict fallback (any list value)
+    dict_fallback = '{"random_key": ["fallback v1", "fallback v2"]}'
+    assert ui_handler.parse_variation_payload(dict_fallback) == ["fallback v1", "fallback v2"]
+
+    # Test text fallback (non-JSON numbered list)
+    numbered_list = "1. First variation\n2. Second variation"
+    assert ui_handler.parse_variation_payload(numbered_list) == ["First variation", "Second variation"]
+
+
+
+
 
 

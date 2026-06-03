@@ -123,54 +123,67 @@ class TranslationUIHandler(BaseTranslationHandler):
     def parse_variation_payload(self, raw_text: str) -> List[str]:
         text = (raw_text or '').strip()
         if not text: return []
-        
-        # Strategy 1: Look for JSON code blocks
+
+        def extract_list(obj) -> Optional[List[str]]:
+            if isinstance(obj, list):
+                return [str(item) for item in obj]
+            if isinstance(obj, dict):
+                # Search for lists by known keys
+                for key in ["variations", "variants", "options", "translations", "results"]:
+                    if key in obj and isinstance(obj[key], list):
+                        return [str(item) for item in obj[key]]
+                # Search for any value that is a list
+                for val in obj.values():
+                    if isinstance(val, list) and val:
+                        return [str(item) for item in val]
+            return None
+
+        # Strategy 1: Look for JSON code blocks (either array or object)
         import re
-        code_block_pattern = re.compile(r"```(?:json)?\s*(\[[\s\S]*?\])\s*```", re.IGNORECASE)
+        code_block_pattern = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", re.IGNORECASE)
         matches = code_block_pattern.findall(text)
         if matches:
-            # Try parsing the LAST code block found, as reasoning often comes first
             try:
                 parsed = json.loads(matches[-1])
-                if isinstance(parsed, list):
-                    return [str(item) for item in parsed if isinstance(item, str)]
+                res = extract_list(parsed)
+                if res is not None:
+                    return res
             except json.JSONDecodeError:
                 pass
 
-        # Strategy 2: Scan for the last valid JSON array in the text
+        # Strategy 2: Scan for the last valid JSON array or object in the text
         # (Handles cases where reasoning precedes the JSON without code blocks)
-        try:
-            # Find the last closing bracket
-            end_idx = text.rfind(']')
-            if end_idx != -1:
-                # Iterate backwards to find the matching opening bracket
-                cursor = end_idx
-                while cursor >= 0:
-                    start_idx = text.rfind('[', 0, cursor)
-                    if start_idx == -1:
-                        break
-                    
-                    candidate = text[start_idx : end_idx+1]
-                    try:
-                        parsed = json.loads(candidate)
-                        if isinstance(parsed, list):
-                            return [str(item) for item in parsed if isinstance(item, str)]
-                    except json.JSONDecodeError:
-                        # If parse fails, keep searching backwards for an earlier '['
-                        cursor = start_idx
-                    else:
-                        cursor = -1 # Should not happen if successful, but to prevent infinite loop
-        except Exception:
-            pass
+        for start_char, end_char in [('[', ']'), ('{', '}')]:
+            try:
+                end_idx = text.rfind(end_char)
+                if end_idx != -1:
+                    cursor = end_idx
+                    while cursor >= 0:
+                        start_idx = text.rfind(start_char, 0, cursor)
+                        if start_idx == -1:
+                            break
+                        
+                        candidate = text[start_idx : end_idx+1]
+                        try:
+                            parsed = json.loads(candidate)
+                            res = extract_list(parsed)
+                            if res is not None:
+                                return res
+                        except json.JSONDecodeError:
+                            cursor = start_idx
+            except Exception:
+                pass
 
-        # Strategy 3: Fallback to simple line parsing if JSON fails
+        # Strategy 3: Try parsing the entire text as JSON
         try:
             parsed = json.loads(text)
-            if isinstance(parsed, list):
-                return [str(item) for item in parsed if isinstance(item, str)]
+            res = extract_list(parsed)
+            if res is not None:
+                return res
         except json.JSONDecodeError:
             pass
 
+        # Strategy 4: Fallback to simple line parsing if JSON fails
         numbered_pattern = re.compile(r'^\s*\d+[\).:-]\s*', re.MULTILINE)
         if numbered_pattern.search(text):
             return [numbered_pattern.sub('', line).strip() for line in text.splitlines() if line.strip()]

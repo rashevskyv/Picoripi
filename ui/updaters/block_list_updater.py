@@ -116,6 +116,9 @@ class BlockListUpdater(BaseUIUpdater):
         selected_id = state.get("selected_id")
         selected_string_idx = state.get("selected_string_idx", -1)
         
+        # Set a flag indicating that session state is being restored to prevent double loads
+        self.mw._restoring_session_state = True
+        
         # 1. Restore Expansion (Signals blocked to avoid redundant updates)
         old_blocked = self.mw.block_list_widget.blockSignals(True)
         try:
@@ -154,12 +157,54 @@ class BlockListUpdater(BaseUIUpdater):
                         log_info(f"UIUpdater: Restoring string selection to absolute index {selected_string_idx}")
                         # Further delay for strings to ensure they are populated and mapped
                         from PyQt5.QtCore import QTimer
-                        QTimer.singleShot(200, lambda: self.mw.list_selection_handler.select_string_by_absolute_index(selected_string_idx))
+                        
+                        def _select_string_and_restore_scroll():
+                            try:
+                                self.mw.list_selection_handler.select_string_by_absolute_index(selected_string_idx)
+                                
+                                # Restore scroll & cursor after string is loaded and text edits are populated!
+                                if self.mw.edited_text_edit:
+                                    self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
+                                    self.mw.edited_text_edit.horizontalScrollBar().setValue(state.get("h_scroll", 0))
+                                    if self.mw.preview_text_edit:
+                                        self.mw.preview_text_edit.verticalScrollBar().setValue(state.get("preview_v_scroll", 0))
+                                    if self.mw.original_text_edit:
+                                        self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
+                                        self.mw.original_text_edit.horizontalScrollBar().setValue(state.get("original_h_scroll", 0))
+                                    
+                                    cursor_pos = state.get("cursor_pos", 0)
+                                    try:
+                                        doc_len = self.mw.edited_text_edit.document().characterCount() - 1
+                                    except Exception:
+                                        doc_len = 0
+                                    
+                                    try:
+                                        c_pos = int(cursor_pos) if not hasattr(cursor_pos, '_mock_name') else 0
+                                        d_len = int(doc_len) if not hasattr(doc_len, '_mock_name') else 0
+                                        pos_to_set = min(c_pos, max(0, d_len))
+                                        log_info(f"UIUpdater: Restoring cursor position to {pos_to_set}")
+                                    except Exception:
+                                        pos_to_set = 0
+                                        
+                                    cursor = self.mw.edited_text_edit.textCursor()
+                                    cursor.setPosition(pos_to_set)
+                                    self.mw.edited_text_edit.setTextCursor(cursor)
+                                    self.mw.edited_text_edit.ensureCursorVisible()
+                            finally:
+                                # Ensure we clean up the restoration flag
+                                self.mw._restoring_session_state = False
+                        
+                        QTimer.singleShot(200, _select_string_and_restore_scroll)
+                    else:
+                        self.mw._restoring_session_state = False
                 else:
                     log_warning(f"UIUpdater: Failed to find item {selected_id} for restoration.")
-
+                    self.mw._restoring_session_state = False
+ 
             from PyQt5.QtCore import QTimer
             QTimer.singleShot(50, _delayed_select)
+        else:
+            self.mw._restoring_session_state = False
 
     def _get_item_id(self, item) -> str:
         """Helper to generate consistent IDs for tree items."""
