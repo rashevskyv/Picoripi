@@ -237,18 +237,27 @@ class SearchHandler(BaseHandler):
                            was_search_tagless_and_newline_agnostic: bool) -> None:
         log_debug(f"Navigating. Data: B:{block_idx_match_in_data}, S:{string_idx_match_in_data}. SearchTextPos:{char_pos_in_search_text}, SearchTextLen:{match_len_in_search_text}, TaglessNLSearch:{was_search_tagless_and_newline_agnostic}")
         self.clear_all_search_highlights()
-        if self.mw.data_store.current_block_idx != block_idx_match_in_data:
-            from PyQt5.QtWidgets import QTreeWidgetItemIterator
-            iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-            while iterator.value():
-                item = iterator.value()
-                if item.data(0, Qt.UserRole) == block_idx_match_in_data:
-                    self.mw.block_list_widget.setCurrentItem(item)
-                    break
-                iterator += 1
         
-        self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
-        QApplication.processEvents()
+        # Set target block/string idx on list selection handler to override block restoration
+        self.mw.list_selection_handler._target_block_idx = block_idx_match_in_data
+        self.mw.list_selection_handler._target_string_idx = string_idx_match_in_data
+        
+        try:
+            if self.mw.data_store.current_block_idx != block_idx_match_in_data:
+                from PyQt5.QtWidgets import QTreeWidgetItemIterator
+                iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+                while iterator.value():
+                    item = iterator.value()
+                    if item.data(0, Qt.UserRole) == block_idx_match_in_data:
+                        self.mw.block_list_widget.setCurrentItem(item)
+                        break
+                    iterator += 1
+            
+            self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
+            QApplication.processEvents()
+        finally:
+            self.mw.list_selection_handler._target_block_idx = None
+            self.mw.list_selection_handler._target_string_idx = None
 
         # Get relative index for preview_text_edit highlights
         displayed_indices = self.mw.list_selection_handler._get_displayed_indices()

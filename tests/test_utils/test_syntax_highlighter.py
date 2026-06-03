@@ -433,5 +433,24 @@ def test_JsonTagHighlighter_placeholder_highlighting(highlighter):
         assert fmt != hl.placeholder_format
 
 
+def test_JsonTagHighlighter_length_tags_spacing(highlighter):
+    hl, doc = highlighter
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+    
+    hl.mw.font_map = {
+        "{(Y)}": {"width": 50}
+    }
+    hl.mw.default_tag_mappings = {
+        "{(Y)}": "{escape:0:0010}"
+    }
+    
+    hl.setFormat.reset_mock()
+    hl.highlightBlock("на {(Y)} або")
+    
+    for call_args in hl.setFormat.call_args_list:
+        start, length, fmt = call_args[0]
+        assert fmt != hl.bad_spacing_format
+
+
 
 

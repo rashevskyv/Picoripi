@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.160] - 2026-06-03
+
+### Added
+- **Non-Zero Width Tag Spacing Protection**:
+  - Excluded tags with non-zero width/length (such as game button icons `{(Y)}`, `{(X)}`, `{(DUP)}`) from being flagged by spacing checks.
+  - Added `get_active_font_map()` and `get_active_icon_sequences()` helpers to `utils.py` to retrieve active workspace metrics dynamically.
+  - Updated `clean_spaces` in `utils.py` to treat non-zero width tags as text (words), preserving necessary spacing around icons during auto-fix/pasting.
+  - Modified the syntax highlighter (`syntax_highlighter.py`) to skip bad spacing highlights (red wavy underline) around tags that have physical length.
+  - Updated `_check_bad_spacing` in `problem_analyzer.py` to replace non-zero width tags with a dummy character `"X"` instead of stripping them, preventing false double-space warnings.
+  - Added robust unit test coverage in `test_spacing_rules.py` and `test_syntax_highlighter.py`.
+
 ## [0.2.159] - 2026-06-03
 
 ### Fixed

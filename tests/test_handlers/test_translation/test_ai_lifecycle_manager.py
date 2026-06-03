@@ -175,6 +175,9 @@ def test_ailm_clean_model_output(ailm):
     assert ailm._clean_model_output(text3, expect_json=False) == "No braces here"
     assert ailm._clean_model_output(text3, expect_json=True) == "No braces here"
     
+    array_with_tags = 'Some response [\n  "{Color:Red}Hello!",\n  "World!"\n] and text'
+    assert ailm._clean_model_output(array_with_tags, expect_json=True) == '[\n  "{Color:Red}Hello!",\n  "World!"\n]'
+    
     assert ailm._trim_trailing_whitespace_from_lines("test  \nb  \n") == "test\nb\n"
 
 def test_ailm_perform_retry(ailm):

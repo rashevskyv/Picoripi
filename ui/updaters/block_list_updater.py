@@ -101,7 +101,7 @@ class BlockListUpdater(BaseUIUpdater):
             "expanded_ids": expanded_ids,
             "selected_id": selected_id,
             "selected_type": selected_type,
-            "selected_string_idx": self.mw.data_store.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1
+            "selected_string_idx": self.mw.data_store.current_string_idx if (hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'current_string_idx')) else (self.mw.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1)
         }
         from utils.logging_utils import log_info
         log_info(f"UIUpdater: Captured tree state: selected={selected_id}, string_idx={result['selected_string_idx']}")

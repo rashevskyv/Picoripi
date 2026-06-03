@@ -601,7 +601,7 @@ class ProjectActionHandler(BaseHandler):
             log_info(f"Batch move completed: {moved_count} items moved.")
 
 
-    def _populate_blocks_from_project(self) -> None:
+    def _populate_blocks_from_project(self) -> bool:
         """Populate block list from current project and load data."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
@@ -860,9 +860,11 @@ class ProjectActionHandler(BaseHandler):
             if not state:
                 state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
                 
-            if state:
+            if state and (state.get("selected_id") or state.get("expanded_ids")):
                 log_info(f"Restoring project UI state for {p_path}")
                 self.ui_updater.apply_tree_state(state)
+                return True
+        return False
 
     def _update_recent_projects_menu(self) -> None:
         """Update the Recent Projects submenu with current list."""
@@ -973,25 +975,27 @@ class ProjectActionHandler(BaseHandler):
 
             # 6. Populate UI components with the new project data
             self.ui_updater.update_title()
-            self._populate_blocks_from_project()
+            state_restored = self._populate_blocks_from_project()
             if hasattr(self.mw, 'bookmark_handler'):
                 self.mw.bookmark_handler.update_bookmarks_menu()
             
             log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
 
             # 6. Final UI polish: select the last block/category after QTreeWidget has settled
-            def restore_view():
-                log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
-                if hasattr(self.mw, 'block_list_widget'):
-                    self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
-                
-                # These calls refresh the string list and editors
-                self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
-                self.ui_updater.update_statusbar_paths()
-                self.ui_updater.update_plugin_status_label() # Ensure label is accurate
+            # Only fallback to default block selection if no session state was restored!
+            if not state_restored:
+                def restore_view():
+                    log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
+                    if hasattr(self.mw, 'block_list_widget'):
+                        self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
+                    
+                    # These calls refresh the string list and editors
+                    self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
+                    self.ui_updater.update_statusbar_paths()
+                    self.ui_updater.update_plugin_status_label() # Ensure label is accurate
 
-            from PyQt5.QtCore import QTimer
-            QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
+                from PyQt5.QtCore import QTimer
+                QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
         else:
             QMessageBox.critical(
                 self.mw,

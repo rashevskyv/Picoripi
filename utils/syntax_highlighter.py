@@ -15,7 +15,7 @@ from PyQt5.QtGui import (
 from PyQt5.QtWidgets import QWidget, QMainWindow
 
 from .logging_utils import log_debug
-from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
+from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN, get_tag_width
 from plugins.common.markers import P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from core.glossary_manager import GlossaryManager, GlossaryMatch, GlossaryEntry
 
@@ -580,6 +580,13 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                     return True
         return False
 
+    def _tag_has_length(self, tag: str) -> bool:
+        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        width = get_tag_width(tag, default_tag_mappings, font_map, icon_sequences=icon_sequences)
+        return width > 0
+
     def highlightBlock(self, text):
         # In preview_text_edit each line is an independent game string,
         # so color must NOT bleed from one string to the next.
@@ -808,7 +815,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 tags = ALL_TAGS_PATTERN.findall(prefix)
                 has_forced = False
                 for tag in tags:
-                    if self._is_forced_alias(tag):
+                    if self._is_forced_alias(tag) or self._tag_has_length(tag):
                         has_forced = True
                         break
                 if not has_forced:
@@ -820,7 +827,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 tags = ALL_TAGS_PATTERN.findall(match_text)
                 has_forced = False
                 for tag in tags:
-                    if self._is_forced_alias(tag):
+                    if self._is_forced_alias(tag) or self._tag_has_length(tag):
                         has_forced = True
                         break
                 if not has_forced:
