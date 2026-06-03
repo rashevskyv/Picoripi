@@ -354,6 +354,8 @@ class BfnPreviewWidget(QWidget):
     def update_preview_text(self, text: str):
         """Update the text and request redraw."""
         self.text = text
+        if self.isHidden():
+            return
         self.update()
 
     def get_bg_top_left(self) -> QPoint:
@@ -838,6 +840,8 @@ class BfnPreviewWidget(QWidget):
     # ── paintEvent ────────────────────────────────────────────────────────────
 
     def paintEvent(self, event):
+        if self.isHidden():
+            return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, False)
         

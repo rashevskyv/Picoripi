@@ -3,6 +3,7 @@ from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer
 from .tag_logic import ANY_TAG_PATTERN_WW
 from utils.utils import remove_all_tags
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING
 
 WORD_CHAR_PATTERN_ZWW = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 CLOSING_COLOR_TAG_WW = "[/C]"
@@ -127,21 +128,50 @@ class TextFixer(GenericTextFixer):
         return new_text, new_text != text
 
     def autofix_data_string(self,
-                            data_string: str,
-                            editor_font_map: dict,
-                            editor_line_width_threshold: int) -> Tuple[str, bool]:
+                             data_string: str,
+                             editor_font_map: dict,
+                             editor_line_width_threshold: int,
+                             logical_hard_limit: Optional[int] = None,
+                             allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+        if logical_hard_limit is None:
+            logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
-        text_after_page_fix, _ = self.fix_empty_first_line_of_page(original_text)
-        modified_text, _ = self._fix_empty_odd_sublines_zww(text_after_page_fix)
+        
+        if allowed_problems is None or PROBLEM_EMPTY_FIRST_LINE_OF_PAGE in allowed_problems:
+            text_after_page_fix, _ = self.fix_empty_first_line_of_page(original_text)
+        else:
+            text_after_page_fix = original_text
+
+        if allowed_problems is None or PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY in allowed_problems:
+            modified_text, _ = self._fix_empty_odd_sublines_zww(text_after_page_fix)
+        else:
+            modified_text = text_after_page_fix
+
         max_iterations = 10
         for _ in range(max_iterations):
             text_before_pass = modified_text
-            merged_text, changed_merge = self._fix_short_lines_zww(modified_text, editor_font_map, editor_line_width_threshold)
-            splitted_text, changed_split = self._fix_width_exceeded_generic(merged_text, editor_font_map, editor_line_width_threshold)
+            changed_merge = False
+            changed_split = False
+            
+            if allowed_problems is None or PROBLEM_SHORT_LINE in allowed_problems:
+                merged_text, changed_merge = self._fix_short_lines_zww(modified_text, editor_font_map, editor_line_width_threshold)
+            else:
+                merged_text = modified_text
+                
+            if allowed_problems is None or PROBLEM_WIDTH_EXCEEDED in allowed_problems:
+                splitted_text, changed_split = self._fix_width_exceeded_generic(merged_text, editor_font_map, logical_hard_limit)
+            else:
+                splitted_text = merged_text
+                
             modified_text = splitted_text
             if not changed_merge and not changed_split:
                 break
-        cleaned_text, _ = self._cleanup_spaces_around_tags_zww(modified_text)
-        from utils.utils import clean_spaces
-        final_text = clean_spaces(cleaned_text)
+                
+        if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
+            cleaned_text, _ = self._cleanup_spaces_around_tags_zww(modified_text)
+            from utils.utils import clean_spaces
+            final_text = clean_spaces(cleaned_text)
+        else:
+            final_text = modified_text
+
         return final_text, final_text != original_text

@@ -107,8 +107,8 @@ class GlossaryOccurrenceUpdater:
             occurrence.block_idx, occurrence.string_idx, new_text
         )
         self._mw.ui_updater.populate_strings_for_block(occurrence.block_idx)
-        if (self._mw.current_block_idx == occurrence.block_idx
-                and self._mw.current_string_idx == occurrence.string_idx):
+        if (self._mw.data_store.current_block_idx == occurrence.block_idx
+                and self._mw.data_store.current_string_idx == occurrence.string_idx):
             self._mw.ui_updater.update_text_views()
         self._mw.ui_updater.update_block_item_text_with_problem_count(occurrence.block_idx)
         if self._mw.statusBar:

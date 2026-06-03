@@ -1024,37 +1024,75 @@ class AIPromptComposer(BaseTranslationHandler):
         import os
         from pathlib import Path
         
-        candidates = [
-            r"e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt",
-        ]
+        # 1. Ask active rules if they define a default script file name
+        plugin_script_name = None
+        if hasattr(self.mw, "current_game_rules") and self.mw.current_game_rules:
+            try:
+                plugin_script_name = self.mw.current_game_rules.get_default_script_name()
+            except Exception:
+                pass
+
+        # 2. Gather directories to search in
+        search_dirs = []
         
-        # Add candidate near DB path
+        # Candidate near DB path
         client = self._get_mempalace_client()
         db_path = client.db_path if client else None
         if db_path:
             db_dir = os.path.dirname(db_path)
-            candidates.append(os.path.join(db_dir, "zelda_tp_script.txt"))
-            candidates.append(os.path.join(os.path.dirname(db_dir), "zelda_tp_script.txt"))
+            search_dirs.append(db_dir)
+            search_dirs.append(os.path.dirname(db_dir))
             
-        # Add candidate near project directory
+        # Candidate near project directory
         project_dir = getattr(self, "_mempalace_project_dir", None)
         if not project_dir and hasattr(self.mw, "project_manager") and self.mw.project_manager and self.mw.project_manager.project:
             project_dir = self.mw.project_manager.project.project_dir
             
         if project_dir:
-            candidates.append(os.path.join(project_dir, "zelda_tp_script.txt"))
-            candidates.append(os.path.join(os.path.dirname(project_dir), "zelda_tp_script.txt"))
-            
+            search_dirs.append(project_dir)
+            search_dirs.append(os.path.dirname(project_dir))
+
+        # Check in current working directory
+        search_dirs.append(os.getcwd())
+
+        # Clean search directories (remove duplicates and verify existence)
+        unique_dirs = []
+        for d in search_dirs:
+            if d and os.path.exists(d):
+                abs_d = os.path.abspath(d)
+                if abs_d not in unique_dirs:
+                    unique_dirs.append(abs_d)
+
+        # 3. Check for specific plugin script name
+        if plugin_script_name:
+            for d in unique_dirs:
+                p = os.path.join(d, plugin_script_name)
+                if os.path.exists(p):
+                    return p
+
+        # 4. Fallback search: look for hardcoded TP script
+        candidates = [
+            r"e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt",
+        ]
+        for d in unique_dirs:
+            candidates.append(os.path.join(d, "zelda_tp_script.txt"))
+
         for path in candidates:
             if path and os.path.exists(path):
                 return path
-                
-        # Search for any *.txt file containing 'script' on first level of project directory
-        if project_dir and os.path.exists(project_dir):
+
+        # 5. Generic search for any *script*.md or *script*.txt in the search directories
+        for d in unique_dirs:
             try:
-                for f in os.listdir(project_dir):
+                for f in os.listdir(d):
+                    # prioritize markdown over plain text
+                    if "script" in f.lower() and f.lower().endswith(".md"):
+                        p = os.path.join(d, f)
+                        if os.path.exists(p):
+                            return p
+                for f in os.listdir(d):
                     if "script" in f.lower() and f.lower().endswith(".txt"):
-                        p = os.path.join(project_dir, f)
+                        p = os.path.join(d, f)
                         if os.path.exists(p):
                             return p
             except Exception:

@@ -353,3 +353,82 @@ def prepare_text_for_tagless_search(text: str, keep_original_case: bool = False)
     
     stripped_text = normalized_spaces_text.strip()
     return stripped_text
+
+
+def suggest_smart_translation(current_text: str, old_translation: str, new_translation: str) -> str:
+    """
+    Suggests a translation by replacing occurrences of the old translation with the new translation.
+    Tries direct replacement first, then falls back to word-by-word morphological replacement.
+    Supports case declensions for Slavic languages.
+    """
+    if not current_text or not old_translation or not new_translation:
+        return current_text if current_text is not None else ""
+
+    # 1. Try direct substring replacement first
+    if old_translation in current_text:
+        return current_text.replace(old_translation, new_translation)
+
+    # 2. Try word-by-word morphological replacement
+    old_words = [w for w in re.split(r'\W+', old_translation) if w]
+    new_words = [w for w in re.split(r'\W+', new_translation) if w]
+
+    # We can only align if they have the same number of words
+    if len(old_words) != len(new_words) or not old_words:
+        return current_text
+
+    # Identify which words changed
+    changed_indices = []
+    for idx in range(len(old_words)):
+        if old_words[idx].lower() != new_words[idx].lower():
+            changed_indices.append(idx)
+
+    if not changed_indices:
+        return current_text
+
+    result_text = current_text
+
+    # Find all words in the text with their spans
+    # We iterate backwards to avoid span shifts during replacement
+    words_in_text = list(re.finditer(r'\w+', current_text))
+    for match in reversed(words_in_text):
+        w_text = match.group(0)
+
+        # Check if this word matches any changed word in the old translation
+        for idx in changed_indices:
+            w_old = old_words[idx]
+            w_new = new_words[idx]
+
+            # Find longest common prefix (case-insensitive)
+            common_len = 0
+            min_len = min(len(w_old), len(w_text))
+            for char_idx in range(min_len):
+                if w_old[char_idx].lower() == w_text[char_idx].lower():
+                    common_len += 1
+                else:
+                    break
+
+            # Check if it's a valid morphological match (inflection of the same word)
+            # Threshold: prefix must be at least 3 chars, and difference must be at most 3 chars
+            if common_len >= 3 and (len(w_old) - common_len <= 3) and (len(w_text) - common_len <= 3):
+                e_old = w_old[common_len:]
+                e_text = w_text[common_len:]
+
+                w_new_modified = w_new
+                if e_old:
+                    if w_new.lower().endswith(e_old.lower()):
+                        w_new_modified = w_new[:-len(e_old)] + e_text
+                else:
+                    w_new_modified = w_new + e_text
+
+                # Preserve case of the original word in text
+                if w_text[0].isupper():
+                    w_new_modified = w_new_modified[0].upper() + w_new_modified[1:]
+                else:
+                    w_new_modified = w_new_modified[0].lower() + w_new_modified[1:]
+
+                # Replace the word in result_text
+                start, end = match.span()
+                result_text = result_text[:start] + w_new_modified + result_text[end:]
+                break # Move to next word in text
+
+    return result_text

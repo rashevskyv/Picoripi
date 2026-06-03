@@ -26,6 +26,8 @@ class MainWindowEventHandler:
             self.mw.inspect_story_context_action.triggered.connect(self.mw.actions.inspect_story_context)
         if hasattr(self.mw, 'mempalace_viewer_action') and self.mw.mempalace_viewer_action:
             self.mw.mempalace_viewer_action.triggered.connect(self.mw.actions.open_mempalace_viewer)
+        if hasattr(self.mw, 'fix_all_strings_action') and self.mw.fix_all_strings_action:
+            self.mw.fix_all_strings_action.triggered.connect(self.mw.editor_operation_handler.fix_all_strings)
         if hasattr(self.mw, 'export_bmg_json_action') and self.mw.export_bmg_json_action:
             self.mw.export_bmg_json_action.triggered.connect(self.mw.actions.export_current_bmg_to_json)
         if hasattr(self.mw, 'import_bmg_json_action') and self.mw.import_bmg_json_action:

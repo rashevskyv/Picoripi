@@ -15,6 +15,7 @@ from utils.utils import (
     convert_raw_to_display_text,
     prepare_text_for_tagless_search,
     SPACE_DOT_SYMBOL,
+    suggest_smart_translation,
 )
 
 
@@ -312,3 +313,30 @@ class TestTagWidthAliasesAndForced:
         
         width_square_incomplete = calculate_string_width("abc[escape", sample_font_map)
         assert width_complete == width_square_incomplete
+
+
+class TestSuggestSmartTranslation:
+    def test_direct_substring_replace(self):
+        text = "Hello озеро Гілія!"
+        res = suggest_smart_translation(text, "озеро Гілія", "озеро Гайлія")
+        assert res == "Hello озеро Гайлія!"
+
+    def test_morphological_replace_genitive(self):
+        text = "з озера Гілії."
+        res = suggest_smart_translation(text, "озеро Гілія", "озеро Гайлія")
+        assert res == "з озера Гайлії."
+
+    def test_morphological_replace_case_preservation(self):
+        text = "гілією"
+        res = suggest_smart_translation(text, "Гілія", "Гайлія")
+        assert res == "гайлією"
+
+    def test_morphological_no_match(self):
+        text = "річка"
+        res = suggest_smart_translation(text, "Гілія", "Гайлія")
+        assert res == "річка"
+
+    def test_morphological_single_word(self):
+        text = "Русла"
+        res = suggest_smart_translation(text, "Русл", "Расл")
+        assert res == "Расла"

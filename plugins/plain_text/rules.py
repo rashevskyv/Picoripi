@@ -180,15 +180,17 @@ class GameRules(BaseGameRules):
 
     def autofix_data_string(
         self,
-        text: str,
-        font_map: Optional[Dict] = None,
-        width_threshold: Optional[int] = None
+        data_string: str,
+        editor_font_map: dict,
+        editor_line_width_threshold: int,
+        logical_hard_limit: Optional[int] = None,
+        allowed_problems: Optional[Set[str]] = None
     ) -> Tuple[str, bool]:
         
-        text_for_fixing = self.get_text_representation_for_editor(text)
+        text_for_fixing = self.get_text_representation_for_editor(data_string)
         
         fixed_text, was_modified = self.text_fixer.autofix_data_string(
-            text_for_fixing, font_map, width_threshold
+            text_for_fixing, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems
         )
         
         final_text = self.convert_editor_text_to_data(fixed_text)

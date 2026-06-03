@@ -1,281 +1,192 @@
-# Picoripi v0.2.155
+# Picoripi v0.2.156
  
-The "Picoripi" (v0.2.155) is a desktop application built with **Python** and **PyQt5**. It is designed for simple, visual, and convenient translation of any texts, especially optimized for cases with strict length and formatting constraints. While it includes robust support for retro game localization, the tool is a versatile environment for any structured translation task.
+The **Picoripi** (v0.2.156) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
-## Features
+---
 
-### Project Management
-- Create, load, and save `.uiproj` projects that encapsulate all files and settings for a translation effort.
-- Organize strings into **virtual folders (categories)** for logical grouping of translated texts.
-- **Visual Status Tracking**: Unsaved changes propagate via clear asterisk (*) indicators up the project tree. Virtual folders display their own specialized error counts and custom cloud icons for easy identification.
-- **Progress Shading (Progress Visualisation)**: Tree widget file plates dynamically render a smooth, semi-transparent green progress bar (`QColor(46, 139, 87, 25)`) left-to-right beneath the file name proportional to the file translation completion rate. Fully supports **virtual chapters** progress calculations and styling.
-- **Robust Tree Interaction**: Support for **inline renaming** of both blocks and virtual folders, with advanced data role handling to prevent UI metadata from interfering with raw names.
-- **Transparent Archive Support (.arc, .rarc, .ark)**: Fully native, in-memory archive management. Automatically parses, edits, and packs RARC and U8 archive containers (including highly-optimized Yaz0 compressed archives with fast LZ77 lazy evaluation) directly in RAM. This ensures byte-perfect, console-compatible compressed archives, preventing memory overflow bugs on real hardware. Zero temporary folder creation and no external executable dependencies, keeping files completely virtualized until final save.
-- **Archive Block Extensions**: Archive blocks automatically display their original file extensions (e.g. `.bmg`) in the project tree. Inline renaming dynamically strips the extension for clean editing and restores it afterwards.
-- **Block Properties**: Access a detailed "Properties..." window from the context menu to inspect metadata, original/translation paths, modified state, internal data/project indices, and disk file sizes.
-- Automatic synchronization of local files with project data during work.
-- Move files or individual text blocks between categories with drag-and-drop support.
- 
-### Advanced Text Editing
-- Specialized multi-line editor (`LineNumberedTextEdit`) that calculates **pixel-perfect width** of every character based on game-specific fonts.
-- Visual feedback (red and yellow markers) for text that exceeds the game's displayable width limit.
-- **Soft Shading for Translated Lines**: Renders a delicate, pastel-green background shade (`QColor(46, 139, 87, 40)`) under line numbers inside translation editors and preview panels for all successfully translated dialogue lines, enabling rapid orientation while scrolling long blocks.
-- Syntax highlighting for game control codes and tags (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
-- Convenient insertion of control codes (button icons) through a visual interface and context menus.
-- **Tag & Alias Width Customisation**: Add custom tag widths (in pixels) directly inside the `Add Alias` or `Edit Alias` dialogues. Width configs are saved persistently to `font_map.json` of the active plugin and trigger instant width recalculation across all texts.
-- **Autonomous Tag Aliases Storage (`aliases.json`)**: Custom tag mappings (aliases) are persistently saved to an independent `aliases.json` file inside the active plugin's directory. Custom aliases are dynamically loaded and merged with default plugin rules upon startup or plugin switch, fully preserving user mappings even without an active project open.
-- **Punctuation and Tag Wrapping Fix**: Enhanced smart word wrapping prevents adding unwanted spaces before punctuation marks (like commas) that immediately follow tags, ensuring correct syntax like `tag, word` instead of `tag , word`.
-- **Dynamic Guidelines**: Dynamic vertical line guidelines (ticks) rendered individually for each visible line inside the translation inputs. Proportional pixel position is computed dynamically based on the game's actual font mapping widths ($text\_w \times \frac{limit\_px}{width\_px}$), highlighting in red upon width limit violations, providing an accurate, lag-free visual estimation of the remaining space. Incomplete tags at the end of character slices during width calculations are safely ignored, preventing incorrect horizontal guidelines from rendering inside tag syntax.
-- **Revert to Original**: Quickly restore original text for individual lines or entire blocks with full undo support.
+## Key Features
 
+### 1. Project Management & Workspace Navigation
+- **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
+- **Virtual Folder Structure**: Organizes text blocks into nested virtual folders (categories) for logical narrative layout. Supports drag-and-drop file organization.
+- **Granular Status & Propagation**: Unsaved changes propagate dynamically as asterisks (`*`) up the folder tree, with specialized error/warning counts on parent nodes.
+- **Soft Shading & Progress Bars**:
+  - **Translated Lines Shading**: Renders a soft, pastel-green background (`QColor(46, 139, 87, 40)`) under line numbers in translation editors and preview screens for translated strings, facilitating rapid document navigation.
+  - **File Progress Bars**: Tree items render smooth, semi-transparent green progress bars (`QColor(46, 139, 87, 25)`) left-to-right beneath file names, proportional to the translation completion rate.
+  - **Translatable String Detection**: Intelligently ignores empty, whitespace-only, or tag-only original strings when calculating progress ratios, preventing false progress inflation.
+- **Virtual Chapters Navigation**: Integrates a virtual `Chapters -> Act -> Chapter` hierarchical node structure in the Blocks panel. Dialogue lines scattered across physical `.bmg` or `.json` blocks are dynamically grouped chronologically based on story timeline database coordinates. Supports right-click context menu actions (rename, delete, assign font overrides, toggle markers).
 
-### Plugin System
-- Game-specific logic handled by a robust plugin system in the `plugins/` directory.
-- Each plugin defines its own rules for text parsing, tag handling, font metrics, and problem analysis.
-- Custom font maps (`font_map.json`) for pixel-perfect character width calculation.
-- **Standardized Script Guidelines**: Fully supports a standardized script formatting guideline (`[Chapter: ...]`, `{Action: ...}`, `SPEAKER: dialogue`) built directly into `BaseGameRules.parse_walkthrough_transcript()` to dynamically weave context timelines with backward compatibility for classic plain scripts.
-- **Fonts Directory Path**: Ability to specify a custom local directory path (`fonts_dir_path`) under the **Plugin -> File Paths** tab. Fonts inside this folder (both `.json` and `.bfn` files) are dynamically loaded and merged with the active plugin's defaults.
-- **Background Archive Extractor**: Automatically scans game archives (`.arc`, `.rarc`, `.u8`) inside the user-specified Fonts Directory. Unpacks these containers in memory and dynamically registers their nested fonts under `{archive}/{font_name}` for real-time width calculation and text layout rendering.
-- **Dynamic Override & Reloading**: Custom fonts elegantly override defaults with the same filename. Modifying this path immediately refreshes the font list in settings without requiring an application restart.
-- Currently supported games: **Zelda: Minish Cap**, **Zelda: The Wind Waker**, **Pokemon FireRed**, **Plain Text** (generic).
+---
 
-### AI-Assisted Translation
-- Integration with **OpenAI**, **Google Gemini**, and **DeepL** directly in the interface.
-- Built-in **AI Chat** window for interacting with AI within the development environment.
-- **Unified AI Translation Base & Dynamic Glossary**: Dynamically extracts and injects only relevant glossary terms matching the active translation segment (`glossary_manager.get_relevant_terms(text)`) across all translation modes, ensuring 100% glossary priority without polluting the system prompt.
-- **Dialogue-Aware Surrounding Context**: The prompt composer automatically gathers up to 3 preceding and 3 succeeding dialogue lines in their best translated (or original) state, transmitting a rich surrounding dialogue context to the LLM to preserve tone, continuity, and formal/informal address tags.
-- Automatic batch translation of glossary terms or specific phrases while preserving game context.
-- **Translation Variations**: Generate creative alternative translations for overly long sentences, now fully enriched with dynamic glossary and surrounding context.
-- **Force-Alias Translation Mechanism (`F:` prefix)**: Introduced a powerful tag preservation system for AI translation. Tags whose aliases begin with `F:` (e.g., `{F:Link}` aliasing `{escape:0:0000}`) are automatically converted to their plain-text word equivalents before being sent to the AI translator. After translation, the words are restored back to their original tag form. This allows proper name tags (like player name or horse name) to be contextually translated as real words instead of being stripped as opaque control codes.
-  - Created `utils/force_alias.py` with `prepare_text_for_ai()` and `restore_force_alias_placeholders()` functions.
-  - Integrated into `AIPromptComposer.compose_batch_request()` for pre-processing and `TranslationHandler._handle_chunk_translated()` for post-processing.
-  - Relevant glossary terms matching force-alias words are automatically included in the AI prompt for context.
-- **Smart Balanced Wrapping and Page Building**:
-  - Implemented an elegant proportional text layout and word wrap algorithm inside `_format_and_wrap_translation` in `handlers/translation_handler.py`.
-  - Proportional word wrap balances lines by fitting words up to `line_width_warning_threshold_pixels` (desired width), but allowing a single word to cross the warning threshold if the total width remains below `game_dialog_max_width_pixels` (hard maximum width limit) without breaking.
-  - Evaluates and separates dialogue lines into clean, logical pages based on `lines_per_page`.
-  - Strictly preserves sentence integrity: entire sentences are pushed to a fresh page using the active plugin's page break indicator (e.g. `\p`, `\l`) if they would otherwise split awkwardly across pages.
-- Configurable AI prompts for fine-tuning translation quality.
+### 2. High-Performance Archive Management
+- **In-Memory Virtual File System**: Native, zero-dependency parser for U8 and RARC archive containers (`.arc`, `.rarc`, `.ark`). Extracts, edits, and repacks archives entirely in RAM, preventing disk clutter and avoiding external executables.
+- **Lazy LZ77 Yaz0 Compressor**:
+  - Pure-Python implementation of Nintendo's Yaz0 compression featuring a sliding-window LZ77 algorithm with lookahead lazy evaluation.
+  - Uses prefix-based hashing to prune the lookback search space, achieving sub-second compression runs for game assets.
+  - Generates byte-perfect parity output compatible with original hardware, preventing console-crashing buffer overflows and out-of-memory errors on GameCube and Wii.
+  - Supports automatic sector alignment zero-padding (`\x00`) to match disk sector boundaries.
+- **Archive Size Verification Warning**:
+  - Automatically compares the size of compressed/packed archives against original disk allocations during final save.
+  - Triggers a clear warning popup if a modified archive exceeds the size of the original file, prompting the user to shorten translation strings to prevent ROM crashes.
 
-### Glossary Management
-- Intelligent recognition and highlighting of glossary terms throughout the entire text using high-performance **Aho-Corasick** algorithm.
-- **Dynamic Tabbed Interface**: Organize and browse glossary entries through a beautiful tabbed (`QTabWidget`) view, automatically dividing entries into categories like "Characters", "Items", "Locations", "Magic", "Other", alongside a master "All" tab.
-- **Organize via AI**: Elegant purple button in the glossary dialog that triggers a robust, two-stage AI categorization process. The AI first suggests custom thematic categories based on active terms, prompts the user with an interactive checkbox list, and then dynamically classifies the entire glossary, writing changes directly to the markdown file on disk with a real-time UI reload.
-- **Smart Category Navigation**: Opening a glossary entry from the context menu of translation editors automatically switches the active tab to the entry's category and scrolls/highlights the corresponding row.
-- **Translation Glossary Bridge**: Automatic highlighting of glossary terms in the translation field, now supporting **multi-line matching** and **multiple translation variations** (separated by `;`).
-- **Slavic Morphology Support**: Intelligent matching of inflected word forms (like "Меча", "Мечем") for Slavic languages using localized stemming.
-- **Interactive & Configurable Tooltips**: Hovering over terms displays a beautifully formatted tooltip containing the original word, translations, and notes formatted in complete Markdown (e.g. bold formatting, single-line breaks). Includes a global `"tooltip_font_size"` setting to dynamically scale both glossary and warning tooltips (from 6px to 32px) directly from the Global settings tab. Responsive tooltips correctly track position even for multi-line terms.
-- Quick access to notes and contextual explanations for specific terms.
-- Full CRUD operations: create, edit, search, and delete glossary entries.
-- **AI-powered glossary fill**: Automatically suggest translations for glossary terms using AI.
-- **Occurrence update**: Batch-update all occurrences of a glossary term across the project.
+---
 
-### Integrated Spellchecker
-- Built-in Hunspell spellchecking via the `spylls` library.
-- **High-Performance Architecture**: Uses a synchronous, cache-backed `lookup` for immediate feedback during typing, combined with a **background QThread worker** for non-blocking suggestion generation.
-- **Efficient Caching**: Implements both in-memory and **persistent disk-based caching** (`spell_cache.json`) to skip redundant checks, ensuring smooth UI performance even with 10k+ word dictionaries.
-- **Optimized Resource Usage**: Automatically disables heavy background prefetching during active typing to prevent GIL congestion, keeping the editor perfectly responsive.
-- Underlines errors and provides quick replacement suggestions from the context menu with a "Loading..." state for background lookups.
-- Built-in dictionary manager: download required languages directly from the app.
-- Add game-specific slang to personal or project-level custom dictionaries.
+### 3. Advanced Text Layout & Proportional Wrapping
+- **LineNumberedTextEdit Component**: Custom editor widget that calculates character widths on a pixel-perfect level using proportional font tables, rendering a responsive horizontal guideline (tick) representing the target display limit.
+- **Proportional Word Wrapping**:
+  - Wraps strings using font metrics to fit within `line_width_warning_threshold_pixels`.
+  - Balanced evaluation: permits a single word to cross the warning threshold if the cumulative line width remains below `game_dialog_max_width_pixels` (the hard limit), avoiding ugly, premature wrapping splits.
+- **Sentence Integrity Page Building**:
+  - Groups dialogue lines into multi-page views separated by page break codes (e.g. `\p`, `\l`).
+  - Preserves sentence structure: entire sentences are kept together on a single page. If adding the next sentence would overrun the page limit, the sentence is automatically pushed to the next page.
+- **Dynamic Guidelines & Coloring**: Guideline tickers dynamically recolor to red upon width violation and green/blue otherwise. Strips incomplete tag syntaxes (e.g. `{escape:0:...`) during character slices to prevent tag characters from bloating text width measurements.
+- **Smart Empty Lines Hiding**: Condenses consecutive empty lines (3 or more) in the read-only preview panel into a single placeholder line: `[start-end] X empty line(s)`, styled with a dark gray color (`#888888`) that bypasses spellchecking and tag parsing to keep views clean. Double-clicking the line number immediately scrolls the editor to the active string.
 
-### Analysis, Navigation & Safety
-- **High-Performance Large Block Handling**: Instant UI responsiveness on blocks with 5000+ lines using asynchronous chunked preview loading (`QTimer`-based) and surgical single-line preview updates via `QTextCursor` during editing, reducing typing latency to zero.
-- **Analysis Tool**: Histograms and visualizations for text sizes and problem counts with **multi-font support** and **instant font switching** using a stacked-view architecture. Features background processing via `WidthCalculationWorker` to prevent UI freezes. 
-- **Undo / Redo**: Comprehensive undo system covering text edits, folder structure changes, reverts, and even tree navigation.
-- **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
-- **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
-- **Global Performance Toggles**: Enable or disable heavy systems (Live BFN Dialog Preview, real-time warning scans, and glossary matches) inside the Global Settings tab. Bypassing these subsystems completely eliminates typing lag (input latency) during rapid text entry on any hardware.
-- **Smart Empty Lines Collapse**: When "Hide empty strings" is enabled, single or double consecutive empty lines are kept fully visible, while sequences of 3 or more empty lines are collapsed into a clean, dark gray (`#888888`) placeholder `[start-end] X empty line(s)` to optimize visual space without hiding minor layout breaks.
-- **Double-Click Line Sync**: Double-clicking the line number area in any translation editor instantly scrolls and highlights the currently edited string inside the "Strings in block" preview panel.
-- **Issue Scan**: Scan all blocks for width violations, tag errors, and other problems.
-- **Text Autofix**: Automatic correction of common text issues (short lines, width exceeded, empty sublines, spacing around tags).
-- **External Script Runner**: Execute user-configured scripts (like custom ROM build pipelines and emulator launches) directly from a console icon button (`>_`) on the main toolbar. Runs fully asynchronously via `subprocess.Popen` in a new, dedicated console window (`CREATE_NEW_CONSOLE` on Windows) inside the script's parent directory to ensure relative paths resolve perfectly.
+---
 
-### MemePalace Context Integration
-- **Chronological Story Timeline Mapping**: Connects raw, flat game dialogue strings to a structured chronological timeline (e.g., walkthroughs or parsed YouTube captions) and stores them in a local SQLite database.
-- **AI Visual Action & Relationship Enrichment**: Automatically analyzes transcript files to enrich AI models with immediate spatial, temporal, and social context (visual environment, character casts, and emotional mood annotations), bypassing isolated string translation limits.
-- **Modeless Context Builder**: Features a fully non-blocking, modeless dialog that fetches YouTube transcripts, configures mapping scopes, and runs background weaving workers (`MemePalaceWorker`) without locking the main Picoripi interface.
-- **Interactive Database Viewer**: Provides a dynamic viewer (`MemePalaceViewerDialog`) to explore mapped story rooms, inspect generated visual actions, browse verbatim dialogues, and double-click any dialogue row to instantly jump to and select it in the main editor.
+### 4. Developer-Friendly Plugin Architecture
+- **Abstract Base Rules (`BaseGameRules`)**: Extensible class in `plugins/base_game_rules.py` defining hooks for load/save logic, entering/shift-entering carriage controls, custom tag syntax checking, text auto-fixes, and spellcheck patterns.
+- **Custom Fonts Directory**: Specify a custom folder path (`fonts_dir_path`) to dynamically load external `.json` font maps or `.bfn` Nintendo Binary Font files.
+- **Background Archive Font Extractor**: Automatically scans `.arc` or `.u8` containers inside the fonts directory, extracts nested fonts in memory, and registers them under `{archive}/{font_name}` for real-time width warning metrics.
+- **Autonomous Tag Aliases (`aliases.json`)**: Persistently saves user-defined tag mappings inside the active plugin's folder, merging them with baseline defaults upon startup or plugin switch.
+- **Tag Custom Width Dialog**: Interactive input dialog with `QIntValidator` to assign custom pixel widths to game control codes. Saves directly to the active plugin's `font_map.json` and triggers instant layout updates.
+- **Standardized Script Parser**: Core support for structured transcripts with inline chapters, room locations, action notes, and speakers. Supports dynamic name tag substitutions (`get_dynamic_name_tags()`) before text distillation to map runtime placeholders.
 
-### Nintendo Binary Font (BFN) Editor
-- **Integrated Font Editor**: Create, view, and modify Nintendo binary fonts (`.bfn` files) directly inside the Picoripi workspace.
-- **Archive Integration**: Edit `.bfn` files nested inside `.arc` and `.rarc` archives. The editor extracts the font, allows visual adjustments, and compiles it back into the in-memory archive seamlessly.
-- **Tree-Based Sheet Navigation**: Upgraded the left navigation panel to an interactive `QTreeWidget` hierarchy (`Archive` -> `Font Files` -> `Texture Sheets`). Allows easy browsing of multi-font archives and direct selection of specific sheets.
-- **Seamless Font Switching**: Instantly switch the active edited BFN font from the tree hierarchy without reopening the tool, complete with automatic unsaved changes checks.
-- **Glyph Table**: Filter, search, and edit character mapping, Unicode codes, width, and kerning parameters in a spreadsheet-like view.
-- **Texture Sheet Operations**: Import and export individual glyphs or entire sheet PNGs with alpha channel preservation.
-- **Real-time Metrics Synchronization**: Save changes to automatically reload font maps (`FontMapLoader`) and refresh width warning highlights in Picoripi text editors instantly.
-- **Interactive Simulator**: Test font rendering, custom kerning, and width spacing with real-time text rendering simulation.
+---
 
-## Visual Problem Markers
+### 5. AI-Powered Orchestration & Translation
+- **Unified AI Translation Base**: Composers automatically extract and inject only glossary entries relevant to the active translation block (`glossary_manager.get_relevant_terms(text)`) into system prompts, protecting context limits.
+- **Surrounding Context Injection**: Gathers up to 3 preceding and 3 succeeding dialogue strings (utilizing their current translation state) to inform the LLM, preserving tone, pronoun gender, and formal/informal address endings (like Slavic *ty/vy* verb inflections).
+- **Force-Alias Tag Preservation (`F:` prefix)**:
+  - Preserves tags during translation by converting them to plain-text word equivalents (e.g., `{F:Link}` instead of `{escape:0:0000}`) before querying the AI.
+  - Translators translate names contextually as real words (respecting grammar declensions), and the engine automatically restores original tags in post-processing.
+- **AI JSON Normalization Retries**: Automatically detects malformed or truncated JSON payloads and enqueues formatting reminders to recover structured translations.
+- **Narrative Session History Compression**: Compresses dialogue history into a cohesive story synopsis when the active message log exceeds limit, retaining long-range story context.
 
-The application uses colored markers in the line numbers area to indicate structural or length issues in the text.
-Some markers might be rendered at **half-height**, which visually signifies that the problem is not critical and relates to an empty line meant for spacing.
-### Default Plugin Warning Markers
-- **Red (Width Exceeded)**: The subline is too wide for the in-game text box bounds.
-- **Green (Short Line)**: The subline is too short — there is enough space to fit the first word of the following line.
-- **Orange (Empty Subline)**: An entirely empty line (from consecutive newlines) that might waste text box space.
-- **Blue (Single Word Subline)**: The subline consists of only one word, which may look awkward in-game.
-- **Yellow (Tag Warning)**: A game control code tag is unknown, misspelled, or lacks a closing bracket.
+---
 
-### Plugin Customization
-All labels and descriptions for markers are defined in each plugin's `config.py`:
-- **`PROBLEM_DEFINITIONS`**: Maps problem IDs to names, descriptions, colors, and priorities.
-- **`COLOR_MARKER_DEFINITIONS`**: Configurable manual markers (red, green, blue) with custom descriptions.
+### 6. Glossary & Terminology Subsystem
+- **High-Performance Highlighting**: Evaluates text for glossary occurrences instantly using the **Aho-Corasick** algorithm.
+- **Slavic Morphological Matcher**: Uses stemming algorithms to highlight inflected forms of terms (e.g. matching "Меча", "Мечем" for "Меч").
+- **Dynamic Tabbed Interface (`QTabWidget`)**: Categorizes glossary databases into separate semantic tabs ("Characters", "Items", "Locations", etc.) with an "All" master index.
+- **Organize via AI Wizard**:
+  - Stage 1: Scans terms and suggests 4 to 7 thematic categories.
+  - Stage 2: Displays checkable UI, dynamically classifies all entries, writes back to the markdown database, and reloads active tabs.
+- **HTML Tooltips & Font Scaling**: Renders rich markdown glossary descriptions on hover (supporting lists, line breaks, bold styling). Configurable `tooltip_font_size` SpinBox (6px to 32px) scales tooltips globally.
 
-Descriptions from these dictionaries appear as **tooltips** throughout the application.
+---
 
-## Setup
+### 7. Asynchronous Spellchecker & Quality Tools
+- **CPU-Efficient background Worker**: Replaced busy-loops in `SpellcheckWorker` with a high-efficiency `threading.Event()` wait condition, keeping CPU usage at 0% when idle and waking up instantly when a word is enqueued.
+- **Persistent Disk Caching**: Stores spellchecking suggestions in `spell_cache.json` to optimize performance across large files.
+- **Asynchronous External Script Runner (`>_` button)**: Compile ROMs or launch emulators directly from the toolbar. Spawns processes asynchronously via `subprocess.Popen` in a new console window (`CREATE_NEW_CONSOLE` on Windows) resolving paths relative to the script's parent folder.
+- **Global Performance Toggles**: Disable heavy systems (Live BFN Dialog Preview, real-time warning scans, and glossary matches) inside the Global Settings tab. Bypassing these subsystems completely eliminates typing lag (input latency) during rapid text entry on any hardware.
 
-### 1. Prerequisites
+---
 
-- Python 3.14.0 or higher
-- pip (Python package manager)
+### 8. MemePalace Context Integration
+- **Modeless Context Builder**: YouTube transcript fetcher and chronological matching worker (`MemePalaceWorker`) operating in the background.
+- **Narrative Event Chapters**: Segments game scripts into acts, chapters, and locations, storing them in a local SQLite database (`mempalace_local.db`).
+- **Interactive Database Viewer**: Browses generated visual descriptions, characters, and dialogues. Double-clicking any row jumps directly to the editor line.
+- **Local Markdown Script Parser**:
+  - Local parsing of `.md` scripts formatted using the [script_template.md](file:///d:/git/dev/Picoripi/plugins/script_template.md) file.
+  - Automatically extracts cast profiles, terms, and chapters locally, saving all AI API token costs for the pre-analysis step.
 
-### 2. Install Dependencies
+---
 
-```bash
-pip install -r requirements.txt
-```
+### 9. Nintendo Binary Font (BFN) Editor
+- **Integrated Visual Suite**: Opens, edits, and recompiles `.bfn` fonts embedded within U8/RARC archives.
+- **Texture Sheet Operations**: Exports/imports sheet PNGs with alpha transparency.
+- **Spreadsheet Glyph Grid**: Edits mapping ranges, Unicode offsets, widths, and kerning. Modifying values automatically triggers font map reloading and text editor guideline recalculations instantly.
+- **Live Simulator**: Renders real-time text layouts to test custom kerning.
 
-### 3. Configure API Keys
+---
 
-The application supports AI-powered translation using OpenAI and Google Gemini. To use these features:
-
-1. **Copy the example environment file**:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Edit `.env` and add your API keys**:
-   ```bash
-   OPENAI_API_KEY=your_openai_api_key_here
-   GEMINI_API_KEY=your_gemini_api_key_here
-   DEEPL_API_KEY=                             # optional
-   FONT_TOOL_OPENAI_API_KEY=                  # optional, falls back to OPENAI_API_KEY
-   ```
-
-3. **Important**: The `.env` file is excluded from git to protect your API keys.
-
-### 4. Run the Application
-
-#### Windows
-```bash
-run.bat
-```
-
-The `run.bat` script automatically creates a virtual environment, installs dependencies, and launches the application.
-
-#### Manual Start
-```bash
-python main.py
-```
-
-### Running Tests
-
-The project uses `pytest` for unit testing with 600+ tests.
-
-#### Run All Tests
-```bash
-pytest tests/
-```
-Or with parallel execution (requires `pytest-xdist`):
-```bash
-pytest -n auto tests/
-```
-
-#### Run with Coverage Report
-```bash
-pytest --cov=core --cov=handlers --cov=ui tests/
-```
-
-## Project Structure
+## Directory Structure
 
 ```
 Picoripi/
-├── main.py                     # Application entry point (MainWindow orchestrator)
-├── core/                       # Core business logic and data models
+├── main.py                     # Entry point (MainWindow orchestrator)
+├── core/                       # Core business logic and database models
 │   ├── data_state_processor.py # Central data access & mutation layer
 │   ├── data_store.py           # AppDataStore — shared state container
 │   ├── data_manager.py         # JSON/text file I/O
 │   ├── project_manager.py      # .uiproj project lifecycle
-│   ├── project_models.py       # Project, Block, Category dataclasses
-│   ├── glossary_manager.py     # Glossary parsing, matching, CRUD
-│   ├── spellchecker_manager.py # Hunspell integration via spylls
-│   ├── state_manager.py        # StateManager with enum-based AppState
-│   ├── undo_manager.py         # Multi-level undo/redo with snapshots
-│   ├── context.py              # ProjectContext (Protocol) for decoupling
-│   ├── settings_manager.py     # Facade for settings subsystem
-│   └── settings/               # Decomposed settings modules
-│       ├── global_settings.py
-│       ├── plugin_settings.py
-│       ├── font_map_loader.py
-│       ├── recent_projects_manager.py
-│       └── session_state_manager.py
-├── handlers/                   # Business logic handlers
-│   ├── base_handler.py         # Base class with ctx/data_processor/ui_updater
-│   ├── app_action_handler.py   # Global app actions (export, import, open)
-│   ├── project_action_handler.py # Project CRUD, block management
-│   ├── list_selection_handler.py # Block/string selection logic
-│   ├── text_operation_handler.py # Text editing, paste, revert
-│   ├── text_analysis_handler.py  # Width/length analysis
-│   ├── text_autofix_logic.py     # Auto-correction engine
-│   ├── search_handler.py         # Global search with fuzzy matching
-│   ├── issue_scan_handler.py     # Project-wide issue scanning
-│   ├── string_settings_handler.py # Per-string settings
-│   ├── ai_chat_handler.py        # AI chat window
-│   ├── translation_handler.py    # Translation facade
-│   └── translation/              # AI translation subsystem
-│       ├── ai_lifecycle_manager.py
-│       ├── ai_prompt_composer.py
-│       ├── ai_worker.py
-│       ├── glossary_handler.py
-│       ├── glossary_builder_handler.py
-│       ├── glossary_occurrence_updater.py
-│       ├── glossary_prompt_manager.py
-│       └── translation_ui_handler.py
-├── ui/                         # UI management
-│   ├── ui_updater.py           # Central UI refresh coordinator
-│   ├── ui_setup.py             # UI initialization entry point
-│   ├── settings_dialog.py      # Application settings dialog
-│   ├── themes.py               # Theme management
-│   ├── builders/               # UI construction (MenuBar, Toolbar, Layout, StatusBar)
-│   ├── updaters/               # Decomposed UI updaters (block list, preview, etc.)
-│   └── main_window/            # MainWindow event handling & actions
-├── components/                 # Reusable PyQt5 widgets
-├── plugins/                    # Game-specific plugins
-│   ├── base_game_rules.py      # Abstract base class for all plugins
-│   ├── common/                 # Shared markers and utilities
-│   ├── zelda_mc/               # Zelda: Minish Cap
-│   ├── zelda_ww/               # Zelda: The Wind Waker
-│   ├── pokemon_fr/             # Pokemon FireRed
-│   └── plain_text/             # Generic plain text
-├── utils/                      # Utilities, constants, logging
-├── tests/                      # 600+ unit tests (pytest)
-├── .env                        # API keys (not in git)
-├── .env.example                # Template for .env
-└── requirements.txt            # Python dependencies
+│   ├── project_models.py       # Dataclasses (Project, Block, Category)
+│   ├── glossary_manager.py     # Glossary parsing, Aho-Corasick, CRUD
+│   ├── spellchecker_manager.py # Hunspell spellcheck & disk-caching
+│   ├── state_manager.py        # AppState context managers
+│   ├── undo_manager.py         # Multi-level undo/redo snapshots
+│   ├── context.py              # ProjectContext Protocol
+│   ├── script_segmenter.py     # Flat text script chapter segmenter
+│   ├── markdown_script_parser.py # Local Markdown script parser
+│   └── settings/               # Settings subsystems
+├── handlers/                   # Feature logic handlers
+│   ├── app_action_handler.py   # Project load/save, export/import
+│   ├── project_action_handler.py # Project-tree CRUD
+│   ├── list_selection_handler.py # Tree selections & preview reloading
+│   ├── text_operation_handler.py # Editor inputs, copy-paste, reverts
+│   ├── text_analysis_handler.py  # Character width & guideline metrics
+│   ├── text_autofix_logic.py     # Smart page-breaks & word-wrap fixing
+│   ├── search_handler.py         # Global search & fuzzy highlighting
+│   ├── issue_scan_handler.py     # Project-wide validation scans
+│   ├── string_settings_handler.py # Line settings and font overrides
+│   ├── ai_chat_handler.py        # AI Assistant Chat window
+│   ├── translation_handler.py    # Main translation facade
+│   └── translation/              # Prompt composers, workers, glossary UI
+├── ui/                         # Qt Interface layout, dialogs and themes
+│   ├── ui_updater.py           # Main UI sync coordinator
+│   ├── settings_dialog.py      # Settings panels
+│   └── builders/               # Menu, toolbar, layout builders
+├── components/                 # Reusable UI widgets (BFN, text fields)
+├── plugins/                    # Extensible game-specific plugins
+│   ├── base_game_rules.py      # Rules base class (API specifications)
+│   ├── common/                 # Shared default metrics and prompts
+│   ├── zelda_mc/               # Zelda: Minish Cap plugin
+│   ├── zelda_ww/               # Zelda: The Wind Waker plugin
+│   ├── pokemon_fr/             # Pokemon FireRed plugin
+│   ├── plain_text/             # Generic ruleset
+│   ├── DEVELOPER_GUIDE.md      # AI-oriented developer guide for plugins
+│   └── script_template.md      # Template for markdown timeline scripts
+├── utils/                      # Syntax Highlighters, constants, logging
+└── tests/                      # Pytest unit testing suite
 ```
 
-## Plugins and Extensibility
+---
 
-The workbench is highly modular. Each plugin in the `plugins/` directory is a self-contained unit that defines:
-1. **Rules (`rules.py`)**: Inherits from `BaseGameRules`. Manages tag parsing, data loading/saving, pasted text processing, problem analysis, and autofix rules.
-2. **Configuration (`config.py`)**: Defines constants, problem types, marker descriptions, and enter characters.
-3. **Fonts (`fonts/` directory)**: Contains JSON font maps for pixel-perfect width calculations.
-4. **Tag Logic (`tag_manager.py`, `tag_logic.py`)**: Handles game-specific control codes and formatting.
+## Setup & Execution
 
-To add a new game:
-1. Create a new directory in `plugins/`.
-2. Implement your rules by inheriting from `BaseGameRules`.
-3. Define your font maps and control codes in `config.py`.
+### 1. Requirements
+- Python 3.14.0 or higher
+- Windows OS (supports Linux/macOS with manual startup)
 
-## Logs
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-Application logs are written to `app_debug.txt` in the project root directory.
-Logs use `RotatingFileHandler` with a 2 MB limit and 5 backup files.
+### 3. Configure API Credentials
+Create a `.env` file in the root directory based on the template:
+```bash
+cp .env.example .env
+```
+Fill in the API keys:
+- `OPENAI_API_KEY`: For OpenAI models.
+- `GEMINI_API_KEY`: For Google Gemini models.
+- `DEEPL_API_KEY`: For DeepL translation (optional).
+
+### 4. Launch
+- **Windows**: Run `run.bat` to automatically build/verify virtual environment and launch the app.
+- **Other Platforms**: Run `python main.py` directly.
+
+### 5. Running Tests
+The suite consists of over 900 test cases using `pytest`:
+```bash
+# Windows PowerShell
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
+```
+
+---
 
 ## License
-
-[Add your license here]
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -240,15 +240,16 @@ class GlossaryHandler(BaseTranslationHandler):
         self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
         self._update_glossary_highlighting()
 
-        if not is_new and updated_entry and old_translation and old_translation.strip() != new_translation.strip():
+        if updated_entry and updated_entry.translation.strip() != "":
             data_source = getattr(self.mw.data_store, "data", [])
             occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             occurrences = occurrence_map.get(updated_entry.original, [])
             if occurrences:
-                log_debug(f"Glossary: Translation changed for '{term}'. Showing update dialog.")
+                log_debug(f"Glossary: Showing update dialog for '{term}'.")
                 self._occurrence_updater.show_translation_update_dialog(
-                    entry=updated_entry, previous_translation=old_translation, occurrences=occurrences
+                    entry=updated_entry, previous_translation=old_translation or "", occurrences=occurrences
                 )
+
 
     def _create_edit_dialog(self, term: str, entry: Optional[GlossaryEntry], context: Optional[str], initial_translation: str = "") -> GlossaryEditDialog:
         dialog_ref: Dict[str, GlossaryEditDialog] = {}
@@ -475,15 +476,14 @@ class GlossaryHandler(BaseTranslationHandler):
 
             updated_entry = self.glossary_manager.get_entry(original)
             if (
-                previous_translation is not None
-                and updated_entry is not None
-                and previous_translation.strip() != updated_entry.translation.strip()
+                updated_entry is not None
+                and updated_entry.translation.strip() != ""
             ):
                 occurrences = occurrence_map.get(updated_entry.original, [])
                 if occurrences:
                     self._occurrence_updater.show_translation_update_dialog(
                         entry=updated_entry,
-                        previous_translation=previous_translation,
+                        previous_translation=previous_translation or "",
                         occurrences=occurrences,
                     )
             return entries, occurrence_map

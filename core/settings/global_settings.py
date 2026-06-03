@@ -43,6 +43,7 @@ class GlobalSettings:
             "preview_enabled": True,
             "warnings_enabled": True,
             "glossary_enabled": True,
+            "show_archive_size_warnings": True,
             "last_browse_dir": str(Path.home()),
             "recent_projects": [],
             "translation_ai": {
@@ -192,6 +193,7 @@ class GlobalSettings:
             "preview_enabled": getattr(self.mw, 'preview_enabled', True),
             "warnings_enabled": getattr(self.mw, 'warnings_enabled', True),
             "glossary_enabled": getattr(self.mw, 'glossary_enabled', True),
+            "show_archive_size_warnings": getattr(self.mw, 'show_archive_size_warnings', True),
             "last_browse_dir": getattr(self.mw, 'last_browse_dir', str(Path.home())),
             "enable_console_logging": getattr(self.mw, 'enable_console_logging', True),
             "enable_file_logging": getattr(self.mw, 'enable_file_logging', True),

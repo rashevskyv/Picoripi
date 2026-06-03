@@ -109,6 +109,10 @@ class PreviewUpdater(BaseUIUpdater):
             self.mw.original_text_edit.highlightManager.setLinkedCursorPosition(current_line_in_edited, current_col_in_edited)
 
     def _apply_highlights_for_block(self, block_idx: int):
+        if block_idx not in (-1,):
+            if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+                block_idx = -2
+
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit or not hasattr(preview_edit, 'highlightManager') or not self.mw.current_game_rules:
             return
@@ -263,6 +267,13 @@ class PreviewUpdater(BaseUIUpdater):
         return categorized_indices
 
     def populate_strings_for_block(self, block_idx, category_name=None, force=False):
+        if block_idx not in (-1,):
+            if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+                block_idx = -2
+                category_name = None
+            elif category_name is None:
+                category_name = getattr(self.mw.data_store, 'current_category_name', None)
+
         if not hasattr(self.mw, 'preview_text_edit'):
             return
 
@@ -814,14 +825,18 @@ class PreviewUpdater(BaseUIUpdater):
             self.mw.ui_updater.clear_status_bar()
 
         # Update BFN visual preview
-        if getattr(self.mw, 'preview_enabled', True):
-            if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+        preview_enabled = getattr(self.mw, 'preview_enabled', True)
+        toggle_action = getattr(self.mw, 'toggle_preview_action', None)
+        show_preview = preview_enabled and (toggle_action.isChecked() if toggle_action else True)
+
+        if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+            if show_preview:
                 if self.mw.bfn_preview_widget.isHidden():
                     self.mw.bfn_preview_widget.show()
                 self.mw.bfn_preview_widget.update_preview_text(edited_text_raw)
-        else:
-            if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
-                self.mw.bfn_preview_widget.hide()
+            else:
+                if not self.mw.bfn_preview_widget.isHidden():
+                    self.mw.bfn_preview_widget.hide()
 
         # Sync text with active BFN Font Editor simulation if it is open.
         # We rely on the structural _looks_like_bfn_editor helper to ignore
@@ -871,5 +886,12 @@ class PreviewUpdater(BaseUIUpdater):
                 toggle_action.setEnabled(True)
                 if toggle_action.isChecked():
                     preview_widget.show()
+                    # Immediately update preview text when showing
+                    edited_text_raw = ""
+                    if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+                        edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                        if edited_text_raw is None:
+                            edited_text_raw = ""
+                    preview_widget.update_preview_text(edited_text_raw)
                 else:
                     preview_widget.hide()

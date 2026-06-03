@@ -3,6 +3,7 @@ from typing import Optional, Set, Dict, Any, Tuple
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
 from plugins.common.text_fixer import GenericTextFixer
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_BAD_SPACING
 
 WORD_CHAR_PATTERN_ZMC = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 ANY_TAG_RE_PATTERN_ZMC = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
@@ -177,21 +178,35 @@ class TextFixer(GenericTextFixer):
     def autofix_data_string(self,
                             data_string: str,
                             editor_font_map: dict,
-                            editor_line_width_threshold: int) -> Tuple[str, bool]:
-        
+                            editor_line_width_threshold: int,
+                            logical_hard_limit: Optional[int] = None,
+                            allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+        if logical_hard_limit is None:
+            logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
         
-        modified_text, changed1 = self._fix_empty_odd_sublines_zmc(original_text)
+        modified_text = original_text
+        changed1 = changed2 = changed3 = changed4 = changed5 = False
+
+        if allowed_problems is None or PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY in allowed_problems:
+            modified_text, changed1 = self._fix_empty_odd_sublines_zmc(modified_text)
         
-        merged_text, changed2 = self._fix_short_lines_zmc(modified_text, editor_font_map, editor_line_width_threshold)
+        if allowed_problems is None or PROBLEM_SHORT_LINE in allowed_problems:
+            modified_text, changed2 = self._fix_short_lines_zmc(modified_text, editor_font_map, editor_line_width_threshold)
         
-        splitted_text, changed3 = self._fix_width_exceeded_generic(merged_text, editor_font_map, editor_line_width_threshold)
+        if allowed_problems is None or PROBLEM_WIDTH_EXCEEDED in allowed_problems:
+            modified_text, changed3 = self._fix_width_exceeded_generic(modified_text, editor_font_map, logical_hard_limit)
         
-        final_text, changed4 = self._cleanup_spaces_around_tags_zmc(splitted_text)
-        final_text, changed5 = self._fix_leading_spaces_in_sublines_zmc(final_text)
+        if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
+            modified_text, changed4 = self._cleanup_spaces_around_tags_zmc(modified_text)
+            modified_text, changed5 = self._fix_leading_spaces_in_sublines_zmc(modified_text)
         
-        from utils.utils import clean_spaces
-        cleaned_text = clean_spaces(final_text)
-        changed6 = cleaned_text != final_text
+        if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
+            from utils.utils import clean_spaces
+            cleaned_text = clean_spaces(modified_text)
+        else:
+            cleaned_text = modified_text
+
+        changed6 = cleaned_text != modified_text
         
         return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6)
