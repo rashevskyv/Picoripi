@@ -286,12 +286,23 @@ class AILifecycleManager(BaseTranslationHandler):
             return code_block_match.group(1).strip()
             
         if expect_json:
-            # 2. If no code blocks, look for the first '{' and last '}'
-            first_brace = text.find('{')
-            last_brace = text.rfind('}')
+            # 2. If no code blocks, find the outermost JSON structure (object or array)
+            first_bracket = text.find('[')
+            first_curly = text.find('{')
             
-            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                return text[first_brace:last_brace + 1].strip()
+            start_idx = -1
+            if first_bracket != -1 and first_curly != -1:
+                start_idx = min(first_bracket, first_curly)
+            elif first_bracket != -1:
+                start_idx = first_bracket
+            elif first_curly != -1:
+                start_idx = first_curly
+                
+            if start_idx != -1:
+                end_char = ']' if text[start_idx] == '[' else '}'
+                last_idx = text.rfind(end_char)
+                if last_idx != -1 and last_idx > start_idx:
+                    return text[start_idx:last_idx + 1].strip()
             
         return text.strip()
     def _trim_trailing_whitespace_from_lines(self, text: str) -> str:

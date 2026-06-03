@@ -12,7 +12,6 @@
     "{pause2}": "{escape:0:0007003c}",
     "{color:green}": "{escape:255:000002}",
     "{F:◄}": "{escape:0:0014}",
-    "{F:▼}": "{escape:0:0017}",
     "{(analog stick)}": "{escape:0:0013}",
     "{(C-Stick)}": "{escape:0:000c}",
     "{pause3}": "{escape:0:0007000f}",
@@ -21,5 +20,10 @@
     "{color:yellow}": "{escape:255:000004}",
     "{color:purple}": "{escape:255:000006}",
     "{color:orange}": "{escape:255:000008}",
-    "{color:gray}": "{escape:255:000007}"
+    "{color:gray}": "{escape:255:000007}",
+    "{(Y)}": "{escape:0:0010}",
+    "{(X)}": "{escape:0:000f}",
+    "{(DUP)}": "{escape:3:0009}",
+    "{(▼)}": "{escape:0:0017}",
+    "{F:▼}": "{escape:0:0017}"
 }

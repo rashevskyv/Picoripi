@@ -107,9 +107,10 @@ class LNETPaintEventLogic:
                                         if self.editor.custom_line_numbers[next_idx] is None:
                                             draw_separator = True
                         else:
-                            # Default behavior: draw line every page_size lines
-                            if (doc_visual_line_index + 1) % page_size == 0:
-                                draw_separator = True
+                            # Default behavior: draw line every page_size logical blocks (lines)
+                            if i == layout.lineCount() - 1:
+                                if (block.blockNumber() + 1) % page_size == 0:
+                                    draw_separator = True
 
                     if draw_separator:
                          line_bottom_y_in_viewport = block_rect.top() + line.rect().bottom()
@@ -122,9 +123,9 @@ class LNETPaintEventLogic:
                                line_bottom_y_in_viewport <= self.editor.viewport().height() + PAIR_SEPARATOR_LINE_THICKNESS:
                                 painter_lines.drawLine(
                                     0,
-                                    int(line_bottom_y_in_viewport) -1,
+                                    int(line_bottom_y_in_viewport),
                                     self.editor.viewport().width(),
-                                    int(line_bottom_y_in_viewport) -1
+                                    int(line_bottom_y_in_viewport)
                                 )
                     doc_visual_line_index += 1
 

@@ -164,3 +164,39 @@ def test_zelda_mc_autofix(mc_rules):
     )
     assert fixed == "У {color:red}королівстві"
     assert changed is True
+
+
+def test_clean_spaces_with_length_tags(monkeypatch):
+    mock_font_map = {
+        "{(Y)}": {"width": 50},
+        "{(X)}": 50,
+        "[(A)]": {"width": 45}
+    }
+    mock_mappings = {
+        "{(Y)}": "{escape:0:0010}",
+        "{(X)}": "{escape:0:000f}",
+        "[(A)]": "{escape:0:000a}"
+    }
+    
+    monkeypatch.setattr("utils.utils.get_active_font_map", lambda: mock_font_map)
+    monkeypatch.setattr("utils.utils.get_active_tag_mappings", lambda: mock_mappings)
+    
+    assert clean_spaces("У {(Y)} королівстві") == "У {(Y)} королівстві"
+    assert clean_spaces("У   {(Y)}   королівстві") == "У {(Y)} королівстві"
+    assert clean_spaces("У {color:red} королівстві") == "У {color:red}королівстві"
+
+
+def test_zelda_bmg_spacing_detection_with_length_tags(bmg_rules):
+    bmg_rules.mw.font_map = {
+        "{(Y)}": {"width": 50}
+    }
+    bmg_rules.mw.default_tag_mappings = {
+        "{(Y)}": "{escape:0:0010}"
+    }
+    
+    problems = bmg_rules.problem_analyzer.analyze_data_string(
+        data_string="Hello {(Y)} World",
+        font_map=bmg_rules.mw.font_map,
+        threshold=1000
+    )
+    assert ZBMG_BAD_SPACING not in problems[0]

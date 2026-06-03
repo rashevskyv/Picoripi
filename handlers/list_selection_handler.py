@@ -11,6 +11,8 @@ class ListSelectionHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         super().__init__(main_window, data_processor, ui_updater)
         self._restoring_selection: bool = False
+        self._target_string_idx: Optional[int] = None
+        self._target_block_idx: Optional[int] = None
     def navigate_between_blocks(self, forward: bool) -> None:
         """Handle global Alt+Shift+Up/Down to jump to next/prev block in the tree."""
         if not hasattr(self.mw, 'block_list_widget'): return
@@ -152,12 +154,15 @@ class ListSelectionHandler(BaseHandler):
                 
                 # Restore selection logic
                 target_string_idx = -1
-                if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                    project = self.mw.project_manager.project
-                    if hasattr(self.mw, 'block_to_project_file_map'):
-                         project_block_idx = self.mw.block_to_project_file_map.get(block_index)
-                         if project_block_idx is not None and project_block_idx < len(project.blocks):
-                             target_string_idx = project.blocks[project_block_idx].last_selected_string_idx
+                if self._target_string_idx is not None and (self._target_block_idx is None or self._target_block_idx == block_index):
+                    target_string_idx = self._target_string_idx
+                else:
+                    if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                        project = self.mw.project_manager.project
+                        if hasattr(self.mw, 'block_to_project_file_map'):
+                             project_block_idx = self.mw.block_to_project_file_map.get(block_index)
+                             if project_block_idx is not None and project_block_idx < len(project.blocks):
+                                 target_string_idx = project.blocks[project_block_idx].last_selected_string_idx
                 
                 self.mw.data_store.current_string_idx = target_string_idx
                 

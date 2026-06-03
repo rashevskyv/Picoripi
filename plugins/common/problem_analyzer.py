@@ -1,6 +1,6 @@
 from typing import Optional, Set, List
 import re
-from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor
+from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, get_tag_width, ALL_TAGS_PATTERN
 
 class GenericProblemAnalyzer:
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
@@ -13,7 +13,22 @@ class GenericProblemAnalyzer:
         if not text:
             return False
         clean_text = convert_dots_to_spaces_from_editor(text)
-        clean_text = remove_all_tags(clean_text)
+        
+        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        
+        def repl(match):
+            tag = match.group(0)
+            if tag.lower().startswith("{f:") or tag.lower().startswith("[f:"):
+                return "X"
+            width = get_tag_width(tag, default_tag_mappings, font_map, icon_sequences=icon_sequences)
+            if width > 0:
+                return "X"
+            return ""
+            
+        clean_text = ALL_TAGS_PATTERN.sub(repl, clean_text)
+        
         if clean_text.startswith(" "):
             return True
         if "  " in clean_text:

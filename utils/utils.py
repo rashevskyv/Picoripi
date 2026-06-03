@@ -23,29 +23,81 @@ def remove_all_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     text = FORCED_ALIAS_PATTERN.sub(r"\1", text)
     return ALL_TAGS_PATTERN.sub("", text)
 
+def get_active_font_map() -> dict:
+    try:
+        from PyQt5.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            for widget in app.topLevelWidgets():
+                if widget.objectName() == "MainWindow" or widget.__class__.__name__ == "MainWindow":
+                    return getattr(widget, "font_map", {})
+    except Exception:
+        pass
+    return {}
+
+def get_active_icon_sequences() -> list:
+    try:
+        from PyQt5.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            for widget in app.topLevelWidgets():
+                if widget.objectName() == "MainWindow" or widget.__class__.__name__ == "MainWindow":
+                    return getattr(widget, "icon_sequences", [])
+    except Exception:
+        pass
+    return []
+
 def clean_spaces(text: str) -> str:
     if text is None:
         return ""
     
     # Get active tag mappings and build lookahead prefix
     mappings = get_active_tag_mappings()
-    forced_inners = ["f:", "F:"]
+    font_map = get_active_font_map()
+    icon_sequences = get_active_icon_sequences()
+    
+    curly_forced = ["f:", "F:"]
+    bracket_forced = ["f:", "F:"]
+    
     if mappings:
         for alias, original in mappings.items():
             if alias.lower().startswith("{f:") and original.startswith("{") and original.endswith("}"):
-                forced_inners.append(re.escape(original[1:-1]))
-    lookahead = "|".join(forced_inners)
+                curly_forced.append(re.escape(original[1:-1]))
+            if alias.lower().startswith("{f:") and original.startswith("[") and original.endswith("]"):
+                bracket_forced.append(re.escape(original[1:-1]))
+
+    # Scan text for other tags that have non-zero width in the game
+    tags_found = ALL_TAGS_PATTERN.findall(text)
+    for tag in tags_found:
+        if tag.startswith("{") and tag.endswith("}"):
+            inner = tag[1:-1]
+            if inner.lower().startswith("f:"):
+                continue
+            width = get_tag_width(tag, mappings, font_map, icon_sequences=icon_sequences)
+            if width > 0:
+                curly_forced.append(re.escape(inner))
+        elif tag.startswith("[") and tag.endswith("]"):
+            inner = tag[1:-1]
+            if inner.lower().startswith("f:"):
+                continue
+            width = get_tag_width(tag, mappings, font_map, icon_sequences=icon_sequences)
+            if width > 0:
+                bracket_forced.append(re.escape(inner))
+
+    curly_lookahead = "|".join(curly_forced)
+    bracket_lookahead = "|".join(bracket_forced)
     
     lines = text.split('\n')
     cleaned_lines = []
     
     # Регулярний вираз для порожніх початкових/кінцевих тегів (фігурні теги або колірні квадратні теги)
-    empty_tags_subpattern = rf"(?:\{{(?!(?:{lookahead}))[^}}]*\}}|\[(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|/C)\])*"
+    empty_tags_subpattern = rf"(?:\{{(?!(?:{curly_lookahead}))[^}}]*\}}|\[(?!(?:{bracket_lookahead}))(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|/C)\])*"
     leading_space_pat = re.compile(rf"^{empty_tags_subpattern}[ ·]")
     trailing_space_pat = re.compile(rf"[ ·]{empty_tags_subpattern}$")
     
     non_forced_tags_pattern = re.compile(
-        rf'\[[^\]]*\]|\{{(?!(?:{lookahead}))[^}}]*\}}|' +
+        rf'\[(?!(?:{bracket_lookahead}))[^\]]*\]|'
+        rf'\{{(?!(?:{curly_lookahead}))[^}}]*\}}|' +
         re.escape(P_VISUAL_EDITOR_MARKER) + r'|' +
         re.escape(L_VISUAL_EDITOR_MARKER)
     )
