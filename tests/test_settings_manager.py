@@ -58,6 +58,8 @@ class MockMainWindow:
         self.autofix_enabled = {}
         self.detection_enabled = {}
         self.translation_config = {}
+        self.translation_presets = {}
+        self.current_translation_preset = "default"
         self.context_menu_tags = {"single_tags": [], "wrap_tags": []}
 
 @pytest.fixture

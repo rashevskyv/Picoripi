@@ -589,6 +589,18 @@ class SettingsDialogUiMixin:
         provider_layout.addWidget(self.test_provider_btn)
 
         provider_form.addRow("Active Provider:", provider_layout)
+
+        preset_layout = QHBoxLayout()
+        self.translation_preset_combo = QComboBox(self)
+        preset_layout.addWidget(self.translation_preset_combo)
+
+        self.save_preset_btn = QPushButton("Save Preset", self)
+        self.delete_preset_btn = QPushButton("Delete Preset", self)
+        preset_layout.addWidget(self.save_preset_btn)
+        preset_layout.addWidget(self.delete_preset_btn)
+
+        provider_form.addRow("Preset:", preset_layout)
+
         layout.addLayout(provider_form)
 
         self.ai_provider_pages = QStackedWidget(self)

@@ -16,5 +16,6 @@
     "{(analog stick)}": "{escape:0:0013}",
     "{(C-Stick)}": "{escape:0:000c}",
     "{pause3}": "{escape:0:0007000f}",
-    "{(▲)}": "{escape:0:0016}"
+    "{(▲)}": "{escape:0:0016}",
+    "{analog up}": "{escape:0:0018}"
 }

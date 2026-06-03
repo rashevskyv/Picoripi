@@ -1,6 +1,6 @@
-# Picoripi v0.2.157
+# Picoripi v0.2.158
  
-The **Picoripi** (v0.2.157) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.2.158) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -62,6 +62,9 @@ The **Picoripi** (v0.2.157) is a visual translation and localization workbench b
   - Translators translate names contextually as real words (respecting grammar declensions), and the engine automatically restores original tags in post-processing.
 - **AI JSON Normalization Retries**: Automatically detects malformed or truncated JSON payloads and enqueues formatting reminders to recover structured translations.
 - **Narrative Session History Compression**: Compresses dialogue history into a cohesive story synopsis when the active message log exceeds limit, retaining long-range story context.
+- **AI Translation Presets**:
+  - Save, load, and manage custom API provider presets (endpoint URL, model names, API keys, parameters) directly from the settings dialog.
+  - Allows quick, seamless switching between different setups (e.g., local Ollama, OmniRouter, native Google Gemini, or customized OpenAI endpoints) without re-entering credentials.
 
 ---
 

@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.158] - 2026-06-03
+
+### Added
+- **AI Translation Presets**:
+  - Implemented a complete preset system for AI Translation settings directly inside the Settings Dialog (AI Translation tab).
+  - Added a dropdown selector (`Preset:`) alongside **Save Preset** and **Delete Preset** buttons.
+  - Allows saving all active AI Translation parameters (provider, endpoint, api key, model, temperature, max tokens, timeout) under a custom name, with easy switching back and forth.
+  - Saved presets are persisted globally in `settings.json` under `translation_presets`, with the active selection tracked by `current_translation_preset`.
+  - Fully covered the new preset loading, saving, and deleting logic with new unit tests in `test_settings_dialog_presets.py`.
+
 ## [0.2.157] - 2026-06-03
 
 ### Added

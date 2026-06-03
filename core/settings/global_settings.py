@@ -50,6 +50,8 @@ class GlobalSettings:
                 "provider": "OpenAI", "api_key": "", "model": "gpt-4o"
             },
             "translation_config": build_default_translation_config(),
+            "translation_presets": {},
+            "current_translation_preset": "default",
             "glossary_ai": {
                 "provider": "OpenAI",
                 "api_key": "",
@@ -188,6 +190,8 @@ class GlobalSettings:
             "recent_projects": getattr(self.mw, 'recent_projects', []),
             "translation_ai": translation_ai_to_save,
             "translation_config": translation_config_to_save,
+            "translation_presets": getattr(self.mw, 'translation_presets', {}),
+            "current_translation_preset": getattr(self.mw, 'current_translation_preset', 'default'),
             "glossary_ai": getattr(self.mw, 'glossary_ai', {}),
             "spellchecker_enabled": getattr(self.mw, 'spellchecker_enabled', False),
             "spellchecker_language": getattr(self.mw, 'spellchecker_language', 'uk'),
