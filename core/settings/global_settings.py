@@ -89,7 +89,9 @@ class GlobalSettings:
             "mempalace_builder_width": 650,
             "mempalace_builder_height": 500,
             "log_ai_traffic": False,
-            "show_force_alias_warning": True
+            "show_force_alias_warning": True,
+            "variations_window_geometry": None,
+            "variations_splitter_state": None
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -190,8 +192,8 @@ class GlobalSettings:
             "recent_projects": getattr(self.mw, 'recent_projects', []),
             "translation_ai": translation_ai_to_save,
             "translation_config": translation_config_to_save,
-            "translation_presets": getattr(self.mw, 'translation_presets', {}),
-            "current_translation_preset": getattr(self.mw, 'current_translation_preset', 'default'),
+            "translation_presets": getattr(self.mw, 'translation_presets', {}) if isinstance(getattr(self.mw, 'translation_presets', {}), dict) else {},
+            "current_translation_preset": getattr(self.mw, 'current_translation_preset', 'default') if isinstance(getattr(self.mw, 'current_translation_preset', 'default'), str) else 'default',
             "glossary_ai": getattr(self.mw, 'glossary_ai', {}),
             "spellchecker_enabled": getattr(self.mw, 'spellchecker_enabled', False),
             "spellchecker_language": getattr(self.mw, 'spellchecker_language', 'uk'),
@@ -235,7 +237,9 @@ class GlobalSettings:
             "mempalace_builder_width": settings_dict.get("mempalace_builder_width", 650),
             "mempalace_builder_height": settings_dict.get("mempalace_builder_height", 500),
             "log_ai_traffic": False if type(getattr(self.mw, 'log_ai_traffic', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'log_ai_traffic', False)),
-            "show_force_alias_warning": True if type(getattr(self.mw, 'show_force_alias_warning', True)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'show_force_alias_warning', True))
+            "show_force_alias_warning": True if type(getattr(self.mw, 'show_force_alias_warning', True)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'show_force_alias_warning', True)),
+            "variations_window_geometry": getattr(self.mw, 'variations_window_geometry', None) if isinstance(getattr(self.mw, 'variations_window_geometry', None), dict) else None,
+            "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

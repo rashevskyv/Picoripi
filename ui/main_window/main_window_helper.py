@@ -325,8 +325,10 @@ class MainWindowHelper:
         
         # Save UI Session State for the current file/project
         current_path = None
+        is_project = False
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_file_path:
             current_path = self.mw.project_manager.project_file_path
+            is_project = True
         elif self.mw.data_store.json_path:
             current_path = self.mw.data_store.json_path
             
@@ -339,6 +341,10 @@ class MainWindowHelper:
                 "preview_v_scroll": self.mw.last_preview_text_edit_scroll_value_v,
                 "original_v_scroll": self.mw.last_original_text_edit_scroll_value_v
             })
+            if is_project and self.mw.project_manager.project:
+                self.mw.project_manager.project.metadata['session_state'] = state
+                self.mw.project_manager.save()
+                
             self.mw.settings_manager.session_state.set_state_for_file(str(current_path), state)
             self.mw.settings_manager.set("last_opened_path", str(current_path))
 

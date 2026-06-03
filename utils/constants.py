@@ -1,5 +1,5 @@
 from pathlib import Path
-APP_VERSION = "0.2.158"
+APP_VERSION = "0.2.159"
 
 
 # Player tags

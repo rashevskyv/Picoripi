@@ -20,9 +20,9 @@ from plugins.common.markers import P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_
 from core.glossary_manager import GlossaryManager, GlossaryMatch, GlossaryEntry
 
 _COLOR_TAG_PATTERN = re.compile(
-    r"(\[(Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White)\])|"
+    r"(\[(Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|Gray|Grey)\])|"
     r"(\[/C\])|"
-    r"(\{\s*Color\s*:\s*(Red|Green|Blue|White)\s*\})",
+    r"(\{\s*Color\s*:\s*(Red|Green|Blue|White|Yellow|Purple|Orange|Grey|Gray)\s*\})",
     re.IGNORECASE
 )
 
@@ -295,7 +295,10 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 pass
         self.lblue_text_format.setForeground(QColor("#ADD8E6"))
         self.purple_text_format.setForeground(QColor("#800080"))
-        self.silver_text_format.setForeground(QColor("#C0C0C0"))
+        if current_theme == 'dark':
+            self.silver_text_format.setForeground(QColor("#a8a8a8"))
+        else:
+            self.silver_text_format.setForeground(QColor("#555555"))
         self.orange_text_format.setForeground(QColor("#FFA500"))
 
         self._glossary_format = QTextCharFormat()
@@ -630,7 +633,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 elif color == 'yellow': current_block_color_state = self.STATE_YELLOW
                 elif color == 'l_blue': current_block_color_state = self.STATE_LBLUE
                 elif color == 'purple': current_block_color_state = self.STATE_PURPLE
-                elif color == 'silver': current_block_color_state = self.STATE_SILVER
+                elif color in ('silver', 'grey', 'gray'): current_block_color_state = self.STATE_SILVER
                 elif color == 'orange': current_block_color_state = self.STATE_ORANGE
                 else: current_block_color_state = self.STATE_DEFAULT # White
             elif ww_closing_tag:
@@ -640,6 +643,10 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 if color == 'red': current_block_color_state = self.STATE_RED
                 elif color == 'green': current_block_color_state = self.STATE_GREEN
                 elif color == 'blue': current_block_color_state = self.STATE_BLUE
+                elif color == 'yellow': current_block_color_state = self.STATE_YELLOW
+                elif color == 'purple': current_block_color_state = self.STATE_PURPLE
+                elif color == 'orange': current_block_color_state = self.STATE_ORANGE
+                elif color in ('grey', 'gray'): current_block_color_state = self.STATE_SILVER
                 else: current_block_color_state = self.STATE_DEFAULT # White
             
             last_pos = end

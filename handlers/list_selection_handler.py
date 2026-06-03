@@ -27,22 +27,22 @@ class ListSelectionHandler(BaseHandler):
     def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
         if self.mw.is_loading_data or self._restoring_selection:
             return
-
+ 
         if hasattr(self.mw, 'editor_operation_handler'):
             self.mw.editor_operation_handler.stop_and_flush_editor_changes()
-
+ 
         if previous_item:
             previous_block_idx = previous_item.data(0, Qt.UserRole)
             if previous_block_idx is not None:
                 self.ui_updater.update_block_item_text_with_problem_count(previous_block_idx)
-
+ 
         if not current_item:
             return
-
+ 
         old_block = self.mw.data_store.current_block_idx
         old_string = self.mw.data_store.current_string_idx
         old_category = getattr(self.mw.data_store, 'current_category_name', None)
-
+ 
         self.mw.is_programmatically_changing_text = True
         try:
             is_virtual_row = current_item.data(0, Qt.UserRole + 12)
@@ -81,14 +81,15 @@ class ListSelectionHandler(BaseHandler):
                     rel_idx = displayed_indices.index(target_tuple)
                 
                 if rel_idx != -1:
-                    QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
+                    if not getattr(self.mw, '_restoring_session_state', False):
+                        QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
                 else:
                     self.ui_updater.update_text_views()
                     
                 self.ui_updater.update_statusbar_paths()
                 self._update_block_toolbar_button_states(-2)
                 return
-
+ 
             block_index = current_item.data(0, Qt.UserRole)
             category_name = current_item.data(0, Qt.UserRole + 10)
             chapter_id = current_item.data(0, Qt.UserRole + 11)
@@ -120,7 +121,8 @@ class ListSelectionHandler(BaseHandler):
                     first_mapping = chapter_mappings[0]
                     self.mw.data_store.current_block_idx = first_mapping[0]
                     self.mw.data_store.current_string_idx = first_mapping[1]
-                    QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
+                    if not getattr(self.mw, '_restoring_session_state', False):
+                        QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
                 else:
                     self.mw.data_store.current_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
@@ -129,7 +131,7 @@ class ListSelectionHandler(BaseHandler):
                 self.ui_updater.update_statusbar_paths()
                 self._update_block_toolbar_button_states(-2)
                 return
-
+ 
             if block_index is None:
                 self.mw.data_store.current_block_idx = -1
                 self.mw.data_store.current_string_idx = -1
@@ -141,7 +143,7 @@ class ListSelectionHandler(BaseHandler):
                     self.mw.string_settings_updater.update_string_settings_panel()
                 self._update_block_toolbar_button_states(-1)
                 return
-
+ 
             if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or self.mw.data_store.current_chapter_id is not None:
                 self.mw.data_store.current_block_idx = block_index
                 self.mw.data_store.current_category_name = category_name
@@ -166,7 +168,7 @@ class ListSelectionHandler(BaseHandler):
                         old_block, old_string,
                         category_name, old_category
                     )
-
+ 
                 self.ui_updater.populate_strings_for_block(block_index, category_name)
                 
                 if target_string_idx != -1:
@@ -177,7 +179,8 @@ class ListSelectionHandler(BaseHandler):
                     
                     if rel_idx != -1:
                         # Schedule selection to avoid recursion issues
-                        QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
+                        if not getattr(self.mw, '_restoring_session_state', False):
+                            QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
                 else:
                     self.ui_updater.update_text_views()
                     if hasattr(self.mw, 'string_settings_updater'):
@@ -185,11 +188,11 @@ class ListSelectionHandler(BaseHandler):
                 
                 self.ui_updater.update_statusbar_paths()
                 self.ui_updater.update_block_item_text_with_problem_count(block_index)
-
+ 
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_font_combobox()
                 self.mw.string_settings_updater.update_string_settings_panel()
-
+ 
             self._update_block_toolbar_button_states(block_index)
         finally:
             self.mw.is_programmatically_changing_text = False

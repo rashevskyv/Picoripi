@@ -17,5 +17,9 @@
     "{(C-Stick)}": "{escape:0:000c}",
     "{pause3}": "{escape:0:0007000f}",
     "{(▲)}": "{escape:0:0016}",
-    "{analog up}": "{escape:0:0018}"
+    "{analog up}": "{escape:0:0018}",
+    "{color:yellow}": "{escape:255:000004}",
+    "{color:purple}": "{escape:255:000006}",
+    "{color:orange}": "{escape:255:000008}",
+    "{color:gray}": "{escape:255:000007}"
 }

@@ -1381,14 +1381,13 @@ class TranslationHandler(BaseHandler):
         cache_key = (block_idx, string_idx)
         if not force and cache_key in self.variations_cache:
             cached = self.variations_cache[cache_key]
-            if cached.get('translation') == str(current_translation):
-                restored_variants = cached.get('variants', [])
-                chosen = self.ui_handler.show_variations_dialog(restored_variants, show_refresh=True)
-                if chosen == "__REFRESH__":
-                    QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
-                elif chosen:
-                    self._apply_chosen_variation(chosen, is_inline=False)
-                return
+            restored_variants = cached.get('variants', [])
+            chosen = self.ui_handler.show_variations_dialog(restored_variants, show_refresh=True)
+            if chosen == "__REFRESH__":
+                QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
+            elif chosen:
+                self._apply_chosen_variation(chosen, is_inline=False)
+            return
         
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return
