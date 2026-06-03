@@ -67,8 +67,8 @@ def test_gou_occurrence_helpers(updater):
     updater._main_handler.data_processor.get_current_string_text.assert_called_with(1, 2)
     
     # Apply translation
-    updater._mw.current_block_idx = 1
-    updater._mw.current_string_idx = 2
+    updater._mw.data_store.current_block_idx = 1
+    updater._mw.data_store.current_string_idx = 2
     updater._apply_occurrence_translation(occ, "new_t")
     
     updater._main_handler.data_processor.update_edited_data.assert_called_with(1, 2, "new_t")

@@ -862,6 +862,123 @@ JSON structure:
                 self.finished.emit(False, f"Script file not found: {self.file_path}")
                 return
 
+            if self.file_path.lower().endswith(".md"):
+                self.log.emit("Markdown script detected. Processing locally without AI queries...")
+                self.progress.emit(25, 100, "Parsing Markdown script structures...")
+                from core.markdown_script_parser import parse_markdown_script
+                parsed = parse_markdown_script(self.file_path)
+                
+                characters = parsed.get("characters", [])
+                terms = parsed.get("terms", [])
+                
+                # Format objects_and_terms as expected by the database step
+                objects_and_terms = []
+                for t in terms:
+                    objects_and_terms.append({
+                        "name": t.get("original", t.get("name")),
+                        "description": t.get("description", "")
+                    })
+
+                self.progress.emit(50, 100, "Processing character profiles and writing to Glossary...")
+                if self.glossary_manager:
+                    # process characters
+                    for char in characters:
+                        term_name = char["name"]
+                        if self.target_lang == "Ukrainian":
+                            notes = f"Стать: {char['gender']}. Вік: {char['age_group']}. Зв'язки: {char['relationship_summary']}. Звертання: {char['address_type']}. Опис: {char['description']}"
+                        else:
+                            notes = f"Gender: {char['gender']}. Age: {char['age_group']}. Relations: {char['relationship_summary']}. Address Style: {char['address_type']}. Description: {char['description']}"
+                        
+                        existing = self.glossary_manager.get_entry(term_name)
+                        if existing:
+                            self.glossary_manager.update_entry(
+                                original=existing.original,
+                                translation=char.get("translation", existing.translation),
+                                notes=notes
+                            )
+                        else:
+                            self.glossary_manager.add_entry(
+                                original=term_name,
+                                translation=char.get("translation", term_name),
+                                notes=notes,
+                                section="Characters"
+                            )
+
+                    # process terms
+                    for t in terms:
+                        term_name = t["original"]
+                        notes = t.get("description", "")
+                        existing = self.glossary_manager.get_entry(term_name)
+                        if existing:
+                            self.glossary_manager.update_entry(
+                                original=existing.original,
+                                translation=t.get("translation", existing.translation),
+                                notes=notes
+                            )
+                        else:
+                            self.glossary_manager.add_entry(
+                                original=term_name,
+                                translation=t.get("translation", term_name),
+                                notes=notes,
+                                section="Terms"
+                            )
+                    
+                    try:
+                        self.glossary_manager.save_to_disk()
+                        self.log.emit("Successfully saved updated glossary database (.md table) to disk.")
+                    except Exception as disk_err:
+                        log_error(f"Failed to save glossary to disk: {disk_err}")
+                        self.log.emit(f"ERROR saving glossary to disk: {disk_err}")
+
+                # Build relations from characters profiles
+                relations = []
+                for char in characters:
+                    source_name = char.get("translation", char.get("name")).upper()
+                    if char.get("relationship_summary"):
+                        relations.append({
+                            "source": source_name,
+                            "relation": char.get("relationship_summary"),
+                            "target": "Global_Cast"
+                        })
+                    if char.get("address_type"):
+                        relations.append({
+                            "source": source_name,
+                            "relation": char.get("address_type"),
+                            "target": "Style"
+                        })
+
+                self.progress.emit(90, 100, "Writing character profiles to SQLite Memory Palace...")
+                # Write to local SQLite Palace
+                self.client.add_wing(self.wing_name, f"Chronological Memory Palace for {self.wing_name}")
+                cast_content = "CHARACTER CAST PROFILES:\n"
+                for char in characters:
+                    name = char.get("name", "Unknown").upper()
+                    desc = char.get("description", "")
+                    cast_content += f"- {name}: {desc}\n"
+                    
+                self.client.add_room(self.wing_name, "Global_Cast_Profiles", "Global character details and profiles.")
+                self.client.add_drawer(
+                    self.wing_name,
+                    "Global_Cast_Profiles",
+                    "character_cast_profiles",
+                    cast_content,
+                    {"characters": characters}
+                )
+
+                for rel in relations:
+                    self.client.add_relation(
+                        self.wing_name,
+                        rel["source"],
+                        rel["relation"],
+                        rel["target"],
+                        valid_from="Global_Cast"
+                    )
+                    self.log.emit(f"Saved Relation: {rel['source']} -[{rel['relation']}]-> {rel['target']}")
+
+                self.progress.emit(100, 100, "Script pre-analysis and glossary synthesis completed!")
+                self.finished.emit(True, f"Successfully parsed Markdown script locally! Found {len(characters)} characters. Glossary has been synchronized.")
+                return
+
             # Read with cp1252 to handle special symbols in GameFAQ scripts
             with open(self.file_path, "r", encoding="cp1252", errors="replace") as f:
                 intro_lines = []
@@ -1128,8 +1245,15 @@ class MemePalaceChapterMapperWorker(QThread):
                 return
 
             self.log.emit(f"Parsing script file: {script_path}")
-            from core.script_segmenter import segment_script_file
-            chapters = segment_script_file(script_path)
+            if script_path.lower().endswith(".md"):
+                self.log.emit("Markdown script detected. Segmenting using local markdown parser...")
+                from core.markdown_script_parser import parse_markdown_script
+                parsed = parse_markdown_script(script_path)
+                chapters = parsed.get("chapters", [])
+            else:
+                from core.script_segmenter import segment_script_file
+                chapters = segment_script_file(script_path)
+                
             if not chapters:
                 self.finished.emit(False, "No chapters found in the script.")
                 return

@@ -142,7 +142,14 @@ def test_save_current_edits_native_packing_exceeds_size():
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
          patch("bmg_tool.BMGFile") as mock_bmg_file, \
          patch("core.data_state_processor.Path") as mock_path, \
-         patch("PyQt5.QtWidgets.QMessageBox.warning") as mock_warning:
+         patch("core.data_state_processor.QMessageBox") as mock_qmessagebox, \
+         patch("core.data_state_processor.QCheckBox") as mock_qcheckbox:
+
+         mock_msg_box_instance = MagicMock()
+         mock_qmessagebox.return_value = mock_msg_box_instance
+         mock_cb_instance = MagicMock()
+         mock_cb_instance.isChecked.return_value = False
+         mock_qcheckbox.return_value = mock_cb_instance
 
          mock_path_instance = MagicMock()
          mock_path_instance.exists.return_value = True
@@ -154,7 +161,12 @@ def test_save_current_edits_native_packing_exceeds_size():
 
          assert result is True
          # QMessageBox warning popup must be triggered
-         mock_warning.assert_called_once()
-         args, kwargs = mock_warning.call_args
-         assert "Archive Size Warning" in args
-         assert "exceeds the original archive size" in args[2]
+         mock_qmessagebox.assert_called_once_with(mw)
+         mock_msg_box_instance.setIcon.assert_called_once_with(mock_qmessagebox.Warning)
+         mock_msg_box_instance.setWindowTitle.assert_called_once_with("Archive Size Warning")
+         mock_msg_box_instance.setText.assert_called_once()
+         text_arg = mock_msg_box_instance.setText.call_args[0][0]
+         assert "exceeds the original archive size" in text_arg
+         mock_qcheckbox.assert_called_once_with("Do not show this warning in the future", mock_msg_box_instance)
+         mock_msg_box_instance.setCheckBox.assert_called_once_with(mock_cb_instance)
+         mock_msg_box_instance.exec_.assert_called_once()

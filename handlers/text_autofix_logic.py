@@ -418,6 +418,7 @@ class TextAutofixLogic:
         
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
         width_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+        logical_hard_limit = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
         
         while iterations < max_iterations:
             text_before_pass = modified_text
@@ -426,7 +427,7 @@ class TextAutofixLogic:
             modified_text = self._fix_empty_odd_sublines(modified_text)
             modified_text = self._fix_blue_sublines(modified_text)
             modified_text = self._fix_short_lines(modified_text, width_threshold)
-            modified_text = self._fix_width_exceeded(modified_text, width_threshold)
+            modified_text = self._fix_width_exceeded(modified_text, logical_hard_limit)
             modified_text = self._cleanup_spaces_around_tags(modified_text) 
             modified_text = self._fix_leading_spaces_in_sublines(modified_text) 
             

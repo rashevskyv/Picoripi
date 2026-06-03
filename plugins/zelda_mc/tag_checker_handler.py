@@ -41,8 +41,8 @@ class TagCheckerHandler:
 
 
     def _get_initial_search_indices(self) -> tuple[int, int]:
-        current_block_idx_ui = self.mw.current_block_idx
-        current_string_idx_ui = self.mw.current_string_idx
+        current_block_idx_ui = self.mw.data_store.current_block_idx
+        current_string_idx_ui = self.mw.data_store.current_string_idx
 
         if current_block_idx_ui == -1: 
             current_block_idx_ui = 0
@@ -112,9 +112,9 @@ class TagCheckerHandler:
             log_debug(f"TagChecker: Set current block in list to {original_block_idx_data}")
             QApplication.processEvents() 
 
-        if self.mw.current_block_idx != original_block_idx_data or \
-           self.mw.current_string_idx != original_string_idx_data:
-            log_debug(f"TagChecker: _highlight_mismatched_tag - UI (B{self.mw.current_block_idx},S{self.mw.current_string_idx}) "
+        if self.mw.data_store.current_block_idx != original_block_idx_data or \
+           self.mw.data_store.current_string_idx != original_string_idx_data:
+            log_debug(f"TagChecker: _highlight_mismatched_tag - UI (B{self.mw.data_store.current_block_idx},S{self.mw.data_store.current_string_idx}) "
                       f"doesn't match mismatch location (B{original_block_idx_data},S{original_string_idx_data}). Syncing UI further.")
             self.mw.list_selection_handler.string_selected_from_preview(original_string_idx_data)
             QApplication.processEvents()

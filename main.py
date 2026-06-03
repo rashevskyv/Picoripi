@@ -444,6 +444,11 @@ class MainWindow(QMainWindow):
     def show_width_guideline(self, val): self.settings_manager.set('show_width_guideline', val)
 
     @property
+    def show_archive_size_warnings(self): return self.settings_manager.get('show_archive_size_warnings', True)
+    @show_archive_size_warnings.setter
+    def show_archive_size_warnings(self, val): self.settings_manager.set('show_archive_size_warnings', val)
+
+    @property
     def tree_font_size(self): return self.settings_manager.get('tree_font_size', self.current_font_size)
     @tree_font_size.setter
     def tree_font_size(self, val): self.settings_manager.set('tree_font_size', val)

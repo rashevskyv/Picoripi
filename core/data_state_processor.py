@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox, QProgressDialog
+from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QCheckBox
 from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_warning, log_error
 
@@ -761,14 +761,22 @@ class DataStateProcessor:
                                                 f"exceeds the original archive size ({orig_size} bytes).",
                                                 category="file_ops"
                                             )
-                                            QMessageBox.warning(
-                                                self.mw,
-                                                "Archive Size Warning",
-                                                f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
-                                                f"exceeds the original archive size ({orig_size} bytes).\n\n"
-                                                f"This may lead to game crashes, text truncation, or corruption when importing the file into the ROM.\n\n"
-                                                f"Please shorten your translation strings in this archive to reduce its size."
-                                            )
+                                            if getattr(self.mw, 'show_archive_size_warnings', True):
+                                                msg_box = QMessageBox(self.mw)
+                                                msg_box.setIcon(QMessageBox.Warning)
+                                                msg_box.setWindowTitle("Archive Size Warning")
+                                                msg_box.setText(
+                                                    f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
+                                                    f"exceeds the original archive size ({orig_size} bytes).\n\n"
+                                                    f"This may lead to game crashes, text truncation, or corruption when importing the file into the ROM.\n\n"
+                                                    f"Please shorten your translation strings in this archive to reduce its size."
+                                                )
+                                                cb = QCheckBox("Do not show this warning in the future", msg_box)
+                                                msg_box.setCheckBox(cb)
+                                                msg_box.exec_()
+                                                if cb.isChecked():
+                                                    self.mw.show_archive_size_warnings = False
+                                                    self.mw.settings_manager.save_settings()
                                 except Exception as size_err:
                                     log_error(f"Error checking archive size: {size_err}", category="file_ops")
 

@@ -325,6 +325,17 @@ class MenuBuilder:
         self.mw.mempalace_viewer_action.setToolTip('Examine and browse full rooms, visual contexts and character graph relations in local database (Ctrl+Shift+I)')
         self.mw.mempalace_viewer_action.setShortcut('Ctrl+Shift+I')
         tools_menu.addAction(self.mw.mempalace_viewer_action)
+        tools_menu.addSeparator()
+
+        self.mw.fix_all_strings_action = QAction(
+            QIcon.fromTheme("edit-find-replace"),
+            'Fix All Strings...',
+            self.mw
+        )
+        self.mw.fix_all_strings_action.setToolTip(
+            'Automatically fix selected types of formatting and layout issues across all strings'
+        )
+        tools_menu.addAction(self.mw.fix_all_strings_action)
 
         tools_menu.addSeparator()
 

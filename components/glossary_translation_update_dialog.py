@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
@@ -18,6 +19,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QPlainTextEdit,
 )
+
 
 from core.glossary_manager import GlossaryOccurrence
 
@@ -70,13 +72,20 @@ class GlossaryTranslationUpdateDialog(QDialog):
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
-        header = QLabel(
-            f"<b>{self._term}</b>: replace "
-            f"<i>{self._old_translation or '[empty]'}</i>" 
-            f" → <i>{self._new_translation or '[empty]'}</i>"
-        )
-        header.setWordWrap(True)
-        layout.addWidget(header)
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(QLabel(f"<b>{self._term}</b>: replace "))
+        
+        self._old_translation_edit = QLineEdit(self)
+        self._old_translation_edit.setText(self._old_translation)
+        self._old_translation_edit.setPlaceholderText("[empty]")
+        self._old_translation_edit.setMinimumWidth(150)
+        self._old_translation_edit.textChanged.connect(self._on_old_translation_changed)
+        top_layout.addWidget(self._old_translation_edit)
+        
+        top_layout.addWidget(QLabel(f" → <b>{self._new_translation or '[empty]'}</b>"))
+        top_layout.addStretch()
+        layout.addLayout(top_layout)
+
 
         splitter = QSplitter(Qt.Horizontal, self)
         layout.addWidget(splitter, 1)
@@ -208,11 +217,8 @@ class GlossaryTranslationUpdateDialog(QDialog):
         return None
 
     def _suggest_translation(self, current_text: str) -> str:
-        if not current_text:
-            return current_text
-        if self._old_translation and self._old_translation in current_text:
-            return current_text.replace(self._old_translation, self._new_translation)
-        return current_text
+        from utils.utils import suggest_smart_translation
+        return suggest_smart_translation(current_text, self._old_translation, self._new_translation)
 
     def _apply_current(self, next_item: bool = False) -> None:
         occ = self._current_occurrence()
@@ -410,9 +416,9 @@ class GlossaryTranslationUpdateDialog(QDialog):
         applied_count = 0
         for occ in remaining:
             current_translation = self._get_current_translation(occ) or ""
-            if self._old_translation and self._old_translation in current_translation:
-                # Direct string replacement
-                new_text = current_translation.replace(self._old_translation, self._new_translation)
+            from utils.utils import suggest_smart_translation
+            new_text = suggest_smart_translation(current_translation, self._old_translation, self._new_translation)
+            if new_text != current_translation:
                 self._apply_translation_cb(occ, new_text)
                 self._status[id(occ)] = 'applied'
                 self._refresh_occurrence_item(occ)
@@ -431,4 +437,15 @@ class GlossaryTranslationUpdateDialog(QDialog):
         curr_row = self._occurrence_list.currentRow()
         if 0 <= curr_row < len(self._occurrences):
             self._load_occurrence(curr_row)
+
+    def _on_old_translation_changed(self, text: str) -> None:
+        self._old_translation = text
+        row = self._occurrence_list.currentRow()
+        if 0 <= row < len(self._occurrences):
+            occ = self._occurrences[row]
+            current_translation = self._get_current_translation(occ) or ""
+            suggested = self._suggest_translation(current_translation)
+            self._translation_edit.setPlainText(suggested)
+        self._update_text_highlights()
+
 

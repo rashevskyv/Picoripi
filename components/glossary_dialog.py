@@ -565,7 +565,7 @@ class GlossaryDialog(QDialog):
                 self._save_button.setEnabled(False)
             else:
                 self._save_button.setVisible(True)
-                self._save_button.setEnabled(can_edit and self._editor_dirty)
+                self._save_button.setEnabled(can_edit)
     def _save_editor_changes(self) -> None:
         if self._is_populating or not self._update_callback or not self._current_entry:
             return
@@ -573,9 +573,6 @@ class GlossaryDialog(QDialog):
         new_notes = self._notes_edit.toPlainText().strip()
         new_profiled = self._profiled_checkbox.isChecked()
         entry = self._current_entry
-        if new_translation == entry.translation and new_notes == entry.notes and new_profiled == entry.profiled:
-            self._mark_editor_dirty(False)
-            return
         if not self._attempt_entry_update(entry, new_translation, new_notes, new_profiled):
             self._populate_entry_details(entry)
             return

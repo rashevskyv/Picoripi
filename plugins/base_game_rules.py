@@ -123,7 +123,9 @@ class BaseGameRules:
     def autofix_data_string(self,
                             data_string: str,
                             editor_font_map: dict,
-                            editor_line_width_threshold: int) -> Tuple[str, bool]:
+                            editor_line_width_threshold: int,
+                            logical_hard_limit: Optional[int] = None,
+                            allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
         return data_string, False
 
     def process_pasted_segment(self,
@@ -219,6 +221,13 @@ class BaseGameRules:
         """Returns a dict with 'original_font_name' and 'font_name' if block has specific font overrides."""
         return None
 
+    def get_default_script_name(self) -> Optional[str]:
+        """
+        Return the default script file name for this game.
+        Override in subclasses if needed (e.g. 'zelda_mc_script.md').
+        """
+        return None
+
     def parse_walkthrough_transcript(self, file_path: str) -> List[Dict[str, Any]]:
         """
         Parse game-specific walkthrough transcript text file into structured rooms and dialogue cues.
@@ -241,6 +250,10 @@ class BaseGameRules:
                         transcript_list = data
                     elif isinstance(data, dict) and "lines" in data:
                         transcript_list = data["lines"]
+            elif file_path.lower().endswith(".md"):
+                from core.markdown_script_parser import parse_markdown_script
+                parsed = parse_markdown_script(file_path)
+                transcript_list = parsed.get("dialogues", [])
             else:
                 # Highly advanced text parser for structured and GameFAQ scripts
                 # Supports standardized [Chapter: ...], {Action: ...}, classical SPEAKER: dialogue, 

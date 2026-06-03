@@ -2,7 +2,7 @@ from typing import Tuple, List
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE, PROBLEM_BAD_SPACING
 
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
 
@@ -88,23 +88,49 @@ class TextFixer(GenericTextFixer):
         return self._reassemble_data_string(filtered_sublines)
 
     def autofix_data_string(self,
-                            data_string: str,
-                            editor_font_map: dict,
-                            editor_line_width_threshold: int) -> Tuple[str, bool]:
+                             data_string: str,
+                             editor_font_map: dict,
+                             editor_line_width_threshold: int,
+                             logical_hard_limit: Optional[int] = None,
+                             allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+        if logical_hard_limit is None:
+            logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
         modified_text = original_text
         autofix_config = getattr(self.mw, 'autofix_enabled', {})
         max_iterations = 5
         for _ in range(max_iterations):
             text_before_pass = modified_text
-            if autofix_config.get(PROBLEM_EMPTY_SUBLINE, False):
-                modified_text = self._fix_empty_sublines(modified_text)
-            if autofix_config.get(PROBLEM_WIDTH_EXCEEDED, False):
-                modified_text = self._fix_width_exceeded(modified_text, editor_font_map, editor_line_width_threshold)
-            if autofix_config.get(PROBLEM_SHORT_LINE, False):
-                modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold)
+            
+            if allowed_problems is not None:
+                if PROBLEM_EMPTY_SUBLINE in allowed_problems:
+                    modified_text = self._fix_empty_sublines(modified_text)
+                if PROBLEM_WIDTH_EXCEEDED in allowed_problems:
+                    modified_text = self._fix_width_exceeded(modified_text, editor_font_map, logical_hard_limit)
+                if PROBLEM_SHORT_LINE in allowed_problems:
+                    modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold)
+            else:
+                if autofix_config.get(PROBLEM_EMPTY_SUBLINE, False):
+                    modified_text = self._fix_empty_sublines(modified_text)
+                if autofix_config.get(PROBLEM_WIDTH_EXCEEDED, False):
+                    modified_text = self._fix_width_exceeded(modified_text, editor_font_map, logical_hard_limit)
+                if autofix_config.get(PROBLEM_SHORT_LINE, False):
+                    modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold)
+                    
             if modified_text == text_before_pass:
                 break
-        from utils.utils import clean_spaces
-        final_text = clean_spaces(modified_text)
+                
+        if allowed_problems is not None:
+            if PROBLEM_BAD_SPACING in allowed_problems:
+                from utils.utils import clean_spaces
+                final_text = clean_spaces(modified_text)
+            else:
+                final_text = modified_text
+        else:
+            if autofix_config.get(PROBLEM_BAD_SPACING, False):
+                from utils.utils import clean_spaces
+                final_text = clean_spaces(modified_text)
+            else:
+                final_text = modified_text
+                
         return final_text, final_text != original_text

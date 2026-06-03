@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.156] - 2026-06-03
+
+### Fixed
+- **Preview Toggle Visibility & Background Resource Usage**:
+  - Fixed a bug where hiding the BFN visual preview window via the toolbar or View menu toggle button would cause it to automatically reappear on any subsequent text edit or row selection. The visibility state is now strictly controlled by the `toggle_preview_action` state.
+  - Implemented immediate preview text updates when showing the preview panel again, preventing a blank or stale screen from rendering.
+  - Integrated `self.isHidden()` guards within both `update_preview_text()` and `paintEvent()` of the `BfnPreviewWidget`. When the preview is toggled off, all text layout calculations (`BfnCore.layout_text`), shadow/glow effect rendering, and offscreen canvas operations are entirely bypassed, ensuring zero CPU and GPU resource usage in the background.
+
 ## [0.2.155] - 2026-06-02
 
 ### Added

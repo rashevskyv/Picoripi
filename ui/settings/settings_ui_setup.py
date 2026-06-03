@@ -55,6 +55,9 @@ class SettingsDialogUiMixin:
         self.glossary_enabled_checkbox = QCheckBox("Enable Glossary System (turn off to reduce lag)", self)
         layout.addRow(self.glossary_enabled_checkbox)
 
+        self.show_archive_size_warnings_checkbox = QCheckBox("Show archive size warnings", self)
+        layout.addRow(self.show_archive_size_warnings_checkbox)
+
         self.plugin_combo.activated.connect(self.on_plugin_changed)
         self.theme_combo.activated.connect(self.on_theme_changed)
 

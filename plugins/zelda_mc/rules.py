@@ -190,9 +190,11 @@ class GameRules(BaseGameRules):
     def autofix_data_string(self,
                             data_string: str,
                             editor_font_map: dict,
-                            editor_line_width_threshold: int) -> Tuple[str, bool]:
+                            editor_line_width_threshold: int,
+                            logical_hard_limit: Optional[int] = None,
+                            allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
         return self.text_fixer.autofix_data_string(
-            data_string, editor_font_map, editor_line_width_threshold
+            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems
         )
     
     def process_pasted_segment(self,
