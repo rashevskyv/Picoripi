@@ -31,6 +31,8 @@ def mock_mw():
     mw.preview_enabled = True
     mw.warnings_enabled = True
     mw.glossary_enabled = True
+    mw.show_archive_size_warnings = True
+    mw.show_force_alias_warning = True
     mw.last_browse_dir = "C:/"
     mw.enable_console_logging = True
     mw.enable_file_logging = False

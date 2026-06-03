@@ -13,6 +13,16 @@ class TextFixer(GenericTextFixer):
     def __init__(self, main_window_ref, tag_manager_ref, problem_analyzer_ref):
         super().__init__(main_window_ref, tag_manager_ref, problem_analyzer_ref)
 
+    def _is_forced_alias(self, tag: str) -> bool:
+        if tag.lower().startswith("{f:"):
+            return True
+        mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+        if mappings:
+            for alias, original in mappings.items():
+                if original == tag and alias.lower().startswith("{f:"):
+                    return True
+        return False
+
     def _fix_empty_odd_sublines_zbmg(self, text: str) -> Tuple[str, bool]:
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
@@ -102,9 +112,17 @@ class TextFixer(GenericTextFixer):
             space_content = match.group("space")
             char_after_space_content = match.group("after_space") if match.group("after_space") is not None else ""
             result_parts.append(tag_content)
-            is_closing_tag = tag_content.lower() == CLOSING_COLOR_TAG_BMG.lower()
+            is_closing_tag = tag_content.lower() in [
+                CLOSING_COLOR_TAG_BMG.lower(),
+                "{color:white}",
+                "{escape:255:000000}"
+            ]
+            is_forced = self._is_forced_alias(tag_content)
             should_remove_space = False
-            if is_closing_tag:
+            if is_forced:
+                # Forced aliases act as text, so the space after them should NOT be removed
+                should_remove_space = False
+            elif is_closing_tag:
                 if char_after_space_content and PUNCTUATION_PATTERN_ZBMG.match(char_after_space_content):
                     should_remove_space = True
             else: 

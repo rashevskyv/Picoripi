@@ -258,7 +258,7 @@ class PreviewUpdater(BaseUIUpdater):
         
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         proj_b_idx = block_map.get(block_idx, block_idx)
-        if proj_b_idx >= len(pm.project.blocks): return set()
+        if not isinstance(proj_b_idx, int) or proj_b_idx >= len(pm.project.blocks): return set()
         
         block = pm.project.blocks[proj_b_idx]
         categorized_indices = set()
@@ -293,7 +293,7 @@ class PreviewUpdater(BaseUIUpdater):
             pm = self.mw.project_manager
             block_map = getattr(self.mw, 'block_to_project_file_map', {})
             proj_b_idx = block_map.get(block_idx, block_idx)
-            if 0 <= proj_b_idx < len(pm.project.blocks):
+            if isinstance(proj_b_idx, int) and 0 <= proj_b_idx < len(pm.project.blocks):
                 block_has_categories = bool(pm.project.blocks[proj_b_idx].categories)
         show_cat_toggles = block_has_categories and not category_name
         if hasattr(self.mw, 'highlight_categorized_checkbox'):
@@ -337,7 +337,7 @@ class PreviewUpdater(BaseUIUpdater):
                 pm = self.mw.project_manager
                 block_map = getattr(self.mw, 'block_to_project_file_map', {})
                 proj_b_idx = block_map.get(block_idx, block_idx)
-                if proj_b_idx < len(pm.project.blocks):
+                if isinstance(proj_b_idx, int) and proj_b_idx < len(pm.project.blocks):
                     block = pm.project.blocks[proj_b_idx]
                     category = next((c for c in block.categories if c.name == category_name), None)
                     if category:

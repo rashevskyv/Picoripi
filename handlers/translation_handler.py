@@ -67,6 +67,7 @@ class TranslationHandler(BaseHandler):
                                                    chunk_cb=self._handle_chunk_translated)
 
         self._glossary_manager = self.glossary_handler.glossary_manager
+        self.variations_cache = {}
         
         self.start_new_session = True
         log_debug(f"TranslationHandler.__init__: start_new_session initialized to {self.start_new_session}")
@@ -1314,7 +1315,7 @@ class TranslationHandler(BaseHandler):
         cleaned = self.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned, response=response)
         variants_raw = self.ui_handler.parse_variation_payload(cleaned)
-        self.ui_handler.finish_ai_operation()
+        self.ui_handler.finish_ai_operation(show_popup=False)
 
         if not variants_raw:
             QMessageBox.information(self.mw, "AI Variation", "Failed to parse variations from AI response.")
@@ -1329,26 +1330,41 @@ class TranslationHandler(BaseHandler):
             restored_v = self.prompt_composer.restore_placeholders(v, p_map, key=0)
             restored_variants.append(restored_v)
             
-        chosen = self.ui_handler.show_variations_dialog(restored_variants)
+        # Cache the variations for the current string
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
+        current_translation, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
+        self.variations_cache[(block_idx, string_idx)] = {
+            'variants': restored_variants,
+            'translation': str(current_translation)
+        }
+
+        chosen = self.ui_handler.show_variations_dialog(restored_variants, show_refresh=True)
+        if chosen == "__REFRESH__":
+            QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
+            return
         if chosen:
-            block_idx = self.mw.data_store.current_block_idx
-            string_idx = self.mw.data_store.current_string_idx
-            final_text = self._format_and_wrap_translation(chosen, block_idx, string_idx)
+            self._apply_chosen_variation(chosen, context.get('is_inline', False))
+
+    def _apply_chosen_variation(self, chosen: str, is_inline: bool) -> None:
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
+        final_text = self._format_and_wrap_translation(chosen, block_idx, string_idx)
+        
+        # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.begin_group()
+        self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.end_group("TRANSLATE")
             
-            # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.begin_group()
-            self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.end_group("TRANSLATE")
-                
-            if context.get('is_inline', False):
-                self.ui_handler.apply_inline_variation(final_text)
-            else:
-                self.ui_handler.apply_full_translation(final_text)
+        if is_inline:
+            self.ui_handler.apply_inline_variation(final_text)
+        else:
+            self.ui_handler.apply_full_translation(final_text)
 
 
-    def generate_variation_for_current_string(self) -> None:
+    def generate_variation_for_current_string(self, force: bool = False) -> None:
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -1358,6 +1374,21 @@ class TranslationHandler(BaseHandler):
         if not current_translation:
             QMessageBox.information(self.mw, "AI Variation", "There is no current translation to vary.")
             return
+
+        # Check cache if not forced
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
+        cache_key = (block_idx, string_idx)
+        if not force and cache_key in self.variations_cache:
+            cached = self.variations_cache[cache_key]
+            if cached.get('translation') == str(current_translation):
+                restored_variants = cached.get('variants', [])
+                chosen = self.ui_handler.show_variations_dialog(restored_variants, show_refresh=True)
+                if chosen == "__REFRESH__":
+                    QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
+                elif chosen:
+                    self._apply_chosen_variation(chosen, is_inline=False)
+                return
         
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return

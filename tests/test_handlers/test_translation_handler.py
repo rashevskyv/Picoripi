@@ -349,6 +349,7 @@ def test_th_handle_variation_success(mock_box, th):
     th.ai_lifecycle_manager._clean_model_output.return_value = "vars"
     th.ui_handler.parse_variation_payload.return_value = ["v1", "v2"]
     th.ui_handler.show_variations_dialog.return_value = "v1"
+    th.data_processor.get_current_string_text.return_value = ("original", "edited")
     
     th._handle_variation_success(ProviderResponse(), ctx)
     th.data_processor.update_edited_data.assert_called_once()

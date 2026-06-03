@@ -257,6 +257,16 @@ def test_JsonTagHighlighter_translation_glossary_bridge(qapp, mock_mw):
     assert len(user_data.matches) == 1
     assert user_data.matches[0].entry.original == "Hyrule"
     assert user_data.matches[0].entry.translation == "Гайрул"
+    
+    # Verify setFormat was called with format having fontUnderline == True
+    underline_calls = []
+    for call in hl.setFormat.call_args_list:
+        args, kwargs = call
+        if len(args) >= 3 and args[2].fontUnderline():
+            underline_calls.append(args)
+    assert len(underline_calls) == 1
+    assert underline_calls[0][0] == 12  # "Гайрул" index in "королівство Гайрул"
+    assert underline_calls[0][1] == 6   # Length of "Гайрул"
 
 def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
     from core.glossary_manager import GlossaryManager, GlossaryEntry
@@ -296,6 +306,12 @@ def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
     assert user_data.matches[0].entry.original == "Castle"
     assert user_data.matches[0].entry.translation == "Замок"
     
+    # Verify that underline is actually applied in document layout formats
+    formats = block.layout().formats()
+    underlined_formats = [f for f in formats if f.format.fontUnderline()]
+    assert len(underlined_formats) >= 1
+    assert any(f.format.underlineStyle() == 1 for f in underlined_formats)
+    
     # 3. Simulate second setPlainText to verify cache revision invalidation works flawlessly
     edited_edit.setPlainText("Великий Замок стоїть")
     edited_edit.highlighter.rehighlight()
@@ -305,6 +321,11 @@ def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
     assert user_data is not None, "Cache should be invalidated and rebuilt on subsequent setPlainText"
     assert len(user_data.matches) == 1
     assert user_data.matches[0].entry.translation == "Замок"
+    
+    formats = block.layout().formats()
+    underlined_formats = [f for f in formats if f.format.fontUnderline()]
+    assert len(underlined_formats) >= 1
+    assert any(f.format.underlineStyle() == 1 for f in underlined_formats)
     
     # 4. Simulate typing mode (typing bypasses synchronous highlights)
     edited_edit.highlighter.set_typing_mode(True)
@@ -335,6 +356,52 @@ def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
     assert user_data is not None, "Async matches should be successfully applied and reflected in block user data"
     assert len(user_data.matches) == 1
     assert user_data.matches[0].entry.translation == "Замок"
+
+def test_translation_glossary_underlining_with_glossary_disabled(qapp, mock_mw):
+    from core.glossary_manager import GlossaryManager, GlossaryEntry
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    
+    # 1. Setup glossary
+    gm = GlossaryManager()
+    entry = GlossaryEntry(original="Castle", translation="Замок", notes="Location")
+    gm._entries = [entry]
+    gm._build_pattern_cache()
+    
+    # Setup mock window with fields needed by LineNumberedTextEdit
+    mw = mock_mw
+    mw.original_text_edit = LineNumberedTextEdit(parent=None)
+    mw.original_text_edit.highlighter.mw = mw
+    mw.original_text_edit.setObjectName("original_text_edit")
+    mw.original_text_edit.setPlainText("Castle")
+    
+    edited_edit = LineNumberedTextEdit(parent=None)
+    edited_edit.highlighter.mw = mw
+    edited_edit.setObjectName("edited_text_edit")
+    mw.edited_text_edit = edited_edit
+    
+    # Set glossary and translation mode
+    edited_edit.set_glossary_manager(gm)
+    # Manually disable general glossary highlighting
+    edited_edit.highlighter._glossary_enabled = False
+    
+    edited_edit.highlighter.set_translation_mode(True, source_editor_ref=mw.original_text_edit)
+    
+    # 2. Simulate text change - setPlainText
+    # Since _glossary_enabled is False, but _is_translation_mode is True,
+    # setPlainText should still trigger rehighlight() and underline "Замок"
+    edited_edit.setPlainText("Замок")
+    edited_edit.highlighter.rehighlight()
+    
+    block = edited_edit.document().firstBlock()
+    user_data = block.userData()
+    assert user_data is not None
+    assert len(user_data.matches) == 1
+    assert user_data.matches[0].entry.translation == "Замок"
+    
+    # Verify that underline format is applied
+    formats = block.layout().formats()
+    underlined_formats = [f for f in formats if f.format.fontUnderline()]
+    assert len(underlined_formats) >= 1
 
 def test_JsonTagHighlighter_placeholder_highlighting(highlighter):
     hl, doc = highlighter

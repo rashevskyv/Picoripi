@@ -10,7 +10,7 @@ from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 class BaseTextReviewDialog(QDialog):
     """Base interactive dialog for reviewing and editing text in a 3-panel layout."""
 
-    def __init__(self, parent, title: str, text: str, line_numbers: List[int] = None):
+    def __init__(self, parent, title: str, text: str, line_numbers: List[int] = None, block_idx: int = -1):
         log_debug(f"BaseTextReviewDialog: __init__ started for '{title}'")
         super().__init__(parent)
         self.original_text = text
@@ -18,6 +18,17 @@ class BaseTextReviewDialog(QDialog):
         self.line_numbers = line_numbers # Real line numbers from block/document
         self.current_item_index = 0
         self.items_to_review = [] # To be populated by subclasses
+
+        self.block_idx = block_idx
+        if self.block_idx == -1:
+            main_window = self._find_main_window()
+            if main_window and hasattr(main_window, 'data_store'):
+                self.block_idx = main_window.data_store.current_block_idx
+                
+        self.block_name = f"Block {self.block_idx}"
+        main_window = self._find_main_window()
+        if main_window and hasattr(main_window, 'data_store') and getattr(main_window.data_store, 'block_names', None):
+            self.block_name = main_window.data_store.block_names.get(str(self.block_idx), f"Block {self.block_idx}")
 
         self.setWindowTitle(title)
         self.setMinimumSize(900, 600)
@@ -71,7 +82,7 @@ class BaseTextReviewDialog(QDialog):
         self.text_edit.setPlainText(self.current_text)
         self.text_edit.setReadOnly(True)
         self.text_edit.setFont(QFont("Courier New", 10))
-        self.text_edit.mouseDoubleClickEvent = self._on_text_double_click
+        self.text_edit.custom_double_click_handler = self._on_text_double_click
         
         self.middle_layout.addWidget(QLabel("Text:"))
         self.middle_layout.addWidget(self.text_edit)
@@ -220,12 +231,14 @@ class BaseTextReviewDialog(QDialog):
             return
 
         main_window = self._find_main_window()
-        if main_window and hasattr(main_window, 'ui_updater'):
+        if main_window:
             log_debug(f"BaseTextReviewDialog: Navigating to string {string_number}")
-            main_window.current_string_idx = string_number
-            if hasattr(main_window, 'strings_list_widget'):
-                main_window.strings_list_widget.setCurrentRow(string_number)
-            main_window.ui_updater.update_text_views()
+            if hasattr(main_window, 'list_selection_handler'):
+                main_window.list_selection_handler.select_string_by_absolute_index(string_number)
+            else:
+                main_window.current_string_idx = string_number
+                if hasattr(main_window, 'ui_updater'):
+                    main_window.ui_updater.update_text_views()
 
             def apply_focus():
                 if hasattr(main_window, 'edited_text_edit') and main_window.edited_text_edit:

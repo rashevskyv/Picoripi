@@ -325,7 +325,7 @@ class GlossaryHandler(BaseTranslationHandler):
             "dialog": dialog, "term": term, "context_line": context,
         }
         if not self.main_handler._attach_session_to_task(
-            task_details, system_prompt=edited_system, user_prompt=edited_user, task_type="fill_glossary",
+            task_details, base_system_prompt=edited_system, full_system_prompt=edited_system, user_prompt=edited_user, task_type="fill_glossary",
         ):
             task_details["precomposed_prompt"] = precomposed
 

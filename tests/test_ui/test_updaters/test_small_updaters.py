@@ -19,6 +19,8 @@ def mock_mw():
     mw.default_font_file = None
     mw.data_store.current_block_idx = -1
     mw.data_store.current_string_idx = -1
+    mw.data_store.current_category_name = None
+    mw.data_store.current_chapter_id = None
     mw.string_metadata = {}
     mw.show_multiple_spaces_as_dots = False
     mw.newline_display_symbol = "↵"

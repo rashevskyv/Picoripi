@@ -1,5 +1,24 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.157] - 2026-06-03
+
+### Added
+- **AI Variations Caching & Refresh Options**:
+  - Implemented caching for generated translation variations: opening AI Variations for the same string displays cached variants instantly without calling the API again.
+  - Added a "Refresh" button in the AI Variations window to discard the cache and fetch fresh translations.
+- **Force Alias Polish**:
+  - Added a "Do not show next time" checkbox to easily suppress the Force Alias informational dialog.
+  - Re-mapped the informative text from the popup to be displayed as a tooltip on the "Force Alias" checkbox.
+  - Automatically disables the alias width input field when the "Force Alias" option is enabled.
+
+### Fixed
+- **Unified & Corrected Search Navigation**:
+  - Combined the normal and advanced search logic to ensure consistent result lists across both modes.
+  - Resolved the index shifting bug when navigating to a string from search results: replaced `string_selected_from_preview` with `select_string_by_absolute_index` to jump to the correct string even with active list filters.
+  - Fixed highlighting in the read-only preview edit by calculating the dynamic relative indices properly.
+- **Unit Tests Stabilization**:
+  - Fixed various unit test failures caused by `MagicMock` parent window mismatching, ensuring the entire test suite passes without regressions.
+
 ## [0.2.156] - 2026-06-03
 
 ### Fixed

@@ -15,7 +15,7 @@ from PyQt5.QtGui import (
 from PyQt5.QtWidgets import QWidget, QMainWindow
 
 from .logging_utils import log_debug
-from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor
+from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
 from plugins.common.markers import P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from core.glossary_manager import GlossaryManager, GlossaryMatch, GlossaryEntry
 
@@ -417,6 +417,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         source_text = convert_dots_to_spaces_from_editor(source_text_raw)
         # Find entries that occur in the source document
         source_matches = self._glossary_manager.get_relevant_terms(source_text)
+        log_debug(f"Glossary bridge: source text='{source_text}', found relevant source terms={[m.original for m in source_matches]}")
         if not source_matches:
             return
 
@@ -427,6 +428,9 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             regex = self._glossary_manager.build_translation_regex(entry.translation)
             if not regex:
                 continue
+            
+            matches = list(regex.finditer(full_text))
+            log_debug(f"Glossary bridge: checking translation term='{entry.translation}' via regex='{regex.pattern}' on target text='{full_text}', found matches={len(matches)}")
             
             for match in regex.finditer(full_text):
                 start, end = match.start(), match.end()
@@ -563,6 +567,15 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             words.append((match.start(), match.end(), match.group(0)))
         return words
 
+    def _is_forced_alias(self, tag: str) -> bool:
+        if tag.lower().startswith("{f:"):
+            return True
+        mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+        if mappings:
+            for alias, original in mappings.items():
+                if original == tag and alias.lower().startswith("{f:"):
+                    return True
+        return False
 
     def highlightBlock(self, text):
         # In preview_text_edit each line is an independent game string,
@@ -680,6 +693,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # 2. Translation Glossary Bridge highlighting
         translation_matches_to_apply = []
         if self._is_translation_mode:
+            log_debug(f"highlightBlock: translation mode active, block_num={self.currentBlock().blockNumber()}, text={repr(text)}, async_matches={self._async_translation_matches is not None}, typing={self._typing_mode}")
             if self._async_translation_matches is not None:
                 for m in self._async_translation_matches:
                     m_start = m['start']
@@ -783,12 +797,28 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             # 2. Leading spaces
             for match in _LEADING_SPACE_PATTERN.finditer(text):
                 start, end = match.span(1)
-                self.setFormat(start, end - start, self.bad_spacing_format)
+                prefix = text[:start]
+                tags = ALL_TAGS_PATTERN.findall(prefix)
+                has_forced = False
+                for tag in tags:
+                    if self._is_forced_alias(tag):
+                        has_forced = True
+                        break
+                if not has_forced:
+                    self.setFormat(start, end - start, self.bad_spacing_format)
             # 3. Tag split spaces
             for match in _TAG_SPLIT_SPACE_PATTERN.finditer(text):
                 start, end = match.span()
-                self.setFormat(start, 1, self.bad_spacing_format)
-                self.setFormat(end - 1, 1, self.bad_spacing_format)
+                match_text = text[start:end]
+                tags = ALL_TAGS_PATTERN.findall(match_text)
+                has_forced = False
+                for tag in tags:
+                    if self._is_forced_alias(tag):
+                        has_forced = True
+                        break
+                if not has_forced:
+                    self.setFormat(start, 1, self.bad_spacing_format)
+                    self.setFormat(end - 1, 1, self.bad_spacing_format)
 
         # In preview_text_edit, never carry colour state to the next line.
         self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)

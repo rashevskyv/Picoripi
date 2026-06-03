@@ -2,25 +2,120 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QApplication)
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QTextCursor, QTextCharFormat, QColor
-from typing import List
+from typing import List, Tuple
 import re
 from utils.logging_utils import log_debug, log_error
 from dialogs.base_text_review_dialog import BaseTextReviewDialog
+from utils.utils import ALL_TAGS_PATTERN, FORCED_ALIAS_PATTERN, prepare_text_for_tagless_search, is_fuzzy_match
+
+def map_forced_aliases(text: str) -> Tuple[str, List[int]]:
+    # Returns (processed_text, list of original indices)
+    result_chars = []
+    mapping = []
+    idx = 0
+    n = len(text)
+    while idx < n:
+        match = FORCED_ALIAS_PATTERN.match(text, idx)
+        if match:
+            content = match.group(1)
+            content_start = match.start(1)
+            for offset, char in enumerate(content):
+                result_chars.append(char)
+                mapping.append(content_start + offset)
+            idx = match.end()
+        else:
+            result_chars.append(text[idx])
+            mapping.append(idx)
+            idx += 1
+    return "".join(result_chars), mapping
+
+def map_remove_all_tags(text: str, current_mapping: List[int]) -> Tuple[str, List[int]]:
+    result_chars = []
+    mapping = []
+    idx = 0
+    n = len(text)
+    while idx < n:
+        match = ALL_TAGS_PATTERN.match(text, idx)
+        if match:
+            idx = match.end()
+        else:
+            result_chars.append(text[idx])
+            mapping.append(current_mapping[idx])
+            idx += 1
+    return "".join(result_chars), mapping
+
+def prepare_text_for_tagless_search_with_mapping(text: str) -> Tuple[str, List[int]]:
+    if text is None:
+        return "", []
+        
+    t1, m1 = map_forced_aliases(text)
+    t2, m2 = map_remove_all_tags(t1, m1)
+    
+    t3_chars = []
+    for char in t2:
+        if char == '+' or char == '·' or char == '\n':
+            t3_chars.append(' ')
+        else:
+            t3_chars.append(char)
+    t3 = "".join(t3_chars)
+    m3 = m2
+    
+    t4_chars = []
+    m4 = []
+    n = len(t3)
+    idx = 0
+    while idx < n:
+        if t3[idx] == ' ':
+            t4_chars.append(' ')
+            m4.append(m3[idx])
+            idx += 1
+            while idx < n and t3[idx] == ' ':
+                idx += 1
+        else:
+            t4_chars.append(t3[idx])
+            m4.append(m3[idx])
+            idx += 1
+    t4 = "".join(t4_chars)
+    
+    start_strip = 0
+    while start_strip < len(t4) and t4[start_strip] == ' ':
+        start_strip += 1
+        
+    end_strip = len(t4)
+    while end_strip > start_strip and t4[end_strip - 1] == ' ':
+        end_strip -= 1
+        
+    final_text = t4[start_strip:end_strip]
+    final_mapping = m4[start_strip:end_strip]
+    
+    return final_text, final_mapping
 
 class SearchReviewDialog(BaseTextReviewDialog):
     """Interactive dialog for reviewing search results in a block with a replace option."""
 
-    def __init__(self, parent, text: str, query: str, starting_line_number: int = 0, line_numbers: List[int] = None, case_sensitive: bool = False, is_fuzzy: bool = False):
+    def __init__(self, parent, text: str, query: str, starting_line_number: int = 0, line_numbers: List[int] = None, case_sensitive: bool = False, is_fuzzy: bool = False, search_in_original: bool = False, ignore_tags: bool = True, block_idx: int = -1):
         log_debug("SearchReviewDialog: __init__ started")
         self.query = query
         self.case_sensitive = case_sensitive
         self.is_fuzzy = is_fuzzy
+        self.search_in_original = search_in_original
+        self.ignore_tags = ignore_tags
         self.starting_line_number = starting_line_number
         
-        super().__init__(parent, "Advanced Search & Replace", text, line_numbers)
+        self.unique_string_indices = []
+        if line_numbers:
+            for s_idx in line_numbers:
+                if s_idx is not None and (not self.unique_string_indices or self.unique_string_indices[-1] != s_idx):
+                    self.unique_string_indices.append(s_idx)
+        
+        super().__init__(parent, "Advanced Search & Replace", text, line_numbers, block_idx)
         
         # Mapping base class variables
         self.matches = self.items_to_review 
+        
+        # Rebuild text if we are searching in the original source
+        if self.search_in_original:
+            self.rebuild_text_by_options()
 
         log_debug("SearchReviewDialog: Starting content loading")
         is_test = parent is None or "Mock" in str(type(parent))
@@ -35,12 +130,38 @@ class SearchReviewDialog(BaseTextReviewDialog):
         layout.addWidget(self.matches_list)
 
     def setup_right_panel(self, layout: QVBoxLayout):
+        from PyQt5.QtWidgets import QCheckBox, QHBoxLayout
         layout.addWidget(QLabel("Find:"))
         self.find_input = QLineEdit()
         self.find_input.setText(self.query)
         self.find_input.setPlaceholderText("Enter search query...")
-        self.find_input.textChanged.connect(self.update_search_query)
+        self.find_input.returnPressed.connect(self.perform_search)
         layout.addWidget(self.find_input)
+        
+        # Options checkboxes layout
+        options_layout = QHBoxLayout()
+        
+        self.case_sensitive_checkbox = QCheckBox("Aa")
+        self.case_sensitive_checkbox.setToolTip("Case sensitive")
+        self.case_sensitive_checkbox.setChecked(self.case_sensitive)
+        options_layout.addWidget(self.case_sensitive_checkbox)
+        
+        self.fuzzy_checkbox = QCheckBox("Fuzzy")
+        self.fuzzy_checkbox.setToolTip("Search for similar words (ignores endings)")
+        self.fuzzy_checkbox.setChecked(self.is_fuzzy)
+        options_layout.addWidget(self.fuzzy_checkbox)
+        
+        self.original_checkbox = QCheckBox("Original")
+        self.original_checkbox.setToolTip("Search in original text")
+        self.original_checkbox.setChecked(self.search_in_original)
+        options_layout.addWidget(self.original_checkbox)
+        
+        self.no_tags_checkbox = QCheckBox("No Tags")
+        self.no_tags_checkbox.setToolTip("Ignore tags {...} [...], newlines, and extra spaces")
+        self.no_tags_checkbox.setChecked(self.ignore_tags)
+        options_layout.addWidget(self.no_tags_checkbox)
+        
+        layout.addLayout(options_layout)
         
         layout.addWidget(QLabel("Replace with:"))
         self.replace_input = QLineEdit()
@@ -49,6 +170,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         # Action buttons
         button_layout = QVBoxLayout()
+        
+        self.find_button = QPushButton("Find")
+        self.find_button.clicked.connect(self.perform_search)
+        button_layout.addWidget(self.find_button)
         
         self.replace_button = QPushButton("Replace")
         self.replace_button.clicked.connect(self.replace_match)
@@ -89,42 +214,47 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def find_matches(self):
         """Find all occurrences of the query and populate items_to_review."""
         self.items_to_review.clear()
-        if not self.query:
+        
+        effective_query = self.query
+        if self.ignore_tags:
+            effective_query = prepare_text_for_tagless_search(self.query)
+            
+        if not effective_query:
             return
 
         lines = self.current_text.split('\n')
         char_offset = 0
         
-        # Build search regex or use simple string search
-        if self.is_fuzzy:
-            word_pattern = re.compile(r'\w+')
-            from utils.utils import is_fuzzy_match
-            
-            for line_idx, line in enumerate(lines):
-                # Skip spacer lines
-                if self.line_numbers and line_idx < len(self.line_numbers) and self.line_numbers[line_idx] is None:
-                    char_offset += len(line) + 1
-                    continue
-
-                line_cleaned = line.replace('·', ' ')
-                for match in word_pattern.finditer(line_cleaned):
-                    word = match.group(0)
-                    if is_fuzzy_match(self.query, word, threshold=0.75):
-                        start_pos = char_offset + match.start()
-                        end_pos = char_offset + match.end()
-                        self.items_to_review.append((start_pos, end_pos, word, line_idx))
+        for line_idx, line in enumerate(lines):
+            # Skip spacer lines
+            if self.line_numbers and line_idx < len(self.line_numbers) and self.line_numbers[line_idx] is None:
                 char_offset += len(line) + 1
-        else:
-            compare_query = self.query if self.case_sensitive else self.query.lower()
-            
-            for line_idx, line in enumerate(lines):
-                # Skip spacer lines
-                if self.line_numbers and line_idx < len(self.line_numbers) and self.line_numbers[line_idx] is None:
-                    char_offset += len(line) + 1
-                    continue
+                continue
 
-                line_cleaned = line.replace('·', ' ')
-                compare_line = line_cleaned if self.case_sensitive else line_cleaned.lower()
+            if self.ignore_tags:
+                clean_line, mapping = prepare_text_for_tagless_search_with_mapping(line)
+            else:
+                clean_line = line.replace('·', ' ')
+                mapping = list(range(len(line)))
+
+            if self.is_fuzzy:
+                word_pattern = re.compile(r'\w+')
+                for match in word_pattern.finditer(clean_line):
+                    word = match.group(0)
+                    if is_fuzzy_match(effective_query, word, threshold=0.75):
+                        start_in_clean = match.start()
+                        end_in_clean = match.end()
+                        
+                        raw_start = mapping[start_in_clean]
+                        raw_end = mapping[end_in_clean - 1] + 1
+                        
+                        start_pos = char_offset + raw_start
+                        end_pos = char_offset + raw_end
+                        matched_text = line[raw_start:raw_end]
+                        self.items_to_review.append((start_pos, end_pos, matched_text, line_idx))
+            else:
+                compare_query = effective_query if self.case_sensitive else effective_query.lower()
+                compare_line = clean_line if self.case_sensitive else clean_line.lower()
                 
                 start_search_pos = 0
                 while True:
@@ -132,14 +262,20 @@ class SearchReviewDialog(BaseTextReviewDialog):
                     if match_pos == -1:
                         break
                     
-                    start_pos = char_offset + match_pos
-                    end_pos = start_pos + len(compare_query)
-                    matched_text = line_cleaned[match_pos:match_pos + len(compare_query)]
+                    start_in_clean = match_pos
+                    end_in_clean = start_in_clean + len(compare_query)
+                    
+                    raw_start = mapping[start_in_clean]
+                    raw_end = mapping[end_in_clean - 1] + 1
+                    
+                    start_pos = char_offset + raw_start
+                    end_pos = char_offset + raw_end
+                    matched_text = line[raw_start:raw_end]
                     self.items_to_review.append((start_pos, end_pos, matched_text, line_idx))
                     
                     start_search_pos = match_pos + max(1, len(compare_query))
                 
-                char_offset += len(line) + 1
+            char_offset += len(line) + 1
 
     def pre_highlight_all_matches(self):
         """Highlight all matches with a light green background."""
@@ -170,7 +306,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
             main_window = self._find_main_window()
             show_dots = getattr(main_window, 'show_multiple_spaces_as_dots', True) if main_window else True
             context = convert_spaces_to_dots_for_display(full_line_text, show_dots)
-            self.matches_list.addItem(f"Line {display_line_num}: \"{word}\" in \"{context}\"")
+            self.matches_list.addItem(f"[{self.block_name}] String {display_line_num}: \"{word}\" in \"{context}\"")
 
     def show_current_item(self):
         """Display current match and highlight it."""
@@ -184,7 +320,12 @@ class SearchReviewDialog(BaseTextReviewDialog):
         start, end, word, line_idx = self.items_to_review[self.current_item_index]
         total = len(self.items_to_review)
         current = self.current_item_index + 1
-        self.status_label.setText(f"Match {current} of {total}")
+        
+        display_line_num = "Unknown"
+        if self.line_numbers and line_idx < len(self.line_numbers):
+            display_line_num = self.line_numbers[line_idx]
+            
+        self.status_label.setText(f"Match {current} of {total} | Block: {self.block_name} | String: {display_line_num}")
 
         cursor = self.text_edit.textCursor()
         cursor.setPosition(start)
@@ -273,17 +414,59 @@ class SearchReviewDialog(BaseTextReviewDialog):
             if self.line_numbers and line_idx < len(self.line_numbers):
                 self._navigate_to_string_in_main_window(self.line_numbers[line_idx])
 
-    def update_search_query(self):
-        new_query = self.find_input.text()
-        if new_query != self.query:
-            self.clear_current_item_highlight()
-            self.query = new_query
-            self.find_matches()
-            self.pre_highlight_all_matches()
-            self.current_item_index = 0
+    def perform_search(self):
+        # Update search parameters from checkboxes
+        self.query = self.find_input.text()
+        self.case_sensitive = self.case_sensitive_checkbox.isChecked()
+        self.is_fuzzy = self.fuzzy_checkbox.isChecked()
+        
+        # If "Original" option changed, we need to rebuild the text!
+        prev_search_in_original = self.search_in_original
+        self.search_in_original = self.original_checkbox.isChecked()
+        self.ignore_tags = self.no_tags_checkbox.isChecked()
+        
+        if self.search_in_original != prev_search_in_original:
+            self.rebuild_text_by_options()
             
-            # Enable buttons for the new search
-            for btn in [self.skip_button, self.replace_button, self.replace_all_button, self.prev_button, self.next_button]:
-                btn.setEnabled(True)
+        self.clear_current_item_highlight()
+        self.find_matches()
+        self.pre_highlight_all_matches()
+        self.current_item_index = 0
+        
+        # Enable buttons for the new search
+        for btn in [self.skip_button, self.replace_button, self.replace_all_button, self.prev_button, self.next_button]:
+            btn.setEnabled(True)
+            
+        self.show_current_item()
+
+    def rebuild_text_by_options(self):
+        main_window = self._find_main_window()
+        if not main_window or not hasattr(main_window, 'data_processor') or self.block_idx == -1:
+            return
+            
+        text_parts = []
+        for s_idx in self.unique_string_indices:
+            if self.search_in_original:
+                text = main_window.data_processor._get_string_from_source(
+                    self.block_idx, s_idx, main_window.data_store.data, "dialog_original"
+                )
+            else:
+                text, _ = main_window.data_processor.get_current_string_text(self.block_idx, s_idx)
                 
-            self.show_current_item()
+            if text is None:
+                text = ""
+            text_parts.append(text)
+            
+        raw_text = '\n'.join(text_parts)
+        
+        flat_line_numbers = []
+        for s_idx, text in zip(self.unique_string_indices, text_parts):
+            subline_count = text.count('\n') + 1
+            for _ in range(subline_count):
+                flat_line_numbers.append(s_idx)
+                
+        self.current_text = raw_text
+        self.line_numbers = flat_line_numbers
+        
+        self._process_text_spacing_and_line_numbers()
+        self._apply_zebra_striping()

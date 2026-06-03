@@ -47,7 +47,8 @@ class LNETSpellcheckLogic:
 
             from dialogs.spellcheck_dialog import SpellcheckDialog
             dialog = SpellcheckDialog(self.editor, text_to_check, spellchecker_manager,
-                                     starting_line_number=0, line_numbers=line_numbers)
+                                     starting_line_number=0, line_numbers=line_numbers,
+                                     block_idx=main_window.data_store.current_block_idx)
 
             if dialog.exec_():
                 corrected_text = dialog.get_corrected_text()

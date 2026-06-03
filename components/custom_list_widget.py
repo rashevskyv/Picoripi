@@ -239,7 +239,8 @@ class CustomListWidget(QListWidget):
             # Import and open dialog
             from dialogs.spellcheck_dialog import SpellcheckDialog
             dialog = SpellcheckDialog(self, text_to_check, spellchecker_manager,
-                                     starting_line_number=0, line_numbers=line_numbers)
+                                     starting_line_number=0, line_numbers=line_numbers,
+                                     block_idx=block_idx)
             log_debug("CustomListWidget: SpellcheckDialog created, calling exec_()")
 
             if dialog.exec_():

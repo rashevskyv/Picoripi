@@ -129,7 +129,7 @@ class TreeSpellcheckMixin:
 
             from dialogs.spellcheck_dialog import SpellcheckDialog
             dialog = SpellcheckDialog(
-                self, text_to_check, scm, starting_line_number=0, line_numbers=line_numbers
+                self, text_to_check, scm, starting_line_number=0, line_numbers=line_numbers, block_idx=block_idx
             )
             if not dialog.exec_():
                 return

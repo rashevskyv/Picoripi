@@ -515,6 +515,8 @@ def test_bfn_preview_widget_visibility_management(qapp):
     # Setup mock MainWindow
     mw_mock = MagicMock()
     mw_mock.all_bfn_fonts = {} # Initially no fonts loaded
+    mw_mock.data_store.current_block_idx = -1
+    mw_mock.data_store.current_string_idx = -1
     
     # Mock bfn_preview_widget
     preview_widget_mock = MagicMock()

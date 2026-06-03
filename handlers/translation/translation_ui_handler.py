@@ -33,11 +33,14 @@ class TranslationUIHandler(BaseTranslationHandler):
             self._status_dialog = AIStatusDialog(self.mw)
         return self._status_dialog
 
-    def show_variations_dialog(self, variations: List[str]) -> Optional[str]:
+    def show_variations_dialog(self, variations: List[str], show_refresh: bool = False) -> Optional[str]:
         self.update_status_message("AI: choose one of the suggested options", persistent=False)
-        dialog = TranslationVariationsDialog(self.mw, variations)
-        if dialog.exec_() == dialog.Accepted:
+        dialog = TranslationVariationsDialog(self.mw, variations, show_refresh=show_refresh)
+        res = dialog.exec_()
+        if res == dialog.Accepted:
             return dialog.selected_translation
+        elif res == 2:
+            return "__REFRESH__"
         return None
 
     def prompt_session_bootstrap(self, system_prompt: str) -> Optional[str]:
@@ -197,8 +200,8 @@ class TranslationUIHandler(BaseTranslationHandler):
     def update_ai_operation_step(self, step_index: int, text: str, status: int):
         self.status_dialog.update_step(step_index, text, status)
 
-    def finish_ai_operation(self, success: bool = True):
-        self.status_dialog.finish(success)
+    def finish_ai_operation(self, success: bool = True, show_popup: bool = True):
+        self.status_dialog.finish(success, show_popup=show_popup)
         self._set_ai_controls_enabled(True)
 
     def merge_session_instructions(self, instructions: str, message: str) -> str:
