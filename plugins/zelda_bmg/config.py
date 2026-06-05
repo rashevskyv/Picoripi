@@ -14,6 +14,7 @@ PROBLEM_SINGLE_WORD_SUBLINE = "ZBMG_SINGLE_WORD_SUBLINE"
 PROBLEM_SINGLE_WORD_SUBLINE_NON_START = "ZBMG_SINGLE_WORD_SUBLINE_NON_START"
 PROBLEM_EMPTY_FIRST_LINE_OF_PAGE = "ZBMG_EMPTY_FIRST_LINE_OF_PAGE"
 PROBLEM_BAD_SPACING = "ZBMG_BAD_SPACING"
+PROBLEM_MISSING_ICON_SPACING = "ZBMG_MISSING_ICON_SPACING"
 
 PRIORITY_TAG_CRITICAL = 1 
 PRIORITY_TAG_WARNING = 2
@@ -88,6 +89,12 @@ PROBLEM_DEFINITIONS = {
         "color": COLOR_WARNING_TAG,
         "priority": PRIORITY_TAG_WARNING,
         "description": "Double spaces or line starting with a space (ignoring tags)."
+    },
+    PROBLEM_MISSING_ICON_SPACING: {
+        "name": "Missing Icon Spacing",
+        "color": QColor(173, 216, 230, 150),
+        "priority": 8,
+        "description": "Missing space before or after a visible tag (button or width-having tag)."
     }
 }
 

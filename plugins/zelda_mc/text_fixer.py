@@ -3,7 +3,7 @@ from typing import Optional, Set, Dict, Any, Tuple
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_BAD_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
 
 WORD_CHAR_PATTERN_ZMC = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 ANY_TAG_RE_PATTERN_ZMC = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
@@ -201,6 +201,20 @@ class TextFixer(GenericTextFixer):
             modified_text, changed4 = self._cleanup_spaces_around_tags_zmc(modified_text)
             modified_text, changed5 = self._fix_leading_spaces_in_sublines_zmc(modified_text)
         
+        changed_missing_spacing = False
+        if allowed_problems is None or PROBLEM_MISSING_ICON_SPACING in allowed_problems:
+            from utils.utils import fix_missing_icon_spacing, is_visible_tag
+            default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+            icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
+            
+            def check_visible(t):
+                return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
+                
+            fixed_spacing_text = fix_missing_icon_spacing(modified_text, check_visible)
+            if fixed_spacing_text != modified_text:
+                modified_text = fixed_spacing_text
+                changed_missing_spacing = True
+
         if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
             from utils.utils import clean_spaces
             cleaned_text = clean_spaces(modified_text)
@@ -209,4 +223,4 @@ class TextFixer(GenericTextFixer):
 
         changed6 = cleaned_text != modified_text
         
-        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6)
+        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing)

@@ -4,7 +4,7 @@ from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from .config import (PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE,
                      PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_TAG_WARNING,
-                     PROBLEM_BAD_SPACING)
+                     PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING)
 
 SENTENCE_END_PUNCTUATION_CHARS = ['.', '!', '?']
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
@@ -19,7 +19,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             'SINGLE': PROBLEM_SINGLE_WORD_SUBLINE,
             'SINGLE_NON_START': PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
             'TAG': PROBLEM_TAG_WARNING,
-            'BAD_SPACING': PROBLEM_BAD_SPACING
+            'BAD_SPACING': PROBLEM_BAD_SPACING,
+            'MISSING_ICON_SPACING': PROBLEM_MISSING_ICON_SPACING
         }
 
     def _get_sublines_from_data_string(self, data_string: str) -> List[Tuple[str, str]]:
@@ -76,6 +77,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                  problems_per_subline_idx[i].add(self.problem_ids['WIDTH'])
             if self._check_bad_spacing(text_part):
                  problems_per_subline_idx[i].add(self.problem_ids['BAD_SPACING'])
+            if self._check_missing_icon_spacing(text_part):
+                 problems_per_subline_idx[i].add(self.problem_ids['MISSING_ICON_SPACING'])
             if i + 1 < len(sublines_with_tags):
                 next_text_part, _ = sublines_with_tags[i+1]
                 if self._check_short_line(text_part, next_text_part, font_map, threshold):

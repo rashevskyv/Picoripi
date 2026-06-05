@@ -102,6 +102,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self.p_marker_format = QTextCharFormat()
         self.l_marker_format = QTextCharFormat()
         self.bad_spacing_format = QTextCharFormat()
+        self.missing_icon_spacing_format = QTextCharFormat()
         self.placeholder_format = QTextCharFormat()
 
         self.red_text_format = QTextCharFormat()
@@ -341,6 +342,17 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         else:
             self.bad_spacing_format.setBackground(QColor(255, 0, 0, 30))
             self.bad_spacing_format.setUnderlineColor(QColor(255, 0, 0, 150))
+
+        # Configure missing icon spacing format (soft blue background + blue wavy underline)
+        self.missing_icon_spacing_format = QTextCharFormat()
+        self.missing_icon_spacing_format.setFontUnderline(True)
+        self.missing_icon_spacing_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        if current_theme == 'dark':
+            self.missing_icon_spacing_format.setBackground(QColor(173, 216, 230, 50))
+            self.missing_icon_spacing_format.setUnderlineColor(QColor(135, 206, 250))
+        else:
+            self.missing_icon_spacing_format.setBackground(QColor(0, 119, 204, 30))
+            self.missing_icon_spacing_format.setUnderlineColor(QColor(0, 119, 204, 150))
 
         self.placeholder_format.setForeground(QColor("#888888"))
 
@@ -599,6 +611,13 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         width = get_tag_width(tag, default_tag_mappings, font_map, icon_sequences=icon_sequences)
         return width > 0
 
+    def _is_visible_tag(self, tag: str) -> bool:
+        from utils.utils import is_visible_tag
+        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        icon_sequences = self._get_icon_sequences()
+        return is_visible_tag(tag, default_tag_mappings, font_map, icon_sequences)
+
     def highlightBlock(self, text):
         # In preview_text_edit each line is an independent game string,
         # so color must NOT bleed from one string to the next.
@@ -812,7 +831,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 is_tag_pattern = fmt in (self.curly_tag_format, self.bracket_tag_format)
                 if is_tag_pattern and hide_tags_enabled:
                     tag = match.group(1)
-                    if not self._is_forced_alias(tag) and not self._tag_has_length(tag):
+                    if not self._is_visible_tag(tag):
                         self.setFormat(match.start(), match.end() - match.start(), self.hide_tag_format)
                         continue
                 self.setFormat(match.start(), match.end() - match.start(), fmt)
@@ -844,7 +863,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 tags = ALL_TAGS_PATTERN.findall(prefix)
                 has_forced = False
                 for tag in tags:
-                    if self._is_forced_alias(tag) or self._tag_has_length(tag):
+                    if self._is_visible_tag(tag):
                         has_forced = True
                         break
                 if not has_forced:
@@ -856,12 +875,28 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 tags = ALL_TAGS_PATTERN.findall(match_text)
                 has_forced = False
                 for tag in tags:
-                    if self._is_forced_alias(tag) or self._tag_has_length(tag):
+                    if self._is_visible_tag(tag):
                         has_forced = True
                         break
                 if not has_forced:
                     self.setFormat(start, 1, self.bad_spacing_format)
                     self.setFormat(end - 1, 1, self.bad_spacing_format)
+
+            # 4. Missing space before/after visible tags
+            missing_spacing_id = None
+            if self.mw and self.mw.current_game_rules:
+                missing_spacing_id = getattr(self.mw.current_game_rules, 'PROBLEM_MISSING_ICON_SPACING', None)
+            
+            if missing_spacing_id:
+                enabled = True
+                if self.mw and hasattr(self.mw, 'detection_enabled'):
+                    enabled = self.mw.detection_enabled.get(missing_spacing_id, True)
+                
+                if enabled:
+                    from utils.utils import find_missing_icon_spacing_spans
+                    spans = find_missing_icon_spacing_spans(text, self._is_visible_tag)
+                    for start, end in spans:
+                        self.setFormat(start, end - start, self.missing_icon_spacing_format)
 
         # In preview_text_edit, never carry colour state to the next line.
         self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)

@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
 
 WORD_CHAR_PATTERN_ZWW = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 CLOSING_COLOR_TAG_WW = "[/C]"
@@ -19,6 +19,7 @@ class TextFixer(GenericTextFixer):
         made_change = False
         for i, sub_line in enumerate(sub_lines):
             is_odd_subline = (i + 1) % 2 != 0
+            from utils.utils import remove_all_tags
             text_no_tags = remove_all_tags(sub_line)
             stripped_text_no_tags = text_no_tags.strip()
             is_empty_or_zero = not stripped_text_no_tags or stripped_text_no_tags == "0"
@@ -160,4 +161,25 @@ class TextFixer(GenericTextFixer):
         else:
             final_text = modified_text
 
-        return final_text, final_text != original_text
+        changed_missing_spacing = False
+        autofix_config = getattr(self.mw, 'autofix_enabled', {})
+        is_missing_spacing_allowed = False
+        if allowed_problems is not None:
+            is_missing_spacing_allowed = PROBLEM_MISSING_ICON_SPACING in allowed_problems
+        else:
+            is_missing_spacing_allowed = autofix_config.get(PROBLEM_MISSING_ICON_SPACING, False)
+
+        if is_missing_spacing_allowed:
+            from utils.utils import fix_missing_icon_spacing, is_visible_tag
+            default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+            icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
+            
+            def check_visible(t):
+                return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
+                
+            fixed_spacing_text = fix_missing_icon_spacing(final_text, check_visible)
+            if fixed_spacing_text != final_text:
+                final_text = fixed_spacing_text
+                changed_missing_spacing = True
+
+        return final_text, (final_text != original_text or changed_missing_spacing)

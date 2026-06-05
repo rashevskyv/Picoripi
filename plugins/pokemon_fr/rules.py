@@ -3,7 +3,7 @@ from collections import OrderedDict
 from PyQt5.QtGui import QTextCharFormat, QColor, QFont
 from plugins.base_game_rules import BaseGameRules
 from .config import (PROBLEM_DEFINITIONS, DEFAULT_AUTOFIX_SETTINGS, DEFAULT_DETECTION_SETTINGS, DEFAULT_TAG_MAPPINGS_POKEMON_FR, 
-                     P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER, CONTROL_CODES, PROBLEM_BAD_SPACING)
+                     P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER, CONTROL_CODES, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING)
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
@@ -19,6 +19,8 @@ class GameRules(BaseGameRules):
         self.tag_manager = TagManager(main_window_ref)
         self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager, PROBLEM_DEFINITIONS, {})
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
+        self.PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+        self.problem_ids = self.problem_analyzer.problem_ids
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
         if not isinstance(json_data, dict):
@@ -127,6 +129,8 @@ class GameRules(BaseGameRules):
     def get_short_problem_name(self, problem_id: str) -> str:
         if problem_id == PROBLEM_BAD_SPACING:
             return "Spacing"
+        if problem_id == PROBLEM_MISSING_ICON_SPACING:
+            return "IconSpacing"
         return super().get_short_problem_name(problem_id)
 
     def analyze_subline(self,

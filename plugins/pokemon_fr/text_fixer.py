@@ -2,7 +2,7 @@ from typing import Tuple, List
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE, PROBLEM_BAD_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
 
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
 
@@ -132,5 +132,25 @@ class TextFixer(GenericTextFixer):
                 final_text = clean_spaces(modified_text)
             else:
                 final_text = modified_text
+
+        changed_missing_spacing = False
+        is_missing_spacing_allowed = False
+        if allowed_problems is not None:
+            is_missing_spacing_allowed = PROBLEM_MISSING_ICON_SPACING in allowed_problems
+        else:
+            is_missing_spacing_allowed = autofix_config.get(PROBLEM_MISSING_ICON_SPACING, False)
+
+        if is_missing_spacing_allowed:
+            from utils.utils import fix_missing_icon_spacing, is_visible_tag
+            default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+            icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
+            
+            def check_visible(t):
+                return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
                 
-        return final_text, final_text != original_text
+            fixed_spacing_text = fix_missing_icon_spacing(final_text, check_visible)
+            if fixed_spacing_text != final_text:
+                final_text = fixed_spacing_text
+                changed_missing_spacing = True
+
+        return final_text, (final_text != original_text or changed_missing_spacing)

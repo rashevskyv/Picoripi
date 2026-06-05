@@ -18,12 +18,12 @@ class GenericProblemAnalyzer:
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         
+        from utils.utils import is_visible_tag
         def repl(match):
             tag = match.group(0)
             if tag.lower().startswith("{f:") or tag.lower().startswith("[f:"):
                 return "X"
-            width = get_tag_width(tag, default_tag_mappings, font_map, icon_sequences=icon_sequences)
-            if width > 0:
+            if is_visible_tag(tag, default_tag_mappings, font_map, icon_sequences):
                 return "X"
             return ""
             
@@ -34,6 +34,33 @@ class GenericProblemAnalyzer:
         if "  " in clean_text:
             return True
         return False
+
+    def _check_missing_icon_spacing(self, text: str) -> bool:
+        missing_spacing_id = getattr(self.problem_ids, 'PROBLEM_MISSING_ICON_SPACING', None)
+        if not missing_spacing_id and isinstance(self.problem_ids, dict):
+            missing_spacing_id = self.problem_ids.get('MISSING_ICON_SPACING', None)
+            
+        if not missing_spacing_id:
+            return False
+            
+        # Check if enabled in detection_enabled
+        enabled = True
+        if self.mw and hasattr(self.mw, 'detection_enabled'):
+            enabled = self.mw.detection_enabled.get(missing_spacing_id, True)
+            
+        if not enabled:
+            return False
+            
+        from utils.utils import find_missing_icon_spacing_spans, is_visible_tag
+        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        
+        def check_visible(t):
+            return is_visible_tag(t, default_tag_mappings, font_map, icon_sequences)
+            
+        spans = find_missing_icon_spacing_spans(text, check_visible)
+        return len(spans) > 0
 
     def _check_single_word_subline_generic(self, subline_text: str) -> bool:
         text_no_tags = remove_all_tags(subline_text).strip()
@@ -99,5 +126,13 @@ class GenericProblemAnalyzer:
             else:
                 if hasattr(self.problem_ids, 'PROBLEM_BAD_SPACING'):
                     found_problems.add(self.problem_ids.PROBLEM_BAD_SPACING)
+
+        # Missing icon spacing check
+        if self._check_missing_icon_spacing(text):
+            missing_spacing_id = getattr(self.problem_ids, 'PROBLEM_MISSING_ICON_SPACING', None)
+            if not missing_spacing_id and isinstance(self.problem_ids, dict):
+                missing_spacing_id = self.problem_ids.get('MISSING_ICON_SPACING', None)
+            if missing_spacing_id:
+                found_problems.add(missing_spacing_id)
 
         return found_problems
