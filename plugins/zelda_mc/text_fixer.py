@@ -3,7 +3,7 @@ from typing import Optional, Set, Dict, Any, Tuple
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
 
 WORD_CHAR_PATTERN_ZMC = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 ANY_TAG_RE_PATTERN_ZMC = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
@@ -184,25 +184,47 @@ class TextFixer(GenericTextFixer):
         if logical_hard_limit is None:
             logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
-        
         modified_text = original_text
         changed1 = changed2 = changed3 = changed4 = changed5 = False
+        changed_orphans = False
 
-        if allowed_problems is None or PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY in allowed_problems:
+        from .config import DEFAULT_AUTOFIX_SETTINGS
+        autofix_config = getattr(self.mw, 'autofix_enabled', {}) if self.mw else DEFAULT_AUTOFIX_SETTINGS
+        if not autofix_config:
+            autofix_config = DEFAULT_AUTOFIX_SETTINGS
+        def is_allowed(prob_id):
+            if allowed_problems is not None:
+                return prob_id in allowed_problems
+            return autofix_config.get(prob_id, False)
+
+        has_single_word_allowed = False
+        if allowed_problems is not None:
+            for p in allowed_problems:
+                if "SINGLE_WORD" in p:
+                    has_single_word_allowed = True
+                    break
+        else:
+            has_single_word_allowed = autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or \
+                                      autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
+
+        if is_allowed(PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY):
             modified_text, changed1 = self._fix_empty_odd_sublines_zmc(modified_text)
         
-        if allowed_problems is None or PROBLEM_SHORT_LINE in allowed_problems:
+        if is_allowed(PROBLEM_SHORT_LINE):
             modified_text, changed2 = self._fix_short_lines_zmc(modified_text, editor_font_map, editor_line_width_threshold)
         
-        if allowed_problems is None or PROBLEM_WIDTH_EXCEEDED in allowed_problems:
+        if is_allowed(PROBLEM_WIDTH_EXCEEDED):
             modified_text, changed3 = self._fix_width_exceeded_generic(modified_text, editor_font_map, logical_hard_limit)
         
-        if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
+        if has_single_word_allowed:
+            modified_text, changed_orphans = self._fix_single_word_orphans_generic(modified_text)
+        
+        if is_allowed(PROBLEM_BAD_SPACING):
             modified_text, changed4 = self._cleanup_spaces_around_tags_zmc(modified_text)
             modified_text, changed5 = self._fix_leading_spaces_in_sublines_zmc(modified_text)
         
         changed_missing_spacing = False
-        if allowed_problems is None or PROBLEM_MISSING_ICON_SPACING in allowed_problems:
+        if is_allowed(PROBLEM_MISSING_ICON_SPACING):
             from utils.utils import fix_missing_icon_spacing, is_visible_tag
             default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
             icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
@@ -215,7 +237,7 @@ class TextFixer(GenericTextFixer):
                 modified_text = fixed_spacing_text
                 changed_missing_spacing = True
 
-        if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
+        if is_allowed(PROBLEM_BAD_SPACING):
             from utils.utils import clean_spaces
             cleaned_text = clean_spaces(modified_text)
         else:
@@ -223,4 +245,4 @@ class TextFixer(GenericTextFixer):
 
         changed6 = cleaned_text != modified_text
         
-        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing)
+        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing or changed_orphans)

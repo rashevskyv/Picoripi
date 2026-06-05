@@ -210,11 +210,18 @@ class LNETLineNumberAreaPaintLogic:
                     filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
                     if is_editor and filtered_problems:
                         sorted_probs = sorted(list(filtered_problems), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))
-                        bg_color = QColor(problem_definitions.get(sorted_probs[0], {}).get("color", Qt.transparent))
-                        bg_color.setAlpha(160)
-                        painter.fillRect(extra_info_part_rect, bg_color)
-                        
-                        # Handle additional problem stripes if needed (omitted for brevity, can be restored if user wants)
+                        N = len(sorted_probs)
+                        w = extra_part_width / N
+                        for i, p_id in enumerate(sorted_probs):
+                            p_def = problem_definitions.get(p_id, {})
+                            bg_color = QColor(p_def.get("color", Qt.transparent))
+                            if bg_color.isValid():
+                                bg_color.setAlpha(160)
+                                x_pos = number_part_width + i * w
+                                # Handle last stripe to exactly cover pixel borders
+                                current_w = int(w) + 1 if i < N - 1 else (number_part_width + extra_part_width - int(x_pos))
+                                part_rect = QRect(int(x_pos), top, int(current_w), line_height)
+                                painter.fillRect(part_rect, bg_color)
                     else:
                         painter.fillRect(extra_info_part_rect, bg_color_extra_info_area)
 

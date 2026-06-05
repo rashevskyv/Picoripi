@@ -57,7 +57,6 @@
     "autofix_enabled": {
         "ZBMG_TAG_WARNING": false,
         "ZBMG_WIDTH_EXCEEDED": false,
-        "ZBMG_EMPTY_ODD_SUBLINE_LOGICAL": false,
         "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": false,
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": false,
         "ZBMG_SINGLE_WORD_SUBLINE": false,
@@ -68,7 +67,6 @@
     "detection_enabled": {
         "ZBMG_TAG_WARNING": true,
         "ZBMG_WIDTH_EXCEEDED": true,
-        "ZBMG_EMPTY_ODD_SUBLINE_LOGICAL": true,
         "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": true,
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": true,
         "ZBMG_SINGLE_WORD_SUBLINE": true,

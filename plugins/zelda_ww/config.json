@@ -27,7 +27,6 @@
     "autofix_enabled": {
         "ZWW_TAG_WARNING": false,
         "ZWW_WIDTH_EXCEEDED": true,
-        "ZWW_EMPTY_ODD_SUBLINE_LOGICAL": false,
         "ZWW_EMPTY_ODD_SUBLINE_DISPLAY": false,
         "ZWW_EMPTY_FIRST_LINE_OF_PAGE": false,
         "ZWW_SINGLE_WORD_SUBLINE": false,
@@ -36,7 +35,6 @@
     "detection_enabled": {
         "ZWW_TAG_WARNING": true,
         "ZWW_WIDTH_EXCEEDED": true,
-        "ZWW_EMPTY_ODD_SUBLINE_LOGICAL": true,
         "ZWW_EMPTY_ODD_SUBLINE_DISPLAY": true,
         "ZWW_EMPTY_FIRST_LINE_OF_PAGE": true,
         "ZWW_SINGLE_WORD_SUBLINE": true,

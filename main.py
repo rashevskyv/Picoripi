@@ -239,6 +239,24 @@ class MainWindow(QMainWindow):
         # Plugin Setup
         self.plugin_handler.load_game_plugin()
 
+        # Merge autofix_enabled and detection_enabled defaults from the plugin if they are empty
+        if self.current_game_rules:
+            plugin_defaults_autofix = {}
+            plugin_defaults_detection = {}
+            plugin_name = self.active_game_plugin
+            if plugin_name:
+                try:
+                    config_module = importlib.import_module(f"plugins.{plugin_name}.config")
+                    plugin_defaults_autofix = getattr(config_module, 'DEFAULT_AUTOFIX_SETTINGS', {})
+                    plugin_defaults_detection = getattr(config_module, 'DEFAULT_DETECTION_SETTINGS', {})
+                except Exception:
+                    pass
+            
+            if not self.autofix_enabled and plugin_defaults_autofix:
+                self.autofix_enabled = plugin_defaults_autofix.copy()
+            if not self.detection_enabled and plugin_defaults_detection:
+                self.detection_enabled = plugin_defaults_detection.copy()
+
         # Complex Handlers
         self.list_selection_handler = ListSelectionHandler(self, self.data_processor, self.ui_updater)
         self.editor_operation_handler = TextOperationHandler(self, self.data_processor, self.ui_updater)

@@ -118,3 +118,48 @@ def test_problems_per_subline_is_read_from_data_store(editor_setup):
         "Likely cause: hasattr(main_window_ref, 'problems_per_subline') returns False because "
         "this attribute was moved to data_store during refactoring."
     )
+
+
+def test_problems_splitted_painting(editor_setup):
+    """
+    Test that when multiple problems are present on the same subline,
+    LineNumberAreaPaintLogic splits the warning indicator rect into N parts
+    and paints each part with its respective color.
+    """
+    logic, editor, mw = editor_setup
+    
+    # Configure two problems for the first line
+    mw.data_store.problems_per_subline = {
+        (0, 0, 0): {"PROBLEM_WIDTH", "PROBLEM_TAG"}
+    }
+    mw.current_game_rules.get_problem_definitions.return_value = {
+        "PROBLEM_WIDTH": {"priority": 1, "color": "#FF0000"},
+        "PROBLEM_TAG": {"priority": 3, "color": "#FFFF00"}
+    }
+    mw.detection_enabled = {"PROBLEM_WIDTH": True, "PROBLEM_TAG": True}
+    
+    filled_colors = []
+    
+    image = QImage(200, 100, QImage.Format_ARGB32)
+    event = QPaintEvent(QRect(0, 0, 200, 100))
+    
+    from PyQt5.QtGui import QPainter, QColor
+    original_fill = QPainter.fillRect
+    
+    def tracking_fill(self_, *args):
+        if len(args) >= 2:
+            color_arg = args[-1]
+            if isinstance(color_arg, QColor):
+                filled_colors.append(color_arg)
+        return original_fill(self_, *args)
+        
+    with patch.object(QPainter, 'fillRect', tracking_fill):
+        logic.execute_paint_event(event, image)
+        
+    # We expect that both colors (#FF0000 and #FFFF00) were painted
+    red_painted = any(c.red() > 200 and c.green() < 100 and c.blue() < 100 for c in filled_colors)
+    yellow_painted = any(c.red() > 200 and c.green() > 200 and c.blue() < 100 for c in filled_colors)
+    
+    assert red_painted, "Red warning color (#FF0000) was not painted"
+    assert yellow_painted, "Yellow warning color (#FFFF00) was not painted"
+

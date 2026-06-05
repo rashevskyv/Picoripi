@@ -8,7 +8,6 @@ CONFIG_PATH = os.path.join(CONFIG_DIR, 'config.json')
 PROBLEM_TAG_WARNING = "ZBMG_TAG_WARNING"
 PROBLEM_WIDTH_EXCEEDED = "ZBMG_WIDTH_EXCEEDED"
 PROBLEM_SHORT_LINE = "ZBMG_SHORT_LINE"
-PROBLEM_EMPTY_ODD_SUBLINE_LOGICAL = "ZBMG_EMPTY_ODD_SUBLINE_LOGICAL"
 PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY = "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY"
 PROBLEM_SINGLE_WORD_SUBLINE = "ZBMG_SINGLE_WORD_SUBLINE" 
 PROBLEM_SINGLE_WORD_SUBLINE_NON_START = "ZBMG_SINGLE_WORD_SUBLINE_NON_START"
@@ -47,12 +46,6 @@ PROBLEM_DEFINITIONS = {
         "color": COLOR_WIDTH_EXCEEDED,
         "priority": PRIORITY_WIDTH_EXCEEDED,
         "description": "The subline is longer than the set width limit."
-    },
-    PROBLEM_EMPTY_ODD_SUBLINE_LOGICAL: {
-        "name": "Empty Odd Logical Subline",
-        "color": COLOR_EMPTY_ODD,
-        "priority": PRIORITY_EMPTY_ODD,
-        "description": "A logical odd-numbered subline (if more than one) is empty or contains only '0' without tags."
     },
     PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: {
         "name": "Empty Odd Display Subline",
@@ -123,3 +116,27 @@ if os.path.exists(CONFIG_PATH):
     except Exception as e:
         from utils.logging_utils import log_error
         log_error(f"Error loading zelda_bmg/config.json: {e}")
+
+DEFAULT_DETECTION_SETTINGS = {
+    PROBLEM_TAG_WARNING: True,
+    PROBLEM_WIDTH_EXCEEDED: True,
+    PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: True,
+    PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: True,
+    PROBLEM_SINGLE_WORD_SUBLINE: True,
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True,
+    PROBLEM_SHORT_LINE: True,
+    PROBLEM_BAD_SPACING: True,
+    PROBLEM_MISSING_ICON_SPACING: True
+}
+
+DEFAULT_AUTOFIX_SETTINGS = {
+    PROBLEM_TAG_WARNING: False,
+    PROBLEM_WIDTH_EXCEEDED: True,
+    PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: True,
+    PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: True,
+    PROBLEM_SINGLE_WORD_SUBLINE: False,
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: False,
+    PROBLEM_SHORT_LINE: True,
+    PROBLEM_BAD_SPACING: True,
+    PROBLEM_MISSING_ICON_SPACING: True
+}

@@ -84,3 +84,90 @@ class GenericTextFixer:
         final_text = "\n".join(final_lines)
         return final_text, final_text != original_text
 
+    def _fix_single_word_orphans_generic(self, text: str) -> Tuple[str, bool]:
+        if not text:
+            return text, False
+            
+        # Розбиваємо по \n або \\n або \\p або \\l
+        pattern = re.compile(r'(\n|\\n|\\p|\\l)')
+        parts = pattern.split(text)
+        
+        num_lines = len(parts) // 2 + 1
+        if num_lines <= 1:
+            return text, False
+            
+        made_change = False
+        
+        # Текстові рядки на парних індексах
+        for idx in range(len(parts) - 1, 1, -2):
+            current_line = parts[idx]
+            prev_line = parts[idx - 2]
+            
+            # 1. Перевіряємо, чи на поточному рядку рівно одне слово
+            current_no_tags = remove_all_tags(current_line).strip()
+            if not current_no_tags:
+                continue
+                
+            words = current_no_tags.split()
+            if len(words) != 1:
+                continue
+                
+            word = words[0]
+            
+            # 2. Слово має бути з маленької літери
+            first_letter_match = re.search(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ]', word)
+            if not first_letter_match or not first_letter_match.group(0).islower():
+                continue
+                
+            # 3. В кінці слова немає розділових знаків (punctuation marks)
+            clean_word = word.rstrip('"\'')
+            if clean_word and clean_word[-1] in ['.', ',', '!', '?', ';', ':', '…', ')']:
+                continue
+
+            # 4. Попередній рядок не повинен закінчуватися розділовими знаками кінця речення
+            prev_no_tags = remove_all_tags(prev_line).strip()
+            if prev_no_tags and prev_no_tags[-1] in ['.', '!', '?', '…']:
+                continue
+
+            # 5. Попередній рядок повинен мати хоча б одне слово
+            prev_words = prev_no_tags.split()
+            if not prev_words:
+                continue
+                
+            # 6. Спробуємо перенести останнє слово з попереднього рядка
+            prev_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', prev_line)
+            
+            last_word_idx = -1
+            for k in range(len(prev_parts) - 1, -1, -1):
+                part = prev_parts[k]
+                if not part.strip():
+                    continue
+                is_tag = (part.startswith('{') and part.endswith('}')) or (part.startswith('[') and part.endswith(']'))
+                if not is_tag:
+                    last_word_idx = k
+                    break
+                    
+            if last_word_idx == -1:
+                continue
+                
+            # Вилучаємо останнє слово та все, що після нього
+            prev_part_fixed = "".join(prev_parts[:last_word_idx]).rstrip()
+            moved_part = "".join(prev_parts[last_word_idx:])
+            
+            # Оновлюємо попередній рядок у списку parts
+            parts[idx - 2] = prev_part_fixed
+            
+            # Додаємо перенесену частину на початок поточного рядка
+            spacer = " "
+            if moved_part.endswith(" ") or current_line.startswith(" "):
+                spacer = ""
+                
+            parts[idx] = moved_part + spacer + current_line
+            made_change = True
+            
+        if made_change:
+            final_text = "".join(parts)
+            return final_text, final_text != text
+            
+        return text, False
+
