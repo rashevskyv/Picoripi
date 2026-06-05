@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.163] - 2026-06-05
+
+### Changed
+- **Refined Single Word Orphan Auto-fix**:
+  - Moved the `_fix_single_word_orphans_generic` step to run as a post-processing pass at the very end of `autofix_data_string`, rather than inside the main formatting loop. This completely avoids feedback loops that caused text to be split into unnecessarily short lines.
+  - Added smart punctuation checks: a single word at the end of a line is no longer pulled to the previous line if it ends with punctuation (`.`, `,`, `!`, `?`, `;`, `:`, `…`, `)`).
+  - Added sentence boundary protection: a word is not pulled if the previous line ends with sentence-ending punctuation (`.`, `!`, `?`, `…`).
+- **Unused Logical Warnings Cleanup**:
+  - Removed the inactive `Empty Odd Logical Subline` (`PROBLEM_EMPTY_ODD_SUBLINE_LOGICAL`) warning definitions and settings from `zelda_bmg` and `zelda_ww` plugins to simplify the settings UI.
+
 ## [0.2.162] - 2026-06-05
 
 ### Added

@@ -342,3 +342,48 @@ def test_plugin_missing_icon_spacing_detection_and_fix(mc_rules, ww_rules, plain
     fixed, changed = pokemon_rules.autofix_data_string("Hello{(A)}World", pokemon_rules.mw.font_map, 1000)
     assert fixed == "Hello {(A)} World"
     assert changed is True
+
+
+def test_autofix_disabled_settings(mc_rules):
+    from plugins.zelda_mc.config import PROBLEM_SHORT_LINE
+    # Disable short line autofix in settings
+    mc_rules.mw.autofix_enabled = {
+        PROBLEM_SHORT_LINE: False
+    }
+    
+    text = "Hello\nworld"
+    fixed, changed = mc_rules.autofix_data_string(text, {}, 1000, allowed_problems=None)
+    assert fixed == text
+    assert changed is False
+    
+    # Enable it
+    mc_rules.mw.autofix_enabled[PROBLEM_SHORT_LINE] = True
+    fixed, changed = mc_rules.autofix_data_string(text, {}, 1000, allowed_problems=None)
+    assert changed is True
+
+
+def test_autofix_single_word_orphan_with_punctuation(mc_rules):
+    from plugins.zelda_mc.config import PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    mc_rules.mw.autofix_enabled = {
+        PROBLEM_SINGLE_WORD_SUBLINE: True,
+        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True
+    }
+    
+    # 1. With punctuation: should NOT fix
+    text_with_punc = "Це дуже гарна\nідея."
+    fixed, changed = mc_rules.autofix_data_string(text_with_punc, {}, 1000, allowed_problems=None)
+    assert fixed == text_with_punc
+    assert changed is False
+
+    # 2. Without punctuation: should fix
+    text_no_punc = "Це дуже гарна\nідея"
+    fixed, changed = mc_rules.autofix_data_string(text_no_punc, {}, 1000, allowed_problems=None)
+    assert fixed == "Це дуже\nгарна ідея"
+    assert changed is True
+
+    # 3. Previous line ends with sentence punctuation: should NOT fix
+    text_prev_ends_punc = "Це дуже гарна.\nідея"
+    fixed, changed = mc_rules.autofix_data_string(text_prev_ends_punc, {}, 1000, allowed_problems=None)
+    assert fixed == text_prev_ends_punc
+    assert changed is False
+

@@ -2,7 +2,7 @@ from typing import Tuple, List
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SUBLINE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
 
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
 
@@ -97,7 +97,10 @@ class TextFixer(GenericTextFixer):
             logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
         modified_text = original_text
-        autofix_config = getattr(self.mw, 'autofix_enabled', {})
+        from .config import DEFAULT_AUTOFIX_SETTINGS
+        autofix_config = getattr(self.mw, 'autofix_enabled', {}) if self.mw else DEFAULT_AUTOFIX_SETTINGS
+        if not autofix_config:
+            autofix_config = DEFAULT_AUTOFIX_SETTINGS
         max_iterations = 5
         for _ in range(max_iterations):
             text_before_pass = modified_text
@@ -120,6 +123,19 @@ class TextFixer(GenericTextFixer):
             if modified_text == text_before_pass:
                 break
                 
+        has_single_word_allowed = False
+        if allowed_problems is not None:
+            for p in allowed_problems:
+                if "SINGLE_WORD" in p:
+                    has_single_word_allowed = True
+                    break
+        else:
+            has_single_word_allowed = autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or \
+                                      autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
+
+        if has_single_word_allowed:
+            modified_text, _ = self._fix_single_word_orphans_generic(modified_text)
+
         if allowed_problems is not None:
             if PROBLEM_BAD_SPACING in allowed_problems:
                 from utils.utils import clean_spaces

@@ -620,12 +620,23 @@ class TextOperationHandler(BaseHandler):
         width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
         logical_hard_limit_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
         
-        fixed_data, changed = self.mw.current_game_rules.autofix_data_string(
-            data_to_fix, 
-            font_map_for_string, 
-            width_threshold_for_string,
-            logical_hard_limit=logical_hard_limit_for_string
-        )
+        current_iter_text = data_to_fix
+        any_changed = False
+        max_iterations = 5
+        for _ in range(max_iterations):
+            fixed_data, changed = self.mw.current_game_rules.autofix_data_string(
+                current_iter_text, 
+                font_map_for_string, 
+                width_threshold_for_string,
+                logical_hard_limit=logical_hard_limit_for_string
+            )
+            if not changed or fixed_data == current_iter_text:
+                break
+            current_iter_text = fixed_data
+            any_changed = True
+        
+        fixed_data = current_iter_text
+        changed = any_changed
         
         if changed:
             block_idx = self.mw.data_store.current_block_idx
@@ -746,14 +757,24 @@ class TextOperationHandler(BaseHandler):
                     width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
                     logical_hard_limit_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
 
-                    # Run plugin's autofix
-                    fixed_text, changed = self.mw.current_game_rules.autofix_data_string(
-                        current_text,
-                        font_map_for_string,
-                        width_threshold_for_string,
-                        logical_hard_limit=logical_hard_limit_for_string,
-                        allowed_problems=selected_problems
-                    )
+                    current_iter_text = current_text
+                    any_changed = False
+                    max_iterations = 5
+                    for _ in range(max_iterations):
+                        fixed_text, changed = self.mw.current_game_rules.autofix_data_string(
+                            current_iter_text,
+                            font_map_for_string,
+                            width_threshold_for_string,
+                            logical_hard_limit=logical_hard_limit_for_string,
+                            allowed_problems=selected_problems
+                        )
+                        if not changed or fixed_text == current_iter_text:
+                            break
+                        current_iter_text = fixed_text
+                        any_changed = True
+                    
+                    fixed_text = current_iter_text
+                    changed = any_changed
 
                     if changed and fixed_text != current_text:
                         # Save fixed data

@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
 
 WORD_CHAR_PATTERN_ZWW = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 CLOSING_COLOR_TAG_WW = "[/C]"
@@ -124,12 +124,21 @@ class TextFixer(GenericTextFixer):
             logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
         
-        if allowed_problems is None or PROBLEM_EMPTY_FIRST_LINE_OF_PAGE in allowed_problems:
+        from .config import DEFAULT_AUTOFIX_SETTINGS
+        autofix_config = getattr(self.mw, 'autofix_enabled', {}) if self.mw else DEFAULT_AUTOFIX_SETTINGS
+        if not autofix_config:
+            autofix_config = DEFAULT_AUTOFIX_SETTINGS
+        def is_allowed(prob_id):
+            if allowed_problems is not None:
+                return prob_id in allowed_problems
+            return autofix_config.get(prob_id, False)
+
+        if is_allowed(PROBLEM_EMPTY_FIRST_LINE_OF_PAGE):
             text_after_page_fix, _ = self.fix_empty_first_line_of_page(original_text)
         else:
             text_after_page_fix = original_text
 
-        if allowed_problems is None or PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY in allowed_problems:
+        if is_allowed(PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY):
             modified_text, _ = self._fix_empty_odd_sublines_zww(text_after_page_fix)
         else:
             modified_text = text_after_page_fix
@@ -140,12 +149,12 @@ class TextFixer(GenericTextFixer):
             changed_merge = False
             changed_split = False
             
-            if allowed_problems is None or PROBLEM_SHORT_LINE in allowed_problems:
+            if is_allowed(PROBLEM_SHORT_LINE):
                 merged_text, changed_merge = self._fix_short_lines_zww(modified_text, editor_font_map, editor_line_width_threshold)
             else:
                 merged_text = modified_text
                 
-            if allowed_problems is None or PROBLEM_WIDTH_EXCEEDED in allowed_problems:
+            if is_allowed(PROBLEM_WIDTH_EXCEEDED):
                 splitted_text, changed_split = self._fix_width_exceeded_generic(merged_text, editor_font_map, logical_hard_limit)
             else:
                 splitted_text = merged_text
@@ -154,7 +163,20 @@ class TextFixer(GenericTextFixer):
             if not changed_merge and not changed_split:
                 break
                 
-        if allowed_problems is None or PROBLEM_BAD_SPACING in allowed_problems:
+        has_single_word_allowed = False
+        if allowed_problems is not None:
+            for p in allowed_problems:
+                if "SINGLE_WORD" in p:
+                    has_single_word_allowed = True
+                    break
+        else:
+            has_single_word_allowed = autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or \
+                                      autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
+
+        if has_single_word_allowed:
+            modified_text, _ = self._fix_single_word_orphans_generic(modified_text)
+
+        if is_allowed(PROBLEM_BAD_SPACING):
             cleaned_text, _ = self._cleanup_spaces_around_tags_zww(modified_text)
             from utils.utils import clean_spaces
             final_text = clean_spaces(cleaned_text)
@@ -162,14 +184,7 @@ class TextFixer(GenericTextFixer):
             final_text = modified_text
 
         changed_missing_spacing = False
-        autofix_config = getattr(self.mw, 'autofix_enabled', {})
-        is_missing_spacing_allowed = False
-        if allowed_problems is not None:
-            is_missing_spacing_allowed = PROBLEM_MISSING_ICON_SPACING in allowed_problems
-        else:
-            is_missing_spacing_allowed = autofix_config.get(PROBLEM_MISSING_ICON_SPACING, False)
-
-        if is_missing_spacing_allowed:
+        if is_allowed(PROBLEM_MISSING_ICON_SPACING):
             from utils.utils import fix_missing_icon_spacing, is_visible_tag
             default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
             icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
