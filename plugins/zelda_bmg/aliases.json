@@ -11,7 +11,6 @@
     "{F:Epona}": "{escape:0:0022}",
     "{pause2}": "{escape:0:0007003c}",
     "{color:green}": "{escape:255:000002}",
-    "{F:◄}": "{escape:0:0014}",
     "{(analog stick)}": "{escape:0:0013}",
     "{(C-Stick)}": "{escape:0:000c}",
     "{pause3}": "{escape:0:0007000f}",
@@ -25,5 +24,10 @@
     "{(X)}": "{escape:0:000f}",
     "{(DUP)}": "{escape:3:0009}",
     "{(▼)}": "{escape:0:0017}",
-    "{F:▼}": "{escape:0:0017}"
+    "{F:▼}": "{escape:0:0017}",
+    "{F:weight in ich}": "{escape:5:0008}",
+    "{(StickUp)}": "{escape:0:001c}",
+    "{◄}": "{escape:0:0014}",
+    "{►}": "{escape:0:0015}",
+    "{F:◄}": "{escape:0:0014}"
 }

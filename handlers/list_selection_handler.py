@@ -923,6 +923,20 @@ class ListSelectionHandler(BaseHandler):
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
 
+    def toggle_hide_original_tags(self, checked: bool) -> None:
+        """Toggle hiding of tags in the original text edit."""
+        self.mw.data_store.hide_original_tags = checked
+        if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
+            self.mw.helper.reconfigure_all_highlighters()
+
+    def toggle_hide_translation_tags(self, checked: bool) -> None:
+        """Toggle hiding of tags in the translation and preview text edits."""
+        self.mw.data_store.hide_translation_tags = checked
+        if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
+            self.mw.helper.reconfigure_all_highlighters()
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+
     def scroll_to_current_string_in_preview(self) -> None:
         """Scroll and focus the preview text edit to the currently selected string."""
         preview_edit = getattr(self.mw, 'preview_text_edit', None)

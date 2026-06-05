@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.161] - 2026-06-04
+
+### Added
+- **Split "Hide tags" Feature**:
+  - Replaced the single global "Hide tags" setting with independent `hide_original_tags` and `hide_translation_tags` properties in `AppDataStore`.
+  - Added individual `Hide tags` checkboxes to both the Original (Read-Only) panel and the Translation (Editable Text) panel.
+  - Updated the syntax highlighter (`JsonTagHighlighter`) to dynamically inspect the widget context and apply transparent formatting + percentage spacing + stretching to collapse hidden tags to absolute 0 width.
+  - Added new slot methods `toggle_hide_original_tags` and `toggle_hide_translation_tags` to `list_selection_handler.py` to synchronize state changes and refresh views correctly.
+  - Added unit test coverage verifying the independent visibility behavior in `test_syntax_highlighter.py`.
+
 ## [0.2.160] - 2026-06-03
 
 ### Added

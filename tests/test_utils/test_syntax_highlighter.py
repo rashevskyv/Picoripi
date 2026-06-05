@@ -451,6 +451,56 @@ def test_JsonTagHighlighter_length_tags_spacing(highlighter):
         start, length, fmt = call_args[0]
         assert fmt != hl.bad_spacing_format
 
+def test_JsonTagHighlighter_hide_tags(highlighter):
+    hl, doc = highlighter
+    
+    hl._is_forced_alias = MagicMock(side_effect=lambda tag: "f:" in tag.lower())
+    hl._tag_has_length = MagicMock(side_effect=lambda tag: "escape:" in tag.lower())
+    
+    text = "{color:red} text {f:Link} text {escape:3:0001}"
+    
+    # 1. When hide_tags is DISABLED (default)
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+    hl.mw.data_store.hide_translation_tags = False
+    hl.mw.data_store.hide_original_tags = False
+    hl.setFormat.reset_mock()
+    
+    hl.highlightBlock(text)
+    for call_args in hl.setFormat.call_args_list:
+        fmt = call_args[0][2]
+        assert fmt != hl.hide_tag_format
+        
+    # 2. When hide_translation_tags is ENABLED on edited_text_edit
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+    hl.mw.data_store.hide_translation_tags = True
+    hl.mw.data_store.hide_original_tags = False
+    hl.setFormat.reset_mock()
+    hl.highlightBlock(text)
+    
+    hide_tag_calls = [call_args[0] for call_args in hl.setFormat.call_args_list if call_args[0][2] == hl.hide_tag_format]
+    curly_tag_calls = [call_args[0] for call_args in hl.setFormat.call_args_list if call_args[0][2] == hl.curly_tag_format]
+    
+    assert any(c[0] == 0 and c[1] == 11 for c in hide_tag_calls)
+    assert any(c[0] == 17 and c[1] == 8 for c in curly_tag_calls)
+    
+    # 3. When hide_translation_tags is ENABLED on edited_text_edit but we process original_text_edit (should NOT hide)
+    hl._editor_widget_ref.objectName.return_value = 'original_text_edit'
+    hl.setFormat.reset_mock()
+    hl.highlightBlock(text)
+    for call_args in hl.setFormat.call_args_list:
+        fmt = call_args[0][2]
+        assert fmt != hl.hide_tag_format
+
+    # 4. When hide_original_tags is ENABLED on original_text_edit
+    hl._editor_widget_ref.objectName.return_value = 'original_text_edit'
+    hl.mw.data_store.hide_original_tags = True
+    hl.mw.data_store.hide_translation_tags = False
+    hl.setFormat.reset_mock()
+    hl.highlightBlock(text)
+    
+    hide_tag_calls = [call_args[0] for call_args in hl.setFormat.call_args_list if call_args[0][2] == hl.hide_tag_format]
+    assert any(c[0] == 0 and c[1] == 11 for c in hide_tag_calls)
+
 
 
 

@@ -178,6 +178,10 @@ class MainWindowEventHandler:
             self.mw.hide_empty_strings_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_empty_strings)
         if hasattr(self.mw, 'hide_translated_checkbox'):
             self.mw.hide_translated_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translated)
+        if hasattr(self.mw, 'hide_original_tags_checkbox'):
+            self.mw.hide_original_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_original_tags)
+        if hasattr(self.mw, 'hide_translation_tags_checkbox'):
+            self.mw.hide_translation_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translation_tags)
 
     def keyPressEvent(self, event: QKeyEvent):
         super(self.mw.__class__, self.mw).keyPressEvent(event)

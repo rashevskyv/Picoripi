@@ -121,31 +121,31 @@ class MainWindowHelper:
         try:
             log_debug(f"MainWindowHelper: open_advanced_search called for Q='{query}'")
             
-            block_idx = self.mw.data_store.current_block_idx
-            if block_idx == -1:
-                QMessageBox.warning(self.mw, "Advanced Search", "No active block selected.")
-                return
-
-            block_data = self.mw.data_store.data[block_idx]
-            if not isinstance(block_data, list):
+            if not self.mw.data_store.data:
+                QMessageBox.warning(self.mw, "Advanced Search", "No project data loaded.")
                 return
 
             edited_data = self.mw.data_store.edited_data
             
             all_lines = []
-            for string_idx in range(len(block_data)):
-                if search_in_original:
-                    text = self.mw.data_processor._get_string_from_source(
-                        block_idx, string_idx, self.mw.data_store.data, "dialog_original"
-                    )
-                else:
-                    text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
-                if text is not None:
-                    all_lines.append((string_idx, text))
+            for b_idx in range(len(self.mw.data_store.data)):
+                block_data = self.mw.data_store.data[b_idx]
+                if not isinstance(block_data, list):
+                    continue
+                for string_idx in range(len(block_data)):
+                    if search_in_original:
+                        text = self.mw.data_processor._get_string_from_source(
+                            b_idx, string_idx, self.mw.data_store.data, "dialog_original"
+                        )
+                    else:
+                        text, _ = self.mw.data_processor.get_current_string_text(b_idx, string_idx)
+                    if text is not None:
+                        all_lines.append((b_idx, string_idx, text))
 
             # Filter lines that actually contain the query
             text_parts = []
             line_numbers = []
+            block_indices = []
 
             import re
             from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match
@@ -157,7 +157,7 @@ class MainWindowHelper:
             if query and effective_query:
                 if is_fuzzy:
                     word_pattern = re.compile(r'\w+')
-                    for string_idx, text in all_lines:
+                    for b_idx, string_idx, text in all_lines:
                         if ignore_tags:
                             text_for_search = prepare_text_for_tagless_search(text)
                         else:
@@ -174,9 +174,10 @@ class MainWindowHelper:
                             subline_count = text.count('\n') + 1
                             for _ in range(subline_count):
                                 line_numbers.append(string_idx)
+                                block_indices.append(b_idx)
                 else:
                     compare_query = effective_query if case_sensitive else effective_query.lower()
-                    for string_idx, text in all_lines:
+                    for b_idx, string_idx, text in all_lines:
                         if ignore_tags:
                             text_for_search = prepare_text_for_tagless_search(text)
                         else:
@@ -188,16 +189,18 @@ class MainWindowHelper:
                             subline_count = text.count('\n') + 1
                             for _ in range(subline_count):
                                 line_numbers.append(string_idx)
+                                block_indices.append(b_idx)
             else:
-                # If query is empty or effective_query is empty, load all lines in the block
-                for string_idx, text in all_lines:
+                # If query is empty or effective_query is empty, load all lines in all blocks
+                for b_idx, string_idx, text in all_lines:
                     text_parts.append(text)
                     subline_count = text.count('\n') + 1
                     for _ in range(subline_count):
                         line_numbers.append(string_idx)
+                        block_indices.append(b_idx)
 
             if query and not text_parts:
-                QMessageBox.information(self.mw, "Advanced Search", f"No matches found for \"{query}\" in this block.")
+                QMessageBox.information(self.mw, "Advanced Search", f"No matches found for \"{query}\" in all blocks.")
                 return
 
             text_to_check = '\n'.join(text_parts)
@@ -207,39 +210,42 @@ class MainWindowHelper:
                                        starting_line_number=0, line_numbers=line_numbers,
                                        case_sensitive=case_sensitive, is_fuzzy=is_fuzzy,
                                        search_in_original=search_in_original, ignore_tags=ignore_tags,
-                                       block_idx=block_idx)
+                                       block_idx=self.mw.data_store.current_block_idx, block_indices=block_indices)
 
             if dialog.exec_():
                 corrected_text = dialog.get_corrected_text()
                 corrected_lines = corrected_text.split('\n')
 
-                # Reconstruct multi-line strings using our ZIP logic
+                # Reconstruct multi-line strings using our ZIP logic with block indices
                 grouped_lines = {}
-                for line_text, s_idx in zip(corrected_lines, dialog.line_numbers):
-                    if s_idx is not None:
-                        if s_idx not in grouped_lines:
-                            grouped_lines[s_idx] = []
-                        grouped_lines[s_idx].append(line_text)
+                for line_text, s_idx, b_idx in zip(corrected_lines, dialog.line_numbers, dialog.block_indices):
+                    if s_idx is not None and b_idx is not None:
+                        key = (b_idx, s_idx)
+                        if key not in grouped_lines:
+                            grouped_lines[key] = []
+                        grouped_lines[key].append(line_text)
 
                 changes_made = False
+                changed_blocks = set()
 
                 undo_manager = getattr(self.mw, "undo_manager", None)
                 if undo_manager:
                     undo_manager.begin_group()
 
-                for string_idx, lines_list in grouped_lines.items():
+                for (b_idx, string_idx), lines_list in grouped_lines.items():
                     new_text = '\n'.join(lines_list)
-                    old_text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
+                    old_text, _ = self.mw.data_processor.get_current_string_text(b_idx, string_idx)
                     if new_text != old_text:
-                        key = (block_idx, string_idx)
+                        key = (b_idx, string_idx)
                         edited_data[key] = new_text
                         changes_made = True
+                        changed_blocks.add(b_idx)
                         
                         # Restore subline asterisks if this is the currently edited string
-                        if string_idx == self.mw.data_store.current_string_idx:
+                        if b_idx == self.mw.data_store.current_block_idx and string_idx == self.mw.data_store.current_string_idx:
                             if hasattr(self.mw, 'text_operation_handler'):
                                 self.mw.text_operation_handler.sync_subline_asterisks(
-                                    block_idx, string_idx, new_text
+                                    b_idx, string_idx, new_text
                                 )
 
                 if undo_manager:
@@ -247,12 +253,18 @@ class MainWindowHelper:
 
                 if changes_made:
                     self.mw.data_store.unsaved_changes = True
-                    self.mw.data_store.unsaved_block_indices.add(block_idx)
+                    for b_idx in changed_blocks:
+                        self.mw.data_store.unsaved_block_indices.add(b_idx)
                     
-                    if hasattr(self.mw, 'ui_updater'):
-                        self.mw.ui_updater.populate_strings_for_block(block_idx)
-                        self.mw.ui_updater.update_text_views()
-                        self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+                    for b_idx in changed_blocks:
+                        if hasattr(self.mw, 'ui_updater'):
+                            self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                            
+                    current_block_idx = self.mw.data_store.current_block_idx
+                    if current_block_idx in changed_blocks:
+                        if hasattr(self.mw, 'ui_updater'):
+                            self.mw.ui_updater.populate_strings_for_block(current_block_idx)
+                            self.mw.ui_updater.update_text_views()
                         
                     if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
                         if hasattr(self.mw.edited_text_edit, 'lineNumberArea'):

@@ -64,6 +64,8 @@ class BMGFile:
         self.other_sections = {}
         self.mid1_entry_len = 4   # bytes per MID1 entry (0 = packed, computed at load)
         self.mid1_unk = 0         # unknown field in MID1 header
+        self.has_str1 = False
+        self.str1_data = b''
 
     def get_full_encoding(self):
         if self.encoding.lower() == 'utf-16':
@@ -83,8 +85,11 @@ class BMGFile:
         magic, total_size, num_sections, enc_val, self.unk14, self.unk18, self.unk1C = \
             struct.unpack_from(se + '8sIIB3I', data, 0)
 
+        self.original_enc_val = enc_val
         if enc_val in ENCODINGS:
             self.encoding = ENCODINGS[enc_val]
+            if self.encoding == 'shift_jis':
+                self.encoding = 'cp1252'
         else:
             raise ValueError(f"Unknown encoding ID: {enc_val}")
 
@@ -145,6 +150,9 @@ class BMGFile:
                         mid_entries.append(msg_id)
                     else:
                         mid_entries.append(sec_data[entry_offset : entry_offset + real_entry_len].hex())
+            elif sec_magic == b'STR1':
+                self.has_str1 = True
+                self.str1_data = sec_data[8:]
             else:
                 self.other_sections[magic_str] = bytes(sec_data)
 
@@ -159,52 +167,202 @@ class BMGFile:
         esc_char = '\x1A'.encode(full_enc)
 
         self.messages = []
-        for idx, (str_offset, attribs) in enumerate(inf_entries):
-            if str_offset >= len(dat_data):
-                self.messages.append(BMGMessage(attribs, is_null=True))
-                continue
+        if self.has_str1:
+            # For BMG with STR1, each INF1 entry points to two strings in STR1
+            def parse_str1_string(offset):
+                parts = []
+                curr_pos = offset
+                curr_str_start = offset
+                while curr_pos < len(self.str1_data):
+                    next_bytes = self.str1_data[curr_pos : curr_pos + len(null_char)]
+                    if next_bytes == null_char:
+                        break
+                    if next_bytes == esc_char:
+                        if curr_str_start < curr_pos:
+                            parts.append(self.str1_data[curr_str_start:curr_pos].decode(full_enc))
+                        esc_len = self.str1_data[curr_pos + len(esc_char)]
+                        esc_type = self.str1_data[curr_pos + len(esc_char) + 1]
+                        esc_data = self.str1_data[curr_pos + len(esc_char) + 2 : curr_pos + esc_len]
+                        parts.append({
+                            "type": "escape",
+                            "escape_type": esc_type,
+                            "data": esc_data.hex()
+                        })
+                        curr_pos += esc_len
+                        curr_str_start = curr_pos
+                    else:
+                        curr_pos += len(null_char)
+                if curr_str_start < curr_pos:
+                    parts.append(self.str1_data[curr_str_start:curr_pos].decode(full_enc))
+                return parts
 
-            parts = []
-            curr_pos = str_offset
-            curr_str_start = str_offset
+            for idx, (str_offset, attribs) in enumerate(inf_entries):
+                sing_off, plur_off = struct.unpack_from(se + 'HH', attribs, 0)
+                
+                # Parse singular form
+                sing_parts = parse_str1_string(sing_off)
+                sing_msg = BMGMessage(info=attribs, parts=sing_parts)
+                sing_msg.id = idx * 2 + 1
+                sing_msg.str1_offset = sing_off
+                self.messages.append(sing_msg)
+                
+                # Parse plural form
+                plur_parts = parse_str1_string(plur_off)
+                plur_msg = BMGMessage(info=attribs, parts=plur_parts)
+                plur_msg.id = idx * 2 + 2
+                plur_msg.str1_offset = plur_off
+                self.messages.append(plur_msg)
+        else:
+            for idx, (str_offset, attribs) in enumerate(inf_entries):
+                if str_offset >= len(dat_data):
+                    self.messages.append(BMGMessage(attribs, is_null=True))
+                    continue
 
-            while curr_pos < len(dat_data):
-                next_bytes = dat_data[curr_pos : curr_pos + len(null_char)]
-                if next_bytes == null_char:
-                    break
+                parts = []
+                curr_pos = str_offset
+                curr_str_start = str_offset
 
-                if next_bytes == esc_char:
-                    # Flush previous string
-                    if curr_str_start < curr_pos:
-                        parts.append(dat_data[curr_str_start:curr_pos].decode(full_enc))
+                while curr_pos < len(dat_data):
+                    next_bytes = dat_data[curr_pos : curr_pos + len(null_char)]
+                    if next_bytes == null_char:
+                        break
 
-                    # Parse escape tag
-                    esc_start_pos = curr_pos
-                    esc_len = dat_data[curr_pos + len(esc_char)]
-                    esc_type = dat_data[curr_pos + len(esc_char) + 1]
-                    esc_data = dat_data[curr_pos + len(esc_char) + 2 : curr_pos + esc_len]
+                    if next_bytes == esc_char:
+                        # Flush previous string
+                        if curr_str_start < curr_pos:
+                            parts.append(dat_data[curr_str_start:curr_pos].decode(full_enc))
 
-                    parts.append({
-                        "type": "escape",
-                        "escape_type": esc_type,
-                        "data": esc_data.hex()
-                    })
+                        # Parse escape tag
+                        esc_start_pos = curr_pos
+                        esc_len = dat_data[curr_pos + len(esc_char)]
+                        esc_type = dat_data[curr_pos + len(esc_char) + 1]
+                        esc_data = dat_data[curr_pos + len(esc_char) + 2 : curr_pos + esc_len]
 
-                    curr_pos += esc_len
-                    curr_str_start = curr_pos
-                else:
-                    curr_pos += len(null_char)
+                        parts.append({
+                            "type": "escape",
+                            "escape_type": esc_type,
+                            "data": esc_data.hex()
+                        })
 
-            if curr_str_start < curr_pos:
-                parts.append(dat_data[curr_str_start:curr_pos].decode(full_enc))
+                        curr_pos += esc_len
+                        curr_str_start = curr_pos
+                    else:
+                        curr_pos += len(null_char)
 
-            msg = BMGMessage(attribs, parts)
-            # Associate ID if MID1 section exists
-            if idx < len(mid_entries):
-                msg.id = mid_entries[idx]
-            self.messages.append(msg)
+                if curr_str_start < curr_pos:
+                    parts.append(dat_data[curr_str_start:curr_pos].decode(full_enc))
+
+                msg = BMGMessage(attribs, parts)
+                # Associate ID if MID1 section exists
+                if idx < len(mid_entries):
+                    msg.id = mid_entries[idx]
+                self.messages.append(msg)
 
     def save(self) -> bytes:
+        if self.has_str1:
+            # Save logic for BMG with STR1
+            se = self.endianness
+            full_enc = self.get_full_encoding()
+            null_char = '\0'.encode(full_enc)
+            esc_char = '\x1A'.encode(full_enc)
+
+            # 1. Build the STR1 data section
+            str1_data = bytearray()
+            # STR1 data section always starts with a null byte (offset 0)
+            str1_data.extend(null_char)
+
+            # We have pairs of messages: messages[0] and messages[1] are Entry 0, etc.
+            num_entries = len(self.messages) // 2
+            entry_offsets = [] # list of (sing_offset, plur_offset)
+
+            for i in range(num_entries):
+                sing_msg = self.messages[i * 2]
+                plur_msg = self.messages[i * 2 + 1]
+
+                # Write singular string
+                sing_offset = len(str1_data)
+                for part in sing_msg.parts:
+                    if isinstance(part, str):
+                        str1_data.extend(part.encode(full_enc, errors='replace'))
+                    elif isinstance(part, dict) and part.get("type") == "escape":
+                        esc_type = part["escape_type"]
+                        esc_data = bytes.fromhex(part["data"])
+                        esc_len = len(esc_char) + 2 + len(esc_data)
+                        str1_data.extend(esc_char)
+                        str1_data.append(esc_len)
+                        str1_data.append(esc_type)
+                        str1_data.extend(esc_data)
+                str1_data.extend(null_char)
+
+                # Write plural string
+                plur_offset = len(str1_data)
+                for part in plur_msg.parts:
+                    if isinstance(part, str):
+                        str1_data.extend(part.encode(full_enc, errors='replace'))
+                    elif isinstance(part, dict) and part.get("type") == "escape":
+                        esc_type = part["escape_type"]
+                        esc_data = bytes.fromhex(part["data"])
+                        esc_len = len(esc_char) + 2 + len(esc_data)
+                        str1_data.extend(esc_char)
+                        str1_data.append(esc_len)
+                        str1_data.append(esc_type)
+                        str1_data.extend(esc_data)
+                str1_data.extend(null_char)
+
+                entry_offsets.append((sing_offset, plur_offset))
+
+            # Pad STR1 data to 32-byte alignment
+            str1_section_len = 8 + len(str1_data)
+            while str1_section_len % 32 != 0:
+                str1_data.append(0)
+                str1_section_len += 1
+
+            # Build STR1 section header + data
+            str1_section = bytearray(8)
+            struct.pack_into(se + '4sI', str1_section, 0, b'STR1', str1_section_len)
+            str1_section.extend(str1_data)
+
+            # 2. Build the INF1 section
+            inf1 = bytearray(16)
+            entry_len = 8
+            for i in range(num_entries):
+                # str_offset is 1-based index (1, 2, 3... count)
+                str_offset = i + 1
+                sing_off, plur_off = entry_offsets[i]
+                attribs = struct.pack(se + 'HH', sing_off, plur_off)
+                inf1.extend(struct.pack(se + 'I', str_offset))
+                inf1.extend(attribs)
+
+            # Pad INF1 to 32-byte alignment
+            while len(inf1) % 32 != 0:
+                inf1.append(0)
+
+            struct.pack_into(se + '4sIHHI', inf1, 0, b'INF1', len(inf1), num_entries, entry_len, self.id)
+
+            # 3. Build dummy DAT1 section
+            # In the original file, DAT1 section has length 32 (8 bytes header + 24 bytes data of all zeros)
+            dat1 = bytearray(32)
+            struct.pack_into(se + '4sI', dat1, 0, b'DAT1', 32)
+
+            # 4. Assemble file
+            out_data = bytearray(0x20)
+            out_data.extend(inf1)
+            out_data.extend(dat1)
+            out_data.extend(str1_section)
+
+            # Pad total file to 32-byte alignment
+            real_total_size = len(out_data)
+            while real_total_size % 32 != 0:
+                out_data.append(0)
+                real_total_size += 1
+
+            # Write global file header
+            enc_id = getattr(self, 'original_enc_val', ENCODINGS_REV.get(self.encoding, 3))
+            header_sections_count = 3
+            struct.pack_into(se + '8sIIB3I', out_data, 0, b'MESGbmg1', real_total_size, header_sections_count, enc_id, self.unk14, self.unk18, self.unk1C)
+
+            return bytes(out_data)
+
         se = self.endianness
         full_enc = self.get_full_encoding()
         null_char = '\0'.encode(full_enc)
@@ -336,7 +494,7 @@ class BMGFile:
         # NOTE: In Twilight Princess BMGs the total_size field does not always
         # reflect the on-disk size (e.g. it may exclude padding/FLW1 sections).
         # We preserve the original value to avoid corrupting the header.
-        enc_id = ENCODINGS_REV.get(self.encoding, 2)
+        enc_id = getattr(self, 'original_enc_val', ENCODINGS_REV.get(self.encoding, 2))
         header_sections_count = getattr(self, 'original_num_sections', num_sections)
         orig_total = getattr(self, 'original_total_size', None)
         header_total_size = orig_total if orig_total is not None else real_total_size

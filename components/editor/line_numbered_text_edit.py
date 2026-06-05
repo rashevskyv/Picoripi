@@ -703,20 +703,39 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if not selected_lines: return
 
         main_window = self.window()
+        displayed_indices = getattr(main_window.data_store, 'displayed_string_indices', [])
+        if not displayed_indices and hasattr(main_window, 'displayed_string_indices'):
+            displayed_indices = main_window.displayed_string_indices
+
+        if displayed_indices:
+            real_indices = [displayed_indices[i] for i in selected_lines if i < len(displayed_indices)]
+        else:
+            real_indices = selected_lines
+
         dialog = MassFontDialog(main_window)
         if dialog.exec_():
             font_file = dialog.get_selected_font()
-            main_window.string_settings_handler.apply_font_to_lines(selected_lines, font_file)
+            main_window.string_settings_handler.apply_font_to_lines(real_indices, font_file)
 
     def handle_mass_set_width(self):
         selected_lines = self.get_selected_lines()
         if not selected_lines: return
 
         main_window = self.window()
+        displayed_indices = getattr(main_window.data_store, 'displayed_string_indices', [])
+        if not displayed_indices and hasattr(main_window, 'displayed_string_indices'):
+            displayed_indices = main_window.displayed_string_indices
+
+        if displayed_indices:
+            real_indices = [displayed_indices[i] for i in selected_lines if i < len(displayed_indices)]
+        else:
+            real_indices = selected_lines
+
         dialog = MassWidthDialog(main_window)
         if dialog.exec_():
             width = dialog.get_width()
-            main_window.string_settings_handler.apply_width_to_lines(selected_lines, width)
+            main_window.string_settings_handler.apply_width_to_lines(real_indices, width)
+
 
     @property
     def game_dialog_max_width_pixels(self):

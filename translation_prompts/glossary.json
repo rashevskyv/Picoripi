@@ -2262,7 +2262,7 @@
   },
   {
     "original": "Greengill",
-    "translation": "Зеленозяброва",
+    "translation": "Зеленозябр",
     "notes": "Зеленозяброва риба — маленька риба із зеленими зябрами, яка водиться скрізь у водоймах. Це перша риба, яку Лінк ловить вудкою під час свого подорожування.",
     "section": "Items",
     "profiled": false
@@ -4252,6 +4252,13 @@
     "original": "WATERWHEEL",
     "translation": "Водяний млин",
     "notes": "Водяний млин у Ордоні — механізм, що обертається силою води та слугує для різних господарських потреб у селі.",
+    "section": null,
+    "profiled": false
+  },
+  {
+    "original": "big pot",
+    "translation": "великий казан",
+    "notes": "",
     "section": null,
     "profiled": false
   }

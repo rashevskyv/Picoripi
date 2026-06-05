@@ -91,6 +91,7 @@ class AIPromptComposer(BaseTranslationHandler):
 
         # 1. Resolve speakers and clean newlines for all items in chunk
         items_with_context = []
+        speaker_candidates = set()
         for item in source_items:
             if isinstance(item, dict):
                 item_id = item.get('id', 0)
@@ -112,28 +113,45 @@ class AIPromptComposer(BaseTranslationHandler):
 
             # Resolve speaker
             speaker = None
-            real_b_idx = block_idx
-            real_s_idx = item_id
-            if temp_id_map and item_id in temp_id_map:
-                real_b_idx, real_s_idx = temp_id_map[item_id]
-            elif temp_id_map and str(item_id) in temp_id_map:
-                real_b_idx, real_s_idx = temp_id_map[str(item_id)]
-            real_block_label = self._get_block_label(real_b_idx)
+            raw_spk = None
+            
+            from utils.utils import remove_all_tags
+            clean_item_text = remove_all_tags(current_text).strip()
+            is_single_word = len(clean_item_text.split()) <= 1
 
-            if client:
-                bmg_id = f"{real_block_label}_Str_{real_s_idx}"
-                cached_ctx = client.get_cached_context(bmg_id, current_text)
-                if cached_ctx:
-                    speaker = cached_ctx.get("speaker")
-                    
-            if not speaker:
+            if is_single_word:
+                speaker = "NONE"
+            else:
+                real_b_idx = block_idx
+                real_s_idx = item_id
+                if temp_id_map and item_id in temp_id_map:
+                    real_b_idx, real_s_idx = temp_id_map[item_id]
+                elif temp_id_map and str(item_id) in temp_id_map:
+                    real_b_idx, real_s_idx = temp_id_map[str(item_id)]
+                real_block_label = self._get_block_label(real_b_idx)
+
+                if client:
+                    bmg_id = f"{real_block_label}_Str_{real_s_idx}"
+                    cached_ctx = client.get_cached_context(bmg_id, current_text)
+                    if cached_ctx:
+                        speaker = cached_ctx.get("speaker")
+                        
                 script_res = self._find_speaker_in_script(real_b_idx, real_s_idx, current_text)
                 if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
                     raw_spk = script_res[0]
+                
+                if not speaker:
                     speaker = self._translate_speaker(raw_spk) if raw_spk else None
-            
-            if not speaker:
-                speaker = "Unknown"
+                
+                if not speaker:
+                    speaker = "Unknown"
+
+            if raw_spk:
+                for part in raw_spk.split(','):
+                    speaker_candidates.add(part.strip())
+            if speaker and speaker not in ("Unknown", "NONE"):
+                for part in speaker.split(','):
+                    speaker_candidates.add(part.strip())
 
             item_for_ai = {
                 'id': item_id,
@@ -363,7 +381,8 @@ class AIPromptComposer(BaseTranslationHandler):
 
         relevant_glossary_entries = []
         if glossary_manager:
-            relevant_glossary_entries = glossary_manager.get_relevant_terms(lookahead_text)
+            relevant_glossary_entries = list(glossary_manager.get_relevant_terms(lookahead_text))
+            self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
         glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
         # 4. Build JSON payload
@@ -474,8 +493,47 @@ class AIPromptComposer(BaseTranslationHandler):
         # Fetch relevant glossary terms for this single string or variation
         glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
+        
+        # Resolve speaker for this string to include in glossary lookup
+        speaker_candidates = set()
+        from utils.utils import remove_all_tags
+        clean_src_text = remove_all_tags(source_text).strip()
+        is_single_word = len(clean_src_text.split()) <= 1
+
+        speaker = None
+        raw_spk = None
+
+        if is_single_word:
+            speaker = "NONE"
+        elif block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
+            client = self._get_mempalace_client()
+            block_label = self._get_block_label(block_idx)
+            if client:
+                bmg_id = f"{block_label}_Str_{string_idx}"
+                cached_ctx = client.get_cached_context(bmg_id, source_text)
+                if cached_ctx:
+                    speaker = cached_ctx.get("speaker")
+            
+            script_res = self._find_speaker_in_script(block_idx, string_idx, source_text)
+            if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
+                raw_spk = script_res[0]
+            
+            if not speaker:
+                speaker = self._translate_speaker(raw_spk) if raw_spk else None
+            
+            if not speaker:
+                speaker = "Unknown"
+
+        if raw_spk:
+            for part in raw_spk.split(','):
+                speaker_candidates.add(part.strip())
+        if speaker and speaker not in ("Unknown", "NONE"):
+            for part in speaker.split(','):
+                speaker_candidates.add(part.strip())
+
         if glossary_manager and source_text:
-            relevant_glossary_entries = glossary_manager.get_relevant_terms(source_text)
+            relevant_glossary_entries = list(glossary_manager.get_relevant_terms(source_text))
+            self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
             if relevant_glossary_entries:
                 glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
@@ -658,6 +716,42 @@ class AIPromptComposer(BaseTranslationHandler):
     def compose_glossary_request(self, system_prompt: str, user_content: str, **_: Dict) -> Tuple[str, str]:
         return system_prompt.strip(), user_content
 
+    def _append_speaker_glossary_entries(
+        self,
+        relevant_entries: List[GlossaryEntry],
+        speaker_candidates: Iterable[str]
+    ) -> None:
+        """Find speaker names in the glossary and append them to relevant_entries."""
+        glossary_manager = getattr(self.main_handler, '_glossary_manager', None)
+        if not glossary_manager:
+            return
+            
+        expanded_candidates = set()
+        for cand in speaker_candidates:
+            if cand:
+                for part in cand.split(','):
+                    expanded_candidates.add(part.strip())
+                    
+        for c_raw in expanded_candidates:
+            if not c_raw or c_raw.upper() in ("UNKNOWN", "NONE"):
+                continue
+            
+            clean_cand = re.sub(r'#\s*\d+', '', c_raw).strip()
+            candidates_to_try = [c_raw, clean_cand] if clean_cand != c_raw else [c_raw]
+            
+            for c in candidates_to_try:
+                entry = glossary_manager.get_entry(c)
+                if entry:
+                    if entry not in relevant_entries:
+                        relevant_entries.append(entry)
+                else:
+                    c_low = c.strip().lower()
+                    for entry in glossary_manager.get_entries():
+                        if (entry.original.strip().lower() == c_low or
+                            entry.translation.strip().lower() == c_low):
+                            if entry not in relevant_entries:
+                                relevant_entries.append(entry)
+
     @staticmethod
     def _glossary_entries_to_text(entries: Sequence[GlossaryEntry]) -> str:
         """Format glossary entries into a markdown table."""
@@ -819,9 +913,15 @@ class AIPromptComposer(BaseTranslationHandler):
         """Query the local SQLite database for visual scene description, character status and timeline info."""
         client = self._get_mempalace_client()
         
-        script_res = self._find_speaker_in_script(block_idx, s_idx, text)
-        if not isinstance(script_res, (tuple, list)) or len(script_res) != 2:
-            script_res = None
+        from utils.utils import remove_all_tags
+        clean_t = remove_all_tags(text).strip()
+        is_single_word = len(clean_t.split()) <= 1
+
+        script_res = None
+        if not is_single_word:
+            script_res = self._find_speaker_in_script(block_idx, s_idx, text)
+            if not isinstance(script_res, (tuple, list)) or len(script_res) != 2:
+                script_res = None
             
         script_lines_str = script_res[1] if script_res else None
 
@@ -841,7 +941,7 @@ class AIPromptComposer(BaseTranslationHandler):
             cached_ctx = client.get_cached_context(bmg_id, text)
             if cached_ctx:
                 room_name = cached_ctx.get("room")
-                speaker = cached_ctx.get("speaker")
+                speaker = "NONE" if is_single_word else cached_ctx.get("speaker")
                 timestamp = cached_ctx.get("timestamp") or "Unknown time"
                 visual_ctx = client.get_room_visual_context(wing_name, room_name)
                 
@@ -850,7 +950,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 context_parts.append(f"Story Location/Scene: {clean_room} (Timeline: {timestamp})")
                 
                 # If speaker missing in cache, try script fallback
-                if not speaker:
+                if not speaker and not is_single_word:
                     fallback = get_script_speaker_fallback()
                     if fallback:
                         raw_spk, trans_spk, _ = fallback
@@ -951,10 +1051,10 @@ class AIPromptComposer(BaseTranslationHandler):
                                     break
                                     
                     target_bmg_id = matched_id_in_content or bmg_id
-                    speaker = speaker_map.get(target_bmg_id) or speaker_map.get(f"[{target_bmg_id}]")
+                    speaker = "NONE" if is_single_word else (speaker_map.get(target_bmg_id) or speaker_map.get(f"[{target_bmg_id}]"))
                     
                     # If speaker is missing in SQLite metadata, try disk script fallback
-                    if not speaker:
+                    if not speaker and not is_single_word:
                         fallback = get_script_speaker_fallback()
                         if fallback:
                             raw_spk, trans_spk, _ = fallback
@@ -1008,7 +1108,7 @@ class AIPromptComposer(BaseTranslationHandler):
                     return "\n".join(context_parts)
 
         # 3. Absolute Fallback: SQLite completely failed, try Script Fallback to at least extract Speaker
-        fallback = get_script_speaker_fallback()
+        fallback = get_script_speaker_fallback() if not is_single_word else None
         if fallback:
             raw_spk, trans_spk, lines_str = fallback
             context_parts = [

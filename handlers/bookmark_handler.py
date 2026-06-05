@@ -148,6 +148,34 @@ class BookmarkHandler(BaseHandler):
             self.update_bookmarks_menu()
             log_info("All bookmarks cleared.")
 
+    def delete_bookmark(self, bookmark_id: str) -> None:
+        """Delete a single bookmark by ID after user confirmation."""
+        bookmarks = getattr(self.mw, 'bookmarks', [])
+        bookmark = None
+        for b in bookmarks:
+            if b.get('id') == bookmark_id:
+                bookmark = b
+                break
+
+        if not bookmark:
+            return
+
+        name = bookmark.get('name', 'Bookmark')
+        reply = QMessageBox.question(
+            self.mw,
+            "Delete Bookmark",
+            f"Are you sure you want to delete bookmark '{name}'?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.mw.bookmarks = [b for b in bookmarks if b.get('id') != bookmark_id]
+            self.mw.settings_manager.save_settings()
+            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                self.mw.project_manager.save_settings_to_project(self.mw)
+            self.update_bookmarks_menu()
+            log_info(f"Bookmark deleted: {name}")
+
     def update_bookmarks_menu(self) -> None:
         """Redraw bookmarks dynamically in the Bookmarks menu."""
         if not hasattr(self.mw, 'bookmarks_menu') or not self.mw.bookmarks_menu:
@@ -155,10 +183,27 @@ class BookmarkHandler(BaseHandler):
 
         self.mw.bookmarks_menu.clear()
         self.mw.bookmarks_menu.addAction(self.mw.add_bookmark_action)
+
+        bookmarks = getattr(self.mw, 'bookmarks', [])
+        if bookmarks:
+            # Add Delete Bookmark Submenu
+            delete_menu = self.mw.bookmarks_menu.addMenu("Delete Bookmark")
+            delete_menu.setToolTip("Select a bookmark to delete")
+            for b in bookmarks:
+                block_name = b.get('block_name', 'Unknown Block')
+                string_idx = b.get('string_idx', 0)
+                name = b.get('name', 'Bookmark')
+                display_text = f"{name} ({block_name}, Line {string_idx + 1})"
+                action = delete_menu.addAction(display_text)
+                bookmark_id = b.get('id')
+                # Capture bookmark_id inside slot lambda
+                action.triggered.connect(
+                    lambda checked, b_id=bookmark_id: self.delete_bookmark(b_id)
+                )
+
         self.mw.bookmarks_menu.addAction(self.mw.clear_bookmarks_action)
         self.mw.bookmarks_menu.addSeparator()
 
-        bookmarks = getattr(self.mw, 'bookmarks', [])
         if not bookmarks:
             no_bookmarks_action = self.mw.bookmarks_menu.addAction("No Bookmarks")
             no_bookmarks_action.setEnabled(False)
@@ -179,3 +224,4 @@ class BookmarkHandler(BaseHandler):
             action.triggered.connect(
                 lambda checked, b_id=bookmark_id: self.jump_to_bookmark(b_id)
             )
+

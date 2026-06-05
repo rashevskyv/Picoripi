@@ -93,7 +93,7 @@ def prepare_text_for_tagless_search_with_mapping(text: str) -> Tuple[str, List[i
 class SearchReviewDialog(BaseTextReviewDialog):
     """Interactive dialog for reviewing search results in a block with a replace option."""
 
-    def __init__(self, parent, text: str, query: str, starting_line_number: int = 0, line_numbers: List[int] = None, case_sensitive: bool = False, is_fuzzy: bool = False, search_in_original: bool = False, ignore_tags: bool = True, block_idx: int = -1):
+    def __init__(self, parent, text: str, query: str, starting_line_number: int = 0, line_numbers: List[int] = None, case_sensitive: bool = False, is_fuzzy: bool = False, search_in_original: bool = False, ignore_tags: bool = True, block_idx: int = -1, block_indices: List[int] = None):
         log_debug("SearchReviewDialog: __init__ started")
         self.query = query
         self.case_sensitive = case_sensitive
@@ -101,12 +101,15 @@ class SearchReviewDialog(BaseTextReviewDialog):
         self.search_in_original = search_in_original
         self.ignore_tags = ignore_tags
         self.starting_line_number = starting_line_number
+        self.block_indices = block_indices if block_indices is not None else ([block_idx] * len(line_numbers) if line_numbers else [])
         
         self.unique_string_indices = []
-        if line_numbers:
-            for s_idx in line_numbers:
-                if s_idx is not None and (not self.unique_string_indices or self.unique_string_indices[-1] != s_idx):
-                    self.unique_string_indices.append(s_idx)
+        if line_numbers and self.block_indices:
+            for s_idx, b_idx in zip(line_numbers, self.block_indices):
+                if s_idx is not None and b_idx is not None:
+                    pair = (b_idx, s_idx)
+                    if not self.unique_string_indices or self.unique_string_indices[-1] != pair:
+                        self.unique_string_indices.append(pair)
         
         super().__init__(parent, "Advanced Search & Replace", text, line_numbers, block_idx)
         
@@ -300,13 +303,21 @@ class SearchReviewDialog(BaseTextReviewDialog):
             else:
                 display_line_num = self.starting_line_number + line_idx + 1
             
+            block_name = self.block_name
+            if hasattr(self, 'block_indices') and self.block_indices and line_idx < len(self.block_indices):
+                b_idx = self.block_indices[line_idx]
+                if b_idx is not None:
+                    main_window = self._find_main_window()
+                    if main_window and hasattr(main_window, 'data_store') and getattr(main_window.data_store, 'block_names', None):
+                        block_name = main_window.data_store.block_names.get(str(b_idx), f"Block {b_idx}")
+
             # Show some context around the match
             full_line_text = self.current_text.split('\n')[line_idx]
             from utils.utils import convert_spaces_to_dots_for_display
             main_window = self._find_main_window()
             show_dots = getattr(main_window, 'show_multiple_spaces_as_dots', True) if main_window else True
             context = convert_spaces_to_dots_for_display(full_line_text, show_dots)
-            self.matches_list.addItem(f"[{self.block_name}] String {display_line_num}: \"{word}\" in \"{context}\"")
+            self.matches_list.addItem(f"[{block_name}] String {display_line_num}: \"{word}\" in \"{context}\"")
 
     def show_current_item(self):
         """Display current match and highlight it."""
@@ -325,7 +336,15 @@ class SearchReviewDialog(BaseTextReviewDialog):
         if self.line_numbers and line_idx < len(self.line_numbers):
             display_line_num = self.line_numbers[line_idx]
             
-        self.status_label.setText(f"Match {current} of {total} | Block: {self.block_name} | String: {display_line_num}")
+        block_name = self.block_name
+        if hasattr(self, 'block_indices') and self.block_indices and line_idx < len(self.block_indices):
+            b_idx = self.block_indices[line_idx]
+            if b_idx is not None:
+                main_window = self._find_main_window()
+                if main_window and hasattr(main_window, 'data_store') and getattr(main_window.data_store, 'block_names', None):
+                    block_name = main_window.data_store.block_names.get(str(b_idx), f"Block {b_idx}")
+
+        self.status_label.setText(f"Match {current} of {total} | Block: {block_name} | String: {display_line_num}")
 
         cursor = self.text_edit.textCursor()
         cursor.setPosition(start)
@@ -353,6 +372,41 @@ class SearchReviewDialog(BaseTextReviewDialog):
             fmt.setBackground(QColor(144, 238, 144, 100)) # Light green back
             cursor.mergeCharFormat(fmt)
 
+    def _navigate_to_block_and_string(self, block_idx: int, string_idx: int):
+        if block_idx is None or string_idx is None:
+            return
+
+        main_window = self._find_main_window()
+        if not main_window:
+            return
+
+        if main_window.data_store.current_block_idx != block_idx:
+            from PyQt5.QtWidgets import QTreeWidgetItemIterator
+            iterator = QTreeWidgetItemIterator(main_window.block_list_widget)
+            found_item = None
+            while iterator.value():
+                item = iterator.value()
+                if item.data(0, Qt.UserRole) == block_idx and item.data(0, Qt.UserRole + 10) is None:
+                    found_item = item
+                    break
+                iterator += 1
+
+            if found_item:
+                main_window.block_list_widget.setCurrentItem(found_item)
+                QTimer.singleShot(80, lambda: main_window.list_selection_handler.select_string_by_absolute_index(string_idx))
+        else:
+            main_window.list_selection_handler.select_string_by_absolute_index(string_idx)
+
+        def apply_focus():
+            if hasattr(main_window, 'edited_text_edit') and main_window.edited_text_edit:
+                main_window.edited_text_edit.setFocus(Qt.OtherFocusReason)
+            elif hasattr(main_window, 'original_text_edit') and main_window.original_text_edit:
+                main_window.original_text_edit.setFocus(Qt.OtherFocusReason)
+            main_window.raise_()
+            main_window.activateWindow()
+
+        QTimer.singleShot(120, apply_focus)
+
     def jump_to_item_from_list(self, item):
         clicked_index = self.matches_list.row(item)
         if clicked_index != self.current_item_index:
@@ -362,7 +416,8 @@ class SearchReviewDialog(BaseTextReviewDialog):
             if clicked_index < len(self.items_to_review):
                 _, _, _, line_idx = self.items_to_review[clicked_index]
                 if self.line_numbers and line_idx < len(self.line_numbers):
-                    self._navigate_to_string_in_main_window(self.line_numbers[line_idx])
+                    b_idx = self.block_indices[line_idx] if (hasattr(self, 'block_indices') and self.block_indices and line_idx < len(self.block_indices)) else self.block_idx
+                    self._navigate_to_block_and_string(b_idx, self.line_numbers[line_idx])
 
     def skip_match(self):
         self.go_to_next_item()
@@ -412,7 +467,30 @@ class SearchReviewDialog(BaseTextReviewDialog):
         if index < len(self.items_to_review):
             _, _, _, line_idx = self.items_to_review[index]
             if self.line_numbers and line_idx < len(self.line_numbers):
-                self._navigate_to_string_in_main_window(self.line_numbers[line_idx])
+                b_idx = self.block_indices[line_idx] if (hasattr(self, 'block_indices') and self.block_indices and line_idx < len(self.block_indices)) else self.block_idx
+                self._navigate_to_block_and_string(b_idx, self.line_numbers[line_idx])
+
+    def _on_text_double_click(self, event):
+        cursor = self.text_edit.cursorForPosition(event.pos())
+        block_number = cursor.blockNumber()
+
+        if hasattr(self.text_edit, 'custom_line_numbers') and self.text_edit.custom_line_numbers:
+            if block_number < len(self.text_edit.custom_line_numbers):
+                string_number = self.text_edit.custom_line_numbers[block_number]
+                target_block_number = block_number
+                if string_number is None:
+                    for i in range(block_number - 1, -1, -1):
+                        if i < len(self.text_edit.custom_line_numbers):
+                            if self.text_edit.custom_line_numbers[i] is not None:
+                                string_number = self.text_edit.custom_line_numbers[i]
+                                target_block_number = i
+                                break
+                if string_number is not None:
+                    b_idx = self.block_indices[target_block_number] if (hasattr(self, 'block_indices') and self.block_indices and target_block_number < len(self.block_indices)) else self.block_idx
+                    self._navigate_to_block_and_string(b_idx, string_number)
+
+        from PyQt5.QtWidgets import QPlainTextEdit
+        QPlainTextEdit.mouseDoubleClickEvent(self.text_edit, event)
 
     def perform_search(self):
         # Update search parameters from checkboxes
@@ -441,17 +519,17 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
     def rebuild_text_by_options(self):
         main_window = self._find_main_window()
-        if not main_window or not hasattr(main_window, 'data_processor') or self.block_idx == -1:
+        if not main_window or not hasattr(main_window, 'data_processor'):
             return
             
         text_parts = []
-        for s_idx in self.unique_string_indices:
+        for b_idx, s_idx in self.unique_string_indices:
             if self.search_in_original:
                 text = main_window.data_processor._get_string_from_source(
-                    self.block_idx, s_idx, main_window.data_store.data, "dialog_original"
+                    b_idx, s_idx, main_window.data_store.data, "dialog_original"
                 )
             else:
-                text, _ = main_window.data_processor.get_current_string_text(self.block_idx, s_idx)
+                text, _ = main_window.data_processor.get_current_string_text(b_idx, s_idx)
                 
             if text is None:
                 text = ""
@@ -460,13 +538,67 @@ class SearchReviewDialog(BaseTextReviewDialog):
         raw_text = '\n'.join(text_parts)
         
         flat_line_numbers = []
-        for s_idx, text in zip(self.unique_string_indices, text_parts):
+        flat_block_indices = []
+        for (b_idx, s_idx), text in zip(self.unique_string_indices, text_parts):
             subline_count = text.count('\n') + 1
             for _ in range(subline_count):
                 flat_line_numbers.append(s_idx)
+                flat_block_indices.append(b_idx)
                 
         self.current_text = raw_text
         self.line_numbers = flat_line_numbers
+        self.block_indices = flat_block_indices
         
         self._process_text_spacing_and_line_numbers()
         self._apply_zebra_striping()
+
+    def _process_text_spacing_and_line_numbers(self):
+        if not hasattr(self, 'block_indices') or not self.block_indices:
+            super()._process_text_spacing_and_line_numbers()
+            return
+
+        line_count = self.current_text.count('\n') + 1
+
+        if self.line_numbers and len(self.line_numbers) >= line_count:
+            text_lines = self.current_text.split('\n')
+            text_with_spacing = []
+            new_line_numbers = []
+            new_block_indices = []
+            display_line_numbers = []
+            subline_numbers = []
+
+            prev_pair = (None, None)
+            current_sub_idx = 0
+            for i in range(line_count):
+                current_line_num = self.line_numbers[i]
+                current_block_idx = self.block_indices[i]
+                current_pair = (current_block_idx, current_line_num)
+
+                if current_pair != prev_pair:
+                    if prev_pair != (None, None):
+                        text_with_spacing.append('')
+                        new_line_numbers.append(None)
+                        new_block_indices.append(None)
+                        display_line_numbers.append(None)
+                        subline_numbers.append(None)
+
+                    display_line_numbers.append(current_line_num)
+                    prev_pair = current_pair
+                    current_sub_idx = 1
+                else:
+                    display_line_numbers.append(None)
+                    current_sub_idx += 1
+
+                text_with_spacing.append(text_lines[i] if i < len(text_lines) else '')
+                new_line_numbers.append(current_line_num)
+                new_block_indices.append(current_block_idx)
+                subline_numbers.append(current_sub_idx)
+
+            self.current_text = '\n'.join(text_with_spacing)
+            self.line_numbers = new_line_numbers
+            self.block_indices = new_block_indices
+            self.text_edit.setPlainText(self.current_text)
+
+            self.text_edit.custom_line_numbers = display_line_numbers
+            self.text_edit.custom_subline_numbers = subline_numbers
+            self.text_edit.updateLineNumberAreaWidth(0)
