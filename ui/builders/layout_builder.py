@@ -162,6 +162,11 @@ class LayoutBuilder:
         original_header_layout.addWidget(self.mw.original_width_label)
         original_header_layout.addStretch(1)
         
+        self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
+        self.mw.hide_original_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in original text.")
+        self.mw.hide_original_tags_checkbox.setCursor(Qt.PointingHandCursor)
+        original_header_layout.addWidget(self.mw.hide_original_tags_checkbox)
+        
         left_header_layout.addLayout(original_header_layout)
         left_header_layout.addStretch(1)
         bottom_left_layout.addWidget(self.mw.left_header_container)
@@ -298,6 +303,13 @@ class LayoutBuilder:
         # Tools Header
         editable_text_header_layout = QHBoxLayout()
         editable_text_header_layout.addWidget(QLabel("Editable Text:"))
+        editable_text_header_layout.addSpacing(10)
+        
+        self.mw.hide_translation_tags_checkbox = QCheckBox("Hide tags")
+        self.mw.hide_translation_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in translation.")
+        self.mw.hide_translation_tags_checkbox.setCursor(Qt.PointingHandCursor)
+        editable_text_header_layout.addWidget(self.mw.hide_translation_tags_checkbox)
+        
         editable_text_header_layout.addStretch(1)
         
         self.mw.navigate_down_button = QPushButton()

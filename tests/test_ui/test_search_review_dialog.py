@@ -73,3 +73,72 @@ def test_SearchReviewDialog_replace_all(qapp):
     assert "Greetings again" in dialog.current_text
     assert "Hello" not in dialog.current_text
     assert len(dialog.items_to_review) == 0
+
+def test_SearchReviewDialog_multiblock(qapp):
+    text = "Hello block 1\nHello again\nWorld block 2\nHello block 2"
+    line_numbers = [0, 1, 0, 1]
+    block_indices = [0, 0, 1, 1]
+    
+    dialog = SearchReviewDialog(
+        None, text, "Hello", line_numbers=line_numbers, block_indices=block_indices
+    )
+    dialog.find_matches()
+    dialog.pre_highlight_all_matches()
+    
+    # Matches:
+    # 1. "Hello" at block 0, string 0 (line_idx 0)
+    # 2. "Hello" at block 0, string 1 (line_idx 2, because index 1 is a spacer)
+    # 3. "Hello" at block 1, string 1 (line_idx 6, because indexes 3 and 5 are spacers)
+    assert len(dialog.items_to_review) == 3
+    
+    assert dialog.items_to_review[0][3] == 0  # line_idx 0
+    assert dialog.items_to_review[1][3] == 2  # line_idx 2
+    assert dialog.items_to_review[2][3] == 6  # line_idx 6
+
+    assert dialog.block_indices[0] == 0
+    assert dialog.block_indices[1] is None
+    assert dialog.block_indices[2] == 0
+    assert dialog.block_indices[3] is None
+    assert dialog.block_indices[4] == 1
+    assert dialog.block_indices[5] is None
+    assert dialog.block_indices[6] == 1
+
+def test_ScriptRunnerDialog_init(qapp, tmp_path):
+    from dialogs.script_runner_dialog import ScriptRunnerDialog
+    
+    script = tmp_path / "test_script.bat"
+    script.write_text("echo Hello", encoding="utf-8")
+    
+    dialog = ScriptRunnerDialog(None, str(script))
+    
+    assert dialog.script_path == str(script)
+    assert dialog.status_label.text() in ("Running script...", "Starting external script...")
+    assert dialog.stop_button.isEnabled() is True
+    
+    # Wait for process to complete to clean up
+    if dialog.process:
+        dialog.process.waitForFinished(3000)
+
+def test_ScriptRunnerDialog_stdin(qapp, tmp_path):
+    from dialogs.script_runner_dialog import ScriptRunnerDialog
+    import os
+    
+    script = tmp_path / "test_stdin.bat" if os.name == 'nt' else tmp_path / "test_stdin.sh"
+    if os.name == 'nt':
+        script.write_text("@echo off\nset /p var=\necho InputWas:%var%", encoding="utf-8")
+    else:
+        script.write_text("#!/bin/sh\nread var\necho \"InputWas:$var\"", encoding="utf-8")
+        script.chmod(0o755)
+        
+    dialog = ScriptRunnerDialog(None, str(script))
+    
+    dialog.process.waitForStarted(1000)
+    
+    # Type input and send
+    dialog.input_edit.setText("HelloStdin")
+    dialog.send_input()
+    
+    dialog.process.waitForFinished(3000)
+    
+    output_text = dialog.console_edit.toPlainText()
+    assert "HelloStdin" in output_text

@@ -1466,8 +1466,7 @@ class MainWindowActions:
 
 
     def run_external_script(self):
-        """Asynchronously run configured external script (e.g. ROM builder / emulator)"""
-        import subprocess
+        """Run configured external script (e.g. ROM builder / emulator) using ScriptRunnerDialog"""
         from PyQt5.QtWidgets import QMessageBox
         
         script_path = getattr(self.mw, 'external_script_path', "").strip()
@@ -1489,30 +1488,18 @@ class MainWindowActions:
             return
 
         try:
-            cwd = path_obj.parent.as_posix()
-            
-            import os
-            creationflags = 0
-            if os.name == 'nt':
-                creationflags = 0x00000010  # CREATE_NEW_CONSOLE
-
-            is_batch = path_obj.suffix.lower() in ('.bat', '.cmd')
-            
-            subprocess.Popen(
-                [str(path_obj.resolve())] if not is_batch else str(path_obj.resolve()),
-                cwd=cwd,
-                shell=is_batch,
-                creationflags=creationflags
-            )
+            from dialogs.script_runner_dialog import ScriptRunnerDialog
+            dialog = ScriptRunnerDialog(self.mw, str(path_obj.resolve()))
+            dialog.exec_()
             
             if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                self.mw.statusBar.showMessage(f"Started script: {path_obj.name}", 3000)
+                self.mw.statusBar.showMessage(f"Finished script: {path_obj.name}", 3000)
                 
         except Exception as e:
             QMessageBox.critical(
                 self.mw,
                 "Run External Script Error",
-                f"Failed to start script:\n{e}"
+                f"Failed to execute script:\n{e}"
             )
 
                 

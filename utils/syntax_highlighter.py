@@ -247,6 +247,18 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self._apply_css_to_format(self.curly_tag_format, tag_css_str)
         self._apply_css_to_format(self.bracket_tag_format, tag_css_str)
         
+        self.hide_tag_format = QTextCharFormat()
+        self.hide_tag_format.setFontPointSize(0.1)
+        
+        font = self.hide_tag_format.font()
+        font.setLetterSpacing(QFont.PercentageSpacing, 1.0)
+        font.setStretch(1)
+        self.hide_tag_format.setFont(font)
+        self.hide_tag_format.setForeground(QColor(Qt.transparent))
+        self.hide_tag_format.setFontWeight(QFont.Normal)
+        self.hide_tag_format.setFontItalic(False)
+        self.hide_tag_format.setFontUnderline(False)
+        
         self._apply_css_to_format(self.newline_symbol_format, newline_css_str)
         self._apply_css_to_format(self.literal_newline_format, "color: red; font-weight: bold;")
         
@@ -784,8 +796,25 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             except Exception as e:
                 pass # Already precompiled, shouldn't fail runtime
                 
+        hide_tags_enabled = False
+        if self.mw and hasattr(self.mw, 'data_store'):
+            editor_name = ""
+            if self._editor_widget_ref and hasattr(self._editor_widget_ref, 'objectName'):
+                editor_name = self._editor_widget_ref.objectName()
+            
+            if editor_name == 'original_text_edit':
+                hide_tags_enabled = getattr(self.mw.data_store, 'hide_original_tags', getattr(self.mw.data_store, 'hide_tags', False))
+            else:
+                hide_tags_enabled = getattr(self.mw.data_store, 'hide_translation_tags', getattr(self.mw.data_store, 'hide_tags', False))
+        
         for compiled_pattern, fmt in self._compiled_all_rules_builtin:
             for match in compiled_pattern.finditer(text):
+                is_tag_pattern = fmt in (self.curly_tag_format, self.bracket_tag_format)
+                if is_tag_pattern and hide_tags_enabled:
+                    tag = match.group(1)
+                    if not self._is_forced_alias(tag) and not self._tag_has_length(tag):
+                        self.setFormat(match.start(), match.end() - match.start(), self.hide_tag_format)
+                        continue
                 self.setFormat(match.start(), match.end() - match.start(), fmt)
 
         icon_sequences = self._get_icon_sequences()

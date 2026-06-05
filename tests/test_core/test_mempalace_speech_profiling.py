@@ -6,6 +6,34 @@ from unittest.mock import MagicMock, patch
 from core.mempalace_worker import MemePalaceCharacterProfilerWorker
 from core.glossary_manager import GlossaryManager, GlossaryEntry
 
+@pytest.fixture(autouse=True)
+def mock_wiki_network():
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        def side_effect(req, *args, **kwargs):
+            url = req.full_url if hasattr(req, 'full_url') else str(req)
+            mock_resp = MagicMock()
+            mock_resp.__enter__.return_value = mock_resp
+            
+            if "action=query" in url and "list=search" in url:
+                if "SERA" in url or "Sera" in url:
+                    data = {"query": {"search": [{"title": "SERA"}]}}
+                else:
+                    data = {"query": {"search": [{"title": "TRILL"}]}}
+                mock_resp.read.return_value = json.dumps(data).encode('utf-8')
+            elif "action=query" in url and "prop=extracts" in url:
+                if "SERA" in url or "Sera" in url:
+                    data = {"query": {"pages": {"1": {"extract": "Sera is a character."}}}}
+                else:
+                    data = {"query": {"pages": {"2": {"extract": "Trill is a character."}}}}
+                mock_resp.read.return_value = json.dumps(data).encode('utf-8')
+            else:
+                mock_resp.read.return_value = b"{}"
+            return mock_resp
+            
+        mock_urlopen.side_effect = side_effect
+        yield mock_urlopen
+
+
 def test_mempalace_speech_profiling_sera_and_trill_integration(tmp_path):
     # 1. Create a temporary glossary file
     glossary_file = tmp_path / "glossary.json"
