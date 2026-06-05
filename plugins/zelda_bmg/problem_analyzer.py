@@ -92,20 +92,26 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_BAD_SPACING)
             if self._check_missing_icon_spacing(subline):
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_MISSING_ICON_SPACING)
-            next_subline = sublines[i + 1] if i + 1 < len(sublines) else None
-            if next_subline is not None:
-                if self._check_short_line_zbmg(subline, next_subline, font_map, threshold):
-                    problems_per_subline[i].add(self.problem_ids.PROBLEM_SHORT_LINE)
             lines_per_page = 4
             if self.mw and hasattr(self.mw, 'lines_per_page'):
                 lines_per_page = getattr(self.mw, 'lines_per_page', 4)
-            if len(sublines) > 1 and i % lines_per_page == 0:
+
+            next_subline = sublines[i + 1] if i + 1 < len(sublines) else None
+            if next_subline is not None:
+                if (i + 1) % lines_per_page != 0:
+                    if self._check_short_line_zbmg(subline, next_subline, font_map, threshold):
+                        problems_per_subline[i].add(self.problem_ids.PROBLEM_SHORT_LINE)
+            
+            if len(sublines) > 1:
                 if self._check_single_word_subline_generic(subline):
                     if not self._is_single_word_ok_generic(subline):
-                        page_lines = sublines[i : i + lines_per_page]
-                        has_content_after = any(line.strip() for line in page_lines[1:])
-                        if has_content_after:
-                            problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                        if i % lines_per_page == 0:
+                            page_lines = sublines[i : i + lines_per_page]
+                            has_content_after = any(line.strip() for line in page_lines[1:])
+                            if has_content_after:
+                                problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                            else:
+                                problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
                         else:
                             problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
                     

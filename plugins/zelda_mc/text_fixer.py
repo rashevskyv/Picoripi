@@ -44,11 +44,12 @@ class TextFixer(GenericTextFixer):
         joined_text = "\n".join(final_text_list)
         return joined_text, joined_text != text
 
-    def _fix_short_lines_zmc(self, text: str, font_map: dict, threshold: int) -> Tuple[str, bool]:
+    def _fix_short_lines_zmc(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> Tuple[str, bool]:
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1: return text, False
         original_text = text
         made_change_in_this_fix_pass = True
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4)
         while made_change_in_this_fix_pass:
             made_change_in_this_fix_pass = False
             new_sub_lines = list(sub_lines)
@@ -57,7 +58,28 @@ class TextFixer(GenericTextFixer):
                 current_line = new_sub_lines[i]
                 next_line = new_sub_lines[i+1]
                 
-                if self.problem_analyzer._check_short_line_zmc(current_line, next_line, font_map, threshold):
+                is_boundary = (i + 1) % lines_per_page == 0
+                if is_boundary:
+                    is_next_single_word_lowercase = (
+                        self.problem_analyzer._check_single_word_subline_generic(next_line) and
+                        not self.problem_analyzer._is_single_word_ok_generic(next_line)
+                    )
+                    if not is_next_single_word_lowercase:
+                        i -= 1
+                        continue
+                    
+                    limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
+                    if not isinstance(limit, (int, float)):
+                        limit = threshold
+                    
+                    width_current = self._calculate_width(current_line.rstrip(), font_map)
+                    width_next = self._calculate_width(next_line.strip(), font_map)
+                    space_width = self._calculate_width(" ", font_map)
+                    if width_current + space_width + width_next > limit:
+                        i -= 1
+                        continue
+                
+                if self.problem_analyzer._check_short_line_zmc(current_line, next_line, font_map, threshold) or is_boundary:
                     first_word_next_raw, rest_of_next_line_raw = self._extract_first_word_with_tags_generic(next_line)
                     current_line_rstripped = current_line.rstrip()
                     merged_line = current_line_rstripped
@@ -211,7 +233,7 @@ class TextFixer(GenericTextFixer):
             modified_text, changed1 = self._fix_empty_odd_sublines_zmc(modified_text)
         
         if is_allowed(PROBLEM_SHORT_LINE):
-            modified_text, changed2 = self._fix_short_lines_zmc(modified_text, editor_font_map, editor_line_width_threshold)
+            modified_text, changed2 = self._fix_short_lines_zmc(modified_text, editor_font_map, editor_line_width_threshold, logical_hard_limit)
         
         if is_allowed(PROBLEM_WIDTH_EXCEEDED):
             modified_text, changed3 = self._fix_width_exceeded_generic(modified_text, editor_font_map, logical_hard_limit)
@@ -244,5 +266,8 @@ class TextFixer(GenericTextFixer):
             cleaned_text = modified_text
 
         changed6 = cleaned_text != modified_text
+
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
+        cleaned_text, changed_shift = self._shift_split_sentences(cleaned_text, lines_per_page)
         
-        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing or changed_orphans)
+        return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing or changed_orphans or changed_shift)

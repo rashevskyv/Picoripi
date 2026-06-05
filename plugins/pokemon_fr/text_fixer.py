@@ -51,15 +51,38 @@ class TextFixer(GenericTextFixer):
             new_sublines_reassembled.append((current_line, original_newline_tag))
         return self._reassemble_data_string(new_sublines_reassembled)
 
-    def _fix_short_lines(self, text: str, font_map: dict, threshold: int) -> str:
+    def _fix_short_lines(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> str:
         sublines = self._get_sublines_with_tags(text)
         if len(sublines) < 2:
             return text
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4)
         i = 0
         while i < len(sublines) - 1:
             current_text, current_tag = sublines[i]
             next_text, next_tag = sublines[i+1]
-            if self.problem_analyzer._check_short_line(current_text, next_text, font_map, threshold):
+            
+            is_boundary = (i + 1) % lines_per_page == 0
+            if is_boundary:
+                is_next_single_word_lowercase = (
+                    self.problem_analyzer._check_single_word_subline_generic(next_text) and
+                    not self.problem_analyzer._is_single_word_ok_generic(next_text)
+                )
+                if not is_next_single_word_lowercase:
+                    i += 1
+                    continue
+                
+                limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
+                if not isinstance(limit, (int, float)):
+                    limit = threshold
+                
+                width_current = calculate_string_width(current_text, font_map)
+                width_next = calculate_string_width(next_text.strip(), font_map)
+                space_width = calculate_string_width(" ", font_map)
+                if width_current + space_width + width_next > limit:
+                    i += 1
+                    continue
+                    
+            if self.problem_analyzer._check_short_line(current_text, next_text, font_map, threshold) or is_boundary:
                 words_in_next = next_text.split(' ')
                 first_word_next = words_in_next[0]
                 remaining_next = ' '.join(words_in_next[1:])
@@ -111,14 +134,14 @@ class TextFixer(GenericTextFixer):
                 if PROBLEM_WIDTH_EXCEEDED in allowed_problems:
                     modified_text = self._fix_width_exceeded(modified_text, editor_font_map, logical_hard_limit)
                 if PROBLEM_SHORT_LINE in allowed_problems:
-                    modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold)
+                    modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold, logical_hard_limit)
             else:
                 if autofix_config.get(PROBLEM_EMPTY_SUBLINE, False):
                     modified_text = self._fix_empty_sublines(modified_text)
                 if autofix_config.get(PROBLEM_WIDTH_EXCEEDED, False):
                     modified_text = self._fix_width_exceeded(modified_text, editor_font_map, logical_hard_limit)
                 if autofix_config.get(PROBLEM_SHORT_LINE, False):
-                    modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold)
+                    modified_text = self._fix_short_lines(modified_text, editor_font_map, editor_line_width_threshold, logical_hard_limit)
                     
             if modified_text == text_before_pass:
                 break
@@ -169,4 +192,7 @@ class TextFixer(GenericTextFixer):
                 final_text = fixed_spacing_text
                 changed_missing_spacing = True
 
-        return final_text, (final_text != original_text or changed_missing_spacing)
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
+        final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page)
+
+        return final_text, (final_text != original_text or changed_missing_spacing or changed_shift)

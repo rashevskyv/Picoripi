@@ -87,25 +87,29 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         if self._check_empty_odd_subline_display_zmc(text, qtextblock_number_in_editor, is_logically_single_and_empty_data_string_check):
              found_problems.add(self.problem_ids.PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY)
 
-        if next_text_with_spaces is not None:
-            if self._check_short_line_zmc(text_with_spaces, next_text_with_spaces, editor_font_map, editor_line_width_threshold):
-                found_problems.add(self.problem_ids.PROBLEM_SHORT_LINE)
-
-        is_only_one_subline = (subline_number_in_data_string == 0 and is_last_subline_in_data_string)
         lines_per_page = 4
         if self.mw and hasattr(self.mw, 'lines_per_page'):
             lines_per_page = getattr(self.mw, 'lines_per_page', 4)
-        if not is_only_one_subline and subline_number_in_data_string % lines_per_page == 0:
+
+        if next_text_with_spaces is not None:
+            if (subline_number_in_data_string + 1) % lines_per_page != 0:
+                if self._check_short_line_zmc(text_with_spaces, next_text_with_spaces, editor_font_map, editor_line_width_threshold):
+                    found_problems.add(self.problem_ids.PROBLEM_SHORT_LINE)
+
+        is_only_one_subline = (subline_number_in_data_string == 0 and is_last_subline_in_data_string)
+        if not is_only_one_subline:
             if self._check_single_word_subline_generic(text_with_spaces):
                 if not self._is_single_word_ok_generic(text_with_spaces):
-                    sublines = full_data_string_text_for_logical_check.split('\n')
-                    start_idx = subline_number_in_data_string
-                    page_lines = sublines[start_idx : start_idx + lines_per_page]
-                    has_content_after = any(line.strip() for line in page_lines[1:])
-                    if has_content_after:
-                        found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                    if subline_number_in_data_string % lines_per_page == 0:
+                        sublines = full_data_string_text_for_logical_check.split('\n')
+                        start_idx = subline_number_in_data_string
+                        page_lines = sublines[start_idx : start_idx + lines_per_page]
+                        has_content_after = any(line.strip() for line in page_lines[1:])
+                        if has_content_after:
+                            found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                        else:
+                            found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
                     else:
                         found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
-
 
         return found_problems

@@ -110,7 +110,7 @@ class TextAutofixLogic:
         joined_text = "\n".join(new_sub_lines)
         return joined_text
 
-    def _fix_short_lines(self, text: str, width_threshold: int = None) -> str:
+    def _fix_short_lines(self, text: str, width_threshold: int = None, logical_hard_limit: int = None) -> str:
         if width_threshold is None:
             width_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
         sub_lines = text.split('\n')
@@ -119,6 +119,7 @@ class TextAutofixLogic:
 
         made_change_in_this_fix_pass = True 
         iteration_count = 0
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4)
         while made_change_in_this_fix_pass:
             iteration_count += 1
             made_change_in_this_fix_pass = False
@@ -127,6 +128,32 @@ class TextAutofixLogic:
             while i >= 0:
                 current_line = new_sub_lines[i]
                 next_line = new_sub_lines[i+1]
+                
+                is_boundary = (i + 1) % lines_per_page == 0
+                if is_boundary:
+                    analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules) if self.mw.current_game_rules else None
+                    if analyzer and hasattr(analyzer, '_check_single_word_subline_generic'):
+                        is_next_single_word_lowercase = (
+                            analyzer._check_single_word_subline_generic(next_line) and
+                            not analyzer._is_single_word_ok_generic(next_line)
+                        )
+                    else:
+                        is_next_single_word_lowercase = False
+                        
+                    if not is_next_single_word_lowercase:
+                        i -= 1
+                        continue
+                    
+                    limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', width_threshold)
+                    if not isinstance(limit, (int, float)):
+                        limit = width_threshold
+                    
+                    width_current = calculate_string_width(remove_all_tags(current_line.rstrip()), self.mw.font_map)
+                    width_next = calculate_string_width(remove_all_tags(next_line.strip()), self.mw.font_map)
+                    space_width = calculate_string_width(" ", self.mw.font_map)
+                    if width_current + space_width + width_next > limit:
+                        i -= 1
+                        continue
 
                 current_line_no_tags = remove_all_tags(current_line)
                 current_line_no_tags_stripped = current_line_no_tags.strip()
@@ -151,7 +178,13 @@ class TextAutofixLogic:
                 width_first_word_next = calculate_string_width(first_word_next_no_tags, self.mw.font_map)
                 space_width = calculate_string_width(" ", self.mw.font_map)
                 
-                can_merge = width_current_line_rstripped + space_width + width_first_word_next <= width_threshold
+                limit = width_threshold
+                if is_boundary:
+                    limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', width_threshold)
+                    if not isinstance(limit, (int, float)):
+                        limit = width_threshold
+                
+                can_merge = width_current_line_rstripped + space_width + width_first_word_next <= limit
 
                 if can_merge:
                     merged_line = current_line_for_width_calc
@@ -426,7 +459,7 @@ class TextAutofixLogic:
 
             modified_text = self._fix_empty_odd_sublines(modified_text)
             modified_text = self._fix_blue_sublines(modified_text)
-            modified_text = self._fix_short_lines(modified_text, width_threshold)
+            modified_text = self._fix_short_lines(modified_text, width_threshold, logical_hard_limit)
             modified_text = self._fix_width_exceeded(modified_text, logical_hard_limit)
             modified_text = self._cleanup_spaces_around_tags(modified_text) 
             modified_text = self._fix_leading_spaces_in_sublines(modified_text) 
@@ -437,6 +470,10 @@ class TextAutofixLogic:
         if iterations == max_iterations and modified_text != text_before_pass: 
             log_debug("Auto-fix: Max iterations reached, potential complex case or loop.")
             QMessageBox.warning(self.mw, "Auto-fix", "Auto-fix reached maximum iterations. Result might be incomplete.")
+
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+        from utils.utils import shift_split_sentences
+        modified_text, _ = shift_split_sentences(modified_text, lines_per_page)
 
         final_text_to_apply = modified_text
         

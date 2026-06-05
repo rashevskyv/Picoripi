@@ -57,6 +57,10 @@ class GenericTextFixer:
         final_lines = []
 
         for line in sub_lines:
+            if self._calculate_width(line, font_map) <= threshold:
+                final_lines.append(line)
+                continue
+
             while self._calculate_width(line, font_map) > threshold:
                 made_change = True
                 line_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
@@ -98,40 +102,32 @@ class GenericTextFixer:
             
         made_change = False
         
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+        
         # Текстові рядки на парних індексах
         for idx in range(len(parts) - 1, 1, -2):
             current_line = parts[idx]
             prev_line = parts[idx - 2]
             
-            # 1. Перевіряємо, чи на поточному рядку рівно одне слово
-            current_no_tags = remove_all_tags(current_line).strip()
-            if not current_no_tags:
+            # 1. Перевіряємо, чи на поточному рядку рівно одне слово (враховуючи видимі теги)
+            from utils.utils import get_line_words_and_visible_tags
+            current_words = get_line_words_and_visible_tags(current_line, self.mw)
+            if len(current_words) != 1:
                 continue
                 
-            words = current_no_tags.split()
-            if len(words) != 1:
-                continue
-                
-            word = words[0]
+            word = current_words[0]
             
             # 2. Слово має бути з маленької літери
             first_letter_match = re.search(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ]', word)
             if not first_letter_match or not first_letter_match.group(0).islower():
                 continue
-                
-            # 3. В кінці слова немає розділових знаків (punctuation marks)
-            clean_word = word.rstrip('"\'')
-            if clean_word and clean_word[-1] in ['.', ',', '!', '?', ';', ':', '…', ')']:
-                continue
 
             # 4. Попередній рядок не повинен закінчуватися розділовими знаками кінця речення
-            prev_no_tags = remove_all_tags(prev_line).strip()
-            if prev_no_tags and prev_no_tags[-1] in ['.', '!', '?', '…']:
-                continue
-
-            # 5. Попередній рядок повинен мати хоча б одне слово
-            prev_words = prev_no_tags.split()
+            prev_words = get_line_words_and_visible_tags(prev_line, self.mw)
             if not prev_words:
+                continue
+            last_word = prev_words[-1]
+            if last_word and last_word[-1] in ['.', '!', '?', '…']:
                 continue
                 
             # 6. Спробуємо перенести останнє слово з попереднього рядка
@@ -143,6 +139,22 @@ class GenericTextFixer:
                 if not part.strip():
                     continue
                 is_tag = (part.startswith('{') and part.endswith('}')) or (part.startswith('[') and part.endswith(']'))
+                if is_tag:
+                    from utils.utils import is_visible_tag, FORCED_ALIAS_PATTERN
+                    if self.mw is not None:
+                        mappings = getattr(self.mw, "default_tag_mappings", {})
+                        font_map = getattr(self.mw, "font_map", {})
+                        icon_sequences = getattr(self.mw, "icon_sequences", [])
+                    else:
+                        from utils.utils import get_active_tag_mappings, get_active_font_map, get_active_icon_sequences
+                        mappings = get_active_tag_mappings()
+                        font_map = get_active_font_map()
+                        icon_sequences = get_active_icon_sequences()
+                    
+                    is_visible = is_visible_tag(part, mappings, font_map, icon_sequences)
+                    is_forced = bool(FORCED_ALIAS_PATTERN.match(part))
+                    if is_visible or is_forced:
+                        is_tag = False
                 if not is_tag:
                     last_word_idx = k
                     break
@@ -170,4 +182,8 @@ class GenericTextFixer:
             return final_text, final_text != text
             
         return text, False
+
+    def _shift_split_sentences(self, text: str, lines_per_page: int) -> Tuple[str, bool]:
+        from utils.utils import shift_split_sentences
+        return shift_split_sentences(text, lines_per_page)
 
