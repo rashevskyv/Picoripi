@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.164] - 2026-06-05
+
+### Added
+- **Tag Word-Shifting Support in AutoFix**:
+  - Upgraded the single-word orphan shifting logic (`_fix_single_word_orphans_generic`) in `plugins/common/text_fixer.py` to correctly treat visible tags (such as button/icon tags `{(Y)}`, `{(X)}`) and forced tags (such as `{F:Link}`) at the end of the previous line as words, allowing them to be pulled down to resolve orphans on the next line.
+  - Added unit test cases in `tests/test_spacing_rules.py` verifying correct shifting of visible and forced tags from the previous line.
+- **Smart Alt+Up/Down Navigation**:
+  - Upgraded the `Alt+Up` and `Alt+Down` shortcuts in `ui/ui_event_filters.py` to skip empty lines (lines containing no text, visible tags, or forced tags) in the preview list.
+  - Added a new unit test suite in `tests/test_ui/test_ui_event_filters.py` to verify the smart navigation behavior.
+
 ## [0.2.163] - 2026-06-05
 
 ### Changed

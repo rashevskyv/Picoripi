@@ -691,3 +691,110 @@ def suggest_smart_translation(current_text: str, old_translation: str, new_trans
                 break # Move to next word in text
 
     return result_text
+
+
+def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
+    if not isinstance(lines_per_page, int):
+        try:
+            lines_per_page = int(lines_per_page)
+        except Exception:
+            lines_per_page = 4
+
+    if not text:
+        return text, False
+        
+    raw_lines = text.split('\n')
+    # Discard empty/blank lines to allow compacting sentences from subsequent pages
+    sublines = [line for line in raw_lines if line.strip()]
+    
+    if not sublines:
+        return "", True
+        
+    # Segment sublines into sentences
+    sentences = [] # list of lists of lines
+    current_sentence = []
+    
+    for idx in range(len(sublines)):
+        line = sublines[idx]
+        current_sentence.append(line)
+        cleaned = remove_all_tags(line).strip()
+        is_end = False
+        if cleaned:
+            last_char = cleaned[-1]
+            if last_char in ('.', '!', '?', '。', '！', '？'):
+                is_end = True
+            elif last_char in ('"', "'", '»', '`', ')') and len(cleaned) > 1:
+                if cleaned[-2] in ('.', '!', '?', '。', '！', '？'):
+                    is_end = True
+        
+        if is_end:
+            sentences.append(current_sentence)
+            current_sentence = []
+            
+    if current_sentence:
+        sentences.append(current_sentence)
+
+    # Pack sentences into pages
+    pages = [[]]
+    for s_lines in sentences:
+        s_len = len(s_lines)
+        if s_len > lines_per_page:
+            # Too long to fit on a single page anyway.
+            # Append directly to the current page.
+            pages[-1].extend(s_lines)
+        else:
+            current_len = len(pages[-1])
+            remaining_space = max(0, lines_per_page - (current_len % lines_per_page))
+            if remaining_space == 0:
+                remaining_space = lines_per_page
+                
+            # If current page has some lines, check if it fits in remaining space
+            if current_len > 0 and (current_len % lines_per_page) != 0:
+                if s_len <= remaining_space:
+                    pages[-1].extend(s_lines)
+                else:
+                    # Pad current page to page boundary
+                    pages[-1].extend([""] * remaining_space)
+                    pages.append(s_lines)
+            else:
+                # Page is empty (or currently at exact boundary)
+                if current_len == 0:
+                    pages[-1].extend(s_lines)
+                else:
+                    pages.append(s_lines)
+
+    # Reconstruct final text
+    final_lines = []
+    for page in pages:
+        final_lines.extend(page)
+        
+    final_text = "\n".join(final_lines)
+    return final_text, final_text != text
+
+
+def get_line_words_and_visible_tags(line: str, mw: Optional[Any] = None) -> List[str]:
+    if not line:
+        return []
+        
+    if mw is not None:
+        mappings = getattr(mw, "default_tag_mappings", {})
+        font_map = getattr(mw, "font_map", {})
+        icon_sequences = getattr(mw, "icon_sequences", [])
+    else:
+        mappings = get_active_tag_mappings()
+        font_map = get_active_font_map()
+        icon_sequences = get_active_icon_sequences()
+        
+    line_resolved = FORCED_ALIAS_PATTERN.sub(r"\1", line)
+    tags = ALL_TAGS_PATTERN.findall(line_resolved)
+    
+    unique_tags = sorted(list(set(tags)), key=len, reverse=True)
+    for tag in unique_tags:
+        if is_visible_tag(tag, mappings, font_map, icon_sequences):
+            line_resolved = line_resolved.replace(tag, "visibleword")
+        else:
+            line_resolved = line_resolved.replace(tag, "")
+            
+    line_clean = ALL_TAGS_PATTERN.sub("", line_resolved)
+    words = line_clean.split()
+    return words

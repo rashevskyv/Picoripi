@@ -369,11 +369,11 @@ def test_autofix_single_word_orphan_with_punctuation(mc_rules):
         PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True
     }
     
-    # 1. With punctuation: should NOT fix
+    # 1. With punctuation (lowercase): SHOULD fix
     text_with_punc = "Це дуже гарна\nідея."
     fixed, changed = mc_rules.autofix_data_string(text_with_punc, {}, 1000, allowed_problems=None)
-    assert fixed == text_with_punc
-    assert changed is False
+    assert fixed == "Це дуже\nгарна ідея."
+    assert changed is True
 
     # 2. Without punctuation: should fix
     text_no_punc = "Це дуже гарна\nідея"
@@ -386,4 +386,118 @@ def test_autofix_single_word_orphan_with_punctuation(mc_rules):
     fixed, changed = mc_rules.autofix_data_string(text_prev_ends_punc, {}, 1000, allowed_problems=None)
     assert fixed == text_prev_ends_punc
     assert changed is False
+
+
+def test_autofix_page_isolation(bmg_rules):
+    from plugins.zelda_bmg.config import PROBLEM_SHORT_LINE
+    bmg_rules.mw.lines_per_page = 4
+    bmg_rules.mw.autofix_enabled = {
+        PROBLEM_SHORT_LINE: True
+    }
+    
+    # Text with 5 lines, line 4 (index 3) is empty, line 5 (index 4) should NOT merge with line 4
+    # First lines end with dots to prevent in-page merging.
+    text = "Line 1.\nLine 2.\nLine 3\n\nLine 5"
+    fixed, changed = bmg_rules.autofix_data_string(text, {}, 1000)
+    # Since index 3 is boundary between page 1 (lines 0-3) and page 2 (lines 4-7), no cross-page merge should occur.
+    # But because the empty page/line is compacted, "Line 5" is pulled up to Page 1.
+    assert fixed == "Line 1.\nLine 2.\nLine 3\nLine 5"
+    assert changed is True
+
+
+def test_single_word_orphan_detection_any_line(bmg_rules):
+    from plugins.zelda_bmg.config import PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    bmg_rules.mw.lines_per_page = 4
+    
+    # "рейках." is at line index 1 (not first line of page), should trigger brown warning
+    text = "настінних\nрейках."
+    problems = bmg_rules.problem_analyzer.analyze_data_string(text, {}, 1000)
+    assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START in problems[1]
+
+
+def test_autofix_cross_page_orphan_merge_and_shift(mc_rules):
+    from plugins.zelda_mc.config import PROBLEM_SHORT_LINE, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    mc_rules.mw.lines_per_page = 4
+    mc_rules.mw.autofix_enabled = {
+        PROBLEM_SHORT_LINE: True,
+        PROBLEM_SINGLE_WORD_SUBLINE: True,
+        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True
+    }
+    
+    # CASE A: A lowercase single word on page 2 (line index 4, which is the 5th line) fits on page 1 (line index 3, which is the 4th line)
+    # The warning limit is 1000 pixels (very large).
+    # Since it fits, they should be merged: "Line 4" and "місця" -> "Line 4 місця"
+    text_fit = "Line 1.\nLine 2.\nLine 3.\nLine 4\nмісця"
+    # Note: lines 1-3 end with a period, so they won't merge. Only Line 4 and "місця" can merge.
+    fixed_fit, changed_fit = mc_rules.autofix_data_string(text_fit, {}, 1000)
+    assert changed_fit is True
+    assert fixed_fit == "Line 1.\nLine 2.\nLine 3.\nLine 4 місця"
+
+    # CASE B: A lowercase single word on page 2 (line index 4) does NOT fit on page 1 (line index 3)
+    # Combined "Line 4 місця" is 12 chars = 96 pixels if default char width is 8.
+    # If we pass logical_hard_limit = 80, the combined line would exceed 80, so it cannot merge.
+    # In this case, "місця" cannot fit on line 4, so the last word of line 4 ("4") should be shifted down to line 5.
+    # Result should be: "Line 1.\nLine 2.\nLine 3.\nLine\n4 місця"
+    text_nofit = "Line 1.\nLine 2.\nLine 3.\nLine 4\nмісця"
+    fixed_nofit, changed_nofit = mc_rules.autofix_data_string(text_nofit, {}, 1000, logical_hard_limit=80)
+    assert changed_nofit is True
+    # The sentence-shifting logic will shift the split sentence "Line\n4 місця" to start on page 2
+    assert fixed_nofit == "Line 1.\nLine 2.\nLine 3.\n\nLine\n4 місця"
+
+
+def test_autofix_sentence_page_boundary_shifting(mc_rules):
+    from plugins.zelda_mc.config import PROBLEM_SHORT_LINE
+    mc_rules.mw.lines_per_page = 4
+    mc_rules.mw.autofix_enabled = {
+        PROBLEM_SHORT_LINE: False  # Disable merging to preserve the exact line structure
+    }
+    
+    # CASE A: Sentence starts on line index 2 (Page 1) and ends on line index 4 (Page 2).
+    # Since it is 3 lines long (index 2, 3, 4), and page size is 4, it should be shifted to Page 2 (starts at index 4).
+    # Expected: 2 empty lines inserted before index 2.
+    text = "Line 1.\nLine 2.\nHere is a sentence\nthat spans across\nthe page boundary."
+    fixed, changed = mc_rules.autofix_data_string(text, {}, 1000)
+    assert changed is True
+    assert fixed == "Line 1.\nLine 2.\n\n\nHere is a sentence\nthat spans across\nthe page boundary."
+
+    # CASE B: Sentence is 5 lines long (index 2 to 6), which exceeds page size (4).
+    # It cannot fit on a single page anyway, so it should NOT be shifted.
+    text_long = "Line 1.\nLine 2.\nThis is a very long\nsentence that goes on\nand on and on\nand crosses pages\ncompletely."
+    fixed_long, changed_long = mc_rules.autofix_data_string(text_long, {}, 1000)
+    assert fixed_long == text_long
+    assert changed_long is False
+
+    # CASE C: Sentences already aligned. No shift.
+    text_ok = "Line 1.\nLine 2.\nLine 3.\nLine 4.\nSentence 2\nspans two lines."
+    fixed_ok, changed_ok = mc_rules.autofix_data_string(text_ok, {}, 1000)
+    assert fixed_ok == text_ok
+    assert changed_ok is False
+
+
+def test_autofix_visible_tag_as_word(mc_rules):
+    from plugins.zelda_mc.config import PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    mc_rules.mw.lines_per_page = 4
+    mc_rules.mw.autofix_enabled = {
+        PROBLEM_SINGLE_WORD_SUBLINE: True,
+        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True
+    }
+    
+    # "{(X)}." is a visible tag, so it should be treated as a single word orphan and pull "або" down
+    text = "і використовуй за допомогою або\n{(X)}."
+    fixed, changed = mc_rules.autofix_data_string(text, {}, 1000)
+    assert changed is True
+    assert fixed == "і використовуй за допомогою\nабо {(X)}."
+
+    # "{(Y)}" is a visible tag at the end of the previous line, so it should be treated as a word and pulled down
+    text2 = "і використовуй за допомогою {(Y)}\nабо"
+    fixed2, changed2 = mc_rules.autofix_data_string(text2, {}, 1000)
+    assert changed2 is True
+    assert fixed2 == "і використовуй за допомогою\n{(Y)} або"
+
+    # "{F:бомблінги}" is a forced tag, so it should be treated as a word and pulled down
+    text3 = "і використовуй за допомогою {F:бомблінги}\nабо"
+    fixed3, changed3 = mc_rules.autofix_data_string(text3, {}, 1000)
+    assert changed3 is True
+    assert fixed3 == "і використовуй за допомогою\n{F:бомблінги} або"
+
 

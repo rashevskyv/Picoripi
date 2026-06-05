@@ -200,3 +200,33 @@ def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix
     mock_autofix._fix_empty_odd_sublines.side_effect = lambda x: x + "!"
     mock_autofix.auto_fix_current_string()
     mock_warn.assert_called_once()
+
+
+@patch('handlers.text_autofix_logic.calculate_string_width')
+def test_TextAutofixLogic_fix_short_lines_boundary_cross(mock_calc, mock_autofix, mock_mw):
+    mock_mw.lines_per_page = 4
+    mock_mw.font_map = {}
+    mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
+    
+    # Mock analyzer's check_single_word_subline_generic and _is_single_word_ok_generic
+    mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.problem_analyzer._check_single_word_subline_generic.return_value = True
+    mock_mw.current_game_rules.problem_analyzer._is_single_word_ok_generic.return_value = False
+    
+    # CASE A: fits (threshold is large)
+    # line 4 (index 3) is boundary. next_line is line index 4 ("місця").
+    # It should merge line index 3 ("Line 4") and index 4 ("місця") -> "Line 4 місця"
+    text = "Line 1.\nLine 2.\nLine 3.\nLine 4\nмісця"
+    # mock_calc for "Line 4" = 60, "місця" = 50, space = 10.
+    # If limit is 200:
+    res = mock_autofix._fix_short_lines(text, width_threshold=100, logical_hard_limit=200)
+    assert res == "Line 1.\nLine 2.\nLine 3.\nLine 4 місця"
+
+
+def test_shift_split_sentences():
+    from utils.utils import shift_split_sentences
+    # Test a basic shift where lines_per_page = 4
+    text = "Line 1.\nLine 2.\nHere is a sentence\nthat spans across\nthe page boundary."
+    res, changed = shift_split_sentences(text, 4)
+    assert changed is True
+    assert res == "Line 1.\nLine 2.\n\n\nHere is a sentence\nthat spans across\nthe page boundary."

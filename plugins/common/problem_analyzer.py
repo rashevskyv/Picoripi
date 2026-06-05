@@ -63,10 +63,8 @@ class GenericProblemAnalyzer:
         return len(spans) > 0
 
     def _check_single_word_subline_generic(self, subline_text: str) -> bool:
-        text_no_tags = remove_all_tags(subline_text).strip()
-        if not text_no_tags: 
-            return False
-        words = text_no_tags.split()
+        from utils.utils import get_line_words_and_visible_tags
+        words = get_line_words_and_visible_tags(subline_text, self.mw)
         if len(words) != 1:
             return False
         word = words[0]
@@ -74,10 +72,8 @@ class GenericProblemAnalyzer:
         return bool(word_content_pattern.search(word))
 
     def _is_single_word_ok_generic(self, subline_text: str) -> bool:
-        text_no_tags = remove_all_tags(subline_text).strip()
-        if not text_no_tags:
-            return True
-        words = text_no_tags.split()
+        from utils.utils import get_line_words_and_visible_tags
+        words = get_line_words_and_visible_tags(subline_text, self.mw)
         if len(words) != 1:
             return True
         word = words[0]

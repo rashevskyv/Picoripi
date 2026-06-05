@@ -79,20 +79,26 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                  problems_per_subline_idx[i].add(self.problem_ids['BAD_SPACING'])
             if self._check_missing_icon_spacing(text_part):
                  problems_per_subline_idx[i].add(self.problem_ids['MISSING_ICON_SPACING'])
-            if i + 1 < len(sublines_with_tags):
-                next_text_part, _ = sublines_with_tags[i+1]
-                if self._check_short_line(text_part, next_text_part, font_map, threshold):
-                    problems_per_subline_idx[i].add(self.problem_ids['SHORT'])
             lines_per_page = 4
             if self.mw and hasattr(self.mw, 'lines_per_page'):
                 lines_per_page = getattr(self.mw, 'lines_per_page', 4)
-            if len(sublines_with_tags) > 1 and i % lines_per_page == 0:
+
+            if i + 1 < len(sublines_with_tags):
+                if (i + 1) % lines_per_page != 0:
+                    next_text_part, _ = sublines_with_tags[i+1]
+                    if self._check_short_line(text_part, next_text_part, font_map, threshold):
+                        problems_per_subline_idx[i].add(self.problem_ids['SHORT'])
+
+            if len(sublines_with_tags) > 1:
                 if self._check_single_word_subline_generic(text_part):
                     if not self._is_single_word_ok_generic(text_part):
-                        page_lines = [part for part, _ in sublines_with_tags[i : i + lines_per_page]]
-                        has_content_after = any(line.strip() for line in page_lines[1:])
-                        if has_content_after:
-                            problems_per_subline_idx[i].add(self.problem_ids['SINGLE'])
+                        if i % lines_per_page == 0:
+                            page_lines = [part for part, _ in sublines_with_tags[i : i + lines_per_page]]
+                            has_content_after = any(line.strip() for line in page_lines[1:])
+                            if has_content_after:
+                                problems_per_subline_idx[i].add(self.problem_ids['SINGLE'])
+                            else:
+                                problems_per_subline_idx[i].add(self.problem_ids['SINGLE_NON_START'])
                         else:
                             problems_per_subline_idx[i].add(self.problem_ids['SINGLE_NON_START'])
         return problems_per_subline_idx

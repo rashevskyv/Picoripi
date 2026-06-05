@@ -60,16 +60,64 @@ class TextEditEventFilter(QObject):
                         return True
 
             if is_alt_pressed and not is_ctrl_pressed and not is_shift_pressed:
-                if event.key() == Qt.Key_Up:
-                    current_row = self.mw.data_store.current_string_idx
-                    if current_row > 0:
-                        self.mw.list_selection_handler.string_selected_from_preview(current_row - 1)
-                    return True
-                elif event.key() == Qt.Key_Down:
-                    current_row = self.mw.data_store.current_string_idx
-                    if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.data and current_row < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]) - 1:
-                        self.mw.list_selection_handler.string_selected_from_preview(current_row + 1)
-                    return True
+                if event.key() in (Qt.Key_Up, Qt.Key_Down):
+                    displayed_indices = self.mw.list_selection_handler._get_displayed_indices()
+                    if not displayed_indices:
+                        return True
+                        
+                    is_chapter = getattr(self.mw.data_store, 'current_chapter_id', None) is not None or (displayed_indices and isinstance(displayed_indices[0], tuple))
+                    current_preview_idx = -1
+                    if is_chapter:
+                        target = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                        if target in displayed_indices:
+                            current_preview_idx = displayed_indices.index(target)
+                    else:
+                        target = self.mw.data_store.current_string_idx
+                        if target in displayed_indices:
+                            current_preview_idx = displayed_indices.index(target)
+                            
+                    from utils.utils import get_line_words_and_visible_tags
+                    
+                    def is_line_empty(preview_idx):
+                        if not (0 <= preview_idx < len(displayed_indices)):
+                            return True
+                        val = displayed_indices[preview_idx]
+                        if val == -1:
+                            return True
+                        if isinstance(val, tuple) and len(val) == 2:
+                            b_idx, s_idx = val
+                        else:
+                            b_idx = self.mw.data_store.current_block_idx
+                            s_idx = val
+                        if b_idx < 0 or s_idx < 0:
+                            return True
+                        txt, _ = self.mw.data_processor.get_current_string_text(b_idx, s_idx)
+                        if not txt:
+                            return True
+                        words = get_line_words_and_visible_tags(txt, self.mw)
+                        return len(words) == 0
+                        
+                    if event.key() == Qt.Key_Up:
+                        start = current_preview_idx if current_preview_idx != -1 else len(displayed_indices)
+                        target_idx = -1
+                        for i in range(start - 1, -1, -1):
+                            if not is_line_empty(i):
+                                target_idx = i
+                                break
+                        if target_idx != -1:
+                            self.mw.list_selection_handler.string_selected_from_preview(target_idx)
+                        return True
+                        
+                    elif event.key() == Qt.Key_Down:
+                        start = current_preview_idx
+                        target_idx = -1
+                        for i in range(start + 1, len(displayed_indices)):
+                            if not is_line_empty(i):
+                                target_idx = i
+                                break
+                        if target_idx != -1:
+                            self.mw.list_selection_handler.string_selected_from_preview(target_idx)
+                        return True
 
             if is_ctrl_pressed and not is_alt_pressed:
                 if event.key() == Qt.Key_Up:
