@@ -1,5 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.162] - 2026-06-05
+
+### Added
+- **Missing Icon Spacing Detection & Auto-fix**:
+  - Implemented a new light-blue warning (`QColor(173, 216, 230, 150)`) for identifying missing spaces adjacent to visible tags (button tags containing parentheses `(...)` or tags with positive widths).
+  - Added new helper functions `is_visible_tag`, `find_missing_icon_spacing_spans`, and `fix_missing_icon_spacing` to `utils/utils.py` to handle the detection and spacing repair.
+  - Enabled the new warning to turn on/off via the project settings dialog under "Detection" and "Auto-fix" tabs (`PROBLEM_MISSING_ICON_SPACING` / short name `"IconSpacing"`).
+  - Integrated the spacing checks into the problem analysis pipelines of all game plugins: `zelda_mc`, `zelda_ww`, `zelda_bmg`, `pokemon_fr`, and `plain_text`.
+  - Integrated the autofix rules for missing icon spacing into the Auto-fix engines of all plugins for both local and project-wide Auto-fix operations.
+  - Added full test coverage for the visibility checks, span extraction, and plugin-specific Auto-fix behaviors in `tests/test_spacing_rules.py`.
+
+### Changed
+- **Adjacent Punctuation Exemption**:
+  - Refined the spacing check rules: punctuation marks (`.`, `,`, `!`, `?`, `-`, `:`, `;`) adjacent to visible tags are now exempt from triggering the missing spacing warning. This ensures that icons/buttons do not merge with words, while keeping the native sentence structure and punctuation flow intact.
+- **Double Space Check Polish**:
+  - Updated `_check_bad_spacing` in the generic problem analyzer to treat visible tags as text placeholder `"X"` rather than stripping them, which prevents false double-space warnings (yellow warning) when spaces are correctly placed on both sides of a physical button.
+
 ## [0.2.161] - 2026-06-04
 
 ### Added

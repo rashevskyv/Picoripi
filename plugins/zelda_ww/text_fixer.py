@@ -3,7 +3,7 @@ from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer
 from .tag_logic import ANY_TAG_PATTERN_WW
 from utils.utils import remove_all_tags
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING
 
 WORD_CHAR_PATTERN_ZWW = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 CLOSING_COLOR_TAG_WW = "[/C]"
@@ -174,4 +174,18 @@ class TextFixer(GenericTextFixer):
         else:
             final_text = modified_text
 
-        return final_text, final_text != original_text
+        changed_missing_spacing = False
+        if allowed_problems is None or PROBLEM_MISSING_ICON_SPACING in allowed_problems:
+            from utils.utils import fix_missing_icon_spacing, is_visible_tag
+            default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+            icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
+            
+            def check_visible(t):
+                return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
+                
+            fixed_spacing_text = fix_missing_icon_spacing(final_text, check_visible)
+            if fixed_spacing_text != final_text:
+                final_text = fixed_spacing_text
+                changed_missing_spacing = True
+
+        return final_text, (final_text != original_text or changed_missing_spacing)

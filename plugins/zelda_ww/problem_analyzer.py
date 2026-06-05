@@ -66,6 +66,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
             if self._check_bad_spacing(subline):
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_BAD_SPACING)
+            if self._check_missing_icon_spacing(subline):
+                problems_per_subline[i].add(self.problem_ids.PROBLEM_MISSING_ICON_SPACING)
             next_subline = sublines[i + 1] if i + 1 < len(sublines) else None
             if next_subline is not None:
                 if self._check_short_line_zww(subline, next_subline, font_map, threshold):

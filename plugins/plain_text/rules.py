@@ -22,7 +22,8 @@ from .config import (
     PROBLEM_SINGLE_WORD_SUBLINE,
     PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
     PROBLEM_EMPTY_FIRST_LINE_OF_PAGE,
-    PROBLEM_BAD_SPACING
+    PROBLEM_BAD_SPACING,
+    PROBLEM_MISSING_ICON_SPACING
 )
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
@@ -38,6 +39,7 @@ class ProblemIDs:
     PROBLEM_SINGLE_WORD_SUBLINE_NON_START = PROBLEM_SINGLE_WORD_SUBLINE_NON_START
     PROBLEM_EMPTY_FIRST_LINE_OF_PAGE = PROBLEM_EMPTY_FIRST_LINE_OF_PAGE
     PROBLEM_BAD_SPACING = PROBLEM_BAD_SPACING
+    PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
 
 
 class GameRules(BaseGameRules):
@@ -129,6 +131,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
         if problem_id == PROBLEM_TAG_WARNING: return "Tag"
         if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
+        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "IconSpacing"
         return super().get_short_problem_name(problem_id)
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:

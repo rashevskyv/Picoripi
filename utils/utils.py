@@ -1,7 +1,7 @@
 import datetime
 import re
 import difflib # Додано
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from .logging_utils import log_debug
 
@@ -47,6 +47,192 @@ def get_active_icon_sequences() -> list:
         pass
     return []
 
+def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional[dict] = None, icon_sequences: Optional[List[str]] = None) -> bool:
+    if tag is None:
+        return False
+    if '(' in tag and ')' in tag:
+        return True
+    
+    if mappings is None:
+        mappings = get_active_tag_mappings()
+    if font_map is None:
+        font_map = get_active_font_map()
+    if icon_sequences is None:
+        icon_sequences = get_active_icon_sequences()
+        
+    if icon_sequences and tag in icon_sequences:
+        return True
+        
+    if font_map and tag in font_map:
+        val = font_map.get(tag)
+        if val is not None:
+            w = val.get("width", 0) if isinstance(val, dict) else int(val)
+            if w > 0:
+                return True
+        
+    width = get_tag_width(tag, mappings, font_map, icon_sequences=icon_sequences)
+    if width > 0:
+        return True
+        
+    if mappings:
+        if tag in mappings:
+            orig = mappings[tag]
+            if orig and '(' in orig and ')' in orig:
+                return True
+        else:
+            for alias, orig in mappings.items():
+                if orig == tag:
+                    if alias and '(' in alias and ')' in alias:
+                        return True
+                    break
+    return False
+
+
+def find_missing_icon_spacing_spans(text: str, is_visible_tag_func) -> List[Tuple[int, int]]:
+    if not text:
+        return []
+    tags = []
+    for match in ALL_TAGS_PATTERN.finditer(text):
+        tags.append((match.start(), match.end(), match.group(0)))
+        
+    tokens = []
+    last_idx = 0
+    
+    def add_non_tag_tokens(start_idx, end_idx):
+        i = start_idx
+        while i < end_idx:
+            ch = text[i]
+            if ch == ' ' or ch == '·':
+                s = i
+                while i < end_idx and (text[i] == ' ' or text[i] == '·'):
+                    i += 1
+                tokens.append({'type': 'space', 'start': s, 'end': i, 'text': text[s:i]})
+            else:
+                s = i
+                while i < end_idx and not (text[i] == ' ' or text[i] == '·'):
+                    i += 1
+                tokens.append({'type': 'text', 'start': s, 'end': i, 'text': text[s:i]})
+                
+    for start, end, tag_str in tags:
+        if start > last_idx:
+            add_non_tag_tokens(last_idx, start)
+        if is_visible_tag_func(tag_str):
+            tokens.append({'type': 'visible_tag', 'start': start, 'end': end, 'text': tag_str})
+        else:
+            tokens.append({'type': 'zero_width_tag', 'start': start, 'end': end, 'text': tag_str})
+        last_idx = end
+        
+    if last_idx < len(text):
+        add_non_tag_tokens(last_idx, len(text))
+        
+    warning_spans = []
+    
+    for i, token in enumerate(tokens):
+        if token['type'] != 'visible_tag':
+            continue
+            
+        need_space_before = False
+        prev_idx = i - 1
+        while prev_idx >= 0 and tokens[prev_idx]['type'] == 'zero_width_tag':
+            prev_idx -= 1
+        if prev_idx >= 0:
+            if tokens[prev_idx]['type'] == 'text':
+                prev_text = tokens[prev_idx]['text']
+                if prev_text and prev_text[-1].isalnum():
+                    need_space_before = True
+                
+        need_space_after = False
+        next_idx = i + 1
+        while next_idx < len(tokens) and tokens[next_idx]['type'] == 'zero_width_tag':
+            next_idx += 1
+        if next_idx < len(tokens):
+            if tokens[next_idx]['type'] == 'text':
+                next_text = tokens[next_idx]['text']
+                if next_text and next_text[0].isalnum():
+                    need_space_after = True
+                
+        if need_space_before or need_space_after:
+            warning_spans.append((token['start'], token['end']))
+            
+    return warning_spans
+
+
+def fix_missing_icon_spacing(text: str, is_visible_tag_func) -> str:
+    if not text:
+        return text
+    lines = text.split('\n')
+    fixed_lines = []
+    for line in lines:
+        tags = []
+        for match in ALL_TAGS_PATTERN.finditer(line):
+            tags.append((match.start(), match.end(), match.group(0)))
+            
+        tokens = []
+        last_idx = 0
+        
+        def add_non_tag_tokens(start_idx, end_idx):
+            i = start_idx
+            while i < end_idx:
+                ch = line[i]
+                if ch == ' ' or ch == '·':
+                    s = i
+                    while i < end_idx and (line[i] == ' ' or line[i] == '·'):
+                        i += 1
+                    tokens.append({'type': 'space', 'text': line[s:i]})
+                else:
+                    s = i
+                    while i < end_idx and not (line[i] == ' ' or line[i] == '·'):
+                        i += 1
+                    tokens.append({'type': 'text', 'text': line[s:i]})
+                    
+        for start, end, tag_str in tags:
+            if start > last_idx:
+                add_non_tag_tokens(last_idx, start)
+            if is_visible_tag_func(tag_str):
+                tokens.append({'type': 'visible_tag', 'text': tag_str})
+            else:
+                tokens.append({'type': 'zero_width_tag', 'text': tag_str})
+            last_idx = end
+            
+        if last_idx < len(line):
+            add_non_tag_tokens(last_idx, len(line))
+            
+        new_tokens = []
+        for i, token in enumerate(tokens):
+            if token['type'] == 'visible_tag':
+                need_space_before = False
+                prev_idx = i - 1
+                while prev_idx >= 0 and tokens[prev_idx]['type'] == 'zero_width_tag':
+                    prev_idx -= 1
+                if prev_idx >= 0:
+                    if tokens[prev_idx]['type'] == 'text':
+                        prev_text = tokens[prev_idx]['text']
+                        if prev_text and prev_text[-1].isalnum():
+                            need_space_before = True
+                        
+                need_space_after = False
+                next_idx = i + 1
+                while next_idx < len(tokens) and tokens[next_idx]['type'] == 'zero_width_tag':
+                    next_idx += 1
+                if next_idx < len(tokens):
+                    if tokens[next_idx]['type'] == 'text':
+                        next_text = tokens[next_idx]['text']
+                        if next_text and next_text[0].isalnum():
+                            need_space_after = True
+                        
+                if need_space_before:
+                    new_tokens.append({'type': 'space', 'text': ' '})
+                new_tokens.append(token)
+                if need_space_after:
+                    new_tokens.append({'type': 'space', 'text': ' '})
+            else:
+                new_tokens.append(token)
+                
+        fixed_lines.append("".join(t['text'] for t in new_tokens))
+        
+    return "\n".join(fixed_lines)
+
+
 def clean_spaces(text: str) -> str:
     if text is None:
         return ""
@@ -66,22 +252,20 @@ def clean_spaces(text: str) -> str:
             if alias.lower().startswith("{f:") and original.startswith("[") and original.endswith("]"):
                 bracket_forced.append(re.escape(original[1:-1]))
 
-    # Scan text for other tags that have non-zero width in the game
+    # Scan text for other tags that have non-zero width or are button tags
     tags_found = ALL_TAGS_PATTERN.findall(text)
     for tag in tags_found:
         if tag.startswith("{") and tag.endswith("}"):
             inner = tag[1:-1]
             if inner.lower().startswith("f:"):
                 continue
-            width = get_tag_width(tag, mappings, font_map, icon_sequences=icon_sequences)
-            if width > 0:
+            if is_visible_tag(tag, mappings, font_map, icon_sequences=icon_sequences):
                 curly_forced.append(re.escape(inner))
         elif tag.startswith("[") and tag.endswith("]"):
             inner = tag[1:-1]
             if inner.lower().startswith("f:"):
                 continue
-            width = get_tag_width(tag, mappings, font_map, icon_sequences=icon_sequences)
-            if width > 0:
+            if is_visible_tag(tag, mappings, font_map, icon_sequences=icon_sequences):
                 bracket_forced.append(re.escape(inner))
 
     curly_lookahead = "|".join(curly_forced)
