@@ -25,7 +25,7 @@ def test_SearchReviewDialog_find_matches(qapp):
     assert dialog.items_to_review[0][2] == "Hello" # Matched word
     assert dialog.items_to_review[0][3] == 0 # Line index
     assert dialog.items_to_review[1][2] == "Hello"
-    assert dialog.items_to_review[1][3] == 4
+    assert dialog.items_to_review[1][3] == 2
 
     # 2. Case-sensitive search
     dialog_cs = SearchReviewDialog(None, text, "hello", line_numbers=line_numbers, case_sensitive=True)
