@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.165] - 2026-06-06
+
+### Fixed
+- **Horizontal Separators inside Multi-line Messages in Advanced Search**:
+  - Fixed a bug where horizontal green separator lines were incorrectly drawn inside multi-line messages (e.g. message 1532 with 11 lines). The logic now uses `custom_message_numbers` to accurately detect the boundaries of message blocks and only draws separators when transitioning to a different message.
+  - Replaced the visual row index `doc_visual_line_index` with the logical `QTextBlock.blockNumber()` inside `LNETPaintEventLogic` to prevent separator misalignment (splitting) when automatic text wrapping is active.
+  - Ensured that the separator line is only drawn beneath the last visual line of a block (`i == layout.lineCount() - 1`).
+
 ## [0.2.164] - 2026-06-05
 
 ### Added

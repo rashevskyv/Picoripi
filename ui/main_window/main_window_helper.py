@@ -191,13 +191,9 @@ class MainWindowHelper:
                                 line_numbers.append(string_idx)
                                 block_indices.append(b_idx)
             else:
-                # If query is empty or effective_query is empty, load all lines in all blocks
-                for b_idx, string_idx, text in all_lines:
-                    text_parts.append(text)
-                    subline_count = text.count('\n') + 1
-                    for _ in range(subline_count):
-                        line_numbers.append(string_idx)
-                        block_indices.append(b_idx)
+                # If query is empty, do not load all lines into the editor initially to prevent freezing.
+                # The dialog will open instantly, and the user can write a query and click Find.
+                pass
 
             if query and not text_parts:
                 QMessageBox.information(self.mw, "Advanced Search", f"No matches found for \"{query}\" in all blocks.")

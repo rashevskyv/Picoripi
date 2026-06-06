@@ -4,7 +4,8 @@ from utils.logging_utils import log_debug
 
 class TextEditEventFilter(QObject):
     def __init__(self, main_window):
-        super().__init__(main_window)
+        parent = main_window if isinstance(main_window, QObject) else None
+        super().__init__(parent)
         self.mw = main_window
 
     def eventFilter(self, obj, event):
