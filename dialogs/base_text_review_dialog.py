@@ -122,7 +122,7 @@ class BaseTextReviewDialog(QDialog):
         if self.line_numbers and len(self.line_numbers) >= line_count:
             text_lines = self.current_text.split('\n')
             text_with_spacing = []
-            new_line_numbers = []  # Updated line_numbers array with spacing
+            new_line_numbers = []  # Updated line_numbers array
             display_line_numbers = []  # Line numbers to display (None for non-first sublines)
             subline_numbers = []  # Subline numbers per string (1, 2, 3...)
 
@@ -132,14 +132,6 @@ class BaseTextReviewDialog(QDialog):
                 current_line_num = self.line_numbers[i]
 
                 if current_line_num != prev_line_num:
-                    # First subline of this string
-                    if prev_line_num is not None:
-                        # Add spacing between strings (empty line)
-                        text_with_spacing.append('')
-                        new_line_numbers.append(None)
-                        display_line_numbers.append(None)
-                        subline_numbers.append(None)
-
                     # Show number only on first subline of string
                     display_line_numbers.append(current_line_num)
                     prev_line_num = current_line_num
@@ -154,7 +146,7 @@ class BaseTextReviewDialog(QDialog):
                 new_line_numbers.append(current_line_num)
                 subline_numbers.append(current_sub_idx)
 
-            # Update current_text and line_numbers to include spacing
+            # Update current_text and line_numbers
             self.current_text = '\n'.join(text_with_spacing)
             self.line_numbers = new_line_numbers
             self.text_edit.setPlainText(self.current_text)
@@ -162,6 +154,7 @@ class BaseTextReviewDialog(QDialog):
             # Set custom line numbers and subline numbers for display
             self.text_edit.custom_line_numbers = display_line_numbers
             self.text_edit.custom_subline_numbers = subline_numbers
+            self.text_edit.custom_message_numbers = new_line_numbers
             
             # Recalculate margins to accommodate potential two columns
             self.text_edit.updateLineNumberAreaWidth(0)

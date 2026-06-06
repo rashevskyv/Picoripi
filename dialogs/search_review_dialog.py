@@ -90,6 +90,25 @@ def prepare_text_for_tagless_search_with_mapping(text: str) -> Tuple[str, List[i
     
     return final_text, final_mapping
 
+def adjust_replacement_case(original: str, replacement: str, match_case: bool) -> str:
+    if not replacement:
+        return replacement
+    # If the user explicitly enters a replacement starting with an uppercase letter,
+    # respect their choice (user's input casing takes priority).
+    if replacement[0].isupper():
+        return replacement
+    if not match_case:
+        return replacement
+    
+    # Check original word casing
+    # An all-uppercase word must have length > 1 to be considered truly all-caps,
+    # otherwise a single letter (like "O" or "I") is treated as capitalized.
+    if len(original) > 1 and original.isupper():
+        return replacement.upper()
+    if original and original[0].isupper():
+        return replacement[0].upper() + replacement[1:] if len(replacement) > 1 else replacement.upper()
+    return replacement
+
 class SearchReviewDialog(BaseTextReviewDialog):
     """Interactive dialog for reviewing search results in a block with a replace option."""
 
@@ -170,6 +189,11 @@ class SearchReviewDialog(BaseTextReviewDialog):
         self.replace_input = QLineEdit()
         self.replace_input.setPlaceholderText("Enter replacement text...")
         layout.addWidget(self.replace_input)
+
+        self.match_case_replace_checkbox = QCheckBox("Match case on replace")
+        self.match_case_replace_checkbox.setToolTip("Preserve the casing of the original word (e.g., 'Word' -> 'Replacement', 'WORD' -> 'REPLACEMENT')")
+        self.match_case_replace_checkbox.setChecked(False)
+        layout.addWidget(self.match_case_replace_checkbox)
 
         # Action buttons
         button_layout = QVBoxLayout()
@@ -429,11 +453,14 @@ class SearchReviewDialog(BaseTextReviewDialog):
         replacement = self.replace_input.text()
         start, end, word, line_idx = self.items_to_review[self.current_item_index]
 
-        self.current_text = self.current_text[:start] + replacement + self.current_text[end:]
+        match_case = self.match_case_replace_checkbox.isChecked()
+        adjusted_replacement = adjust_replacement_case(word, replacement, match_case)
+
+        self.current_text = self.current_text[:start] + adjusted_replacement + self.current_text[end:]
         self.text_edit.setPlainText(self.current_text)
         self._apply_zebra_striping()
 
-        length_diff = len(replacement) - len(word)
+        length_diff = len(adjusted_replacement) - len(word)
         self.items_to_review.pop(self.current_item_index)
         for i in range(self.current_item_index, len(self.items_to_review)):
             s, e, w, l = self.items_to_review[i]
@@ -447,13 +474,15 @@ class SearchReviewDialog(BaseTextReviewDialog):
             return
 
         replacement = self.replace_input.text()
+        match_case = self.match_case_replace_checkbox.isChecked()
         
         # Sort items in reverse order to replace without shifting offsets of previous ones
         sorted_items = sorted(self.items_to_review, key=lambda x: x[0], reverse=True)
         
         temp_text = self.current_text
         for start, end, word, _ in sorted_items:
-            temp_text = temp_text[:start] + replacement + temp_text[end:]
+            adjusted_replacement = adjust_replacement_case(word, replacement, match_case)
+            temp_text = temp_text[:start] + adjusted_replacement + temp_text[end:]
             
         self.current_text = temp_text
         self.text_edit.setPlainText(self.current_text)
@@ -493,18 +522,18 @@ class SearchReviewDialog(BaseTextReviewDialog):
         QPlainTextEdit.mouseDoubleClickEvent(self.text_edit, event)
 
     def perform_search(self):
+        # Save changes from current search view state back to project
+        self.save_changes_to_project()
+
         # Update search parameters from checkboxes
         self.query = self.find_input.text()
         self.case_sensitive = self.case_sensitive_checkbox.isChecked()
         self.is_fuzzy = self.fuzzy_checkbox.isChecked()
-        
-        # If "Original" option changed, we need to rebuild the text!
-        prev_search_in_original = self.search_in_original
         self.search_in_original = self.original_checkbox.isChecked()
         self.ignore_tags = self.no_tags_checkbox.isChecked()
         
-        if self.search_in_original != prev_search_in_original:
-            self.rebuild_text_by_options()
+        # Dynamic search across the entire project
+        self.rebuild_text_from_project()
             
         self.clear_current_item_highlight()
         self.find_matches()
@@ -575,13 +604,6 @@ class SearchReviewDialog(BaseTextReviewDialog):
                 current_pair = (current_block_idx, current_line_num)
 
                 if current_pair != prev_pair:
-                    if prev_pair != (None, None):
-                        text_with_spacing.append('')
-                        new_line_numbers.append(None)
-                        new_block_indices.append(None)
-                        display_line_numbers.append(None)
-                        subline_numbers.append(None)
-
                     display_line_numbers.append(current_line_num)
                     prev_pair = current_pair
                     current_sub_idx = 1
@@ -601,4 +623,149 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
             self.text_edit.custom_line_numbers = display_line_numbers
             self.text_edit.custom_subline_numbers = subline_numbers
+            self.text_edit.custom_message_numbers = new_line_numbers
             self.text_edit.updateLineNumberAreaWidth(0)
+
+    def save_changes_to_project(self):
+        main_window = self._find_main_window()
+        if not main_window or not hasattr(main_window, 'data_store'):
+            return
+
+        corrected_text = self.get_corrected_text()
+        if not corrected_text:
+            return
+            
+        corrected_lines = corrected_text.split('\n')
+        if not self.line_numbers or not self.block_indices:
+            return
+
+        grouped_lines = {}
+        for line_text, s_idx, b_idx in zip(corrected_lines, self.line_numbers, self.block_indices):
+            if s_idx is not None and b_idx is not None:
+                key = (b_idx, s_idx)
+                if key not in grouped_lines:
+                    grouped_lines[key] = []
+                grouped_lines[key].append(line_text)
+
+        edited_data = main_window.data_store.edited_data
+        changes_made = False
+        changed_blocks = set()
+
+        undo_manager = getattr(main_window, "undo_manager", None)
+        if undo_manager:
+            undo_manager.begin_group()
+
+        for (b_idx, string_idx), lines_list in grouped_lines.items():
+            new_text = '\n'.join(lines_list)
+            old_text, _ = main_window.data_processor.get_current_string_text(b_idx, string_idx)
+            if new_text != old_text:
+                key = (b_idx, string_idx)
+                edited_data[key] = new_text
+                changes_made = True
+                changed_blocks.add(b_idx)
+                
+                if b_idx == main_window.data_store.current_block_idx and string_idx == main_window.data_store.current_string_idx:
+                    if hasattr(main_window, 'text_operation_handler'):
+                        main_window.text_operation_handler.sync_subline_asterisks(
+                            b_idx, string_idx, new_text
+                        )
+
+        if undo_manager:
+            undo_manager.end_group()
+
+        if changes_made:
+            for b_idx in changed_blocks:
+                if hasattr(main_window, 'project_manager'):
+                    main_window.project_manager.mark_block_unsaved(b_idx)
+            if hasattr(main_window, 'ui_updater'):
+                main_window.ui_updater.update_text_views()
+                main_window.ui_updater.update_block_list()
+
+    def rebuild_text_from_project(self):
+        main_window = self._find_main_window()
+        if not main_window or not hasattr(main_window, 'data_store') or not main_window.data_store.data:
+            return
+
+        query = self.query
+        case_sensitive = self.case_sensitive
+        search_in_original = self.search_in_original
+        ignore_tags = self.ignore_tags
+        is_fuzzy = self.is_fuzzy
+
+        all_lines = []
+        for b_idx in range(len(main_window.data_store.data)):
+            block_data = main_window.data_store.data[b_idx]
+            if not isinstance(block_data, list):
+                continue
+            for string_idx in range(len(block_data)):
+                if search_in_original:
+                    text = main_window.data_processor._get_string_from_source(
+                        b_idx, string_idx, main_window.data_store.data, "dialog_original"
+                    )
+                else:
+                    text, _ = main_window.data_processor.get_current_string_text(b_idx, string_idx)
+                if text is not None:
+                    all_lines.append((b_idx, string_idx, text))
+
+        text_parts = []
+        line_numbers = []
+        block_indices = []
+        unique_string_indices = []
+
+        import re
+        from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match
+
+        effective_query = query
+        if ignore_tags and query:
+            effective_query = prepare_text_for_tagless_search(query)
+
+        if query and effective_query:
+            if is_fuzzy:
+                word_pattern = re.compile(r'\w+')
+                for b_idx, string_idx, text in all_lines:
+                    if ignore_tags:
+                        text_for_search = prepare_text_for_tagless_search(text)
+                    else:
+                        text_for_search = text.replace('·', ' ')
+
+                    has_match = False
+                    for match in word_pattern.finditer(text_for_search):
+                        word = match.group(0)
+                        if is_fuzzy_match(effective_query, word, threshold=0.75):
+                            has_match = True
+                            break
+                    if has_match:
+                        text_parts.append(text)
+                        pair = (b_idx, string_idx)
+                        if not unique_string_indices or unique_string_indices[-1] != pair:
+                            unique_string_indices.append(pair)
+                        subline_count = text.count('\n') + 1
+                        for _ in range(subline_count):
+                            line_numbers.append(string_idx)
+                            block_indices.append(b_idx)
+            else:
+                compare_query = effective_query if case_sensitive else effective_query.lower()
+                for b_idx, string_idx, text in all_lines:
+                    if ignore_tags:
+                        text_for_search = prepare_text_for_tagless_search(text)
+                    else:
+                        text_for_search = text.replace('·', ' ')
+
+                    compare_text = text_for_search if case_sensitive else text_for_search.lower()
+                    if compare_query in compare_text:
+                        text_parts.append(text)
+                        pair = (b_idx, string_idx)
+                        if not unique_string_indices or unique_string_indices[-1] != pair:
+                            unique_string_indices.append(pair)
+                        subline_count = text.count('\n') + 1
+                        for _ in range(subline_count):
+                            line_numbers.append(string_idx)
+                            block_indices.append(b_idx)
+
+        self.unique_string_indices = unique_string_indices
+        self.current_text = '\n'.join(text_parts)
+        self.line_numbers = line_numbers
+        self.block_indices = block_indices
+        
+        self._process_text_spacing_and_line_numbers()
+        self._apply_zebra_striping()

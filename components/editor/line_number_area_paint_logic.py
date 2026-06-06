@@ -1,8 +1,9 @@
-from PyQt5.QtGui import QPainter, QColor
+from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtWidgets import QMainWindow, QTextEdit
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
+from .constants import PAIR_SEPARATOR_LINE_COLOR, PAIR_SEPARATOR_LINE_STYLE, PAIR_SEPARATOR_LINE_THICKNESS
 
 class LNETLineNumberAreaPaintLogic:
 
@@ -45,8 +46,9 @@ class LNETLineNumberAreaPaintLogic:
             current_q_block = self.editor.firstVisibleBlock()
             current_q_block_number_in_editor_doc = current_q_block.blockNumber()
             viewport_offset = self.editor.contentOffset()
-            top = int(self.editor.blockBoundingGeometry(current_q_block).translated(viewport_offset).top())
-            bottom = top + int(self.editor.blockBoundingRect(current_q_block).height())
+            block_rect = self.editor.blockBoundingGeometry(current_q_block).translated(viewport_offset)
+            top = int(block_rect.top())
+            bottom = int(block_rect.bottom())
 
             painter.setFont(self.editor.font())
 
@@ -95,13 +97,15 @@ class LNETLineNumberAreaPaintLogic:
                     # String-level zebra (left column in review mode)
                     bg_color_string_zebra = bg_color_subline_zebra
                     if is_dual_column:
-                        if current_q_block_number_in_editor_doc < len(self.editor.custom_line_numbers):
-                            snum = self.editor.custom_line_numbers[current_q_block_number_in_editor_doc]
-                            if snum is not None:
-                                color_idx = string_color_map.get(snum, 0)
-                                bg_color_string_zebra = odd_bg_color_const if color_idx != 0 else even_bg_color_const
-                            else:
-                                bg_color_string_zebra = even_bg_color_const # Spacer lines white
+                        if hasattr(self.editor, 'custom_message_numbers') and self.editor.custom_message_numbers:
+                            if current_q_block_number_in_editor_doc < len(self.editor.custom_message_numbers):
+                                snum = self.editor.custom_message_numbers[current_q_block_number_in_editor_doc]
+                                if snum is not None:
+                                    color_idx = string_color_map.get(snum, 0)
+                                    bg_color_string_zebra = odd_bg_color_const if color_idx != 0 else even_bg_color_const
+                                else:
+                                    bg_color_string_zebra = even_bg_color_const # Spacer lines white
+                        bg_color_subline_zebra = bg_color_string_zebra
 
                     bg_color_number_area = bg_color_subline_zebra
                     bg_color_extra_info_area = bg_color_number_area
@@ -271,10 +275,60 @@ class LNETLineNumberAreaPaintLogic:
                                         if s_x + s_w > indicator_x_start + 15:
                                             break
 
+                    # Draw separator line in LineNumberArea to match the text viewport separator
+                    draw_separator = False
+                    if not is_preview and is_dual_column:
+                        if hasattr(self.editor, 'custom_message_numbers') and self.editor.custom_message_numbers:
+                            if current_q_block_number_in_editor_doc < len(self.editor.custom_message_numbers):
+                                msg_num = self.editor.custom_message_numbers[current_q_block_number_in_editor_doc]
+                                if msg_num is not None:
+                                    next_idx = current_q_block_number_in_editor_doc + 1
+                                    is_last = (next_idx >= len(self.editor.custom_message_numbers))
+                                    if is_last:
+                                        draw_separator = True
+                                    else:
+                                        next_msg_num = self.editor.custom_message_numbers[next_idx]
+                                        if next_msg_num != msg_num:
+                                            draw_separator = True
+                        elif hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers:
+                            if current_q_block_number_in_editor_doc < len(self.editor.custom_line_numbers):
+                                subline_num = None
+                                if hasattr(self.editor, 'custom_subline_numbers') and self.editor.custom_subline_numbers:
+                                    if current_q_block_number_in_editor_doc < len(self.editor.custom_subline_numbers):
+                                        subline_num = self.editor.custom_subline_numbers[current_q_block_number_in_editor_doc]
+                                
+                                if subline_num is not None:
+                                    next_idx = current_q_block_number_in_editor_doc + 1
+                                    is_last = (next_idx >= len(self.editor.custom_line_numbers))
+                                    if is_last:
+                                        draw_separator = True
+                                    else:
+                                        next_subline_num = None
+                                        if hasattr(self.editor, 'custom_subline_numbers') and self.editor.custom_subline_numbers:
+                                            if next_idx < len(self.editor.custom_subline_numbers):
+                                                next_subline_num = self.editor.custom_subline_numbers[next_idx]
+                                        if next_subline_num == 1 or next_subline_num is None:
+                                            draw_separator = True
+
+                    if draw_separator:
+                        layout = current_q_block.layout()
+                        line_bottom_y = float(bottom)
+                        if layout and layout.lineCount() > 0:
+                            line = layout.lineAt(layout.lineCount() - 1)
+                            if line.isValid():
+                                line_bottom_y = block_rect.top() + line.rect().bottom()
+
+                        pen_lines = QPen(PAIR_SEPARATOR_LINE_COLOR)
+                        pen_lines.setStyle(PAIR_SEPARATOR_LINE_STYLE)
+                        pen_lines.setWidth(PAIR_SEPARATOR_LINE_THICKNESS)
+                        painter.setPen(pen_lines)
+                        painter.drawLine(0, int(line_bottom_y), total_area_width, int(line_bottom_y))
+
                 current_q_block = current_q_block.next()
-                top = bottom
                 if current_q_block.isValid():
-                    bottom = top + int(self.editor.blockBoundingRect(current_q_block).height())
+                    block_rect = self.editor.blockBoundingGeometry(current_q_block).translated(viewport_offset)
+                    top = int(block_rect.top())
+                    bottom = int(block_rect.bottom())
                 current_q_block_number_in_editor_doc += 1
         except Exception as e:
             from utils.logging_utils import log_error

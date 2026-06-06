@@ -20,12 +20,7 @@ class LNETPaintEventLogic:
         block = self.editor.firstVisibleBlock()
         viewport_offset = self.editor.contentOffset()
         
-        doc_visual_line_index = 0
-        temp_block = self.editor.document().firstBlock()
-        while temp_block.isValid() and temp_block != block:
-            if temp_block.layout():
-                doc_visual_line_index += temp_block.layout().lineCount()
-            temp_block = temp_block.next()
+
 
         main_window = self.editor.window()
         page_size = 4  # Default
@@ -96,20 +91,42 @@ class LNETPaintEventLogic:
                     # Check if we should draw separator line
                     draw_separator = False
                     if not is_preview:
-                        if hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers:
-                            # In Review Dialog: Draw separator AFTER a block that has a custom number, 
-                            # ONLY if the next block is a spacer (None)
-                            if doc_visual_line_index < len(self.editor.custom_line_numbers):
-                                current_custom_num = self.editor.custom_line_numbers[doc_visual_line_index]
-                                if current_custom_num is not None:
-                                    next_idx = doc_visual_line_index + 1
-                                    if next_idx < len(self.editor.custom_line_numbers):
-                                        if self.editor.custom_line_numbers[next_idx] is None:
+                        if i == layout.lineCount() - 1:
+                            current_block_num = block.blockNumber()
+                            if hasattr(self.editor, 'custom_message_numbers') and self.editor.custom_message_numbers:
+                                if current_block_num < len(self.editor.custom_message_numbers):
+                                    msg_num = self.editor.custom_message_numbers[current_block_num]
+                                    if msg_num is not None:
+                                        next_idx = current_block_num + 1
+                                        is_last = (next_idx >= len(self.editor.custom_message_numbers))
+                                        if is_last:
                                             draw_separator = True
-                        else:
-                            # Default behavior: draw line every page_size logical blocks (lines)
-                            if i == layout.lineCount() - 1:
-                                if (block.blockNumber() + 1) % page_size == 0:
+                                        else:
+                                            next_msg_num = self.editor.custom_message_numbers[next_idx]
+                                            if next_msg_num != msg_num:
+                                                draw_separator = True
+                            elif hasattr(self.editor, 'custom_line_numbers') and self.editor.custom_line_numbers:
+                                if current_block_num < len(self.editor.custom_line_numbers):
+                                    subline_num = None
+                                    if hasattr(self.editor, 'custom_subline_numbers') and self.editor.custom_subline_numbers:
+                                        if current_block_num < len(self.editor.custom_subline_numbers):
+                                            subline_num = self.editor.custom_subline_numbers[current_block_num]
+                                    
+                                    if subline_num is not None:
+                                        next_idx = current_block_num + 1
+                                        is_last = (next_idx >= len(self.editor.custom_line_numbers))
+                                        if is_last:
+                                            draw_separator = True
+                                        else:
+                                            next_subline_num = None
+                                            if hasattr(self.editor, 'custom_subline_numbers') and self.editor.custom_subline_numbers:
+                                                if next_idx < len(self.editor.custom_subline_numbers):
+                                                    next_subline_num = self.editor.custom_subline_numbers[next_idx]
+                                            if next_subline_num == 1 or next_subline_num is None:
+                                                draw_separator = True
+                            else:
+                                # Default behavior: draw line every page_size logical blocks (lines)
+                                if (current_block_num + 1) % page_size == 0:
                                     draw_separator = True
 
                     if draw_separator:
@@ -127,7 +144,6 @@ class LNETPaintEventLogic:
                                     self.editor.viewport().width(),
                                     int(line_bottom_y_in_viewport)
                                 )
-                    doc_visual_line_index += 1
 
             # Draw dynamic line width guidelines if enabled
             if draw_guidelines and layout.lineCount() > 0:

@@ -1466,40 +1466,50 @@ class MainWindowActions:
 
 
     def run_external_script(self):
-        """Run configured external script (e.g. ROM builder / emulator) using ScriptRunnerDialog"""
+        """Asynchronously run configured external script (e.g. ROM builder / emulator)"""
+        import subprocess
         from PyQt5.QtWidgets import QMessageBox
-        
+        from pathlib import Path
+        import os
+
         script_path = getattr(self.mw, 'external_script_path', "").strip()
         if not script_path:
             QMessageBox.warning(
                 self.mw,
-                "Run External Script",
-                "No external script configured.\nPlease configure it in Settings -> Global tab."
+                "Run External Tool/Script",
+                "No script or tool path configured.\n\nPlease go to Project -> Settings -> Global and set the path."
             )
             return
 
         path_obj = Path(script_path)
-        if not path_obj.exists():
+        if not path_obj.exists() or not path_obj.is_file():
             QMessageBox.critical(
                 self.mw,
-                "Run External Script",
-                f"Configured script path does not exist:\n{script_path}"
+                "Run External Tool/Script",
+                f"Configured script path does not exist or is not a file:\n{script_path}"
             )
             return
 
         try:
-            from dialogs.script_runner_dialog import ScriptRunnerDialog
-            dialog = ScriptRunnerDialog(self.mw, str(path_obj.resolve()))
-            dialog.exec_()
-            
+            cwd = path_obj.parent.as_posix()
+            creationflags = 0
+            if os.name == 'nt':
+                creationflags = 0x00000010  # CREATE_NEW_CONSOLE
+
+            is_batch = path_obj.suffix.lower() in ('.bat', '.cmd')
+            subprocess.Popen(
+                [str(path_obj.resolve())] if not is_batch else str(path_obj.resolve()),
+                cwd=cwd,
+                shell=is_batch,
+                creationflags=creationflags
+            )
             if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                self.mw.statusBar.showMessage(f"Finished script: {path_obj.name}", 3000)
-                
+                self.mw.statusBar.showMessage(f"Started script: {path_obj.name}", 3000)
         except Exception as e:
             QMessageBox.critical(
                 self.mw,
                 "Run External Script Error",
-                f"Failed to execute script:\n{e}"
+                f"Failed to start script:\n{e}"
             )
 
                 
