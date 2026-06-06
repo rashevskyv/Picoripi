@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.166] - 2026-06-06
+
+### Fixed
+- **Search Review Dialog Unit Test Alignment**:
+  - Updated the expected match line indices inside `test_SearchReviewDialog_find_matches` unit test to reflect the removal of artificial blank spacers. The second match now correctly evaluates to line index `2` instead of `4`.
+
 ## [0.2.165] - 2026-06-06
 
 ### Fixed
