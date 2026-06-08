@@ -320,14 +320,17 @@ def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_same_string(h
     
     handler._get_displayed_indices = MagicMock(return_value=[0, 1, 2])
     
-    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_single_shot:
-        handler.toggle_show_overrides_only(False)
-        
-        assert handler.mw.data_store.show_overrides_only is False
-        handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
-        handler.mw.preview_text_edit.set_selected_lines.assert_called_with([2])
-        mock_single_shot.assert_called_once()
-        assert handler._saved_approx_visible_lines == 0
+    mock_scroll = MagicMock()
+    handler.mw.preview_text_edit.verticalScrollBar = MagicMock(return_value=mock_scroll)
+    
+    handler.toggle_show_overrides_only(False)
+    
+    assert handler.mw.data_store.show_overrides_only is False
+    handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    handler.mw.preview_text_edit.set_selected_lines.assert_called_with([2])
+    mock_scroll.setValue.assert_called_with(120)
+    assert handler._saved_approx_visible_lines == 0
+
 
 def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_different_string(handler):
     handler._saved_scrollbar_value = 120

@@ -933,11 +933,20 @@ class ListSelectionHandler(BaseHandler):
                 self._saved_approx_visible_lines = int(self._saved_scrollbar_value / line_height) + 50
             else:
                 self._saved_approx_visible_lines = 0
-
         self.mw.data_store.show_overrides_only = checked
-        if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
-
+        
+        preview_updater = getattr(self.ui_updater, 'preview_updater', None)
+        if preview_updater:
+            preview_updater._keep_progress_dialog_open = True
+            preview_updater._load_fully_synchronously = True
+            
+        try:
+            if self.mw.data_store.current_block_idx != -1:
+                self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        finally:
+            if preview_updater:
+                preview_updater._load_fully_synchronously = False
+ 
         if not checked:
             current_idx = self.mw.data_store.current_string_idx
             saved_idx = getattr(self, '_saved_string_idx', -1)
@@ -952,12 +961,24 @@ class ListSelectionHandler(BaseHandler):
                         self.mw.preview_text_edit.set_selected_lines([rel_idx])
                     
                     saved_val = getattr(self, '_saved_scrollbar_value', 0)
-                    QTimer.singleShot(10, lambda: self.mw.preview_text_edit.verticalScrollBar().setValue(saved_val))
+                    self.mw.preview_text_edit.verticalScrollBar().setValue(saved_val)
+                    from PyQt5.QtWidgets import QApplication
+                    QApplication.processEvents()
             else:
                 if current_idx != -1:
                     self.scroll_to_current_string_in_preview()
+                    from PyQt5.QtWidgets import QApplication
+                    QApplication.processEvents()
             
             self._saved_approx_visible_lines = 0
+
+        # Close progress dialog after layout and scrolling are fully completed
+        if preview_updater:
+            preview_updater._keep_progress_dialog_open = False
+            if hasattr(preview_updater, '_active_progress_dialog') and preview_updater._active_progress_dialog:
+                preview_updater._active_progress_dialog.close()
+                preview_updater._active_progress_dialog = None
+
 
     def toggle_hide_original_tags(self, checked: bool) -> None:
         """Toggle hiding of tags in the original text edit."""

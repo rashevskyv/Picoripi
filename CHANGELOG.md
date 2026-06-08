@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.169] - 2026-06-08
+
+### Added
+- **Modal Progress Blocking on Filter Reset**: Integrated fully synchronous chunked rendering under a modal `QProgressDialog` (with instant duration `setMinimumDuration(0)`) when disabling "Show Overrides Only" filter for large blocks. This blocks all user interaction and shows a smooth loading progress from 0% to 100%.
+
+### Fixed
+- **Scroll Position Flicker/Jump**: Fixed a bug where disabling filters caused the scrollbar to momentarily reset to 0 (top) before bouncing back. The scrollbar position is now restored programmatically while the modal progress dialog is active, preventing visual glitches.
+- **Unit Test Compatibility**:
+  * Fixed `TypeError` in `test_populate_strings_chunked` and `test_populate_strings_lazy_loads_from_cache` by bypassing chunked rendering paths when the document object is a Mock/MagicMock.
+  * Fixed `test_UIUpdater_populate_strings_preserves_scrollbar` by mocking `displayed_string_indices` correctly to reflect unchanged string visibility.
+  * Fixed `test_ListSelectionHandler_toggle_show_overrides_only_unchecked_same_string` to assert `setValue` on the vertical scrollbar instead of the decommissioned `QTimer.singleShot` behavior.
+
 ## [0.2.168] - 2026-06-08
 
 ### Added

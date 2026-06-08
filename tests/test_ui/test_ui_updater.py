@@ -695,13 +695,15 @@ def test_UIUpdater_populate_strings_preserves_scrollbar(mock_hl, mock_ut, update
     updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
     
     mock_mw.current_string_idx = 1
-    mock_mw.displayed_string_indices = []
+    mock_mw.displayed_string_indices = [0, 1, 2]
+    mock_mw.data_store.displayed_string_indices = [0, 1, 2]
     
     # Pre-set last populated block to make block_changed = False
     updater.preview_updater._last_populated_block_idx = 0
     updater.preview_updater._last_populated_category_name = None
     
     updater.populate_strings_for_block(0, force=True)
+
     
     # Verify scrollbar value was preserved and set back to 42
     mock_scroll.setValue.assert_called_with(42)
