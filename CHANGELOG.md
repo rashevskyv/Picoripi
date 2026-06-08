@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.168] - 2026-06-08
+
+### Added
+- **Preview Cache Key Filter Sensitivity**: Expanded `PreviewUpdater.get_cache_key` to a 6-tuple key `(block_idx, category_name, show_overrides, hide_trans, hide_cat, hide_empty)` so that different filter settings (such as "Show Overrides Only") cache their filtered lines separately.
+- **Cache Synchronization on Text Edit & Revert**: Added `PreviewUpdater.update_cached_string` to automatically synchronize edited and reverted string preview lines across all cached filter configurations of the same block, preventing stale preview text after toggling checkboxes.
+- **Lazy Loading for Cached Blocks**: Integrated lazy loading for cache hits where the number of lines is large. Rather than setting the entire text synchronously (which freezes the UI layout thread), the first 200 lines are set instantly and the rest are loaded incrementally using the background timer.
+- **Background Timer Cache Reuse**: Optimized `_load_next_preview_chunk` to directly fetch ready preview strings from the cache when available, avoiding redundant text representation calculations.
+
+### Fixed
+- **Pre-Cache Unit Test Alignment**: Fixed the mock window data store in `test_PreviewUpdater_pre_cache_all_blocks` unit test inside `tests/test_ui/test_ui_updater.py` by initializing filter boolean flags to prevent MagicMock attribute lookup errors during assertions on the new 6-tuple keys.
+
 ## [0.2.167] - 2026-06-08
 
 ### Fixed

@@ -830,5 +830,16 @@ Ale "як у дорослих" — це передусім **відкорект�
 - **Адаптація юніт-тестів**:
   - Скориговано тестові сценарії `test_update_string_settings_panel_default_meta` та `test_update_string_settings_panel_custom_width` у `test_small_updaters.py`, переорієнтувавши перевірки `setStyleSheet` безпосередньо на віджет `width_spinbox` відповідно до змін у коді.
 
+### Оновлення: v0.2.168 (2026-06-08)
+В рамках версії `v0.2.168` реалізовано:
+- **Оптимізація кешу прев'ю та ледачого завантаження**:
+  - Розширено метод розрахунку ключів кешу прев'ю `get_cache_key` у `PreviewUpdater` до 6-компонентного кортежу `(block_idx, category_name, show_overrides, hide_trans, hide_cat, hide_empty)`. Це дозволяє кешувати різні відфільтровані представлення паралельно.
+  - Реалізовано ледаче завантаження з кешу у `populate_strings_for_block`: для великих блоків (> 200 рядків) спочатку відображаються лише перші 200 рядків, а решта довантажується фоновим таймером. Це прибрало синхронний лаг Qt на методі `setPlainText()` при знятті фільтрації.
+  - Оптимізовано `_load_next_preview_chunk` для зчитування готових текстових представлень безпосередньо з кешу без повторних розрахунків.
+  - Додано метод `update_cached_string` у `PreviewUpdater` для автоматичної синхронізації змін ліній у всіх закешованих представленнях блоку при редагуванні (таймер debounce) та відкаті (`revert_strings_to_original`).
+- **Юніт-тести**:
+  - Скориговано `test_PreviewUpdater_pre_cache_all_blocks` у `test_ui_updater.py` для ініціалізації мокових значень фільтрів та перевірки нових 6-компонентних ключів.
+  - Додано нові тести `test_update_cached_string` та `test_populate_strings_lazy_loads_from_cache` у `test_small_updaters.py`.
+
 
 

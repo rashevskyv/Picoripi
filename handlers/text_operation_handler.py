@@ -110,11 +110,7 @@ class TextOperationHandler(BaseHandler):
                     # Update cache
                     preview_updater = getattr(self.ui_updater, 'preview_updater', None)
                     if preview_updater and hasattr(preview_updater, '_preview_cache'):
-                        cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
-                        if cache_key in preview_updater._preview_cache:
-                            cache = preview_updater._preview_cache[cache_key]
-                            if 0 <= preview_idx < len(cache['lines']):
-                                cache['lines'][preview_idx] = preview_line_text
+                        preview_updater.update_cached_string(block_idx, current_string_idx, preview_line_text)
             else:
                 # Fallback to full update (same as before)
                 preview_lines = []
@@ -131,7 +127,7 @@ class TextOperationHandler(BaseHandler):
                 # Update cache
                 preview_updater = getattr(self.ui_updater, 'preview_updater', None)
                 if preview_updater and hasattr(preview_updater, '_preview_cache'):
-                    cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                    cache_key = preview_updater.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
                     preview_updater._preview_cache[cache_key] = {
                         'lines': preview_lines,
                         'next_index': len(target_indices),

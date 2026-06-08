@@ -518,6 +518,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
              self.setUndoRedoEnabled(False)
     def lineNumberAreaWidth(self):
         total_blocks = self.override_total_lines if self.override_total_lines is not None else self.blockCount()
+        if hasattr(self, 'custom_line_numbers') and self.custom_line_numbers:
+            max_num = max((v for v in self.custom_line_numbers if v is not None), default=1)
+            total_blocks = max(total_blocks, max_num)
         digits = 1; max_val = max(1, total_blocks)
         while max_val >= 10: max_val //= 10; digits += 1
         

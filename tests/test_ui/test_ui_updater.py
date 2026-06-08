@@ -710,6 +710,10 @@ def test_UIUpdater_populate_strings_preserves_scrollbar(mock_hl, mock_ut, update
 def test_PreviewUpdater_pre_cache_all_blocks(updater, mock_mw):
     from unittest.mock import patch
     mock_mw.data_store.data = [["s1", "s2"], ["s3"]]
+    mock_mw.data_store.show_overrides_only = False
+    mock_mw.data_store.hide_translated = False
+    mock_mw.data_store.hide_categorized = False
+    mock_mw.data_store.hide_empty_strings = False
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
     
@@ -723,13 +727,13 @@ def test_PreviewUpdater_pre_cache_all_blocks(updater, mock_mw):
         updater.preview_updater.pre_cache_all_blocks()
         
         cache = updater.preview_updater._preview_cache
-        assert (0, None) in cache
-        assert (1, None) in cache
+        assert (0, None, False, False, False, False) in cache
+        assert (1, None, False, False, False, False) in cache
         
-        assert cache[(0, None)]['lines'] == ["p_t_0_0", "p_t_0_1"]
-        assert cache[(1, None)]['lines'] == ["p_t_1_0"]
-        assert cache[(0, None)]['next_index'] == 2
-        assert cache[(1, None)]['next_index'] == 1
+        assert cache[(0, None, False, False, False, False)]['lines'] == ["p_t_0_0", "p_t_0_1"]
+        assert cache[(1, None, False, False, False, False)]['lines'] == ["p_t_1_0"]
+        assert cache[(0, None, False, False, False, False)]['next_index'] == 2
+        assert cache[(1, None, False, False, False, False)]['next_index'] == 1
         
         mock_dialog_instance.close.assert_called()
 

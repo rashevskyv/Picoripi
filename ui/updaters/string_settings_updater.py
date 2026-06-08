@@ -193,3 +193,11 @@ class StringSettingsUpdater(BaseUIUpdater):
             self.mw.width_spinbox.setStyleSheet("")
         self.mw.width_spinbox.blockSignals(False)
         self.mw.apply_width_button.setEnabled(False)
+
+        # Update visibility of the Show Overrides Only checkbox dynamically when settings panel updates
+        if hasattr(self.mw, 'show_overrides_only_checkbox') and hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
+            preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
+            if preview_updater and hasattr(preview_updater, '_block_has_overrides'):
+                show_overrides_only = getattr(self.mw.data_store, 'show_overrides_only', False)
+                show_overrides_toggle = show_overrides_only or preview_updater._block_has_overrides(block_idx)
+                self.mw.show_overrides_only_checkbox.setVisible(show_overrides_toggle)

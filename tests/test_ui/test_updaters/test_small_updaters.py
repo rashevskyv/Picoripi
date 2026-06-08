@@ -339,4 +339,235 @@ class TestPreviewUpdater:
         assert updater.mw.data_store.displayed_string_indices == expected_indices
         assert updater._placeholder_texts[6] == "[6-8] 3 empty line(s)"
 
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_show_overrides_only(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 3
+        updater.mw.preview_text_edit = preview_edit
+        
+        updater.mw.data_store.data = [["line0", "line1", "line2"]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.data_store.show_overrides_only = True
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+
+        # Setup string_metadata: line 1 has custom width, line 2 has custom font, line 0 is default
+        updater.mw.default_font_file = "default_font.bfn"
+        updater.mw.game_dialog_max_width_pixels = 200
+        
+        # Meta dictionary
+        updater.mw.string_metadata = {
+            (0, 0): {},                                      # Default
+            (0, 1): {"width": 150},                           # Custom width
+            (0, 2): {"font_file": "custom_font.bfn"}          # Custom font
+        }
+
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
+
+        updater.populate_strings_for_block(0, force=True)
+
+        # Only line 1 and 2 should be displayed (indices 1 and 2)
+        assert updater.mw.data_store.displayed_string_indices == [1, 2]
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_show_overrides_only_checkbox_visibility(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 3
+        updater.mw.preview_text_edit = preview_edit
+        
+        # Add checkbox mock
+        checkbox = MagicMock()
+        updater.mw.show_overrides_only_checkbox = checkbox
+        
+        updater.mw.data_store.data = [["line0", "line1", "line2"]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+        updater.mw.default_font_file = "default_font.bfn"
+        updater.mw.game_dialog_max_width_pixels = 200
+
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
+
+        # Case 1: No overrides, filter is False -> Should hide checkbox
+        updater.mw.data_store.show_overrides_only = False
+        updater.mw.string_metadata = {}
+        updater.populate_strings_for_block(0, force=True)
+        checkbox.setVisible.assert_called_with(False)
+
+        # Case 2: Has overrides, filter is False -> Should show checkbox
+        checkbox.reset_mock()
+        updater.mw.string_metadata = {
+            (0, 1): {"width": 150}
+        }
+        updater.populate_strings_for_block(0, force=True)
+        checkbox.setVisible.assert_called_with(True)
+
+        # Case 3: No overrides, filter is True -> Should show checkbox
+        checkbox.reset_mock()
+        updater.mw.string_metadata = {}
+        updater.mw.data_store.show_overrides_only = True
+        updater.populate_strings_for_block(0, force=True)
+        checkbox.setVisible.assert_called_with(True)
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_custom_line_numbers_gutter(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 2
+        updater.mw.preview_text_edit = preview_edit
+        
+        updater.mw.data_store.data = [["line0", "line1", "line2"]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.data_store.show_overrides_only = True
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+        updater.mw.default_font_file = "default_font.bfn"
+        updater.mw.game_dialog_max_width_pixels = 200
+
+        updater.mw.string_metadata = {
+            (0, 0): {},
+            (0, 1): {"width": 150},
+            (0, 2): {"font_file": "custom_font.bfn"}
+        }
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
+
+        updater.populate_strings_for_block(0, force=True)
+
+        assert preview_edit.custom_line_numbers == [2, 3]
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_custom_line_numbers_with_streak(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 5
+        updater.mw.preview_text_edit = preview_edit
+        
+        updater.mw.data_store.data = [["line" + str(i) for i in range(7)]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.data_store.hide_empty_strings = True
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+
+        def get_text_side_effect(b_idx, r_idx):
+            is_empty = r_idx in [1, 2, 3]
+            txt = "" if is_empty else f"line{r_idx}"
+            return (txt, None)
+
+        mock_dp.get_current_string_text.side_effect = get_text_side_effect
+        mock_dp._get_string_from_source.side_effect = lambda b, s, d, mode: get_text_side_effect(b, s)[0]
+
+        updater.populate_strings_for_block(0, force=True)
+
+        assert preview_edit.custom_line_numbers == [1, None, 5, 6, 7]
+
+    @patch('PyQt5.QtWidgets.QProgressDialog')
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_shows_progress_dialog(self, mock_hl, mock_ut, mock_progress, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 200
+        updater.mw.preview_text_edit = preview_edit
+        
+        updater.mw.data_store.data = [["line" + str(i) for i in range(200)]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
+
+        progress_instance = MagicMock()
+        progress_instance.wasCanceled.return_value = False
+        mock_progress.return_value = progress_instance
+
+        updater.populate_strings_for_block(0, force=True)
+
+        assert mock_progress.called
+        assert progress_instance.setValue.called
+        assert progress_instance.close.called
+
+    def test_update_cached_string(self, updater):
+        # Setup cache with a block having two different filter configurations
+        key1 = (0, None, False, False, False, False)
+        key2 = (0, None, True, False, False, False)
+        
+        updater._preview_cache = {
+            key1: {
+                'lines': ["line0", "line1", "line2"],
+                'target_indices': [0, 1, 2],
+                'next_index': 3
+            },
+            key2: {
+                'lines': ["line1", "line2"],
+                'target_indices': [1, 2],
+                'next_index': 2
+            }
+        }
+        
+        # Update string index 1 with new text
+        updater.update_cached_string(0, 1, "new_line1")
+        
+        # Verify both cache entries are updated
+        assert updater._preview_cache[key1]['lines'] == ["line0", "new_line1", "line2"]
+        assert updater._preview_cache[key2]['lines'] == ["new_line1", "line2"]
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_lazy_loads_from_cache(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 250
+        updater.mw.preview_text_edit = preview_edit
+        
+        # Setup data
+        updater.mw.data_store.data = [["line" + str(i) for i in range(250)]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+        
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
+        
+        # Pre-populate cache
+        key = (0, None, False, False, False, False)
+        cached_lines = [f"line{i}" for i in range(250)]
+        updater._preview_cache = {
+            key: {
+                'lines': cached_lines,
+                'target_indices': list(range(250)),
+                'next_index': 250
+            }
+        }
+        
+        # Mock timer
+        timer_mock = MagicMock()
+        updater._lazy_load_timer = timer_mock
+        
+        # Trigger population
+        updater.populate_strings_for_block(0)
+        
+        # Since use_cache is True and len > initial_chunk_size (200), it should start the lazy load timer
+        assert timer_mock.start.called
+        # The text set in plain text edit should have only first 200 lines and the rest should be empty strings
+        set_text_call = preview_edit.setPlainText.call_args[0][0]
+        lines_set = set_text_call.split('\n')
+        assert len(lines_set) == 250
+        assert lines_set[0] == "line0"
+        assert lines_set[199] == "line199"
+        assert lines_set[200] == ""
+        assert lines_set[249] == ""
+
+
+
 

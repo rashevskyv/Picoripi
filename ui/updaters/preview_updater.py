@@ -10,6 +10,54 @@ class PreviewUpdater(BaseUIUpdater):
         super().__init__(main_window, data_processor)
         self._preview_cache = {}
 
+    def get_cache_key(self, block_idx: int, category_name: Optional[str]) -> tuple:
+        show_overrides = getattr(self.mw.data_store, 'show_overrides_only', False)
+        hide_trans = getattr(self.mw.data_store, 'hide_translated', False)
+        hide_cat = getattr(self.mw.data_store, 'hide_categorized', False)
+        hide_empty = getattr(self.mw.data_store, 'hide_empty_strings', False)
+        return (block_idx, category_name, show_overrides, hide_trans, hide_cat, hide_empty)
+
+    def update_cached_string(self, block_idx: int, string_idx: int, preview_line_text: str) -> None:
+        """Update the preview text of a specific string in all cache entries for the given block."""
+        is_chapter = (block_idx == -2)
+        target_item = (block_idx, string_idx) if is_chapter else string_idx
+        for key, cache in list(self._preview_cache.items()):
+            if key[0] == block_idx:
+                target_indices = cache.get('target_indices', [])
+                if target_item in target_indices:
+                    try:
+                        cache_idx = target_indices.index(target_item)
+                        if 0 <= cache_idx < len(cache['lines']):
+                            cache['lines'][cache_idx] = preview_line_text
+                    except ValueError:
+                        pass
+
+    def _block_has_overrides(self, block_idx: int) -> bool:
+        if block_idx == -1:
+            return False
+        default_font = getattr(self.mw, 'default_font_file', None)
+        max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
+        
+        is_chapter = (block_idx == -2)
+        if is_chapter:
+            target_indices = getattr(self.mw.data_store, 'chapter_mappings', [])
+        else:
+            for (b_idx, s_idx), meta in self.mw.string_metadata.items():
+                if b_idx == block_idx:
+                    has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
+                    has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
+                    if has_font or has_width:
+                        return True
+            return False
+
+        for b_idx, s_idx in target_indices:
+            meta = self.mw.string_metadata.get((b_idx, s_idx), {})
+            has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
+            has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
+            if has_font or has_width:
+                return True
+        return False
+
     def schedule_pre_cache(self):
         """Schedule pre-caching of preview lines to avoid blocking startup with a blank window."""
         from PyQt5.QtWidgets import QApplication
@@ -60,7 +108,7 @@ class PreviewUpdater(BaseUIUpdater):
                     preview_line_text = str(text_for_preview_raw)
                 preview_lines.append(preview_line_text)
 
-            cache_key = (block_idx, None)
+            cache_key = self.get_cache_key(block_idx, None)
             self._preview_cache[cache_key] = {
                 'lines': preview_lines,
                 'next_index': len(target_indices),
@@ -301,6 +349,14 @@ class PreviewUpdater(BaseUIUpdater):
         if hasattr(self.mw, 'hide_categorized_checkbox'):
             self.mw.hide_categorized_checkbox.setVisible(show_cat_toggles)
 
+        # Show "Show Overrides Only" checkbox only if the block has overrides, or if the filter is currently active
+        show_overrides_toggle = False
+        if hasattr(self.mw, 'data_store') and self.mw.data_store:
+            show_overrides_only = getattr(self.mw.data_store, 'show_overrides_only', False)
+            show_overrides_toggle = show_overrides_only or self._block_has_overrides(block_idx)
+        if hasattr(self.mw, 'show_overrides_only_checkbox'):
+            self.mw.show_overrides_only_checkbox.setVisible(show_overrides_toggle)
+
         # Use a local cache of the last populated block to avoid redundant full resets
         last_block_idx = getattr(self, '_last_populated_block_idx', -999)
         last_category_name = getattr(self, '_last_populated_category_name', None)
@@ -384,8 +440,8 @@ class PreviewUpdater(BaseUIUpdater):
                         b_idx = block_idx
                         s_idx = idx
                     meta = self.mw.string_metadata.get((b_idx, s_idx), {})
-                    has_font = "font_file" in meta and meta["font_file"] != default_font
-                    has_width = "width" in meta and meta["width"] != max_width
+                    has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
+                    has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
                     if has_font or has_width:
                         filtered_indices.append(idx)
                 target_indices = filtered_indices
@@ -435,6 +491,17 @@ class PreviewUpdater(BaseUIUpdater):
             displayed_indices_changed = (target_indices != old_indices)
             self.mw.data_store.displayed_string_indices = target_indices
 
+            # Generate custom line numbers to preserve original indices in gutter
+            custom_line_numbers = []
+            for idx in target_indices:
+                if idx == -1:
+                    custom_line_numbers.append(None)
+                elif isinstance(idx, tuple):
+                    custom_line_numbers.append(idx[1] + 1)
+                else:
+                    custom_line_numbers.append(idx + 1)
+            preview_edit.custom_line_numbers = custom_line_numbers
+
             # Initialize lazy load timer if not exists
             if not hasattr(self, '_lazy_load_timer'):
                 from PyQt5.QtCore import QObject
@@ -465,7 +532,7 @@ class PreviewUpdater(BaseUIUpdater):
 
             # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
             if should_regenerate:
-                cache_key = (block_idx, category_name)
+                cache_key = self.get_cache_key(block_idx, category_name)
                 
                 # If force refresh but the block/category didn't change, preserve the 
                 # lazy-loaded state (next_index) so the scroll position can be restored accurately.
@@ -488,7 +555,13 @@ class PreviewUpdater(BaseUIUpdater):
                 elif force and cache_key in self._preview_cache:
                     del self._preview_cache[cache_key]
 
-                initial_chunk_size = max(200, preview_idx_to_select + 50)
+                approx_visible_lines = 0
+                if hasattr(self.mw, 'list_selection_handler'):
+                    val = getattr(self.mw.list_selection_handler, '_saved_approx_visible_lines', 0)
+                    if isinstance(val, (int, float)) and not isinstance(val, bool):
+                        approx_visible_lines = val
+
+                initial_chunk_size = max(200, preview_idx_to_select + 50, approx_visible_lines)
                 
                 use_cache = False
                 if cache_key in self._preview_cache:
@@ -500,15 +573,22 @@ class PreviewUpdater(BaseUIUpdater):
                     cache = self._preview_cache[cache_key]
                     self._lazy_load_block_idx = block_idx
                     self._lazy_load_target_indices = target_indices
-                    self._lazy_load_next_index = cache['next_index']
                     
-                    preview_full_text = "\n".join(cache['lines'])
-                    if preview_edit.toPlainText() != preview_full_text:
-                        preview_edit.setPlainText(preview_full_text)
-                    
-                    if self._lazy_load_next_index < len(target_indices):
+                    if len(target_indices) > initial_chunk_size:
+                        self._lazy_load_next_index = initial_chunk_size
+                        display_lines = list(cache['lines'])
+                        for idx_offset in range(initial_chunk_size, len(target_indices)):
+                            display_lines[idx_offset] = ""
+                            
+                        preview_full_text = "\n".join(display_lines)
+                        if preview_edit.toPlainText() != preview_full_text:
+                            preview_edit.setPlainText(preview_full_text)
                         self._lazy_load_timer.start(15)
                     else:
+                        self._lazy_load_next_index = len(target_indices)
+                        preview_full_text = "\n".join(cache['lines'])
+                        if preview_edit.toPlainText() != preview_full_text:
+                            preview_edit.setPlainText(preview_full_text)
                         if self._lazy_load_timer.isActive():
                             self._lazy_load_timer.stop()
                 else:
@@ -519,7 +599,23 @@ class PreviewUpdater(BaseUIUpdater):
                         
                         preview_lines = [""] * len(target_indices)
                         chunk_indices = target_indices[:initial_chunk_size]
+                        
+                        from PyQt5.QtWidgets import QProgressDialog, QApplication
+                        from PyQt5.QtCore import Qt
+                        show_progress = len(chunk_indices) > 150
+                        progress = None
+                        if show_progress:
+                            from PyQt5.QtWidgets import QWidget
+                            parent = self.mw if isinstance(self.mw, QWidget) else None
+                            progress = QProgressDialog("Loading block text...", "Cancel", 0, len(chunk_indices), parent)
+                            progress.setWindowModality(Qt.WindowModal)
+                            progress.setMinimumDuration(300)
+                            progress.setValue(0)
+                            QApplication.processEvents()
+
                         for idx_offset, real_idx in enumerate(chunk_indices):
+                            if progress and progress.wasCanceled():
+                                break
                             if real_idx == -1:
                                 preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
                             else:
@@ -530,6 +626,12 @@ class PreviewUpdater(BaseUIUpdater):
                                 text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines[idx_offset] = preview_line_text
+                            if progress and idx_offset % 20 == 0:
+                                progress.setValue(idx_offset)
+                                QApplication.processEvents()
+
+                        if progress:
+                            progress.close()
                         
                         # Save to cache
                         self._preview_cache[cache_key] = {
@@ -544,7 +646,23 @@ class PreviewUpdater(BaseUIUpdater):
                     else:
                         self._lazy_load_next_index = len(target_indices)
                         preview_lines = []
+                        
+                        from PyQt5.QtWidgets import QProgressDialog, QApplication
+                        from PyQt5.QtCore import Qt
+                        show_progress = len(target_indices) > 150
+                        progress = None
+                        if show_progress:
+                            from PyQt5.QtWidgets import QWidget
+                            parent = self.mw if isinstance(self.mw, QWidget) else None
+                            progress = QProgressDialog("Loading block text...", "Cancel", 0, len(target_indices), parent)
+                            progress.setWindowModality(Qt.WindowModal)
+                            progress.setMinimumDuration(300)
+                            progress.setValue(0)
+                            QApplication.processEvents()
+
                         for idx_offset, real_idx in enumerate(target_indices):
+                            if progress and progress.wasCanceled():
+                                break
                             if real_idx == -1:
                                 preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
                             else:
@@ -555,6 +673,12 @@ class PreviewUpdater(BaseUIUpdater):
                                 text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines.append(preview_line_text)
+                            if progress and idx_offset % 20 == 0:
+                                progress.setValue(idx_offset)
+                                QApplication.processEvents()
+
+                        if progress:
+                            progress.close()
                         
                         # Save to cache
                         self._preview_cache[cache_key] = {
@@ -604,24 +728,32 @@ class PreviewUpdater(BaseUIUpdater):
                 
             chunk_indices = target_indices[start_idx:end_idx]
             preview_lines = []
+            cache_key = self.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+            cache = self._preview_cache.get(cache_key)
+            
             for offset, real_idx in enumerate(chunk_indices):
                 line_idx = start_idx + offset
-                if real_idx == -1:
-                    preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
-                else:
-                    b_idx = block_idx
-                    s_idx = real_idx
-                    if isinstance(real_idx, tuple):
-                        b_idx, s_idx = real_idx
-                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
-                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                preview_line_text = None
+                if cache and line_idx < len(cache['lines']) and line_idx < cache['next_index']:
+                    preview_line_text = cache['lines'][line_idx]
+                    
+                if preview_line_text is None:
+                    if real_idx == -1:
+                        preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
+                    else:
+                        b_idx = block_idx
+                        s_idx = real_idx
+                        if isinstance(real_idx, tuple):
+                            b_idx, s_idx = real_idx
+                        text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
+                        preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                 preview_lines.append(preview_line_text)
                 
             _saved_programmatic_flag = self.mw.is_programmatically_changing_text
             self.mw.is_programmatically_changing_text = True
             
             try:
-                cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                cache_key = self.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
                 cache = self._preview_cache.get(cache_key)
                 
                 doc = preview_edit.document()
@@ -719,11 +851,7 @@ class PreviewUpdater(BaseUIUpdater):
                     else:
                         preview_line_text = str(edited_text_raw)
                         
-                    cache_key = (self.mw.data_store.current_block_idx, getattr(self.mw.data_store, 'current_category_name', None))
-                    if cache_key in self._preview_cache:
-                        cache = self._preview_cache[cache_key]
-                        if preview_idx < len(cache['lines']):
-                            cache['lines'][preview_idx] = preview_line_text
+                    self.update_cached_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx, preview_line_text)
                             
                     doc = preview_edit.document()
                     block = doc.findBlockByNumber(preview_idx)
