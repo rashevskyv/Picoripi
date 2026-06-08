@@ -257,12 +257,19 @@ class DataStateProcessor:
                     # Update local cache to match the new text
                     preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
                     if preview_updater and hasattr(preview_updater, '_preview_cache'):
-                        cache_key = (block_idx, getattr(self.mw.data_store, 'current_category_name', None))
+                        cache_key = preview_updater.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
                         preview_updater._preview_cache[cache_key] = {
                             'lines': preview_lines,
                             'next_index': len(target_indices),
                             'target_indices': target_indices
                         }
+                        for s_idx in string_indices:
+                            text_for_preview_raw, _ = self.get_current_string_text(block_idx, s_idx)
+                            if self.mw.current_game_rules:
+                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                            else:
+                                preview_line_text = str(text_for_preview_raw)
+                            preview_updater.update_cached_string(block_idx, s_idx, preview_line_text)
                     
                     # Refresh highlights
                     if hasattr(preview_edit, 'highlightManager'):

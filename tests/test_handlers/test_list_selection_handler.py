@@ -294,3 +294,57 @@ def test_ListSelectionHandler_move_selection_to_category_branches(handler):
         handler.move_selection_to_category()
         handler.mw.project_manager.move_strings_to_category.assert_not_called()
 
+def test_ListSelectionHandler_toggle_show_overrides_only_checked(handler):
+    handler.mw.preview_text_edit.verticalScrollBar().value.return_value = 120
+    handler.mw.preview_text_edit.cursorRect.return_value.height.return_value = 20
+    handler.mw.data_store.current_string_idx = 2
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.current_category_name = None
+
+    handler.toggle_show_overrides_only(True)
+
+    assert handler._saved_scrollbar_value == 120
+    assert handler._saved_string_idx == 2
+    assert handler._saved_approx_visible_lines == (120 // 20) + 50
+    assert handler.mw.data_store.show_overrides_only is True
+    handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+
+def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_same_string(handler):
+    handler._saved_scrollbar_value = 120
+    handler._saved_string_idx = 2
+    handler._saved_approx_visible_lines = 56
+    
+    handler.mw.data_store.current_string_idx = 2
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.current_category_name = None
+    
+    handler._get_displayed_indices = MagicMock(return_value=[0, 1, 2])
+    
+    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_single_shot:
+        handler.toggle_show_overrides_only(False)
+        
+        assert handler.mw.data_store.show_overrides_only is False
+        handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+        handler.mw.preview_text_edit.set_selected_lines.assert_called_with([2])
+        mock_single_shot.assert_called_once()
+        assert handler._saved_approx_visible_lines == 0
+
+def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_different_string(handler):
+    handler._saved_scrollbar_value = 120
+    handler._saved_string_idx = 2
+    handler._saved_approx_visible_lines = 56
+    
+    handler.mw.data_store.current_string_idx = 0
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.current_category_name = None
+    
+    handler.scroll_to_current_string_in_preview = MagicMock()
+    
+    handler.toggle_show_overrides_only(False)
+    
+    assert handler.mw.data_store.show_overrides_only is False
+    handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    handler.scroll_to_current_string_in_preview.assert_called_once()
+    assert handler._saved_approx_visible_lines == 0
+
+

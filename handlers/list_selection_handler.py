@@ -925,9 +925,39 @@ class ListSelectionHandler(BaseHandler):
 
     def toggle_show_overrides_only(self, checked: bool) -> None:
         """Toggle showing only strings with layout overrides in preview list."""
+        if checked:
+            self._saved_scrollbar_value = self.mw.preview_text_edit.verticalScrollBar().value() if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit else 0
+            self._saved_string_idx = self.mw.data_store.current_string_idx
+            if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:
+                line_height = self.mw.preview_text_edit.cursorRect().height() or 20
+                self._saved_approx_visible_lines = int(self._saved_scrollbar_value / line_height) + 50
+            else:
+                self._saved_approx_visible_lines = 0
+
         self.mw.data_store.show_overrides_only = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+
+        if not checked:
+            current_idx = self.mw.data_store.current_string_idx
+            saved_idx = getattr(self, '_saved_string_idx', -1)
+            
+            if current_idx == saved_idx:
+                if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:
+                    rel_idx = -1
+                    displayed_indices = self._get_displayed_indices()
+                    if current_idx in displayed_indices:
+                        rel_idx = displayed_indices.index(current_idx)
+                    if rel_idx != -1 and hasattr(self.mw.preview_text_edit, 'set_selected_lines'):
+                        self.mw.preview_text_edit.set_selected_lines([rel_idx])
+                    
+                    saved_val = getattr(self, '_saved_scrollbar_value', 0)
+                    QTimer.singleShot(10, lambda: self.mw.preview_text_edit.verticalScrollBar().setValue(saved_val))
+            else:
+                if current_idx != -1:
+                    self.scroll_to_current_string_in_preview()
+            
+            self._saved_approx_visible_lines = 0
 
     def toggle_hide_original_tags(self, checked: bool) -> None:
         """Toggle hiding of tags in the original text edit."""

@@ -130,8 +130,8 @@ class LayoutBuilder:
         preview_header_layout.addWidget(self.mw.hide_translated_checkbox)
         
         preview_header_layout.addSpacing(15)
-        self.mw.show_overrides_only_checkbox = QCheckBox("Show overrides only")
-        self.mw.show_overrides_only_checkbox.setToolTip("Show only strings that have custom font or width settings.")
+        self.mw.show_overrides_only_checkbox = QCheckBox("Show Overrides Only")
+        self.mw.show_overrides_only_checkbox.setToolTip("Only show strings that have custom font or width overrides.")
         self.mw.show_overrides_only_checkbox.setCursor(Qt.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_overrides_only_checkbox)
         
