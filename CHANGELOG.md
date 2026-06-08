@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.170] - 2026-06-08
+
+### Fixed
+- **Twilight Princess Auto-fix Behaviour**: Fixed a bug where Auto-fix would incorrectly merge lines separated by a page break code (`{escape:0:0007000a}`) or empty lines, ruining manual page layouts.
+- **Empty Line Preservation in Wrapping**: Updated `shift_split_sentences` in `utils.py` to preserve empty lines as page boundaries and respect page break escape codes, ensuring sentences are wrapped cleanly without merging pages.
+- **Unit Test Alignment**: Updated and adapted `test_autofix_page_isolation` in `tests/test_spacing_rules.py` to expect empty line preservation, ensuring the entire test suite remains green.
+
 ## [0.2.169] - 2026-06-08
 
 ### Added

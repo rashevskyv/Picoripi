@@ -230,3 +230,15 @@ def test_shift_split_sentences():
     res, changed = shift_split_sentences(text, 4)
     assert changed is True
     assert res == "Line 1.\nLine 2.\n\n\nHere is a sentence\nthat spans across\nthe page boundary."
+
+    # Test that empty lines are preserved and act as boundaries
+    text_with_empty = "Line 1.\nLine 2.\n\nLine 3."
+    res_empty, changed_empty = shift_split_sentences(text_with_empty, 4)
+    assert res_empty == "Line 1.\nLine 2.\n\nLine 3."
+    assert changed_empty is False
+
+    # Test that escape page breaks trigger a page split
+    text_with_escape = "Line 1.\n{escape:0:0007000a}Line 2."
+    res_escape, changed_escape = shift_split_sentences(text_with_escape, 4)
+    assert res_escape == "Line 1.\n\n\n\n{escape:0:0007000a}Line 2."
+    assert changed_escape is True

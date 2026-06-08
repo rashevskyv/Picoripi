@@ -400,9 +400,9 @@ def test_autofix_page_isolation(bmg_rules):
     text = "Line 1.\nLine 2.\nLine 3\n\nLine 5"
     fixed, changed = bmg_rules.autofix_data_string(text, {}, 1000)
     # Since index 3 is boundary between page 1 (lines 0-3) and page 2 (lines 4-7), no cross-page merge should occur.
-    # But because the empty page/line is compacted, "Line 5" is pulled up to Page 1.
-    assert fixed == "Line 1.\nLine 2.\nLine 3\nLine 5"
-    assert changed is True
+    # The empty line should be preserved instead of compacted.
+    assert fixed == "Line 1.\nLine 2.\nLine 3\n\nLine 5"
+    assert changed is False
 
 
 def test_single_word_orphan_detection_any_line(bmg_rules):
