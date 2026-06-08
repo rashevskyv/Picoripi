@@ -351,7 +351,7 @@ class MainWindowHelper:
             })
             if is_project and self.mw.project_manager.project:
                 self.mw.project_manager.project.metadata['session_state'] = state
-                self.mw.project_manager.save()
+                self.mw.project_manager.save_settings_to_project(self.mw)
                 
             self.mw.settings_manager.session_state.set_state_for_file(str(current_path), state)
             self.mw.settings_manager.set("last_opened_path", str(current_path))
@@ -366,6 +366,31 @@ class MainWindowHelper:
     def restore_state_after_settings_load(self):
         from utils.logging_utils import log_info
         log_info("Restoring state after settings load.")
+        
+        # Restore hide empty strings state
+        hide_empty_val = self.mw.settings_manager.get('hide_empty_strings', False)
+        self.mw.data_store.hide_empty_strings = hide_empty_val
+        if hasattr(self.mw, 'hide_empty_strings_checkbox') and self.mw.hide_empty_strings_checkbox:
+            self.mw.hide_empty_strings_checkbox.setChecked(hide_empty_val)
+        
+        # Restore global splitters state
+        try:
+            import base64
+            for splitter_attr, setting_key in [
+                ("main_splitter", "main_splitter_state"),
+                ("right_splitter", "right_splitter_state"),
+                ("bottom_right_splitter", "bottom_right_splitter_state"),
+                ("editor_preview_splitter", "editor_preview_splitter_state")
+            ]:
+                splitter = getattr(self.mw, splitter_attr, None)
+                state_val = self.mw.settings_manager.get(setting_key)
+                if splitter and state_val:
+                    try:
+                        splitter.restoreState(base64.b64decode(state_val.encode('ascii')))
+                    except Exception as restore_err:
+                        log_info(f"Failed to restore state for {splitter_attr}: {restore_err}")
+        except Exception as e:
+            log_info(f"Failed to restore global splitter state(s): {e}")
         
         if hasattr(self.mw, 'window_geometry_to_restore') and self.mw.window_geometry_to_restore:
             geom_dict = self.mw.window_geometry_to_restore

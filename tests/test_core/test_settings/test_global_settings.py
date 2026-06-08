@@ -67,6 +67,7 @@ def mock_mw():
     mw.main_splitter = None
     mw.right_splitter = None
     mw.bottom_right_splitter = None
+    mw.editor_preview_splitter = None
     return mw
 
 def test_GlobalSettings_init(mock_mw):

@@ -1492,17 +1492,20 @@ class MainWindowActions:
 
         try:
             cwd = path_obj.parent.as_posix()
-            creationflags = 0
             if os.name == 'nt':
-                creationflags = 0x00000010  # CREATE_NEW_CONSOLE
-
-            is_batch = path_obj.suffix.lower() in ('.bat', '.cmd')
-            subprocess.Popen(
-                [str(path_obj.resolve())] if not is_batch else str(path_obj.resolve()),
-                cwd=cwd,
-                shell=is_batch,
-                creationflags=creationflags
-            )
+                # Launch via cmd.exe /k to open a new console window and keep it open
+                # so the user can see the executed script and its output.
+                cmd = ["cmd.exe", "/k", str(path_obj.resolve())]
+                subprocess.Popen(
+                    cmd,
+                    cwd=cwd,
+                    creationflags=0x00000010  # CREATE_NEW_CONSOLE
+                )
+            else:
+                subprocess.Popen(
+                    [str(path_obj.resolve())],
+                    cwd=cwd
+                )
             if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
                 self.mw.statusBar.showMessage(f"Started script: {path_obj.name}", 3000)
         except Exception as e:
@@ -1511,6 +1514,3 @@ class MainWindowActions:
                 "Run External Script Error",
                 f"Failed to start script:\n{e}"
             )
-
-                
-

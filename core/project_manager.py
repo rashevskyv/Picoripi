@@ -65,6 +65,10 @@ class ProjectManager:
         'detection_enabled',
         'context_menu_tags',
         'bookmarks',
+        'main_splitter_state',
+        'right_splitter_state',
+        'bottom_right_splitter_state',
+        'editor_preview_splitter_state',
     ]
 
     def __init__(self, project_path: Optional[Union[str, Path]] = None):

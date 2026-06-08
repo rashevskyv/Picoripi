@@ -491,6 +491,70 @@ class MainWindow(QMainWindow):
     @external_script_path.setter
     def external_script_path(self, val): self.settings_manager.set('external_script_path', val)
 
+    @property
+    def main_splitter_state(self) -> Optional[str]:
+        if hasattr(self, 'main_splitter') and self.main_splitter is not None:
+            import base64
+            return base64.b64encode(self.main_splitter.saveState().data()).decode('ascii')
+        return None
+
+    @main_splitter_state.setter
+    def main_splitter_state(self, val: Optional[str]) -> None:
+        if hasattr(self, 'main_splitter') and self.main_splitter is not None and val:
+            import base64
+            try:
+                self.main_splitter.restoreState(base64.b64decode(val.encode('ascii')))
+            except Exception as e:
+                log_warning(f"Failed to restore main_splitter_state: {e}")
+
+    @property
+    def right_splitter_state(self) -> Optional[str]:
+        if hasattr(self, 'right_splitter') and self.right_splitter is not None:
+            import base64
+            return base64.b64encode(self.right_splitter.saveState().data()).decode('ascii')
+        return None
+
+    @right_splitter_state.setter
+    def right_splitter_state(self, val: Optional[str]) -> None:
+        if hasattr(self, 'right_splitter') and self.right_splitter is not None and val:
+            import base64
+            try:
+                self.right_splitter.restoreState(base64.b64decode(val.encode('ascii')))
+            except Exception as e:
+                log_warning(f"Failed to restore right_splitter_state: {e}")
+
+    @property
+    def bottom_right_splitter_state(self) -> Optional[str]:
+        if hasattr(self, 'bottom_right_splitter') and self.bottom_right_splitter is not None:
+            import base64
+            return base64.b64encode(self.bottom_right_splitter.saveState().data()).decode('ascii')
+        return None
+
+    @bottom_right_splitter_state.setter
+    def bottom_right_splitter_state(self, val: Optional[str]) -> None:
+        if hasattr(self, 'bottom_right_splitter') and self.bottom_right_splitter is not None and val:
+            import base64
+            try:
+                self.bottom_right_splitter.restoreState(base64.b64decode(val.encode('ascii')))
+            except Exception as e:
+                log_warning(f"Failed to restore bottom_right_splitter_state: {e}")
+
+    @property
+    def editor_preview_splitter_state(self) -> Optional[str]:
+        if hasattr(self, 'editor_preview_splitter') and self.editor_preview_splitter is not None:
+            import base64
+            return base64.b64encode(self.editor_preview_splitter.saveState().data()).decode('ascii')
+        return None
+
+    @editor_preview_splitter_state.setter
+    def editor_preview_splitter_state(self, val: Optional[str]) -> None:
+        if hasattr(self, 'editor_preview_splitter') and self.editor_preview_splitter is not None and val:
+            import base64
+            try:
+                self.editor_preview_splitter.restoreState(base64.b64decode(val.encode('ascii')))
+            except Exception as e:
+                log_warning(f"Failed to restore editor_preview_splitter_state: {e}")
+
 
 
     def handle_zoom(self, delta: int, target: str = 'all'):
