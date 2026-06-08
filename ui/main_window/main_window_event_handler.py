@@ -178,6 +178,8 @@ class MainWindowEventHandler:
             self.mw.hide_empty_strings_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_empty_strings)
         if hasattr(self.mw, 'hide_translated_checkbox'):
             self.mw.hide_translated_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translated)
+        if hasattr(self.mw, 'show_overrides_only_checkbox'):
+            self.mw.show_overrides_only_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_overrides_only)
         if hasattr(self.mw, 'hide_original_tags_checkbox'):
             self.mw.hide_original_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_original_tags)
         if hasattr(self.mw, 'hide_translation_tags_checkbox'):

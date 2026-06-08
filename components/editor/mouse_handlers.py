@@ -249,11 +249,53 @@ class LNETMouseHandlers:
             QToolTip.hideText()
             return
 
-        dummy_pos = QPoint(self.editor.lineNumberArea.width() + 10, event.pos().y())
-        tooltip_text = self.editor.tooltip_logic.find_warning_tooltip_at(dummy_pos)
+        metadata_tooltip = None
+        number_part_width = 0
+        if self.editor.objectName() == "preview_text_edit":
+            main_window = self.editor.window()
+            total_width = self.editor.lineNumberArea.width()
+            extra_part_width = self.editor.preview_indicator_area_width
+            number_part_width = total_width - extra_part_width
+            
+            real_idx = line_idx
+            if hasattr(main_window, 'data_store') and main_window.data_store.displayed_string_indices:
+                if 0 <= line_idx < len(main_window.data_store.displayed_string_indices):
+                    real_idx = main_window.data_store.displayed_string_indices[line_idx]
+                else:
+                    real_idx = -1
+            
+            if real_idx != -1 and main_window and hasattr(main_window, 'string_metadata'):
+                current_block_idx = main_window.data_store.current_block_idx
+                if isinstance(real_idx, tuple):
+                    string_meta = main_window.string_metadata.get(real_idx, {})
+                else:
+                    string_meta = main_window.string_metadata.get((current_block_idx, real_idx), {})
+                
+                default_font = getattr(main_window, 'default_font_file', None)
+                max_width = getattr(main_window, 'game_dialog_max_width_pixels', None)
+                
+                has_custom_font = "font_file" in string_meta and string_meta["font_file"] != default_font
+                has_custom_width = "width" in string_meta and string_meta["width"] != max_width
+                
+                if has_custom_font or has_custom_width:
+                    font_name = string_meta.get("font_file")
+                    width_val = string_meta.get("width")
+                    
+                    tooltip_lines = []
+                    if has_custom_font:
+                        tooltip_lines.append(f"Custom Font: {font_name} is applied")
+                    if has_custom_width:
+                        tooltip_lines.append(f"Custom Width: {width_val}px is applied")
+                    
+                    metadata_tooltip = f"<b>Line Settings Overrides:</b><br>" + "<br>".join(tooltip_lines)
 
-        if tooltip_text:
-            QToolTip.showText(event.globalPos(), tooltip_text, self.editor.lineNumberArea)
+        dummy_pos = QPoint(self.editor.lineNumberArea.width() + 10, event.pos().y())
+        text_warning_tooltip = self.editor.tooltip_logic.find_warning_tooltip_at(dummy_pos)
+
+        if text_warning_tooltip:
+            QToolTip.showText(event.globalPos(), text_warning_tooltip, self.editor.lineNumberArea)
+        elif metadata_tooltip and (event.pos().x() >= number_part_width or not text_warning_tooltip):
+            QToolTip.showText(event.globalPos(), metadata_tooltip, self.editor.lineNumberArea)
         else:
             QToolTip.hideText()
 
