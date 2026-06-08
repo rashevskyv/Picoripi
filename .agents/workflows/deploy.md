@@ -4,43 +4,36 @@ description: Release process and deployment workflow
 
 # Deploy Workflow
 
-Follow these steps when the USER requests a "deploy":
+Follow these steps when the USER requests a "deploy" (in English or Ukrainian):
 
-1. **Check Current Version**: Read `utils/constants.py` to get `APP_VERSION`.
-2. **Generate Changelog**:
-   - Analyze recent commits/changes since the last version.
-   - Categorize into: New Features, Bug Fixes, UI Improvements, Refactoring.
-   - Write/Update `CHANGELOG.md`.
-3. **Update Documentation**:
+1. **Identify Commit Range**:
+   - Find the commit of the last deploy/release (e.g. via the latest git tag or remote release).
+   - Get the current latest commit.
+   - Retrieve the log of commits between the last deploy and the current commit.
+2. **Analyze and Filter Changes**:
+   - Review the commits/changes in this range.
+   - Extract only **significant global changes, new features, and global bug fixes**.
+   - **Crucial**: Filter out minor optimizations, duplicate/overlapping entries, or self-inflicted bugs (bugs introduced by the agent and subsequently fixed in the same cycle). Only include changes of actual value to the end-user.
+3. **Check Current Version**: Read `utils/constants.py` to get `APP_VERSION`.
+4. **Generate Changelog**:
+   - Categorize the filtered changes into: New Features, Bug Fixes, UI Improvements, Refactoring.
+   - Write/Update `CHANGELOG.md` following the Release Documentation Standard.
+5. **Update Documentation**:
    - Organically update the existing "Features" sections in both `README.md` and `GEMINI.md` to include newly added capabilities and remove obsolete ones.
+   - Update the version number in the header of `GEMINI.md` (e.g., `The "Picoripi" (vX.Y.Z)`).
+   - Verify all feature descriptions are up to date.
    - **Crucial**: Do NOT add "New in vX.Y.Z" or changelog sections to `README.md` or `GEMINI.md`.
-4. **Git Tagging**:
+6. **Git Tagging**:
    - Create a local tag: `git tag -a v[VERSION] -m "Release v[VERSION]"`
    - Push tag: `git push origin v[VERSION]`
-5. **GitHub Release**:
+7. **GitHub Release**:
    - Generate release notes using the latest entries in `CHANGELOG.md`.
    - If `gh` CLI is available, create the release automatically:
      `gh release create v[VERSION] --title "Release v[VERSION]" --notes-file [NOTES_FILE]`
    - Otherwise, provide the notes to the user for manual creation.
-6. **Post-Deploy**:
+8. **Post-Deploy**:
    - Increment `APP_VERSION` in `utils/constants.py` for the next development cycle (increment patch version by default).
-1.  **Check Current Version**: Read `utils/constants.py` to get `APP_VERSION`.
-2.  **Generate Changelog**:
-    - Analyze recent commits/changes since the last version.
-    - Categorize into: New Features, Bug Fixes, UI Improvements, Refactoring.
-    - Write/Update `CHANGELOG.md`.
-3.  **Update Documentation**:
-    - Ensure `README.md` and `GEMINI.md` describe new features.
-    - Verify all feature descriptions are up to date and translated in Ukrainian in the overview if requested (but internal docs are English).
-4.  **Git Tagging**:
-    - Create a local tag: `git tag -a v[VERSION] -m "Release v[VERSION]"`
-    - Push tag: `git push origin v[VERSION]`
-5.  **GitHub Release**:
-    - Generate release notes using the changelog.
-    - Instruct the user to create a release on GitHub using the provided notes (or use `gh` if available).
-6.  **Post-Deploy**:
-    - Increment `APP_VERSION` in `utils/constants.py` for the next development cycle (increment patch version by default).
-    - Commit the version bump.
+   - Commit the version bump.
 
 ---
 

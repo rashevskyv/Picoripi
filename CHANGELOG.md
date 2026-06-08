@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.172] - 2026-06-08
+
+### Added
+- **Spellchecking in Search Panel**: Integrated spellchecking functionality into the search panel (`SearchPanelWidget`). When a user enters text into the search edit field (`SearchLineEdit`), it dynamically analyses the string and highlights misspelled words with a red wavy underline, matching standard IDE styling without modifying overall widget colors or backgrounds. It also features a custom context menu (right-click) providing correction suggestions and an option to add words to the user dictionary, while ensuring no styling conflicts occur with standard menus (`QMenu`).
+- **External Asset Uploader copy to USB**: Modified `pack_iso.bat` to scan for active external storage (checking drive letters `A, B, F, H..Z`) containing a `dusk` directory and target ISO file. If found, it automatically rebuilds the ISO and copies both the game ISO and the memory card save file (`01-GZ2E-gczelda2.gci`) onto the external drive using `robocopy` with a live console copy progress indicator (`%`).
+
 ## [0.2.171] - 2026-06-08
 
 ### Added

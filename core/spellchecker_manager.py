@@ -155,6 +155,8 @@ class SpellcheckerManager(QObject):
             if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
                 if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
                     self.mw.edited_text_edit.highlighter.rehighlight()
+            if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget:
+                self.mw.search_panel_widget.trigger_spellcheck()
 
     def enqueue_word(self, word):
         if not self.enabled or not self.hunspell:
@@ -216,6 +218,8 @@ class SpellcheckerManager(QObject):
             if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
                 self.mw.edited_text_edit.highlighter.set_spellchecker_enabled(enabled)
                 log_debug(f"Spellchecker highlighting updated in edited_text_edit")
+        if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget:
+            self.mw.search_panel_widget.trigger_spellcheck()
 
     def scan_local_dictionaries(self) -> Dict[str, str]:
         """Scans for .dic files and returns a map of language code to full path."""
@@ -364,6 +368,8 @@ class SpellcheckerManager(QObject):
                 if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
                     if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
                         self.mw.edited_text_edit.highlighter.rehighlight()
+                if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget:
+                    self.mw.search_panel_widget.trigger_spellcheck()
             except Exception as e:
                 log_error(f"Failed to save user dictionary: {e}", exc_info=True)
         
