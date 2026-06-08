@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.171] - 2026-06-08
+
+### Added
+- **Persistent "Hide Empty Strings" Filter**: Enabled saving and restoring the "Hide Empty Strings" checkbox filter state across application restarts by storing it in the global configuration file (`settings.json`). Bypassed MagicMock serialization issues during testing.
+
+### Fixed
+- **Persistent Console Window for External Script Runner**: Upgraded the external script execution on Windows to use `cmd.exe /k` with a brand-new console window (`CREATE_NEW_CONSOLE`). This ensures scripts and batch files are executed inside an active, visible command line prompt that remains open after execution, allowing the user to review compilation logs, output, or emulator start details.
+
 ## [0.2.170] - 2026-06-08
 
 ### Fixed

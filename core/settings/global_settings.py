@@ -34,6 +34,7 @@ class GlobalSettings:
             "main_splitter_state": None,
             "right_splitter_state": None,
             "bottom_right_splitter_state": None,
+            "editor_preview_splitter_state": None,
             "theme": "auto",
             "restore_unsaved_on_startup": False,
             "last_opened_path": "",
@@ -91,7 +92,8 @@ class GlobalSettings:
             "log_ai_traffic": False,
             "show_force_alias_warning": True,
             "variations_window_geometry": None,
-            "variations_splitter_state": None
+            "variations_splitter_state": None,
+            "hide_empty_strings": False
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -239,7 +241,8 @@ class GlobalSettings:
             "log_ai_traffic": False if type(getattr(self.mw, 'log_ai_traffic', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'log_ai_traffic', False)),
             "show_force_alias_warning": True if type(getattr(self.mw, 'show_force_alias_warning', True)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'show_force_alias_warning', True)),
             "variations_window_geometry": getattr(self.mw, 'variations_window_geometry', None) if isinstance(getattr(self.mw, 'variations_window_geometry', None), dict) else None,
-            "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None
+            "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None,
+            "hide_empty_strings": False if type(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False))
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:
@@ -256,6 +259,7 @@ class GlobalSettings:
             if self.mw.main_splitter: global_data["main_splitter_state"] = base64.b64encode(self.mw.main_splitter.saveState().data()).decode('ascii')
             if self.mw.right_splitter: global_data["right_splitter_state"] = base64.b64encode(self.mw.right_splitter.saveState().data()).decode('ascii')
             if self.mw.bottom_right_splitter: global_data["bottom_right_splitter_state"] = base64.b64encode(self.mw.bottom_right_splitter.saveState().data()).decode('ascii')
+            if self.mw.editor_preview_splitter: global_data["editor_preview_splitter_state"] = base64.b64encode(self.mw.editor_preview_splitter.saveState().data()).decode('ascii')
         except Exception as e: log_warning(f"Failed to save splitter state(s): {e}")
 
         try:

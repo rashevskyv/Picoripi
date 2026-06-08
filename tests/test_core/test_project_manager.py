@@ -130,6 +130,10 @@ class MockMainWindow:
         self.autofix_enabled = True
         self.fonts_dir_path = "C:/path/to/fonts"
         self.orig_fonts_dir_path = "C:/path/to/orig_fonts"
+        self.main_splitter_state = "mock_main_splitter"
+        self.right_splitter_state = "mock_right_splitter"
+        self.bottom_right_splitter_state = "mock_bottom_right_splitter"
+        self.editor_preview_splitter_state = "mock_editor_preview_splitter"
 
 def test_ProjectManager_save_load_settings(pm):
     mw = MockMainWindow()
@@ -140,15 +144,28 @@ def test_ProjectManager_save_load_settings(pm):
     assert pm.project.metadata["settings"]["autofix_enabled"] is True
     assert pm.project.metadata["settings"]["fonts_dir_path"] == "C:/path/to/fonts"
     assert pm.project.metadata["settings"]["orig_fonts_dir_path"] == "C:/path/to/orig_fonts"
+    assert pm.project.metadata["settings"]["main_splitter_state"] == "mock_main_splitter"
+    assert pm.project.metadata["settings"]["right_splitter_state"] == "mock_right_splitter"
+    assert pm.project.metadata["settings"]["bottom_right_splitter_state"] == "mock_bottom_right_splitter"
+    assert pm.project.metadata["settings"]["editor_preview_splitter_state"] == "mock_editor_preview_splitter"
     
     # Load settings
     pm.project.metadata["settings"]["font_size"] = 16
     pm.project.metadata["settings"]["fonts_dir_path"] = "D:/another/fonts"
     pm.project.metadata["settings"]["orig_fonts_dir_path"] = "D:/another/orig_fonts"
+    pm.project.metadata["settings"]["main_splitter_state"] = "loaded_main"
+    pm.project.metadata["settings"]["right_splitter_state"] = "loaded_right"
+    pm.project.metadata["settings"]["bottom_right_splitter_state"] = "loaded_bottom_right"
+    pm.project.metadata["settings"]["editor_preview_splitter_state"] = "loaded_editor_preview"
+    
     assert pm.load_settings_from_project(mw) is True
     assert mw.font_size == 16
     assert mw.fonts_dir_path == "D:/another/fonts"
     assert mw.orig_fonts_dir_path == "D:/another/orig_fonts"
+    assert mw.main_splitter_state == "loaded_main"
+    assert mw.right_splitter_state == "loaded_right"
+    assert mw.bottom_right_splitter_state == "loaded_bottom_right"
+    assert mw.editor_preview_splitter_state == "loaded_editor_preview"
 
 def test_ProjectManager_sync_project_files_empty(pm):
     # Smoke test, the real logic does actual filesystem operations

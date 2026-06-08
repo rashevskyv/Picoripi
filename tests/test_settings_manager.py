@@ -6,6 +6,7 @@ from core.settings_manager import SettingsManager
 class MockMainWindow:
     def __init__(self):
         self.data_store = self
+        self.hide_empty_strings = False
         self.active_game_plugin = "zelda_mc"
         self.current_font_size = 10
         self.theme = "auto"
@@ -87,6 +88,7 @@ def test_set_and_get(settings_manager):
 
 def test_save_and_load_global_settings(settings_manager, mock_mw):
     mock_mw.theme = "dark"
+    mock_mw.hide_empty_strings = True
     settings_manager.save_settings()
     
     # Create a new manager to load
@@ -98,6 +100,7 @@ def test_save_and_load_global_settings(settings_manager, mock_mw):
     new_manager.load_settings()
     assert new_mw.theme == "dark"
     assert new_manager.get("theme") == "dark"
+    assert new_manager.get("hide_empty_strings") is True
 
 def test_recent_projects(settings_manager, mock_mw):
     project_path = str(Path("/path/to/project").resolve())
