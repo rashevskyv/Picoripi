@@ -1,9 +1,162 @@
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton,
-    QCheckBox, QLabel, QSpacerItem, QSizePolicy
+    QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu, QAction
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
+from PyQt5.QtGui import QPainter, QPen, QColor
 import collections
+
+class SearchLineEdit(QLineEdit):
+    def __init__(self, parent=None, main_window=None):
+        super().__init__(parent)
+        self.mw = main_window
+
+    def paintEvent(self, event):
+        # Draw standard QLineEdit first
+        super().paintEvent(event)
+        
+        # If spellchecker is enabled and active, draw wavy lines under misspelled words
+        sm = getattr(self.mw, 'spellchecker_manager', None)
+        if not sm or not sm.enabled or not sm.hunspell:
+            return
+            
+        text = self.text()
+        if not text:
+            return
+            
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, False)
+        
+        # Find all words
+        import re
+        words_iter = re.finditer(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+", text)
+        
+        # Create red pen for wavy line
+        pen = QPen(QColor(255, 0, 0))
+        pen.setWidth(1)
+        painter.setPen(pen)
+        
+        # Font metrics for baseline calculation
+        fm = self.fontMetrics()
+        # Baseline Y calculation: centered vertically
+        y_base = (self.height() + fm.ascent() - fm.descent()) // 2
+        y = y_base + 1
+        
+        for match in words_iter:
+            word = match.group(0)
+            cleaned_word = word.strip("'")
+            if len(cleaned_word) < 3 or cleaned_word.isdigit():
+                continue
+                
+            if sm.is_misspelled(cleaned_word):
+                start = match.start()
+                end = match.end()
+                
+                # Get X coordinates on screen
+                x_start = self._get_x_for_index(start)
+                x_end = self._get_x_for_index(end)
+                
+                if x_start != -1 and x_end != -1 and x_end > x_start:
+                    # Draw wavy line from x_start to x_end
+                    points = []
+                    for x in range(x_start, x_end):
+                        dx = x - x_start
+                        dy = 1 if (dx // 2) % 2 == 0 else -1
+                        points.append(QPoint(x, y + dy))
+                        
+                    for i in range(len(points) - 1):
+                        painter.drawLine(points[i], points[i+1])
+
+    def _get_x_for_index(self, idx: int) -> int:
+        # To get the X coordinate of a character index, we can do binary search
+        # using cursorPositionAt which is a public API.
+        width = self.width()
+        margin = 4
+        
+        low = margin
+        high = width - margin
+        best_x = -1
+        
+        while low <= high:
+            mid = (low + high) // 2
+            pos = self.cursorPositionAt(QPoint(mid, self.height() // 2))
+            if pos < idx:
+                low = mid + 1
+            else:
+                best_x = mid
+                high = mid - 1
+                
+        return best_x
+
+    def contextMenuEvent(self, event):
+        menu = self.createStandardContextMenu()
+        
+        # Get spellchecker manager
+        sm = getattr(self.mw, 'spellchecker_manager', None)
+        if sm and sm.enabled and sm.hunspell:
+            # Determine the word under cursor
+            text = self.text()
+            cursor_pos = self.cursorPosition()
+            
+            # Find which word is at cursor_pos
+            import re
+            words_iter = re.finditer(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+", text)
+            word_under_cursor = None
+            for match in words_iter:
+                if match.start() <= cursor_pos <= match.end():
+                    word_under_cursor = match.group(0)
+                    break
+            
+            if word_under_cursor:
+                cleaned_word = word_under_cursor.strip("'")
+                if len(cleaned_word) >= 3 and not cleaned_word.isdigit() and sm.is_misspelled(cleaned_word):
+                    # Word is misspelled! Fetch suggestions.
+                    suggestions = sm._suggestions_cache.get(cleaned_word.lower(), [])
+                    if not suggestions and sm.hunspell:
+                        try:
+                            res = sm.hunspell.suggest(cleaned_word)
+                            if hasattr(res, '__next__') or (hasattr(res, '__iter__') and not isinstance(res, list)):
+                                gen = iter(res)
+                                for _ in range(7):
+                                    try:
+                                        suggestions.append(next(gen))
+                                    except StopIteration:
+                                        break
+                            else:
+                                suggestions = list(res)[:7]
+                            sm._suggestions_cache[cleaned_word.lower()] = suggestions
+                        except Exception:
+                            pass
+                    
+                    if suggestions:
+                        first_action = menu.actions()[0] if menu.actions() else None
+                        
+                        suggestion_actions = []
+                        for sugg in suggestions:
+                            act = QAction(sugg, menu)
+                            act.triggered.connect(lambda checked, s=sugg, match_start=match.start(), match_end=match.end(): self._replace_word(match_start, match_end, s))
+                            suggestion_actions.append(act)
+                        
+                        add_dict_action = QAction(f"Add '{cleaned_word}' to Dictionary", menu)
+                        add_dict_action.triggered.connect(lambda checked, w=cleaned_word: sm.add_to_custom_dictionary(w))
+                        
+                        if first_action:
+                            menu.insertActions(first_action, suggestion_actions)
+                            menu.insertSeparator(first_action)
+                            menu.insertAction(first_action, add_dict_action)
+                            menu.insertSeparator(first_action)
+                        else:
+                            menu.addActions(suggestion_actions)
+                            menu.addSeparator()
+                            menu.addAction(add_dict_action)
+                            
+        menu.exec_(event.globalPos())
+
+    def _replace_word(self, start, end, new_word):
+        text = self.text()
+        new_text = text[:start] + new_word + text[end:]
+        self.setText(new_text)
+        self.setCursorPosition(start + len(new_word))
 
 class SearchPanelWidget(QWidget):
     find_next_requested = pyqtSignal(str, bool, bool, bool, bool) # + is_fuzzy
@@ -16,6 +169,7 @@ class SearchPanelWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("SearchPanel")
+        self.mw = parent
         
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
@@ -26,6 +180,7 @@ class SearchPanelWidget(QWidget):
         main_layout.setSpacing(10)
 
         self.search_query_edit = QComboBox(self)
+        self.search_query_edit.setLineEdit(SearchLineEdit(self, self.mw))
         self.search_query_edit.setEditable(True)
         self.search_query_edit.setInsertPolicy(QComboBox.NoInsert) 
         self.search_query_edit.lineEdit().setPlaceholderText("Find...")
@@ -84,6 +239,7 @@ class SearchPanelWidget(QWidget):
         self.advanced_button.clicked.connect(self._on_advanced_clicked)
         self.search_query_edit.lineEdit().returnPressed.connect(self._on_find_next)
         self.search_query_edit.activated[str].connect(self._on_find_next_from_combobox_activation)
+        self.search_query_edit.lineEdit().textChanged.connect(self.trigger_spellcheck)
         self.close_search_panel_button.clicked.connect(self.close_requested)
 
     def _on_find_next_from_combobox_activation(self, text: str):
@@ -190,3 +346,8 @@ class SearchPanelWidget(QWidget):
 
     def set_query(self, query: str):
         self.search_query_edit.lineEdit().setText(query)
+
+    def trigger_spellcheck(self):
+        line_edit = self.search_query_edit.lineEdit()
+        if line_edit:
+            line_edit.update()

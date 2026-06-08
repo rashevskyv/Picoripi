@@ -1,6 +1,6 @@
-# Picoripi v0.2.171
+# Picoripi v0.2.172
  
-The **Picoripi** (v0.2.171) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.2.172) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -87,6 +87,7 @@ The **Picoripi** (v0.2.171) is a visual translation and localization workbench b
 ### 7. Asynchronous Spellchecker & Quality Tools
 - **CPU-Efficient background Worker**: Replaced busy-loops in `SpellcheckWorker` with a high-efficiency `threading.Event()` wait condition, keeping CPU usage at 0% when idle and waking up instantly when a word is enqueued.
 - **Persistent Disk Caching**: Stores spellchecking suggestions in `spell_cache.json` to optimize performance across large files.
+- **Search Panel Spellchecking**: Integrated real-time spellchecking into the search query input box. Incorrectly spelled words are highlighted with a red wavy underline matching standard IDE style formats without affecting standard context menus (`QMenu`) or line edit background colors.
 - **Asynchronous External Script Runner (`>_` button)**: Compile ROMs or launch emulators directly from the toolbar. Spawns processes asynchronously via `subprocess.Popen` in a new console window (`CREATE_NEW_CONSOLE` on Windows) resolving paths relative to the script's parent folder.
 - **Global Performance Toggles**: Disable heavy systems (Live BFN Dialog Preview, real-time warning scans, and glossary matches) inside the Global Settings tab. Bypassing these subsystems completely eliminates typing lag (input latency) during rapid text entry on any hardware.
 
