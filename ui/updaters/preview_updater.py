@@ -373,6 +373,23 @@ class PreviewUpdater(BaseUIUpdater):
                         filtered_indices.append(idx)
                 target_indices = filtered_indices
 
+            if getattr(self.mw.data_store, 'show_overrides_only', False) is True:
+                filtered_indices = []
+                default_font = getattr(self.mw, 'default_font_file', None)
+                max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
+                for idx in target_indices:
+                    if is_chapter:
+                        b_idx, s_idx = idx
+                    else:
+                        b_idx = block_idx
+                        s_idx = idx
+                    meta = self.mw.string_metadata.get((b_idx, s_idx), {})
+                    has_font = "font_file" in meta and meta["font_file"] != default_font
+                    has_width = "width" in meta and meta["width"] != max_width
+                    if has_font or has_width:
+                        filtered_indices.append(idx)
+                target_indices = filtered_indices
+
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
             if not old_indices and hasattr(self.mw, 'displayed_string_indices'):
@@ -720,6 +737,10 @@ class PreviewUpdater(BaseUIUpdater):
                             cursor.insertText(preview_line_text)
                         finally:
                             self.mw.is_programmatically_changing_text = _saved_prog
+                    
+                    if hasattr(preview_edit, 'lineNumberArea') and preview_edit.lineNumberArea:
+                        preview_edit.lineNumberArea.update()
+                    preview_edit.viewport().update()
         
         if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
             original_text_for_display_processed = str(self.mw.current_game_rules.get_text_representation_for_editor(str(original_text_raw)))

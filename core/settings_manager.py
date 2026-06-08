@@ -77,10 +77,11 @@ class SettingsManager:
 
         log_info("Settings loading finished.")
 
-    def save_settings(self):
+    def save_settings(self, save_project_settings: bool = True):
         log_debug("Saving all settings...")
         self.global_settings.save(self._settings)
-        self.plugin_settings.save()
+        if save_project_settings:
+            self.plugin_settings.save()
 
     def load_unsaved_session(self):
         log_debug("Attempting to load unsaved session data...")

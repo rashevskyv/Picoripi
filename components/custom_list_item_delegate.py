@@ -129,6 +129,65 @@ class CustomListItemDelegate(QStyledItemDelegate):
         problem_definitions = {}
         block_problem_counts = {}
         has_unsaved_changes_in_item = False
+        has_metadata_changes = False
+
+        if main_window and hasattr(main_window, 'string_metadata'):
+            default_font = getattr(main_window, 'default_font_file', None)
+            max_width = getattr(main_window, 'game_dialog_max_width_pixels', None)
+            pm = getattr(main_window, 'project_manager', None)
+            project = pm.project if pm else None
+            
+            # Check if this item has custom settings
+            if category_name and project and block_idx_data is not None:
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                data_indices = list(set([block_idx_data] + [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx_data]))
+                proj_b_idx = block_idx_data
+                if 0 <= proj_b_idx < len(project.blocks):
+                    block = project.blocks[proj_b_idx]
+                    category = next((c for c in block.categories if c.name == category_name), None)
+                    if category:
+                        for b_idx in data_indices:
+                            for l_idx in category.line_indices:
+                                meta = main_window.string_metadata.get((b_idx, l_idx), {})
+                                has_font = "font_file" in meta and meta["font_file"] != default_font
+                                has_width = "width" in meta and meta["width"] != max_width
+                                if has_font or has_width:
+                                    has_metadata_changes = True
+                                    break
+                            if has_metadata_changes:
+                                break
+            elif merged_folder_ids and project and pm:
+                all_p_indices = set()
+                for folder_id in merged_folder_ids:
+                     all_p_indices.update(pm.get_all_block_indices_under_folder(folder_id))
+                
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                data_indices = [data_idx for data_idx, proj_idx in block_map.items() if proj_idx in all_p_indices]
+                data_indices = list(set(data_indices + list(all_p_indices)))
+                
+                for b_idx in data_indices:
+                    for key, meta in main_window.string_metadata.items():
+                        if key[0] == b_idx:
+                            has_font = "font_file" in meta and meta["font_file"] != default_font
+                            has_width = "width" in meta and meta["width"] != max_width
+                            if has_font or has_width:
+                                has_metadata_changes = True
+                                break
+                    if has_metadata_changes:
+                         break
+            elif block_idx_data is not None and block_idx_data != -2:
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                data_indices = list(set([block_idx_data] + [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx_data]))
+                for b_idx in data_indices:
+                    for key, meta in main_window.string_metadata.items():
+                        if key[0] == b_idx:
+                            has_font = "font_file" in meta and meta["font_file"] != default_font
+                            has_width = "width" in meta and meta["width"] != max_width
+                            if has_font or has_width:
+                                has_metadata_changes = True
+                                break
+                    if has_metadata_changes:
+                        break
 
         if main_window:
             pm = getattr(main_window, 'project_manager', None)
@@ -203,6 +262,13 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
         # 1. Calculate Problem Colors Early
         problem_indicator_colors_to_draw = []
+        
+        # Add metadata custom indicator strip (purple) first if has_metadata_changes is True
+        if has_metadata_changes:
+            metadata_color = QColor(148, 0, 211)
+            if theme == 'dark':
+                metadata_color.setAlpha(180)
+            problem_indicator_colors_to_draw.append(metadata_color)
 
         # Progress bar fill (Progress Visualisation)
         percentage = 0.0
@@ -287,6 +353,8 @@ class CustomListItemDelegate(QStyledItemDelegate):
                             indicator_color.setAlpha(180)
                         if indicator_color not in problem_indicator_colors_to_draw:
                             problem_indicator_colors_to_draw.append(indicator_color)
+                            
+
 
         # 2. Draw Number Gutter
         number_rect = QRect(item_rect.left(), item_rect.top(), current_number_area_width, item_rect.height())
@@ -489,24 +557,85 @@ class CustomListItemDelegate(QStyledItemDelegate):
         
         if number_rect.contains(mouse_pos):
             block_idx = index.data(Qt.UserRole)
-            category_name = index.data(Qt.UserRole + 10)
-            ch_id = index.data(Qt.UserRole + 11)
             if block_idx is not None:
-                tooltip_text = self._get_problems_tooltip_text(main_window, block_idx, category_name, ch_id)
+                tooltip_text = self._get_problems_tooltip_text(main_window, index)
                 if tooltip_text:
                     QToolTip.showText(event.globalPos(), tooltip_text, view)
                     return
         
         QToolTip.hideText()
 
-    def _get_problems_tooltip_text(self, main_window, block_idx, category_name=None, chapter_id=None) -> str:
+    def _get_problems_tooltip_text(self, main_window, index) -> str:
+        block_idx = index.data(Qt.UserRole)
+        category_name = index.data(Qt.UserRole + 10)
+        chapter_id = index.data(Qt.UserRole + 11)
+        merged_folder_ids = index.data(Qt.UserRole + 2)
+        
         problem_definitions = {}
         if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
             problem_definitions = main_window.current_game_rules.get_problem_definitions()
         
+        tooltip_lines = []
+        
+        # Check metadata changes
+        has_metadata_changes = False
+        if hasattr(main_window, 'string_metadata'):
+            default_font = getattr(main_window, 'default_font_file', None)
+            max_width = getattr(main_window, 'game_dialog_max_width_pixels', None)
+            pm = getattr(main_window, 'project_manager', None)
+            project = pm.project if pm else None
+            
+            if category_name and project and block_idx is not None:
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                data_indices = list(set([block_idx] + [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx]))
+                proj_b_idx = block_idx
+                if 0 <= proj_b_idx < len(project.blocks):
+                    block = project.blocks[proj_b_idx]
+                    category = next((c for c in block.categories if c.name == category_name), None)
+                    if category:
+                        for b_idx in data_indices:
+                            for l_idx in category.line_indices:
+                                meta = main_window.string_metadata.get((b_idx, l_idx), {})
+                                if ("font_file" in meta and meta["font_file"] != default_font) or \
+                                   ("width" in meta and meta["width"] != max_width):
+                                    has_metadata_changes = True
+                                    break
+                            if has_metadata_changes:
+                                break
+            elif merged_folder_ids and project and pm:
+                all_p_indices = set()
+                for folder_id in merged_folder_ids:
+                     all_p_indices.update(pm.get_all_block_indices_under_folder(folder_id))
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                data_indices = [data_idx for data_idx, proj_idx in block_map.items() if proj_idx in all_p_indices]
+                data_indices = list(set(data_indices + list(all_p_indices)))
+                for b_idx in data_indices:
+                    for key, meta in main_window.string_metadata.items():
+                        if key[0] == b_idx:
+                            if ("font_file" in meta and meta["font_file"] != default_font) or \
+                               ("width" in meta and meta["width"] != max_width):
+                                has_metadata_changes = True
+                                break
+                    if has_metadata_changes:
+                         break
+            elif block_idx is not None and block_idx != -2:
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                data_indices = list(set([block_idx] + [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx]))
+                for b_idx in data_indices:
+                    for key, meta in main_window.string_metadata.items():
+                        if key[0] == b_idx:
+                            if ("font_file" in meta and meta["font_file"] != default_font) or \
+                               ("width" in meta and meta["width"] != max_width):
+                                has_metadata_changes = True
+                                break
+                    if has_metadata_changes:
+                        break
+                        
+        if has_metadata_changes:
+            tooltip_lines.append("<b>Custom Layout Settings</b>: Layout settings override applied inside this item.")
+            
         if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
             block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=chapter_id)
-            tooltip_lines = []
             if problem_definitions and block_problem_counts:
                 sorted_ids = sorted(block_problem_counts.keys(), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))
                 for pid in sorted_ids:
@@ -517,8 +646,8 @@ class CustomListItemDelegate(QStyledItemDelegate):
                         desc = prob_def.get("description", "")
                         tooltip_lines.append(f"<b>{name}</b>: {count} cases<br><i>{desc}</i>")
             
-            if tooltip_lines:
-                return "<br><br>".join(tooltip_lines)
+        if tooltip_lines:
+            return "<br><br>".join(tooltip_lines)
         return ""
 
     def helpEvent(self, event, view, option, index) -> bool:

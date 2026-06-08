@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QPainter, QColor, QPen
+from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtWidgets import QMainWindow, QTextEdit
 from utils.logging_utils import log_debug
@@ -156,6 +156,23 @@ class LNETLineNumberAreaPaintLogic:
                     if is_unsaved and display_number_for_line_area:
                         display_number_for_line_area = f"* {display_number_for_line_area}"
 
+                    # Check for custom settings changes if it is a preview line
+                    has_meta_changes = False
+                    if is_preview:
+                        string_meta = {}
+                        if main_window_ref and hasattr(main_window_ref, 'string_metadata'):
+                            if isinstance(real_idx, tuple):
+                                string_meta = main_window_ref.string_metadata.get(real_idx, {})
+                            else:
+                                string_meta = main_window_ref.string_metadata.get((current_block_idx_data_mw, real_idx), {})
+                        
+                        default_font = getattr(main_window_ref, 'default_font_file', None)
+                        max_width = getattr(main_window_ref, 'game_dialog_max_width_pixels', None)
+                        
+                        has_custom_font = "font_file" in string_meta and string_meta["font_file"] != default_font
+                        has_custom_width = "width" in string_meta and string_meta["width"] != max_width
+                        has_meta_changes = has_custom_font or has_custom_width
+
                     # 4. Painting
                     number_part_rect = QRect(0, top, number_part_width, line_height)
                     extra_info_part_rect = QRect(number_part_width, top, extra_part_width, line_height)
@@ -239,11 +256,11 @@ class LNETLineNumberAreaPaintLogic:
                         elif is_preview:
                             # Draw metadata indicators in preview area
                             string_meta = {}
-                            if hasattr(main_window_ref, 'data_store') and hasattr(main_window_ref.data_store, 'string_metadata'):
+                            if main_window_ref and hasattr(main_window_ref, 'string_metadata'):
                                 if isinstance(real_idx, tuple):
-                                    string_meta = main_window_ref.data_store.string_metadata.get(real_idx, {})
+                                    string_meta = main_window_ref.string_metadata.get(real_idx, {})
                                 else:
-                                    string_meta = main_window_ref.data_store.string_metadata.get((current_block_idx_data_mw, real_idx), {})
+                                    string_meta = main_window_ref.string_metadata.get((current_block_idx_data_mw, real_idx), {})
                             
                             indicator_x_start = number_part_width + 2
                             has_custom_font = "font_file" in string_meta

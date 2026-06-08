@@ -117,7 +117,7 @@ class TestStringSettingsUpdater:
         updater.mw.width_spinbox.setEnabled.assert_called_with(True)
         # Width should be default
         updater.mw.width_spinbox.setValue.assert_called_with(200)
-        updater.mw.width_spinbox.lineEdit().setStyleSheet.assert_called_with("")
+        updater.mw.width_spinbox.setStyleSheet.assert_called_with("")
 
     def test_update_string_settings_panel_custom_width(self, updater):
         updater.mw.data_store.current_block_idx = 0
@@ -128,7 +128,7 @@ class TestStringSettingsUpdater:
         updater.update_string_settings_panel()
 
         updater.mw.width_spinbox.setValue.assert_called_with(150)
-        updater.mw.width_spinbox.lineEdit().setStyleSheet.assert_called_with("border: 1px solid rgba(147, 112, 219, 180); background-color: rgba(147, 112, 219, 30);")
+        updater.mw.width_spinbox.setStyleSheet.assert_called_with(updater.highlight_style)
 
 
 # ── PreviewUpdater ────────────────────────────────────────────────────────────

@@ -923,6 +923,12 @@ class ListSelectionHandler(BaseHandler):
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
 
+    def toggle_show_overrides_only(self, checked: bool) -> None:
+        """Toggle showing only strings with layout overrides in preview list."""
+        self.mw.data_store.show_overrides_only = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+
     def toggle_hide_original_tags(self, checked: bool) -> None:
         """Toggle hiding of tags in the original text edit."""
         self.mw.data_store.hide_original_tags = checked

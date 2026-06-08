@@ -37,6 +37,7 @@ class AppDataStore:
     hide_translated: bool = False
     hide_original_tags: bool = False
     hide_translation_tags: bool = False
+    show_overrides_only: bool = False
     
     # Analysis & Problems
     problems_per_subline: Dict[int, Set[str]] = field(default_factory=dict)
@@ -67,6 +68,7 @@ class AppDataStore:
         self.hide_translated = False
         self.hide_original_tags = False
         self.hide_translation_tags = False
+        self.show_overrides_only = False
         log_debug("AppDataStore: Data cleared")
 
     def mark_dirty(self, block_idx: int):

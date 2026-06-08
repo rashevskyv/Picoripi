@@ -189,7 +189,7 @@ class ProjectActionHandler(BaseHandler):
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.last_opened_path = project_path
                 self.mw.settings_manager.add_recent_project(project_path)
-                self.mw.settings_manager.save_settings()
+                self.mw.settings_manager.save_settings(save_project_settings=False)
                 self._update_recent_projects_menu()
 
             # Switch plugin if needed
@@ -268,7 +268,7 @@ class ProjectActionHandler(BaseHandler):
         if hasattr(self.mw, 'settings_manager'):
             self.mw.settings_manager.set("last_opened_path", "")
             self.mw.settings_manager.set("active_game_plugin", "")
-            self.mw.settings_manager.save_settings()
+            self.mw.settings_manager.save_settings(save_project_settings=False)
         
         if hasattr(self.mw, 'bookmark_handler'):
             self.mw.bookmarks = self.mw.settings_manager.get('bookmarks', [])
@@ -939,7 +939,7 @@ class ProjectActionHandler(BaseHandler):
             self.mw.last_opened_path = project_path
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.add_recent_project(project_path)
-                self.mw.settings_manager.save_settings()
+                self.mw.settings_manager.save_settings(save_project_settings=False)
                 self._update_recent_projects_menu()
 
             # 2. FORCE correct plugin to load BEFORE any data parsing happens

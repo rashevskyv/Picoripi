@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.167] - 2026-06-08
+
+### Fixed
+- **MassWidthDialog Default Value Fix**: Fixed a bug where the **Default** button in the "Set Width for Multiple Lines" dialog (`MassWidthDialog`) incorrectly reset the width to the warning threshold (`line_width_warning_threshold_pixels`, e.g., 410px) instead of the project maximum width setting (`game_dialog_max_width_pixels`, e.g., 435px). The default width value and QLabel description were updated to correctly reference `game_dialog_max_width_pixels` and support resets using both `0` and `game_dialog_max_width_pixels`.
+- **Unit Test Alignment**: Updated `test_update_string_settings_panel_default_meta` and `test_update_string_settings_panel_custom_width` unit tests inside `tests/test_ui/test_updaters/test_small_updaters.py` to assert the stylesheet changes directly on `width_spinbox` instead of its nested `lineEdit()`, ensuring all tests pass with no regressions.
+
+### Changed
+- **Unified & Bold Font/Width Highlights**: Unified the visual feedback styles for the string settings panel. Both the `QComboBox` (Font) and the `QSpinBox` (Width) fields now share an identical CSS class styling (`self.highlight_style`), applying a bold `2px solid rgb(186, 85, 211)` bright-purple border and a soft-purple background `rgba(186, 85, 211, 40)` when custom overrides are active.
+- **Improved QSpinBox Styling**: Transitioned stylesheet application from the internal line edit field (`width_spinbox.lineEdit()`) to the top-level `QSpinBox` widget, making its internal line edit background transparent and removing its internal border. This draws a complete border around the entire widget without breaking or hiding the native step up/down arrow buttons on Windows platforms.
+
 ## [0.2.166] - 2026-06-06
 
 ### Fixed

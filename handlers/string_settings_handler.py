@@ -111,6 +111,9 @@ class StringSettingsHandler(BaseHandler):
             
         log_debug(f"Applied and updated string_metadata for {key}: {self.mw.string_metadata.get(key)}")
         
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+            
         current_string_idx_before_rescan: int = self.mw.data_store.current_string_idx
         self._apply_and_rescan()
         if hasattr(self.mw, 'list_selection_handler'):
@@ -138,6 +141,9 @@ class StringSettingsHandler(BaseHandler):
             if not self.mw.string_metadata[key]:
                 del self.mw.string_metadata[key]
         
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+        
         self._apply_and_rescan()
 
     def apply_font_to_lines(self, line_indices: List[int], font_file: str) -> None:
@@ -160,6 +166,9 @@ class StringSettingsHandler(BaseHandler):
             
             if not self.mw.string_metadata[key]:
                 del self.mw.string_metadata[key]
+        
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
         
         self._apply_and_rescan()
 
@@ -188,6 +197,9 @@ class StringSettingsHandler(BaseHandler):
             if not self.mw.string_metadata[key]:
                 del self.mw.string_metadata[key]
 
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+
         self._apply_and_rescan()
 
     def apply_width_to_lines(self, line_indices: List[int], width: int) -> None:
@@ -214,7 +226,6 @@ class StringSettingsHandler(BaseHandler):
                 del self.mw.string_metadata[key]
 
         if hasattr(self.mw, 'settings_manager'):
-            self.mw.settings_manager.set("string_metadata", {str(k): v for k, v in self.mw.string_metadata.items()})
             self.mw.settings_manager.save_settings()
 
         self._apply_and_rescan()
@@ -241,5 +252,8 @@ class StringSettingsHandler(BaseHandler):
 
             if not self.mw.string_metadata[key]:
                 del self.mw.string_metadata[key]
+        
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
         
         self._apply_and_rescan()
