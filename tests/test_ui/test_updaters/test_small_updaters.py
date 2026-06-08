@@ -476,10 +476,10 @@ class TestPreviewUpdater:
     def test_populate_strings_shows_progress_dialog(self, mock_hl, mock_ut, mock_progress, updater, mock_dp):
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = ""
-        preview_edit.document().blockCount.return_value = 200
+        preview_edit.document().blockCount.return_value = 250
         updater.mw.preview_text_edit = preview_edit
         
-        updater.mw.data_store.data = [["line" + str(i) for i in range(200)]]
+        updater.mw.data_store.data = [["line" + str(i) for i in range(250)]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.current_game_rules = MagicMock()
         updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
@@ -491,11 +491,16 @@ class TestPreviewUpdater:
         progress_instance.wasCanceled.return_value = False
         mock_progress.return_value = progress_instance
 
-        updater.populate_strings_for_block(0, force=True)
+        updater._force_progress_for_testing = True
+        try:
+            updater.populate_strings_for_block(0, force=True)
+        finally:
+            updater._force_progress_for_testing = False
 
         assert mock_progress.called
         assert progress_instance.setValue.called
         assert progress_instance.close.called
+
 
     def test_update_cached_string(self, updater):
         # Setup cache with a block having two different filter configurations

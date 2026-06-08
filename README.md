@@ -1,6 +1,6 @@
-# Picoripi v0.2.168
+# Picoripi v0.2.169
  
-The **Picoripi** (v0.2.168) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.2.169) is a visual translation and localization workbench built with **Python** and **PyQt5**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
