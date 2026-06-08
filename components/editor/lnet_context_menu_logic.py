@@ -335,10 +335,16 @@ class LNETContextMenuLogic:
                 set_width_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_FileDialogListView), f"Set Width for {num_selected} Line(s)...")
                 set_width_action.triggered.connect(self.editor.handle_mass_set_width)
 
-                # Revert to Original
-                menu.addSeparator()
                 real_indices = [main_window.data_store.displayed_string_indices[i] for i in selected_lines if i < len(main_window.data_store.displayed_string_indices)]
                 if real_indices:
+                    menu.addSeparator()
+                    autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), f"AutoFix {num_selected} Line(s)...")
+                    autofix_action.triggered.connect(lambda: main_window.editor_operation_handler.fix_all_strings(
+                        [(main_window.data_store.current_block_idx, idx) for idx in real_indices]
+                    ))
+
+                    # Revert to Original
+                    menu.addSeparator()
                     revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, real_indices))
                     
@@ -354,6 +360,11 @@ class LNETContextMenuLogic:
                 if hasattr(main_window, 'displayed_string_indices') and line_val < len(main_window.data_store.displayed_string_indices):
                     real_idx = main_window.data_store.displayed_string_indices[line_val]
                     menu.addSeparator()
+                    autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), f"AutoFix Line {line_val + 1}...")
+                    autofix_action.triggered.connect(lambda checked=False, r_idx=real_idx: main_window.editor_operation_handler.fix_all_strings(
+                        [(main_window.data_store.current_block_idx, r_idx)]
+                    ))
+
                     revert_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [real_idx]))
                     

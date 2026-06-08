@@ -46,6 +46,9 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         next_subline_no_tags_stripped = remove_all_tags(next_subline_text).strip()
         if not next_subline_no_tags_stripped:
             return False
+        # Don't merge if the next subline starts with a page break or pause escape code
+        if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', next_subline_text, re.IGNORECASE):
+            return False
         first_word_next = next_subline_no_tags_stripped.split(maxsplit=1)[0]
         if not first_word_next:
             return False

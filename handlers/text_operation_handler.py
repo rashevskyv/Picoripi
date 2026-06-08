@@ -685,7 +685,10 @@ class TextOperationHandler(BaseHandler):
             if hasattr(self.mw, 'statusBar'):
                 self.mw.statusBar.showMessage("Auto-fix: No changes made.", 2000)
 
-    def fix_all_strings(self) -> None:
+    def fix_all_strings(self, target_strings: list = None) -> None:
+        if isinstance(target_strings, bool):
+            target_strings = None
+
         if not self.mw.current_game_rules:
             QMessageBox.warning(self.mw, "Auto-fix Error", "Game rules plugin not loaded.")
             return
@@ -706,19 +709,23 @@ class TextOperationHandler(BaseHandler):
             QMessageBox.information(self.mw, "Auto-fix", "No problems selected to fix.")
             return
 
-        # Count total strings in the project
-        total_strings = 0
-        if self.mw.data_store.data:
-            for block in self.mw.data_store.data:
-                if isinstance(block, list):
-                    total_strings += len(block)
+        # Count total strings
+        if target_strings is not None:
+            total_strings = len(target_strings)
+        else:
+            total_strings = 0
+            if self.mw.data_store.data:
+                for block in self.mw.data_store.data:
+                    if isinstance(block, list):
+                        total_strings += len(block)
 
         if total_strings == 0:
-            QMessageBox.information(self.mw, "Auto-fix", "No strings loaded in the project.")
+            QMessageBox.information(self.mw, "Auto-fix", "No strings to fix.")
             return
 
         # Show progress dialog
-        progress = QProgressDialog("Applying auto-fix across all strings...", "Cancel", 0, total_strings, self.mw)
+        progress_msg = "Applying auto-fix across selected strings..." if target_strings is not None else "Applying auto-fix across all strings..."
+        progress = QProgressDialog(progress_msg, "Cancel", 0, total_strings, self.mw)
         progress.setWindowModality(Qt.WindowModal)
         progress.setMinimumDuration(500)
         progress.setValue(0)
@@ -732,22 +739,22 @@ class TextOperationHandler(BaseHandler):
         canceled = False
 
         try:
-            # We iterate over all blocks and all strings
-            for block_idx, block in enumerate(self.mw.data_store.data):
-                if not isinstance(block, list):
-                    continue
-
-                for string_idx, original_text in enumerate(block):
+            if target_strings is not None:
+                for block_idx, string_idx in target_strings:
                     if progress.wasCanceled():
                         canceled = True
                         break
 
-                    # Retrieve the current text (might already be edited)
+                    if not (0 <= block_idx < len(self.mw.data_store.data)):
+                        continue
+                    block = self.mw.data_store.data[block_idx]
+                    if not isinstance(block, list) or not (0 <= string_idx < len(block)):
+                        continue
+
                     current_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
                     if current_text is None:
                         current_text = ""
 
-                    # Get font and thresholds for this specific string
                     font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
                     string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
                     width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
@@ -773,46 +780,89 @@ class TextOperationHandler(BaseHandler):
                     changed = any_changed
 
                     if changed and fixed_text != current_text:
-                        # Save fixed data
                         self.data_processor.update_edited_data(block_idx, string_idx, fixed_text, action_type="AUTOFIX", skip_ui_refresh=True)
-                        # Also immediately rescan issues for this string so highlights/errors update correctly
                         self._rescan_issues_for_current_string(block_idx, string_idx, fixed_text)
                         changed_strings_count += 1
 
                     processed_strings += 1
                     progress.setValue(processed_strings)
                     QApplication.processEvents()
+            else:
+                for block_idx, block in enumerate(self.mw.data_store.data):
+                    if not isinstance(block, list):
+                        continue
 
-                if canceled:
-                    break
+                    for string_idx, original_text in enumerate(block):
+                        if progress.wasCanceled():
+                            canceled = True
+                            break
+
+                        current_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
+                        if current_text is None:
+                            current_text = ""
+
+                        font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+                        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
+                        width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
+                        logical_hard_limit_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+
+                        current_iter_text = current_text
+                        any_changed = False
+                        max_iterations = 5
+                        for _ in range(max_iterations):
+                            fixed_text, changed = self.mw.current_game_rules.autofix_data_string(
+                                current_iter_text,
+                                font_map_for_string,
+                                width_threshold_for_string,
+                                logical_hard_limit=logical_hard_limit_for_string,
+                                allowed_problems=selected_problems
+                            )
+                            if not changed or fixed_text == current_iter_text:
+                                break
+                            current_iter_text = fixed_text
+                            any_changed = True
+                        
+                        fixed_text = current_iter_text
+                        changed = any_changed
+
+                        if changed and fixed_text != current_text:
+                            self.data_processor.update_edited_data(block_idx, string_idx, fixed_text, action_type="AUTOFIX", skip_ui_refresh=True)
+                            self._rescan_issues_for_current_string(block_idx, string_idx, fixed_text)
+                            changed_strings_count += 1
+
+                        processed_strings += 1
+                        progress.setValue(processed_strings)
+                        QApplication.processEvents()
+
+                    if canceled:
+                        break
 
         finally:
             progress.setValue(total_strings)
-            # End undo group
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("FIX_ALL")
 
         # UI Refresh
         if changed_strings_count > 0:
-            # 1. Update tree widgets (re-calculate problem counts)
             if hasattr(self.mw, 'ui_updater'):
-                for b_idx in range(len(self.mw.data_store.data)):
-                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                if target_strings is not None:
+                    affected_blocks = set(b_idx for b_idx, _ in target_strings)
+                    for b_idx in affected_blocks:
+                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                else:
+                    for b_idx in range(len(self.mw.data_store.data)):
+                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
 
-            # 2. Cancel any pending debounce timer to avoid overwriting with stale editor content
             if self.preview_update_timer.isActive():
                 self.preview_update_timer.stop()
 
-            # 3. If currently selected string was modified, refresh editor panel
             curr_block_idx = self.mw.data_store.current_block_idx
             curr_string_idx = self.mw.data_store.current_string_idx
             
             if curr_block_idx != -1 and curr_string_idx != -1:
-                # Retrieve the newly fixed text
                 fixed_current, _ = self.data_processor.get_current_string_text(curr_block_idx, curr_string_idx)
                 visual_text_for_editor = self.mw.current_game_rules.get_text_representation_for_editor(fixed_current)
                 
-                # Programmatically update current editor text
                 edited_text_edit = self.mw.edited_text_edit
                 if edited_text_edit:
                     original_cursor_pos = edited_text_edit.textCursor().position()
@@ -824,14 +874,12 @@ class TextOperationHandler(BaseHandler):
                     cursor.endEditBlock()
                     self.mw.is_programmatically_changing_text = False
 
-                    # Restore cursor
                     new_doc_len = edited_text_edit.document().characterCount() - 1
                     final_cursor_pos = min(original_cursor_pos, new_doc_len if new_doc_len >= 0 else 0)
                     restored_cursor = edited_text_edit.textCursor()
                     restored_cursor.setPosition(final_cursor_pos)
                     edited_text_edit.setTextCursor(restored_cursor)
 
-            # 4. Full UI refresh for the active view/preview
             if curr_block_idx != -1:
                 self.mw.ui_updater.populate_strings_for_block(curr_block_idx)
             self.mw.ui_updater.update_text_views()

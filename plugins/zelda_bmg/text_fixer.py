@@ -68,6 +68,11 @@ class TextFixer(GenericTextFixer):
                 current_line = new_sub_lines[i]
                 next_line = new_sub_lines[i+1]
                 
+                # Don't merge if next_line starts with page break or pause control code
+                if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', next_line, re.IGNORECASE):
+                    i -= 1
+                    continue
+
                 is_boundary = (i + 1) % lines_per_page == 0
                 if is_boundary:
                     is_next_single_word_lowercase = (

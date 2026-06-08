@@ -703,11 +703,9 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
     if not text:
         return text, False
         
-    raw_lines = text.split('\n')
-    # Discard empty/blank lines to allow compacting sentences from subsequent pages
-    sublines = [line for line in raw_lines if line.strip()]
+    sublines = text.split('\n')
     
-    if not sublines:
+    if not any(sublines):
         return "", True
         
     # Segment sublines into sentences
@@ -716,16 +714,35 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
     
     for idx in range(len(sublines)):
         line = sublines[idx]
+        
+        # 1. If line is empty, it acts as a page boundary/separate sentence
+        if not line.strip():
+            if current_sentence:
+                sentences.append(current_sentence)
+                current_sentence = []
+            sentences.append([line])
+            continue
+            
+        # 2. If line starts with a page break/pause escape code, end the previous group
+        if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+            if current_sentence:
+                sentences.append(current_sentence)
+                current_sentence = []
+                
         current_sentence.append(line)
         cleaned = remove_all_tags(line).strip()
         is_end = False
         if cleaned:
-            last_char = cleaned[-1]
-            if last_char in ('.', '!', '?', '。', '！', '？'):
+            # 3. If line contains a page break escape code anywhere, end the group
+            if re.search(r'\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
                 is_end = True
-            elif last_char in ('"', "'", '»', '`', ')') and len(cleaned) > 1:
-                if cleaned[-2] in ('.', '!', '?', '。', '！', '？'):
+            else:
+                last_char = cleaned[-1]
+                if last_char in ('.', '!', '?', '。', '！', '？'):
                     is_end = True
+                elif last_char in ('"', "'", '»', '`', ')') and len(cleaned) > 1:
+                    if cleaned[-2] in ('.', '!', '?', '。', '！', '？'):
+                        is_end = True
         
         if is_end:
             sentences.append(current_sentence)
@@ -738,6 +755,24 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
     pages = [[]]
     for s_lines in sentences:
         s_len = len(s_lines)
+        
+        # Check if the sentence starts with a page break/pause code
+        starts_with_page_break = False
+        if s_lines:
+            first_line = s_lines[0]
+            if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', first_line, re.IGNORECASE):
+                starts_with_page_break = True
+                
+        if starts_with_page_break:
+            current_len = len(pages[-1])
+            remaining_space = max(0, lines_per_page - (current_len % lines_per_page))
+            if remaining_space == 0:
+                remaining_space = lines_per_page
+            if current_len > 0 and (current_len % lines_per_page) != 0:
+                pages[-1].extend([""] * remaining_space)
+            pages.append(s_lines)
+            continue
+            
         if s_len > lines_per_page:
             # Too long to fit on a single page anyway.
             # Append directly to the current page.

@@ -85,7 +85,41 @@ def test_revert_line():
     # Verify update_edited_data called with original text
     data_processor.update_edited_data.assert_called_with(0, 0, "Original line 1", action_type="REVERT")
 
+def test_fix_all_strings_target_strings():
+    with patch('handlers.text_operation_handler.AutofixSelectionDialog') as mock_dialog_class, \
+         patch('handlers.text_operation_handler.QProgressDialog') as mock_progress_class:
+        mock_dialog = MagicMock()
+        mock_dialog.exec_.return_value = 1
+        mock_dialog_class.Accepted = 1
+        mock_dialog.get_selected_problems.return_value = ["some_problem"]
+        mock_dialog_class.return_value = mock_dialog
+
+        mock_progress = MagicMock()
+        mock_progress.wasCanceled.return_value = False
+        mock_progress_class.return_value = mock_progress
+
+        ctx = MockContext()
+        ctx.current_game_rules.get_problem_definitions.return_value = {"some_problem": {"name": "Some Problem"}}
+        ctx.current_game_rules.autofix_data_string.return_value = ("Fixed text", True)
+        ctx.edited_text_edit.document().characterCount.return_value = 10
+        ctx.edited_text_edit.textCursor().position.return_value = 5
+        
+        data_processor = MagicMock()
+        data_processor.get_current_string_text.return_value = ("Original text", "original")
+        
+        ui_updater = MagicMock()
+        handler = TextOperationHandler(ctx, data_processor, ui_updater)
+        
+        target_strings = [(0, 0)]
+        handler.fix_all_strings(target_strings)
+        
+        assert ctx.current_game_rules.autofix_data_string.call_count == 2
+        data_processor.update_edited_data.assert_called_once_with(
+            0, 0, "Fixed text", action_type="AUTOFIX", skip_ui_refresh=True
+        )
+
 if __name__ == "__main__":
     test_text_edited_basic()
     test_revert_line()
+    test_fix_all_strings_target_strings()
     print("TextOperationHandler tests passed!")
