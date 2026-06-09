@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QColor
+from PyQt6.QtGui import QColor
 
 PROBLEM_TAG_WARNING = "ZMC_TAG_WARNING"
 PROBLEM_WIDTH_EXCEEDED = "ZMC_WIDTH_EXCEEDED"

@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Set, List, Tuple
-from PyQt5.QtGui import QTextCharFormat, QColor
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QTextCharFormat, QColor
+from PyQt6.QtCore import Qt
 from plugins.common.tag_manager import GenericTagManager
 from utils.logging_utils import log_debug
 
@@ -22,9 +22,9 @@ class TagManager(GenericTagManager):
         self.literal_newline_format.setForeground(QColor("red"))
         self.literal_newline_format.setFontWeight(75) # Bold
 
-        self.color_red_format.setForeground(Qt.red)
-        self.color_green_format.setForeground(Qt.darkGreen)
-        self.color_blue_format.setForeground(Qt.blue)
+        self.color_red_format.setForeground(QColor("red"))
+        self.color_green_format.setForeground(QColor("darkGreen"))
+        self.color_blue_format.setForeground(QColor("blue"))
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         rules = super().get_syntax_highlighting_rules()

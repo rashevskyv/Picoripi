@@ -1,6 +1,6 @@
 from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
-from PyQt5.QtGui import QTextCharFormat, QColor, QFont
+from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 from plugins.base_game_rules import BaseGameRules
 from .config import (PROBLEM_DEFINITIONS, DEFAULT_AUTOFIX_SETTINGS, DEFAULT_DETECTION_SETTINGS, DEFAULT_TAG_MAPPINGS_POKEMON_FR, 
                      P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER, CONTROL_CODES, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING)

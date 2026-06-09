@@ -7,9 +7,19 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
-from PyQt5.QtCore import Qt, QSize, QEvent, QTimer, QRect, QPoint, pyqtSignal
-from PyQt5.QtGui import QFont, QColor, QPalette, QIcon, QKeyEvent
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
+from PyQt6.QtCore import Qt, QSize, QEvent, QTimer, QRect, QPoint, pyqtSignal
+# Monkeypatch Qt item roles for backwards compatibility
+Qt.EditRole = Qt.ItemDataRole.EditRole
+Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
+Qt.UserRole = Qt.ItemDataRole.UserRole
+Qt.ToolTipRole = Qt.ItemDataRole.ToolTipRole
+Qt.BackgroundRole = Qt.ItemDataRole.BackgroundRole
+Qt.ForegroundRole = Qt.ItemDataRole.ForegroundRole
+Qt.CheckStateRole = Qt.ItemDataRole.CheckStateRole
+Qt.FontRole = Qt.ItemDataRole.FontRole
+Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
+from PyQt6.QtGui import QFont, QColor, QPalette, QIcon, QKeyEvent, QShowEvent
 from typing import Optional, Dict, Tuple, Set, Any
 
 from ui.ui_setup import setup_main_window_ui
@@ -378,7 +388,6 @@ class MainWindow(QMainWindow):
         self.project_action_handler._update_recent_projects_menu()
 
         self.hotkey_manager = HotkeyManager(self)
-        self.hotkey_manager.register()
 
         has_project = bool(self.project_manager and self.project_manager.project)
         has_file = bool(self.data_store.json_path)
@@ -406,6 +415,16 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event: QKeyEvent):
         super().keyPressEvent(event)
 
+    def showEvent(self, event: QShowEvent):
+        super().showEvent(event)
+        if hasattr(self, 'hotkey_manager') and not getattr(self.hotkey_manager, '_registered', False):
+            try:
+                self.hotkey_manager.register()
+            except Exception as e:
+                log_error(f"Error registering hotkeys in showEvent: {e}", exc_info=True)
+
+
+
     def load_game_plugin(self):
         """Proxy to plugin_handler for backward compatibility in handlers."""
         self.plugin_handler.load_game_plugin()
@@ -418,7 +437,7 @@ class MainWindow(QMainWindow):
             handled, result = self.hotkey_manager.handle_native_event(eventType, message)
             if handled:
                 return True, result
-        return super().nativeEvent(eventType, message)
+        return False, 0
 
     # --- Settings Properties ---
     @property
@@ -657,7 +676,7 @@ if __name__ == '__main__':
         log_error(f"CRITICAL ERROR during MainWindow initialization: {e}", exc_info=True)
         sys.exit(1)
     log_info("Starting Qt event loop...", category="lifecycle")
-    exit_code = app.exec_()
+    exit_code = app.exec()
     log_info(f"Qt event loop finished with exit code: {exit_code}", category="lifecycle")
     log_info("================= Application End =================")
     sys.exit(exit_code)

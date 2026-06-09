@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QWidget, QListWidgetItem
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QWidget, QListWidgetItem
+from PyQt6.QtCore import Qt
 from ui.mempalace_builder_dialog import MemePalaceBuilderDialog
 
 @pytest.fixture(scope="module")
@@ -80,7 +80,7 @@ def test_mempalace_builder_pipeline_orchestration(qapp):
     dialog._profile_characters_speech_via_ai_core.assert_called_once()
     
     # Simulate step 4 success (pipeline complete)
-    with patch("PyQt5.QtWidgets.QMessageBox.information") as mock_info:
+    with patch("PyQt6.QtWidgets.QMessageBox.information") as mock_info:
         dialog._advance_pipeline()
         assert dialog.pipeline_running is False
         assert dialog.pipeline_step == 0

@@ -2,7 +2,7 @@ import os
 import struct
 import json
 from typing import Dict, Any, List, Tuple, Optional
-from PyQt5.QtGui import QImage, QColor
+from PyQt6.QtGui import QImage, QColor
 from utils.logging_utils import log_info, log_warning, log_error
 
 def align_to(value: int, alignment: int) -> int:
@@ -334,7 +334,7 @@ class BfnCore:
     def get_sheets_qimages(self) -> List[QImage]:
         """
         Decode the binary sheets (texture sheets) from GLY1 chunk using I4 or IA4 formats
-        directly into PyQt5 QImage objects. Results are cached.
+        directly into PyQt6 QImage objects. Results are cached.
         """
         if self._qimages_cache is not None:
             return self._qimages_cache
@@ -350,7 +350,7 @@ class BfnCore:
         sheets_binary = gly.get("sheets_binary", [])
 
         for sheet_bin in sheets_binary:
-            img = QImage(texture_width, texture_height, QImage.Format_ARGB32)
+            img = QImage(texture_width, texture_height, QImage.Format.Format_ARGB32)
             img.fill(0) # Start with fully transparent transparent black
 
             if texture_format == 0:  # I4 (intensity 4 bits, tiles of 8x8)

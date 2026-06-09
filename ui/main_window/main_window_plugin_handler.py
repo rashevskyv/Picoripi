@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING
 import sys
 import importlib
 import traceback
-from PyQt5.QtWidgets import QAction, QMenu, QMessageBox
-from PyQt5.QtGui import QKeySequence
+from PyQt6.QtWidgets import QMenu, QMessageBox
+from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QKeySequence
 from utils.logging_utils import log_info, log_error
 from plugins.base_game_rules import BaseGameRules
 

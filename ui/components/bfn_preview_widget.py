@@ -2,10 +2,10 @@ import json
 import math
 import re
 from pathlib import Path
-from PyQt5.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
+from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
                              QColorDialog, QVBoxLayout, QPushButton, QFrame)
-from PyQt5.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
-from PyQt5.QtCore import Qt, QRect, QPoint, QRectF, QSize
+from PyQt6.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
+from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
 
 
 def _looks_like_bfn_editor(editor) -> bool:
@@ -90,12 +90,12 @@ class BfnPreviewSideBar(QFrame):
             "}"
         )
         # Don't intercept mouse events for the preview canvas
-        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 8, 4, 8)
         layout.setSpacing(4)
-        layout.setAlignment(Qt.AlignTop)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Color swatch button — shows current text color
         self.btn_color = BfnSideButton("A", "Text Color")
@@ -308,7 +308,7 @@ class BfnPreviewWidget(QWidget):
         self.setMouseTracking(True)
         
         # Context Menu
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
 
         # Side toolbar
@@ -440,7 +440,7 @@ class BfnPreviewWidget(QWidget):
         abs_rect = self.get_absolute_text_rect()
         if self.mouse_inside or self.drag_active or self.resize_active:
             # Active state: solid blue border
-            painter.setPen(QPen(QColor("#0078d7"), 1.5, Qt.SolidLine))
+            painter.setPen(QPen(QColor("#0078d7"), 1.5, Qt.PenStyle.SolidLine))
             painter.drawRect(abs_rect)
             
             # Draw resize handles
@@ -454,7 +454,7 @@ class BfnPreviewWidget(QWidget):
                 painter.drawRect(h_rect)
         else:
             # Inactive state: thin dashed gray border
-            painter.setPen(QPen(QColor("#555555"), 1.0, Qt.DashLine))
+            painter.setPen(QPen(QColor("#555555"), 1.0, Qt.PenStyle.DashLine))
             painter.drawRect(abs_rect)
 
     def _position_sidebar(self):
@@ -476,19 +476,19 @@ class BfnPreviewWidget(QWidget):
     def leaveEvent(self, event):
         self.mouse_inside = False
         self.hover_handle = None
-        self.setCursor(Qt.ArrowCursor)
+        self.setCursor(Qt.CursorShape.ArrowCursor)
         self.update()
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             modifiers = event.modifiers()
-            if modifiers & Qt.ControlModifier and self.bg_image:
+            if modifiers & Qt.KeyboardModifier.ControlModifier and self.bg_image:
                 # Ctrl + Left Mouse Button -> Scale background
                 self.scale_drag_active = True
                 self.drag_start_pos = event.pos()
                 self.drag_start_scale = self.bg_scale
-            elif modifiers & Qt.AltModifier and self.bg_image:
+            elif modifiers & Qt.KeyboardModifier.AltModifier and self.bg_image:
                 # Alt + Left Mouse Button -> Move background
                 self.move_bg_drag_active = True
                 self.drag_start_pos = event.pos()
@@ -564,22 +564,22 @@ class BfnPreviewWidget(QWidget):
             
             if handle:
                 if handle in ['top-left', 'bottom-right']:
-                    self.setCursor(Qt.SizeFDiagCursor)
+                    self.setCursor(Qt.CursorShape.SizeFDiagCursor)
                 elif handle in ['top-right', 'bottom-left']:
-                    self.setCursor(Qt.SizeBDiagCursor)
+                    self.setCursor(Qt.CursorShape.SizeBDiagCursor)
                 elif handle in ['top', 'bottom']:
-                    self.setCursor(Qt.SizeVerCursor)
+                    self.setCursor(Qt.CursorShape.SizeVerCursor)
                 elif handle in ['left', 'right']:
-                    self.setCursor(Qt.SizeHorCursor)
+                    self.setCursor(Qt.CursorShape.SizeHorCursor)
             elif abs_rect.contains(event.pos()):
-                self.setCursor(Qt.SizeAllCursor)
+                self.setCursor(Qt.CursorShape.SizeAllCursor)
             else:
-                self.setCursor(Qt.ArrowCursor)
+                self.setCursor(Qt.CursorShape.ArrowCursor)
             self.update()
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             if self.scale_drag_active:
                 self.mw.preview_bg_scale = self.bg_scale
                 if hasattr(self.mw, 'settings_manager'):
@@ -630,7 +630,7 @@ class BfnPreviewWidget(QWidget):
         action_shadow = fx_menu.addAction("Drop Shadow...")
         action_glow = fx_menu.addAction("Outer Glow...")
 
-        action = menu.exec_(self.mapToGlobal(pos))
+        action = menu.exec(self.mapToGlobal(pos))
         if action == action_set_bg:
             file_path, _ = QFileDialog.getOpenFileName(
                 self, "Select Background Image", "", "Images (*.png *.jpg *.jpeg *.bmp)"
@@ -728,7 +728,7 @@ class BfnPreviewWidget(QWidget):
             },
             parent=self
         )
-        if dlg.exec_() == TextEffectsDialog.Accepted:
+        if dlg.exec() == TextEffectsDialog.Accepted:
             result = dlg.get_result()
             self.shadow_enabled = result["enabled"]
             self.shadow_color = result["color"]
@@ -752,7 +752,7 @@ class BfnPreviewWidget(QWidget):
             },
             parent=self
         )
-        if dlg.exec_() == TextEffectsDialog.Accepted:
+        if dlg.exec() == TextEffectsDialog.Accepted:
             result = dlg.get_result()
             self.glow_enabled = result["enabled"]
             self.glow_color = result["color"]
@@ -788,34 +788,35 @@ class BfnPreviewWidget(QWidget):
         The painter transform (translate + scale) is applied identically to paintEvent.
         Returns a QImage with Format_ARGB32_Premultiplied for composition.
         """
-        img = QImage(img_size, QImage.Format_ARGB32_Premultiplied)
-        img.fill(Qt.transparent)
+        img = QImage(img_size, QImage.Format.Format_ARGB32_Premultiplied)
+        img.fill(Qt.GlobalColor.transparent)
         p = QPainter(img)
-        p.setRenderHint(QPainter.Antialiasing, False)
-        p.scale(scale_factor, scale_factor)
-        p.translate(-15, -15)
+        try:
+            p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+            p.scale(scale_factor, scale_factor)
+            p.translate(-15, -15)
 
-        for g in glyphs:
-            if g["is_fallback"]:
-                p.save()
-                p.setPen(QPen(QColor("#ffffff"), 1))
-                box_w = g["width"] - 2 if g["width"] > 2 else 10
-                p.drawRect(QRectF(g["draw_x"] + 1, g["draw_y"] + 1, box_w, cell_h - 2))
-                p.restore()
-                continue
+            for g in glyphs:
+                if g["is_fallback"]:
+                    p.save()
+                    p.setPen(QPen(QColor("#ffffff"), 1))
+                    box_w = g["width"] - 2 if g["width"] > 2 else 10
+                    p.drawRect(QRectF(g["draw_x"] + 1, g["draw_y"] + 1, box_w, cell_h - 2))
+                    p.restore()
+                    continue
 
-            if g["sheet_idx"] < 0 or g["sheet_idx"] >= len(sheets):
-                continue
+                if g["sheet_idx"] < 0 or g["sheet_idx"] >= len(sheets):
+                    continue
 
-            sheet_img = sheets[g["sheet_idx"]]
-            crop_x = g["cell_x"] + g["kerning"]
-            crop_w = g["width"]
-            if crop_w <= 0:
-                crop_w = 1
-            p.drawImage(g["draw_x"], g["draw_y"], sheet_img,
-                        crop_x, g["cell_y"], crop_w, cell_h)
-
-        p.end()
+                sheet_img = sheets[g["sheet_idx"]]
+                crop_x = g["cell_x"] + g["kerning"]
+                crop_w = g["width"]
+                if crop_w <= 0:
+                    crop_w = 1
+                p.drawImage(g["draw_x"], g["draw_y"], sheet_img,
+                            crop_x, g["cell_y"], crop_w, cell_h)
+        finally:
+            p.end()
         return img
 
     def _tint_image(self, src: QImage, color_hex: str, alpha: int) -> QImage:
@@ -824,17 +825,19 @@ class BfnPreviewWidget(QWidget):
         Uses SourceIn composition: dst = src_alpha * tint_color.
         Returns a new QImage tinted with the given color and clamped alpha.
         """
-        tint = QImage(src.size(), QImage.Format_ARGB32_Premultiplied)
-        tint.fill(Qt.transparent)
+        tint = QImage(src.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        tint.fill(Qt.GlobalColor.transparent)
         tp = QPainter(tint)
-        # 1. Draw source (the white glyphs) — this gives us the alpha mask
-        tp.drawImage(0, 0, src)
-        # 2. Fill with color using SourceIn: result keeps src alpha, gets new color
-        c = QColor(color_hex)
-        c.setAlpha(alpha)
-        tp.setCompositionMode(QPainter.CompositionMode_SourceIn)
-        tp.fillRect(tint.rect(), c)
-        tp.end()
+        try:
+            # 1. Draw source (the white glyphs) — this gives us the alpha mask
+            tp.drawImage(0, 0, src)
+            # 2. Fill with color using SourceIn: result keeps src alpha, gets new color
+            c = QColor(color_hex)
+            c.setAlpha(alpha)
+            tp.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+            tp.fillRect(tint.rect(), c)
+        finally:
+            tp.end()
         return tint
 
     # ── paintEvent ────────────────────────────────────────────────────────────
@@ -842,8 +845,19 @@ class BfnPreviewWidget(QWidget):
     def paintEvent(self, event):
         if self.isHidden():
             return
+            
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing, False)
+        try:
+            self._paint_event_impl(painter, event)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+        finally:
+            if painter.isActive():
+                painter.end()
+
+    def _paint_event_impl(self, painter, event):
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         
         # ── 1. Background ─────────────────────────────────────────────────────
         painter.save()
@@ -887,23 +901,23 @@ class BfnPreviewWidget(QWidget):
                 cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
                 cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
                 
-                painter.drawText(abs_rect, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, cleaned_text)
+                painter.drawText(abs_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap, cleaned_text)
             else:
                 painter.setPen(QColor("#777777"))
-                painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
+                painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No BFN font loaded or text is empty")
             self.draw_bounding_box(painter)
             return
             
         if not self.text:
             painter.setPen(QColor("#777777"))
-            painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No BFN font loaded or text is empty")
             self.draw_bounding_box(painter)
             return
             
         sheets = bfn.get_sheets_qimages()
         if not sheets:
             painter.setPen(QColor("#ffaa00"))
-            painter.drawText(self.rect(), Qt.AlignCenter, "BFN sheets not loaded")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "BFN sheets not loaded")
             self.draw_bounding_box(painter)
             return
 
@@ -936,10 +950,7 @@ class BfnPreviewWidget(QWidget):
         fallback_font.setPixelSize(max(10, int(cell_h * 0.85)))
         fallback_fm = QFontMetrics(fallback_font)
 
-        # Call unified layout engine via the BfnCore implementation. This works
-        # uniformly for real BfnCore instances, BfnEditorAdapter (whose own
-        # layout_text just delegates back to BfnCore), and structural stubs in
-        # tests that expose gly1 / map1 / wid1 as plain lists.
+        # Call unified layout engine via the BfnCore implementation.
         from core.bfn_core import BfnCore
         glyphs, total_width, total_height = BfnCore.layout_text(
             bfn, encoded_text, self.translation_map, self.line_spacing
@@ -947,7 +958,7 @@ class BfnPreviewWidget(QWidget):
 
         if not glyphs:
             painter.setPen(QColor("#777777"))
-            painter.drawText(self.rect(), Qt.AlignCenter, "No BFN font loaded or text is empty")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No BFN font loaded or text is empty")
             self.draw_bounding_box(painter)
             return
 
@@ -963,7 +974,7 @@ class BfnPreviewWidget(QWidget):
             
             self._last_computed_scale_factor = scale_factor
 
-        # Offscreen image size: same as abs_rect (where we'll stamp the glyphs)
+        # Offscreen image size: same as abs_rect
         img_size = QSize(abs_rect.width(), abs_rect.height())
 
         # ── 2a. Outer Glow pass ───────────────────────────────────────────────
@@ -975,7 +986,6 @@ class BfnPreviewWidget(QWidget):
             tinted_glow = self._tint_image(glow_img, self.glow_color, self.glow_alpha)
 
             # Paint tinted glow in 8 directions × spread steps
-            # Divide alpha evenly across all passes so total luminance sums correctly
             n_passes = 8 * self.glow_spread
             per_pass_alpha = max(1, self.glow_alpha * 2 // max(1, n_passes))
             painter.save()

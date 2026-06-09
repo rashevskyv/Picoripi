@@ -1,10 +1,10 @@
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QTabWidget, QWidget, QTextBrowser,
     QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QDialogButtonBox,
     QCheckBox
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QEvent, QObject
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtCore import Qt, pyqtSignal, QEvent, QObject
+from PyQt6.QtGui import QTextCursor
 
 
 class _ChatInputEventFilter(QObject):
@@ -12,8 +12,8 @@ class _ChatInputEventFilter(QObject):
         super().__init__(parent)
 
     def eventFilter(self, obj, event):
-        if event.type() == QEvent.KeyPress and event.key() in (Qt.Key_Return, Qt.Key_Enter):
-            if event.modifiers() & Qt.ControlModifier:
+        if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
                 obj.parent().message_sent.emit()
                 return True
         return super().eventFilter(obj, event)
@@ -83,7 +83,7 @@ class AIChatDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("AI Chat")
         self.resize(700, 800)
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
 
         main_layout = QVBoxLayout(self)
         
@@ -170,7 +170,7 @@ class AIChatDialog(QDialog):
                 tab.history_view.document().setDefaultStyleSheet(style)
 
     def eventFilter(self, obj, event):
-        if obj == self.tabs.tabBar() and event.type() == QEvent.MouseButtonPress and event.button() == Qt.MiddleButton:
+        if obj == self.tabs.tabBar() and event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MiddleButton:
             tab_index = obj.tabAt(event.pos())
             if tab_index != -1:
                 self.remove_tab(tab_index)

@@ -6,18 +6,21 @@ description: Release process and deployment workflow
 
 Follow these steps when the USER requests a "deploy" (in English or Ukrainian):
 
-1. **Identify Commit Range**:
-   - Find the commit of the last deploy/release (e.g. via the latest git tag or remote release).
-   - Get the current latest commit.
-   - Retrieve the log of commits between the last deploy and the current commit.
-2. **Analyze and Filter Changes**:
-   - Review the commits/changes in this range.
-   - Extract only **significant global changes, new features, and global bug fixes**.
-   - **Crucial**: Filter out minor optimizations, duplicate/overlapping entries, or self-inflicted bugs (bugs introduced by the agent and subsequently fixed in the same cycle). Only include changes of actual value to the end-user.
-3. **Check Current Version**: Read `utils/constants.py` to get `APP_VERSION`.
-4. **Generate Changelog**:
-   - Categorize the filtered changes into: New Features, Bug Fixes, UI Improvements, Refactoring.
-   - Write/Update `CHANGELOG.md` following the Release Documentation Standard.
+1. **Identify Previous Remote Release**:
+   - Check the remote repository for the actual last deployed release tag before this deploy (e.g. using `gh release list` or checking remote tags).
+   - Do NOT just look at the latest local version increment; identify the tag that was successfully deployed to the remote *before* starting the current changes (e.g., if releasing `v0.2.172` and the last release on GitHub is `v0.2.119`, the previous release tag is `v0.2.119`).
+2. **Identify Commit & Changelog Range**:
+   - Find the commit corresponding to that previous remote release tag.
+   - Get the current latest commit (the head commit) that we are releasing.
+   - Retrieve the full log of all intermediate commits and examine all intermediate version entries (e.g., `0.2.120` up to the current version) in `CHANGELOG.md` within this range.
+3. **Analyze, Filter and Compile Release Notes**:
+   - Traverse all intermediate commits and `CHANGELOG.md` sections between the previous remote tag and the current version.
+   - Extract only **significant global changes, new features, and global bug fixes** introduced across the entire span of intermediate commits.
+   - **Crucial**: Filter out minor internal optimizations, duplicate/overlapping entries, or self-inflicted bugs (bugs introduced by the agent in intermediate commits and subsequently fixed in later intermediate commits).
+   - Compile a single, consolidated, and cohesive Release Notes document/changelog section that summarizes all key changes for this release.
+4. **Check Current Version**: Read `utils/constants.py` to get `APP_VERSION`.
+5. **Update CHANGELOG.md**:
+   - Format and write/update the compiled entry for the current version in `CHANGELOG.md` following the Release Documentation Standard.
 5. **Update Documentation**:
    - Organically update the existing "Features" sections in both `README.md` and `GEMINI.md` to include newly added capabilities and remove obsolete ones.
    - Update the version number in the header of `GEMINI.md` (e.g., `The "Picoripi" (vX.Y.Z)`).

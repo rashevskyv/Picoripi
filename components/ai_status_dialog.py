@@ -2,9 +2,9 @@
 import os
 import ctypes
 from typing import Optional
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QWidget, QProgressBar, QDialogButtonBox, QCheckBox
-from PyQt5.QtGui import QMovie, QFont, QPalette
-from PyQt5.QtCore import Qt, QSize, pyqtSignal, QEvent
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QWidget, QProgressBar, QDialogButtonBox, QCheckBox
+from PyQt6.QtGui import QMovie, QFont, QPalette
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QEvent
 from utils.logging_utils import log_info, log_error
 
 def prevent_sleep():
@@ -45,7 +45,7 @@ class AIStatusDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("AI Operation")
         self.setModal(False)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
         self.setMinimumWidth(450)
         self.setSizeGripEnabled(False)
         self.user_cancelled = False
@@ -69,7 +69,7 @@ class AIStatusDialog(QDialog):
         font.setPointSize(12)
         font.setBold(True)
         self.title_label.setFont(font)
-        self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.title_label)
 
         self.subtitle_label = QLabel("", self)
@@ -77,7 +77,7 @@ class AIStatusDialog(QDialog):
         subtitle_font.setPointSize(max(subtitle_font.pointSize() - 2, 8))
         subtitle_font.setItalic(True)
         self.subtitle_label.setFont(subtitle_font)
-        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.subtitle_label.setVisible(False)
         main_layout.addWidget(self.subtitle_label)
         main_layout.addSpacing(10)
@@ -112,7 +112,7 @@ class AIStatusDialog(QDialog):
         detail_font.setPointSize(max(detail_font.pointSize() - 3, 8))
         detail_font.setItalic(True)
         self.detail_label.setFont(detail_font)
-        self.detail_label.setAlignment(Qt.AlignCenter)
+        self.detail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.detail_label.setWordWrap(True)
         self.detail_label.setVisible(False)
         main_layout.addWidget(self.detail_label)
@@ -142,7 +142,7 @@ class AIStatusDialog(QDialog):
         main_layout.addLayout(sleep_layout)
 
         self.button_box = QDialogButtonBox(self)
-        self.cancel_button = self.button_box.addButton("Cancel", QDialogButtonBox.RejectRole)
+        self.cancel_button = self.button_box.addButton("Cancel", QDialogButtonBox.ButtonRole.RejectRole)
         main_layout.addWidget(self.button_box)
 
         self.button_box.rejected.connect(self.on_cancel)
@@ -232,14 +232,14 @@ class AIStatusDialog(QDialog):
         # Show structured popup notification to the user (suppressed during unit tests)
         import sys
         if 'pytest' not in sys.modules and show_popup:
-            from PyQt5.QtWidgets import QMessageBox
+            from PyQt6.QtWidgets import QMessageBox
             if getattr(self, 'user_cancelled', False):
                 QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} was cancelled.")
             elif success:
                 QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} finished.")
 
         if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False) and success:
-            from PyQt5.QtCore import QTimer
+            from PyQt6.QtCore import QTimer
             QTimer.singleShot(5000, put_to_sleep)
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
@@ -282,19 +282,19 @@ class AIStatusDialog(QDialog):
         
         if status == self.STATUS_PENDING:
             font.setBold(False)
-            palette.setColor(QPalette.WindowText, Qt.gray)
+            palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.gray)
             prefix = "○"
         elif status == self.STATUS_IN_PROGRESS:
             font.setBold(True)
-            palette.setColor(QPalette.WindowText, self.palette().color(QPalette.WindowText))
+            palette.setColor(QPalette.ColorRole.WindowText, self.palette().color(QPalette.ColorRole.WindowText))
             prefix = "▶"
         elif status == self.STATUS_DONE:
             font.setBold(False)
-            palette.setColor(QPalette.WindowText, Qt.gray)
+            palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.gray)
             prefix = "✔"
         elif status == self.STATUS_ERROR:
             font.setBold(True)
-            palette.setColor(QPalette.WindowText, Qt.red)
+            palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.red)
             prefix = "✖"
         else:
             prefix = "○"

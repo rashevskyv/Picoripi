@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTreeWidgetItem, QMessageBox
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QTreeWidgetItem, QMessageBox
 from handlers.list_selection_handler import ListSelectionHandler
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_ListSelectionHandler_block_selected(handler):
     # Setup what we want to "restore"
     handler.mw.project_manager.project.blocks[0].last_selected_string_idx = 42
     
-    with patch('PyQt5.QtCore.QTimer.singleShot'):
+    with patch('PyQt6.QtCore.QTimer.singleShot'):
         handler.block_selected(mock_item, None)
         assert handler.mw.data_store.current_block_idx == 0
         assert handler.mw.data_store.current_string_idx == 42
@@ -107,7 +107,7 @@ def test_ListSelectionHandler_string_selected_from_preview(handler):
     handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.data = [["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7"]]
     
-    with patch('PyQt5.QtCore.QTimer.singleShot'):
+    with patch('PyQt6.QtCore.QTimer.singleShot'):
         with patch('handlers.list_selection_handler.QTextCursor') as mock_cursor:
             # Selecting preview line 1 corresponds to abs index 6
             handler.string_selected_from_preview(1)
@@ -154,7 +154,7 @@ def test_ListSelectionHandler_handle_preview_selection_changed(handler):
     handler.handle_preview_selection_changed(None)
     mock_preview.set_selected_lines.assert_called_with([1])
 
-@patch('PyQt5.QtWidgets.QInputDialog.getText')
+@patch('PyQt6.QtWidgets.QInputDialog.getText')
 def test_ListSelectionHandler_move_selection_to_category(mock_get_text, handler):
     handler.mw.data_store.selected_string_indices = [1]
     handler.mw.data_store.current_block_idx = 0
@@ -162,7 +162,7 @@ def test_ListSelectionHandler_move_selection_to_category(mock_get_text, handler)
     handler.move_selection_to_category()
     handler.mw.project_manager.move_strings_to_category.assert_called_with(0, [1], "NewCat")
 
-@patch('PyQt5.QtWidgets.QInputDialog.getText')
+@patch('PyQt6.QtWidgets.QInputDialog.getText')
 def test_ListSelectionHandler_rename_category(mock_get_text, handler):
     mock_cat = MagicMock()
     mock_cat.name = "Old"
@@ -171,12 +171,12 @@ def test_ListSelectionHandler_rename_category(mock_get_text, handler):
     handler.rename_category(0, "Old")
     assert mock_cat.name == "NewCat"
 
-@patch('PyQt5.QtWidgets.QMessageBox.question')
+@patch('PyQt6.QtWidgets.QMessageBox.question')
 def test_ListSelectionHandler_delete_category(mock_question, handler):
     mock_cat = MagicMock()
     mock_cat.name = "Del"
     handler.mw.project_manager.project.blocks[0].categories = [mock_cat]
-    mock_question.return_value = QMessageBox.Yes
+    mock_question.return_value = QMessageBox.StandardButton.Yes
     handler.delete_category(0, "Del")
     assert handler.mw.project_manager.project.blocks[0].categories == []
 
@@ -279,7 +279,7 @@ def test_ListSelectionHandler_preview_selection_with_selection(handler):
 def test_ListSelectionHandler_move_selection_to_category_branches(handler):
     # No selection
     handler.mw.data_store.selected_string_indices = []
-    with patch('PyQt5.QtWidgets.QMessageBox.warning') as mock_warn:
+    with patch('PyQt6.QtWidgets.QMessageBox.warning') as mock_warn:
         handler.move_selection_to_category()
         mock_warn.assert_called_once()
     
@@ -290,7 +290,7 @@ def test_ListSelectionHandler_move_selection_to_category_branches(handler):
     
     # Empty input
     handler.mw.project_manager.project = MagicMock()
-    with patch('PyQt5.QtWidgets.QInputDialog.getText', return_value=("", True)):
+    with patch('PyQt6.QtWidgets.QInputDialog.getText', return_value=("", True)):
         handler.move_selection_to_category()
         handler.mw.project_manager.move_strings_to_category.assert_not_called()
 

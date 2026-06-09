@@ -1,6 +1,6 @@
 import os
 import json
-from PyQt5.QtGui import QColor
+from PyQt6.QtGui import QColor
 
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(CONFIG_DIR, 'config.json')

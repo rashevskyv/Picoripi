@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QProgressDialog, QMessageBox, QPlainTextEdit
+from PyQt6.QtWidgets import QProgressDialog, QMessageBox, QPlainTextEdit
 from handlers.app_action_handler import AppActionHandler
 from handlers.width_calculation_worker import WidthCalculationWorker
 
 @pytest.fixture
 def mock_mw(qapp):
-    from PyQt5.QtCore import QObject
+    from PyQt6.QtCore import QObject
     mw = MagicMock()
     mw.data_store = MagicMock()
     mw.data_store.data = []
@@ -54,7 +54,7 @@ def test_calculate_widths_for_block_action_async_no_freeze(mock_mw, mock_ui, moc
          patch("handlers.app_action_handler.QMessageBox.information") as MockMsgBox:
         
         progress_mock = MockProgress.return_value
-        progress_mock.exec_.return_value = None  # Don't block event loop
+        progress_mock.exec.return_value = None  # Don't block event loop
         
         handler.calculate_widths_for_block_action(0)
         

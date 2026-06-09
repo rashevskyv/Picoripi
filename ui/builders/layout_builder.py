@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox, QMenu, QCheckBox
 )
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
@@ -17,7 +17,7 @@ class LayoutBuilder:
         self.mw.setCentralWidget(central_widget)
         self.mw.main_vertical_layout = QVBoxLayout(central_widget)
         
-        self.mw.main_splitter = QSplitter(Qt.Horizontal)
+        self.mw.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         
         self._build_left_panel()
         self._build_right_panel()
@@ -38,14 +38,14 @@ class LayoutBuilder:
         block_header_layout.addWidget(QLabel("Blocks (double-click to rename):"))
         block_header_layout.addStretch()
 
-        self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.SP_FileDialogNewFolder), 'Create new virtual folder')
+        self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), 'Create new virtual folder')
         self.mw.add_folder_button.setEnabled(False)
         block_header_layout.addWidget(self.mw.add_folder_button)
 
-        self.mw.expand_all_button = self._create_header_button(self.style.standardIcon(QStyle.SP_TitleBarUnshadeButton), 'Expand all folders', '⇊')
+        self.mw.expand_all_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_TitleBarUnshadeButton), 'Expand all folders', '⇊')
         block_header_layout.addWidget(self.mw.expand_all_button)
 
-        self.mw.collapse_all_button = self._create_header_button(self.style.standardIcon(QStyle.SP_TitleBarShadeButton), 'Collapse all folders', '⇈')
+        self.mw.collapse_all_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_TitleBarShadeButton), 'Collapse all folders', '⇈')
         block_header_layout.addWidget(self.mw.collapse_all_button)
 
         left_layout.addLayout(block_header_layout)
@@ -92,7 +92,7 @@ class LayoutBuilder:
         left_layout.addWidget(self.mw.open_glossary_button)
 
     def _build_right_panel(self):
-        self.mw.right_splitter = QSplitter(Qt.Vertical)
+        self.mw.right_splitter = QSplitter(Qt.Orientation.Vertical)
 
         # Top Right (Preview)
         top_right_panel = QWidget()
@@ -105,7 +105,7 @@ class LayoutBuilder:
         
         self.mw.highlight_categorized_checkbox = QCheckBox("Highlight moved")
         self.mw.highlight_categorized_checkbox.setToolTip("Highlight strings in the parent block that have already been moved to a virtual block (category). Helps you see what's left to organize.")
-        self.mw.highlight_categorized_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.highlight_categorized_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.highlight_categorized_checkbox.hide()
         preview_header_layout.addWidget(self.mw.highlight_categorized_checkbox)
         
@@ -113,38 +113,38 @@ class LayoutBuilder:
         
         self.mw.hide_categorized_checkbox = QCheckBox("Hide moved")
         self.mw.hide_categorized_checkbox.setToolTip("Filter out strings from the parent block view if they are already present in any virtual block. Useful for focused organizing.")
-        self.mw.hide_categorized_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.hide_categorized_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.hide_categorized_checkbox.hide()
         preview_header_layout.addWidget(self.mw.hide_categorized_checkbox)
         
         preview_header_layout.addSpacing(15)
         self.mw.hide_empty_strings_checkbox = QCheckBox("Hide empty strings")
         self.mw.hide_empty_strings_checkbox.setToolTip("Collapse consecutive empty strings into a single placeholder.")
-        self.mw.hide_empty_strings_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.hide_empty_strings_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.hide_empty_strings_checkbox)
         
         preview_header_layout.addSpacing(15)
         self.mw.hide_translated_checkbox = QCheckBox("Hide translated")
         self.mw.hide_translated_checkbox.setToolTip("Hide strings that have already been translated.")
-        self.mw.hide_translated_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.hide_translated_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.hide_translated_checkbox)
         
         preview_header_layout.addSpacing(15)
         self.mw.show_overrides_only_checkbox = QCheckBox("Show Overrides Only")
         self.mw.show_overrides_only_checkbox.setToolTip("Only show strings that have custom font or width overrides.")
-        self.mw.show_overrides_only_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.show_overrides_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_overrides_only_checkbox)
         
         top_right_layout.addLayout(preview_header_layout)
         self.mw.preview_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.preview_text_edit.setObjectName("preview_text_edit")
         self.mw.preview_text_edit.setReadOnly(True)
-        self.mw.preview_text_edit.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
+        self.mw.preview_text_edit.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
         top_right_layout.addWidget(self.mw.preview_text_edit)
         self.mw.right_splitter.addWidget(top_right_panel)
 
         # Bottom Right (Editors)
-        self.mw.bottom_right_splitter = QSplitter(Qt.Horizontal)
+        self.mw.bottom_right_splitter = QSplitter(Qt.Orientation.Horizontal)
         self._build_original_panel()
         self._build_middle_panel()
         self._build_edited_panel()
@@ -170,7 +170,7 @@ class LayoutBuilder:
         
         self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
         self.mw.hide_original_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in original text.")
-        self.mw.hide_original_tags_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         original_header_layout.addWidget(self.mw.hide_original_tags_checkbox)
         
         left_header_layout.addLayout(original_header_layout)
@@ -180,7 +180,7 @@ class LayoutBuilder:
         self.mw.original_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.original_text_edit.setObjectName("original_text_edit")
         self.mw.original_text_edit.setReadOnly(True)
-        self.mw.original_text_edit.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
+        self.mw.original_text_edit.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
         bottom_left_layout.addWidget(self.mw.original_text_edit)
         self.mw.bottom_right_splitter.addWidget(bottom_left_panel)
 
@@ -192,32 +192,32 @@ class LayoutBuilder:
         
         middle_layout.addSpacing(92)
         
-        from PyQt5.QtGui import QPixmap, QPainter, QColor, QFont, QIcon
+        from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QIcon
         
         # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
         pixmap_s = QPixmap(32, 32)
-        pixmap_s.fill(Qt.transparent)
+        pixmap_s.fill(Qt.GlobalColor.transparent)
         painter_s = QPainter(pixmap_s)
-        painter_s.setRenderHint(QPainter.Antialiasing, True)
+        painter_s.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter_s.setPen(QColor("#0078d7")) # Classic Microsoft Blue
-        font_s = QFont("Arial", 22, QFont.Bold)
+        font_s = QFont("Arial", 22, QFont.Weight.Bold)
         painter_s.setFont(font_s)
-        painter_s.drawText(pixmap_s.rect(), Qt.AlignCenter, "S")
+        painter_s.drawText(pixmap_s.rect(), Qt.AlignmentFlag.AlignCenter, "S")
         painter_s.end()
         story_icon = QIcon(pixmap_s)
         
         # Create a dynamic beautiful icon for Restore Translation (document sheet with a blue arrow pointing right)
         pixmap_r = QPixmap(32, 32)
-        pixmap_r.fill(Qt.transparent)
+        pixmap_r.fill(Qt.GlobalColor.transparent)
         painter_r = QPainter(pixmap_r)
-        painter_r.setRenderHint(QPainter.Antialiasing, True)
+        painter_r.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         
         # Draw document sheet (sheet of paper)
         painter_r.setPen(QColor("#7f8c8d")) # Gray outline
         painter_r.setBrush(QColor("#ffffff")) # White filled paper
         
-        from PyQt5.QtGui import QPolygonF
-        from PyQt5.QtCore import QPointF
+        from PyQt6.QtGui import QPolygonF
+        from PyQt6.QtCore import QPointF
         paper_poly = QPolygonF([
             QPointF(4, 4),
             QPointF(14, 4),
@@ -255,7 +255,7 @@ class LayoutBuilder:
             QPointF(26, 15),
             QPointF(19, 20)
         ])
-        painter_r.setPen(Qt.NoPen)
+        painter_r.setPen(Qt.PenStyle.NoPen)
         painter_r.setBrush(QColor("#0078d7"))
         painter_r.drawPolygon(arrow_head)
         
@@ -263,13 +263,13 @@ class LayoutBuilder:
         restore_icon = QIcon(pixmap_r)
 
         self.mw.revert_string_button = QPushButton()
-        self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowForward))
+        self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
         self.mw.revert_string_button.setToolTip("Revert current string to original file content")
         self.mw.revert_string_button.setFixedWidth(30)
-        self.mw.revert_string_button.setCursor(Qt.PointingHandCursor)
+        self.mw.revert_string_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.revert_string_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
         
-        middle_layout.addWidget(self.mw.revert_string_button, 0, Qt.AlignCenter)
+        middle_layout.addWidget(self.mw.revert_string_button, 0, Qt.AlignmentFlag.AlignCenter)
         
         middle_layout.addSpacing(6)
         
@@ -277,10 +277,10 @@ class LayoutBuilder:
         self.mw.restore_translation_button.setIcon(restore_icon)
         self.mw.restore_translation_button.setToolTip("Restore last saved/reverted translation (Ctrl+Shift+T)")
         self.mw.restore_translation_button.setFixedWidth(30)
-        self.mw.restore_translation_button.setCursor(Qt.PointingHandCursor)
+        self.mw.restore_translation_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.restore_translation_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
         
-        middle_layout.addWidget(self.mw.restore_translation_button, 0, Qt.AlignCenter)
+        middle_layout.addWidget(self.mw.restore_translation_button, 0, Qt.AlignmentFlag.AlignCenter)
         
         middle_layout.addSpacing(6)
         
@@ -288,10 +288,10 @@ class LayoutBuilder:
         self.mw.inspect_story_context_button.setIcon(story_icon)
         self.mw.inspect_story_context_button.setToolTip('Show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I)')
         self.mw.inspect_story_context_button.setFixedWidth(30)
-        self.mw.inspect_story_context_button.setCursor(Qt.PointingHandCursor)
+        self.mw.inspect_story_context_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.inspect_story_context_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
         
-        middle_layout.addWidget(self.mw.inspect_story_context_button, 0, Qt.AlignCenter)
+        middle_layout.addWidget(self.mw.inspect_story_context_button, 0, Qt.AlignmentFlag.AlignCenter)
         middle_layout.addStretch(1)
         
         middle_panel.setFixedWidth(34)
@@ -313,18 +313,18 @@ class LayoutBuilder:
         
         self.mw.hide_translation_tags_checkbox = QCheckBox("Hide tags")
         self.mw.hide_translation_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in translation.")
-        self.mw.hide_translation_tags_checkbox.setCursor(Qt.PointingHandCursor)
+        self.mw.hide_translation_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         editable_text_header_layout.addWidget(self.mw.hide_translation_tags_checkbox)
         
         editable_text_header_layout.addStretch(1)
         
         self.mw.navigate_down_button = QPushButton()
-        self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowDown))
+        self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowDown))
         self.mw.navigate_down_button.setToolTip("Navigate to next problem string (Ctrl+Down)")
         editable_text_header_layout.addWidget(self.mw.navigate_down_button)
 
         self.mw.navigate_up_button = QPushButton()
-        self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.SP_ArrowUp))
+        self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
         self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
         editable_text_header_layout.addWidget(self.mw.navigate_up_button)
 
@@ -360,12 +360,12 @@ class LayoutBuilder:
         self.mw.width_spinbox = QSpinBox()
         self.mw.width_spinbox.setRange(0, 10000)
         self.mw.width_spinbox.setToolTip("Set custom width for this string (0 = use plugin default)")
-        self.mw.width_spinbox.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         
         def show_width_context_menu(pos):
             menu = QMenu()
             reset_action = menu.addAction("Reset to Plugin Default")
-            action = menu.exec_(self.mw.width_spinbox.mapToGlobal(pos))
+            action = menu.exec(self.mw.width_spinbox.mapToGlobal(pos))
             if action == reset_action:
                 self.mw.width_spinbox.setValue(getattr(self.mw, 'game_dialog_max_width_pixels', 300))
 
@@ -379,7 +379,7 @@ class LayoutBuilder:
         bottom_right_layout.addWidget(self.mw.right_header_container)
 
         # Sync heights using event filter
-        from PyQt5.QtCore import QObject, QEvent
+        from PyQt6.QtCore import QObject, QEvent
         class HeaderSyncFilter(QObject):
             def __init__(self, source, target):
                 super().__init__(source)
@@ -389,7 +389,7 @@ class LayoutBuilder:
                     self.target.setFixedHeight(self.source.height())
 
             def eventFilter(self, obj, event):
-                if obj is self.source and event.type() == QEvent.Resize:
+                if obj is self.source and event.type() == QEvent.Type.Resize:
                     self.target.setFixedHeight(self.source.height())
                 return super().eventFilter(obj, event)
 
@@ -404,7 +404,7 @@ class LayoutBuilder:
         self.mw.bfn_preview_widget = BfnPreviewWidget(self.mw)
         
         # Vertical splitter for editor and visual preview
-        self.mw.editor_preview_splitter = QSplitter(Qt.Vertical)
+        self.mw.editor_preview_splitter = QSplitter(Qt.Orientation.Vertical)
         self.mw.editor_preview_splitter.addWidget(self.mw.edited_text_edit)
         self.mw.editor_preview_splitter.addWidget(self.mw.bfn_preview_widget)
         self.mw.editor_preview_splitter.setSizes([350, 130])

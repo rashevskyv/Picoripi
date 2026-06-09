@@ -1,7 +1,7 @@
 # components/tree_navigation_mixin.py
 """Navigation and item reordering mixin for CustomTreeWidget."""
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTreeWidgetItemIterator
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QTreeWidgetItemIterator
 
 from utils.logging_utils import log_debug
 

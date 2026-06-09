@@ -1,9 +1,9 @@
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt6.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox
+from PyQt6.QtGui import QIntValidator
+from PyQt6.QtCore import QThread, pyqtSignal
 from utils.logging_utils import log_info, log_error
 import copy
 from pathlib import Path
@@ -22,7 +22,7 @@ class TagAliasDialog(QDialog):
     def __init__(self, parent, title: str, original_tag: str, current_alias: str = "", current_width: int = None):
         self._is_initializing = True
         self.mw = parent
-        from PyQt5.QtWidgets import QWidget
+        from PyQt6.QtWidgets import QWidget
         parent_widget = parent if isinstance(parent, QWidget) else None
         super().__init__(parent_widget)
         self.setWindowTitle(title)
@@ -97,12 +97,12 @@ class TagAliasDialog(QDialog):
         layout.addLayout(buttons_layout)
         self._is_initializing = False
         
-        from PyQt5.QtCore import QTimer
+        from PyQt6.QtCore import QTimer
         QTimer.singleShot(0, self.alias_edit.setFocus)
 
     def showEvent(self, event):
         super().showEvent(event)
-        from PyQt5.QtCore import QTimer
+        from PyQt6.QtCore import QTimer
         QTimer.singleShot(50, self.alias_edit.setFocus)
         QTimer.singleShot(100, self.alias_edit.selectAll)
 
@@ -125,12 +125,12 @@ class TagAliasDialog(QDialog):
                 msg_box = QMessageBox(self)
                 msg_box.setWindowTitle("Force Alias Enabled")
                 msg_box.setText(FORCE_ALIAS_INFO)
-                msg_box.setIcon(QMessageBox.Information)
+                msg_box.setIcon(QMessageBox.Icon.Information)
                 
                 cb = QCheckBox("Don't show next time", msg_box)
                 msg_box.setCheckBox(cb)
                 
-                msg_box.exec_()
+                msg_box.exec()
                 
                 if cb.isChecked():
                     self.mw.show_force_alias_warning = False
@@ -212,7 +212,7 @@ class MainWindowActions:
         
         dialog = SettingsDialog(self.mw)
         
-        if not dialog.exec_():
+        if not dialog.exec():
             log_info("Settings dialog cancelled.")
             return
 
@@ -287,8 +287,8 @@ class MainWindowActions:
             if restore_session_before and not restore_session_after and self.mw.data_store.unsaved_changes:
                 reply = QMessageBox.question(self.mw, "Discard Unsaved Changes?",
                                              "You have disabled session restore.\nDo you want to discard the current unsaved changes now?",
-                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                if reply == QMessageBox.Yes:
+                                             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+                if reply == QMessageBox.StandardButton.Yes:
                     self.mw.data_store.edited_data.clear()
                     self.mw.data_store.unsaved_changes = False
                     self.mw.helper.rebuild_unsaved_block_indices()
@@ -483,7 +483,7 @@ class MainWindowActions:
                 self.mw.default_tag_mappings = plugin_data["default_tag_mappings"]
                 QMessageBox.information(self.mw, "Tag Mappings Reloaded", f"Default tag mappings reloaded from\n{Path(plugin_config_path).name}.")
                 if self.mw.data_store.current_block_idx != -1:
-                    if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mappings?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
+                    if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mappings?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
                         self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)
             else:
                 QMessageBox.warning(self.mw, "Reload Error", "'default_tag_mappings' not found in plugin config.")
@@ -500,13 +500,13 @@ class MainWindowActions:
         if bracket_tag in self.mw.default_tag_mappings and self.mw.default_tag_mappings[bracket_tag] == curly_tag:
             QMessageBox.information(self.mw, "Add Tag Mapping", f"Mapping '{bracket_tag}' -> '{curly_tag}' already exists.")
             return
-        reply = QMessageBox.Yes
+        reply = QMessageBox.StandardButton.Yes
         if bracket_tag in self.mw.default_tag_mappings:
             reply = QMessageBox.question(self.mw, "Confirm Overwrite",
                                          f"Tag '{bracket_tag}' is already mapped to '{self.mw.default_tag_mappings[bracket_tag]}'.\n"
                                          f"Overwrite with '{curly_tag}'?",
-                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
             self.mw.default_tag_mappings[bracket_tag] = curly_tag
             log_info(f"Added/Updated mapping: {bracket_tag} -> {curly_tag}. Total mappings: {len(self.mw.default_tag_mappings)}")
             
@@ -521,7 +521,7 @@ class MainWindowActions:
                                     f"Mapping '{bracket_tag}' -> '{curly_tag}' has been added/updated.\n"
                                     "This change has been saved to the project settings.")
             if self.mw.data_store.current_block_idx != -1:
-                if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mapping now?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
+                if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mapping now?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
                     self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)
         else: log_info("User cancelled overwrite or no action taken.")
 
@@ -536,7 +536,7 @@ class MainWindowActions:
     def open_mempalace_builder(self):
         """Open the MemePalace Context Builder dialog in modeless mode."""
         try:
-            from PyQt5 import sip
+            from PyQt6 import sip
         except ImportError:
             import sip
 
@@ -559,7 +559,7 @@ class MainWindowActions:
     def open_mempalace_viewer(self):
         """Open the MemePalace Database Viewer dialog."""
         try:
-            from PyQt5 import sip
+            from PyQt6 import sip
         except ImportError:
             import sip
 
@@ -582,7 +582,7 @@ class MainWindowActions:
     def inspect_story_context(self):
         """Query and display visual context/timeline for the selected row from MemePalace without translating."""
         import os
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt6.QtWidgets import QMessageBox
         
         # 1. Verify that a project is loaded and a row is selected
         ds = getattr(self.mw, 'data_store', None)
@@ -865,7 +865,7 @@ class MainWindowActions:
         After saving, updates the archive in RAM and reloads font metrics.
         """
         from tools.bfn_editor import BfnEditorWindow
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt6.QtWidgets import QMessageBox
         from pathlib import Path
 
         pm = getattr(self.mw, 'project_manager', None)
@@ -974,7 +974,7 @@ class MainWindowActions:
         """Export the currently selected BMG file's text content to a JSON file for inspection."""
         import json
         from pathlib import Path
-        from PyQt5.QtWidgets import QMessageBox, QFileDialog
+        from PyQt6.QtWidgets import QMessageBox, QFileDialog
         from bmg_tool import BMGFile
 
         pm = getattr(self.mw, 'project_manager', None)
@@ -1072,7 +1072,7 @@ class MainWindowActions:
         """Import BMG text content from an exported JSON file into the currently selected block."""
         import json
         from pathlib import Path
-        from PyQt5.QtWidgets import QMessageBox, QFileDialog
+        from PyQt6.QtWidgets import QMessageBox, QFileDialog
         from bmg_tool import BMGMessage
 
         pm = getattr(self.mw, 'project_manager', None)
@@ -1110,7 +1110,7 @@ class MainWindowActions:
         # Determine which dictionary to read (translation or source)
         bmg_dict = None
         if 'translation' in import_data and 'source' in import_data:
-            from PyQt5.QtWidgets import QInputDialog
+            from PyQt6.QtWidgets import QInputDialog
             items = ["Translation (Current Translation)", "Source (English Original)"]
             item, ok = QInputDialog.getItem(
                 self.mw, 
@@ -1147,10 +1147,10 @@ class MainWindowActions:
             'Confirm Import',
             f'This will replace all strings in the current block "{block.name}" with the {len(messages_list)} strings from the JSON file.\n'
             'Do you want to proceed?',
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         # Reconstruct the list of strings for the editor
@@ -1201,7 +1201,7 @@ class MainWindowActions:
 
     def trigger_recalculate_widths(self):
         """Force recalculate text widths and issues for the entire project."""
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt6.QtWidgets import QMessageBox
 
         
         # 1. Reload font metrics
@@ -1230,7 +1230,7 @@ class MainWindowActions:
 
     def add_tag_alias(self, original_tag: str):
         dialog = TagAliasDialog(self.mw, "Add Tag Alias", original_tag)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
             
         alias, width = dialog.get_data()
@@ -1283,7 +1283,7 @@ class MainWindowActions:
             current_width = self.mw.font_map_overrides.get(alias, {}).get('width')
             
         dialog = TagAliasDialog(self.mw, "Edit Tag Alias", original_tag, current_alias=alias, current_width=current_width)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
             
         new_alias, width = dialog.get_data()
@@ -1341,10 +1341,10 @@ class MainWindowActions:
             self.mw,
             "Remove Tag Alias",
             f"Are you sure you want to remove the alias '{alias}' for tag '{original_tag}'?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             if hasattr(self.mw, 'default_tag_mappings'):
                 self.mw.default_tag_mappings.pop(alias, None)
                 
@@ -1417,7 +1417,7 @@ class MainWindowActions:
             # Async mode for production with non-blocking QProgressDialog
             self._progress_dialog = QProgressDialog("Updating tag aliases across the project...", None, 0, 0, self.mw)
             self._progress_dialog.setWindowTitle("Tag Aliases")
-            self._progress_dialog.setWindowModality(2) # Qt.WindowModal
+            self._progress_dialog.setWindowModality(2) # Qt.WindowModality.WindowModal
             self._progress_dialog.setCancelButton(None) # Remove cancel button to ensure integrity
             self._progress_dialog.show()
             
@@ -1468,7 +1468,7 @@ class MainWindowActions:
     def run_external_script(self):
         """Asynchronously run configured external script (e.g. ROM builder / emulator)"""
         import subprocess
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt6.QtWidgets import QMessageBox
         from pathlib import Path
         import os
 

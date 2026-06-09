@@ -3,7 +3,7 @@ import json
 import datetime
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QDialog
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog
 
 from utils.logging_utils import log_info, log_error, log_debug
 
@@ -179,10 +179,10 @@ class SavedTranslationsManager:
             "Restore All Translations",
             "Are you sure you want to restore all saved translations in the project?\n\n"
             "This will overwrite current edits in memory.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        if reply == QMessageBox.No:
+        if reply == QMessageBox.StandardButton.No:
             return
             
         has_undo = hasattr(self.mw, 'undo_manager')
@@ -348,10 +348,10 @@ class SavedTranslationsManager:
             'Confirm Import',
             'This will import matching translations into your current project/file edits in memory.\n'
             'Do you want to proceed?',
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         imported_count = 0

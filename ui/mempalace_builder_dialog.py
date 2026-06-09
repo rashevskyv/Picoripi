@@ -2,14 +2,14 @@ import os
 import json
 import sqlite3
 import ctypes
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QFileDialog, QProgressBar, QTextEdit, 
     QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView,
-    QCheckBox, QSplitter, QWidget
+    QCheckBox, QSplitter, QWidget, QAbstractItemView
 )
-from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, pyqtSlot
 
 from core.mempalace_client import MemePalaceClient
 from core.mempalace_worker import (
@@ -52,7 +52,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.setWindowTitle("MemePalace Context Builder")
         self.resize(750, 600)
         self.setMinimumSize(650, 500)
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         
         self.worker = None
         self.client = None
@@ -248,7 +248,7 @@ class MemePalaceBuilderDialog(QDialog):
 
         # Title
         title_label = QLabel("MemePalace Context Builder")
-        title_label.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         title_label.setStyleSheet("color: #0078d7; margin-bottom: 2px;")
         upper_layout.addWidget(title_label)
 
@@ -358,10 +358,10 @@ class MemePalaceBuilderDialog(QDialog):
         self.table = QTableWidget()
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(["Chapter", "Title", "Lines range", "Mapped lines", "AI Status"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setSelectionMode(QTableWidget.ExtendedSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setMinimumHeight(150)
         upper_layout.addWidget(self.table)
 
@@ -465,7 +465,7 @@ class MemePalaceBuilderDialog(QDialog):
         lower_layout.addWidget(self.log_text)
 
         # QSplitter
-        self.splitter = QSplitter(Qt.Vertical)
+        self.splitter = QSplitter(Qt.Orientation.Vertical)
         self.splitter.addWidget(upper_widget)
         self.splitter.addWidget(lower_widget)
         self.splitter.setStretchFactor(0, 4)
@@ -550,7 +550,7 @@ class MemePalaceBuilderDialog(QDialog):
         restore_sleep()
         if self.sleep_after_checkbox.isChecked() and not getattr(self, "user_cancelled", False):
             self.append_log("[System] All tasks completed! Suspending system in 5 seconds...")
-            from PyQt5.QtCore import QTimer
+            from PyQt6.QtCore import QTimer
             QTimer.singleShot(5000, put_to_sleep)
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
@@ -587,7 +587,7 @@ class MemePalaceBuilderDialog(QDialog):
             self.table.insertRow(idx)
             
             num_item = QTableWidgetItem(f"Chapter {ch['num']}")
-            num_item.setData(Qt.UserRole, ch['id']) # Store ID
+            num_item.setData(Qt.ItemDataRole.UserRole, ch['id']) # Store ID
             
             title_item = QTableWidgetItem(ch['title'])
             lines_item = QTableWidgetItem(f"{ch['start_line']} - {ch['end_line']}")
@@ -597,7 +597,7 @@ class MemePalaceBuilderDialog(QDialog):
             status_item = QTableWidgetItem(status_text)
             
             for item in (num_item, title_item, lines_item, mapped_item, status_item):
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 
             self.table.setItem(idx, 0, num_item)
             self.table.setItem(idx, 1, title_item)
@@ -874,7 +874,7 @@ class MemePalaceBuilderDialog(QDialog):
 
         self.analysis_queue = []
         for row in selected_rows:
-            chapter_id = self.table.item(row, 0).data(Qt.UserRole)
+            chapter_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
             self.analysis_queue.append(chapter_id)
 
         self.analysis_total_count = len(self.analysis_queue)
@@ -927,9 +927,9 @@ class MemePalaceBuilderDialog(QDialog):
             self, "Analyze All Chapters",
             "This will analyze all chapters one by one using the AI provider. It may take several minutes.\n\n"
             "Do you want to proceed?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         self.save_builder_settings()
@@ -976,7 +976,7 @@ class MemePalaceBuilderDialog(QDialog):
         if has_saved:
             msg_box = QMessageBox(self)
             msg_box.setWindowTitle("Resume Pipeline Session")
-            msg_box.setIcon(QMessageBox.Question)
+            msg_box.setIcon(QMessageBox.Icon.Question)
             msg_box.setText(
                 f"An incomplete MemePalace pipeline session was found at Step {self.saved_pipeline_step}/4.\n\n"
                 f"Do you want to continue the session from Step {self.saved_pipeline_step} or start a new session from the beginning?"
@@ -987,7 +987,7 @@ class MemePalaceBuilderDialog(QDialog):
             cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
             
             msg_box.setDefaultButton(continue_btn)
-            msg_box.exec_()
+            msg_box.exec()
             
             clicked = msg_box.clickedButton()
             if clicked == cancel_btn:
@@ -1011,9 +1011,9 @@ class MemePalaceBuilderDialog(QDialog):
                 "3. AI Analyze All Chapters\n"
                 "4. AI Profile Characters Speech\n\n"
                 "This process can take several minutes. Do you want to start the complete pipeline?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
             )
-            if reply != QMessageBox.Yes:
+            if reply != QMessageBox.StandardButton.Yes:
                 return
 
             self.pipeline_running = True
@@ -1245,9 +1245,9 @@ class MemePalaceBuilderDialog(QDialog):
             self, "Clear Database", 
             "Are you sure you want to completely clear the local MemePalace database?\n\n"
             "This will delete all mapped rooms, dialogues, relations, script chapters, and chapter summaries.",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         self.append_log("Clearing local database...")

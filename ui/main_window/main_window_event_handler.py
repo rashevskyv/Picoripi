@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtGui import QTextCursor, QKeyEvent
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QTextCursor, QKeyEvent
+from PyQt6.QtCore import Qt
 from utils.logging_utils import log_debug, log_info
 from utils.utils import ALL_TAGS_PATTERN
 
@@ -298,7 +298,7 @@ class MainWindowEventHandler:
             final_position_abs = current_block.position() + (new_sel_end_rel if original_anchor_rel == current_sel_start_rel else new_sel_start_rel)
 
             new_cursor.setPosition(final_anchor_abs)
-            new_cursor.setPosition(final_position_abs, QTextCursor.KeepAnchor)
+            new_cursor.setPosition(final_position_abs, QTextCursor.MoveMode.KeepAnchor)
             
             editor.setTextCursor(new_cursor)
         

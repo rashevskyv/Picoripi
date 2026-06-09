@@ -1,8 +1,8 @@
 # components/tree_drag_drop_mixin.py
 """Drag-and-drop mixin for CustomTreeWidget."""
-from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtGui import QDrag, QFontMetrics, QPixmap, QPainter, QColor
-from PyQt5.QtWidgets import QTreeWidgetItemIterator
+from PyQt6.QtCore import Qt, QPoint, QTimer
+from PyQt6.QtGui import QDrag, QFontMetrics, QPixmap, QPainter, QColor
+from PyQt6.QtWidgets import QTreeWidgetItemIterator
 
 from utils.logging_utils import log_debug
 
@@ -29,27 +29,29 @@ class TreeDragDropMixin:
 
         font = self.font()
         fm = QFontMetrics(font)
-        from PyQt5.QtCore import QRect
+        from PyQt6.QtCore import QRect
         rect = QRect(0, 0, fm.horizontalAdvance(text) + 20, fm.height() + 10)
 
         pixmap = QPixmap(rect.size())
-        pixmap.fill(Qt.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(QColor(0, 120, 215, 200))
-        painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(pixmap.rect(), 4, 4)
-        painter.setPen(Qt.white)
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignCenter, text)
-        painter.end()
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setBrush(QColor(0, 120, 215, 200))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(pixmap.rect(), 4, 4)
+            painter.setPen(Qt.GlobalColor.white)
+            painter.setFont(font)
+            painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, text)
+        finally:
+            painter.end()
 
         drag = QDrag(self)
         drag.setMimeData(self.mimeData(self._pending_drag_items))
         drag.setPixmap(pixmap)
         drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
-        drag.exec_(supportedActions)
+        drag.exec(supportedActions)
 
     def dragMoveEvent(self, event):
         super().dragMoveEvent(event)

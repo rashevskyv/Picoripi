@@ -25,7 +25,7 @@ def remove_all_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
 
 def get_active_font_map() -> dict:
     try:
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
         if app:
             for widget in app.topLevelWidgets():
@@ -37,7 +37,7 @@ def get_active_font_map() -> dict:
 
 def get_active_icon_sequences() -> list:
     try:
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
         if app:
             for widget in app.topLevelWidgets():
@@ -398,7 +398,7 @@ def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequenc
 
 def get_active_tag_mappings() -> dict:
     try:
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
         if app:
             for widget in app.topLevelWidgets():

@@ -1,8 +1,8 @@
 # handlers/list_selection_handler.py
 from typing import Any, Optional, List, Dict, Union, Tuple
-from PyQt5.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock 
+from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock 
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
@@ -471,7 +471,7 @@ class ListSelectionHandler(BaseHandler):
                     cursor = QTextCursor(block_to_show)
                     preview_edit.setTextCursor(cursor)
                     # Use a small timer to ensure the widget has finished layout after potential text updates
-                    from PyQt5.QtCore import QTimer
+                    from PyQt6.QtCore import QTimer
                     QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
         elif preview_edit and hasattr(preview_edit, 'highlightManager'): 
             preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
@@ -479,7 +479,7 @@ class ListSelectionHandler(BaseHandler):
         if self.mw.data_store.current_string_idx != -1 and hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             self.mw.edited_text_edit.setFocus()
             cursor = self.mw.edited_text_edit.textCursor()
-            cursor.movePosition(QTextCursor.End)
+            cursor.movePosition(QTextCursor.MoveOperation.End)
             self.mw.edited_text_edit.setTextCursor(cursor)
 
 
@@ -822,7 +822,7 @@ class ListSelectionHandler(BaseHandler):
         """Move selected strings to a virtual block (Category)."""
         selected_indices = getattr(self.mw.data_store, 'selected_string_indices', [])
         if not selected_indices:
-            from PyQt5.QtWidgets import QMessageBox
+            from PyQt6.QtWidgets import QMessageBox
             QMessageBox.warning(self.mw, "Move to Virtual Block", "No strings selected in preview.")
             return
         
@@ -846,7 +846,7 @@ class ListSelectionHandler(BaseHandler):
         existing_names = [c.name for c in block.categories]
         
         # Simple input dialog for now
-        from PyQt5.QtWidgets import QInputDialog
+        from PyQt6.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self.mw, "Move to Virtual Block", "Enter Category Name:", text="New Category")
         if not ok or not name.strip():
             return
@@ -863,7 +863,7 @@ class ListSelectionHandler(BaseHandler):
 
     def rename_category(self, block_idx: int, old_name: str) -> None:
         """Rename a virtual block."""
-        from PyQt5.QtWidgets import QInputDialog
+        from PyQt6.QtWidgets import QInputDialog
         new_name, ok = QInputDialog.getText(self.mw, "Rename Virtual Block", "Enter new name:", text=old_name)
         if not ok or not new_name.strip() or new_name == old_name:
             return
@@ -883,9 +883,9 @@ class ListSelectionHandler(BaseHandler):
 
     def delete_category(self, block_idx: int, category_name: str) -> None:
         """Remove a virtual block (the strings remain in the block)."""
-        from PyQt5.QtWidgets import QMessageBox
-        reply = QMessageBox.question(self.mw, "Delete Virtual Block", f"Are you sure you want to delete virtual block '{category_name}'?\n\n(Strings will not be deleted from the block itself.)", QMessageBox.Yes | QMessageBox.No)
-        if reply != QMessageBox.Yes:
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(self.mw, "Delete Virtual Block", f"Are you sure you want to delete virtual block '{category_name}'?\n\n(Strings will not be deleted from the block itself.)", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply != QMessageBox.StandardButton.Yes:
             return
             
         pm = self.mw.project_manager
@@ -962,12 +962,12 @@ class ListSelectionHandler(BaseHandler):
                     
                     saved_val = getattr(self, '_saved_scrollbar_value', 0)
                     self.mw.preview_text_edit.verticalScrollBar().setValue(saved_val)
-                    from PyQt5.QtWidgets import QApplication
+                    from PyQt6.QtWidgets import QApplication
                     QApplication.processEvents()
             else:
                 if current_idx != -1:
                     self.scroll_to_current_string_in_preview()
-                    from PyQt5.QtWidgets import QApplication
+                    from PyQt6.QtWidgets import QApplication
                     QApplication.processEvents()
             
             self._saved_approx_visible_lines = 0
@@ -1014,7 +1014,7 @@ class ListSelectionHandler(BaseHandler):
                     preview_edit.setTextCursor(cursor)
                     if hasattr(preview_edit, 'set_selected_lines'):
                         preview_edit.set_selected_lines([rel_idx])
-                    from PyQt5.QtCore import QTimer
+                    from PyQt6.QtCore import QTimer
                     QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
 
     def _get_displayed_indices(self) -> list:

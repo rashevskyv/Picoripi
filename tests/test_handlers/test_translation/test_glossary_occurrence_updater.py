@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch, ANY
 import json
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from handlers.translation.glossary_occurrence_updater import GlossaryOccurrenceUpdater
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence

@@ -2,7 +2,7 @@ import os
 import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
-from PyQt5.QtGui import QTextCharFormat, QColor, QFont
+from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_info, log_warning, log_debug, log_error

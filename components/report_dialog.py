@@ -1,11 +1,11 @@
 # components/report_dialog.py
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QPushButton
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QPushButton
+from PyQt6.QtCore import Qt
 
 class LargeTextReportDialog(QDialog):
     def __init__(self, title: str, text: str, parent=None):
         # Handle mocking in tests
-        from PyQt5.QtWidgets import QWidget
+        from PyQt6.QtWidgets import QWidget
         if parent is not None and (not isinstance(parent, QWidget) or "Mock" in str(type(parent))):
             parent = None
         super().__init__(parent)
@@ -17,7 +17,7 @@ class LargeTextReportDialog(QDialog):
         self.text_edit = QPlainTextEdit(self)
         self.text_edit.setReadOnly(True)
         self.text_edit.setPlainText(text)
-        self.text_edit.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.text_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         layout.addWidget(self.text_edit)
         
         close_btn = QPushButton("Close", self)

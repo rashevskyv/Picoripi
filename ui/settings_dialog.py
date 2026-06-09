@@ -1,15 +1,15 @@
 # /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 from pathlib import Path
 import json
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QComboBox,
     QDialogButtonBox, QWidget, QLabel, QTabWidget,
     QCheckBox, QLineEdit, QColorDialog, QPushButton,
     QHBoxLayout, QFileDialog, QMessageBox, QGroupBox,
     QDoubleSpinBox, QSpinBox, QStackedWidget, QTableWidget, QTableWidgetItem, QMenu, QInputDialog
 )
-from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtCore import pyqtSignal, Qt, QThread
+from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtCore import pyqtSignal, Qt, QThread
 from utils.logging_utils import log_debug
 from components.labeled_spinbox import LabeledSpinBox
 from components.dictionary_manager_dialog import DictionaryManagerDialog
@@ -103,7 +103,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         self.edit_prompts_btn.clicked.connect(self.on_edit_prompts_clicked)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         main_layout.addWidget(self.button_box)
@@ -281,8 +281,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             
         self.dir_mode_checkbox.setChecked(is_dir_mode)
         self.auto_generate_checkbox.setChecked(auto_gen)
-        self._on_dir_mode_changed(Qt.Checked if is_dir_mode else Qt.Unchecked)
-        self._on_auto_generate_changed(Qt.Checked if auto_gen else Qt.Unchecked)
+        self._on_dir_mode_changed(Qt.CheckState.Checked if is_dir_mode else Qt.CheckState.Unchecked)
+        self._on_auto_generate_changed(Qt.CheckState.Checked if auto_gen else Qt.CheckState.Unchecked)
         
         self.preview_wrap_checkbox.setChecked(self.mw.preview_wrap_lines); self.editors_wrap_checkbox.setChecked(self.mw.editors_wrap_lines)
         self.newline_symbol_edit.setText(self.mw.newline_display_symbol)
@@ -546,8 +546,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
                     log_debug(f"Failed to materialize local prompts.json: {e}")
         
         if plugin_prompts_path.exists():
-            from PyQt5.QtGui import QDesktopServices
-            from PyQt5.QtCore import QUrl
+            from PyQt6.QtGui import QDesktopServices
+            from PyQt6.QtCore import QUrl
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(plugin_prompts_path.resolve())))
         else:
             QMessageBox.warning(self, "Edit Prompts", "Could not find or create prompts.json file.")
@@ -740,8 +740,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             return
             
         reply = QMessageBox.question(self, "Delete Preset", f"Are you sure you want to delete the preset '{current_name}'?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
             if current_data in self.translation_presets:
                 del self.translation_presets[current_data]
             

@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from handlers.project_action_handler import ProjectActionHandler
 from core.project_manager import ProjectManager
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 def test_ProjectActionHandler_init(mock_mw):
     # MW without project_manager
@@ -29,7 +29,7 @@ def test_ProjectActionHandler_set_project_actions_enabled(mock_mw):
 def test_ProjectActionHandler_create_new_project_action(mock_dialog_class, mock_msg_box, mock_is_dir, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec_.return_value = mock_dialog.Accepted
+    mock_dialog.exec.return_value = mock_dialog.Accepted
     mock_dialog.get_project_info.return_value = {
         'directory': 'C:/proj', 'name': 'Test Project', 'plugin': 'plug',
         'description': '', 'source_path': '', 'translation_path': '',
@@ -68,10 +68,11 @@ def test_ProjectActionHandler_open_project_action(mock_getOpen, mock_msg_box, mo
 
 @patch('handlers.project_action_handler.QMessageBox')
 def test_ProjectActionHandler_close_project_action(mock_msg_box, mock_mw):
+    mock_msg_box.StandardButton = QMessageBox.StandardButton
     mock_mw.settings_manager = MagicMock()
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.unsaved_changes = True
-    mock_msg_box.question.return_value = QMessageBox.Discard
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.Discard
     
     mock_mw.data = ["something"]
     mock_mw.active_game_plugin = "pokemon_fr"
@@ -91,7 +92,7 @@ def test_ProjectActionHandler_close_project_action(mock_msg_box, mock_mw):
     mock_mw.ui_updater.update_text_views.assert_called_once()
     mock_mw.ui_updater.update_plugin_status_label.assert_called_once()
 
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 @patch('handlers.project_action_handler.QMessageBox')
 @patch('components.project_dialogs.ImportBlockDialog')
@@ -100,7 +101,7 @@ def test_ProjectActionHandler_import_block_action(mock_dialog_class, mock_msg_bo
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     
     mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec_.return_value = mock_dialog.Accepted
+    mock_dialog.exec.return_value = mock_dialog.Accepted
     mock_dialog.get_block_info.return_value = {
         'name': 'New Block', 'source_file': 'src.json',
         'translation_file': None, 'description': ''
@@ -148,8 +149,8 @@ def test_ProjectActionHandler_delete_block_action(mock_msg_box, mock_mw):
     mock_parent.childCount.return_value = 0
     mock_mw.block_list_widget.currentItem.return_value = mock_item
     
-    mock_msg_box.Yes = QMessageBox.Yes
-    mock_msg_box.question.return_value = QMessageBox.Yes
+    mock_msg_box.StandardButton = QMessageBox.StandardButton
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
     mock_mw.project_manager.project.remove_block.return_value = True
     h._populate_blocks_from_project = MagicMock()
     
@@ -186,8 +187,8 @@ def test_ProjectActionHandler_add_items_to_folder_action(mock_dialog_class, mock
     mock_mw.block_list_widget.selectedItems.return_value = [mock_item]
     
     mock_dialog = mock_dialog_class.return_value
-    from PyQt5.QtWidgets import QDialog
-    mock_dialog.exec_.return_value = QDialog.Accepted
+    from PyQt6.QtWidgets import QDialog
+    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
     mock_dialog.get_selected_folder_id.return_value = "folder_1"
     
     h.add_items_to_folder_action()
@@ -269,16 +270,16 @@ def test_ProjectActionHandler_delete_block_action_folder(mock_dialog_class, mock
     mock_mw.block_list_widget.currentItem.return_value = mock_item
     mock_mw.block_list_widget.invisibleRootItem.return_value = mock_parent
 
+    mock_msg_box.StandardButton = QMessageBox.StandardButton
+    
     # Action 0 (Cancel Empty folder)
-    mock_msg_box.No = QMessageBox.No
-    mock_msg_box.Yes = QMessageBox.Yes
-    mock_msg_box.question.return_value = QMessageBox.No
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.No
     h.delete_block_action()
     assert pm._remove_folder_from_anywhere.call_count == 0
     
     # Action 2 (Delete empty folder)
     mock_parent.indexOfChild.return_value = 0
-    mock_msg_box.question.return_value = QMessageBox.Yes
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
     h.delete_block_action()
     pm._remove_folder_from_anywhere.assert_called_with("folder_1")
     pm.save.assert_called()
@@ -286,7 +287,7 @@ def test_ProjectActionHandler_delete_block_action_folder(mock_dialog_class, mock
     # Action 1 (Delete folder, keep contents)
     folder.block_ids = ["b1"] # No longer empty -> triggers FolderDeleteDialog
     mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec_.return_value = 1
+    mock_dialog.exec.return_value = 1
     mock_dialog.result_action = 1
     folder.parent_id = "parent_folder"
     parent_folder = MagicMock()
@@ -333,7 +334,7 @@ def test_ProjectActionHandler_open_recent_project(mock_Path, mock_msg_box, mock_
     
     h._populate_blocks_from_project = MagicMock()
     
-    with patch('PyQt5.QtCore.QTimer.singleShot', side_effect=lambda delay, func: func()):
+    with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda delay, func: func()):
         h._open_recent_project("real_path.uiproj")
         
         mock_pm.load.assert_called_with("real_path.uiproj")
@@ -427,16 +428,17 @@ def test_ProjectActionHandler_populate_blocks_with_translations(mock_exists, moc
 
 @patch('handlers.project_action_handler.QMessageBox')
 def test_ProjectActionHandler_clear_recent_projects(mock_msg_box, mock_mw):
+    mock_msg_box.StandardButton = QMessageBox.StandardButton
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.settings_manager = MagicMock()
     
     # Test No
-    mock_msg_box.question.return_value = QMessageBox.No
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.No
     h._clear_recent_projects()
     mock_mw.settings_manager.clear_recent_projects.assert_not_called()
     
     # Test Yes
-    mock_msg_box.question.return_value = mock_msg_box.Yes
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
     h._update_recent_projects_menu = MagicMock()
     h._clear_recent_projects()
     mock_mw.settings_manager.clear_recent_projects.assert_called_once()
@@ -462,7 +464,7 @@ def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mo
     # Session state IS restored
     h._populate_blocks_from_project = MagicMock(return_value=True)
     
-    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_timer:
+    with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         h._open_recent_project("real_path.uiproj")
         # Since session state was restored, singleShot should NOT be called for restore_view
         mock_timer.assert_not_called()
@@ -485,7 +487,7 @@ def test_ProjectActionHandler_open_recent_project_no_session_restore_runs_timer(
     # Session state is NOT restored
     h._populate_blocks_from_project = MagicMock(return_value=False)
     
-    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_timer:
+    with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         h._open_recent_project("real_path.uiproj")
         # Since session state was NOT restored, singleShot SHOULD be called to schedule restore_view
         mock_timer.assert_called_once()

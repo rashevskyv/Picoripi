@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtCore import Qt, QEvent
-from PyQt5.QtGui import QKeyEvent
+from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import QKeyEvent
 from ui.ui_event_filters import TextEditEventFilter
 
 def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
@@ -39,7 +39,7 @@ def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     filter_obj = TextEditEventFilter(mock_mw)
     
     # 1. Test Alt+Down from 0. It should skip 1, 2 and go to 3.
-    event_down = QKeyEvent(QEvent.KeyPress, Qt.Key_Down, Qt.AltModifier)
+    event_down = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Down, Qt.KeyboardModifier.AltModifier)
     res = filter_obj.eventFilter(mock_mw.preview_text_edit, event_down)
     
     assert res is True
@@ -51,7 +51,7 @@ def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     
     # 2. Test Alt+Up from 3. It should skip 2, 1 and go to 0.
     mock_mw.data_store.current_string_idx = 3
-    event_up = QKeyEvent(QEvent.KeyPress, Qt.Key_Up, Qt.AltModifier)
+    event_up = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Up, Qt.KeyboardModifier.AltModifier)
     res_up = filter_obj.eventFilter(mock_mw.preview_text_edit, event_up)
     
     assert res_up is True

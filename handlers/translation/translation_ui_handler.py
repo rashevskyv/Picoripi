@@ -3,9 +3,9 @@ import json
 import re
 from typing import Dict, List, Optional, Tuple
 
-from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCursor
 
 from .base_translation_handler import BaseTranslationHandler
 from components.translation_variations_dialog import TranslationVariationsDialog
@@ -36,7 +36,7 @@ class TranslationUIHandler(BaseTranslationHandler):
     def show_variations_dialog(self, variations: List[str], show_refresh: bool = False) -> Optional[str]:
         self.update_status_message("AI: choose one of the suggested options", persistent=False)
         dialog = TranslationVariationsDialog(self.mw, variations, show_refresh=show_refresh)
-        res = dialog.exec_()
+        res = dialog.exec()
         if res == dialog.Accepted:
             return dialog.selected_translation
         elif res == 2:
@@ -45,7 +45,7 @@ class TranslationUIHandler(BaseTranslationHandler):
 
     def prompt_session_bootstrap(self, system_prompt: str) -> Optional[str]:
         dialog = SessionBootstrapDialog(self.mw, system_prompt)
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             return None
         return dialog.get_instructions()
 
@@ -59,8 +59,8 @@ class TranslationUIHandler(BaseTranslationHandler):
             QMessageBox.warning(self.mw, "AI Translation", message)
             return False
         
-        reply = QMessageBox.question(self.mw, "AI Translation", message, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        return reply == QMessageBox.Yes
+        reply = QMessageBox.question(self.mw, "AI Translation", message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        return reply == QMessageBox.StandardButton.Yes
 
     def apply_full_translation(self, new_text: str):
         edited_widget = getattr(self.mw, 'edited_text_edit', None)
@@ -75,12 +75,12 @@ class TranslationUIHandler(BaseTranslationHandler):
         cursor = edited_widget.textCursor()
         with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
             cursor.beginEditBlock()
-            cursor.select(QTextCursor.Document)
+            cursor.select(QTextCursor.SelectionType.Document)
             cursor.insertText(display_text)
             cursor.endEditBlock()
         
         restored = edited_widget.textCursor()
-        restored.movePosition(QTextCursor.End)
+        restored.movePosition(QTextCursor.MoveOperation.End)
         edited_widget.setTextCursor(restored)
         
         self.mw.editor_operation_handler.text_edited()

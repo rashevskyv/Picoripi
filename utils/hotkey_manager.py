@@ -16,7 +16,7 @@ MainWindow must override nativeEvent() and delegate to manager.handle_native_eve
 import sys
 import ctypes
 from ctypes import wintypes
-from PyQt5.QtCore import QTimer
+from PyQt6.QtCore import QTimer
 from utils.logging_utils import log_debug, log_error
 
 # Windows message and modifier constants
@@ -75,6 +75,12 @@ class HotkeyManager:
         """Register all Alt+Shift hotkeys with Windows."""
         if sys.platform != 'win32':
             return
+        # Skip registering native hotkeys under pytest or headless environment to avoid Access Violation on winId() call
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if "pytest" in sys.modules or (app and app.platformName() == "offscreen"):
+            log_debug("HotkeyManager: Skipping registration in pytest/offscreen environment")
+            return
         try:
             self._hwnd = int(self.mw.winId())
             user32 = ctypes.windll.user32
@@ -114,7 +120,12 @@ class HotkeyManager:
         Returns (handled: bool, result: int).
         """
         try:
-            msg = MSG.from_address(int(message))
+            if message is None:
+                return False, 0
+            addr = int(message)
+            if addr == 0:
+                return False, 0
+            msg = MSG.from_address(addr)
             if msg.message == WM_HOTKEY:
                 hid = msg.wParam
                 

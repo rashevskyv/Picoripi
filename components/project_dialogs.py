@@ -1,4 +1,4 @@
-# components/project_dialogs.py
+﻿# components/project_dialogs.py
 """
 Dialog windows for project management:
 - NewProjectDialog: Create a new translation project
@@ -8,14 +8,14 @@ Dialog windows for project management:
 
 import json
 from pathlib import Path
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QPushButton, QTextEdit,
     QComboBox, QFileDialog, QDialogButtonBox,
     QMessageBox, QGroupBox, QRadioButton, QButtonGroup, QCheckBox,
     QTreeWidget, QTreeWidgetItem, QAbstractItemView, QStyle, QTreeWidgetItemIterator
 )
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 from utils.logging_utils import log_debug, log_info
 
 
@@ -126,7 +126,7 @@ class NewProjectDialog(QDialog):
 
         # Buttons
         button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             self
         )
         button_box.accepted.connect(self._validate_and_accept)
@@ -300,10 +300,10 @@ class NewProjectDialog(QDialog):
                 "Project Exists",
                 f"A folder named '{safe_name}' already exists at this location.\n\n"
                 f"Do you want to use this folder anyway?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
             )
-            if reply == QMessageBox.No:
+            if reply == QMessageBox.StandardButton.No:
                 return
 
         # Store results
@@ -387,7 +387,7 @@ class OpenProjectDialog(QDialog):
 
         # Buttons
         button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             self
         )
         button_box.accepted.connect(self._validate_and_accept)
@@ -561,7 +561,7 @@ class ImportBlockDialog(QDialog):
 
         # Buttons
         button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             self
         )
         button_box.accepted.connect(self._validate_and_accept)
@@ -697,17 +697,17 @@ class MoveToFolderDialog(QDialog):
         
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
-        self.tree.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.tree)
         
         # New Folder Button
         self.btn_new_folder = QPushButton("New Folder")
-        self.btn_new_folder.setIcon(self.style().standardIcon(QStyle.SP_FileDialogNewFolder))
+        self.btn_new_folder.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder))
         self.btn_new_folder.clicked.connect(self._create_new_folder)
         layout.addWidget(self.btn_new_folder)
         
         # Standard Buttons
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self._validate_and_accept)
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
@@ -720,7 +720,7 @@ class MoveToFolderDialog(QDialog):
         # Root Item
         root_item = QTreeWidgetItem(self.tree, ["(Root Directory)"])
         root_item.setData(0, Qt.UserRole, None)
-        root_item.setIcon(0, self.style().standardIcon(QStyle.SP_DirIcon))
+        root_item.setIcon(0, self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon))
         
         if self.pm and self.pm.project:
             self._add_folders_recursive(root_item, self.pm.project.virtual_folders)
@@ -732,7 +732,7 @@ class MoveToFolderDialog(QDialog):
         for folder in folders:
             item = QTreeWidgetItem(parent_item, [folder.name])
             item.setData(0, Qt.UserRole, folder.id)
-            item.setIcon(0, self.style().standardIcon(QStyle.SP_DirIcon))
+            item.setIcon(0, self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon))
             
             # Highlight current folder if we are moving from somewhere
             if folder.id == self.current_folder_id:
@@ -746,7 +746,7 @@ class MoveToFolderDialog(QDialog):
         curr = self.tree.currentItem()
         parent_id = curr.data(0, Qt.UserRole) if curr else None
         
-        from PyQt5.QtWidgets import QInputDialog
+        from PyQt6.QtWidgets import QInputDialog
         new_name, ok = QInputDialog.getText(self, "New Folder", "Enter folder name:")
         if ok and new_name:
             new_f = self.pm.create_virtual_folder(new_name, parent_id=parent_id)

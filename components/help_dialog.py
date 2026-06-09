@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QColor
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout, QAbstractItemView
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QColor
 
 class HelpShortcutsDialog(QDialog):
     def __init__(self, parent=None):
@@ -16,17 +16,17 @@ class HelpShortcutsDialog(QDialog):
         title_font.setPointSize(14)
         title_font.setBold(True)
         title_label.setFont(title_font)
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
         
         self.table = QTableWidget()
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels(["Action", "Shortcut"])
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(False) 
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setSelectionMode(QTableWidget.NoSelection)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.table.setAlternatingRowColors(True)
         
         self.shortcuts = [
@@ -68,13 +68,13 @@ class HelpShortcutsDialog(QDialog):
                 # Style as section header
                 item_action.setBackground(QColor("#333333"))
                 item_action.setForeground(QColor("white"))
-                item_action.setFont(QFont("Segoe UI", 9, QFont.Bold))
+                item_action.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
                 item_shortcut.setBackground(QColor("#333333"))
                 # Merge or Span column would be better but let's just make it look like a header
                 
             self.table.setItem(i, 0, item_action)
             self.table.setItem(i, 1, item_shortcut)
-            self.table.item(i, 1).setTextAlignment(Qt.AlignCenter)
+            self.table.item(i, 1).setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             
         layout.addWidget(self.table)
         
@@ -87,4 +87,4 @@ class HelpShortcutsDialog(QDialog):
 
 def show_shortcuts_dialog(parent):
     dialog = HelpShortcutsDialog(parent)
-    dialog.exec_()
+    dialog.exec()

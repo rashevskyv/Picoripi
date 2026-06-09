@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch, ANY
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtWidgets import QDialog, QMessageBox
 
 from handlers.translation.glossary_handler import GlossaryHandler
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
@@ -141,14 +141,14 @@ def test_gh_show_glossary_dialog(mock_box, mock_dialog, gh):
 @patch('handlers.translation.glossary_handler.GlossaryEditDialog')
 def test_gh_add_edit_glossary_entry(mock_dialog, gh):
     mock_dialog_inst = mock_dialog.return_value
-    mock_dialog_inst.exec_.return_value = QDialog.Rejected
+    mock_dialog_inst.exec.return_value = QDialog.DialogCode.Rejected
     
     # Test rejection
     gh.add_glossary_entry("Test")
     mock_dialog_inst.get_values.assert_not_called()
     
     # Test accepted, update translation
-    mock_dialog_inst.exec_.return_value = QDialog.Accepted
+    mock_dialog_inst.exec.return_value = QDialog.DialogCode.Accepted
     mock_dialog_inst.get_values.return_value = ("NewTrans", "NewNotes")
     
     gh.glossary_manager.get_entry.return_value = GlossaryEntry("Test", "OldTrans", "OldNotes")

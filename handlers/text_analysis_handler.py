@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Any
 
-from PyQt5.QtWidgets import QAction, QMessageBox
-from PyQt5.QtCore import QTimer, Qt
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import QTimer, Qt
 
 from handlers.base_handler import BaseHandler
 from components.original_text_analysis_dialog import OriginalTextAnalysisDialog
@@ -171,9 +172,9 @@ class TextAnalysisHandler(BaseHandler):
 
             def apply_focus():
                 if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
-                    self.mw.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                    self.mw.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
                 elif original_editor:
-                    original_editor.setFocus(Qt.OtherFocusReason)
+                    original_editor.setFocus(Qt.FocusReason.OtherFocusReason)
                 self.mw.raise_()
                 self.mw.activateWindow()
 

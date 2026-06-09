@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, List, Any, Union
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
     DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,

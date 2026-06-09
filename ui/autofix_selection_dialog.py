@@ -1,9 +1,9 @@
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QPushButton,
     QLabel, QScrollArea, QWidget
 )
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QColor
+from PyQt6.QtCore import Qt
 from typing import Dict, Any, Set
 
 class AutofixSelectionDialog(QDialog):
@@ -12,7 +12,7 @@ class AutofixSelectionDialog(QDialog):
         self.setWindowTitle("Selective Auto-Fix")
         self.resize(450, 400)
         self.setMinimumWidth(350)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         self.problem_definitions = problem_definitions
         self.active_autofixes = active_autofixes
@@ -33,8 +33,8 @@ class AutofixSelectionDialog(QDialog):
         # Scroll area for problem checkboxes
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)

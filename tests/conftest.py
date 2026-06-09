@@ -1,8 +1,19 @@
 import pytest
 import gc
+from PyQt6.QtCore import QThread, Qt
+# Monkeypatch Qt item roles for backwards compatibility
+Qt.EditRole = Qt.ItemDataRole.EditRole
+Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
+Qt.UserRole = Qt.ItemDataRole.UserRole
+Qt.ToolTipRole = Qt.ItemDataRole.ToolTipRole
+Qt.BackgroundRole = Qt.ItemDataRole.BackgroundRole
+Qt.ForegroundRole = Qt.ItemDataRole.ForegroundRole
+Qt.CheckStateRole = Qt.ItemDataRole.CheckStateRole
+Qt.FontRole = Qt.ItemDataRole.FontRole
+Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
+
 from unittest.mock import MagicMock
-from PyQt5.QtCore import QThread
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication, QWidget
 
 @pytest.fixture(autouse=True)
 def silent_logging(mocker):

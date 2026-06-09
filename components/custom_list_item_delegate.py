@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
-from PyQt5.QtGui import QPainter, QColor, QPalette, QBrush, QPen, QFontMetrics, QFont, QIcon
-from PyQt5.QtCore import QRect, Qt, QPoint, QSize, QModelIndex, QEvent
+from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
+from PyQt6.QtGui import QPainter, QColor, QPalette, QBrush, QPen, QFontMetrics, QFont, QIcon, QCursor
+from PyQt6.QtCore import QRect, Qt, QPoint, QSize, QModelIndex, QEvent
 from utils.logging_utils import log_debug
 from utils.constants import LT_PREVIEW_SELECTED_LINE_COLOR, DT_PREVIEW_SELECTED_LINE_COLOR
 
@@ -26,9 +26,9 @@ class CustomListItemDelegate(QStyledItemDelegate):
         self.indicator_v_offset = 2 
 
         self.marker_qcolors = {
-            "red": QColor(Qt.red),
-            "green": QColor(Qt.green),
-            "blue": QColor(Qt.blue),
+            "red": QColor(Qt.GlobalColor.red),
+            "green": QColor(Qt.GlobalColor.green),
+            "blue": QColor(Qt.GlobalColor.blue),
         }
 
     def _get_current_number_area_width(self, option: QStyleOptionViewItem) -> int:
@@ -75,15 +75,15 @@ class CustomListItemDelegate(QStyledItemDelegate):
                            (self.padding_after_color_marker_zone if color_marker_zone_total_width > 0 else 0) + \
                            problem_indicator_zone_total_width + \
                            (self.padding_after_problem_indicator_zone if problem_indicator_zone_total_width > 0 else 0) + \
-                           fm.horizontalAdvance(str(index.data(Qt.DisplayRole))) + 20
+                           fm.horizontalAdvance(str(index.data(Qt.ItemDataRole.DisplayRole))) + 20
 
         return QSize(max(default_hint.width(), calculated_width), max(default_hint.height(), min_height))
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index):
         painter.save()
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        is_selected = option.state & QStyle.State_Selected
+        is_selected = option.state & QStyle.StateFlag.State_Selected
         is_drag_hover = False
         if hasattr(self.list_widget, '_custom_drop_target') and self.list_widget._custom_drop_target:
             target_item, drop_pos = self.list_widget._custom_drop_target
@@ -94,7 +94,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
             highlight_color = option.palette.highlight().color() if is_selected else QColor("#0078D7")
             painter.fillRect(option.rect, highlight_color)
         else:
-            is_alternate = option.features & QStyleOptionViewItem.Alternate
+            is_alternate = option.features & QStyleOptionViewItem.ViewItemFeature.Alternate
             bg_brush = option.palette.alternateBase() if is_alternate else option.palette.base()
             painter.fillRect(option.rect, bg_brush)
         
@@ -116,15 +116,15 @@ class CustomListItemDelegate(QStyledItemDelegate):
         else:
             if is_selected or is_drag_hover:
                 number_area_bg = QColor("#0078D7").darker(105)
-                number_text_color = QColor(Qt.white)
+                number_text_color = QColor(Qt.GlobalColor.white)
             else:
                 number_area_bg = QColor("#F0F0F0")
-                number_text_color = QColor(Qt.darkGray)
+                number_text_color = QColor(Qt.GlobalColor.darkGray)
         
         active_color_markers_for_block = set()
-        block_idx_data = index.data(Qt.UserRole)
-        category_name = index.data(Qt.UserRole + 10)
-        merged_folder_ids = index.data(Qt.UserRole + 2) # For compacted folders
+        block_idx_data = index.data(Qt.ItemDataRole.UserRole)
+        category_name = index.data(Qt.ItemDataRole.UserRole + 10)
+        merged_folder_ids = index.data(Qt.ItemDataRole.UserRole + 2) # For compacted folders
         
         problem_definitions = {}
         block_problem_counts = {}
@@ -197,9 +197,9 @@ class CustomListItemDelegate(QStyledItemDelegate):
             unsaved_blocks = getattr(ds, 'unsaved_block_indices', set()) if ds else set()
 
             # 1. Determine Unsaved changes (*)
-            is_virtual_row = index.data(Qt.UserRole + 12)
+            is_virtual_row = index.data(Qt.ItemDataRole.UserRole + 12)
             if is_virtual_row:
-                s_idx_data = index.data(Qt.UserRole + 1)
+                s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
                 has_unsaved_changes_in_item = (block_idx_data, s_idx_data) in edited_keys
             elif category_name:
                 # ITEM is a Category (Virtual Sub-block)
@@ -245,7 +245,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
                 if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
                     if is_virtual_row:
-                        s_idx_data = index.data(Qt.UserRole + 1)
+                        s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
                         block_problem_counts = {}
                         detection_config = getattr(main_window, 'detection_enabled', {})
                         probs_dict = getattr(ds, 'problems_per_subline', {}) if ds else {}
@@ -256,7 +256,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                         filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
                         block_problem_counts = {p_id: 1 for p_id in filtered_problems}
                     else:
-                        ch_id = index.data(Qt.UserRole + 11)
+                        ch_id = index.data(Qt.ItemDataRole.UserRole + 11)
                         block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name, chapter_id=ch_id)
 
 
@@ -272,7 +272,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
         # Progress bar fill (Progress Visualisation)
         percentage = 0.0
-        is_virtual_row = index.data(Qt.UserRole + 12)
+        is_virtual_row = index.data(Qt.ItemDataRole.UserRole + 12)
         if not is_virtual_row and main_window and hasattr(main_window, 'data_processor') and main_window.data_processor:
             try:
                 pm = getattr(main_window, 'project_manager', None)
@@ -291,7 +291,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                             else:
                                 percentage = 0.0 # No strings need translation, do not treat as fully complete
                 elif block_idx_data is not None and not category_name:
-                    ch_id_data = index.data(Qt.UserRole + 11)
+                    ch_id_data = index.data(Qt.ItemDataRole.UserRole + 11)
                     if block_idx_data == -2 and ch_id_data is not None:
                         mappings = []
                         composer = getattr(main_window, "translation_handler", None)
@@ -372,12 +372,12 @@ class CustomListItemDelegate(QStyledItemDelegate):
         if not current_font.family(): current_font = QFont()
         painter.setFont(current_font)
         number_text = f"* {index.row() + 1}" if has_unsaved_changes_in_item else str(index.row() + 1)
-        painter.drawText(number_label_rect, Qt.AlignCenter | Qt.TextShowMnemonic, number_text)
+        painter.drawText(number_label_rect, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextShowMnemonic, number_text)
 
         # 3. Draw Icon(s) and Warnings in the SAME zone
-        decoration = index.data(Qt.DecorationRole)
-        compaction_type = index.data(Qt.UserRole + 3) # 1: Folder/Folder, 2: Folder/Block
-        merged_ids = index.data(Qt.UserRole + 2) or []
+        decoration = index.data(Qt.ItemDataRole.DecorationRole)
+        compaction_type = index.data(Qt.ItemDataRole.UserRole + 3) # 1: Folder/Folder, 2: Folder/Block
+        merged_ids = index.data(Qt.ItemDataRole.UserRole + 2) or []
         icon_size = 14
         style = main_window.style()
         icon_y = status_rect_in_gutter.top() + (status_rect_in_gutter.height() - icon_size) // 2
@@ -393,14 +393,14 @@ class CustomListItemDelegate(QStyledItemDelegate):
             
             # 1. Add folder icons for the merged chain
             for f_id in subset:
-                icons_to_draw.append(style.standardIcon(QStyle.SP_DirIcon))
+                icons_to_draw.append(style.standardIcon(QStyle.StandardPixmap.SP_DirIcon))
             
             # 2. If it's a folder-block compaction, add the file icon as the top layer
             if compaction_type == 2 and len(icons_to_draw) < max_icons:
-                icons_to_draw.append(style.standardIcon(QStyle.SP_FileIcon))
+                icons_to_draw.append(style.standardIcon(QStyle.StandardPixmap.SP_FileIcon))
             elif compaction_type == 2 and len(icons_to_draw) == max_icons:
                 # Replace the last folder icon with a file icon if we reached the limit
-                icons_to_draw[-1] = style.standardIcon(QStyle.SP_FileIcon)
+                icons_to_draw[-1] = style.standardIcon(QStyle.StandardPixmap.SP_FileIcon)
             
             base_x = status_rect_in_gutter.left() + 2
             # Total shift is (num_icons - 1) * 3
@@ -423,10 +423,10 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 draw_stacked_icon(icon, icon_rect, painter)
                 
                 # Draw cloud if it's a category
-                category_name = index.data(Qt.UserRole + 10)
+                category_name = index.data(Qt.ItemDataRole.UserRole + 10)
                 if category_name:
                     painter.save()
-                    painter.setRenderHint(QPainter.Antialiasing)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
                     cloud_color = QColor("#FFFFFF") if theme == "light" else QColor("#E0E0E0")
                     cloud_border = QColor("#44AADD") if theme == "light" else QColor("#2288CC")
                     painter.setPen(cloud_border)
@@ -487,13 +487,13 @@ class CustomListItemDelegate(QStyledItemDelegate):
         if string_count_text:
             count_rect = QRect(item_rect.right() - count_width, item_rect.top(), count_width, item_rect.height())
             painter.setPen(number_text_color)
-            painter.drawText(count_rect, Qt.AlignCenter, string_count_text)
+            painter.drawText(count_rect, Qt.AlignmentFlag.AlignCenter, string_count_text)
         
         header_end = item_rect.right() - count_width - 4
         available_text_w = header_end - text_start_x
         text_rect = QRect(text_start_x, item_rect.top(), max(30, available_text_w), item_rect.height())
         
-        full_text = str(index.data(Qt.DisplayRole) or "")
+        full_text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
         metrics = QFontMetrics(current_font)
         
         # 1. Split text into "Name" and "Metadata"
@@ -514,34 +514,34 @@ class CustomListItemDelegate(QStyledItemDelegate):
             # Priority: NAME is black, METADATA is gray
             # Since we have horizontal scrolling, we should be less aggressive with elision.
             if total_w > name_w + meta_w:
-                painter.setPen(option.palette.color(QPalette.HighlightedText if (is_selected or is_drag_hover) else QPalette.Text))
-                painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter, name_str)
+                painter.setPen(option.palette.color(QPalette.ColorRole.HighlightedText if (is_selected or is_drag_hover) else QPalette.ColorRole.Text))
+                painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name_str)
                 name_actual_w = metrics.horizontalAdvance(name_str)
                 meta_rect = text_rect.adjusted(name_actual_w, 0, 0, 0)
                 if not (is_selected or is_drag_hover):
                     painter.setPen(QColor(140, 140, 140) if theme == 'light' else QColor(160, 160, 160))
-                painter.drawText(meta_rect, Qt.AlignLeft | Qt.AlignVCenter, meta_str)
+                painter.drawText(meta_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, meta_str)
             else:
                 # Still prioritize name. 
-                painter.setPen(option.palette.color(QPalette.HighlightedText if (is_selected or is_drag_hover) else QPalette.Text))
+                painter.setPen(option.palette.color(QPalette.ColorRole.HighlightedText if (is_selected or is_drag_hover) else QPalette.ColorRole.Text))
                 # If we have some space, show more of the name
-                elided_name = metrics.elidedText(name_str, Qt.ElideRight, max(total_w - 5, 20))
-                painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter, elided_name)
+                elided_name = metrics.elidedText(name_str, Qt.TextElideMode.ElideRight, max(total_w - 5, 20))
+                painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided_name)
                 
                 # Metadata only if we have extra space (rare if total_w < name_w + meta_w)
                 name_disp_w = metrics.horizontalAdvance(elided_name)
                 if total_w - name_disp_w > 20:
                     meta_rect = text_rect.adjusted(name_disp_w, 0, 0, 0)
-                    elided_meta = metrics.elidedText(meta_str, Qt.ElideRight, total_w - name_disp_w)
+                    elided_meta = metrics.elidedText(meta_str, Qt.TextElideMode.ElideRight, total_w - name_disp_w)
                     if not (is_selected or is_drag_hover):
                         painter.setPen(QColor(140, 140, 140) if theme == 'light' else QColor(160, 160, 160))
-                    painter.drawText(meta_rect, Qt.AlignLeft | Qt.AlignVCenter, elided_meta)
+                    painter.drawText(meta_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided_meta)
         else:
             # No metadata
-            painter.setPen(option.palette.color(QPalette.HighlightedText if (is_selected or is_drag_hover) else QPalette.Text))
+            painter.setPen(option.palette.color(QPalette.ColorRole.HighlightedText if (is_selected or is_drag_hover) else QPalette.ColorRole.Text))
             # Less aggressive elision
-            elided_all = metrics.elidedText(full_text, Qt.ElideRight, max(text_rect.width(), 20))
-            painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter, elided_all)
+            elided_all = metrics.elidedText(full_text, Qt.TextElideMode.ElideRight, max(text_rect.width(), 20))
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided_all)
         painter.restore()
 
         painter.restore()
@@ -556,20 +556,20 @@ class CustomListItemDelegate(QStyledItemDelegate):
         number_rect = QRect(item_rect.left(), item_rect.top(), current_number_area_width, item_rect.height())
         
         if number_rect.contains(mouse_pos):
-            block_idx = index.data(Qt.UserRole)
+            block_idx = index.data(Qt.ItemDataRole.UserRole)
             if block_idx is not None:
                 tooltip_text = self._get_problems_tooltip_text(main_window, index)
                 if tooltip_text:
-                    QToolTip.showText(event.globalPos(), tooltip_text, view)
+                    QToolTip.showText(QCursor.pos(), tooltip_text, view)
                     return
         
         QToolTip.hideText()
 
     def _get_problems_tooltip_text(self, main_window, index) -> str:
-        block_idx = index.data(Qt.UserRole)
-        category_name = index.data(Qt.UserRole + 10)
-        chapter_id = index.data(Qt.UserRole + 11)
-        merged_folder_ids = index.data(Qt.UserRole + 2)
+        block_idx = index.data(Qt.ItemDataRole.UserRole)
+        category_name = index.data(Qt.ItemDataRole.UserRole + 10)
+        chapter_id = index.data(Qt.ItemDataRole.UserRole + 11)
+        merged_folder_ids = index.data(Qt.ItemDataRole.UserRole + 2)
         
         problem_definitions = {}
         if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
@@ -651,15 +651,15 @@ class CustomListItemDelegate(QStyledItemDelegate):
         return ""
 
     def helpEvent(self, event, view, option, index) -> bool:
-        if event.type() == QEvent.ToolTip:
+        if event.type() == QEvent.Type.ToolTip:
             self.handle_tooltip(event, view, option, index)
             return True
         return super().helpEvent(event, view, option, index)
 
     def setEditorData(self, editor, index):
-        # We explicitly stored the pure name in Qt.UserRole + 4 to avoid 
+        # We explicitly stored the pure name in Qt.ItemDataRole.UserRole + 4 to avoid 
         # issues where QTreeWidget fallback pulls the DisplayRole (which has issue counts).
-        pure_name = index.data(Qt.UserRole + 4)
+        pure_name = index.data(Qt.ItemDataRole.UserRole + 4)
         if pure_name is not None:
             if hasattr(editor, 'setText'):
                 editor.setText(pure_name)

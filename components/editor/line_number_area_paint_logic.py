@@ -1,6 +1,6 @@
-from PyQt5.QtGui import QPainter, QColor, QPen, QFont
-from PyQt5.QtCore import Qt, QRect
-from PyQt5.QtWidgets import QMainWindow, QTextEdit
+from PyQt6.QtGui import QPainter, QColor, QPen, QFont
+from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtWidgets import QMainWindow, QTextEdit
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
 from .constants import PAIR_SEPARATOR_LINE_COLOR, PAIR_SEPARATOR_LINE_STYLE, PAIR_SEPARATOR_LINE_THICKNESS
@@ -198,19 +198,19 @@ class LNETLineNumberAreaPaintLogic:
                         painter.fillRect(left_col_w, top, right_col_w, line_height, bg_color_subline_zebra)
                         
                         painter.setPen(number_text_color_const)
-                        painter.drawText(QRect(0, top, left_col_w - 5, line_height), Qt.AlignRight | Qt.AlignVCenter, display_number_for_line_area)
+                        painter.drawText(QRect(0, top, left_col_w - 5, line_height), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, display_number_for_line_area)
                         
                         subline_pen = QColor(number_text_color_const)
                         subline_pen.setAlpha(150)
                         painter.setPen(subline_pen)
-                        painter.drawText(QRect(left_col_w, top, right_col_w - 3, line_height), Qt.AlignRight | Qt.AlignVCenter, subline_number_text)
+                        painter.drawText(QRect(left_col_w, top, right_col_w - 3, line_height), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, subline_number_text)
                     else:
                         painter.fillRect(number_part_rect, bg_color_number_area)
                         if is_translated:
                             green_bg = QColor(46, 139, 87, 40)
                             painter.fillRect(number_part_rect, green_bg)
                         painter.setPen(number_text_color_const)
-                        painter.drawText(QRect(0, top, number_part_width - 3, line_height), Qt.AlignRight | Qt.AlignVCenter, display_number_for_line_area)
+                        painter.drawText(QRect(0, top, number_part_width - 3, line_height), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, display_number_for_line_area)
 
                     # Problem markers
                     problem_ids = set()
@@ -235,7 +235,7 @@ class LNETLineNumberAreaPaintLogic:
                         w = extra_part_width / N
                         for i, p_id in enumerate(sorted_probs):
                             p_def = problem_definitions.get(p_id, {})
-                            bg_color = QColor(p_def.get("color", Qt.transparent))
+                            bg_color = QColor(p_def.get("color", Qt.GlobalColor.transparent))
                             if bg_color.isValid():
                                 bg_color.setAlpha(160)
                                 x_pos = number_part_width + i * w
@@ -251,8 +251,8 @@ class LNETLineNumberAreaPaintLogic:
                         if is_editor and hasattr(main_window_ref, 'font_map') and main_window_ref.font_map:
                             font_map = main_window_ref.helper.get_font_map_for_string(current_block_idx_data_mw, current_string_idx_data_mw)
                             pixel_width = calculate_string_width(convert_dots_to_spaces_from_editor(current_q_block.text()).rstrip(), font_map, icon_sequences=getattr(main_window_ref, 'icon_sequences', []))
-                            painter.setPen(QColor(Qt.darkGray) if theme == 'light' else QColor(Qt.darkGray).darker(120))
-                            painter.drawText(QRect(number_part_width, top, extra_part_width - 3, line_height), Qt.AlignRight | Qt.AlignVCenter, str(pixel_width))
+                            painter.setPen(QColor(Qt.GlobalColor.darkGray) if theme == 'light' else QColor(Qt.GlobalColor.darkGray).darker(120))
+                            painter.drawText(QRect(number_part_width, top, extra_part_width - 3, line_height), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, str(pixel_width))
                         elif is_preview:
                             # Draw metadata indicators in preview area
                             string_meta = {}
@@ -284,7 +284,7 @@ class LNETLineNumberAreaPaintLogic:
                                 s_w = 4
                                 for p_id in sorted(list(filtered_problems), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)):
                                     p_def = problem_definitions.get(p_id, {})
-                                    s_color = QColor(p_def.get("color", Qt.transparent))
+                                    s_color = QColor(p_def.get("color", Qt.GlobalColor.transparent))
                                     if s_color.isValid():
                                         s_color.setAlpha(220)
                                         painter.fillRect(s_x, top + 2, s_w, line_height - 4, s_color)

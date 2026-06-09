@@ -1,13 +1,13 @@
 import os
 import json
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
+from PyQt6.QtWidgets import (
+    QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QComboBox, QProgressBar, QTextEdit, 
     QMessageBox, QGroupBox, QTabWidget, QWidget, QListWidget,
     QListWidgetItem, QTableWidget, QTableWidgetItem, QSplitter
 )
-from PyQt5.QtGui import QIcon, QFont, QColor
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt6.QtGui import QIcon, QFont, QColor
+from PyQt6.QtCore import Qt, pyqtSlot
 from core.mempalace_client import MemePalaceClient
 from utils.logging_utils import log_info, log_error
 
@@ -179,7 +179,7 @@ class MemePalaceViewerDialog(QDialog):
         main_layout.addLayout(header_layout)
 
         # Main Splitter
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         
         # Left Panel - Rooms list
         left_widget = QWidget()
@@ -223,7 +223,7 @@ class MemePalaceViewerDialog(QDialog):
         self.dialogues_table.setColumnCount(3)
         self.dialogues_table.setHorizontalHeaderLabels(["Line ID", "Speaker (Deducted)", " verbatims Text"])
         self.dialogues_table.horizontalHeader().setStretchLastSection(True)
-        self.dialogues_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.dialogues_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.dialogues_table.cellDoubleClicked.connect(self._handle_dialogue_double_clicked)
         scene_layout.addWidget(self.dialogues_table)
         
@@ -243,7 +243,7 @@ class MemePalaceViewerDialog(QDialog):
         self.relations_table.setColumnCount(4)
         self.relations_table.setHorizontalHeaderLabels(["Source Entity", "Relationship Type", "Target Entity", "Timeline Room/Source"])
         self.relations_table.horizontalHeader().setStretchLastSection(True)
-        self.relations_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.relations_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         relations_layout.addWidget(self.relations_table)
         
         self.tab_widget.addTab(relations_tab, "Character Cast & Relations")
@@ -294,7 +294,7 @@ class MemePalaceViewerDialog(QDialog):
         selected_room = None
         selected_items = self.rooms_list.selectedItems()
         if selected_items:
-            selected_room = selected_items[0].data(Qt.UserRole)
+            selected_room = selected_items[0].data(Qt.ItemDataRole.UserRole)
 
         # 1. Load Rooms List
         try:
@@ -329,7 +329,7 @@ class MemePalaceViewerDialog(QDialog):
                 else:
                     item.setText(name.replace("_", " "))
                     
-                item.setData(Qt.UserRole, name) # Keep clean SQLite key
+                item.setData(Qt.ItemDataRole.UserRole, name) # Keep clean SQLite key
                 self.rooms_list.addItem(item)
                 
                 if selected_room and name == selected_room:
@@ -378,7 +378,7 @@ class MemePalaceViewerDialog(QDialog):
         if not selected_items or not self.client:
             return
             
-        room_name = selected_items[0].data(Qt.UserRole)
+        room_name = selected_items[0].data(Qt.ItemDataRole.UserRole)
         wing_name = self.wing_combo.currentData() or self.wing_combo.currentText()
         
         try:
@@ -561,8 +561,8 @@ class MemePalaceViewerDialog(QDialog):
 
         # Try to select the block and string in Picoripi
         try:
-            from PyQt5.QtWidgets import QTreeWidgetItemIterator
-            from PyQt5.QtCore import QTimer, Qt
+            from PyQt6.QtWidgets import QTreeWidgetItemIterator
+            from PyQt6.QtCore import QTimer, Qt
             
             # Focus main window
             self.mw.raise_()
@@ -572,7 +572,7 @@ class MemePalaceViewerDialog(QDialog):
             target_item = None
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
-                if iterator.value().data(0, Qt.UserRole) == found_block_idx:
+                if iterator.value().data(0, Qt.ItemDataRole.UserRole) == found_block_idx:
                     target_item = iterator.value()
                     break
                 iterator += 1

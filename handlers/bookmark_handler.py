@@ -1,7 +1,7 @@
 import uuid
 from typing import Any, Optional
-from PyQt5.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator
-from PyQt5.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator
+from PyQt6.QtCore import Qt, QTimer
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug
 
@@ -137,10 +137,10 @@ class BookmarkHandler(BaseHandler):
             self.mw,
             "Clear Bookmarks",
             "Are you sure you want to delete all bookmarks?",
-            QMessageBox.Yes | QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self.mw.bookmarks = []
             self.mw.settings_manager.save_settings()
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
@@ -165,10 +165,10 @@ class BookmarkHandler(BaseHandler):
             self.mw,
             "Delete Bookmark",
             f"Are you sure you want to delete bookmark '{name}'?",
-            QMessageBox.Yes | QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self.mw.bookmarks = [b for b in bookmarks if b.get('id') != bookmark_id]
             self.mw.settings_manager.save_settings()
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:

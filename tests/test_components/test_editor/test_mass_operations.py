@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def test_handle_mass_set_width_with_displayed_string_indices(app, mock_mw):
     
     with patch('components.editor.line_numbered_text_edit.MassWidthDialog') as MockDialog:
         mock_dialog = MockDialog.return_value
-        mock_dialog.exec_.return_value = True
+        mock_dialog.exec.return_value = True
         mock_dialog.get_width.return_value = 180
         
         # Act
@@ -40,7 +40,7 @@ def test_handle_mass_set_font_with_displayed_string_indices(app, mock_mw):
     
     with patch('components.editor.line_numbered_text_edit.MassFontDialog') as MockDialog:
         mock_dialog = MockDialog.return_value
-        mock_dialog.exec_.return_value = True
+        mock_dialog.exec.return_value = True
         mock_dialog.get_selected_font.return_value = "custom_font.bfn"
         
         # Act

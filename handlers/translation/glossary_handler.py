@@ -7,12 +7,9 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from PyQt5.QtWidgets import (
-    QAction, QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, 
-    QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, 
-    QWidget, QDialogButtonBox
-)
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import (QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, QWidget, QDialogButtonBox)
+from PyQt6.QtGui import (QAction)
+from PyQt6.QtCore import Qt
 
 from .base_translation_handler import BaseTranslationHandler
 from .glossary_prompt_manager import GlossaryPromptManager
@@ -29,7 +26,7 @@ class CategorySelectionDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Choose Glossary Categories")
         self.resize(360, 400)
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Select categories to organize your glossary:", self))
@@ -58,7 +55,7 @@ class CategorySelectionDialog(QDialog):
         layout.addWidget(self.custom_input)
         
         # Buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=self)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -219,7 +216,7 @@ class GlossaryHandler(BaseTranslationHandler):
         effective_translation = translation or (entry.translation if entry else "")
 
         dialog = self._create_edit_dialog(term, entry, context, initial_translation=effective_translation)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         new_translation, new_notes = dialog.get_values()
@@ -560,7 +557,7 @@ Do not write any markdown formatting like ```json, just output raw JSON text.
             
         # Show Category Selection Dialog
         dialog = CategorySelectionDialog(self.dialog, suggested_categories)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
             
         selected_categories = dialog.get_selected_categories()

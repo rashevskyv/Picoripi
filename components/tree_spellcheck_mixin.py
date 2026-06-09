@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from utils.logging_utils import log_debug, log_error
 
@@ -131,7 +131,7 @@ class TreeSpellcheckMixin:
             dialog = SpellcheckDialog(
                 self, text_to_check, scm, starting_line_number=0, line_numbers=line_numbers, block_idx=block_idx
             )
-            if not dialog.exec_():
+            if not dialog.exec():
                 return
 
             corrected_text = dialog.get_corrected_text()

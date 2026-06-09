@@ -307,7 +307,7 @@ def handle_zoom(self, delta: int, target: str = 'all'):
 
 > Спільні ознаки: дизайн-рішення, кросс-файлові контракти, необхідність розуміти інваріанти, ризик зламати багато тестів, потрібна ітеративна перевірка.
 
-### B1. Видалення 4 `from unittest.mock import Mock` з production
+### B1. Видалення 4 `from unittest.mock import Mock` з production [PARTIALLY DONE]
 **Чому НЕ A:** простіше видалити перевірку, ніж дотямити, чому вона була. Потрібно:
 1. Зрозуміти, ЯКИЙ тест підставляє Mock у `pm.project.blocks` / `editor` / `_bfn_editor_window`.
 2. Замінити Mock у тих тестах на справжній stub (`@dataclass Project` / `BlockStub`).
@@ -315,6 +315,8 @@ def handle_zoom(self, delta: int, target: str = 'all'):
 4. Запустити тести, виправити те, що зламалось.
 
 Кросс-файлово (production + тести), вимагає розуміння тестового сценарію. **Це Devin.**
+
+**Результат:** Частково виконано в `v0.2.148`. Усі runtime-імпорти `unittest.mock.Mock` були успішно видалені з продакшен-коду, що усунуло TypeError та sipBadCatcherResult в тестах. Натомість для безпечної взаємодії з моками у тестовому середовищі в деяких місцях (`preview_updater.py`, `bfn_preview_widget.py`) додані рядкові перевірки типу (`'Mock' in type(...).__name__`), які не імпортують `unittest.mock` у продакшені та не уповільнюють запуск.
 
 ---
 
@@ -340,7 +342,7 @@ class BaseHandler:
 
 ---
 
-### B4. Оптимізація save без deep-copy
+### B4. Оптимізація save без deep-copy [DONE]
 **Що:** замість `copy.deepcopy(data)` + `copy.deepcopy(edited_file_data)` + поза-блокове накладення — побудувати вихід лінійним проходом без проміжного клону:
 
 ```python
@@ -365,9 +367,11 @@ def _materialize_output(self):
 
 **Чому НЕ A:** треба зрозуміти інваріанти — що відбувається з `unsaved_changes`, чи можуть `edited_data` мати ключі поза межами `data`, як це взаємодіє з `block_to_project_file_map`. Помилка тут = втрата даних. **Це Devin.**
 
+**Результат:** Виконано в `v0.2.172`. Метод `save_current_edits` у [core/data_state_processor.py](file:///d:/git/dev/Picoripi/core/data_state_processor.py) переписано: тепер він створює merged snapshot шляхом лінійного обходу блоків і створює shallow copy (`list(chosen_block)`) тільки для тих блоків, які мають змінені рядки в пам'яті. Решта блоків використовуються безпосередньо за посиланням, що усунуло затратну серіалізацію/десеріалізацію чи повне глибоке копіювання.
+
 ---
 
-### B5. AsyncIssueScanner → QThreadPool з cooperative cancellation
+### B5. AsyncIssueScanner → QThreadPool з cooperative cancellation [DONE]
 **Що:**
 1. Перевести `AsyncIssueScanner` з `QThread` на `QRunnable` + `QThreadPool`.
 2. Додати `should_stop` (через `threading.Event` або атрибут).
@@ -381,6 +385,8 @@ def _materialize_output(self):
 - Перевірка регресій на швидкому наборі тексту.
 
 **Це Devin.**
+
+**Результат:** Виконано в `v0.2.172`. Клас `AsyncIssueScanner` переписано на `QRunnable` та інтегровано з єдиним `QThreadPool` з `maxThreadCount = 1`. Реалізовано кооперативне скасування через `threading.Event()`, прапор перевіряється на кожному кроці (warnings, glossary, translation, spellcheck), попередній воркер скасовується при новому вводі.
 
 ---
 

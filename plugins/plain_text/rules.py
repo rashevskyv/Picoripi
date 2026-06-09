@@ -11,7 +11,7 @@ This plugin provides text editing functionality with problem detection and autof
 import re
 from typing import List, Tuple, Dict, Optional, Any, Set
 from plugins.base_game_rules import BaseGameRules
-from PyQt5.QtGui import QTextCharFormat
+from PyQt6.QtGui import QTextCharFormat
 from utils.utils import calculate_string_width, convert_spaces_to_dots_for_display
 
 from .config import (

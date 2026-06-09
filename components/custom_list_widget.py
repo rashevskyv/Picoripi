@@ -1,13 +1,14 @@
-from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu, QAction
-from PyQt5.QtCore import Qt, QPoint, QSize, QEvent
-from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor
+from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import Qt, QPoint, QSize, QEvent
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
 from .custom_list_item_delegate import CustomListItemDelegate
 from utils.logging_utils import log_debug, log_error
 
 class CustomListWidget(QListWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
         
         self.setUniformItemSizes(False) 
@@ -17,24 +18,26 @@ class CustomListWidget(QListWidget):
         self.viewport().setMouseTracking(True)
 
         self.color_marker_definitions = {
-            "red": QColor(Qt.red),
-            "green": QColor(Qt.green),
-            "blue": QColor(Qt.blue),
+            "red": QColor(Qt.GlobalColor.red),
+            "green": QColor(Qt.GlobalColor.green),
+            "blue": QColor(Qt.GlobalColor.blue),
             # More colors can be added here
         }
 
     def _create_color_icon(self, color: QColor, size: int = 12) -> QIcon:
         pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(color)
-        painter.setPen(Qt.NoPen) 
-        painter.drawEllipse(0, 0, size, size)
-        painter.end()
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setBrush(color)
+            painter.setPen(Qt.PenStyle.NoPen) 
+            painter.drawEllipse(0, 0, size, size)
+        finally:
+            painter.end()
         return QIcon(pixmap)
 
-    def create_item(self, text, data, role=Qt.UserRole):
+    def create_item(self, text, data, role=Qt.ItemDataRole.UserRole):
         item = QListWidgetItem(text)
         item.setData(role, data)
         return item
@@ -53,11 +56,11 @@ class CustomListWidget(QListWidget):
 
         # Block-specific options (only if item exists)
         if not item:
-            menu.exec_(self.mapToGlobal(pos))
+            menu.exec(self.mapToGlobal(pos))
             return
 
         self.setCurrentItem(item)
-        block_idx = item.data(Qt.UserRole)
+        block_idx = item.data(Qt.ItemDataRole.UserRole)
         block_name = item.text()
         if hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'block_names'):
             block_name = main_window.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
@@ -112,16 +115,18 @@ class CustomListWidget(QListWidget):
 
             generate_glossary = menu.addAction(f"AI Build Glossary for '{block_name}'")
             generate_glossary.triggered.connect(lambda checked=False, idx=block_idx: main_window.build_glossary_with_ai(idx))
-        menu.exec_(self.mapToGlobal(pos))
+        menu.exec(self.mapToGlobal(pos))
 
     def viewportEvent(self, event):
-        if event.type() == QEvent.ToolTip:
+        if event.type() == QEvent.Type.ToolTip:
             log_debug(f"CustomListWidget: viewport ToolTip event at {event.pos()}")
             index = self.indexAt(event.pos())
             if index.isValid():
-                delegate = self.itemDelegate(index)
+                delegate = self.itemDelegateForIndex(index)
                 if delegate:
-                    option = self.viewOptions()
+                    from PyQt6.QtWidgets import QStyleOptionViewItem
+                    option = QStyleOptionViewItem()
+                    self.initViewItemOption(option)
                     option.rect = self.visualRect(index)
                     if delegate.helpEvent(event, self, option, index):
                         return True
@@ -227,7 +232,7 @@ class CustomListWidget(QListWidget):
             text_to_check = '\n'.join(text_parts)
             if not text_to_check.strip():
                 log_debug("CustomListWidget: No lines with misspellings found")
-                from PyQt5.QtWidgets import QMessageBox
+                from PyQt6.QtWidgets import QMessageBox
                 if len(all_translated_lines) == 0:
                     QMessageBox.information(self, "Spellcheck", "No text found to check in this block.")
                 else:
@@ -241,9 +246,9 @@ class CustomListWidget(QListWidget):
             dialog = SpellcheckDialog(self, text_to_check, spellchecker_manager,
                                      starting_line_number=0, line_numbers=line_numbers,
                                      block_idx=block_idx)
-            log_debug("CustomListWidget: SpellcheckDialog created, calling exec_()")
+            log_debug("CustomListWidget: SpellcheckDialog created, calling exec()")
 
-            if dialog.exec_():
+            if dialog.exec():
                 log_debug("CustomListWidget: Dialog accepted, applying corrections")
                 corrected_text = dialog.get_corrected_text()
                 corrected_lines = corrected_text.split('\n')

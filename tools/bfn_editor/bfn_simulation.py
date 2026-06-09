@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from tools.bfn_editor.bfn_widgets import SimGlyphItem
 
@@ -130,7 +130,7 @@ class BfnSimMixin:
         ukr_p3 = ukr_menu.addAction("Фабрикують дещо за формою, але без глибинного вмісту.")
         ukr_p4 = ukr_menu.addAction("Гей, хлопці, побережіться, якийсь свинячий хвостик в болоті застряг!")
         
-        action = menu.exec_(self.sim_input.mapToGlobal(pos))
+        action = menu.exec(self.sim_input.mapToGlobal(pos))
         if action:
             if action in [eng_p1, eng_p2, eng_p3, ukr_p1, ukr_p2, ukr_p3, ukr_p4]:
                 if hasattr(self, 'chk_sync_sim_text'):

@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtGui import QTextCursor
 
 class LNETTagHelpers:
     def __init__(self, editor):

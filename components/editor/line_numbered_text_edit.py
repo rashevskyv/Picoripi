@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QAction,
-                             QWidget, QHBoxLayout, QWidgetAction, QToolTip)
-from PyQt5.QtGui import (QFont, QPaintEvent, QKeyEvent, QMouseEvent, QTextCursor, QDrag)
-from PyQt5.QtCore import Qt, QRect, QRectF, pyqtSignal, QPoint, QMimeData, QByteArray
+from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QWidget, QHBoxLayout, QWidgetAction, QToolTip)
+from PyQt6.QtGui import (QAction)
+from PyQt6.QtGui import (QFont, QPaintEvent, QKeyEvent, QMouseEvent, QTextCursor, QDrag)
+from PyQt6.QtCore import Qt, QRect, QRectF, pyqtSignal, QPoint, QMimeData, QByteArray
 from typing import Optional, List, Tuple
 from pathlib import Path
 
@@ -89,7 +89,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.blockCountChanged.connect(lambda: self.highlightManager.update_zebra_stripes() if hasattr(self, 'highlightManager') and self.highlightManager else None)
         self.updateRequest.connect(self.updateLineNumberArea)
 
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.mouse_handler.showContextMenu)
 
 
@@ -200,7 +200,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._hovered_glossary_entry = entry
         self._hovered_warning_text = warning_tooltip
 
-        if self.objectName() == "preview_text_edit" and event.buttons() == Qt.LeftButton and self._selected_lines:
+        if self.objectName() == "preview_text_edit" and event.buttons() == Qt.MouseButton.LeftButton and self._selected_lines:
             if self.drag_start_pos is not None and (event.pos() - self.drag_start_pos).manhattanLength() > QApplication.startDragDistance():
                 drag = QDrag(self)
                 mime_data = QMimeData()
@@ -210,7 +210,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
                 mime_data.setData("application/x-selected-lines", data)
                 
                 drag.setMimeData(mime_data)
-                drag.exec_(Qt.MoveAction)
+                drag.exec(Qt.DropAction.MoveAction)
                 self.drag_start_pos = None
 
         super().mouseMoveEvent(event)
@@ -253,12 +253,12 @@ class LineNumberedTextEdit(QPlainTextEdit):
         # Defer guideline recalculation so Qt has time to finalize block layouts.
         # Without this, QTextBlock.layout().lineAt() returns invalid lines immediately
         # after setPlainText, producing empty guideline_positions.
-        from PyQt5.QtCore import QTimer
+        from PyQt6.QtCore import QTimer
         QTimer.singleShot(0, self.recalculate_guidelines)
 
     def calculate_block_guidelines(self, block, font_map, sequences, limit_px) -> None:
         from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
-        from PyQt5.QtGui import QTextCursor
+        from PyQt6.QtGui import QTextCursor
 
         if not hasattr(self, 'guideline_positions'):
             self.guideline_positions = {}
@@ -489,7 +489,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.viewport().update()
 
     def wheelEvent(self, event):
-        if event.modifiers() & Qt.ControlModifier:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             main_window = self.window()
             if hasattr(main_window, 'handle_zoom'):
                 target = 'preview' if self.objectName() == "preview_text_edit" else 'editors'
@@ -716,7 +716,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
             real_indices = selected_lines
 
         dialog = MassFontDialog(main_window)
-        if dialog.exec_():
+        if dialog.exec():
             font_file = dialog.get_selected_font()
             main_window.string_settings_handler.apply_font_to_lines(real_indices, font_file)
 
@@ -735,7 +735,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
             real_indices = selected_lines
 
         dialog = MassWidthDialog(main_window)
-        if dialog.exec_():
+        if dialog.exec():
             width = dialog.get_width()
             main_window.string_settings_handler.apply_width_to_lines(real_indices, width)
 

@@ -1,8 +1,8 @@
 # components/tree_folder_mixin.py
 """Virtual folder CRUD, tree↔PM synchronisation, expansion-state mixin for CustomTreeWidget."""
 import re
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QInputDialog, QTreeWidgetItemIterator
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QInputDialog, QTreeWidgetItemIterator
 
 from utils.logging_utils import log_debug
 

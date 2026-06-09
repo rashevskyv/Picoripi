@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PyQt6.QtCore import Qt
 from ui.updaters.block_list_updater import BlockListUpdater
 
 @pytest.fixture
@@ -145,5 +145,55 @@ def test_BlockListUpdater_populate_chapters(updater):
     
     # Verify that no dialogue child rows are nested under ch1 (redundant to preview panel)
     assert ch1.childCount() == 0
+
+
+def test_BlockListUpdater_compacted_folder_problem_count(updater):
+    # Setup project with virtual folders
+    project = MagicMock()
+    updater.mw.project_manager.project = project
+    updater.mw.translation_handler = None # Prevent chapters generation
+    
+    # folder with single block
+    folder = MagicMock()
+    folder.id = "folder_1"
+    folder.name = "CompactFolder"
+    folder.is_expanded = True
+    folder.children = []
+    folder.block_ids = ["block_0_id"]
+    
+    project.virtual_folders = [folder]
+    project.metadata = {}
+    
+    block_obj = MagicMock()
+    block_obj.id = "block_0_id"
+    block_obj.source_file = "src/block0.txt"
+    block_obj.categories = []
+    project.blocks = [block_obj]
+    
+    updater.mw.block_to_project_file_map = {0: 0}
+    updater.mw.data_store.block_names = {"0": "block0"}
+    updater.mw.data_store.data = [["Str0"]]
+    
+    # We have problems
+    updater.mw.data_store.problems_per_subline = {
+        (0, 0, 0): {"prob1"},
+    }
+    
+    problem_definitions = {
+        "prob1": {"priority": 1, "name": "Width Error", "description": "Too long"}
+    }
+    updater.mw.current_game_rules.get_problem_definitions.return_value = problem_definitions
+    
+    # Run populate_blocks
+    updater.populate_blocks()
+    
+    # The block list widget should have a top-level item (the compacted folder)
+    # representing block 0 with the error count in brackets
+    assert updater.mw.block_list_widget.topLevelItemCount() == 1
+    item = updater.mw.block_list_widget.topLevelItem(0)
+    
+    assert item.text(0) == "CompactFolder / block0 (1)"
+    assert "Width Error" in item.toolTip(0)
+
 
 

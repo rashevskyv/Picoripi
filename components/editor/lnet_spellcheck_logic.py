@@ -1,7 +1,7 @@
 import re
 from typing import List
-from PyQt5.QtWidgets import QMainWindow, QMessageBox
-from PyQt5.QtCore import QPoint
+from PyQt6.QtWidgets import QMainWindow, QMessageBox
+from PyQt6.QtCore import QPoint
 from utils.logging_utils import log_debug
 
 class LNETSpellcheckLogic:
@@ -50,7 +50,7 @@ class LNETSpellcheckLogic:
                                      starting_line_number=0, line_numbers=line_numbers,
                                      block_idx=main_window.data_store.current_block_idx)
 
-            if dialog.exec_():
+            if dialog.exec():
                 corrected_text = dialog.get_corrected_text()
                 self.apply_corrected_text(corrected_text, line_numbers)
 
@@ -66,11 +66,11 @@ class LNETSpellcheckLogic:
         edited_text_edit = main_window.edited_text_edit
         corrected_lines = corrected_text.split('\n')
 
-        from PyQt5.QtGui import QTextCursor
+        from PyQt6.QtGui import QTextCursor
         for i, line_num in enumerate(line_numbers):
             if i < len(corrected_lines):
                 block = edited_text_edit.document().findBlockByNumber(line_num)
                 if block.isValid():
                     cursor = QTextCursor(block)
-                    cursor.select(QTextCursor.BlockUnderCursor)
+                    cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
                     cursor.insertText(corrected_lines[i])

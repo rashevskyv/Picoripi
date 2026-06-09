@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, List
-from PyQt5.QtCore import QTimer
+from PyQt6.QtCore import QTimer
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 
 from core.settings.global_settings import GlobalSettings

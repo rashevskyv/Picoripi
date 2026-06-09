@@ -1,8 +1,8 @@
 # handlers/app_action_handler.py
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
-from PyQt5.QtCore import Qt, QEvent
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
+from PyQt6.QtCore import Qt, QEvent
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
@@ -27,14 +27,14 @@ class AppActionHandler(BaseHandler):
             reply = QMessageBox.question(
                 self.mw, 'Unsaved Changes',
                 "Save changes before closing?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Cancel
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel
             )
-            if reply == QMessageBox.Save:
+            if reply == QMessageBox.StandardButton.Save:
                 if not self.save_data_action(ask_confirmation=False):
                     event.ignore()
                     return
-            elif reply == QMessageBox.Cancel:
+            elif reply == QMessageBox.StandardButton.Cancel:
                 event.ignore()
                 return
         event.accept()
@@ -50,11 +50,11 @@ class AppActionHandler(BaseHandler):
     def open_file_dialog_action(self) -> None:
         log_info("Open File Dialog action triggered.")
         if self.mw.data_store.unsaved_changes:
-            reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel)
-            if reply == QMessageBox.Save:
+            reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Save:
                 if not self.save_data_action(ask_confirmation=True):
                     return
-            elif reply == QMessageBox.Cancel:
+            elif reply == QMessageBox.StandardButton.Cancel:
                 return
         
         start_dir = ""
@@ -80,8 +80,8 @@ class AppActionHandler(BaseHandler):
         path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt *.bmg *.bfn *.arc *.rarc);;BMG Files (*.bmg);;BFN Files (*.bfn);;ARC Files (*.arc *.rarc);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
         if path:
             if self.mw.data_store.unsaved_changes:
-                 reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Loading a new changes file will discard current unsaved edits. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                 if reply == QMessageBox.No:
+                 reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Loading a new changes file will discard current unsaved edits. Proceed?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+                 if reply == QMessageBox.StandardButton.No:
                      return
             
             file_content = None
@@ -314,8 +314,8 @@ class AppActionHandler(BaseHandler):
             return
             
         if self.mw.data_store.unsaved_changes:
-            reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Reloading will discard current unsaved edits in memory. Proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.No:
+            reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Reloading will discard current unsaved edits in memory. Proceed?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.No:
                 return
                 
         current_edited_path_before_reload = self.mw.data_store.edited_json_path
@@ -377,7 +377,7 @@ class AppActionHandler(BaseHandler):
         )
         
         progress = QProgressDialog(f"Calculating widths for {block_name}...", "Cancel", 0, num_to_process, self.mw)
-        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         
         def on_finished(result_dict):
@@ -420,7 +420,7 @@ class AppActionHandler(BaseHandler):
         progress.canceled.connect(self.width_worker.cancel)
         
         self.width_worker.start()
-        progress.exec_()
+        progress.exec()
 
     def _perform_initial_silent_scan_all_issues(self) -> None:
         if hasattr(self.mw, 'issue_scan_handler'):

@@ -3,7 +3,7 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 ## Project Overview
 
-The "Picoripi" (v0.2.172) is a desktop application built with **Python** and **PyQt5**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.2.173) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -32,8 +32,8 @@ The application is designed to be highly versatile, with features tailored to ha
 The project uses a Python virtual environment. The `run.bat` script automates its creation.
 
 **Dependencies** are listed in `requirements.txt`. Key libraries include:
-- `PyQt5`: The GUI framework.
-- `deep-translator`, `googletrans`, `playwright`: For AI translation services.
+- `PyQt6`: The GUI framework.
+- `requests`: For AI translation services.
 - `spylls`: For spellchecking.
 - `markdown`: For parsing glossary files.
 
@@ -122,14 +122,14 @@ The project follows a well-organized, modular structure with clear separation of
     -   `builders/`: UI construction modules (`layout_builder.py`, `menu_builder.py`, `toolbar_builder.py`, `statusbar_builder.py`).
     -   `updaters/`: Decomposed UI updaters: `block_list_updater.py`, `preview_updater.py`, `string_settings_updater.py`, `title_status_bar_updater.py`.
     -   `main_window/`: MainWindow event handling and actions.
--   `components/`: Reusable PyQt5 widgets (text editors, tree widgets, dialogs, glossary edit dialog). Contains `block_properties_dialog.py` for displaying file metadata.
+-   `components/`: Reusable PyQt6 widgets (text editors, tree widgets, dialogs, glossary edit dialog). Contains `block_properties_dialog.py` for displaying file metadata.
 -   `plugins/`: Game-specific plugin modules:
     -   `base_game_rules.py`: Abstract base class for all plugins.
     -   `common/`: Shared markers and utilities (`markers.py`).
     -   `zelda_mc/`, `zelda_ww/`, `pokemon_fr/`, `plain_text/`: Individual game plugins.
--   `tools/`: Helper utilities and embedded tools, including `bfn_editor/` (Nintendo Binary Font visual editor and compiler converted to PyQt5).
+-   `tools/`: Helper utilities and embedded tools, including `bfn_editor/` (Nintendo Binary Font visual editor and compiler).
 -   `utils/`: Utility functions (`utils.py`), constants (`constants.py`), syntax highlighter (`syntax_highlighter.py`), and logging (`logging_utils.py`).
--   `tests/`: 600+ unit tests organized by module (pytest).
+-   `tests/`: 960+ unit tests organized by module (pytest).
 
 ### Key Development Conventions
 

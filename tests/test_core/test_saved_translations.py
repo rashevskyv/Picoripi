@@ -3,7 +3,7 @@ import json
 import datetime
 from unittest.mock import MagicMock, patch
 from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from core.saved_translations_manager import SavedTranslationsManager
 from core.data_state_processor import DataStateProcessor
@@ -166,7 +166,7 @@ def test_export_translations_action(mock_info, mock_fd, manager, mock_mw_for_sav
 @patch("core.saved_translations_manager.QMessageBox.question")
 @patch("core.saved_translations_manager.QMessageBox.information")
 def test_import_translations_action(mock_info, mock_q, mock_fd, manager, mock_mw_for_saved, temp_project_dir):
-    mock_q.return_value = QMessageBox.Yes
+    mock_q.return_value = QMessageBox.StandardButton.Yes
     import_path = temp_project_dir / "import_trans.json"
     
     import_data = {

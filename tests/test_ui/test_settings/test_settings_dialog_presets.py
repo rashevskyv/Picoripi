@@ -2,9 +2,9 @@ import pytest
 from unittest.mock import MagicMock
 from ui.settings_dialog import SettingsDialog
 from core.translation.config import build_default_translation_config
-import PyQt5.QtWidgets
+import PyQt6.QtWidgets
 
-class MockMainWindow(PyQt5.QtWidgets.QMainWindow):
+class MockMainWindow(PyQt6.QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.data_store = self
@@ -99,7 +99,7 @@ def test_settings_dialog_save_and_apply_preset(qapp, monkeypatch):
     def mock_get_text(*args, **kwargs):
         return "TestPreset", True
     
-    monkeypatch.setattr(PyQt5.QtWidgets.QInputDialog, "getText", mock_get_text)
+    monkeypatch.setattr(PyQt6.QtWidgets.QInputDialog, "getText", mock_get_text)
     
     # Click save preset
     dialog.on_save_preset_clicked()
@@ -142,9 +142,9 @@ def test_settings_dialog_delete_preset(qapp, monkeypatch):
     
     # Mock QMessageBox.question to return Yes
     def mock_question(*args, **kwargs):
-        return PyQt5.QtWidgets.QMessageBox.Yes
+        return PyQt6.QtWidgets.QMessageBox.StandardButton.Yes
         
-    monkeypatch.setattr(PyQt5.QtWidgets.QMessageBox, "question", mock_question)
+    monkeypatch.setattr(PyQt6.QtWidgets.QMessageBox, "question", mock_question)
     
     # Click delete preset
     dialog.on_delete_preset_clicked()

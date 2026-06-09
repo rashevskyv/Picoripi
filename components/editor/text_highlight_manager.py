@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QTextEdit
-from PyQt5.QtGui import QColor, QTextBlockFormat, QTextFormat, QTextCursor, QTextBlock, QTextCharFormat
-from PyQt5.QtCore import QTimer, QPoint, Qt
+from PyQt6.QtWidgets import QTextEdit
+from PyQt6.QtGui import QColor, QTextBlockFormat, QTextFormat, QTextCursor, QTextBlock, QTextCharFormat
+from PyQt6.QtCore import QTimer, QPoint, Qt
 from typing import Optional, List, Tuple
 import re
 from utils.logging_utils import log_debug
@@ -42,7 +42,7 @@ class TextHighlightManager:
             cursor.setPosition(block.position())
             cursor.clearSelection()
             if use_full_width:
-                selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+                selection.format.setProperty(QTextFormat.Property.FullWidthSelection.value, True)
             selection.cursor = cursor
             return [selection]
             
@@ -53,7 +53,7 @@ class TextHighlightManager:
                 continue
             selection = QTextEdit.ExtraSelection()
             selection.format.setBackground(color)
-            selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+            selection.format.setProperty(QTextFormat.Property.FullWidthSelection.value, True)
             
             cursor = QTextCursor(block)
             cursor.setPosition(block.position() + text_line.textStart())
@@ -77,7 +77,7 @@ class TextHighlightManager:
         
         cursor = QTextCursor(block)
         cursor.setPosition(block.position() + start_char_in_block)
-        cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, length)
+        cursor.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, length)
         
         if cursor.hasSelection():
             selection.cursor = cursor
@@ -88,7 +88,7 @@ class TextHighlightManager:
         all_selections = []
         if self._active_line_selections: all_selections.extend(list(self._active_line_selections)) 
         if self._linked_cursor_selections: 
-            all_selections.extend([s for s in self._linked_cursor_selections if s.format.property(QTextFormat.FullWidthSelection)]) 
+            all_selections.extend([s for s in self._linked_cursor_selections if s.format.property(QTextFormat.Property.FullWidthSelection.value)]) 
         if self._preview_selected_line_selections: all_selections.extend(list(self._preview_selected_line_selections)) 
         
         if self._critical_problem_selections: all_selections.extend(list(self._critical_problem_selections))
@@ -101,7 +101,7 @@ class TextHighlightManager:
 
 
         if self._linked_cursor_selections: 
-            all_selections.extend([s for s in self._linked_cursor_selections if not s.format.property(QTextFormat.FullWidthSelection)]) 
+            all_selections.extend([s for s in self._linked_cursor_selections if not s.format.property(QTextFormat.Property.FullWidthSelection.value)]) 
         if self._tag_interaction_selections: all_selections.extend(list(self._tag_interaction_selections)) 
         
         if self._tag_interaction_selections: all_selections.extend(list(self._tag_interaction_selections)) 
@@ -134,7 +134,7 @@ class TextHighlightManager:
         new_selections = [] 
         selection = QTextEdit.ExtraSelection()
         selection.format.setBackground(self.editor.current_line_color) 
-        selection.format.setProperty(QTextFormat.FullWidthSelection, True) 
+        selection.format.setProperty(QTextFormat.Property.FullWidthSelection.value, True) 
         selection.cursor = cursor
         selection.cursor.clearSelection()
         new_selections.append(selection)
@@ -164,15 +164,15 @@ class TextHighlightManager:
                 line_text_length = len(block.text()); actual_column = min(column_number, line_text_length)
                 pos_sel_obj = QTextEdit.ExtraSelection()
                 cursor_for_pos = QTextCursor(block)
-                cursor_for_pos.movePosition(QTextCursor.Right, QTextCursor.MoveAnchor, actual_column)
+                cursor_for_pos.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.MoveAnchor, actual_column)
                 pos_format = QTextCharFormat(); pos_format.setBackground(self.editor.linked_cursor_pos_color) 
                 pos_sel_obj.format = pos_format
                 temp_cursor_highlight = QTextCursor(cursor_for_pos)
                 if actual_column < line_text_length: 
-                    temp_cursor_highlight.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, 1)
+                    temp_cursor_highlight.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, 1)
                 elif actual_column == line_text_length and line_text_length > 0 : 
-                    if temp_cursor_highlight.movePosition(QTextCursor.Left, QTextCursor.MoveAnchor, 1):
-                         temp_cursor_highlight.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, 1) 
+                    if temp_cursor_highlight.movePosition(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor, 1):
+                         temp_cursor_highlight.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, 1) 
 
                 if temp_cursor_highlight.hasSelection(): 
                     pos_sel_obj.cursor = temp_cursor_highlight
@@ -295,7 +295,7 @@ class TextHighlightManager:
         selection.format.setBackground(self.editor.tag_interaction_highlight_color)
         cursor = QTextCursor(block)
         cursor.setPosition(block.position() + start_in_block)
-        cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, length)
+        cursor.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, length)
         selection.cursor = cursor
         self._tag_interaction_selections.append(selection)
         self.applyHighlights()
@@ -327,7 +327,7 @@ class TextHighlightManager:
         
         char_cursor = QTextCursor(block)
         char_cursor.setPosition(block.position() + char_index_in_block)
-        char_cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, 1) 
+        char_cursor.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, 1) 
         
         if char_cursor.hasSelection():
             selection.cursor = char_cursor
@@ -420,7 +420,7 @@ class TextHighlightManager:
             
             # Only add if the line is not currently selected by preview_selected_line_highlight
             # and if the color is valid (not transparent or fully opaque alpha 0)
-            if color and color != Qt.transparent and color.alpha() != 0 and i not in self._current_selected_lines:
+            if color and color != Qt.GlobalColor.transparent and color.alpha() != 0 and i not in self._current_selected_lines:
                 selections = self._create_block_background_selection(block, color, use_full_width=True)
                 new_selections.extend(selections)
 

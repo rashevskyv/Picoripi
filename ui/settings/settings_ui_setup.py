@@ -1,9 +1,9 @@
 from pathlib import Path
 import json
 import pycountry
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
+from PyQt6.QtCore import *
 from utils.logging_utils import log_debug
 from components.labeled_spinbox import LabeledSpinBox
 from components.dictionary_manager_dialog import DictionaryManagerDialog
@@ -119,7 +119,7 @@ class SettingsDialogUiMixin:
 
     def _open_dictionary_manager(self):
         dialog = DictionaryManagerDialog(self)
-        dialog.exec_()
+        dialog.exec()
         self.populate_spellchecker_languages()
 
     def populate_spellchecker_languages(self):
@@ -261,13 +261,9 @@ class SettingsDialogUiMixin:
         self.single_tags_table.setHorizontalHeaderLabels(["Display (Emoji/Hex)", "Tag"])
         
         header = self.single_tags_table.horizontalHeader()
-        try:
-            from PyQt5.QtWidgets import QHeaderView
-            header.setSectionResizeMode(QHeaderView.Stretch)
-        except ImportError:
-            header.setStretchLastSection(True)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             
-        self.single_tags_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.single_tags_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.single_tags_table.customContextMenuRequested.connect(lambda pos: self._show_table_context_menu(pos, self.single_tags_table))
         self.single_tags_table.mouseDoubleClickEvent = lambda e: self._handle_table_double_click(e, self.single_tags_table)
         single_layout.addWidget(self.single_tags_table)
@@ -288,13 +284,9 @@ class SettingsDialogUiMixin:
         self.wrap_tags_table.setHorizontalHeaderLabels(["Display (Emoji/Hex)", "Opening Tag", "Closing Tag"])
         
         header_wrap = self.wrap_tags_table.horizontalHeader()
-        try:
-            from PyQt5.QtWidgets import QHeaderView
-            header_wrap.setSectionResizeMode(QHeaderView.Stretch)
-        except ImportError:
-            header_wrap.setStretchLastSection(True)
+        header_wrap.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             
-        self.wrap_tags_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.wrap_tags_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.wrap_tags_table.customContextMenuRequested.connect(lambda pos: self._show_table_context_menu(pos, self.wrap_tags_table))
         self.wrap_tags_table.mouseDoubleClickEvent = lambda e: self._handle_table_double_click(e, self.wrap_tags_table)
         wrap_layout.addWidget(self.wrap_tags_table)
@@ -340,7 +332,7 @@ class SettingsDialogUiMixin:
             clone_action.setEnabled(False)
             delete_action.setEnabled(False)
             
-        action = menu.exec_(table.viewport().mapToGlobal(pos))
+        action = menu.exec(table.viewport().mapToGlobal(pos))
         
         if action == add_action:
             if clicked_row != -1:
@@ -377,11 +369,11 @@ class SettingsDialogUiMixin:
         table.insertRow(row)
         
         disp_item = QTableWidgetItem()
-        disp_item.setData(Qt.DisplayRole, display_text)
+        disp_item.setData(Qt.ItemDataRole.DisplayRole, display_text)
         table.setItem(row, 0, disp_item)
         
         widget = TagDisplayWidget(display_text, table)
-        widget.textChanged.connect(lambda txt, i=disp_item: i.setData(Qt.DisplayRole, txt))
+        widget.textChanged.connect(lambda txt, i=disp_item: i.setData(Qt.ItemDataRole.DisplayRole, txt))
         table.setCellWidget(row, 0, widget)
         
         table.setItem(row, 1, QTableWidgetItem(col1))
@@ -458,7 +450,7 @@ class SettingsDialogUiMixin:
         self.orig_fonts_path_edit.textChanged.connect(self._on_orig_fonts_dir_changed)
 
     def _on_dir_mode_changed(self, state):
-        is_dir = (state == Qt.Checked)
+        is_dir = (state == Qt.CheckState.Checked)
         if is_dir:
             self.orig_label_widget.setText("Original Directory Path:")
             self.changes_label_widget.setText("Changes Directory Path:")
@@ -468,7 +460,7 @@ class SettingsDialogUiMixin:
         self._update_auto_changes_path()
 
     def _on_auto_generate_changed(self, state):
-        is_auto = (state == Qt.Checked)
+        is_auto = (state == Qt.CheckState.Checked)
         if hasattr(self, 'edited_path_selector'):
             self.edited_path_selector.setEnabled(not is_auto)
         else:
@@ -612,7 +604,7 @@ class SettingsDialogUiMixin:
         openai_group = QGroupBox("OpenAI Compatible", self.ai_translation_tab)
         openai_layout = QFormLayout(openai_group)
         self.openai_api_key_edit = QLineEdit(self)
-        self.openai_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.openai_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.openai_api_key_edit.setPlaceholderText("Bearer token")
         openai_layout.addRow("API Key:", self.openai_api_key_edit)
         self.openai_api_key_env_edit = QLineEdit(self)
@@ -652,14 +644,14 @@ class SettingsDialogUiMixin:
         self.gemini_base_url_edit = QLineEdit(self)
         self.gemini_base_url_edit.setPlaceholderText("Leave empty for native API")
         gemini_layout.addRow("Base URL (optional):", self.gemini_base_url_edit)
-        self.gemini_api_key_edit = QLineEdit(self); self.gemini_api_key_edit.setEchoMode(QLineEdit.Password); self.gemini_api_key_edit.setPlaceholderText("Gemini API Key"); gemini_layout.addRow("API Key:", self.gemini_api_key_edit)
+        self.gemini_api_key_edit = QLineEdit(self); self.gemini_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password); self.gemini_api_key_edit.setPlaceholderText("Gemini API Key"); gemini_layout.addRow("API Key:", self.gemini_api_key_edit)
         self.gemini_model_edit = QLineEdit(self); self.gemini_model_edit.setPlaceholderText("gemini-1.5-flash-latest"); gemini_layout.addRow("Model:", self.gemini_model_edit)
         self.ai_provider_pages.addWidget(gemini_group)
 
         perplexity_group = QGroupBox("Perplexity API", self.ai_translation_tab)
         perplexity_layout = QFormLayout(perplexity_group)
         self.perplexity_api_key_edit = QLineEdit(self)
-        self.perplexity_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.perplexity_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.perplexity_api_key_edit.setPlaceholderText("Bearer token")
         perplexity_layout.addRow("API Key:", self.perplexity_api_key_edit)
         self.perplexity_base_url_edit = QLineEdit(self)
@@ -699,7 +691,7 @@ class SettingsDialogUiMixin:
         layout.addRow("Provider:", self.glossary_provider_combo)
 
         self.glossary_api_key_edit = QLineEdit(self)
-        self.glossary_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.glossary_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.glossary_api_key_edit.setPlaceholderText("Provider API Key")
         layout.addRow("API Key:", self.glossary_api_key_edit)
 
@@ -782,7 +774,7 @@ class SettingsDialogUiMixin:
 
     def _on_glossary_use_translation_key_changed(self, state):
         provider = self.glossary_provider_combo.currentText()
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             self._glossary_manual_api_keys[provider] = self.glossary_api_key_edit.text().strip()
         self._update_glossary_api_key_controls(provider)
 
@@ -874,7 +866,7 @@ class SettingsDialogUiMixin:
         selected_theme = self.theme_combo.currentText().lower()
         if selected_theme != self.initial_theme:
             self.theme_changed_requires_restart = True
-            QMessageBox.information(self, "Theme Change", "A restart is required to apply the new theme.", QMessageBox.Ok)
+            QMessageBox.information(self, "Theme Change", "A restart is required to apply the new theme.", QMessageBox.StandardButton.Ok)
         else:
             self.theme_changed_requires_restart = False
 
@@ -885,7 +877,7 @@ class SettingsDialogUiMixin:
         self._populate_font_list(selected_dir_name)
         
         self.plugin_changed_requires_restart = True
-        QMessageBox.information(self, "Plugin Change", "A restart is required to switch the game plugin.", QMessageBox.Ok)
+        QMessageBox.information(self, "Plugin Change", "A restart is required to switch the game plugin.", QMessageBox.StandardButton.Ok)
 
 
     def _setup_aliases_subtab(self, tab):
@@ -904,12 +896,12 @@ class SettingsDialogUiMixin:
         # Table
         self.aliases_table = QTableWidget(0, 2, tab)
         self.aliases_table.setHorizontalHeaderLabels(["Alias (e.g. {F:Link})", "Original Tag (e.g. {escape:0:0000})"])
-        self.aliases_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.aliases_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.aliases_table.setSelectionMode(QTableWidget.ExtendedSelection)
+        self.aliases_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.aliases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.aliases_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         
         # Context Menu & double click
-        self.aliases_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.aliases_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.aliases_table.customContextMenuRequested.connect(self._show_aliases_context_menu)
         self.aliases_table.mouseDoubleClickEvent = lambda e: self._handle_aliases_double_click(e)
         layout.addWidget(self.aliases_table)
@@ -993,7 +985,7 @@ class SettingsDialogUiMixin:
             clone_action.setEnabled(False)
             delete_action.setEnabled(False)
             
-        action = menu.exec_(self.aliases_table.viewport().mapToGlobal(pos))
+        action = menu.exec(self.aliases_table.viewport().mapToGlobal(pos))
         
         if action == add_action:
             if clicked_row != -1:
@@ -1028,12 +1020,12 @@ class SettingsDialogUiMixin:
         # Table
         self.font_map_table = QTableWidget(0, 2, tab)
         self.font_map_table.setHorizontalHeaderLabels(["Character / Sequence", "Width (pixels)"])
-        self.font_map_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.font_map_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.font_map_table.setSelectionMode(QTableWidget.ExtendedSelection)
+        self.font_map_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.font_map_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.font_map_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         
         # Context Menu & double click
-        self.font_map_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.font_map_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.font_map_table.customContextMenuRequested.connect(self._show_font_map_context_menu)
         self.font_map_table.mouseDoubleClickEvent = lambda e: self._handle_font_map_double_click(e)
         layout.addWidget(self.font_map_table)
@@ -1146,7 +1138,7 @@ class SettingsDialogUiMixin:
             clone_action.setEnabled(False)
             delete_action.setEnabled(False)
             
-        action = menu.exec_(self.font_map_table.viewport().mapToGlobal(pos))
+        action = menu.exec(self.font_map_table.viewport().mapToGlobal(pos))
         
         if action == add_action:
             if clicked_row != -1:

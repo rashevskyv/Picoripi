@@ -16,7 +16,7 @@ import re
 import threading
 from typing import Any, Optional
 
-from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
 
 from utils.logging_utils import log_error
 

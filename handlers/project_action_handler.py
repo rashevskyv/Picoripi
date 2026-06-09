@@ -5,8 +5,8 @@ import uuid
 import shutil
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, Tuple
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem
+from PyQt6.QtCore import Qt
 from core.project_manager import ProjectManager
 from core.data_manager import load_json_file, load_text_file
 from .base_handler import BaseHandler
@@ -95,7 +95,7 @@ class ProjectActionHandler(BaseHandler):
                         log_debug(f"Could not read config for plugin '{item_path.name}': {e}")
 
         dialog = NewProjectDialog(self.mw, available_plugins=plugins)
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             log_info("New project dialog cancelled.")
             return
 
@@ -242,14 +242,14 @@ class ProjectActionHandler(BaseHandler):
                 self.mw,
                 'Unsaved Changes',
                 "Save changes before closing project?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Cancel
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel
             )
-            if reply == QMessageBox.Save:
+            if reply == QMessageBox.StandardButton.Save:
                 if hasattr(self.mw, 'app_action_handler'):
                     if not self.mw.app_action_handler.save_data_action(ask_confirmation=False):
                         return
-            elif reply == QMessageBox.Cancel:
+            elif reply == QMessageBox.StandardButton.Cancel:
                 return
 
         # Clear project
@@ -308,7 +308,7 @@ class ProjectActionHandler(BaseHandler):
             return
 
         dialog = ImportBlockDialog(self.mw, project_manager=self.mw.project_manager)
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             log_info("Import block dialog cancelled.")
             return
 
@@ -344,7 +344,7 @@ class ProjectActionHandler(BaseHandler):
             self.mw,
             "Select Directory to Import",
             start_dir,
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
         )
 
         if not directory_path:
@@ -386,11 +386,11 @@ class ProjectActionHandler(BaseHandler):
                 'Delete Block',
                 f"Are you sure you want to remove block '{block_name}' from the project?\n\n"
                 "This will NOT delete the physical files, only the reference in the project.",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
             )
 
-            if reply != QMessageBox.Yes:
+            if reply != QMessageBox.StandardButton.Yes:
                 return
 
             undo_mgr = getattr(self.mw, 'undo_manager', None)
@@ -433,13 +433,13 @@ class ProjectActionHandler(BaseHandler):
                 reply = QMessageBox.question(
                     self.mw, 'Delete Folder',
                     f"Are you sure you want to delete the empty folder '{folder.name}'?",
-                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
                 )
-                if reply == QMessageBox.Yes:
+                if reply == QMessageBox.StandardButton.Yes:
                     action = 2 # Delete all (which is none)
             else:
                 dialog = FolderDeleteDialog(folder.name, self.mw)
-                dialog.exec_()
+                dialog.exec()
                 action = dialog.result_action
             
             if action == 0: return # Cancel
@@ -560,9 +560,9 @@ class ProjectActionHandler(BaseHandler):
         if selected_items[0].parent():
             current_parent_id = selected_items[0].parent().data(0, Qt.UserRole + 1)
 
-        from PyQt5.QtWidgets import QDialog
+        from PyQt6.QtWidgets import QDialog
         dialog = MoveToFolderDialog(self.mw, pm, current_folder_id=current_parent_id)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
             
         target_folder_id = dialog.get_selected_folder_id()
@@ -994,7 +994,7 @@ class ProjectActionHandler(BaseHandler):
                     self.ui_updater.update_statusbar_paths()
                     self.ui_updater.update_plugin_status_label() # Ensure label is accurate
 
-                from PyQt5.QtCore import QTimer
+                from PyQt6.QtCore import QTimer
                 QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
         else:
             QMessageBox.critical(
@@ -1009,11 +1009,11 @@ class ProjectActionHandler(BaseHandler):
             self.mw,
             'Clear Recent Projects',
             "Are you sure you want to clear all recent projects?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.clear_recent_projects()
                 self.mw.settings_manager.save_settings()

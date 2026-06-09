@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QSplitter, QWidget
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QSplitter, QWidget
+from PyQt6.QtCore import Qt
 from main import MainWindow
 from ui.main_window.main_window_helper import MainWindowHelper
 import base64
@@ -66,10 +66,10 @@ def test_splitter_properties(qapp):
     assert mw.editor_preview_splitter_state is None
     
     # Create real QSplitter widgets
-    mw.main_splitter = QSplitter(Qt.Horizontal)
-    mw.right_splitter = QSplitter(Qt.Vertical)
-    mw.bottom_right_splitter = QSplitter(Qt.Horizontal)
-    mw.editor_preview_splitter = QSplitter(Qt.Vertical)
+    mw.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+    mw.right_splitter = QSplitter(Qt.Orientation.Vertical)
+    mw.bottom_right_splitter = QSplitter(Qt.Orientation.Horizontal)
+    mw.editor_preview_splitter = QSplitter(Qt.Orientation.Vertical)
     
     # Add dummy widgets to make splitters have children (so sizes() != [])
     for splitter in [mw.main_splitter, mw.right_splitter, mw.bottom_right_splitter, mw.editor_preview_splitter]:
@@ -95,8 +95,8 @@ def test_splitter_properties(qapp):
 
 def test_restore_state_after_settings_load(qapp):
     mw = MockedMainWindow()
-    mw.main_splitter = QSplitter(Qt.Horizontal)
-    mw.right_splitter = QSplitter(Qt.Vertical)
+    mw.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+    mw.right_splitter = QSplitter(Qt.Orientation.Vertical)
     
     # Add dummy widgets to make splitters have children
     mw.main_splitter.addWidget(QWidget())
@@ -116,8 +116,7 @@ def test_restore_state_after_settings_load(qapp):
     helper = MainWindowHelper(mw)
     
     # Mock other calls within restore_state_after_settings_load to avoid exceptions
-    with patch.object(helper, 'rebuild_unsaved_block_indices'), \
-         patch('PyQt5.QtWidgets.QApplication.desktop') as mock_desktop:
+    with patch.object(helper, 'rebuild_unsaved_block_indices'):
         
         helper.restore_state_after_settings_load()
         

@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QStatusBar, QLabel, QStyle
-from PyQt5.QtGui import QFont, QFontMetrics
+from PyQt6.QtWidgets import QStatusBar, QLabel, QStyle
+from PyQt6.QtGui import QFont, QFontMetrics
 
 class StatusBarBuilder:
     def __init__(self, main_window):

@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QMenu, QStyle, QMainWindow
-from PyQt5.QtGui import QIcon
+from PyQt6.QtWidgets import QMenu, QStyle, QMainWindow
+from PyQt6.QtGui import QIcon
 
 def prettify_standard_context_menu(menu: QMenu, style: QStyle):
     """
@@ -8,13 +8,13 @@ def prettify_standard_context_menu(menu: QMenu, style: QStyle):
     """
     # Mapping common action names to icons
     icon_map = {
-        "Undo": QStyle.SP_ArrowBack,
-        "Redo": QStyle.SP_ArrowForward,
+        "Undo": QStyle.StandardPixmap.SP_ArrowBack,
+        "Redo": QStyle.StandardPixmap.SP_ArrowForward,
         "Cut": None, # No good SP for Cut
-        "Copy": QStyle.SP_FileIcon,
-        "Paste": QStyle.SP_DialogOpenButton,
-        "Delete": QStyle.SP_TrashIcon,
-        "Select All": QStyle.SP_DialogApplyButton,
+        "Copy": QStyle.StandardPixmap.SP_FileIcon,
+        "Paste": QStyle.StandardPixmap.SP_DialogOpenButton,
+        "Delete": QStyle.StandardPixmap.SP_TrashIcon,
+        "Select All": QStyle.StandardPixmap.SP_DialogApplyButton,
     }
     
     for action in menu.actions():

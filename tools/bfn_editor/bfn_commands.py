@@ -1,6 +1,6 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
-class EditMetricsCommand(QtWidgets.QUndoCommand):
+class EditMetricsCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, glyph_idx, old_kern, new_kern, old_width, new_width, description="Edit Metrics"):
         super().__init__(description)
         self.viewer = viewer
@@ -70,7 +70,7 @@ class EditMetricsCommand(QtWidgets.QUndoCommand):
         return True
 
 
-class EditMapCommand(QtWidgets.QUndoCommand):
+class EditMapCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, glyph_idx, old_code, new_code, description="Edit Character Mapping"):
         super().__init__(description)
         self.viewer = viewer
@@ -93,7 +93,7 @@ class EditMapCommand(QtWidgets.QUndoCommand):
         self.viewer.refresh_table_row(self.glyph_idx)
 
 
-class BatchMappingCommand(QtWidgets.QUndoCommand):
+class BatchMappingCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, changes, description="Modify Mappings"):
         super().__init__(description)
         self.viewer = viewer
@@ -118,7 +118,7 @@ class BatchMappingCommand(QtWidgets.QUndoCommand):
         self.viewer.populate_glyph_table()
 
 
-class ImportSheetCommand(QtWidgets.QUndoCommand):
+class ImportSheetCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, sheet_idx, old_img, new_img, description="Import Sheet PNG"):
         super().__init__(description)
         self.viewer = viewer
@@ -141,7 +141,7 @@ class ImportSheetCommand(QtWidgets.QUndoCommand):
         self.viewer.populate_glyph_table()
 
 
-class ImportGlyphCommand(QtWidgets.QUndoCommand):
+class ImportGlyphCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, sheet_idx, cell_x, cell_y, old_glyph_img, new_glyph_img, description="Import Glyph PNG"):
         super().__init__(description)
         self.viewer = viewer
@@ -176,7 +176,7 @@ class ImportGlyphCommand(QtWidgets.QUndoCommand):
         self.viewer.populate_glyph_table()
 
 
-class RenderFontCommand(QtWidgets.QUndoCommand):
+class RenderFontCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, pixel_changes, metrics_changes=None, description="Render Font to Glyphs"):
         super().__init__(description)
         self.viewer = viewer
@@ -258,7 +258,7 @@ class RenderFontCommand(QtWidgets.QUndoCommand):
         self.viewer.populate_glyph_table()
 
 
-class BatchVirtualMapCommand(QtWidgets.QUndoCommand):
+class BatchVirtualMapCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, new_translation_map, new_reverse_map, description="Batch Fill/Paste Virtual Mappings"):
         super().__init__(description)
         self.viewer = viewer

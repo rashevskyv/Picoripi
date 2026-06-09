@@ -1,6 +1,6 @@
 # core/context.py
 from typing import Protocol, Optional, Any, Dict, List, Tuple
-from PyQt5.QtWidgets import QStatusBar, QWidget
+from PyQt6.QtWidgets import QStatusBar, QWidget
 
 class UIProvider(Protocol):
     @property

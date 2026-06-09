@@ -1,9 +1,7 @@
-from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton,
-    QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu, QAction
-)
-from PyQt5.QtCore import Qt, pyqtSignal, QPoint
-from PyQt5.QtGui import QPainter, QPen, QColor
+from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton, QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu)
+from PyQt6.QtGui import (QAction)
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QPainter, QPen, QColor
 import collections
 
 class SearchLineEdit(QLineEdit):
@@ -24,48 +22,54 @@ class SearchLineEdit(QLineEdit):
         if not text:
             return
             
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing, False)
-        
-        # Find all words
-        import re
-        words_iter = re.finditer(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+", text)
-        
-        # Create red pen for wavy line
-        pen = QPen(QColor(255, 0, 0))
-        pen.setWidth(1)
-        painter.setPen(pen)
-        
-        # Font metrics for baseline calculation
-        fm = self.fontMetrics()
-        # Baseline Y calculation: centered vertically
-        y_base = (self.height() + fm.ascent() - fm.descent()) // 2
-        y = y_base + 1
-        
-        for match in words_iter:
-            word = match.group(0)
-            cleaned_word = word.strip("'")
-            if len(cleaned_word) < 3 or cleaned_word.isdigit():
-                continue
-                
-            if sm.is_misspelled(cleaned_word):
-                start = match.start()
-                end = match.end()
-                
-                # Get X coordinates on screen
-                x_start = self._get_x_for_index(start)
-                x_end = self._get_x_for_index(end)
-                
-                if x_start != -1 and x_end != -1 and x_end > x_start:
-                    # Draw wavy line from x_start to x_end
-                    points = []
-                    for x in range(x_start, x_end):
-                        dx = x - x_start
-                        dy = 1 if (dx // 2) % 2 == 0 else -1
-                        points.append(QPoint(x, y + dy))
-                        
-                    for i in range(len(points) - 1):
-                        painter.drawLine(points[i], points[i+1])
+        painter = QPainter()
+        if not painter.begin(self):
+            return
+            
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+            
+            # Find all words
+            import re
+            words_iter = re.finditer(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+", text)
+            
+            # Create red pen for wavy line
+            pen = QPen(QColor(255, 0, 0))
+            pen.setWidth(1)
+            painter.setPen(pen)
+            
+            # Font metrics for baseline calculation
+            fm = self.fontMetrics()
+            # Baseline Y calculation: centered vertically
+            y_base = (self.height() + fm.ascent() - fm.descent()) // 2
+            y = y_base + 1
+            
+            for match in words_iter:
+                word = match.group(0)
+                cleaned_word = word.strip("'")
+                if len(cleaned_word) < 3 or cleaned_word.isdigit():
+                    continue
+                    
+                if sm.is_misspelled(cleaned_word):
+                    start = match.start()
+                    end = match.end()
+                    
+                    # Get X coordinates on screen
+                    x_start = self._get_x_for_index(start)
+                    x_end = self._get_x_for_index(end)
+                    
+                    if x_start != -1 and x_end != -1 and x_end > x_start:
+                        # Draw wavy line from x_start to x_end
+                        points = []
+                        for x in range(x_start, x_end):
+                            dx = x - x_start
+                            dy = 1 if (dx // 2) % 2 == 0 else -1
+                            points.append(QPoint(x, y + dy))
+                            
+                        for i in range(len(points) - 1):
+                            painter.drawLine(points[i], points[i+1])
+        finally:
+            painter.end()
 
     def _get_x_for_index(self, idx: int) -> int:
         # To get the X coordinate of a character index, we can do binary search
@@ -150,7 +154,7 @@ class SearchLineEdit(QLineEdit):
                             menu.addSeparator()
                             menu.addAction(add_dict_action)
                             
-        menu.exec_(event.globalPos())
+        menu.exec(event.globalPos())
 
     def _replace_word(self, start, end, new_word):
         text = self.text()
@@ -171,7 +175,7 @@ class SearchPanelWidget(QWidget):
         self.setObjectName("SearchPanel")
         self.mw = parent
         
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
         self.search_history = collections.deque(maxlen=self.MAX_HISTORY_ITEMS)
 
@@ -182,7 +186,7 @@ class SearchPanelWidget(QWidget):
         self.search_query_edit = QComboBox(self)
         self.search_query_edit.setLineEdit(SearchLineEdit(self, self.mw))
         self.search_query_edit.setEditable(True)
-        self.search_query_edit.setInsertPolicy(QComboBox.NoInsert) 
+        self.search_query_edit.setInsertPolicy(QComboBox.InsertPolicy.NoInsert) 
         self.search_query_edit.lineEdit().setPlaceholderText("Find...")
         
         self.find_next_button = QPushButton("Next", self)
@@ -209,7 +213,7 @@ class SearchPanelWidget(QWidget):
 
         self.status_label = QLabel("", self)
         self.status_label.setMinimumWidth(100) 
-        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.close_search_panel_button = QPushButton("X", self)
         self.close_search_panel_button.setToolTip("Close search panel")
@@ -227,7 +231,7 @@ class SearchPanelWidget(QWidget):
         options_layout.addWidget(self.fuzzy_search_checkbox)
         options_layout.addWidget(self.search_in_original_checkbox)
         options_layout.addWidget(self.ignore_tags_newlines_checkbox)
-        options_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        options_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
         main_layout.addLayout(left_layout, 6) 
         main_layout.addLayout(options_layout, 5)
@@ -238,7 +242,7 @@ class SearchPanelWidget(QWidget):
         self.find_previous_button.clicked.connect(self._on_find_previous)
         self.advanced_button.clicked.connect(self._on_advanced_clicked)
         self.search_query_edit.lineEdit().returnPressed.connect(self._on_find_next)
-        self.search_query_edit.activated[str].connect(self._on_find_next_from_combobox_activation)
+        self.search_query_edit.textActivated.connect(self._on_find_next_from_combobox_activation)
         self.search_query_edit.lineEdit().textChanged.connect(self.trigger_spellcheck)
         self.close_search_panel_button.clicked.connect(self.close_requested)
 

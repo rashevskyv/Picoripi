@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtCore import QRect, QProcess, QPoint
+from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtCore import QRect, QProcess, QPoint
 from utils.logging_utils import log_debug, log_info
 import copy
 from pathlib import Path
@@ -62,7 +62,7 @@ class MainWindowHelper:
 
         found = self.mw.search_handler.find_next(query_to_use, case_sensitive_to_use, search_in_original_to_use, ignore_tags_to_use, is_fuzzy_to_use)
         if not found and not self.mw.search_panel_widget.isVisible():
-            from PyQt5.QtWidgets import QMessageBox
+            from PyQt6.QtWidgets import QMessageBox
             QMessageBox.information(self.mw, "Find", f"Not found: \"{query_to_use}\"")
 
     def execute_find_previous_shortcut(self):
@@ -87,7 +87,7 @@ class MainWindowHelper:
 
         found = self.mw.search_handler.find_previous(query_to_use, case_sensitive_to_use, search_in_original_to_use, ignore_tags_to_use, is_fuzzy_to_use)
         if not found and not self.mw.search_panel_widget.isVisible():
-            from PyQt5.QtWidgets import QMessageBox
+            from PyQt6.QtWidgets import QMessageBox
             QMessageBox.information(self.mw, "Find", f"Not found: \"{query_to_use}\"")
 
     def handle_panel_find_next(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
@@ -208,7 +208,7 @@ class MainWindowHelper:
                                        search_in_original=search_in_original, ignore_tags=ignore_tags,
                                        block_idx=self.mw.data_store.current_block_idx, block_indices=block_indices)
 
-            if dialog.exec_():
+            if dialog.exec():
                 corrected_text = dialog.get_corrected_text()
                 corrected_lines = corrected_text.split('\n')
 
@@ -284,8 +284,9 @@ class MainWindowHelper:
                     editor_widget.updateLineNumberAreaWidth(0)
 
     def apply_text_wrap_settings(self):
-        preview_wrap_mode = self.mw.preview_text_edit.WidgetWidth if self.mw.preview_wrap_lines else self.mw.preview_text_edit.NoWrap
-        editors_wrap_mode = self.mw.edited_text_edit.WidgetWidth if self.mw.editors_wrap_lines else self.mw.edited_text_edit.NoWrap
+        from PyQt6.QtWidgets import QPlainTextEdit
+        preview_wrap_mode = QPlainTextEdit.LineWrapMode.WidgetWidth if self.mw.preview_wrap_lines else QPlainTextEdit.LineWrapMode.NoWrap
+        editors_wrap_mode = QPlainTextEdit.LineWrapMode.WidgetWidth if self.mw.editors_wrap_lines else QPlainTextEdit.LineWrapMode.NoWrap
         if hasattr(self.mw, 'preview_text_edit'): self.mw.preview_text_edit.setLineWrapMode(preview_wrap_mode)
         if hasattr(self.mw, 'original_text_edit'): self.mw.original_text_edit.setLineWrapMode(editors_wrap_mode)
         if hasattr(self.mw, 'edited_text_edit'): self.mw.edited_text_edit.setLineWrapMode(editors_wrap_mode)
@@ -314,21 +315,26 @@ class MainWindowHelper:
                 text_edit.highlighter.rehighlight()
 
     def prepare_to_close(self):
+        if hasattr(self.mw, 'spellchecker_manager') and self.mw.spellchecker_manager:
+            try:
+                self.mw.spellchecker_manager.prepare_to_close()
+            except Exception:
+                pass
         self.mw.data_store.last_selected_block_index = self.mw.data_store.current_block_idx
         self.mw.data_store.last_selected_string_index = self.mw.data_store.current_string_idx
         
-        if self.mw.edited_text_edit:
+        if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             self.mw.last_cursor_position_in_edited = self.mw.edited_text_edit.textCursor().position()
             self.mw.last_edited_text_edit_scroll_value_v = self.mw.edited_text_edit.verticalScrollBar().value()
             self.mw.last_edited_text_edit_scroll_value_h = self.mw.edited_text_edit.horizontalScrollBar().value()
         
-        if self.mw.preview_text_edit:
+        if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:
             self.mw.last_preview_text_edit_scroll_value_v = self.mw.preview_text_edit.verticalScrollBar().value()
-        if self.mw.original_text_edit:
+        if hasattr(self.mw, 'original_text_edit') and self.mw.original_text_edit:
             self.mw.last_original_text_edit_scroll_value_v = self.mw.original_text_edit.verticalScrollBar().value()
             self.mw.last_original_text_edit_scroll_value_h = self.mw.original_text_edit.horizontalScrollBar().value()
 
-        if self.mw.search_panel_widget:
+        if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget:
             self.mw.search_history_to_save = self.mw.search_panel_widget.get_history()
         
         # Save UI Session State for the current file/project
@@ -395,12 +401,11 @@ class MainWindowHelper:
         if hasattr(self.mw, 'window_geometry_to_restore') and self.mw.window_geometry_to_restore:
             geom_dict = self.mw.window_geometry_to_restore
             if all(k in geom_dict for k in ('x', 'y', 'width', 'height')):
-                desktop = QApplication.desktop()
-                # Determine target screen number
-                screen_idx = desktop.screenNumber(QPoint(geom_dict.get('x', 0), geom_dict.get('y', 0)))
-                if screen_idx == -1:
-                    screen_idx = desktop.primaryScreen()
-                screen_geom = desktop.screenGeometry(screen_idx)
+                pos = QPoint(geom_dict.get('x', 0), geom_dict.get('y', 0))
+                screen = QApplication.screenAt(pos)
+                if not screen:
+                    screen = QApplication.primaryScreen()
+                screen_geom = screen.geometry() if screen else QRect(0, 0, 1920, 1080)
                 
                 # Enforce minimum size, and cap to screen size
                 width = max(min(geom_dict['width'], screen_geom.width()), 800)

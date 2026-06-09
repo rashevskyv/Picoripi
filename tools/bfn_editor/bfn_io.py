@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from PIL import Image
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
 from tools.bfn_editor.bfn_widgets import GridItem, RenderFontDialog
@@ -355,13 +355,13 @@ class BfnIoMixin:
                 self, 
                 'Unsaved Changes', 
                 "You have unsaved changes! Do you want to save them before exiting?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No | QtWidgets.QMessageBox.StandardButton.Cancel
             )
-            if reply == QtWidgets.QMessageBox.Yes:
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.save_changes()
                 self.clear_temp()
                 event.accept()
-            elif reply == QtWidgets.QMessageBox.No:
+            elif reply == QtWidgets.QMessageBox.StandardButton.No:
                 self.clear_temp()
                 event.accept()
             else:
@@ -603,7 +603,7 @@ class BfnIoMixin:
         dialog.spin_start_glyph.setValue(self.start_glyph)
         dialog.spin_end_glyph.setValue(self.end_glyph)
         
-        if dialog.exec_() != QtWidgets.QDialog.Accepted:
+        if dialog.exec() != QtWidgets.QDialog.DialogCode.Accepted:
             return
             
         params = dialog.get_params()
@@ -672,7 +672,7 @@ class BfnIoMixin:
         packets = wid.get("packets", [])
         
         progress = QtWidgets.QProgressDialog("Rendering glyphs...", "Cancel", 0, len(glyphs_to_render), self)
-        progress.setWindowModality(QtCore.Qt.WindowModal)
+        progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
         
         for step, idx in enumerate(glyphs_to_render):
             if progress.wasCanceled():
@@ -696,41 +696,43 @@ class BfnIoMixin:
             old_glyph_crop = sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
             
             # Render new glyph image
-            new_glyph = QtGui.QImage(self.cell_w, self.cell_h, QtGui.QImage.Format_ARGB32)
+            new_glyph = QtGui.QImage(self.cell_w, self.cell_h, QtGui.QImage.Format.Format_ARGB32)
             new_glyph.fill(QtGui.QColor(0, 0, 0, 0))
             
             painter = QtGui.QPainter(new_glyph)
-            if antialiasing:
-                painter.setRenderHint(QtGui.QPainter.TextAntialiasing, True)
-                painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-            painter.setFont(font)
-            painter.setPen(QtGui.QColor(255, 255, 255, 255))
-            
-            # Apply scaling relative to the cell center
-            painter.save()
-            cx = self.cell_w / 2.0
-            cy = self.cell_h / 2.0
-            painter.translate(cx, cy)
-            painter.scale(h_scale / 100.0, v_scale / 100.0)
-            painter.translate(-cx, -cy)
-            
-            if align_v == "baseline":
-                # Draw text aligned on baseline
-                font_metrics = QtGui.QFontMetrics(font)
-                text_width = font_metrics.horizontalAdvance(char_str)
-                x = x_offset
-                if align_h == QtCore.Qt.AlignHCenter:
-                    x = max(0, (self.cell_w - text_width) // 2) + x_offset
-                elif align_h == QtCore.Qt.AlignRight:
-                    x = self.cell_w - text_width + x_offset
+            try:
+                if antialiasing:
+                    painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
+                    painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+                painter.setFont(font)
+                painter.setPen(QtGui.QColor(255, 255, 255, 255))
                 
-                painter.drawText(x, ascent + y_offset, char_str)
-            else:
-                rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
-                painter.drawText(rect, alignment, char_str)
+                # Apply scaling relative to the cell center
+                painter.save()
+                cx = self.cell_w / 2.0
+                cy = self.cell_h / 2.0
+                painter.translate(cx, cy)
+                painter.scale(h_scale / 100.0, v_scale / 100.0)
+                painter.translate(-cx, -cy)
                 
-            painter.restore()
-            painter.end()
+                if align_v == "baseline":
+                    # Draw text aligned on baseline
+                    font_metrics = QtGui.QFontMetrics(font)
+                    text_width = font_metrics.horizontalAdvance(char_str)
+                    x = x_offset
+                    if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
+                        x = max(0, (self.cell_w - text_width) // 2) + x_offset
+                    elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
+                        x = self.cell_w - text_width + x_offset
+                    
+                    painter.drawText(x, ascent + y_offset, char_str)
+                else:
+                    rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
+                    painter.drawText(rect, alignment, char_str)
+                    
+                painter.restore()
+            finally:
+                painter.end()
             
             pixel_changes.append((sheet_idx, cell_x, cell_y, old_glyph_crop, new_glyph))
             
