@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional
 from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
 from PyQt6.QtGui import QTextCursor
@@ -7,7 +7,7 @@ from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 
 class LNETContextMenuLogic:
-    WORD_PATTERN = re.compile(r"[a-zA-ZР°-СЏРђ-РЇС–С—Р†С—Р„С”Т‘Тђ']+")
+    WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯіїІЄєґҐ']+")
 
     def __init__(self, editor):
         self.editor = editor
