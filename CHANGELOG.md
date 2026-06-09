@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.000] - 2026-06-09
+
+### Changed
+- **Major Milestone: Migration to PyQt6**: Upgraded the entire graphical engine and UI subsystems from PyQt5 to PyQt6, ensuring support for modern windowing frameworks, high-resolution rendering, and long-term ecosystem compatibility.
+- **Deduplication of Plugin Configurations**: Created a unified `plugins/common/config_factory.py` to generate baseline problem check configurations, пріоритетів та кольорів для всіх плагінів (`zelda_ww`, `zelda_mc`, `zelda_bmg`, `pokemon_fr`, `plain_text`), reducing config boilerplate to simple custom overrides.
+
 ## [0.2.179] - 2026-06-09
 
 ### Fixed

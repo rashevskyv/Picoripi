@@ -1,6 +1,7 @@
 import os
 import json
 from PyQt6.QtGui import QColor
+from plugins.common.config_factory import generate_base_config
 
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(CONFIG_DIR, 'config.json')
@@ -32,64 +33,39 @@ COLOR_EMPTY_ODD = QColor(255, 165, 0, 180)
 COLOR_SHORT_LINE = QColor(0, 200, 0, 100)
 COLOR_SINGLE_WORD_SUBLINE = QColor(0, 0, 255, 120) 
 COLOR_SINGLE_WORD_SUBLINE_NON_START = QColor(139, 69, 19, 120)
-COLOR_EMPTY_FIRST_LINE = QColor(255, 105, 180, 100) # HotPink
+COLOR_EMPTY_FIRST_LINE = QColor(255, 105, 180, 100)
 
-PROBLEM_DEFINITIONS = {
-    PROBLEM_TAG_WARNING: {
-        "name": "Tag Warning",
-        "color": COLOR_WARNING_TAG, 
-        "priority": PRIORITY_TAG_WARNING,
-        "description": "Tag count mismatch for {...} or an illegitimate tag."
-    },
-    PROBLEM_WIDTH_EXCEEDED: {
-        "name": "Subline Width Exceeded",
-        "color": COLOR_WIDTH_EXCEEDED,
-        "priority": PRIORITY_WIDTH_EXCEEDED,
-        "description": "The subline is longer than the set width limit."
-    },
-    PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: {
-        "name": "Empty Odd Display Subline",
-        "color": COLOR_EMPTY_ODD,
-        "priority": PRIORITY_EMPTY_ODD,
-        "description": "A displayed odd-numbered subline (QTextBlock) is empty or contains '0' (if not the only subline)."
-    },
-    PROBLEM_SHORT_LINE: {
-        "name": "Short Subline",
-        "color": COLOR_SHORT_LINE,
-        "priority": PRIORITY_SHORT_LINE,
-        "description": "The subline does not end with a punctuation mark and has enough space for the first word of the next subline."
-    },
-    PROBLEM_SINGLE_WORD_SUBLINE: { 
-        "name": "Single Word Subline",
-        "color": COLOR_SINGLE_WORD_SUBLINE,
-        "priority": PRIORITY_SINGLE_WORD_SUBLINE,
-        "description": "The subline consists of only one word (and possible punctuation)."
-    },
-    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: {
-        "name": "Single Word Subline (Non-Start)",
-        "color": COLOR_SINGLE_WORD_SUBLINE_NON_START,
-        "priority": PRIORITY_SINGLE_WORD_SUBLINE_NON_START,
-        "description": "The subline consists of only one word, but not at the start of a page/dialogue window."
-    },
-    PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: {
+custom_problems = {
+    "EMPTY_FIRST_LINE_OF_PAGE": {
         "name": "Empty First Line of Page",
         "color": COLOR_EMPTY_FIRST_LINE,
         "priority": PRIORITY_EMPTY_FIRST_LINE,
         "description": "The first line of a 4-line page is empty, but subsequent lines on the page are not."
-    },
-    PROBLEM_BAD_SPACING: {
-        "name": "Bad Spacing",
-        "color": COLOR_WARNING_TAG,
-        "priority": PRIORITY_TAG_WARNING,
-        "description": "Double spaces or line starting with a space (ignoring tags)."
-    },
-    PROBLEM_MISSING_ICON_SPACING: {
-        "name": "Missing Icon Spacing",
-        "color": QColor(173, 216, 230, 150),
-        "priority": 8,
-        "description": "Missing space before or after a visible tag (button or width-having tag)."
     }
 }
+
+overrides = {
+    "priorities": {
+        "TAG_WARNING": PRIORITY_TAG_WARNING,
+        "WIDTH_EXCEEDED": PRIORITY_WIDTH_EXCEEDED,
+        "EMPTY_ODD_SUBLINE_DISPLAY": PRIORITY_EMPTY_ODD,
+        "SINGLE_WORD_SUBLINE": PRIORITY_SINGLE_WORD_SUBLINE,
+        "SINGLE_WORD_SUBLINE_NON_START": PRIORITY_SINGLE_WORD_SUBLINE_NON_START,
+        "SHORT_LINE": PRIORITY_SHORT_LINE,
+    },
+    "colors": {
+        "TAG_WARNING": COLOR_WARNING_TAG,
+        "WIDTH_EXCEEDED": COLOR_WIDTH_EXCEEDED,
+        "EMPTY_ODD_SUBLINE_DISPLAY": COLOR_EMPTY_ODD,
+        "SHORT_LINE": COLOR_SHORT_LINE,
+        "SINGLE_WORD_SUBLINE": COLOR_SINGLE_WORD_SUBLINE,
+        "SINGLE_WORD_SUBLINE_NON_START": COLOR_SINGLE_WORD_SUBLINE_NON_START,
+    }
+}
+
+PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = generate_base_config(
+    "ZBMG", overrides=overrides, custom_problems=custom_problems
+)
 
 CONTROL_CODES = []
 
@@ -100,7 +76,6 @@ if os.path.exists(CONFIG_PATH):
             # Override any descriptions/names from json if available, but keep color & priority objects
             json_defs = config_data.get("PROBLEM_DEFINITIONS", {})
             for key, val in json_defs.items():
-                # Map old keys without ZBMG_ prefix to the ones with prefix
                 mapped_key = key
                 if key == "PROBLEM_TAG_WARNING":
                     mapped_key = PROBLEM_TAG_WARNING
@@ -116,27 +91,3 @@ if os.path.exists(CONFIG_PATH):
     except Exception as e:
         from utils.logging_utils import log_error
         log_error(f"Error loading zelda_bmg/config.json: {e}")
-
-DEFAULT_DETECTION_SETTINGS = {
-    PROBLEM_TAG_WARNING: True,
-    PROBLEM_WIDTH_EXCEEDED: True,
-    PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: True,
-    PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: True,
-    PROBLEM_SINGLE_WORD_SUBLINE: True,
-    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True,
-    PROBLEM_SHORT_LINE: True,
-    PROBLEM_BAD_SPACING: True,
-    PROBLEM_MISSING_ICON_SPACING: True
-}
-
-DEFAULT_AUTOFIX_SETTINGS = {
-    PROBLEM_TAG_WARNING: False,
-    PROBLEM_WIDTH_EXCEEDED: True,
-    PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: True,
-    PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: True,
-    PROBLEM_SINGLE_WORD_SUBLINE: False,
-    PROBLEM_SINGLE_WORD_SUBLINE_NON_START: False,
-    PROBLEM_SHORT_LINE: True,
-    PROBLEM_BAD_SPACING: True,
-    PROBLEM_MISSING_ICON_SPACING: True
-}
