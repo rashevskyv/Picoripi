@@ -13,8 +13,7 @@ class GenericTextFixer:
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
         
         if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
-            from unittest.mock import MagicMock
-            if not isinstance(self.mw.current_game_rules, MagicMock):
+            if 'Mock' not in type(self.mw.current_game_rules).__name__:
                 if hasattr(self.mw.current_game_rules, 'calculate_string_width_override'):
                     override_val = self.mw.current_game_rules.calculate_string_width_override(text, font_map)
                     if override_val is not None:

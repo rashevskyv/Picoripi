@@ -227,10 +227,9 @@ class ListSelectionHandler(BaseHandler):
         current_item = self.mw.block_list_widget.currentItem()
         is_chapter = False
         if current_item:
-            from unittest.mock import MagicMock
             role_val = current_item.data(0, Qt.UserRole)
             ch_val = current_item.data(0, Qt.UserRole + 11)
-            if not isinstance(role_val, MagicMock):
+            if 'Mock' not in type(role_val).__name__:
                 is_chapter = (role_val == -2 or ch_val is not None)
 
         if has_project and current_item and not is_chapter:

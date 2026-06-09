@@ -279,7 +279,6 @@ class MainWindow(QMainWindow):
         self.text_analysis_handler = TextAnalysisHandler(self, self.data_processor, self.ui_updater)
         self.ai_chat_handler = AIChatHandler(self, self.data_processor, self.ui_updater)
         self.bookmark_handler = BookmarkHandler(self, self.data_processor, self.ui_updater)
-        self.hotkey_manager = HotkeyManager(self)
 
     def _init_ui(self) -> None:
         # UI Attributes (placeholders for setup_main_window_ui)

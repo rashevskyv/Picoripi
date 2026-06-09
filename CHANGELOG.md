@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.178] - 2026-06-09
+
+### Fixed
+- **Clean Mock Imports in Production**: Removed `unittest.mock` imports completely from production code files (`plugins/common/text_fixer.py` and `handlers/list_selection_handler.py`). Used class name inspection `'Mock' not in type(obj).__name__` as a runtime safeguard.
+- **Double HotkeyManager Initialization Fix**: Removed duplicate creation of `HotkeyManager` in `_init_handlers` inside `main.py`.
+
 ## [0.2.177] - 2026-06-09
 
 ### Changed
