@@ -5,7 +5,7 @@ import uuid
 import shutil
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, Tuple
-from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem, QDialog
 from PyQt6.QtCore import Qt
 from core.project_manager import ProjectManager
 from core.data_manager import load_json_file, load_text_file
@@ -95,7 +95,7 @@ class ProjectActionHandler(BaseHandler):
                         log_debug(f"Could not read config for plugin '{item_path.name}': {e}")
 
         dialog = NewProjectDialog(self.mw, available_plugins=plugins)
-        if dialog.exec() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             log_info("New project dialog cancelled.")
             return
 
@@ -308,7 +308,7 @@ class ProjectActionHandler(BaseHandler):
             return
 
         dialog = ImportBlockDialog(self.mw, project_manager=self.mw.project_manager)
-        if dialog.exec() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             log_info("Import block dialog cancelled.")
             return
 

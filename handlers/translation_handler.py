@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from PyQt6.QtCore import QTimer, Qt, QPoint, QThread, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QDialog, QMessageBox, QApplication
 from .base_handler import BaseHandler
 from core.glossary_manager import GlossaryEntry
 from core.translation.config import build_default_translation_config
@@ -252,7 +252,7 @@ class TranslationHandler(BaseHandler):
             user_prompt=user_prompt,
             allow_save=allow_save,
         )
-        if dialog.exec() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return None
 
         edited_system, edited_user, save_requested = dialog.get_user_inputs()
