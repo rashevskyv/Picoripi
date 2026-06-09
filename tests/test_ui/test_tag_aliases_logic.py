@@ -153,3 +153,53 @@ def test_tag_alias_dialog_focus_and_return_pressed(qtbot):
     dialog.width_edit.returnPressed.emit()
     assert accepted_calls == 2
 
+
+@patch('ui.main_window.main_window_actions.QProgressDialog')
+@patch('ui.main_window.main_window_actions.AliasUpdateWorker')
+def test_edit_tag_alias_progress_dialog_modality(mock_worker_class, mock_progress_dialog_class, mock_mw):
+    from ui.main_window.main_window_actions import MainWindowActions
+    from PyQt6.QtCore import Qt
+    
+    mock_progress_dialog = MagicMock()
+    mock_progress_dialog_class.return_value = mock_progress_dialog
+    
+    mock_worker = MagicMock()
+    mock_worker_class.return_value = mock_worker
+    
+    # We create a dummy class for mw to bypass is_test check which filters "Mock" in class name
+    class RealMainWindowLike:
+        def __init__(self):
+            self.default_tag_mappings = {"{OldAlias}": "{OldTag}"}
+            self.data_store = MagicMock()
+            self.data_store.edited_data = {(0, 0): "Some {OldAlias} text"}
+            self.data_store.data = []
+            self.data_store.edited_file_data = []
+            self.font_map_overrides = {}
+            self.active_game_plugin = None
+            self.settings_manager = MagicMock()
+            self.issue_scan_handler = MagicMock()
+            self.helper = MagicMock()
+            self.ui_updater = MagicMock()
+            self.text_operation_handler = MagicMock()
+            
+    fake_mw = RealMainWindowLike()
+    actions = MainWindowActions(fake_mw)
+    
+    # Patch TagAliasDialog so it returns accepted new alias
+    with patch('ui.main_window.main_window_actions.TagAliasDialog') as mock_dialog_class, \
+         patch('PyQt6.QtWidgets.QApplication.instance') as mock_app_instance:
+         
+        from PyQt6.QtWidgets import QApplication
+        mock_app = MagicMock(spec=QApplication)
+        mock_app_instance.return_value = mock_app
+        
+        mock_dialog = MagicMock()
+        mock_dialog.exec.return_value = 1  # Accepted
+        mock_dialog.get_data.return_value = ("{NewAlias}", None)
+        mock_dialog_class.return_value = mock_dialog
+        
+        actions.edit_tag_alias("{OldAlias}", "{OldTag}")
+        
+    mock_progress_dialog.setWindowModality.assert_called_with(Qt.WindowModality.WindowModal)
+
+

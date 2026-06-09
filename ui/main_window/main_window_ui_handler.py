@@ -48,9 +48,16 @@ class MainWindowUIHandler:
                                 self.mw.status_label_part1, self.mw.status_label_part2, self.mw.status_label_part3]
         general_ui_widgets.extend(labels_in_status_bar)
 
+        if self.mw.menuBar():
+            general_ui_widgets.append(self.mw.menuBar())
+            from PyQt6.QtWidgets import QMenu
+            for menu in self.mw.menuBar().findChildren(QMenu):
+                general_ui_widgets.append(menu)
+                
         if self.mw.search_panel_widget:
             general_ui_widgets.extend([
                 self.mw.search_panel_widget.search_query_edit,
+                self.mw.search_panel_widget.search_query_edit.lineEdit(),
                 self.mw.search_panel_widget.find_next_button,
                 self.mw.search_panel_widget.find_previous_button,
                 self.mw.search_panel_widget.case_sensitive_checkbox,

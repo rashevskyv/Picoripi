@@ -1,6 +1,7 @@
 # handlers/issue_scan_handler.py
 import json
 from pathlib import Path
+from typing import Optional
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 from PyQt6.QtCore import QTimer, Qt
 from .base_handler import BaseHandler

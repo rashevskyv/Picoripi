@@ -1006,7 +1006,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.status.showMessage("Force recalculation complete. Picoripi widths updated.")
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Escape:
+        if event.key() == QtCore.Qt.Key.Key_Escape:
             self.close()
             event.accept()
         else:

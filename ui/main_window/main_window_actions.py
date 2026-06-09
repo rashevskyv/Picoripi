@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox
 from PyQt6.QtGui import QIntValidator
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from utils.logging_utils import log_info, log_error
 import copy
 from pathlib import Path
@@ -1417,7 +1417,7 @@ class MainWindowActions:
             # Async mode for production with non-blocking QProgressDialog
             self._progress_dialog = QProgressDialog("Updating tag aliases across the project...", None, 0, 0, self.mw)
             self._progress_dialog.setWindowTitle("Tag Aliases")
-            self._progress_dialog.setWindowModality(2) # Qt.WindowModality.WindowModal
+            self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             self._progress_dialog.setCancelButton(None) # Remove cancel button to ensure integrity
             self._progress_dialog.show()
             

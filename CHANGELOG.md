@@ -1,6 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.2.173] - 2026-06-09
+## [0.2.175] - 2026-06-09
+
+### Fixed
+- **Spellcheck Test: Incorrect `highlightBlock` Assertion**: Fixed `test_translation_editor_spellcheck_highlighting` in `tests/test_ui/test_search_panel_spellcheck.py`. The test previously mocked `currentBlock()` in a way that caused `block.isValid()` to return `False`, setting `block_number = -1` and bypassing the entire spellcheck path. The test now supplies a properly configured mock block (`isValid=True`, `position=0`, `blockNumber=0`), patches `setFormat` at the class level to capture calls via their `underlineStyle()`, and correctly asserts `SpellCheckUnderline` is applied to the misspelled word range.
+
+## [0.2.174] - 2026-06-09
+
 
 ### Fixed
 - **PyQt6 Migration: QStyle.SP_* Enum Namespace**: Fixed `AttributeError: type object 'QStyle' has no attribute 'SP_...'` errors that crashed context menus (both tree and editor). In PyQt6, standard pixmap constants moved from the flat `QStyle.SP_*` namespace into `QStyle.StandardPixmap.SP_*`. Updated all occurrences across:

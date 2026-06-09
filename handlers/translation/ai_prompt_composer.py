@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .base_translation_handler import BaseTranslationHandler
 from core.glossary_manager import GlossaryEntry
@@ -772,7 +772,7 @@ class AIPromptComposer(BaseTranslationHandler):
         """Prepare the system prompt. Now returns the system prompt as-is for glossary unification."""
         return (system_prompt or "").strip()
 
-    def _get_mempalace_client(self) -> Optional[MemePalaceClient]:
+    def _get_mempalace_client(self) -> Optional[object]:
         """Dynamically get or initialize MemePalaceClient for current project directory."""
         import os
         project_dir = None

@@ -762,7 +762,7 @@ class DataStateProcessor:
                                     if Path(orig_archive_path).exists():
                                         orig_size = Path(orig_archive_path).stat().st_size
                                         new_size = len(packed_bytes)
-                                        if isinstance(orig_size, (int, float)) and not isinstance(orig_size, MagicMock if 'MagicMock' in globals() else type(object)) and new_size > orig_size:
+                                        if isinstance(orig_size, (int, float)) and new_size > orig_size:
                                             log_warning(
                                                 f"Packed archive '{archive_rel_path}' size ({new_size} bytes) "
                                                 f"exceeds the original archive size ({orig_size} bytes).",

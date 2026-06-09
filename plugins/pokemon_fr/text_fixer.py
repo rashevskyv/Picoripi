@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Set
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.text_fixer import GenericTextFixer

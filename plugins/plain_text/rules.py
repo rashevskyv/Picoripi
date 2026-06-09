@@ -176,7 +176,7 @@ class GameRules(BaseGameRules):
             return all_problems[subline_number_in_data_string]
 
         return self.problem_analyzer.analyze_subline(
-            text, next_text, subline_number_in_data_string, qtextblock_number_in_data_string, is_last_subline_in_data_string,
+            text, next_text, subline_number_in_data_string, qtextblock_number_in_editor, is_last_subline_in_data_string,
             editor_font_map, editor_line_width_threshold, full_data_string_text_for_logical_check, is_target_for_debug,
             logical_hard_limit=logical_hard_limit
         )
