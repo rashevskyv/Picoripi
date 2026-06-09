@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.179] - 2026-06-09
+
+### Fixed
+- **Grey Space Dot Indicators for Multiple Spaces**: Fixed space dot indicators (`·`) representing double/multiple spaces or bad spacing turning black under default styles. They are now rendered in the standard grey color (`#BBBBBB`) matching end-of-line spacing dots.
+
 ## [0.2.178] - 2026-06-09
 
 ### Fixed

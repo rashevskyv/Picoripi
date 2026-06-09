@@ -858,10 +858,20 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Highlight bad spacing: double spaces, leading spaces, and spaces split by tags
         # (Only in the editor text edits, not in preview_text_edit)
         if _is_preview_widget is False:
+            def apply_bad_spacing_format(start_idx, length):
+                for idx in range(start_idx, start_idx + length):
+                    char = text[idx]
+                    if char == SPACE_DOT_SYMBOL:
+                        fmt = QTextCharFormat(self.bad_spacing_format)
+                        fmt.setForeground(self.space_dot_format.foreground())
+                        self.setFormat(idx, 1, fmt)
+                    else:
+                        self.setFormat(idx, 1, self.bad_spacing_format)
+
             # 1. Double spaces
             for match in _DOUBLE_SPACE_PATTERN.finditer(text):
                 start, end = match.span()
-                self.setFormat(start, end - start, self.bad_spacing_format)
+                apply_bad_spacing_format(start, end - start)
             # 2. Leading spaces
             for match in _LEADING_SPACE_PATTERN.finditer(text):
                 start, end = match.span(1)
@@ -873,7 +883,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         has_forced = True
                         break
                 if not has_forced:
-                    self.setFormat(start, end - start, self.bad_spacing_format)
+                    apply_bad_spacing_format(start, end - start)
             # 3. Tag split spaces
             for match in _TAG_SPLIT_SPACE_PATTERN.finditer(text):
                 start, end = match.span()
@@ -885,8 +895,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         has_forced = True
                         break
                 if not has_forced:
-                    self.setFormat(start, 1, self.bad_spacing_format)
-                    self.setFormat(end - 1, 1, self.bad_spacing_format)
+                    apply_bad_spacing_format(start, 1)
+                    apply_bad_spacing_format(end - 1, 1)
 
             # 4. Missing space before/after visible tags
             missing_spacing_id = None

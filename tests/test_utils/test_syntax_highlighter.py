@@ -501,6 +501,29 @@ def test_JsonTagHighlighter_hide_tags(highlighter):
     hide_tag_calls = [call_args[0] for call_args in hl.setFormat.call_args_list if call_args[0][2] == hl.hide_tag_format]
     assert any(c[0] == 0 and c[1] == 11 for c in hide_tag_calls)
 
+def test_JsonTagHighlighter_double_space_dot_color(highlighter):
+    from utils.utils import SPACE_DOT_SYMBOL
+    hl, doc = highlighter
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+    
+    # Text with double space containing space dot symbol
+    text = f"word{SPACE_DOT_SYMBOL}{SPACE_DOT_SYMBOL}word"
+    hl.setFormat.reset_mock()
+    hl.highlightBlock(text)
+    
+    # We should have applied a format to each dot that merges bad_spacing_format with space_dot_format's foreground
+    found_space_dot_with_bad_spacing = False
+    for call_args in hl.setFormat.call_args_list:
+        start, length, fmt = call_args[0]
+        if start in (4, 5) and length == 1:
+            cond_style = fmt.underlineStyle() == QTextCharFormat.UnderlineStyle.SpellCheckUnderline
+            cond_fg = fmt.foreground().color().name().lower() == hl.space_dot_format.foreground().color().name().lower()
+            if cond_style and cond_fg:
+                found_space_dot_with_bad_spacing = True
+                    
+    assert found_space_dot_with_bad_spacing is True
+
+
 
 
 
