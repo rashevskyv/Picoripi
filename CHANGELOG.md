@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.177] - 2026-06-09
+
+### Changed
+- **Audit Documentation Update**: Refreshed the architectural audit documentation in `AUDIT.md` to map out the current PyQt6-based status of Category A and Category B refactoring sprint lists.
+
 ## [0.2.176] - 2026-06-09
 
 ### Fixed
