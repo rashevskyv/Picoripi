@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from handlers.project_action_handler import ProjectActionHandler
 from core.project_manager import ProjectManager
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QDialog
 
 def test_ProjectActionHandler_init(mock_mw):
     # MW without project_manager
@@ -29,7 +29,7 @@ def test_ProjectActionHandler_set_project_actions_enabled(mock_mw):
 def test_ProjectActionHandler_create_new_project_action(mock_dialog_class, mock_msg_box, mock_is_dir, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec.return_value = mock_dialog.Accepted
+    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
     mock_dialog.get_project_info.return_value = {
         'directory': 'C:/proj', 'name': 'Test Project', 'plugin': 'plug',
         'description': '', 'source_path': '', 'translation_path': '',
@@ -101,7 +101,7 @@ def test_ProjectActionHandler_import_block_action(mock_dialog_class, mock_msg_bo
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     
     mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec.return_value = mock_dialog.Accepted
+    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
     mock_dialog.get_block_info.return_value = {
         'name': 'New Block', 'source_file': 'src.json',
         'translation_file': None, 'description': ''

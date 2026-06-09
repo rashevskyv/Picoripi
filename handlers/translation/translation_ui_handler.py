@@ -3,7 +3,7 @@ import json
 import re
 from typing import Dict, List, Optional, Tuple
 
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QDialog, QMessageBox, QApplication
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor
 
@@ -37,7 +37,7 @@ class TranslationUIHandler(BaseTranslationHandler):
         self.update_status_message("AI: choose one of the suggested options", persistent=False)
         dialog = TranslationVariationsDialog(self.mw, variations, show_refresh=show_refresh)
         res = dialog.exec()
-        if res == dialog.Accepted:
+        if res == QDialog.DialogCode.Accepted:
             return dialog.selected_translation
         elif res == 2:
             return "__REFRESH__"
@@ -45,7 +45,7 @@ class TranslationUIHandler(BaseTranslationHandler):
 
     def prompt_session_bootstrap(self, system_prompt: str) -> Optional[str]:
         dialog = SessionBootstrapDialog(self.mw, system_prompt)
-        if dialog.exec() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return None
         return dialog.get_instructions()
 

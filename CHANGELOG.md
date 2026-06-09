@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.176] - 2026-06-09
+
+### Fixed
+- **PyQt6 Migration: QDialog.Accepted Namespace**: Fixed `AttributeError: 'QDialog' object has no attribute 'Accepted'` runtime crash when accepting prompt, project, or block dialogs. In PyQt6, `Accepted` must be referenced via `QDialog.DialogCode.Accepted`. Fixed all occurrences in:
+  - `handlers/translation/translation_ui_handler.py`
+  - `handlers/translation_handler.py`
+  - `handlers/project_action_handler.py`
+  - `tests/manual_test_project_dialogs.py`
+  - `tests/test_handlers/test_project_action_handler.py` (updated mocks to expect `QDialog.DialogCode.Accepted` to prevent test failures)
+
 ## [0.2.175] - 2026-06-09
 
 ### Fixed

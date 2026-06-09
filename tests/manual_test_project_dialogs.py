@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QLabel
+from PyQt6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QLabel, QDialog
 from components.project_dialogs import NewProjectDialog, OpenProjectDialog, ImportBlockDialog
 
 
@@ -65,7 +65,7 @@ class TestWindow(QWidget):
         dialog = NewProjectDialog(self, available_plugins=available_plugins)
         result = dialog.exec()
 
-        if result == dialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             info = dialog.get_project_info()
             print("Dialog accepted!")
             print(f"  Name: {info['name']}")
@@ -82,7 +82,7 @@ class TestWindow(QWidget):
         dialog = OpenProjectDialog(self)
         result = dialog.exec()
 
-        if result == dialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             path = dialog.get_project_path()
             print("Dialog accepted!")
             print(f"  Project path: {path}")
@@ -98,7 +98,7 @@ class TestWindow(QWidget):
         dialog = ImportBlockDialog(self, project_manager=None)
         result = dialog.exec()
 
-        if result == dialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             info = dialog.get_block_info()
             print("Dialog accepted!")
             print(f"  Source file: {info['source_file']}")
