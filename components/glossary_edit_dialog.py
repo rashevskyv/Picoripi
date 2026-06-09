@@ -5,11 +5,11 @@ Supports optional AI Fill and AI Notes Variation actions.
 """
 from typing import Callable, Optional, Tuple
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPlainTextEdit,
     QHBoxLayout, QPushButton, QDialogButtonBox, QWidget,
 )
-from PyQt5.QtCore import Qt, QObject, QEvent
+from PyQt6.QtCore import Qt, QObject, QEvent
 
 
 class ReturnToAcceptFilter(QObject):
@@ -20,9 +20,9 @@ class ReturnToAcceptFilter(QObject):
         self._dialog = dialog
 
     def eventFilter(self, obj, event):
-        if event.type() == QEvent.KeyPress and event.key() in (Qt.Key_Return, Qt.Key_Enter):
+        if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             modifiers = event.modifiers()
-            if not (modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)):
+            if not (modifiers & (Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier)):
                 self._dialog.accept()
                 return True
         return super().eventFilter(obj, event)
@@ -92,7 +92,7 @@ class GlossaryEditDialog(QDialog):
         form_layout.addWidget(self._notes_edit)
 
         layout.addLayout(form_layout)
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

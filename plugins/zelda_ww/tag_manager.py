@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Set, List, Tuple
-from PyQt5.QtGui import QTextCharFormat, QColor, QFont
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QTextCharFormat, QColor, QFont
+from PyQt6.QtCore import Qt
 from utils.logging_utils import log_debug
 
 class TagManager:
@@ -22,13 +22,13 @@ class TagManager:
         # Use Tag Style from settings
         tag_color = getattr(self.mw, 'tag_color_rgba', "#FF8C00") if self.mw else "#FF8C00"
         self.tag_format.setForeground(QColor(tag_color))
-        self.tag_format.setFontWeight(QFont.Bold if getattr(self.mw, 'tag_bold', True) else QFont.Normal)
+        self.tag_format.setFontWeight(QFont.Weight.Bold if getattr(self.mw, 'tag_bold', True) else QFont.Weight.Normal)
         self.tag_format.setFontItalic(getattr(self.mw, 'tag_italic', False))
         self.tag_format.setFontUnderline(getattr(self.mw, 'tag_underline', False))
 
         nl_color = getattr(self.mw, 'newline_color_rgba', "#A020F0") if self.mw else "#A020F0"
         self.newline_symbol_format.setForeground(QColor(nl_color))
-        self.newline_symbol_format.setFontWeight(QFont.Bold if getattr(self.mw, 'newline_bold', True) else QFont.Normal)
+        self.newline_symbol_format.setFontWeight(QFont.Weight.Bold if getattr(self.mw, 'newline_bold', True) else QFont.Weight.Normal)
         self.newline_symbol_format.setFontItalic(getattr(self.mw, 'newline_italic', False))
         self.newline_symbol_format.setFontUnderline(getattr(self.mw, 'newline_underline', False))
 

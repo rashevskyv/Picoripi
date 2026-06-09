@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 from handlers.bookmark_handler import BookmarkHandler
 
 class MockMainWindow:
@@ -38,7 +38,7 @@ def handler(mock_mw):
     return BookmarkHandler(mock_mw, dp, ui)
 
 def test_add_bookmark_success(handler, mock_mw):
-    with patch('PyQt5.QtWidgets.QInputDialog.getText') as mock_input:
+    with patch('PyQt6.QtWidgets.QInputDialog.getText') as mock_input:
         mock_input.return_value = ("My Custom Bookmark", True)
         
         handler.add_bookmark()
@@ -60,7 +60,7 @@ def test_add_bookmark_success(handler, mock_mw):
         assert mock_mw.bookmarks_menu.clear.called
 
 def test_add_bookmark_cancelled(handler, mock_mw):
-    with patch('PyQt5.QtWidgets.QInputDialog.getText') as mock_input:
+    with patch('PyQt6.QtWidgets.QInputDialog.getText') as mock_input:
         mock_input.return_value = ("My Custom Bookmark", False)
         
         handler.add_bookmark()
@@ -72,14 +72,14 @@ def test_add_bookmark_cancelled(handler, mock_mw):
 def test_clear_bookmarks(handler, mock_mw):
     mock_mw.bookmarks = [{"id": "1", "name": "B1"}]
     
-    with patch('PyQt5.QtWidgets.QMessageBox.question') as mock_question:
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_question:
         # User clicks No
-        mock_question.return_value = QMessageBox.No
+        mock_question.return_value = QMessageBox.StandardButton.No
         handler.clear_bookmarks()
         assert len(mock_mw.bookmarks) == 1
         
         # User clicks Yes
-        mock_question.return_value = QMessageBox.Yes
+        mock_question.return_value = QMessageBox.StandardButton.Yes
         handler.clear_bookmarks()
         assert len(mock_mw.bookmarks) == 0
         mock_mw.settings_manager.save_settings.assert_called_once()
@@ -111,7 +111,7 @@ def test_jump_to_bookmark_different_project_warning(handler, mock_mw):
         "string_idx": 10
     }]
     
-    with patch('PyQt5.QtWidgets.QMessageBox.warning') as mock_warning:
+    with patch('PyQt6.QtWidgets.QMessageBox.warning') as mock_warning:
         handler.jump_to_bookmark("b-id")
         mock_warning.assert_called_once()
         mock_mw.list_selection_handler.select_string_by_absolute_index.assert_not_called()
@@ -119,8 +119,8 @@ def test_jump_to_bookmark_different_project_warning(handler, mock_mw):
 
 def test_delete_bookmark_no(handler, mock_mw):
     mock_mw.bookmarks = [{"id": "b-id", "name": "B1"}]
-    with patch('PyQt5.QtWidgets.QMessageBox.question') as mock_question:
-        mock_question.return_value = QMessageBox.No
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_question:
+        mock_question.return_value = QMessageBox.StandardButton.No
         handler.delete_bookmark("b-id")
         assert len(mock_mw.bookmarks) == 1
         mock_mw.settings_manager.save_settings.assert_not_called()
@@ -128,8 +128,8 @@ def test_delete_bookmark_no(handler, mock_mw):
 
 def test_delete_bookmark_yes(handler, mock_mw):
     mock_mw.bookmarks = [{"id": "b-id", "name": "B1"}]
-    with patch('PyQt5.QtWidgets.QMessageBox.question') as mock_question:
-        mock_question.return_value = QMessageBox.Yes
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_question:
+        mock_question.return_value = QMessageBox.StandardButton.Yes
         handler.delete_bookmark("b-id")
         assert len(mock_mw.bookmarks) == 0
         mock_mw.settings_manager.save_settings.assert_called_once()
@@ -139,7 +139,7 @@ def test_delete_bookmark_yes(handler, mock_mw):
 
 def test_delete_bookmark_not_found(handler, mock_mw):
     mock_mw.bookmarks = [{"id": "b-id", "name": "B1"}]
-    with patch('PyQt5.QtWidgets.QMessageBox.question') as mock_question:
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_question:
         handler.delete_bookmark("other-id")
         mock_question.assert_not_called()
         assert len(mock_mw.bookmarks) == 1

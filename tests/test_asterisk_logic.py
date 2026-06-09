@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QMainWindow
 from core.data_store import AppDataStore
 from core.data_state_processor import DataStateProcessor
 from handlers.list_selection_handler import ListSelectionHandler
@@ -84,7 +84,7 @@ def test_asterisk_persistence_on_navigation(mock_async_scanner):
 
 def test_folder_asterisk_propagation():
     from components.custom_list_item_delegate import CustomListItemDelegate
-    from PyQt5.QtCore import QModelIndex, Qt
+    from PyQt6.QtCore import QModelIndex, Qt
     
     mw = MockMainWindow()
     dsp = DataStateProcessor(mw)
@@ -134,7 +134,7 @@ def test_folder_asterisk_propagation():
 
 def test_custom_list_item_delegate_data_store_access():
     from components.custom_list_item_delegate import CustomListItemDelegate
-    from PyQt5.QtCore import QModelIndex, Qt
+    from PyQt6.QtCore import QModelIndex, Qt
     
     # 1. Setup a clean separation where data_store is a separate object, mimicking the real application
     class RealDataStore:

@@ -5,8 +5,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from PyQt5.QtCore import QTimer, Qt, QPoint, QThread, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtCore import QTimer, Qt, QPoint, QThread, pyqtSignal
+from PyQt6.QtWidgets import QMessageBox, QApplication
 from .base_handler import BaseHandler
 from core.glossary_manager import GlossaryEntry
 from core.translation.config import build_default_translation_config
@@ -232,7 +232,14 @@ class TranslationHandler(BaseHandler):
         save_section: Optional[str] = None,
         save_field: str = 'system_prompt',
     ) -> Optional[Tuple[str, str]]:
-        is_ctrl_pressed = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+        modifiers = QApplication.keyboardModifiers()
+        is_ctrl_pressed = False
+        if hasattr(modifiers, 'value'):
+            is_ctrl_pressed = bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
+        elif isinstance(modifiers, int):
+            is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
+        else:
+            is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
         enabled = getattr(self.mw, 'prompt_editor_enabled', True)
         if not is_ctrl_pressed and not enabled:
             return system_prompt, user_prompt
@@ -245,7 +252,7 @@ class TranslationHandler(BaseHandler):
             user_prompt=user_prompt,
             allow_save=allow_save,
         )
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             return None
 
         edited_system, edited_user, save_requested = dialog.get_user_inputs()
@@ -328,10 +335,10 @@ class TranslationHandler(BaseHandler):
             self.mw,
             "Translation Cancelled",
             "Keep the already translated parts?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
         )
-        if reply == QMessageBox.No:
+        if reply == QMessageBox.StandardButton.No:
             if block_idx == -2:
                 # Revert all individual blocks that were modified in the chapter
                 temp_id_map = self.worker.task_details.get('temp_id_map', {})
@@ -526,7 +533,7 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
         from components.ai_status_dialog import AIStatusDialog
         self.ui_handler.update_ai_operation_step(0, "Preparing data...", AIStatusDialog.STATUS_IN_PROGRESS)
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         QApplication.processEvents()
 
         if target_block_idx == -2:
@@ -984,7 +991,7 @@ class TranslationHandler(BaseHandler):
         context['composer_args'] = composer_args
 
         if 'precomposed_prompt' not in context:
-            force_prompt = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+            force_prompt = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
             should_edit_prompt = (
                 task_type == 'translate_block_chunked'
                 and block_idx is not None
@@ -1541,10 +1548,10 @@ class TranslationHandler(BaseHandler):
                     self.mw, 
                     "Resume Chronological Translation", 
                     msg, 
-                    QMessageBox.Yes | QMessageBox.No, 
-                    QMessageBox.Yes
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                    QMessageBox.StandardButton.Yes
                 )
-                if choice == QMessageBox.Yes:
+                if choice == QMessageBox.StandardButton.Yes:
                     is_resume = True
                 else:
                     self.translation_progress.pop(target_block_idx, None)
@@ -1594,7 +1601,7 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
         from components.ai_status_dialog import AIStatusDialog
         self.ui_handler.update_ai_operation_step(0, "Preparing chronological data...", AIStatusDialog.STATUS_IN_PROGRESS)
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         QApplication.processEvents()
 
         # 1. Gather all dialogue strings across all blocks

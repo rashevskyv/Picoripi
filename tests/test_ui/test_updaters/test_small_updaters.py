@@ -470,7 +470,7 @@ class TestPreviewUpdater:
 
         assert preview_edit.custom_line_numbers == [1, None, 5, 6, 7]
 
-    @patch('PyQt5.QtWidgets.QProgressDialog')
+    @patch('PyQt6.QtWidgets.QProgressDialog')
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
     def test_populate_strings_shows_progress_dialog(self, mock_hl, mock_ut, mock_progress, updater, mock_dp):

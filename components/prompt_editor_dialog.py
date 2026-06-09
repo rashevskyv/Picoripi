@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Optional, Tuple
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QPlainTextEdit,
@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QCheckBox,
 )
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 class PromptEditorDialog(QDialog):
     """Allow users to preview/edit AI system+user prompts before sending."""
@@ -56,7 +56,7 @@ class PromptEditorDialog(QDialog):
         options_row.addWidget(self._save_checkbox)
         layout.addLayout(options_row)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

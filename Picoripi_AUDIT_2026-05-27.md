@@ -19,15 +19,15 @@
 ## TL;DR — головні проблеми "на 80% болю"
 
 1. **Гігієна репо катастрофічна.** У git коммітнуто ~2 МБ логів (`ai_traffic.log`, `stderr_output.log`), бінарну SQLite БД (`mempalace_local.db`), користувацький `session_state.json`, мігровані налаштування, бекапи `.bmg`, цілу теку `font_tool/` (289 файлів — 256 BMP-гліфів), теку `scratch/` з експериментальними скриптами і темчасовими PNG. При цьому половина цього є у `.gitignore` — `git ls-files` усе одно повертає ці файли як трековані. Це найшвидший спосіб засмітити історію та зламати клон.
-2. **`json.loads(json.dumps(...))` як deep-copy на гарячому шляху save.** У `core/data_state_processor.py:259-261` саме так робиться "копія" повного дата-стору перед записом. Це найповільніший і найжадібніший до памʼяті спосіб з можливих — `copy.deepcopy()` був би в рази швидший, а ще краще не копіювати взагалі (іммутабельно злити edited overlay поверх original).
-3. **`from unittest.mock import Mock` у продакшен-коді** — 4 окремі місця (`ui/updaters/block_list_updater.py:15`, `ui/updaters/preview_updater.py:584`, `ui/components/bfn_preview_widget.py:348,922`) роблять `isinstance(..., Mock)` рантайм-перевірки. Тестовий код тече в продакшен. Це маркер того, що тести написані замість архітектури.
+2. **`json.loads(json.dumps(...))` як deep-copy на гарячому шляху save.** [DONE] У `core/data_state_processor.py:259-261` саме так робилося "копія" повного дата-стору перед записом. (Виправлено у v0.2.172: deep-copy замінено на O(blocks + edits) shallow-copy).
+3. **`from unittest.mock import Mock` у продакшен-коді** [PARTIALLY DONE] — 4 окремі місця робили `isinstance(..., Mock)` рантайм-перевірки. (Виправлено у v0.2.148: runtime Mock імпорти вилучено з продакшену).
 4. **836 `hasattr(self.mw, ...)` / `getattr(self.mw, ..., None)` у хендлерах** (попередній аудит казав 142 — їх насправді **в 5,8 раз більше**). `ProjectContext` Protocol існує, але не використовується. Це не лише чистота — це приховані баги: якщо ат­рибут раптом зник, програма "просто не зробить нічого", замість упасти. `(+AUDIT.md)`
 5. **`requirements.txt` напівбрехня.** Серед 53 запинених пакетів реально імпортуються лише ~9 (PyQt5, ahocorasick, markdown, numpy, pycountry, requests, spylls, Pillow, pytest). `camoufox`, `googletrans`, `playwright`, `deep-translator`, `screeninfo`, `aiohappyeyeballs`, `httpx`, `lxml`, `browserforge` тощо — мертвий тягар. Установка проєкту тягне сотні МБ непотрібних залежностей. PyQt5 при цьому **єдиний пакет без піна** (`PyQt5` без `==X.Y.Z`).
-6. **Один QThread на кожен дебаунс-тік набору тексту** (`text_operation_handler.py:252` + `async_issue_scanner.py`). Воркер не реагує на `cancel()` — після зміни тексту попередній сканер просто кидається в `_orphaned_threads` і добігає до кінця. На середньому редагуванні створюються десятки QThread на хвилину. Має бути або 1 persistent worker з чергою, або `QThreadPool` + `QRunnable` з нормальним cooperative cancellation.
-7. **Поліровка `time.sleep(0.05)` у `SpellcheckerManager` worker-у** (`core/spellchecker_manager.py:77`) — busy-loop на 20 Гц замість `QWaitCondition`/`pyqtSignal`. Дрібно, але вічно крутиться у фоні.
-8. **Файли по 700-1500 LOC у `tools/bfn_editor/` і дублікати `# --- START OF FILE` у заголовках** — 5 файлів мають по 3 такі коментарі-шапки (як артефакт двох переїздів). `(+AUDIT.md)`
+6. **Один QThread на кожен дебаунс-тік набору тексту** [DONE] (`text_operation_handler.py:252` + `async_issue_scanner.py`). (Виправлено у v0.2.172: переведено на `QThreadPool` + `QRunnable` з кооперативним Event-cancellation).
+7. **Поліровка `time.sleep(0.05)` у `SpellcheckerManager` worker-у** [DONE] (`core/spellchecker_manager.py:77`) — busy-loop на 20 Гц замість `QWaitCondition`/`pyqtSignal`. (Виправлено: polling замінено на Event-очікування).
+8. **Файли по 700-1500 LOC у `tools/bfn_editor/` і дублікати `# --- START OF FILE` у заголовках** [DONE] — 5 файлів мали по 3 такі коментарі-шапки. (Виправлено: коментарі-дублікати видалено).
 9. **Дублювання прев'ю-даних у плагінах.** `plugins/plain_text/font_map.json` ≡ `plugins/zelda_ww/font_map.json` (md5 збігається). `plugins/plain_text/translation_prompts/prompts.json` ≡ `plugins/zelda_ww/translation_prompts/prompts.json`. Один з них — копіпаст іншого. Має бути shared baseline або хоча б `default`.
-10. **Тест-раннер `run_tests.py` запускає окремий `pytest` процес на кожен з 79 тест-файлів.** Просте `pytest tests/` буде в 10-30 разів швидше і дасть єдиний звіт.
+10. **Тест-раннер `run_tests.py` запускає окремий `pytest` процес на кожен з 79 тест-файлів.** [DONE] (Виправлено: run_tests.py видалено, pytest.ini об'єднано з pyproject.toml).
 
 ---
 
@@ -617,13 +617,13 @@ PyQt5 БЕЗ піна — єдиний серед усіх — це баг.
 | # | Пріоритет | Що зробити | Тип | Орієнт. зусилля | Прискорить роботу? |
 |---|---|---|---|---|---|
 | 1 | БЛОКЕР | `git rm --cached` логів, БД, font_tool, scratch + fix `.gitignore` + видалити з історії | hygiene | 1-2 год | ні, але клон швидший |
-| 2 | БЛОКЕР | Прибрати `from unittest.mock import Mock` з production (4 місця) | code-smell | 30 хв на місце + правки тестів | ні |
-| 3 | БЛОКЕР | Замінити `json.loads(json.dumps(...))` у `save_current_edits` на `deepcopy` чи (краще) immutable merge | perf | 1-2 год | **так**, save великих проєктів у рази |
-| 4 | БЛОКЕР | Прибрати `run_tests.py`, перейти на `pytest tests/ -n auto` + видалити `pytest.ini`, лишити `pyproject.toml` | DX | 30 хв | **так**, тести в 10-30x швидше |
+| 2 | Виконано (v0.2.148) | Прибрати `from unittest.mock import Mock` з продакшену (4 місця) | code-smell | - | ні |
+| 3 | Виконано (v0.2.172) | Оптимізувати save (замінено deep-copy на O(blocks) shallow-copy) | perf | - | **так**, save великих проєктів у рази |
+| 4 | Виконано (A3) | Прибрати `run_tests.py`, перейти на `pytest tests/` | DX | - | **так**, тести в 10-30x швидше |
 | 5 | ВИСОКИЙ | Почистити `requirements.txt` (видалити 40+ зайвих + запинити PyQt5) | deps | 30 хв | **так**, інсталяція в рази менша |
 | 6 | ВИСОКИЙ | Завести CI (GitHub Actions: `ruff` + `pytest`) | DX | 1 год | ні, але запобіжить регресам |
 | 7 | ВИСОКИЙ | Замінити `time.sleep(0.05)` у spellchecker на `QWaitCondition` | perf | 1 год | трохи (idle CPU) |
-| 8 | ВИСОКИЙ | Реорганізувати `AsyncIssueScanner`: QThreadPool + cooperative cancel | perf | 4-6 год | **так**, при швидкому наборі тексту |
+| 8 | Виконано (v0.2.172) | Реорганізувати `AsyncIssueScanner`: QThreadPool + cooperative cancel | perf | - | **так**, при швидкому наборі тексту |
 | 9 | ВИСОКИЙ | Об'єднати `calculate_string_width` ↔ `_strict` варіант | dup | 1 год | трохи (hot path) |
 | 10 | ВИСОКИЙ | Стиснути `find_next` ↔ `find_previous` | dup | 1 год | ні |
 | 11 | ВИСОКИЙ | Затипізувати `BaseHandler` (прибрати `Any`) | types | 4-8 год | ні, але catch майб. багів |

@@ -55,13 +55,13 @@ def test_TextAnalysisHandler_activate_entry(handler, mock_mw):
     mock_mw.list_selection_handler.select_string_by_absolute_index.assert_called_with(1)
     mock_mw.original_text_edit.setTextCursor.assert_called()
 
-@patch('PyQt5.QtWidgets.QMessageBox.information')
+@patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_TextAnalysisHandler_analyze_no_data(mock_msg, handler, mock_mw):
     mock_mw.data = []
     handler.analyze_original_text()
     mock_msg.assert_called()
 
-@patch('PyQt5.QtWidgets.QMessageBox.warning')
+@patch('PyQt6.QtWidgets.QMessageBox.warning')
 def test_TextAnalysisHandler_analyze_no_font_maps(mock_warn, handler, mock_mw):
     mock_mw.all_font_maps = {}
     handler.analyze_original_text()

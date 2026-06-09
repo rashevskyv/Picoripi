@@ -1,9 +1,9 @@
 # handlers/search_handler.py
 import re
 from typing import Any, Optional, List, Dict, Tuple, Set
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QColor, QTextCursor
-from PyQt5.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator
+from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtGui import QColor, QTextCursor
+from PyQt6.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display, remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match
@@ -244,7 +244,7 @@ class SearchHandler(BaseHandler):
         
         try:
             if self.mw.data_store.current_block_idx != block_idx_match_in_data:
-                from PyQt5.QtWidgets import QTreeWidgetItemIterator
+                from PyQt6.QtWidgets import QTreeWidgetItemIterator
                 iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
                 while iterator.value():
                     item = iterator.value()
@@ -356,7 +356,7 @@ class SearchHandler(BaseHandler):
                             
                             # Select until the end of the last word found
                             end_block_nav = editor.document().findBlockByNumber(highlight_end_qblock_idx)
-                            cursor_nav.setPosition(end_block_nav.position() + highlight_end_pos_in_qblock_end_of_word, QTextCursor.KeepAnchor)
+                            cursor_nav.setPosition(end_block_nav.position() + highlight_end_pos_in_qblock_end_of_word, QTextCursor.MoveMode.KeepAnchor)
                             
                             editor.setTextCursor(cursor_nav); editor.ensureCursorVisible()
                             found_overall_match_in_editor = True; break
@@ -473,7 +473,7 @@ class SearchHandler(BaseHandler):
                     
                     cursor_precise = QTextCursor(widget_block_precise)
                     cursor_precise.setPosition(widget_block_precise.position() + match_pos_in_widget_qtextblock_precise)
-                    cursor_precise.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, match_len_in_widget_qtextblock_precise)
+                    cursor_precise.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, match_len_in_widget_qtextblock_precise)
                     editor_precise.setTextCursor(cursor_precise)
                     editor_precise.ensureCursorVisible()
                 else: 

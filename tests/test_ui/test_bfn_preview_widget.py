@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QMenu, QFileDialog, QInputDialog
-from PyQt5.QtCore import QPoint, Qt, QRect
-from PyQt5.QtGui import QMouseEvent
+from PyQt6.QtWidgets import QApplication, QMenu, QFileDialog, QInputDialog
+from PyQt6.QtCore import QPoint, QPointF, Qt, QRect, QEvent
+from PyQt6.QtGui import QMouseEvent, QImage
 from ui.components.bfn_preview_widget import BfnPreviewWidget
 from core.bfn_core import BfnCore
 
@@ -75,7 +75,7 @@ def test_bfn_preview_widget_get_active_font_archive_fallback(qapp):
     assert active_font == bfn_mock
 
 def test_bfn_preview_widget_paint_event_fallback(qapp):
-    from PyQt5.QtGui import QImage
+    from PyQt6.QtGui import QImage
     
     # 1. Setup mocks
     mw_mock = MagicMock()
@@ -112,7 +112,7 @@ def test_bfn_preview_widget_paint_event_fallback(qapp):
         "packets": [{"kerning": 0, "width": 20} for _ in range(2000)]
     }]
     
-    img = QImage(128, 128, QImage.Format_ARGB32)
+    img = QImage(128, 128, QImage.Format.Format_ARGB32)
     bfn_mock.get_sheets_qimages.return_value = [img]
     
     mw_mock.all_bfn_fonts = {"default.bfn": bfn_mock}
@@ -131,8 +131,8 @@ def test_bfn_preview_widget_paint_event_fallback(qapp):
     widget.update_preview_text("вâо")
     
     # Trigger paintEvent manually by rendering into a paint device
-    render_img = QImage(300, 130, QImage.Format_ARGB32)
-    render_img.fill(0)
+    render_img = QImage(300, 130, QImage.Format.Format_ARGB32)
+    render_img.fill(Qt.GlobalColor.black if hasattr(Qt, "GlobalColor") else Qt.black)
     
     # Ensure no exception is raised
     widget.render(render_img)
@@ -145,19 +145,19 @@ def test_bfn_preview_widget_drag_and_drop(qapp):
     widget.text_rect = QRect(10, 10, 100, 100)
     
     # Mouse press inside
-    press_event = QMouseEvent(QMouseEvent.MouseButtonPress, QPoint(20, 20), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    press_event = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(20, 20), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     widget.mousePressEvent(press_event)
     assert widget.drag_active is True
     assert widget.drag_start_pos == QPoint(20, 20)
     
     # Mouse move to drag
-    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(40, 50), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+    widget.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, QPointF(40, 50), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier))
     
     # self.text_rect should move by dx=20, dy=30
     assert widget.text_rect == QRect(30, 40, 100, 100)
     
     # Mouse release
-    release_event = QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(40, 50), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    release_event = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(40, 50), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     widget.mouseReleaseEvent(release_event)
     assert widget.drag_active is False
     # Check that settings_manager.save_settings was called
@@ -174,20 +174,20 @@ def test_bfn_preview_widget_resize(qapp):
     # Mouse press on 'bottom-right' handle.
     # rx + rw = 10 + 100 = 110. ry + rh = 10 + 100 = 110.
     # bottom-right handle center is at (110, 110)
-    press_event = QMouseEvent(QMouseEvent.MouseButtonPress, QPoint(110, 110), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    press_event = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(110, 110), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     widget.mousePressEvent(press_event)
     assert widget.resize_active is True
     assert widget.resize_handle == 'bottom-right'
     
     # Drag to (130, 140) -> dx = 20, dy = 30
-    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(130, 140), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+    widget.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, QPointF(130, 140), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier))
     # bottom right moves: x2 becomes 110 + 20 = 130, y2 becomes 110 + 30 = 140
     # QRect(QPoint(10, 10), QPoint(130, 140)) -> width = 130 - 10 + 1 = 121, height = 140 - 10 + 1 = 131
     assert widget.text_rect.width() == 120
     assert widget.text_rect.height() == 130
     
     # Release
-    widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(130, 140), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))
+    widget.mouseReleaseEvent(QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(130, 140), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier))
     assert widget.resize_active is False
 
 
@@ -204,7 +204,7 @@ def test_bfn_preview_widget_menu_actions(qapp):
         return action
         
     with patch.object(QMenu, 'addAction', spy_add_action), \
-         patch.object(QMenu, 'exec_') as mock_exec, \
+         patch.object(QMenu, 'exec') as mock_exec, \
          patch.object(QFileDialog, 'getOpenFileName', return_value=("test_image.png", "Images")), \
          patch.object(QInputDialog, 'getInt', return_value=(15, True)):
          
@@ -244,7 +244,7 @@ def test_bfn_preview_widget_menu_actions(qapp):
 
 
 def test_bfn_preview_widget_paint_event_no_bfn_fallback(qapp):
-    from PyQt5.QtGui import QImage
+    from PyQt6.QtGui import QImage
     
     # 1. Setup mocks with no BFN fonts
     mw_mock = MagicMock()
@@ -265,15 +265,15 @@ def test_bfn_preview_widget_paint_event_no_bfn_fallback(qapp):
     widget.update_preview_text("Hello {Color:Red} world [PLAYER]!")
     
     # Render into a paint device
-    render_img = QImage(300, 130, QImage.Format_ARGB32)
-    render_img.fill(0)
+    render_img = QImage(300, 130, QImage.Format.Format_ARGB32)
+    render_img.fill(Qt.GlobalColor.black if hasattr(Qt, "GlobalColor") else Qt.black)
     
     # Ensure no exception is raised and fallback paint branch is fully executed
     widget.render(render_img)
 
 
 def test_bfn_preview_widget_paint_event_missing_glyph_fallback(qapp):
-    from PyQt5.QtGui import QImage
+    from PyQt6.QtGui import QImage
     
     # Setup mocks for a valid BFN font but missing glyph for specific character
     mw_mock = MagicMock()
@@ -306,7 +306,7 @@ def test_bfn_preview_widget_paint_event_missing_glyph_fallback(qapp):
         "packets": [{"kerning": 0, "width": 12} for _ in range(128)]
     }]
     
-    sheet = QImage(128, 128, QImage.Format_ARGB32)
+    sheet = QImage(128, 128, QImage.Format.Format_ARGB32)
     bfn_mock.get_sheets_qimages.return_value = [sheet]
     mw_mock.all_bfn_fonts = {"test.bfn": bfn_mock}
     
@@ -316,15 +316,15 @@ def test_bfn_preview_widget_paint_event_missing_glyph_fallback(qapp):
     # "Hello" -> found in ASCII. "Ф" -> not in ASCII map, triggers fallback
     widget.update_preview_text("HelloФ")
     
-    render_img = QImage(200, 100, QImage.Format_ARGB32)
-    render_img.fill(0)
+    render_img = QImage(200, 100, QImage.Format.Format_ARGB32)
+    render_img.fill(Qt.GlobalColor.black if hasattr(Qt, "GlobalColor") else Qt.black)
     
     # Should execute successfully without throwing exceptions
     widget.render(render_img)
 
 
 def test_bfn_preview_widget_with_active_editor_adapter(qapp):
-    from PyQt5.QtGui import QImage
+    from PyQt6.QtGui import QImage
     from ui.components.bfn_preview_widget import BfnEditorAdapter
 
     class DummyBfnEditor:
@@ -352,8 +352,8 @@ def test_bfn_preview_widget_with_active_editor_adapter(qapp):
                 }],
                 "INF1": []
             }
-            self.sheet_images = [QImage(128, 128, QImage.Format_ARGB32)]
-
+            self.sheet_images = [QImage(128, 128, QImage.Format.Format_ARGB32)]
+            
         def isHidden(self):
             return False
 
@@ -375,8 +375,8 @@ def test_bfn_preview_widget_with_active_editor_adapter(qapp):
     widget.text_rect = QRect(10, 10, 200, 100)
     widget.update_preview_text("Test text")
     
-    render_img = QImage(200, 100, QImage.Format_ARGB32)
-    render_img.fill(0)
+    render_img = QImage(200, 100, QImage.Format.Format_ARGB32)
+    render_img.fill(Qt.GlobalColor.black if hasattr(Qt, "GlobalColor") else Qt.black)
     widget.render(render_img)
 
 
@@ -406,7 +406,7 @@ def test_bfn_preview_widget_stem_matching_and_fallback(qapp):
 
 def test_bfn_editor_to_global_preview_cache_sync(qapp):
     from tools.bfn_editor.bfn_io import BfnIoMixin
-    from PyQt5.QtGui import QImage
+    from PyQt6.QtGui import QImage
     
     # Create a mock window class that mixes in BfnIoMixin
     class DummyEditor(BfnIoMixin):
@@ -418,7 +418,7 @@ def test_bfn_editor_to_global_preview_cache_sync(qapp):
                 "WID1": [],
                 "INF1": []
             }
-            self.sheet_images = [QImage(32, 32, QImage.Format_ARGB32)]
+            self.sheet_images = [QImage(32, 32, QImage.Format.Format_ARGB32)]
             self.current_bfn_name = "test_sync_font.bfn"
             self.archive_name = "test_sync_archive.arc"
             
@@ -566,20 +566,20 @@ def test_bfn_preview_widget_visibility_management(qapp):
 
 
 def test_bfn_preview_widget_background_gestures(qapp):
-    from PyQt5.QtGui import QImage
+    from PyQt6.QtGui import QImage
     mw_mock = MagicMock()
     widget = BfnPreviewWidget(mw_mock)
     widget.setGeometry(0, 0, 500, 300)
     
     # Mock loaded image
-    widget.bg_image = QImage(32, 32, QImage.Format_ARGB32)
+    widget.bg_image = QImage(32, 32, QImage.Format.Format_ARGB32)
     widget.bg_scale = 100
     widget.bg_offset_x = 10
     widget.bg_offset_y = 15
     
     # 1. Ctrl + Drag gesture (Scale)
     press_event_ctrl = QMouseEvent(
-        QMouseEvent.MouseButtonPress, QPoint(100, 100), Qt.LeftButton, Qt.LeftButton, Qt.ControlModifier
+        QEvent.Type.MouseButtonPress, QPointF(100, 100), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ControlModifier
     )
     widget.mousePressEvent(press_event_ctrl)
     assert widget.scale_drag_active is True
@@ -587,11 +587,11 @@ def test_bfn_preview_widget_background_gestures(qapp):
     assert widget.drag_start_scale == 100
     
     # Move mouse up by 30px (dy = -30) -> Scale should change by 30% (increase)
-    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(100, 70), Qt.NoButton, Qt.NoButton, Qt.ControlModifier))
+    widget.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, QPointF(100, 70), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.ControlModifier))
     assert widget.bg_scale == 130
     
     # Release Ctrl + Drag
-    widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(100, 70), Qt.LeftButton, Qt.LeftButton, Qt.ControlModifier))
+    widget.mouseReleaseEvent(QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(100, 70), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ControlModifier))
     assert widget.scale_drag_active is False
     assert mw_mock.preview_bg_scale == 130
     mw_mock.settings_manager.save_settings.assert_called()
@@ -601,7 +601,7 @@ def test_bfn_preview_widget_background_gestures(qapp):
     
     # 2. Alt + Drag gesture (Move offset)
     press_event_alt = QMouseEvent(
-        QMouseEvent.MouseButtonPress, QPoint(100, 100), Qt.LeftButton, Qt.LeftButton, Qt.AltModifier
+        QEvent.Type.MouseButtonPress, QPointF(100, 100), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.AltModifier
     )
     widget.mousePressEvent(press_event_alt)
     assert widget.move_bg_drag_active is True
@@ -610,12 +610,12 @@ def test_bfn_preview_widget_background_gestures(qapp):
     assert widget.drag_start_offset_y == 15
     
     # Move mouse by dx = 20px, dy = -10px
-    widget.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(120, 90), Qt.NoButton, Qt.NoButton, Qt.AltModifier))
+    widget.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, QPointF(120, 90), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.AltModifier))
     assert widget.bg_offset_x == 30
     assert widget.bg_offset_y == 5
     
     # Release Alt + Drag
-    widget.mouseReleaseEvent(QMouseEvent(QMouseEvent.MouseButtonRelease, QPoint(120, 90), Qt.LeftButton, Qt.LeftButton, Qt.AltModifier))
+    widget.mouseReleaseEvent(QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(120, 90), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.AltModifier))
     assert widget.move_bg_drag_active is False
     assert mw_mock.preview_bg_offset_x == 30
     assert mw_mock.preview_bg_offset_y == 5
@@ -638,11 +638,11 @@ def test_bfn_preview_widget_hide_background(qapp):
         return action
         
     with patch.object(QMenu, 'addAction', spy_add_action), \
-         patch.object(QMenu, 'exec_') as mock_exec:
+         patch.object(QMenu, 'exec') as mock_exec:
          
          widget.bg_image_path = "some_image.png"
          
-         # Return the dynamically created QAction when exec_ is called
+         # Return the dynamically created QAction when exec is called
          mock_exec.side_effect = lambda *args: actions_created.get("Hide Background")
          
          widget.show_context_menu(QPoint(0, 0))
@@ -673,9 +673,9 @@ def test_bfn_preview_widget_fix_font_scale(qapp):
         return action
         
     with patch.object(QMenu, 'addAction', spy_add_action), \
-         patch.object(QMenu, 'exec_') as mock_exec:
+         patch.object(QMenu, 'exec') as mock_exec:
          
-         # Return the dynamically created QAction when exec_ is called
+         # Return the dynamically created QAction when exec is called
          mock_exec.side_effect = lambda *args: actions_created.get("Fix Font Scale")
          
          widget.show_context_menu(QPoint(0, 0))

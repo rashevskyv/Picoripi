@@ -1,8 +1,8 @@
 # Base class for specialized text review dialogs (Spellcheck, Search, Glossary)
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QSplitter, QDialogButtonBox, QWidget, QApplication)
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QTextCursor, QTextCharFormat, QColor, QFont, QTextBlockFormat
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont, QTextBlockFormat
 from typing import List, Optional
 from utils.logging_utils import log_debug, log_error
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
@@ -64,7 +64,7 @@ class BaseTextReviewDialog(QDialog):
         self.main_layout.addLayout(self.top_nav_layout)
 
         # 2. Main splitter
-        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Left Panel (List)
         self.left_panel = QWidget()
@@ -103,7 +103,7 @@ class BaseTextReviewDialog(QDialog):
         self.main_layout.addWidget(self.splitter)
 
         # 3. Bottom Close button
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Close)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         self.button_box.rejected.connect(self.accept)
         self.main_layout.addWidget(self.button_box)
 
@@ -165,7 +165,7 @@ class BaseTextReviewDialog(QDialog):
             return
 
         # Define colors for alternating rows
-        white_bg = QColor(Qt.white)
+        white_bg = QColor(Qt.GlobalColor.white)
         # Use a slightly darker gray to be more visible (hex #F0F0F0)
         gray_bg = QColor(240, 240, 240)
 
@@ -205,14 +205,14 @@ class BaseTextReviewDialog(QDialog):
 
     def _find_main_window(self):
         """Helper to navigate up to find the QMainWindow."""
-        from PyQt5.QtWidgets import QMainWindow
+        from PyQt6.QtWidgets import QMainWindow
         parent = self.parent()
         while parent:
             if isinstance(parent, QMainWindow):
                 return parent
             parent = parent.parent() if hasattr(parent, 'parent') else None
         
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         for widget in QApplication.topLevelWidgets():
             if isinstance(widget, QMainWindow) and widget.objectName() != '':
                 return widget
@@ -235,9 +235,9 @@ class BaseTextReviewDialog(QDialog):
 
             def apply_focus():
                 if hasattr(main_window, 'edited_text_edit') and main_window.edited_text_edit:
-                    main_window.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                    main_window.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
                 elif hasattr(main_window, 'original_text_edit') and main_window.original_text_edit:
-                    main_window.original_text_edit.setFocus(Qt.OtherFocusReason)
+                    main_window.original_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
                 main_window.raise_()
                 main_window.activateWindow()
 
@@ -260,7 +260,7 @@ class BaseTextReviewDialog(QDialog):
                 if string_number is not None:
                     self._navigate_to_string_in_main_window(string_number)
 
-        from PyQt5.QtWidgets import QPlainTextEdit
+        from PyQt6.QtWidgets import QPlainTextEdit
         QPlainTextEdit.mouseDoubleClickEvent(self.text_edit, event)
 
     def go_to_previous_item(self):

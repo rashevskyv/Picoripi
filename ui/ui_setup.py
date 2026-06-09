@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QIcon
+from PyQt6.QtGui import QIcon
 from pathlib import Path
 from ui.builders.layout_builder import LayoutBuilder
 from ui.builders.statusbar_builder import StatusBarBuilder

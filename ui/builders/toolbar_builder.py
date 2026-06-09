@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QToolBar, QAction, QStyle, QWidget, QSizePolicy
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
+from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 
 class ToolBarBuilder:
     def __init__(self, main_window):
@@ -12,7 +13,7 @@ class ToolBarBuilder:
         self.mw.addToolBar(self.mw.main_toolbar)
         self.mw.main_toolbar.setIconSize(QSize(24, 24))
 
-        self.mw.open_ai_chat_action = QAction(self.style.standardIcon(QStyle.SP_DialogHelpButton), 'Open AI Chat', self.mw)
+        self.mw.open_ai_chat_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), 'Open AI Chat', self.mw)
         self.mw.open_ai_chat_action.setToolTip("Open a chat window to discuss translations with AI (Ctrl+Shift+C)")
         self.mw.open_ai_chat_action.setShortcut('Ctrl+Shift+C')
 
@@ -34,13 +35,13 @@ class ToolBarBuilder:
         
         # Create a dynamic beautiful icon for External Script with '>_'
         pixmap_cmd = QPixmap(32, 32)
-        pixmap_cmd.fill(Qt.transparent)
+        pixmap_cmd.fill(Qt.GlobalColor.transparent)
         painter_cmd = QPainter(pixmap_cmd)
-        painter_cmd.setRenderHint(QPainter.Antialiasing, True)
+        painter_cmd.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter_cmd.setPen(QColor("#0078d7"))
-        font_cmd = QFont("Courier New", 18, QFont.Bold)
+        font_cmd = QFont("Courier New", 18, QFont.Weight.Bold)
         painter_cmd.setFont(font_cmd)
-        painter_cmd.drawText(pixmap_cmd.rect(), Qt.AlignCenter, ">_")
+        painter_cmd.drawText(pixmap_cmd.rect(), Qt.AlignmentFlag.AlignCenter, ">_")
         painter_cmd.end()
         cmd_icon = QIcon(pixmap_cmd)
 
@@ -49,7 +50,7 @@ class ToolBarBuilder:
         
         # Push Help and Script to the far right
         toolbar_spacer = QWidget()
-        toolbar_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.mw.main_toolbar.addWidget(toolbar_spacer)
         
         self.mw.main_toolbar.addAction(self.mw.run_external_script_action)

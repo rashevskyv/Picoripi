@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Callable, Dict, Iterable, List, Optional, Sequence
 
-from PyQt5.QtCore import QPoint, Qt, QRectF
-from PyQt5.QtGui import QColor, QPainter, QPen
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import QPoint, Qt, QRectF
+from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QGraphicsRectItem,
@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QAbstractItemView,
 )
 
 from utils.utils import calculate_string_width, DEFAULT_CHAR_WIDTH_FALLBACK
@@ -42,9 +43,9 @@ class _AnalysisBarView(QGraphicsView):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setRenderHint(QPainter.Antialiasing, True)
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setDragMode(QGraphicsView.NoDrag)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self._scene = QGraphicsScene(self)
         self.setScene(self._scene)
         self._panning = False
@@ -66,7 +67,7 @@ class _AnalysisBarView(QGraphicsView):
             self._panning = True
             self._pan_start = event.pos()
             self._user_scaled = True
-            self.setCursor(Qt.ClosedHandCursor)
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
             event.accept()
             return
         super().mousePressEvent(event)
@@ -83,7 +84,7 @@ class _AnalysisBarView(QGraphicsView):
     def mouseReleaseEvent(self, event) -> None:  # noqa: D401
         if event.button() == Qt.MiddleButton and self._panning:
             self._panning = False
-            self.setCursor(Qt.ArrowCursor)
+            self.setCursor(Qt.CursorShape.ArrowCursor)
             event.accept()
             return
         if event.button() == Qt.LeftButton and not self._panning:
@@ -193,7 +194,7 @@ class _AnalysisBarView(QGraphicsView):
                 rect.width() + margin * 2,
                 rect.height() + margin * 2,
             )
-        self.fitInView(rect, Qt.KeepAspectRatio)
+        self.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
 
 
 class OriginalTextAnalysisDialog(QDialog):
@@ -219,7 +220,7 @@ class OriginalTextAnalysisDialog(QDialog):
         layout.addWidget(self._chart_stack)
 
         self._summary_label = QLabel("Ready")
-        self._summary_label.setAlignment(Qt.AlignCenter)
+        self._summary_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._summary_label)
 
         self._table_stack = QStackedWidget(self)
@@ -232,7 +233,7 @@ class OriginalTextAnalysisDialog(QDialog):
         self._hint_label = QLabel(
             "Scroll: zoom, Middle: pan; Hover for details. Click on bar/row to sync."
         )
-        self._hint_label.setAlignment(Qt.AlignCenter)
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._hint_label)
 
         self._font_combo.currentTextChanged.connect(self._on_font_changed)
@@ -374,12 +375,12 @@ class OriginalTextAnalysisDialog(QDialog):
         table = QTableWidget(self)
         table.setColumnCount(6)
         table.setHorizontalHeaderLabels(["#", "Width (px)", "Block", "String", "Line", "Text"])
-        table.setSelectionBehavior(QTableWidget.SelectRows)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setAlternatingRowColors(True)
         h = table.horizontalHeader()
-        for i in range(5): h.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-        h.setSectionResizeMode(5, QHeaderView.Stretch)
+        for i in range(5): h.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
 
         # Connect signals
         chart_view.on_bar_selected = lambda idx, t=table, cv=chart_view: self._handle_bar_selected_for_table(idx, t, cv)
@@ -395,7 +396,7 @@ class OriginalTextAnalysisDialog(QDialog):
                     str(entry.get('string_idx','-')), str(entry.get('line_idx','-')), entry.get('text','')]
             for col, val in enumerate(vals):
                 item = QTableWidgetItem(val)
-                if col == 1: item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                if col == 1: item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 table.setItem(row, col, item)
         table.setUpdatesEnabled(True)
 

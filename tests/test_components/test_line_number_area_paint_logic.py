@@ -1,14 +1,14 @@
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtGui import QPainter, QColor, QPaintEvent
-from PyQt5.QtCore import QRect, Qt
+from PyQt6.QtGui import QPainter, QColor, QPaintEvent
+from PyQt6.QtCore import QRect, Qt
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.editor.line_number_area_paint_logic import LNETLineNumberAreaPaintLogic
 
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtGui import QPainter, QColor
-from PyQt5.QtCore import QRect, Qt
+from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtCore import QRect, Qt
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.editor.line_number_area_paint_logic import LNETLineNumberAreaPaintLogic
 
@@ -29,7 +29,7 @@ class MockPainterRecorder:
     def fontMetrics(self): return MagicMock()
 
 def test_paint_preview_warning_stripes(monkeypatch):
-    from PyQt5.QtWidgets import QMainWindow
+    from PyQt6.QtWidgets import QMainWindow
     editor = LineNumberedTextEdit(parent=None)
     editor.setObjectName("preview_text_edit")
     editor.setPlainText("Line 1")
@@ -49,7 +49,7 @@ def test_paint_preview_warning_stripes(monkeypatch):
     
     mock_rules = MagicMock()
     mock_rules.get_problem_definitions.return_value = {
-        "dummy_problem_id": {"priority": 1, "color": Qt.red}
+        "dummy_problem_id": {"priority": 1, "color": Qt.GlobalColor.red}
     }
     mock_mw.current_game_rules = mock_rules
     mock_mw.detection_enabled = {"dummy_problem_id": True}
@@ -69,7 +69,7 @@ def test_paint_preview_warning_stripes(monkeypatch):
     # Verify that a red stripe (QColor(Qt.red) with alpha 220) was drawn
     found_red_stripe = False
     for rect, color in recorder.rects_filled:
-        if isinstance(color, QColor) and color.name() == QColor(Qt.red).name() and color.alpha() == 220:
+        if isinstance(color, QColor) and color.name() == QColor(Qt.GlobalColor.red).name() and color.alpha() == 220:
             found_red_stripe = True
             break
             

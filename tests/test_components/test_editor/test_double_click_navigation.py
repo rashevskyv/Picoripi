@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from PyQt5.QtGui import QMouseEvent
-from PyQt5.QtCore import Qt, QPoint
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt6.QtGui import QMouseEvent
+from PyQt6.QtCore import Qt, QPoint, QPointF, QEvent
 
 from components.editor.line_number_area import LineNumberArea
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
@@ -25,11 +25,11 @@ def test_line_number_area_double_click(app):
     
     # Simulate double click
     event = QMouseEvent(
-        QMouseEvent.MouseButtonDblClick,
-        QPoint(5, 10),
-        Qt.LeftButton,
-        Qt.LeftButton,
-        Qt.NoModifier
+        QEvent.Type.MouseButtonDblClick,
+        QPointF(5.0, 10.0),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier
     )
     
     area.mouseDoubleClickEvent(event)
@@ -83,7 +83,7 @@ def test_scroll_to_current_string_in_preview_logic(app):
     # Initialize handler
     handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
     
-    with patch("PyQt5.QtCore.QTimer.singleShot") as mock_timer, \
+    with patch("PyQt6.QtCore.QTimer.singleShot") as mock_timer, \
          patch("handlers.list_selection_handler.QTextCursor") as mock_cursor_class:
         
         mock_cursor = MagicMock()

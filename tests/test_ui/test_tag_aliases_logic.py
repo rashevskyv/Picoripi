@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 from plugins.base_game_rules import BaseGameRules
 from handlers.text_operation_handler import TextOperationHandler
 from core.data_state_processor import DataStateProcessor
@@ -65,7 +65,7 @@ def test_text_views_shows_alias_instead_of_tag(mock_mw):
     assert data_text == original_text
 
 
-@patch('ui.main_window.main_window_actions.QMessageBox.question', return_value=QMessageBox.Yes)
+@patch('ui.main_window.main_window_actions.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes)
 def test_remove_tag_alias_replaces_alias_with_tag_in_edited_data(mock_question, mock_mw):
     # Setup default mappings and actual window actions
     mock_mw.default_tag_mappings = {"{OldAlias}": "{OldTag}"}
@@ -96,7 +96,7 @@ def test_remove_tag_alias_replaces_alias_with_tag_in_edited_data(mock_question, 
 @patch('ui.main_window.main_window_actions.TagAliasDialog')
 def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, mock_mw):
     mock_dialog = MagicMock()
-    mock_dialog.exec_.return_value = 1  # QDialog.Accepted
+    mock_dialog.exec.return_value = 1  # QDialog.Accepted
     mock_dialog.get_data.return_value = ("{NewAlias}", None)
     mock_dialog_class.return_value = mock_dialog
 
@@ -130,7 +130,7 @@ def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, moc
 
 def test_tag_alias_dialog_focus_and_return_pressed(qtbot):
     from ui.main_window.main_window_actions import TagAliasDialog
-    from PyQt5.QtWidgets import QDialog
+    from PyQt6.QtWidgets import QDialog
 
     dialog = TagAliasDialog(
         parent=None,

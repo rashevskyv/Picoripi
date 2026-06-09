@@ -1,7 +1,7 @@
 import re
 from typing import List, Set, Tuple, Optional
-from PyQt5.QtGui import QTextCharFormat, QColor, QFont
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QTextCharFormat, QColor, QFont
+from PyQt6.QtCore import Qt
 
 class GenericTagManager:
     def __init__(self, main_window_ref=None):
@@ -46,13 +46,13 @@ class GenericTagManager:
         is_underline = getattr(self.mw, 'tag_underline', False)
         
         for fmt in [self.curly_tag_format, self.bracket_tag_format]:
-            fmt.setFontWeight(QFont.Bold if is_bold else QFont.Normal)
+            fmt.setFontWeight(QFont.Weight.Bold.value if is_bold else QFont.Weight.Normal.value)
             fmt.setFontItalic(is_italic)
             fmt.setFontUnderline(is_underline)
 
         self.newline_symbol_format = QTextCharFormat()
         self.newline_symbol_format.setForeground(newline_color)
-        self.newline_symbol_format.setFontWeight(QFont.Bold if getattr(self.mw, 'newline_bold', True) else QFont.Normal)
+        self.newline_symbol_format.setFontWeight(QFont.Weight.Bold.value if getattr(self.mw, 'newline_bold', True) else QFont.Weight.Normal.value)
         self.newline_symbol_format.setFontItalic(getattr(self.mw, 'newline_italic', False))
         self.newline_symbol_format.setFontUnderline(getattr(self.mw, 'newline_underline', False))
 

@@ -1,7 +1,7 @@
 # Dialog for interactive searching and replacing of text in a block
-from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QApplication)
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QTextCursor, QTextCharFormat, QColor
+from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QApplication)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor
 from typing import List, Tuple
 import re
 from utils.logging_utils import log_debug, log_error
@@ -152,7 +152,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
         layout.addWidget(self.matches_list)
 
     def setup_right_panel(self, layout: QVBoxLayout):
-        from PyQt5.QtWidgets import QCheckBox, QHBoxLayout
+        from PyQt6.QtWidgets import QCheckBox, QHBoxLayout
         layout.addWidget(QLabel("Find:"))
         self.find_input = QLineEdit()
         self.find_input.setText(self.query)
@@ -307,9 +307,9 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def pre_highlight_all_matches(self):
         """Highlight all matches with a light green background."""
         cursor = self.text_edit.textCursor()
-        cursor.select(QTextCursor.Document)
+        cursor.select(QTextCursor.SelectionType.Document)
         clear_format = QTextCharFormat()
-        clear_format.setBackground(Qt.transparent)
+        clear_format.setBackground(Qt.GlobalColor.transparent)
         cursor.mergeCharFormat(clear_format)
 
         match_format = QTextCharFormat()
@@ -317,7 +317,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         for start, end, word, line_idx in self.items_to_review:
             cursor.setPosition(start)
-            cursor.setPosition(end, QTextCursor.KeepAnchor)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
             cursor.mergeCharFormat(match_format)
 
         self.matches_list.clear()
@@ -372,7 +372,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         cursor = self.text_edit.textCursor()
         cursor.setPosition(start)
-        cursor.setPosition(end, QTextCursor.KeepAnchor)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
 
         fmt = QTextCharFormat()
         fmt.setBackground(QColor("#FFFF00")) # Yellow highlight for active
@@ -391,7 +391,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
             start, end, _, _ = self.items_to_review[self.current_item_index]
             cursor = self.text_edit.textCursor()
             cursor.setPosition(start)
-            cursor.setPosition(end, QTextCursor.KeepAnchor)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
             fmt = QTextCharFormat()
             fmt.setBackground(QColor(144, 238, 144, 100)) # Light green back
             cursor.mergeCharFormat(fmt)
@@ -405,12 +405,12 @@ class SearchReviewDialog(BaseTextReviewDialog):
             return
 
         if main_window.data_store.current_block_idx != block_idx:
-            from PyQt5.QtWidgets import QTreeWidgetItemIterator
+            from PyQt6.QtWidgets import QTreeWidgetItemIterator
             iterator = QTreeWidgetItemIterator(main_window.block_list_widget)
             found_item = None
             while iterator.value():
                 item = iterator.value()
-                if item.data(0, Qt.UserRole) == block_idx and item.data(0, Qt.UserRole + 10) is None:
+                if item.data(0, Qt.ItemDataRole.UserRole) == block_idx and item.data(0, Qt.ItemDataRole.UserRole + 10) is None:
                     found_item = item
                     break
                 iterator += 1
@@ -423,9 +423,9 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         def apply_focus():
             if hasattr(main_window, 'edited_text_edit') and main_window.edited_text_edit:
-                main_window.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                main_window.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
             elif hasattr(main_window, 'original_text_edit') and main_window.original_text_edit:
-                main_window.original_text_edit.setFocus(Qt.OtherFocusReason)
+                main_window.original_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
             main_window.raise_()
             main_window.activateWindow()
 
@@ -518,7 +518,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
                     b_idx = self.block_indices[target_block_number] if (hasattr(self, 'block_indices') and self.block_indices and target_block_number < len(self.block_indices)) else self.block_idx
                     self._navigate_to_block_and_string(b_idx, string_number)
 
-        from PyQt5.QtWidgets import QPlainTextEdit
+        from PyQt6.QtWidgets import QPlainTextEdit
         QPlainTextEdit.mouseDoubleClickEvent(self.text_edit, event)
 
     def perform_search(self):

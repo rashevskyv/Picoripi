@@ -1,5 +1,5 @@
-from PyQt5.QtGui import QColor, QTextCharFormat, QFont
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QColor, QTextCharFormat, QFont
+from PyQt6.QtCore import Qt
 from typing import Optional, Set, Dict, Any, Tuple, List
 import re
 import json

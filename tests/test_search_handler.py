@@ -42,7 +42,7 @@ class TestSearchHandler(unittest.TestCase):
         self.patcher_cursor = patch('handlers.search_handler.QTextCursor')
         self.patcher_cursor.start()
         
-        self.patcher_tree_iter = patch('PyQt5.QtWidgets.QTreeWidgetItemIterator')
+        self.patcher_tree_iter = patch('PyQt6.QtWidgets.QTreeWidgetItemIterator')
         mock_tree_iter_cls = self.patcher_tree_iter.start()
         mock_tree_iter_cls.return_value.value.return_value = None
 

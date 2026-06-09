@@ -162,11 +162,11 @@ def test_save_current_edits_native_packing_exceeds_size():
          assert result is True
          # QMessageBox warning popup must be triggered
          mock_qmessagebox.assert_called_once_with(mw)
-         mock_msg_box_instance.setIcon.assert_called_once_with(mock_qmessagebox.Warning)
+         mock_msg_box_instance.setIcon.assert_called_once_with(mock_qmessagebox.Icon.Warning)
          mock_msg_box_instance.setWindowTitle.assert_called_once_with("Archive Size Warning")
          mock_msg_box_instance.setText.assert_called_once()
          text_arg = mock_msg_box_instance.setText.call_args[0][0]
          assert "exceeds the original archive size" in text_arg
          mock_qcheckbox.assert_called_once_with("Do not show this warning in the future", mock_msg_box_instance)
          mock_msg_box_instance.setCheckBox.assert_called_once_with(mock_cb_instance)
-         mock_msg_box_instance.exec_.assert_called_once()
+         mock_msg_box_instance.exec.assert_called_once()

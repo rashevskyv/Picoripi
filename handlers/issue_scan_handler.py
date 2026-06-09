@@ -1,8 +1,8 @@
 # handlers/issue_scan_handler.py
 import json
 from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox, QProgressDialog
-from PyQt5.QtCore import QTimer, Qt
+from PyQt6.QtWidgets import QMessageBox, QProgressDialog
+from PyQt6.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug, log_error
 from utils.constants import APP_VERSION
@@ -145,10 +145,10 @@ class IssueScanHandler(BaseHandler):
     _SCAN_BATCH_SIZE = 5   # blocks per timer tick
 
     def _show_scan_progress_dialog(self, pending_scan_indices: list):
-        from PyQt5.QtWidgets import QWidget
+        from PyQt6.QtWidgets import QWidget
         parent_widget = self.mw if isinstance(self.mw, QWidget) else None
         self._progress_dialog = QProgressDialog("Please wait, calculating issues...", "Cancel", 0, len(pending_scan_indices), parent_widget)
-        self._progress_dialog.setWindowModality(Qt.WindowModal)
+        self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         self._progress_dialog.setMinimumDuration(0)
         self._progress_dialog.setValue(0)
         
@@ -161,7 +161,7 @@ class IssueScanHandler(BaseHandler):
         self._scan_timer.setSingleShot(True)
         self._scan_timer.timeout.connect(self._scan_next_batch)
         
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
         delay = 0 if is_test else 30
         self._scan_timer.start(delay)
@@ -266,7 +266,7 @@ class IssueScanHandler(BaseHandler):
             self._scan_timer.setSingleShot(True)
             self._scan_timer.timeout.connect(self._scan_next_batch)
             
-            from PyQt5.QtWidgets import QApplication
+            from PyQt6.QtWidgets import QApplication
             is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
             delay = 0 if is_test else 30
             self._scan_timer.start(delay)

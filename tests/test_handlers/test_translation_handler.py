@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch, ANY
 import json
-from PyQt5.QtWidgets import QMessageBox, QDialog
-from PyQt5.QtCore import QPoint
+from PyQt6.QtWidgets import QMessageBox, QDialog
+from PyQt6.QtCore import QPoint
 
 from handlers.translation_handler import TranslationHandler
 from core.translation.providers import ProviderResponse
@@ -101,11 +101,11 @@ def test_th_maybe_edit_prompt(mock_app, mock_dialog, th):
     
     th.mw.prompt_editor_enabled = True
     d = mock_dialog.return_value
-    d.exec_.return_value = QDialog.Rejected
-    d.Accepted = QDialog.Accepted
+    d.exec.return_value = QDialog.DialogCode.Rejected
+    d.Accepted = QDialog.DialogCode.Accepted
     assert th._maybe_edit_prompt(title="T", system_prompt="s", user_prompt="u") is None
     
-    d.exec_.return_value = QDialog.Accepted
+    d.exec.return_value = QDialog.DialogCode.Accepted
     d.get_user_inputs.return_value = ("ns", "nu", True)
     
     th.glossary_handler._current_prompts_path = "path"
@@ -151,10 +151,10 @@ def test_th_prompt_for_revert_after_cancel(mock_box, th):
     th.prompt_for_revert_after_cancel()
     th.ui_handler.finish_ai_operation.assert_called_once()
     
-    # Revert chosen (which is QMessageBox.No)
+    # Revert chosen (which is QMessageBox.StandardButton.No)
     th.ui_handler.reset_mock()
     th.pre_translation_state = {1: ["orig1", "orig2"]}
-    mock_box.question.return_value = mock_box.No
+    mock_box.question.return_value = mock_box.StandardButton.No
     th.prompt_for_revert_after_cancel()
     
     th.data_processor.update_edited_data.assert_any_call(1, 0, "orig1")
@@ -162,10 +162,10 @@ def test_th_prompt_for_revert_after_cancel(mock_box, th):
     assert 1 not in th.pre_translation_state
     th.ui_updater.populate_strings_for_block.assert_called_with(1, ANY, force=True)
     
-    # No revert chosen (which is QMessageBox.Yes)
+    # No revert chosen (which is QMessageBox.StandardButton.Yes)
     th.ui_handler.reset_mock()
     th.pre_translation_state = {1: ["orig"]}
-    mock_box.question.return_value = mock_box.Yes
+    mock_box.question.return_value = mock_box.StandardButton.Yes
     th.prompt_for_revert_after_cancel()
     assert 1 not in th.pre_translation_state
     th.ui_handler.finish_ai_operation.assert_called_once()
@@ -183,8 +183,8 @@ def test_th_prompt_for_revert_after_cancel_chapter(mock_box, th):
         -2: True
     }
     
-    # Revert chosen (QMessageBox.No)
-    mock_box.question.return_value = mock_box.No
+    # Revert chosen (QMessageBox.StandardButton.No)
+    mock_box.question.return_value = mock_box.StandardButton.No
     th.prompt_for_revert_after_cancel()
     
     th.data_processor.update_edited_data.assert_any_call(0, 0, "orig0_0")
@@ -416,7 +416,7 @@ def test_translate_all_blocks_chronologically_resume_yes(mock_box, th):
         }
     }
     
-    mock_box.question.return_value = mock_box.Yes
+    mock_box.question.return_value = mock_box.StandardButton.Yes
     provider = MagicMock()
     th.ai_lifecycle_manager._prepare_provider.return_value = provider
     
@@ -443,7 +443,7 @@ def test_translate_all_blocks_chronologically_resume_no(mock_box, th):
         }
     }
     
-    mock_box.question.return_value = mock_box.No
+    mock_box.question.return_value = mock_box.StandardButton.No
     provider = MagicMock()
     th.ai_lifecycle_manager._prepare_provider.return_value = provider
     th.glossary_handler._get_original_block.return_value = ["s1"]

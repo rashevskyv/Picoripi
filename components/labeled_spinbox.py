@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QSizePolicy
-from PyQt5.QtGui import QFontMetrics
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QSizePolicy
+from PyQt6.QtGui import QFontMetrics
 
 class LabeledSpinBox(QWidget):
     def __init__(self, label_text: str, min_val: int, max_val: int, initial_val: int, tooltip: str = "", parent=None):

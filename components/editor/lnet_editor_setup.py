@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QMainWindow, QPushButton, QMenu
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QPushButton, QMenu
+from PyQt6.QtGui import QColor
+from PyQt6.QtCore import Qt
 
 from .constants import (
     LT_CURRENT_LINE_COLOR, LT_LINKED_CURSOR_BLOCK_COLOR, LT_PREVIEW_SELECTED_LINE_COLOR, LT_PREVIOUSLY_SELECTED_LINE_COLOR,
@@ -37,9 +37,9 @@ def set_theme_colors(editor, main_window_ref):
         editor.previously_selected_line_color = LT_PREVIOUSLY_SELECTED_LINE_COLOR
         editor.zebra_even_color = LT_ZEBRA_EVEN_COLOR
         editor.zebra_odd_color = LT_ZEBRA_ODD_COLOR
-        editor.lineNumberArea.odd_line_background = QColor(Qt.lightGray).lighter(115)
-        editor.lineNumberArea.even_line_background = QColor(Qt.white)
-        editor.lineNumberArea.number_color = QColor(Qt.darkGray)
+        editor.lineNumberArea.odd_line_background = QColor(Qt.GlobalColor.lightGray).lighter(115)
+        editor.lineNumberArea.even_line_background = QColor(Qt.GlobalColor.white)
+        editor.lineNumberArea.number_color = QColor(Qt.GlobalColor.darkGray)
 
     editor.linked_cursor_pos_color = LINKED_CURSOR_POS_COLOR
     editor.tag_interaction_highlight_color = TAG_INTERACTION_HIGHLIGHT_COLOR

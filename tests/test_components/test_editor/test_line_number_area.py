@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPlainTextEdit
-from PyQt5.QtGui import QImage, QPaintEvent
-from PyQt5.QtCore import QRect, Qt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPlainTextEdit
+from PyQt6.QtGui import QImage, QPaintEvent
+from PyQt6.QtCore import QRect, Qt
 
 from components.editor.line_number_area_paint_logic import LNETLineNumberAreaPaintLogic
 
@@ -46,9 +46,9 @@ def editor_setup(mw_with_problems):
     editor.pixel_width_display_area_width = 0
 
     editor.lineNumberArea = MagicMock()
-    editor.lineNumberArea.odd_line_background = Qt.white
-    editor.lineNumberArea.even_line_background = Qt.lightGray
-    editor.lineNumberArea.number_color = Qt.black
+    editor.lineNumberArea.odd_line_background = Qt.GlobalColor.white
+    editor.lineNumberArea.even_line_background = Qt.GlobalColor.lightGray
+    editor.lineNumberArea.number_color = Qt.GlobalColor.black
     editor.lineNumberArea.preview_indicator_width = 4
     editor.lineNumberArea.preview_indicator_spacing = 2
 
@@ -60,7 +60,7 @@ def editor_setup(mw_with_problems):
 def test_no_attribute_error_on_paint(editor_setup):
     """Basic: no AttributeError when painting."""
     logic, editor, mw = editor_setup
-    image = QImage(100, 100, QImage.Format_ARGB32)
+    image = QImage(100, 100, QImage.Format.Format_ARGB32)
     event = QPaintEvent(QRect(0, 0, 100, 100))
     try:
         logic.execute_paint_event(event, image)
@@ -95,10 +95,10 @@ def test_problems_per_subline_is_read_from_data_store(editor_setup):
     # Patch QPainter.fillRect to track if a problem background color was ever painted
     filled_rects = []
 
-    image = QImage(200, 100, QImage.Format_ARGB32)
+    image = QImage(200, 100, QImage.Format.Format_ARGB32)
     event = QPaintEvent(QRect(0, 0, 200, 100))
 
-    from PyQt5.QtGui import QPainter, QColor
+    from PyQt6.QtGui import QPainter, QColor
     original_fill = QPainter.fillRect
 
     def tracking_fill(self_, *args):
@@ -140,10 +140,10 @@ def test_problems_splitted_painting(editor_setup):
     
     filled_colors = []
     
-    image = QImage(200, 100, QImage.Format_ARGB32)
+    image = QImage(200, 100, QImage.Format.Format_ARGB32)
     event = QPaintEvent(QRect(0, 0, 200, 100))
     
-    from PyQt5.QtGui import QPainter, QColor
+    from PyQt6.QtGui import QPainter, QColor
     original_fill = QPainter.fillRect
     
     def tracking_fill(self_, *args):

@@ -53,7 +53,7 @@ def test_IssueScanHandler_initial_silent_scan(handler, mock_mw, qapp):
         qapp.processEvents()
         mock_scan.assert_called_with(0)
 
-@patch('PyQt5.QtWidgets.QMessageBox.information')
+@patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_IssueScanHandler_rescan_issues_for_single_block(mock_msg, handler, mock_mw):
     mock_mw.current_block_idx = 0
     with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:
@@ -61,7 +61,7 @@ def test_IssueScanHandler_rescan_issues_for_single_block(mock_msg, handler, mock
         mock_scan.assert_called_with(0)
         handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
 
-@patch('PyQt5.QtWidgets.QMessageBox.information')
+@patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_IssueScanHandler_rescan_all_tags(mock_msg, handler, mock_mw, qapp):
     mock_mw.data_processor.get_current_string_text.return_value = ("test", False)
     with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, call, patch
-from PyQt5.QtGui import QColor, QTextDocument, QFont, QTextCharFormat, QPen
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QColor, QTextDocument, QFont, QTextCharFormat, QPen
+from PyQt6.QtCore import Qt
 from utils.syntax_highlighter import JsonTagHighlighter
 from core.glossary_manager import GlossaryMatch
 
@@ -78,13 +78,13 @@ def test_JsonTagHighlighter_apply_css_to_format(highlighter):
     hl._apply_css_to_format(fmt, "color: #FF0000; background-color: #00FF00; font-weight: bold; font-style: italic; text-decoration: underline")
     assert fmt.foreground().color().name().upper() == "#FF0000"
     assert fmt.background().color().name().upper() == "#00FF00"
-    assert fmt.fontWeight() == QFont.Bold
+    assert fmt.fontWeight() == QFont.Weight.Bold.value
     assert fmt.fontItalic() is True
     assert fmt.fontUnderline() is True
     
     # test normal and default values
     hl._apply_css_to_format(fmt, "font-weight: normal; font-style: normal; text-decoration: none", base_color=QColor("blue"))
-    assert fmt.fontWeight() == QFont.Normal
+    assert fmt.fontWeight() == QFont.Weight.Normal.value
     assert fmt.fontItalic() is False
     assert fmt.fontUnderline() is False
     assert fmt.foreground().color().name().upper() == "#0000FF"
@@ -310,7 +310,7 @@ def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
     formats = block.layout().formats()
     underlined_formats = [f for f in formats if f.format.fontUnderline()]
     assert len(underlined_formats) >= 1
-    assert any(f.format.underlineStyle() == 1 for f in underlined_formats)
+    assert any(f.format.underlineStyle() == QTextCharFormat.UnderlineStyle.SingleUnderline for f in underlined_formats)
     
     # 3. Simulate second setPlainText to verify cache revision invalidation works flawlessly
     edited_edit.setPlainText("Великий Замок стоїть")
@@ -325,7 +325,7 @@ def test_translation_glossary_underlining_lifecycle(qapp, mock_mw):
     formats = block.layout().formats()
     underlined_formats = [f for f in formats if f.format.fontUnderline()]
     assert len(underlined_formats) >= 1
-    assert any(f.format.underlineStyle() == 1 for f in underlined_formats)
+    assert any(f.format.underlineStyle() == QTextCharFormat.UnderlineStyle.SingleUnderline for f in underlined_formats)
     
     # 4. Simulate typing mode (typing bypasses synchronous highlights)
     edited_edit.highlighter.set_typing_mode(True)

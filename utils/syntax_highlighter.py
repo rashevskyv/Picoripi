@@ -1,8 +1,8 @@
 import sys
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
-from PyQt5.QtCore import QRegExp, Qt
-from PyQt5.QtGui import (
+from PyQt6.QtCore import QRegularExpression, Qt
+from PyQt6.QtGui import (
     QSyntaxHighlighter,
     QTextBlockUserData,
     QTextCharFormat,
@@ -12,7 +12,7 @@ from PyQt5.QtGui import (
     QTextDocument,
     QPalette,
 )
-from PyQt5.QtWidgets import QWidget, QMainWindow
+from PyQt6.QtWidgets import QWidget, QMainWindow
 
 from .logging_utils import log_debug
 from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN, get_tag_width
@@ -79,8 +79,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Translation Glossary Bridge
         self._is_translation_mode = False
         self._source_editor_ref = None
-
-        self.default_text_color = QColor(Qt.black)
+        self.default_text_color = QColor(Qt.GlobalColor.black)
         
         current_theme = getattr(self.mw, 'theme', 'auto')
         if current_theme == 'dark':
@@ -88,7 +87,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         else:
             editor_widget = parent.parent() if parent else None
             if editor_widget and isinstance(editor_widget, QWidget) and hasattr(editor_widget, 'palette'):
-                self.default_text_color = editor_widget.palette().color(QPalette.Text)
+                self.default_text_color = editor_widget.palette().color(QPalette.ColorRole.Text)
 
         self.custom_rules = []
         self._compiled_custom_rules_all = []
@@ -202,8 +201,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         if key == 'color': char_format.setForeground(color)
                         else: char_format.setBackground(color)
                 elif key == 'font-weight':
-                    if value == 'bold': char_format.setFontWeight(QFont.Bold)
-                    elif value == 'normal': char_format.setFontWeight(QFont.Normal)
+                    if value == 'bold': char_format.setFontWeight(QFont.Weight.Bold.value)
+                    elif value == 'normal': char_format.setFontWeight(QFont.Weight.Normal.value)
                     else: char_format.setFontWeight(int(value))
                 elif key == 'font-style':
                     if value == 'italic': char_format.setFontItalic(True)
@@ -219,7 +218,6 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                            show_multiple_spaces_as_dots=True,
                            space_dot_color_hex="#BBBBBB",
                            bracket_tag_color_hex="#FF8C00"):
-        
         doc = self.document()
         editor_widget = doc.parent() if doc else None
         
@@ -230,9 +228,9 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             self.default_text_color = QColor("#E0E0E0")
         else:
             if editor_widget and hasattr(editor_widget, 'palette'):
-                self.default_text_color = editor_widget.palette().color(QPalette.Text)
+                self.default_text_color = editor_widget.palette().color(QPalette.ColorRole.Text)
             else:
-                 self.default_text_color = QColor(Qt.black)
+                 self.default_text_color = QColor(Qt.GlobalColor.black)
         
         self.color_default_format.setForeground(self.default_text_color)
         
@@ -252,11 +250,11 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self.hide_tag_format.setFontPointSize(0.1)
         
         font = self.hide_tag_format.font()
-        font.setLetterSpacing(QFont.PercentageSpacing, 1.0)
+        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 1.0)
         font.setStretch(1)
         self.hide_tag_format.setFont(font)
-        self.hide_tag_format.setForeground(QColor(Qt.transparent))
-        self.hide_tag_format.setFontWeight(QFont.Normal)
+        self.hide_tag_format.setForeground(QColor(Qt.GlobalColor.transparent))
+        self.hide_tag_format.setFontWeight(QFont.Weight.Normal.value)
         self.hide_tag_format.setFontItalic(False)
         self.hide_tag_format.setFontUnderline(False)
         
@@ -264,9 +262,9 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self._apply_css_to_format(self.literal_newline_format, "color: red; font-weight: bold;")
         
         self.p_marker_format.setForeground(QColor("green"))
-        self.p_marker_format.setFontWeight(QFont.Bold)
+        self.p_marker_format.setFontWeight(QFont.Weight.Bold.value)
         self.l_marker_format.setForeground(QColor("orange"))
-        self.l_marker_format.setFontWeight(QFont.Bold)
+        self.l_marker_format.setFontWeight(QFont.Weight.Bold.value)
 
         self.icon_sequence_format = QTextCharFormat()
         icon_bg = QColor("#C8E6C9")
@@ -275,7 +273,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         except Exception:
             pass
         self.icon_sequence_format.setBackground(icon_bg)
-        self.icon_sequence_format.setFontWeight(QFont.Bold)
+        self.icon_sequence_format.setFontWeight(QFont.Weight.Bold.value)
         
         # Precompile builtin rules
         self._compiled_all_rules_builtin = [
@@ -291,7 +289,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         ]
 
         try: self.space_dot_format.setForeground(QColor(space_dot_color_hex))
-        except Exception: self.space_dot_format.setForeground(QColor(Qt.lightGray))
+        except Exception: self.space_dot_format.setForeground(QColor(Qt.GlobalColor.lightGray))
 
         self.red_text_format.setForeground(QColor("#FF4C4C"))
         self.green_text_format.setForeground(QColor("#4CAF50"))
@@ -316,7 +314,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
         self._glossary_format = QTextCharFormat()
         self._glossary_format.setFontUnderline(True)
-        self._glossary_format.setUnderlineStyle(QTextCharFormat.SingleUnderline)
+        self._glossary_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SingleUnderline)
         underline_color = QColor("#1a73e8") if current_theme != 'dark' else QColor("#8ab4f8")
         try:
             self._glossary_format.setUnderlineColor(underline_color)
@@ -326,7 +324,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Configure spellchecker format (red wavy underline)
         self._spellchecker_format = QTextCharFormat()
         self._spellchecker_format.setFontUnderline(True)
-        self._spellchecker_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        self._spellchecker_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         try:
             self._spellchecker_format.setUnderlineColor(QColor("#FF0000"))
         except Exception:
@@ -335,7 +333,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Configure bad spacing format (soft red background + red wavy underline)
         self.bad_spacing_format = QTextCharFormat()
         self.bad_spacing_format.setFontUnderline(True)
-        self.bad_spacing_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        self.bad_spacing_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         if current_theme == 'dark':
             self.bad_spacing_format.setBackground(QColor(255, 80, 80, 50))
             self.bad_spacing_format.setUnderlineColor(QColor(255, 100, 100))
@@ -346,7 +344,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Configure missing icon spacing format (soft blue background + blue wavy underline)
         self.missing_icon_spacing_format = QTextCharFormat()
         self.missing_icon_spacing_format.setFontUnderline(True)
-        self.missing_icon_spacing_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        self.missing_icon_spacing_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         if current_theme == 'dark':
             self.missing_icon_spacing_format.setBackground(QColor(173, 216, 230, 50))
             self.missing_icon_spacing_format.setUnderlineColor(QColor(135, 206, 250))
@@ -551,7 +549,10 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         if not sequences:
             return []
         self._ensure_icon_cache(sequences)
-        block_number = self.currentBlock().blockNumber()
+        block = self.currentBlock()
+        if not block or not block.isValid():
+            return []
+        block_number = block.blockNumber()
         return self._icon_sequences_cache.get(block_number, [])
 
 
@@ -696,13 +697,20 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Glossary and spellcheck highlighting (run BEFORE tag rules so that tags can clean up formats on top)
         all_matches_for_tooltip = []
         
-        block_pos = self.currentBlock().position()
+        block = self.currentBlock()
+        if not block or not block.isValid():
+            block_pos = 0
+            block_number = -1
+        else:
+            block_pos = block.position()
+            block_number = block.blockNumber()
+            
         block_len = len(text)
         block_end = block_pos + block_len
 
         # 1. Glossary highlighting (Aho-Corasick)
         glossary_matches_to_apply = []
-        if self._glossary_enabled:
+        if self._glossary_enabled and block_number != -1:
             if self._async_glossary_matches is not None:
                 for m in self._async_glossary_matches:
                     m_start = m['start']
@@ -717,7 +725,6 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             elif not self._typing_mode:
                 # Synchronous fallback for startup and unit tests
                 self._rebuild_glossary_cache()
-                block_number = self.currentBlock().blockNumber()
                 if block_number in self._glossary_matches_cache:
                     for local_start, local_length, match in self._glossary_matches_cache[block_number]:
                         glossary_matches_to_apply.append(GlossaryMatch(entry=match.entry, start=local_start, end=local_start + local_length))
@@ -737,8 +744,8 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
         # 2. Translation Glossary Bridge highlighting
         translation_matches_to_apply = []
-        if self._is_translation_mode:
-            log_debug(f"highlightBlock: translation mode active, block_num={self.currentBlock().blockNumber()}, text={repr(text)}, async_matches={self._async_translation_matches is not None}, typing={self._typing_mode}")
+        if self._is_translation_mode and block_number != -1:
+            log_debug(f"highlightBlock: translation mode active, block_num={block_number}, text={repr(text)}, async_matches={self._async_translation_matches is not None}, typing={self._typing_mode}")
             if self._async_translation_matches is not None:
                 for m in self._async_translation_matches:
                     m_start = m['start']
@@ -753,7 +760,6 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             elif not self._typing_mode:
                 # Synchronous fallback for startup and unit tests
                 self._rebuild_translation_glossary_cache()
-                block_number = self.currentBlock().blockNumber()
                 if block_number in self._translation_matches_cache:
                     for local_start, local_length, match in self._translation_matches_cache[block_number]:
                         translation_matches_to_apply.append(GlossaryMatch(entry=match.entry, start=local_start, end=local_start + local_length))
@@ -777,7 +783,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             self.setCurrentBlockUserData(None)
 
         # 3. Spellchecker highlighting using pre-calculated async matches
-        if self._should_check_spelling() and self._async_spellcheck_matches is not None:
+        if self._should_check_spelling() and self._async_spellcheck_matches is not None and block_number != -1:
             underline_style = self._spellchecker_format.underlineStyle()
             underline_color = self._spellchecker_format.underlineColor()
             has_custom_color = underline_color.isValid()
@@ -843,9 +849,9 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 existing_format = self.format(start)
                 combined_format = QTextCharFormat(existing_format)
                 icon_bg = self.icon_sequence_format.background()
-                if icon_bg.style() != Qt.NoBrush:
+                if icon_bg.style() != Qt.BrushStyle.NoBrush:
                     combined_format.setBackground(icon_bg)
-                if self.icon_sequence_format.fontWeight() != QFont.Normal:
+                if self.icon_sequence_format.fontWeight() != QFont.Weight.Normal.value:
                     combined_format.setFontWeight(self.icon_sequence_format.fontWeight())
                 self.setFormat(start, length, combined_format)
 
@@ -884,7 +890,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
             # 4. Missing space before/after visible tags
             missing_spacing_id = None
-            if self.mw and self.mw.current_game_rules:
+            if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
                 missing_spacing_id = getattr(self.mw.current_game_rules, 'PROBLEM_MISSING_ICON_SPACING', None)
             
             if missing_spacing_id:
@@ -899,4 +905,4 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         self.setFormat(start, end - start, self.missing_icon_spacing_format)
 
         # In preview_text_edit, never carry colour state to the next line.
-        self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)
+        self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)

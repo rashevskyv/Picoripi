@@ -93,7 +93,7 @@ def test_AIStatusDialog_sleep_handling(mock_put, mock_restore, mock_prevent, qap
     
     # 4. Finish with sleep_after checked
     dialog.sleep_after_checkbox.setChecked(True)
-    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_timer:
+    with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         dialog.finish()
         mock_timer.assert_called_once_with(5000, ANY)
 
@@ -111,7 +111,7 @@ def test_AIStatusDialog_cancel_prevents_sleep(qapp):
     assert dialog.user_cancelled is True
     
     # Finish operation and verify put_to_sleep was NOT scheduled
-    with patch('PyQt5.QtCore.QTimer.singleShot') as mock_timer:
+    with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         dialog.finish()
         mock_timer.assert_not_called()
 

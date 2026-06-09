@@ -1,7 +1,7 @@
 import re
 from typing import Any, List, Optional, Tuple, Dict, Set
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
 from core.tag_utils import TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS
@@ -498,7 +498,7 @@ class TextAutofixLogic:
                 
                 cursor = edited_text_edit.textCursor()
                 cursor.beginEditBlock()
-                cursor.select(QTextCursor.Document)
+                cursor.select(QTextCursor.SelectionType.Document)
                 cursor.insertText(text_for_display) 
                 cursor.endEditBlock()
                 

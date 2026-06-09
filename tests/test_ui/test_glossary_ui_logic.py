@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtCore import QPoint, Qt
+from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtGui import QTextCursor
+from PyQt6.QtCore import QPoint, QPointF, Qt, QEvent
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from handlers.translation.glossary_prompt_manager import GlossaryPromptManager
 from core.glossary_manager import GlossaryManager, GlossaryEntry
@@ -71,7 +71,7 @@ def test_glossary_entry_finding_uses_correct_attributes(qapp):
     assert result is not None
     assert result.original == "Link"
 
-@patch('PyQt5.QtWidgets.QToolTip.showText')
+@patch('PyQt6.QtWidgets.QToolTip.showText')
 def test_glossary_tooltip_shows_correct_text(mock_show_text, qapp):
     """
     Test that mouseMoveEvent triggers tooltip showing for glossary entry.
@@ -83,10 +83,9 @@ def test_glossary_tooltip_shows_correct_text(mock_show_text, qapp):
     editor._find_glossary_entry_at = MagicMock(return_value=entry)
     
     # Simulate mouse move
-    from PyQt5.QtGui import QMouseEvent
-    from PyQt5.QtCore import QEvent
+    from PyQt6.QtGui import QMouseEvent
     
-    event = QMouseEvent(QEvent.MouseMove, QPoint(5, 5), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
+    event = QMouseEvent(QEvent.Type.MouseMove, QPointF(5.0, 5.0), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
     editor.mouseMoveEvent(event)
     
     # Verify QToolTip.showText was called with correct content
@@ -149,7 +148,7 @@ def test_glossary_highlighted_after_set_plain_text(qapp):
 def test_glossary_translation_quick_replace_all(qapp):
     from components.glossary_translation_update_dialog import GlossaryTranslationUpdateDialog
     from core.glossary_manager import GlossaryOccurrence, GlossaryEntry
-    from PyQt5.QtWidgets import QWidget
+    from PyQt6.QtWidgets import QWidget
     
     mock_parent = QWidget()
     entry = GlossaryEntry("t", "new")
@@ -182,8 +181,8 @@ def test_glossary_translation_quick_replace_all(qapp):
     assert dialog._quick_replace_all_button is not None
     
     # Mock confirmation box to return Yes
-    with patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QMessageBox.Yes), \
-         patch('PyQt5.QtWidgets.QMessageBox.information'):
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes), \
+         patch('PyQt6.QtWidgets.QMessageBox.information'):
         dialog._run_quick_replace_all()
         
     # Check that both occurrences had their old value replaced by the new value
@@ -199,7 +198,7 @@ def test_glossary_translation_quick_replace_all(qapp):
 def test_glossary_dialog_profiled_checkbox(qapp):
     from components.glossary_dialog import GlossaryDialog
     from core.glossary_manager import GlossaryEntry
-    from PyQt5.QtWidgets import QWidget
+    from PyQt6.QtWidgets import QWidget
     
     mock_parent = QWidget()
     entry1 = GlossaryEntry("Link", "Лінк", "Hero", "Characters", profiled=True)
@@ -246,22 +245,21 @@ def test_glossary_dialog_profiled_checkbox(qapp):
     QApplication.processEvents()
 
 
-@patch('PyQt5.QtWidgets.QToolTip.showText')
+@patch('PyQt6.QtWidgets.QToolTip.showText')
 def test_glossary_tooltip_resets_on_leave_event(mock_show_text, qapp):
     editor = LineNumberedTextEdit()
     editor._last_tooltip_state = ("State", 0)
     editor._current_combined_tooltip = "Tooltip"
     
     # Trigger leaveEvent
-    from PyQt5.QtCore import QEvent
-    event = QEvent(QEvent.Leave)
+    event = QEvent(QEvent.Type.Leave)
     editor.leaveEvent(event)
     
     assert editor._last_tooltip_state is None
     assert editor._current_combined_tooltip is None
 
-@patch('PyQt5.QtWidgets.QToolTip.showText')
-@patch('PyQt5.QtWidgets.QToolTip.isVisible', return_value=False)
+@patch('PyQt6.QtWidgets.QToolTip.showText')
+@patch('PyQt6.QtWidgets.QToolTip.isVisible', return_value=False)
 def test_glossary_tooltip_reappears_when_hidden_by_timeout(mock_is_visible, mock_show_text, qapp):
     editor = LineNumberedTextEdit()
     entry = GlossaryEntry("Link", "Лінк")
@@ -271,14 +269,13 @@ def test_glossary_tooltip_reappears_when_hidden_by_timeout(mock_is_visible, mock
     editor._last_tooltip_state = ("<b>Link</b> → Лінк", 0)
     editor._current_combined_tooltip = "<b>Link</b> → Лінк"
     
-    from PyQt5.QtGui import QMouseEvent
-    from PyQt5.QtCore import QEvent
+    from PyQt6.QtGui import QMouseEvent
     
     mock_cursor = MagicMock()
     mock_cursor.block().blockNumber.return_value = 0
     editor.cursorForPosition = MagicMock(return_value=mock_cursor)
     
-    event = QMouseEvent(QEvent.MouseMove, QPoint(5, 5), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
+    event = QMouseEvent(QEvent.Type.MouseMove, QPointF(5.0, 5.0), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
     editor.mouseMoveEvent(event)
     
     assert mock_show_text.called

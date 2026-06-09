@@ -1,6 +1,6 @@
 import pytest
 from dialogs.search_review_dialog import SearchReviewDialog
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 def test_SearchReviewDialog_init(qapp):
     text = "Hello World\nThis is a test\nHello again"
@@ -241,7 +241,7 @@ def test_SearchReviewDialog_dynamic_search(qapp):
     mock_main_window.ui_updater = None
     
     # Use mock QMainWindow to pass isinstance(parent, QMainWindow) checks
-    from PyQt5.QtWidgets import QMainWindow
+    from PyQt6.QtWidgets import QMainWindow
     class MockMainWindow(QMainWindow):
         def __init__(self):
             super().__init__()

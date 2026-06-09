@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 from handlers.search_handler import SearchHandler
 
 @pytest.fixture
@@ -95,7 +95,7 @@ def test_SearchHandler_navigate_to_match_precise(search_handler, mock_mw):
     with patch.object(search_handler, '_get_text_for_search', return_value="apple pie"):
         with patch.object(search_handler, '_calculate_qtextblock_and_pos_in_block', return_value=(0, 0)):
             with patch.object(search_handler, '_find_nth_occurrence_in_display_text', return_value=(0, 5)):
-                with patch('PyQt5.QtWidgets.QApplication.processEvents'):
+                with patch('PyQt6.QtWidgets.QApplication.processEvents'):
                     with patch('handlers.search_handler.QTextCursor'):
                         with patch('handlers.search_handler.QTreeWidgetItemIterator'):
                             search_handler._navigate_to_match(0, 0, 0, 5, False)
@@ -118,7 +118,7 @@ def test_SearchHandler_navigate_to_match_tagless(search_handler, mock_mw):
     
     with patch('handlers.search_handler.prepare_text_for_tagless_search', return_value="apple"):
         with patch('handlers.search_handler.convert_raw_to_display_text', return_value="apple"):
-            with patch('PyQt5.QtWidgets.QApplication.processEvents'):
+            with patch('PyQt6.QtWidgets.QApplication.processEvents'):
                 with patch('handlers.search_handler.QTextCursor'):
                     with patch('handlers.search_handler.QTreeWidgetItemIterator'):
                         search_handler._navigate_to_match(0, 0, 0, 5, True)

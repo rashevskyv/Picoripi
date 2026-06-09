@@ -1,4 +1,4 @@
-PyQt5==5.15.10
+PyQt6==6.6.1
 pyahocorasick==2.1.0
 markdown==3.5
 numpy==2.3.3

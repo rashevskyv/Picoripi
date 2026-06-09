@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 import os
 from tools.bfn_editor.bfn_widgets import FillRangeDialog
 from tools.bfn_editor.bfn_commands import EditMetricsCommand, EditMapCommand, BatchMappingCommand
@@ -187,7 +187,7 @@ class BfnNavigationMixin:
             item_width = QtWidgets.QTableWidgetItem(str(width))
             
             for item in (item_orig_char, item_font_char, item_sheet, item_tile):
-                item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
+                item.setFlags(item.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
                 
             # Visually mark Font Char as read-only
             if getattr(self, "is_dark_theme", True):
@@ -198,9 +198,9 @@ class BfnNavigationMixin:
                 item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
             item_font_char.setToolTip("Font Character (read-only, stored in font metadata)")
                 
-            item_char.setFlags(item_char.flags() | QtCore.Qt.ItemIsEditable)
-            item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemIsEditable)
-            item_width.setFlags(item_width.flags() | QtCore.Qt.ItemIsEditable)
+            item_char.setFlags(item_char.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+            item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+            item_width.setFlags(item_width.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             
             self.table_glyphs.setItem(r_idx, 1, item_orig_char)
             self.table_glyphs.setItem(r_idx, 3, item_char)
@@ -220,8 +220,8 @@ class BfnNavigationMixin:
                 orig_pixmap = QtGui.QPixmap.fromImage(orig_crop)
                 
                 orig_lbl = QtWidgets.QLabel()
-                orig_lbl.setPixmap(orig_pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-                orig_lbl.setAlignment(QtCore.Qt.AlignCenter)
+                orig_lbl.setPixmap(orig_pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
+                orig_lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
                 bg_color = "#000000"
                 orig_lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
                 self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
@@ -241,8 +241,8 @@ class BfnNavigationMixin:
                 pixmap = QtGui.QPixmap.fromImage(glyph_crop)
                 
                 lbl = QtWidgets.QLabel()
-                lbl.setPixmap(pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-                lbl.setAlignment(QtCore.Qt.AlignCenter)
+                lbl.setPixmap(pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
+                lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
                 bg_color = "#000000"
                 lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
                 self.table_glyphs.setCellWidget(r_idx, 2, lbl)
@@ -393,8 +393,8 @@ class BfnNavigationMixin:
             pixmap = QtGui.QPixmap.fromImage(glyph_crop)
             
             lbl = QtWidgets.QLabel()
-            lbl.setPixmap(pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-            lbl.setAlignment(QtCore.Qt.AlignCenter)
+            lbl.setPixmap(pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             bg_color = "#000000"
             lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
             self.table_glyphs.setCellWidget(found_row, 2, lbl)
@@ -1032,7 +1032,7 @@ class BfnNavigationMixin:
                 except ValueError:
                     pass
 
-        action = menu.exec_(self.table_glyphs.viewport().mapToGlobal(pos))
+        action = menu.exec(self.table_glyphs.viewport().mapToGlobal(pos))
         
         if action == action_copy:
             self.copy_glyph_values()
@@ -1115,7 +1115,7 @@ class BfnNavigationMixin:
         if p is not None:
             lang = getattr(p, "spellchecker_language", "") or ""
         dialog = FillRangeDialog(self, lang=lang)
-        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             codes = dialog.get_sequence_codes()
             if not codes:
                 QtWidgets.QMessageBox.warning(self, "Invalid Sequence", "No characters to fill. The sequence is empty.")

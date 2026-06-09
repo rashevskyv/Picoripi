@@ -8,7 +8,7 @@ translation changes. Owns the GlossaryTranslationUpdateDialog lifecycle.
 import json
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
 from components.glossary_translation_update_dialog import GlossaryTranslationUpdateDialog

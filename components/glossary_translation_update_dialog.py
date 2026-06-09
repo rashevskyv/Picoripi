@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional, Sequence
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -87,7 +87,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         layout.addLayout(top_layout)
 
 
-        splitter = QSplitter(Qt.Horizontal, self)
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
         layout.addWidget(splitter, 1)
 
         left_panel = QWidget(splitter)
@@ -149,7 +149,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._ai_all_button.setVisible(self._ai_request_all is not None)
         self._ai_all_button.setEnabled(bool(self._ai_request_all) and not self._ai_busy)
 
-        footer = QDialogButtonBox(QDialogButtonBox.Close, right_panel)
+        footer = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, right_panel)
         footer.rejected.connect(self.close)
         right_layout.addWidget(footer)
 
@@ -244,8 +244,8 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _update_text_highlights(self) -> None:
         """Applies green background highlighting to the target terms in both editors using fuzzy matching."""
-        from PyQt5.QtWidgets import QTextEdit
-        from PyQt5.QtGui import QColor, QTextCursor
+        from PyQt6.QtWidgets import QTextEdit
+        from PyQt6.QtGui import QColor, QTextCursor
         import re
         from utils.utils import is_fuzzy_match
         
@@ -292,7 +292,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
                     sel.format.setBackground(highlight_color)
                     cursor = editor.textCursor()
                     cursor.setPosition(match.start())
-                    cursor.setPosition(match.end(), QTextCursor.KeepAnchor)
+                    cursor.setPosition(match.end(), QTextCursor.MoveMode.KeepAnchor)
                     sel.cursor = cursor
                     selections.append(sel)
                     
@@ -348,10 +348,10 @@ class GlossaryTranslationUpdateDialog(QDialog):
             self,
             "AI Update",
             "Run AI suggestions for all remaining occurrences?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
         self.set_batch_active(True)
         self.set_ai_busy(True)
@@ -397,10 +397,10 @@ class GlossaryTranslationUpdateDialog(QDialog):
             f"Are you sure you want to instantly replace '{self._old_translation}' with '{self._new_translation}' "
             f"in all {len(remaining)} remaining translated lines without using AI?\n\n"
             f"This will also match grammatical cases (e.g. '{self._old_translation}a' -> '{self._new_translation}a').",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         # Use undo group if available

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget
 from components.search_panel import SearchPanelWidget, SearchLineEdit
 
 class MockMainWindow(QWidget):
@@ -30,12 +30,14 @@ def test_search_panel_spellcheck_trigger(qapp):
     assert line_edit.styleSheet() == ""
     
     # Test paintEvent
-    from PyQt5.QtGui import QPaintEvent
-    from PyQt5.QtCore import QRect
+    from PyQt6.QtGui import QPaintEvent
+    from PyQt6.QtCore import QRect
     event = QPaintEvent(QRect(0, 0, 100, 30))
     
-    with patch('PyQt5.QtGui.QPainter.drawLine') as mock_draw_line, \
-         patch('PyQt5.QtWidgets.QLineEdit.paintEvent') as mock_super_paint:
+    with patch('PyQt6.QtGui.QPainter.begin', return_value=True), \
+         patch('PyQt6.QtGui.QPainter.end'), \
+         patch('PyQt6.QtGui.QPainter.drawLine') as mock_draw_line, \
+         patch('PyQt6.QtWidgets.QLineEdit.paintEvent') as mock_super_paint:
         # Give line_edit some size so binary search works
         line_edit.resize(200, 30)
         line_edit.paintEvent(event)
@@ -52,7 +54,7 @@ def test_search_line_edit_context_menu(qapp):
     line_edit.setText("wrongword")
     line_edit.setCursorPosition(3) # Cursor inside "wrongword"
     
-    with patch('PyQt5.QtWidgets.QMenu.exec_') as mock_menu_exec:
+    with patch('PyQt6.QtWidgets.QMenu.exec') as mock_menu_exec:
         # Simulate context menu event
         class DummyEvent:
             def globalPos(self):

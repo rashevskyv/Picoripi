@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtGui import QMouseEvent
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QPoint, QPointF, Qt, QEvent
+from PyQt6.QtGui import QMouseEvent
 from ui.components.text_effects_dialog import AnglePickerWidget, TextEffectsDialog
 
 
@@ -44,15 +44,15 @@ def test_angle_picker_mouse_event(qapp):
     picker.angleChanged.connect(emitted_angles.append)
     
     # 1. Click at (100, 50) -> vector (50, 0) -> angle 0
-    press_event = QMouseEvent(QMouseEvent.MouseButtonPress, QPoint(100, 50), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    press_event = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(100.0, 50.0), Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     picker.mousePressEvent(press_event)
     assert picker.angle() == 0
     assert 0 in emitted_angles
     
     # 2. Drag/move to (50, 100) -> vector (0, 50) -> angle 90
-    move_event = QMouseEvent(QMouseEvent.MouseMove, QPoint(50, 100), Qt.NoButton, Qt.NoButton, Qt.NoModifier)
+    move_event = QMouseEvent(QEvent.Type.MouseMove, QPointF(50.0, 100.0), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
     # Move events usually check buttons mask
-    picker.mouseMoveEvent(QMouseEvent(QMouseEvent.MouseMove, QPoint(50, 100), Qt.NoButton, Qt.LeftButton, Qt.NoModifier))
+    picker.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, QPointF(50.0, 100.0), Qt.MouseButton.NoButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier))
     assert picker.angle() == 90
     assert 90 in emitted_angles
 

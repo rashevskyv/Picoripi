@@ -3,7 +3,7 @@ import zlib
 import pickle
 from dataclasses import dataclass
 from typing import List, Optional, Any
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
 
 def _compress_any(data: Any) -> Any:
@@ -368,9 +368,9 @@ class UndoManager:
                 
         if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             self.mw.edited_text_edit.setFocus()
-            from PyQt5.QtGui import QTextCursor
+            from PyQt6.QtGui import QTextCursor
             cursor = self.mw.edited_text_edit.textCursor()
-            cursor.movePosition(QTextCursor.End)
+            cursor.movePosition(QTextCursor.MoveOperation.End)
             self.mw.edited_text_edit.setTextCursor(cursor)
 
     def _apply_data(self, block_idx: int, string_idx: int, text: str, cursor_pos: Optional[int] = None):
@@ -396,7 +396,7 @@ class UndoManager:
                     self.mw.edited_text_edit.setTextCursor(cursor)
                 else:
                     cursor = self.mw.edited_text_edit.textCursor()
-                    cursor.movePosition(QTextCursor.End)
+                    cursor.movePosition(QTextCursor.MoveOperation.End)
                     self.mw.edited_text_edit.setTextCursor(cursor)
                 
                 # Perform necessary issue rescan

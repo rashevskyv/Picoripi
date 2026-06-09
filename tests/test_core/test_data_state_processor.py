@@ -2,7 +2,7 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch
 from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 from core.data_state_processor import DataStateProcessor
 
 @pytest.fixture
@@ -135,7 +135,7 @@ def test_revert_strings_to_original(dsp, mock_mw):
 
 @patch("core.data_state_processor.QMessageBox.question")
 def test_perform_revert_strings_confirm_no(mock_qmb, dsp, mock_mw):
-    mock_qmb.return_value = QMessageBox.No
+    mock_qmb.return_value = QMessageBox.StandardButton.No
     
     mock_mw.edited_data = {(0, 0): "changed"}
     dsp.perform_revert_strings(0, [0])
@@ -146,7 +146,7 @@ def test_perform_revert_strings_confirm_no(mock_qmb, dsp, mock_mw):
 
 @patch("core.data_state_processor.QMessageBox.question")
 def test_perform_revert_strings_confirm_yes(mock_qmb, dsp, mock_mw):
-    mock_qmb.return_value = QMessageBox.Yes
+    mock_qmb.return_value = QMessageBox.StandardButton.Yes
     mock_mw.edited_data = {(0, 0): "changed"}
     
     dsp.perform_revert_strings(0, [0])
@@ -195,7 +195,7 @@ def test_save_current_edits_no_changes(mock_info, dsp, mock_mw):
 @patch("core.data_state_processor.QMessageBox.information")
 @patch("core.data_state_processor.save_json_file")
 def test_revert_edited_file_to_original_single_file(mock_save, mock_info, mock_qmb, dsp, mock_mw):
-    mock_qmb.return_value = QMessageBox.Yes
+    mock_qmb.return_value = QMessageBox.StandardButton.Yes
     mock_save.return_value = True
     
     mock_mw.edited_data = {(0, 0): "changed"}

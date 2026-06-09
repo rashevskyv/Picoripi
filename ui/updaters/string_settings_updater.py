@@ -1,6 +1,6 @@
 from pathlib import Path
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtGui import QColor, QPalette
+from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtGui import QColor, QPalette
 from .base_ui_updater import BaseUIUpdater
 from utils.utils import log_debug
 

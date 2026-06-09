@@ -1,5 +1,5 @@
 from typing import Set, List, Tuple
-from PyQt5.QtGui import QTextCharFormat
+from PyQt6.QtGui import QTextCharFormat
 from plugins.common.tag_manager import GenericTagManager
 
 class TagManager(GenericTagManager):

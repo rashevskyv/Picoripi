@@ -103,7 +103,7 @@ class GlossaryPromptManager:
         Returns (system_prompt, glossary_text).
         Uses cached values when available. Shows QMessageBox on errors.
         """
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt6.QtWidgets import QMessageBox
 
         h = self._main_handler
         if h._cached_system_prompt and h._cached_glossary is not None:

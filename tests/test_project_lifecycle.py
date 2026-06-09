@@ -3,7 +3,7 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 from pathlib import Path
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 
 # Initialize QApplication (needed once for the session)
 if not QApplication.instance():
@@ -23,7 +23,7 @@ class MockMainWindow(MagicMock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_store = self
-        from PyQt5.QtWidgets import QTreeWidget, QTextEdit, QLabel, QLineEdit
+        from PyQt6.QtWidgets import QTreeWidget, QTextEdit, QLabel, QLineEdit
         self.is_loading_data = False
         self.data = []
         self.edited_file_data = []
@@ -32,11 +32,11 @@ class MockMainWindow(MagicMock):
         self.is_programmatically_changing_text = False
         def is_programmatically_changing(): return self.is_programmatically_changing_text
         self.is_programmatically_changing = is_programmatically_changing
-        from PyQt5.QtWidgets import QTreeWidget, QTextEdit, QLabel, QLineEdit, QTreeWidgetItem
+        from PyQt6.QtWidgets import QTreeWidget, QTextEdit, QLabel, QLineEdit, QTreeWidgetItem
         
         def mock_create_item(text, data=None, role=None):
-            from PyQt5.QtWidgets import QTreeWidgetItem
-            from PyQt5.QtCore import Qt
+            from PyQt6.QtWidgets import QTreeWidgetItem
+            from PyQt6.QtCore import Qt
             item = QTreeWidgetItem([str(text)])
             if data is not None and role is not None:
                 item.setData(0, role, data)
@@ -98,7 +98,7 @@ class MockMainWindow(MagicMock):
     def current_game_rules(self, v): self._current_game_rules = v
 
     def menuBar(self):
-        from PyQt5.QtWidgets import QMenuBar
+        from PyQt6.QtWidgets import QMenuBar
         return QMenuBar()
 
     def show_message(self, t, m, type="info"): pass
@@ -112,7 +112,7 @@ class MockMainWindow(MagicMock):
 
 class TestProjectLifecycle(unittest.TestCase):
     def setUp(self):
-        self.patcher_msg = patch('PyQt5.QtWidgets.QMessageBox')
+        self.patcher_msg = patch('PyQt6.QtWidgets.QMessageBox')
         self.patcher_msg.start()
         
         self.mw = MockMainWindow()
@@ -130,7 +130,7 @@ class TestProjectLifecycle(unittest.TestCase):
 
         
         # Ensure style().standardIcon() returns a real QIcon to prevent TypeError in real QTreeWidgetItems
-        from PyQt5.QtGui import QIcon
+        from PyQt6.QtGui import QIcon
         mock_style = MagicMock()
         mock_style.standardIcon.return_value = QIcon()
         self.mw.style.return_value = mock_style

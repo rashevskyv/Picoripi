@@ -1,12 +1,13 @@
-from PyQt5.QtWidgets import QMenu, QAction, QStyle, QToolButton, QToolTip
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont
-from PyQt5.QtCore import Qt, QObject, QEvent
+from PyQt6.QtWidgets import QMenu, QStyle, QToolButton, QToolTip
+from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont
+from PyQt6.QtCore import Qt, QObject, QEvent
 from pathlib import Path
 
 class MenuToolTipEventFilter(QObject):
     def eventFilter(self, watched, event):
         if isinstance(watched, QMenu):
-            if event.type() == QEvent.ToolTip:
+            if event.type() == QEvent.Type.ToolTip:
                 action = watched.actionAt(event.pos())
                 if action and not action.isEnabled():
                     tooltip = action.toolTip()
@@ -36,11 +37,11 @@ class MenuBuilder:
         file_menu.setToolTipsVisible(True)
         file_menu.installEventFilter(self.tooltip_filter)
         
-        open_icon = self.style.standardIcon(QStyle.SP_DialogOpenButton)
-        save_icon = self.style.standardIcon(QStyle.SP_DialogSaveButton)
-        reload_icon = self.style.standardIcon(QStyle.SP_BrowserReload)
-        exit_icon = self.style.standardIcon(QStyle.SP_DialogCloseButton)
-        settings_icon = QIcon.fromTheme('settings', self.style.standardIcon(QStyle.SP_FileDialogDetailedView))
+        open_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton)
+        save_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
+        reload_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
+        exit_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_DialogCloseButton)
+        settings_icon = QIcon.fromTheme('settings', self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
 
         # Project actions
         self.mw.new_project_action = QAction(QIcon.fromTheme("document-new"), '&New Project...', self.mw)
@@ -123,29 +124,29 @@ class MenuBuilder:
         undo_local = _icon_path('undo.svg')
         redo_local = _icon_path('redo.svg')
 
-        undo_icon = QIcon(undo_local) if Path(undo_local).exists() else QIcon.fromTheme("edit-undo", self.style.standardIcon(QStyle.SP_ArrowBack))
-        redo_icon = QIcon(redo_local) if Path(redo_local).exists() else QIcon.fromTheme("edit-redo", self.style.standardIcon(QStyle.SP_ArrowForward))
-        find_icon = self.style.standardIcon(QStyle.SP_FileDialogContentsView)
+        undo_icon = QIcon(undo_local) if Path(undo_local).exists() else QIcon.fromTheme("edit-undo", self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowBack))
+        redo_icon = QIcon(redo_local) if Path(redo_local).exists() else QIcon.fromTheme("edit-redo", self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
+        find_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
 
         self.mw.undo_typing_action = QAction(undo_icon, '&Undo Typing', self.mw)
-        self.mw.undo_typing_action.setShortcut(QKeySequence.Undo)
+        self.mw.undo_typing_action.setShortcut(QKeySequence.StandardKey.Undo)
         edit_menu.addAction(self.mw.undo_typing_action)
 
         self.mw.redo_typing_action = QAction(redo_icon, '&Redo Typing', self.mw)
-        self.mw.redo_typing_action.setShortcuts([QKeySequence.Redo, QKeySequence('Ctrl+Shift+Z')])
+        self.mw.redo_typing_action.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence('Ctrl+Shift+Z')])
         edit_menu.addAction(self.mw.redo_typing_action)
         edit_menu.addSeparator()
 
         # Create a dynamic beautiful icon for Restore Translation (document sheet with a blue arrow pointing right)
         pixmap_r = QPixmap(32, 32)
-        pixmap_r.fill(Qt.transparent)
+        pixmap_r.fill(Qt.GlobalColor.transparent)
         painter_r = QPainter(pixmap_r)
-        painter_r.setRenderHint(QPainter.Antialiasing, True)
+        painter_r.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter_r.setPen(QColor("#7f8c8d"))
         painter_r.setBrush(QColor("#ffffff"))
         
-        from PyQt5.QtGui import QPolygonF
-        from PyQt5.QtCore import QPointF
+        from PyQt6.QtGui import QPolygonF
+        from PyQt6.QtCore import QPointF
         paper_poly = QPolygonF([
             QPointF(4, 4),
             QPointF(14, 4),
@@ -173,7 +174,7 @@ class MenuBuilder:
             QPointF(26, 15),
             QPointF(19, 20)
         ])
-        painter_r.setPen(Qt.NoPen)
+        painter_r.setPen(Qt.PenStyle.NoPen)
         painter_r.setBrush(QColor("#0078d7"))
         painter_r.drawPolygon(arrow_head)
         painter_r.end()
@@ -215,7 +216,7 @@ class MenuBuilder:
         edit_menu.addAction(self.mw.rescan_all_tags_action)
         edit_menu.addSeparator()
 
-        self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.SP_BrowserReload), 'Recalculate Font Widths', self.mw)
+        self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload), 'Recalculate Font Widths', self.mw)
         self.mw.recalculate_widths_action.setToolTip("Force recalculate widths and issues for all strings in the project")
         self.mw.recalculate_widths_action.setShortcut('Ctrl+Shift+R')
         edit_menu.addAction(self.mw.recalculate_widths_action)
@@ -226,7 +227,7 @@ class MenuBuilder:
         view_menu.installEventFilter(self.tooltip_filter)
         self.mw.view_menu = view_menu
 
-        preview_icon = self.style.standardIcon(QStyle.SP_DesktopIcon)
+        preview_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_DesktopIcon)
         self.mw.toggle_preview_action = QAction(preview_icon, '&Preview', self.mw)
         self.mw.toggle_preview_action.setCheckable(True)
         self.mw.toggle_preview_action.setChecked(True)
@@ -243,15 +244,15 @@ class MenuBuilder:
 
         # Create a dynamic beautiful icon for BFN Font Editor with letter 'A'
         pixmap = QPixmap(32, 32)
-        pixmap.fill(Qt.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         
         # Draw a stylish letter 'A' in accent blue
         painter.setPen(QColor("#0078d7"))
-        font = QFont("Arial", 22, QFont.Bold)
+        font = QFont("Arial", 22, QFont.Weight.Bold)
         painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignCenter, "A")
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "A")
         painter.end()
         bfn_editor_icon = QIcon(pixmap)
 
@@ -265,13 +266,13 @@ class MenuBuilder:
 
         # Create a dynamic beautiful icon for MemePalace Context Builder with letter 'M'
         pixmap_m = QPixmap(32, 32)
-        pixmap_m.fill(Qt.transparent)
+        pixmap_m.fill(Qt.GlobalColor.transparent)
         painter_m = QPainter(pixmap_m)
-        painter_m.setRenderHint(QPainter.Antialiasing, True)
+        painter_m.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter_m.setPen(QColor("#e81123")) # Stylish accent red/orange
-        font_m = QFont("Arial", 22, QFont.Bold)
+        font_m = QFont("Arial", 22, QFont.Weight.Bold)
         painter_m.setFont(font_m)
-        painter_m.drawText(pixmap_m.rect(), Qt.AlignCenter, "M")
+        painter_m.drawText(pixmap_m.rect(), Qt.AlignmentFlag.AlignCenter, "M")
         painter_m.end()
         mempalace_icon = QIcon(pixmap_m)
 
@@ -286,13 +287,13 @@ class MenuBuilder:
 
         # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
         pixmap_s = QPixmap(32, 32)
-        pixmap_s.fill(Qt.transparent)
+        pixmap_s.fill(Qt.GlobalColor.transparent)
         painter_s = QPainter(pixmap_s)
-        painter_s.setRenderHint(QPainter.Antialiasing, True)
+        painter_s.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter_s.setPen(QColor("#0078d7")) # Classic Microsoft Blue
-        font_s = QFont("Arial", 22, QFont.Bold)
+        font_s = QFont("Arial", 22, QFont.Weight.Bold)
         painter_s.setFont(font_s)
-        painter_s.drawText(pixmap_s.rect(), Qt.AlignCenter, "S")
+        painter_s.drawText(pixmap_s.rect(), Qt.AlignmentFlag.AlignCenter, "S")
         painter_s.end()
         story_icon = QIcon(pixmap_s)
 
@@ -307,13 +308,13 @@ class MenuBuilder:
 
         # Create a dynamic beautiful icon for MemePalace Database Viewer with letter 'V'
         pixmap_v = QPixmap(32, 32)
-        pixmap_v.fill(Qt.transparent)
+        pixmap_v.fill(Qt.GlobalColor.transparent)
         painter_v = QPainter(pixmap_v)
-        painter_v.setRenderHint(QPainter.Antialiasing, True)
+        painter_v.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter_v.setPen(QColor("#107c41")) # Accent Green
-        font_v = QFont("Arial", 22, QFont.Bold)
+        font_v = QFont("Arial", 22, QFont.Weight.Bold)
         painter_v.setFont(font_v)
-        painter_v.drawText(pixmap_v.rect(), Qt.AlignCenter, "V")
+        painter_v.drawText(pixmap_v.rect(), Qt.AlignmentFlag.AlignCenter, "V")
         painter_v.end()
         viewer_icon = QIcon(pixmap_v)
 
@@ -340,7 +341,7 @@ class MenuBuilder:
         tools_menu.addSeparator()
 
         self.mw.export_bmg_json_action = QAction(
-            self.style.standardIcon(QStyle.SP_DialogSaveButton),
+            self.style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
             'Export Current BMG to &JSON...',
             self.mw
         )
@@ -351,7 +352,7 @@ class MenuBuilder:
         tools_menu.addAction(self.mw.export_bmg_json_action)
 
         self.mw.import_bmg_json_action = QAction(
-            self.style.standardIcon(QStyle.SP_DialogOpenButton),
+            self.style.standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton),
             'Import Current BMG from &JSON...',
             self.mw
         )
@@ -369,22 +370,22 @@ class MenuBuilder:
         
         self.mw.next_block_nav_action = QAction('Next Block Nav', self.mw)
         self.mw.next_block_nav_action.setShortcut(QKeySequence('Alt+Shift+Down'))
-        self.mw.next_block_nav_action.setShortcutContext(Qt.WindowShortcut)
+        self.mw.next_block_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.next_block_nav_action)
 
         self.mw.prev_block_nav_action = QAction('Previous Block Nav', self.mw)
         self.mw.prev_block_nav_action.setShortcut(QKeySequence('Alt+Shift+Up'))
-        self.mw.prev_block_nav_action.setShortcutContext(Qt.WindowShortcut)
+        self.mw.prev_block_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.prev_block_nav_action)
 
         self.mw.next_folder_nav_action = QAction('Next Folder Nav', self.mw)
         self.mw.next_folder_nav_action.setShortcut(QKeySequence('Alt+Shift+Right'))
-        self.mw.next_folder_nav_action.setShortcutContext(Qt.WindowShortcut)
+        self.mw.next_folder_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.next_folder_nav_action)
 
         self.mw.prev_folder_nav_action = QAction('Previous Folder Nav', self.mw)
         self.mw.prev_folder_nav_action.setShortcut(QKeySequence('Alt+Shift+Left'))
-        self.mw.prev_folder_nav_action.setShortcutContext(Qt.WindowShortcut)
+        self.mw.prev_folder_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.prev_folder_nav_action)
 
     def _build_bookmarks_menu(self, menubar):
@@ -407,7 +408,7 @@ class MenuBuilder:
         bookmarks_menu.addSeparator()
 
     def _build_help_menu(self, menubar):
-        self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.SP_DialogHelpButton)), '&Shortcuts Help', self.mw)
+        self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton)), '&Shortcuts Help', self.mw)
         self.mw.help_shortcuts_action.setShortcut('F1')
 
         help_menu = QMenu('&Help', menubar)
@@ -418,6 +419,6 @@ class MenuBuilder:
         help_button = QToolButton()
         help_button.setText("Help")
         help_button.setMenu(help_menu)
-        help_button.setPopupMode(QToolButton.InstantPopup)
+        help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         help_button.setStyleSheet("QToolButton { border: none; padding: 5px 10px; background: transparent; } QToolButton::menu-indicator { image: none; } QToolButton:hover { background-color: rgba(0,0,0,0.1); }")
-        menubar.setCornerWidget(help_button, Qt.TopRightCorner)
+        menubar.setCornerWidget(help_button, Qt.Corner.TopRightCorner)

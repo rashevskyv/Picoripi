@@ -1,7 +1,7 @@
 import re
 from typing import Optional, List, Tuple
-from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtGui import QTextCursor
 
 from utils.logging_utils import log_debug
 from utils.constants import ORIGINAL_PLAYER_TAG

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QWidget
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QTableWidgetItem, QWidget
+from PyQt6.QtCore import Qt
 from ui.mempalace_viewer_dialog import MemePalaceViewerDialog
 
 @pytest.fixture(scope="module")
@@ -70,8 +70,8 @@ def test_mempalace_viewer_double_click_navigation(qapp):
             return self
 
     with patch('ui.mempalace_viewer_dialog.MemePalaceClient') as mock_client_cls, \
-         patch('PyQt5.QtWidgets.QTreeWidgetItemIterator') as mock_iterator_cls, \
-         patch('PyQt5.QtCore.QTimer.singleShot') as mock_timer_singleshot:
+         patch('PyQt6.QtWidgets.QTreeWidgetItemIterator') as mock_iterator_cls, \
+         patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer_singleshot:
         
         # Set up tree iterator using the robust MockIterator helper
         mock_iterator = MockIterator(mock_tree_item)

@@ -1,13 +1,13 @@
-import re
+﻿import re
 from typing import Optional
-from PyQt5.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtCore import Qt, QPoint
+from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
+from PyQt6.QtGui import QTextCursor
+from PyQt6.QtCore import Qt, QPoint
 from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 
 class LNETContextMenuLogic:
-    WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
+    WORD_PATTERN = re.compile(r"[a-zA-ZР°-СЏРђ-РЇС–С—Р†С—Р„С”Т‘Тђ']+")
 
     def __init__(self, editor):
         self.editor = editor
@@ -76,7 +76,7 @@ class LNETContextMenuLogic:
                 context_line = cursor.block().text().replace('\u2029', ' ').strip()
             else:
                 cursor_at_pos = self.editor.cursorForPosition(position_in_widget_coords)
-                cursor_at_pos.select(QTextCursor.WordUnderCursor)
+                cursor_at_pos.select(QTextCursor.SelectionType.WordUnderCursor)
                 add_term_candidate = cursor_at_pos.selectedText().replace('\u2029', '\r\n').strip()
                 context_line = cursor_at_pos.block().text().replace('\u2029', ' ').strip()
 
@@ -90,13 +90,13 @@ class LNETContextMenuLogic:
                 existing_entry = translator.get_glossary_entry(add_term_candidate)
 
             if existing_entry and translator is not None:
-                action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Edit Glossary Entry…")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary EntryвЂ¦")
                 action.setEnabled(True)
                 action.triggered.connect(
                     lambda checked=False, term=existing_entry.original: translator.edit_glossary_entry(term)
                 )
             else:
-                action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Add to Glossary…")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to GlossaryвЂ¦")
                 action_enabled = bool(add_term_candidate) and translator is not None
                 action.setEnabled(action_enabled)
                 if action_enabled:
@@ -108,7 +108,7 @@ class LNETContextMenuLogic:
                 menu.addSeparator()
                 term_value = glossary_entry.original
                 show_action = menu.addAction(
-                    main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView),
+                    main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView),
                     f"Show Glossary Entry for \"{term_value}\""
                 )
                 if translator:
@@ -132,7 +132,7 @@ class LNETContextMenuLogic:
                     block = cursor_at_pos.block()
                     block_text = block.text()
                     position_in_block = click_position - block.position()
-                    text_with_spaces = block_text.replace('·', ' ')
+                    text_with_spaces = block_text.replace('В·', ' ')
 
                     word_under_cursor = ""
                     word_start = 0
@@ -147,10 +147,10 @@ class LNETContextMenuLogic:
 
                     word_cursor = QTextCursor(block)
                     word_cursor.setPosition(block.position() + word_start)
-                    word_cursor.setPosition(block.position() + word_end, QTextCursor.KeepAnchor)
+                    word_cursor.setPosition(block.position() + word_end, QTextCursor.MoveMode.KeepAnchor)
                 else:
                     raw_text = cursor.selectedText().strip()
-                    text_with_spaces = raw_text.replace('·', ' ')
+                    text_with_spaces = raw_text.replace('В·', ' ')
                     word_under_cursor = text_with_spaces.split()[0].strip("'") if text_with_spaces.split() else ""
                     word_cursor = cursor
 
@@ -159,12 +159,12 @@ class LNETContextMenuLogic:
                         menu.addSeparator()
                         custom_actions_added = True
 
-                    cleaned_word = word_under_cursor.strip("'·").lower()
+                    cleaned_word = word_under_cursor.strip("'В·").lower()
                     if cleaned_word in spellchecker_manager._suggestions_cache:
                         suggestions = spellchecker_manager._suggestions_cache[cleaned_word]
                         if suggestions:
                             for suggestion in suggestions[:5]:
-                                suggestion_action = menu.addAction(f"→ {suggestion}")
+                                suggestion_action = menu.addAction(f"в†’ {suggestion}")
                                 suggestion_action.triggered.connect(
                                     lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
                                 )
@@ -174,7 +174,7 @@ class LNETContextMenuLogic:
                             no_suggestions_action.setEnabled(False)
                             menu.addSeparator()
                     else:
-                        no_suggestions_action = menu.addAction("(Loading suggestions... 🔄)")
+                        no_suggestions_action = menu.addAction("(Loading suggestions... рџ”„)")
                         no_suggestions_action.setEnabled(False)
                         separator_action = menu.addSeparator()
 
@@ -183,7 +183,7 @@ class LNETContextMenuLogic:
                                 menu.removeAction(no_suggestions_action)
                                 if suggs:
                                     for suggestion in suggs[:5]:
-                                        suggestion_action = menu.insertAction(separator_action, f"→ {suggestion}")
+                                        suggestion_action = menu.insertAction(separator_action, f"в†’ {suggestion}")
                                         suggestion_action.triggered.connect(
                                             lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
                                         )
@@ -198,7 +198,7 @@ class LNETContextMenuLogic:
                         )
                         spellchecker_manager.get_suggestions(word_under_cursor)
 
-                    add_to_dict_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_DialogHelpButton), f"Add \"{word_under_cursor}\" to Dictionary")
+                    add_to_dict_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), f"Add \"{word_under_cursor}\" to Dictionary")
                     add_to_dict_action.triggered.connect(
                         lambda checked=False, word=word_under_cursor: spellchecker_manager.add_to_custom_dictionary(word)
                     )
@@ -211,28 +211,28 @@ class LNETContextMenuLogic:
                 # Check if there is an existing glossary entry under cursor
                 glossary_entry = self.editor._find_glossary_entry_at(position_in_widget_coords)
                 if glossary_entry:
-                    action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Edit Glossary Entry…")
+                    action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary EntryвЂ¦")
                     action.triggered.connect(
                         lambda checked=False, term=glossary_entry.original: translator.edit_glossary_entry(term)
                     )
                 else:
                     # Determine candidate for adding to glossary
                     if has_selection:
-                        add_term_candidate = cursor.selectedText().replace('·', ' ').strip()
+                        add_term_candidate = cursor.selectedText().replace('В·', ' ').strip()
                     else:
                         cursor_at_pos = self.editor.cursorForPosition(position_in_widget_coords)
-                        cursor_at_pos.select(QTextCursor.WordUnderCursor)
+                        cursor_at_pos.select(QTextCursor.SelectionType.WordUnderCursor)
                         add_term_candidate = cursor_at_pos.selectedText().strip()
                     
                     if add_term_candidate:
-                        action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), "Add to Glossary…")
+                        action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to GlossaryвЂ¦")
                         context_line = cursor.block().text().replace('\u2029', ' ').strip()
                         action.triggered.connect(
                             lambda checked=False, t=add_term_candidate, ctx=context_line: translator.add_glossary_entry(term="", translation=t, context=ctx)
                         )
 
                 if has_selection:
-                    variation_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_MessageBoxInformation), "AI Variations for Selected")
+                    variation_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI Variations for Selected")
                     variation_action.triggered.connect(translator.generate_variation_for_current_string)
 
             # Dynamic Tags Section
@@ -278,11 +278,11 @@ class LNETContextMenuLogic:
             # Revert to Original option for edited_text_edit
             if main_window.data_store.current_block_idx != -1 and main_window.data_store.current_string_idx != -1:
                 menu.addSeparator()
-                revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), "Revert String to Original")
+                revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "Revert String to Original")
                 revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [main_window.data_store.current_string_idx]))
                 
                 if hasattr(main_window, 'saved_translations_manager') and main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx):
-                    restore_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowForward), "Restore Translated")
+                    restore_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), "Restore Translated")
                     restore_action.triggered.connect(lambda: main_window.saved_translations_manager.restore_translation(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx))
         
         if self.editor.objectName() == "preview_text_edit":
@@ -300,10 +300,10 @@ class LNETContextMenuLogic:
                     line_num = cursor.blockNumber()
                     action_text = f"AI Translate Line {line_num + 1} (UA)"
 
-                translate_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_MessageBoxInformation), action_text)
+                translate_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), action_text)
                 translate_action.triggered.connect(lambda: translator.translate_preview_selection(position_in_widget_coords))
 
-                translate_block_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_MessageBoxInformation), "AI Translate Entire Block (UA)")
+                translate_block_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI Translate Entire Block (UA)")
                 translate_block_action.triggered.connect(lambda: translator.translate_current_block())
 
             spellchecker_manager = getattr(main_window, 'spellchecker_manager', None)
@@ -317,7 +317,7 @@ class LNETContextMenuLogic:
                     line_num = cursor.blockNumber()
                     spellcheck_text = f"Spellcheck Line {line_num + 1}"
 
-                spellcheck_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_DialogHelpButton), spellcheck_text)
+                spellcheck_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), spellcheck_text)
                 spellcheck_action.triggered.connect(
                     lambda: self.editor._open_spellcheck_dialog_for_selection(position_in_widget_coords)
                 )
@@ -326,32 +326,32 @@ class LNETContextMenuLogic:
                 num_selected = len(selected_lines)
                 menu.addSeparator()
                 
-                move_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_DirIcon), f"Move {num_selected} Line(s) to Virtual Block...")
+                move_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon), f"Move {num_selected} Line(s) to Virtual Block...")
                 move_action.triggered.connect(main_window.list_selection_handler.move_selection_to_category)
                 
                 menu.addSeparator()
-                set_font_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_FileDialogListView), f"Set Font for {num_selected} Line(s)...")
+                set_font_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogListView), f"Set Font for {num_selected} Line(s)...")
                 set_font_action.triggered.connect(self.editor.handle_mass_set_font)
-                set_width_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_FileDialogListView), f"Set Width for {num_selected} Line(s)...")
+                set_width_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogListView), f"Set Width for {num_selected} Line(s)...")
                 set_width_action.triggered.connect(self.editor.handle_mass_set_width)
 
                 real_indices = [main_window.data_store.displayed_string_indices[i] for i in selected_lines if i < len(main_window.data_store.displayed_string_indices)]
                 if real_indices:
                     menu.addSeparator()
-                    autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), f"AutoFix {num_selected} Line(s)...")
+                    autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), f"AutoFix {num_selected} Line(s)...")
                     autofix_action.triggered.connect(lambda: main_window.editor_operation_handler.fix_all_strings(
                         [(main_window.data_store.current_block_idx, idx) for idx in real_indices]
                     ))
 
                     # Revert to Original
                     menu.addSeparator()
-                    revert_action = menu.addAction(main_window.style().standardIcon(main_window.style().SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
+                    revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, real_indices))
                     
                     if hasattr(main_window, 'saved_translations_manager'):
                         any_saved = any(main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, idx) for idx in real_indices)
                         if any_saved:
-                            restore_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowForward), f"Restore Translated for {len(real_indices)} Line(s)")
+                            restore_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), f"Restore Translated for {len(real_indices)} Line(s)")
                             restore_action.triggered.connect(lambda: main_window.saved_translations_manager.restore_translations_for_strings(main_window.data_store.current_block_idx, real_indices))
             else:
                 # No lines selected, try the line under cursor
@@ -360,16 +360,16 @@ class LNETContextMenuLogic:
                 if hasattr(main_window, 'displayed_string_indices') and line_val < len(main_window.data_store.displayed_string_indices):
                     real_idx = main_window.data_store.displayed_string_indices[line_val]
                     menu.addSeparator()
-                    autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_FileDialogDetailedView), f"AutoFix Line {line_val + 1}...")
+                    autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), f"AutoFix Line {line_val + 1}...")
                     autofix_action.triggered.connect(lambda checked=False, r_idx=real_idx: main_window.editor_operation_handler.fix_all_strings(
                         [(main_window.data_store.current_block_idx, r_idx)]
                     ))
 
-                    revert_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
+                    revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [real_idx]))
                     
                     if hasattr(main_window, 'saved_translations_manager') and main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, real_idx):
-                        restore_action = menu.addAction(main_window.style().standardIcon(QStyle.SP_ArrowForward), f"Restore Translated for Line {line_val + 1}")
+                        restore_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), f"Restore Translated for Line {line_val + 1}")
                         restore_action.triggered.connect(lambda: main_window.saved_translations_manager.restore_translation(main_window.data_store.current_block_idx, real_idx))
 
         prettify_standard_context_menu(menu, main_window.style())

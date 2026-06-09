@@ -1,7 +1,7 @@
 import os
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QPlainTextEdit, QLabel, QMessageBox, QLineEdit
-from PyQt5.QtCore import QProcess, Qt
-from PyQt5.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QPlainTextEdit, QLabel, QMessageBox, QLineEdit
+from PyQt6.QtCore import QProcess, Qt
+from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
 
 class ScriptRunnerDialog(QDialog):
     def __init__(self, parent, script_path: str):
@@ -10,7 +10,7 @@ class ScriptRunnerDialog(QDialog):
         self.setWindowTitle("External Script Execution")
         self.resize(750, 480)
         self.setMinimumSize(500, 300)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
         
         self.process = None
         self.setup_ui()
@@ -112,13 +112,13 @@ class ScriptRunnerDialog(QDialog):
 
     def append_output(self, text: str, is_error: bool = False, is_input: bool = False):
         cursor = self.console_edit.textCursor()
-        cursor.movePosition(QTextCursor.End)
+        cursor.movePosition(QTextCursor.MoveOperation.End)
         
         # Format stdout vs stderr vs user input
         fmt = QTextCharFormat()
         if is_input:
             fmt.setForeground(QColor("#38bdf8"))  # Cyan for user input
-            fmt.setFontWeight(QFont.Bold)
+            fmt.setFontWeight(QFont.Weight.Bold.value)
         elif is_error:
             fmt.setForeground(QColor("#f87171"))  # Red-ish
         else:
@@ -129,7 +129,7 @@ class ScriptRunnerDialog(QDialog):
         self.console_edit.ensureCursorVisible()
 
     def send_input(self):
-        if not self.process or self.process.state() != QProcess.Running:
+        if not self.process or self.process.state() != QProcess.ProcessState.Running:
             return
             
         text = self.input_edit.text()
@@ -178,7 +178,7 @@ class ScriptRunnerDialog(QDialog):
         self.stop_button.setEnabled(False)
         self.input_edit.setEnabled(False)
         self.send_button.setEnabled(False)
-        if exit_status == QProcess.NormalExit:
+        if exit_status == QProcess.ExitStatus.NormalExit:
             if exit_code == 0:
                 self.status_label.setText("Success: Script finished successfully!")
                 self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #16a34a;") # Green
@@ -199,29 +199,29 @@ class ScriptRunnerDialog(QDialog):
         self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #dc2626;")
 
     def stop_process(self):
-        if self.process and self.process.state() == QProcess.Running:
+        if self.process and self.process.state() == QProcess.ProcessState.Running:
             reply = QMessageBox.question(
                 self,
                 "Stop Process",
                 "Are you sure you want to terminate the running script?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
             )
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 self.process.terminate()
                 if not self.process.waitForFinished(2000):
                     self.process.kill()
 
     def closeEvent(self, event):
-        if self.process and self.process.state() == QProcess.Running:
+        if self.process and self.process.state() == QProcess.ProcessState.Running:
             reply = QMessageBox.question(
                 self,
                 "Script Still Running",
                 "The script is still running. Would you like to terminate it and close the window?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
             )
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 self.process.terminate()
                 if not self.process.waitForFinished(2000):
                     self.process.kill()

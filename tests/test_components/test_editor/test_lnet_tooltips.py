@@ -7,8 +7,8 @@ hiding bugs where code accesses wrong attributes (e.g., mw.problems_per_subline 
 mw.data_store.problems_per_subline). With real objects, AttributeError or wrong value is raised.
 """
 import pytest
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtCore import QPoint
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtCore import QPoint
 
 from core.data_store import AppDataStore
 from components.editor.lnet_tooltips import LNETTooltipLogic

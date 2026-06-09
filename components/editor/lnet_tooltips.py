@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QMainWindow, QToolTip, QApplication
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtWidgets import QMainWindow, QToolTip, QApplication
+from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtGui import QTextCursor
 from typing import Optional
 
 class LNETTooltipLogic:

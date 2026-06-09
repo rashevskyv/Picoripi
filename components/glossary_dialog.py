@@ -4,8 +4,8 @@ import json
 from html import escape
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
-from PyQt5.QtCore import Qt, QRect, QSize, QTimer
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt, QRect, QSize, QTimer
+from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
@@ -23,18 +23,20 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QPlainTextEdit,
     QStyledItemDelegate,
+    QAbstractItemView,
     QStyle,
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QAbstractItemView,
 )
-from PyQt5.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor
+from PyQt6.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
 class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
 
     def paint(self, painter, option, index):  # type: ignore[override]
-        text = index.data(Qt.DisplayRole)
+        text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             super().paint(painter, option, index)
             return
@@ -50,17 +52,17 @@ class _RichTextItemDelegate(QStyledItemDelegate):
         painter.save()
         paint_context = QAbstractTextDocumentLayout.PaintContext()
 
-        color_group = QPalette.Active if option.state & QStyle.State_Active else QPalette.Inactive
-        if option.state & QStyle.State_Selected:
+        color_group = QPalette.ColorGroup.Active if option.state & QStyle.StateFlag.State_Active else QPalette.ColorGroup.Inactive
+        if option.state & QStyle.StateFlag.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
             paint_context.palette.setColor(
-                QPalette.Text,
-                option.palette.color(color_group, QPalette.HighlightedText),
+                QPalette.ColorRole.Text,
+                option.palette.color(color_group, QPalette.ColorRole.HighlightedText),
             )
         else:
             paint_context.palette.setColor(
-                QPalette.Text,
-                option.palette.color(color_group, QPalette.Text),
+                QPalette.ColorRole.Text,
+                option.palette.color(color_group, QPalette.ColorRole.Text),
             )
 
         painter.translate(text_rect.topLeft())
@@ -75,7 +77,7 @@ class _RichTextItemDelegate(QStyledItemDelegate):
         painter.restore()
 
     def sizeHint(self, option, index):  # type: ignore[override]
-        text = index.data(Qt.DisplayRole)
+        text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             return super().sizeHint(option, index)
 
@@ -125,10 +127,10 @@ class GlossaryDialog(QDialog):
         self._suppress_editor_signals = False
         self._editor_dirty = False
 
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
-        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
-        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
-        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
 
         self._all_entries = list(entries)
         self._filtered_entries: List[GlossaryEntry] = list(entries)
@@ -160,7 +162,7 @@ class GlossaryDialog(QDialog):
         search_layout.addWidget(self._search_field, 1)
         layout.addLayout(search_layout)
 
-        splitter = QSplitter(Qt.Horizontal, self)
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
         layout.addWidget(splitter, 1)
 
         self._tab_widget = QTabWidget(self)
@@ -198,29 +200,29 @@ class GlossaryDialog(QDialog):
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
         self._occurrence_list.setWordWrap(True)
-        self._occurrence_list.setTextElideMode(Qt.ElideNone)
+        self._occurrence_list.setTextElideMode(Qt.TextElideMode.ElideNone)
         self._occurrence_list.setItemDelegate(_RichTextItemDelegate(self._occurrence_list))
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
         right_layout.addWidget(self._occurrence_list, 1)
-        button_box = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
         
         self._save_button = QPushButton("Save Changes", self)
         self._save_button.clicked.connect(self._save_editor_changes)
-        button_box.addButton(self._save_button, QDialogButtonBox.ActionRole)
+        button_box.addButton(self._save_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._update_callback is None:
             self._save_button.setVisible(False)
 
         self._global_replace_button = QPushButton("Global Replace...", self)
         self._global_replace_button.setStyleSheet("background-color: #0d9488; color: white; font-weight: bold;")
         self._global_replace_button.clicked.connect(self._on_global_replace_clicked)
-        button_box.addButton(self._global_replace_button, QDialogButtonBox.ActionRole)
+        button_box.addButton(self._global_replace_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._update_callback is None or self._global_replace_callback is None:
             self._global_replace_button.setVisible(False)
             
         self._ai_classify_button = QPushButton("Organize via AI", self)
         self._ai_classify_button.setStyleSheet("background-color: #8b5cf6; color: white; font-weight: bold;")
         self._ai_classify_button.clicked.connect(self._on_ai_classify_clicked)
-        button_box.addButton(self._ai_classify_button, QDialogButtonBox.ActionRole)
+        button_box.addButton(self._ai_classify_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._ai_classify_callback is None:
             self._ai_classify_button.setVisible(False)
             
@@ -263,12 +265,12 @@ class GlossaryDialog(QDialog):
         if not self._global_replace_callback:
             return
             
-        from PyQt5.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QVBoxLayout
+        from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QVBoxLayout
         
         dialog = QDialog(self)
         dialog.setWindowTitle("Global Replace in Glossary")
         dialog.resize(380, 160)
-        dialog.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        dialog.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         
         layout = QVBoxLayout(dialog)
         form = QFormLayout()
@@ -283,12 +285,12 @@ class GlossaryDialog(QDialog):
         
         layout.addLayout(form)
         
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=dialog)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=dialog)
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)
         
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
             
         find_text = find_edit.text().strip()
@@ -332,29 +334,29 @@ class GlossaryDialog(QDialog):
             table = QTableWidget(self)
             table.setColumnCount(4)
             table.setHorizontalHeaderLabels(["Term", "Translation", "Notes", "Count"])
-            table.setSelectionMode(QTableWidget.SingleSelection)
-            table.setSelectionBehavior(QTableWidget.SelectRows)
+            table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
             
             header = table.horizontalHeader()
-            header.setSectionResizeMode(0, QHeaderView.Interactive)
-            header.setSectionResizeMode(1, QHeaderView.Interactive)
-            header.setSectionResizeMode(2, QHeaderView.Stretch)
-            header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
             
             table.cellClicked.connect(self._on_entry_selected)
             table.currentCellChanged.connect(self._on_entry_current_changed)
-            table.setContextMenuPolicy(Qt.CustomContextMenu)
+            table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             table.customContextMenuRequested.connect(self._on_entry_context_menu)
             
             if self._update_callback:
                 table.setEditTriggers(
-                    QTableWidget.DoubleClicked
-                    | QTableWidget.EditKeyPressed
-                    | QTableWidget.AnyKeyPressed
+                    QAbstractItemView.EditTrigger.DoubleClicked
+                    | QAbstractItemView.EditTrigger.EditKeyPressed
+                    | QAbstractItemView.EditTrigger.AnyKeyPressed
                 )
                 table.itemChanged.connect(self._on_entry_edited)
             else:
-                table.setEditTriggers(QTableWidget.NoEditTriggers)
+                table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
                 
             # Populate this table
             table.setSortingEnabled(False)
@@ -372,12 +374,12 @@ class GlossaryDialog(QDialog):
                 for col, value in enumerate(values):
                     item = QTableWidgetItem(value)
                     if col == 3:
-                        item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                     if col == 0:
-                        item.setData(Qt.UserRole, entry)
-                        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                        item.setData(Qt.ItemDataRole.UserRole, entry)
+                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 3:
-                        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     table.setItem(row, col, item)
                     
             table.resizeColumnToContents(0)
@@ -441,7 +443,7 @@ class GlossaryDialog(QDialog):
             item = active_table.item(row, 0)
             if not item: continue
             
-            entry = item.data(Qt.UserRole)
+            entry = item.data(Qt.ItemDataRole.UserRole)
             if isinstance(entry, GlossaryEntry) and entry.original.strip() == term_to_find:
                 active_table.setCurrentCell(row, 0)
                 active_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtCenter)
@@ -505,7 +507,7 @@ class GlossaryDialog(QDialog):
                 item = self._occurrence_list.currentItem()
             else:
                 return
-        occurrence = item.data(Qt.UserRole)
+        occurrence = item.data(Qt.ItemDataRole.UserRole)
         if occurrence:
             self._jump_callback(occurrence)
 
@@ -596,10 +598,10 @@ class GlossaryDialog(QDialog):
             self,
             "Delete Glossary Entry",
             f"Remove term \"{entry.original}\" from the glossary?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        if response != QMessageBox.Yes:
+        if response != QMessageBox.StandardButton.Yes:
             return
         result = self._delete_callback(entry.original)
         if not result:
@@ -622,7 +624,7 @@ class GlossaryDialog(QDialog):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete Entry")
         delete_action.setEnabled(self._delete_callback is not None)
-        selected_action = menu.exec_(self._active_table().viewport().mapToGlobal(pos))
+        selected_action = menu.exec(self._active_table().viewport().mapToGlobal(pos))
         if selected_action == delete_action:
             self._active_table().selectRow(row)
             self._attempt_entry_delete(entry)
@@ -702,8 +704,8 @@ class GlossaryDialog(QDialog):
                 f"string <b>{occ.string_idx}</b> | line <b>{occ.line_idx + 1}</b>"
             )
             item = QListWidgetItem()
-            item.setData(Qt.DisplayRole, f"{header_html}<br>{preview_html}")
-            item.setData(Qt.UserRole, occ)
+            item.setData(Qt.ItemDataRole.DisplayRole, f"{header_html}<br>{preview_html}")
+            item.setData(Qt.ItemDataRole.UserRole, occ)
             self._occurrence_list.addItem(item)
         self._occurrence_label.setText(f"Occurrences: {len(occ_list)}")
     def _entry_for_row(self, row: int) -> Optional[GlossaryEntry]:
@@ -715,7 +717,7 @@ class GlossaryDialog(QDialog):
         item = active_table.item(row, 0)
         if not item:
             return None
-        entry = item.data(Qt.UserRole)
+        entry = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(entry, GlossaryEntry):
             return entry
         if 0 <= row < len(self._filtered_entries):

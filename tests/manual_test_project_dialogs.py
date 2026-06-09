@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from PyQt5.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QLabel
+from PyQt6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QLabel
 from components.project_dialogs import NewProjectDialog, OpenProjectDialog, ImportBlockDialog
 
 
@@ -63,7 +63,7 @@ class TestWindow(QWidget):
         }
 
         dialog = NewProjectDialog(self, available_plugins=available_plugins)
-        result = dialog.exec_()
+        result = dialog.exec()
 
         if result == dialog.Accepted:
             info = dialog.get_project_info()
@@ -80,7 +80,7 @@ class TestWindow(QWidget):
         print("\n=== Testing OpenProjectDialog ===")
 
         dialog = OpenProjectDialog(self)
-        result = dialog.exec_()
+        result = dialog.exec()
 
         if result == dialog.Accepted:
             path = dialog.get_project_path()
@@ -96,7 +96,7 @@ class TestWindow(QWidget):
         # For realistic test, could create a mock ProjectManager
         # For now, just test without it
         dialog = ImportBlockDialog(self, project_manager=None)
-        result = dialog.exec_()
+        result = dialog.exec()
 
         if result == dialog.Accepted:
             info = dialog.get_block_info()
@@ -121,7 +121,7 @@ def main():
     window = TestWindow()
     window.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

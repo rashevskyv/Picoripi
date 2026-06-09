@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from handlers.text_autofix_logic import TextAutofixLogic
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 @pytest.fixture
 def mock_autofix(mock_mw):
@@ -71,7 +71,7 @@ def test_TextAutofixLogiccleanup_spaces_around_tags(mock_autofix, mock_mw):
     assert isinstance(mock_autofix._cleanup_spaces_around_tags(text), str)
     assert isinstance(mock_autofix._cleanup_spaces_around_tags("text {Tag}"), str)
 
-@patch('PyQt5.QtWidgets.QMessageBox.information')
+@patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix, mock_mw):
     mock_mw.data = [["A string"]]
     mock_mw.current_block_idx = -1
@@ -171,7 +171,7 @@ def test_TextAutofixLogic_cleanup_spaces_corner(mock_autofix, mock_mw):
     # Spaces after non-white tags before words should be removed
     assert mock_autofix._cleanup_spaces_around_tags("{Color:Red} word") == "{Color:Red}word"
 
-@patch('PyQt5.QtWidgets.QMessageBox.warning')
+@patch('PyQt6.QtWidgets.QMessageBox.warning')
 def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix, mock_mw):
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0

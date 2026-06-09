@@ -1,7 +1,7 @@
 from typing import Dict, Optional, List, Any
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QThread
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import QThread
+from PyQt6.QtGui import QTextCursor
 from .base_handler import BaseHandler
 from components.ai_chat_dialog import AIChatDialog
 from core.translation.session_manager import TranslationSessionManager
@@ -52,7 +52,7 @@ class AIChatHandler(BaseHandler):
                 separator = "\n\n" if current_content.strip() else ""
                 context_block = f"--- Context ---\n{initial_text.strip()}\n---"
                 current_tab.input_edit.setPlainText(current_content + separator + context_block)
-                current_tab.input_edit.moveCursor(QTextCursor.End)
+                current_tab.input_edit.moveCursor(QTextCursor.MoveOperation.End)
         
         self.dialog.show()
         self.dialog.raise_()
@@ -138,7 +138,7 @@ class AIChatHandler(BaseHandler):
             tab = self.dialog.tabs.widget(tab_index)
             if tab:
                 cursor = tab.history_view.textCursor()
-                cursor.movePosition(QTextCursor.End)
+                cursor.movePosition(QTextCursor.MoveOperation.End)
                 content_end_pos_before = cursor.position()
 
         task_details = {
@@ -205,7 +205,7 @@ class AIChatHandler(BaseHandler):
             tab = self.dialog.tabs.widget(tab_index)
             if tab:
                 cursor = tab.history_view.textCursor()
-                cursor.movePosition(QTextCursor.End)
+                cursor.movePosition(QTextCursor.MoveOperation.End)
                 cursor.insertText(escape(chunk))
                 tab.history_view.ensureCursorVisible()
                 self._stream_buffer[tab_index] = self._stream_buffer.get(tab_index, "") + chunk
@@ -221,7 +221,7 @@ class AIChatHandler(BaseHandler):
                 content_end_pos_before = context.get('content_end_pos_before', 0)
                 cursor = tab.history_view.textCursor()
                 cursor.setPosition(content_end_pos_before)
-                cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+                cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
                 cursor.removeSelectedText()
 
             final_html = f"""
@@ -279,7 +279,7 @@ class AIChatHandler(BaseHandler):
                 if tab:
                     cursor = tab.history_view.textCursor()
                     cursor.setPosition(content_end_pos_before)
-                    cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+                    cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
                     cursor.removeSelectedText()
 
             self.dialog.set_input_enabled(tab_index, True)

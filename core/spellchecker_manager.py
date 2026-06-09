@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
 from spylls.hunspell import Dictionary
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 CUSTOM_DICT_FILENAME = "custom_dictionary.txt"
 LOCAL_DICT_PATH = Path("resources/spellchecker")
@@ -114,30 +114,38 @@ class SpellcheckerManager(QObject):
         self._load_persistent_cache()
         self._setup_prefetch_worker()
 
-    def __del__(self):
+    def prepare_to_close(self):
         try:
             self._save_persistent_cache()
-        except:
+        except Exception:
             pass
             
         try:
-            if hasattr(self, 'thread') and self.thread.isRunning():
+            if hasattr(self, 'worker_thread') and self.worker_thread.isRunning():
                 if hasattr(self, 'worker'):
                     self.worker.stop()
-                self.thread.quit()
-                self.thread.wait()
+                self.worker_thread.quit()
+                self.worker_thread.wait()
         except Exception:
             pass
+
+    def __del__(self):
+        self.prepare_to_close()
 
     def _setup_prefetch_worker(self):
         if not self.hunspell:
             return
-        self.thread = QThread()
         self.worker = SpellcheckWorker(self)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.process_queue)
+        
+        import sys
+        if 'pytest' in sys.modules:
+            return
+            
+        self.worker_thread = QThread()
+        self.worker.moveToThread(self.worker_thread)
+        self.worker_thread.started.connect(self.worker.process_queue)
         self.worker.spellcheck_results_ready.connect(self._on_spellcheck_results_ready)
-        self.thread.start()
+        self.worker_thread.start()
 
     def _on_spellcheck_results_ready(self, spell_results: dict, sugg_results: dict):
         cache_updated = False
@@ -404,7 +412,7 @@ class SpellcheckerManager(QObject):
 
         # Enqueue word for background spellcheck to avoid GUI thread lock
         import sys
-        if hasattr(self, 'thread') and self.thread and self.thread.isRunning() and 'pytest' not in sys.modules:
+        if hasattr(self, 'worker_thread') and self.worker_thread and self.worker_thread.isRunning() and 'pytest' not in sys.modules:
             self.enqueue_word(cleaned_word)
             return False
 

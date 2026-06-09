@@ -15,8 +15,8 @@ def test_UIUpdater_init(updater, mock_mw):
     assert updater.data_processor is not None
 
 def test_UIUpdater_get_tree_state(updater):
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-    from PyQt5.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
     
     item = QTreeWidgetItem(["Block 0"])
@@ -31,8 +31,8 @@ def test_UIUpdater_get_tree_state(updater):
     assert "block_0" == state["selected_id"]
 
 def test_UIUpdater_apply_tree_state(updater):
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-    from PyQt5.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
     item = QTreeWidgetItem(["Block 0"])
     item.setData(0, Qt.UserRole, 0)
@@ -46,15 +46,15 @@ def test_UIUpdater_apply_tree_state(updater):
         "v_scroll": 0,
         "h_scroll": 0
     }
-    with patch('PyQt5.QtCore.QTimer.singleShot', side_effect=lambda ms, func: func()):
+    with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda ms, func: func()):
         updater.apply_tree_state(state)
     assert item.isExpanded()
     # verify that block selection is restored
     updater.mw.list_selection_handler.block_selected.assert_called_with(item, None)
 
 def test_UIUpdater_get_item_id(updater):
-    from PyQt5.QtWidgets import QTreeWidgetItem
-    from PyQt5.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidgetItem
+    from PyQt6.QtCore import Qt
     item = QTreeWidgetItem(["Test"])
     item.setData(0, Qt.UserRole, 1)
     result = updater._get_item_id(item)
@@ -81,7 +81,7 @@ def test_UIUpdater_get_aggregated_problems_for_block(updater):
     assert result.get("prob2") == 0
 
 def test_UIUpdater_create_block_tree_item(updater):
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
     updater.mw.block_list_widget = QTreeWidget()
     mock_item = QTreeWidgetItem([])
     updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
@@ -93,8 +93,8 @@ def test_UIUpdater_create_block_tree_item(updater):
     assert item == mock_item
 
 def test_UIUpdater_add_virtual_folder_to_tree(updater):
-    from PyQt5.QtWidgets import QTreeWidget
-    from PyQt5.QtGui import QIcon
+    from PyQt6.QtWidgets import QTreeWidget
+    from PyQt6.QtGui import QIcon
     updater.mw.block_list_widget = QTreeWidget()
     updater.mw.project_manager.project = MagicMock()
     updater.mw.project_manager.project.blocks = []
@@ -107,7 +107,7 @@ def test_UIUpdater_add_virtual_folder_to_tree(updater):
     updater._add_virtual_folder_to_tree(updater.mw.block_list_widget.invisibleRootItem(), folder, {}, None)
 
 def test_UIUpdater_populate_blocks(updater):
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
     updater.mw.block_list_widget = QTreeWidget()
     mock_item = QTreeWidgetItem([])
     updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
@@ -120,8 +120,8 @@ def test_UIUpdater_populate_blocks(updater):
     updater.mw.block_list_widget.clear.assert_called()
 
 def test_UIUpdater_update_block_item_text_with_problem_count(updater):
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-    from PyQt5.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
     item = QTreeWidgetItem(["Block 0"])
     item.setData(0, Qt.UserRole, 0) # block_idx
@@ -589,8 +589,8 @@ def test_UIUpdater_highlight_problem_block(updater):
     updater.highlight_problem_block(0, True, is_critical=True)
 
 def test_UIUpdater_clear_all_problem_block_highlights_and_text(updater):
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-    from PyQt5.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
     item = QTreeWidgetItem(["Block 0"])
     item.setData(0, Qt.UserRole, 0)
@@ -625,8 +625,8 @@ def test_UIUpdater_update_statusbar_paths(updater):
 
 def test_UIUpdater_clear_highlights_no_base_name(updater):
     """Cover line 656: base_display_name is None (no UserRole+4 set)."""
-    from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
-    from PyQt5.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
     item = QTreeWidgetItem(["Block 0"])
     item.setData(0, Qt.UserRole, 0)
@@ -721,7 +721,7 @@ def test_PreviewUpdater_pre_cache_all_blocks(updater, mock_mw):
     
     updater.preview_updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{b}_{r}", False)
     
-    with patch('PyQt5.QtWidgets.QProgressDialog') as mock_dialog:
+    with patch('PyQt6.QtWidgets.QProgressDialog') as mock_dialog:
         mock_dialog_instance = MagicMock()
         mock_dialog.return_value = mock_dialog_instance
         mock_dialog_instance.wasCanceled.return_value = False

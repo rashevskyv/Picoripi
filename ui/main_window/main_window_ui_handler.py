@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel
-from PyQt5.QtGui import QFont, QPalette, QColor, QTextOption
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QApplication, QLabel
+from PyQt6.QtGui import QFont, QPalette, QColor, QTextOption
+from PyQt6.QtCore import Qt
 from ui.themes import DARK_THEME_STYLESHEET, LIGHT_THEME_STYLESHEET
 from utils.constants import DT_PREVIEW_SELECTED_LINE_COLOR, LT_PREVIEW_SELECTED_LINE_COLOR
 from typing import List
@@ -169,37 +169,37 @@ class MainWindowUIHandler:
     def apply_theme(app, theme_name: str):
         if theme_name == "dark":
             palette = QPalette()
-            palette.setColor(QPalette.Window, QColor(46, 46, 46))
-            palette.setColor(QPalette.WindowText, QColor(224, 224, 224))
-            palette.setColor(QPalette.Base, QColor(37, 37, 37))
-            palette.setColor(QPalette.AlternateBase, QColor(74, 74, 74))
-            palette.setColor(QPalette.ToolTipBase, QColor(46, 46, 46))
-            palette.setColor(QPalette.ToolTipText, QColor(224, 224, 224))
-            palette.setColor(QPalette.Text, QColor(224, 224, 224))
-            palette.setColor(QPalette.Button, QColor(74, 74, 74))
-            palette.setColor(QPalette.ButtonText, QColor(224, 224, 224))
-            palette.setColor(QPalette.BrightText, Qt.red)
-            palette.setColor(QPalette.Link, QColor(42, 130, 218))
-            palette.setColor(QPalette.Highlight, QColor(DT_PREVIEW_SELECTED_LINE_COLOR))
-            palette.setColor(QPalette.HighlightedText, Qt.white)
+            palette.setColor(QPalette.ColorRole.Window, QColor(46, 46, 46))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor(224, 224, 224))
+            palette.setColor(QPalette.ColorRole.Base, QColor(37, 37, 37))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor(74, 74, 74))
+            palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(46, 46, 46))
+            palette.setColor(QPalette.ColorRole.ToolTipText, QColor(224, 224, 224))
+            palette.setColor(QPalette.ColorRole.Text, QColor(224, 224, 224))
+            palette.setColor(QPalette.ColorRole.Button, QColor(74, 74, 74))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor(224, 224, 224))
+            palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+            palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor(DT_PREVIEW_SELECTED_LINE_COLOR))
+            palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
             app.setPalette(palette)
             app.setStyleSheet(DARK_THEME_STYLESHEET)
             log_info("Applied Dark Theme.")
         else: # 'auto' or 'light'
             palette = QPalette()
-            palette.setColor(QPalette.Window, QColor(240, 240, 240))
-            palette.setColor(QPalette.WindowText, QColor(0, 0, 0))
-            palette.setColor(QPalette.Base, QColor(255, 255, 255))
-            palette.setColor(QPalette.AlternateBase, QColor(245, 245, 245))
-            palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 220))
-            palette.setColor(QPalette.ToolTipText, QColor(0, 0, 0))
-            palette.setColor(QPalette.Text, QColor(0, 0, 0))
-            palette.setColor(QPalette.Button, QColor(240, 240, 240))
-            palette.setColor(QPalette.ButtonText, QColor(0, 0, 0))
-            palette.setColor(QPalette.BrightText, Qt.red)
-            palette.setColor(QPalette.Link, QColor(0, 0, 255))
-            palette.setColor(QPalette.Highlight, QColor(LT_PREVIEW_SELECTED_LINE_COLOR))
-            palette.setColor(QPalette.HighlightedText, QColor(Qt.black))
+            palette.setColor(QPalette.ColorRole.Window, QColor(240, 240, 240))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor(0, 0, 0))
+            palette.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor(245, 245, 245))
+            palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
+            palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
+            palette.setColor(QPalette.ColorRole.Text, QColor(0, 0, 0))
+            palette.setColor(QPalette.ColorRole.Button, QColor(240, 240, 240))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
+            palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+            palette.setColor(QPalette.ColorRole.Link, QColor(0, 0, 255))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor(LT_PREVIEW_SELECTED_LINE_COLOR))
+            palette.setColor(QPalette.ColorRole.HighlightedText, QColor(Qt.GlobalColor.black))
             app.setPalette(palette)
             app.setStyleSheet(LIGHT_THEME_STYLESHEET)
             log_info("Applied Light Theme.")

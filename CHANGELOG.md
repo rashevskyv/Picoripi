@@ -1,6 +1,24 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.2.173] - 2026-06-09
+
+### Fixed
+- **PyQt6 Migration: QStyle.SP_* Enum Namespace**: Fixed `AttributeError: type object 'QStyle' has no attribute 'SP_...'` errors that crashed context menus (both tree and editor). In PyQt6, standard pixmap constants moved from the flat `QStyle.SP_*` namespace into `QStyle.StandardPixmap.SP_*`. Updated all occurrences across:
+  - `components/editor/lnet_context_menu_logic.py` (glossary, spellcheck, translate, AutoFix, revert, restore menu actions).
+  - `components/editor/mouse_handlers.py` (AI discuss action icon).
+  - `components/tree_context_menu_mixin.py` (all project tree context menu icons).
+  - `components/project_dialogs.py` (folder creation and navigation dialogs).
+  - `components/folder_delete_dialog.py` (delete confirmation dialog icon).
+- **PyQt6 Migration: QTextCursor.SelectionType Enum Namespace**: Fixed `AttributeError: type object 'QTextCursor' has no attribute 'WordUnderCursor'/'BlockUnderCursor'` errors in editor and spellcheck logic. Selection type constants moved to `QTextCursor.SelectionType.*` in PyQt6. Updated:
+  - `handlers/text_operation_handler.py` — word-under-cursor selection during issue scan.
+  - `components/editor/lnet_context_menu_logic.py` — word selection for glossary add (two locations).
+  - `components/editor/lnet_spellcheck_logic.py` — block selection when applying spellcheck corrections.
+- **Clean Console Output**: Removed all diagnostic `print()` statements that polluted the console during startup and normal operation (from `main.py`, `line_numbered_text_edit.py`, `syntax_highlighter.py`, `hotkey_manager.py`, `custom_tree_widget.py`, `bfn_preview_widget.py`). The application now outputs only structured log messages via the rotating file logger.
+- **Problem Count Display on Startup**: Fixed issue counts in parentheses not appearing next to compacted virtual folder names until the user clicked each block. The `_add_virtual_folder_to_tree` method in `block_list_updater.py` now calculates and applies issue counts for all `compaction_type == 2` folders immediately during initial tree population.
+- **Tooltip globalPos Crash**: Fixed `AttributeError: 'QMouseEvent' object has no attribute 'globalPos'` that occurred when hovering over line numbers in the block list. Replaced the PyQt5-only `event.globalPos()` call with the PyQt6-compatible `QCursor.pos()` in `custom_list_item_delegate.py`.
+
 ## [0.2.172] - 2026-06-08
+
 
 ### Added
 - **Spellchecking in Search Panel**: Integrated spellchecking functionality into the search panel (`SearchPanelWidget`). When a user enters text into the search edit field (`SearchLineEdit`), it dynamically analyses the string and highlights misspelled words with a red wavy underline, matching standard IDE styling without modifying overall widget colors or backgrounds. It also features a custom context menu (right-click) providing correction suggestions and an option to add words to the user dictionary, while ensuring no styling conflicts occur with standard menus (`QMenu`).

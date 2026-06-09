@@ -1,11 +1,11 @@
 import math
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QCheckBox, QPushButton, QSlider, QSpinBox, QLabel, QDialogButtonBox,
     QColorDialog, QWidget
 )
-from PyQt5.QtGui import QColor, QPainter, QPen, QBrush
-from PyQt5.QtCore import Qt, pyqtSignal, QPointF
+from PyQt6.QtGui import QColor, QPainter, QPen, QBrush
+from PyQt6.QtCore import Qt, pyqtSignal, QPointF
 
 
 class AnglePickerWidget(QWidget):
@@ -16,7 +16,7 @@ class AnglePickerWidget(QWidget):
         super().__init__(parent)
         self._angle = 0  # 0 to 359 degrees
         self.setFixedSize(size, size)
-        self.setCursor(Qt.CrossCursor)
+        self.setCursor(Qt.CursorShape.CrossCursor)
 
     def angle(self) -> int:
         return self._angle
@@ -29,58 +29,58 @@ class AnglePickerWidget(QWidget):
             self.update()
 
     def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        with QPainter(self) as painter:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        width = self.width()
-        height = self.height()
-        radius = min(width, height) / 2.0
-        center = QPointF(width / 2.0, height / 2.0)
+            width = self.width()
+            height = self.height()
+            radius = min(width, height) / 2.0
+            center = QPointF(width / 2.0, height / 2.0)
 
-        # Draw main circle border and fill
-        circle_radius = radius - 4.0
-        
-        # Subtle dark/light gradient or color fill depending on palette
-        painter.setPen(QPen(QColor("#777777"), 1.5))
-        is_dark = self.palette().color(self.backgroundRole()).lightness() < 128
-        painter.setBrush(QBrush(QColor("#1e1e1e") if is_dark else QColor("#ffffff")))
-        painter.drawEllipse(center, circle_radius, circle_radius)
+            # Draw main circle border and fill
+            circle_radius = radius - 4.0
+            
+            # Subtle dark/light gradient or color fill depending on palette
+            painter.setPen(QPen(QColor("#777777"), 1.5))
+            is_dark = self.palette().color(self.backgroundRole()).lightness() < 128
+            painter.setBrush(QBrush(QColor("#1e1e1e") if is_dark else QColor("#ffffff")))
+            painter.drawEllipse(center, circle_radius, circle_radius)
 
-        # Draw axis ticks
-        tick_pen = QPen(QColor("#555555" if is_dark else "#cccccc"), 1)
-        painter.setPen(tick_pen)
-        
-        tick_len = 4.0
-        # Right (0)
-        painter.drawLine(QPointF(center.x() + circle_radius - tick_len, center.y()), QPointF(center.x() + circle_radius, center.y()))
-        # Left (180)
-        painter.drawLine(QPointF(center.x() - circle_radius + tick_len, center.y()), QPointF(center.x() - circle_radius, center.y()))
-        # Down (90)
-        painter.drawLine(QPointF(center.x(), center.y() + circle_radius - tick_len), QPointF(center.x(), center.y() + circle_radius))
-        # Up (270)
-        painter.drawLine(QPointF(center.x(), center.y() - circle_radius + tick_len), QPointF(center.x(), center.y() - circle_radius))
+            # Draw axis ticks
+            tick_pen = QPen(QColor("#555555" if is_dark else "#cccccc"), 1)
+            painter.setPen(tick_pen)
+            
+            tick_len = 4.0
+            # Right (0)
+            painter.drawLine(QPointF(center.x() + circle_radius - tick_len, center.y()), QPointF(center.x() + circle_radius, center.y()))
+            # Left (180)
+            painter.drawLine(QPointF(center.x() - circle_radius + tick_len, center.y()), QPointF(center.x() - circle_radius, center.y()))
+            # Down (90)
+            painter.drawLine(QPointF(center.x(), center.y() + circle_radius - tick_len), QPointF(center.x(), center.y() + circle_radius))
+            # Up (270)
+            painter.drawLine(QPointF(center.x(), center.y() - circle_radius + tick_len), QPointF(center.x(), center.y() - circle_radius))
 
-        # Center dot
-        painter.setBrush(QBrush(QColor("#ffffff" if is_dark else "#000000")))
-        painter.setPen(Qt.NoPen)
-        painter.drawEllipse(center, 2.0, 2.0)
+            # Center dot
+            painter.setBrush(QBrush(QColor("#ffffff" if is_dark else "#000000")))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(center, 2.0, 2.0)
 
-        # Draw the needle representing the angle
-        rad = math.radians(self._angle)
-        line_len = circle_radius - 2.0
-        target_x = center.x() + line_len * math.cos(rad)
-        target_y = center.y() + line_len * math.sin(rad)
-        target_point = QPointF(target_x, target_y)
+            # Draw the needle representing the angle
+            rad = math.radians(self._angle)
+            line_len = circle_radius - 2.0
+            target_x = center.x() + line_len * math.cos(rad)
+            target_y = center.y() + line_len * math.sin(rad)
+            target_point = QPointF(target_x, target_y)
 
-        # Blue accent line for premium look
-        accent_color = QColor("#007acc")
-        painter.setPen(QPen(accent_color, 2))
-        painter.drawLine(center, target_point)
+            # Blue accent line for premium look
+            accent_color = QColor("#007acc")
+            painter.setPen(QPen(accent_color, 2))
+            painter.drawLine(center, target_point)
 
-        # Knob at needle tip
-        painter.setBrush(QBrush(QColor("#ffffff")))
-        painter.setPen(QPen(accent_color, 1.5))
-        painter.drawEllipse(target_point, 4.0, 4.0)
+            # Knob at needle tip
+            painter.setBrush(QBrush(QColor("#ffffff")))
+            painter.setPen(QPen(accent_color, 1.5))
+            painter.drawEllipse(target_point, 4.0, 4.0)
 
     def _update_angle_from_mouse(self, pos):
         center_x = self.width() / 2.0
@@ -96,11 +96,11 @@ class AnglePickerWidget(QWidget):
         self.angleChanged.emit(deg)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self._update_angle_from_mouse(event.pos())
 
     def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.LeftButton:
+        if event.buttons() & Qt.MouseButton.LeftButton:
             self._update_angle_from_mouse(event.pos())
 
 
@@ -157,7 +157,7 @@ class TextEffectsDialog(QDialog):
 
         # Alpha (opacity) row
         alpha_row = QHBoxLayout()
-        self.slider_alpha = QSlider(Qt.Horizontal)
+        self.slider_alpha = QSlider(Qt.Orientation.Horizontal)
         self.slider_alpha.setRange(0, 255)
         self.slider_alpha.setValue(int(settings.get("alpha", 178)))
         self.spin_alpha = QSpinBox()
@@ -223,7 +223,7 @@ class TextEffectsDialog(QDialog):
             form.addRow("Spread:", self.spin_spread)
 
         # ── OK / Cancel ───────────────────────────────────────────────────────
-        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         bbox.accepted.connect(self._on_accept)
         bbox.rejected.connect(self.reject)
         root_layout.addWidget(bbox)

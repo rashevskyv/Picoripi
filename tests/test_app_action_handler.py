@@ -94,7 +94,7 @@ class TestAppActionHandler(unittest.TestCase):
         # Mock progress dialog instance
         mock_pd_inst = mock_progress.return_value
         mock_pd_inst.wasCanceled.return_value = False
-        mock_pd_inst.exec_.return_value = None  # Don't block
+        mock_pd_inst.exec.return_value = None  # Don't block
 
         # Mock worker: don't actually run the thread
         mock_worker_inst = mock_worker_cls.return_value

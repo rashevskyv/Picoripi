@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch, call
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from handlers.translation.ai_lifecycle_manager import AILifecycleManager
 from core.translation.providers import ProviderResponse, TranslationProviderError
@@ -144,7 +144,7 @@ def test_ailm_handle_task_error(mock_box, ailm):
     
     # Timeout
     mock_box.reset_mock()
-    mock_box.question.return_value = mock_box.Yes
+    mock_box.question.return_value = mock_box.StandardButton.Yes
     ctx = {'type': 'translate_preview', 'attempt': 1, 'max_retries': 3}
     
     with patch('handlers.translation.ai_lifecycle_manager.QTimer') as mock_timer:

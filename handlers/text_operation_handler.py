@@ -1,8 +1,8 @@
 import re
 from typing import Any, Optional, List, Dict, Tuple, Set, Union
-from PyQt5.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog
-from PyQt5.QtGui import QTextCursor, QTextBlock
-from PyQt5.QtCore import QTimer, Qt
+from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog
+from PyQt6.QtGui import QTextCursor, QTextBlock
+from PyQt6.QtCore import QTimer, Qt
 from ui.autofix_selection_dialog import AutofixSelectionDialog
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info
@@ -104,7 +104,7 @@ class TextOperationHandler(BaseHandler):
                 if block.isValid() and block.text() != preview_line_text:
                     cursor = QTextCursor(block)
                     cursor.setPosition(block.position())
-                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                    cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
                     cursor.insertText(preview_line_text)
                     
                     # Update cache
@@ -253,7 +253,7 @@ class TextOperationHandler(BaseHandler):
                     if isinstance(pos, int) and pos > 0:
                         text = edited_edit.toPlainText()
                         if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
-                            cursor.select(QTextCursor.WordUnderCursor)
+                            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
                             active_word = cursor.selectedText().strip("'·").lower()
                 except BaseException:
                     pass
@@ -584,15 +584,15 @@ class TextOperationHandler(BaseHandler):
         
         result_dialog = QMessageBox(self.mw)
         result_dialog.setWindowTitle(f"Width Analysis for Data Line {data_line_idx + 1}")
-        result_dialog.setTextFormat(Qt.PlainText)
+        result_dialog.setTextFormat(Qt.TextFormat.PlainText)
         result_dialog.setText("\n".join(info_parts))
-        result_dialog.setIcon(QMessageBox.Information)
-        result_dialog.setStandardButtons(QMessageBox.Ok)
+        result_dialog.setIcon(QMessageBox.Icon.Information)
+        result_dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
         text_edit_for_size = result_dialog.findChild(QPlainTextEdit)
         if text_edit_for_size:
             text_edit_for_size.setMinimumWidth(700)
             text_edit_for_size.setMinimumHeight(500)
-        result_dialog.exec_()
+        result_dialog.exec()
         
     def auto_fix_current_string(self) -> None:
         self._auto_fix_current_string_impl()
@@ -663,7 +663,7 @@ class TextOperationHandler(BaseHandler):
             self.mw.is_programmatically_changing_text = True
             cursor = edited_text_edit.textCursor()
             cursor.beginEditBlock()
-            cursor.select(QTextCursor.Document)
+            cursor.select(QTextCursor.SelectionType.Document)
             cursor.insertText(visual_text_for_editor)
             cursor.endEditBlock()
             self.mw.is_programmatically_changing_text = False
@@ -701,7 +701,7 @@ class TextOperationHandler(BaseHandler):
         # Fetch current autofix enabled settings as default checkbox states
         autofix_settings = getattr(self.mw, 'autofix_enabled', {})
         dialog = AutofixSelectionDialog(problem_definitions, autofix_settings, self.mw)
-        if dialog.exec_() != AutofixSelectionDialog.Accepted:
+        if dialog.exec() != AutofixSelectionDialog.Accepted:
             return
 
         selected_problems = dialog.get_selected_problems()
@@ -726,7 +726,7 @@ class TextOperationHandler(BaseHandler):
         # Show progress dialog
         progress_msg = "Applying auto-fix across selected strings..." if target_strings is not None else "Applying auto-fix across all strings..."
         progress = QProgressDialog(progress_msg, "Cancel", 0, total_strings, self.mw)
-        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(500)
         progress.setValue(0)
 
@@ -869,7 +869,7 @@ class TextOperationHandler(BaseHandler):
                     self.mw.is_programmatically_changing_text = True
                     cursor = edited_text_edit.textCursor()
                     cursor.beginEditBlock()
-                    cursor.select(QTextCursor.Document)
+                    cursor.select(QTextCursor.SelectionType.Document)
                     cursor.insertText(visual_text_for_editor)
                     cursor.endEditBlock()
                     self.mw.is_programmatically_changing_text = False

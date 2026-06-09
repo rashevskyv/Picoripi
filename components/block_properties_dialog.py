@@ -1,11 +1,11 @@
 # components/block_properties_dialog.py
 import os
 from pathlib import Path
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
     QPushButton, QGroupBox, QDialogButtonBox
 )
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 class BlockPropertiesDialog(QDialog):
     def __init__(self, parent, block_idx: int):
@@ -92,7 +92,7 @@ class BlockPropertiesDialog(QDialog):
         # 1. Group Box: General Info
         gen_group = QGroupBox("General Info", self)
         gen_layout = QFormLayout(gen_group)
-        gen_layout.setLabelAlignment(Qt.AlignRight)
+        gen_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.add_form_row(gen_layout, "Block Name:", display_name)
         self.add_form_row(gen_layout, "File Extension:", extension)
@@ -104,7 +104,7 @@ class BlockPropertiesDialog(QDialog):
         # 2. Group Box: Archive/Container Details
         archive_group = QGroupBox("Archive / Container Details", self)
         archive_layout = QFormLayout(archive_group)
-        archive_layout.setLabelAlignment(Qt.AlignRight)
+        archive_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.add_form_row(archive_layout, "Inside Container:", is_archive)
         self.add_form_row(archive_layout, "Container File:", container)
@@ -114,7 +114,7 @@ class BlockPropertiesDialog(QDialog):
         # 3. Group Box: Paths & Disk Info
         paths_group = QGroupBox("Paths & Disk Info", self)
         paths_layout = QFormLayout(paths_group)
-        paths_layout.setLabelAlignment(Qt.AlignRight)
+        paths_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.add_form_row(paths_layout, "Source Rel Path:", src_rel)
         self.add_form_row(paths_layout, "Source Abs Path:", src_abs)
@@ -125,7 +125,7 @@ class BlockPropertiesDialog(QDialog):
         layout.addWidget(paths_group)
         
         # Dialog buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok, self)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, self)
         button_box.accepted.connect(self.accept)
         layout.addWidget(button_box)
 

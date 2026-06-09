@@ -4,8 +4,8 @@ from __future__ import annotations
 import base64
 from typing import Iterable, List, Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QListWidget,
@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QLabel,
     QSplitter,
+    QAbstractItemView,
 )
 
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
@@ -33,10 +34,10 @@ class TranslationVariationsDialog(QDialog):
 
         layout.addWidget(QLabel("Select a translation option and double-click or press 'Apply'."))
 
-        self.splitter = QSplitter(Qt.Horizontal, self)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal, self)
         
         self._list = QListWidget(self)
-        self._list.setSelectionMode(QListWidget.SingleSelection)
+        self._list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._list.itemSelectionChanged.connect(self._update_preview)
         self._list.itemDoubleClicked.connect(self._apply_current_selection)
         self.splitter.addWidget(self._list)
@@ -64,12 +65,12 @@ class TranslationVariationsDialog(QDialog):
         if show_refresh:
             self._refresh_button = QPushButton("Refresh", self)
             self._refresh_button.clicked.connect(self._on_refresh)
-            self._buttons.addButton(self._refresh_button, QDialogButtonBox.ActionRole)
+            self._buttons.addButton(self._refresh_button, QDialogButtonBox.ButtonRole.ActionRole)
 
         self._apply_button = QPushButton("Apply", self)
         self._apply_button.clicked.connect(self._apply_current_selection)
-        self._buttons.addButton(self._apply_button, QDialogButtonBox.AcceptRole)
-        self._buttons.addButton("Cancel", QDialogButtonBox.RejectRole)
+        self._buttons.addButton(self._apply_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        self._buttons.addButton("Cancel", QDialogButtonBox.ButtonRole.RejectRole)
         self._buttons.rejected.connect(self.reject)
         layout.addWidget(self._buttons)
 

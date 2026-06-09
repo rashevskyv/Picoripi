@@ -1,7 +1,7 @@
 from pathlib import Path
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QBrush, QTextCursor, QIcon
-from PyQt5.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QBrush, QTextCursor, QIcon
+from PyQt6.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
 from utils.logging_utils import log_debug
 from utils.constants import APP_VERSION
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, calculate_strict_string_width, remove_all_tags

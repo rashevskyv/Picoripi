@@ -1,8 +1,8 @@
 # /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 import os
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QColorDialog, QPushButton
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QColorDialog, QPushButton
+from PyQt6.QtGui import QColor
+from PyQt6.QtCore import pyqtSignal
 
 class ColorPickerButton(QPushButton):
     colorChanged = pyqtSignal(QColor)

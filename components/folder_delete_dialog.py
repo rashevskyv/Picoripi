@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QStyle
-from PyQt5.QtCore import Qt
+﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QStyle
+from PyQt6.QtCore import Qt
 
 class FolderDeleteDialog(QDialog):
     def __init__(self, folder_name: str, parent=None):
@@ -17,7 +17,7 @@ class FolderDeleteDialog(QDialog):
         # Warning icon and text
         header_layout = QHBoxLayout()
         icon_label = QLabel()
-        icon = self.style().standardIcon(QStyle.SP_MessageBoxQuestion)
+        icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxQuestion)
         icon_label.setPixmap(icon.pixmap(32, 32))
         header_layout.addWidget(icon_label)
         
@@ -51,7 +51,7 @@ class FolderDeleteDialog(QDialog):
         
         self.btn_cancel = QPushButton("Cancel")
         self.btn_cancel.clicked.connect(self.reject)
-        layout.addWidget(self.btn_cancel, alignment=Qt.AlignCenter)
+        layout.addWidget(self.btn_cancel, alignment=Qt.AlignmentFlag.AlignCenter)
         
         self.resize(350, 200)
 

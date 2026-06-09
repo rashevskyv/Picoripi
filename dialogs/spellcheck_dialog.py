@@ -1,7 +1,7 @@
 # Dialog for interactive spellchecking of selected text
-from PyQt5.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QDialogButtonBox, QApplication)
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QTextCursor, QTextCharFormat, QColor
+from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QDialogButtonBox, QApplication)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor
 from typing import List
 import re
 from utils.logging_utils import log_debug, log_error
@@ -113,18 +113,18 @@ class SpellcheckDialog(BaseTextReviewDialog):
     def pre_highlight_all_misspelled_words(self):
         """Highlight all misspelled words with red wavy underline."""
         cursor = self.text_edit.textCursor()
-        cursor.select(QTextCursor.Document)
+        cursor.select(QTextCursor.SelectionType.Document)
         clear_format = QTextCharFormat()
-        clear_format.setUnderlineStyle(QTextCharFormat.NoUnderline)
+        clear_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.NoUnderline)
         cursor.mergeCharFormat(clear_format)
 
         misspell_format = QTextCharFormat()
-        misspell_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        misspell_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         misspell_format.setUnderlineColor(QColor("red"))
 
         for start, end, word, line_idx in self.items_to_review:
             cursor.setPosition(start)
-            cursor.setPosition(end, QTextCursor.KeepAnchor)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
             cursor.mergeCharFormat(misspell_format)
 
         self.misspelled_list.clear()
@@ -159,11 +159,11 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
         cursor = self.text_edit.textCursor()
         cursor.setPosition(start)
-        cursor.setPosition(end, QTextCursor.KeepAnchor)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
 
         fmt = QTextCharFormat()
         fmt.setBackground(QColor("#FFFF00"))
-        fmt.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        fmt.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         fmt.setUnderlineColor(QColor("red"))
         cursor.mergeCharFormat(fmt)
 
@@ -187,10 +187,10 @@ class SpellcheckDialog(BaseTextReviewDialog):
             start, end, _, _ = self.items_to_review[self.current_item_index]
             cursor = self.text_edit.textCursor()
             cursor.setPosition(start)
-            cursor.setPosition(end, QTextCursor.KeepAnchor)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
             fmt = QTextCharFormat()
-            fmt.setBackground(Qt.transparent)
-            fmt.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+            fmt.setBackground(Qt.GlobalColor.transparent)
+            fmt.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
             fmt.setUnderlineColor(QColor("red"))
             cursor.mergeCharFormat(fmt)
 

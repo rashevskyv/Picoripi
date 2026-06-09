@@ -62,7 +62,7 @@ def test_TextOperationHandler_text_edited(mock_conv, handler, mock_mw):
     mock_mw.data_processor.update_edited_data.assert_called_with(0, 0, "new text")
     mock_mw.ui_updater.update_title.assert_called()
 
-@patch('PyQt5.QtWidgets.QApplication.clipboard')
+@patch('PyQt6.QtWidgets.QApplication.clipboard')
 @patch('re.split', return_value=["line1"])
 def test_TextOperationHandler_paste_block_text(mock_split, mock_clipboard, handler, mock_mw):
     mock_clipboard.return_value.text.return_value = "line1"
@@ -178,7 +178,7 @@ def test_TextOperationHandler_calculate_width(mock_mbox, handler, mock_mw):
     with patch('handlers.text_operation_handler.QMessageBox') as mock_dlg:
         with patch('handlers.text_operation_handler.calculate_string_width', return_value=120):
             handler.calculate_width_for_data_line_action(0)
-            mock_dlg.return_value.exec_.assert_called_once()
+            mock_dlg.return_value.exec.assert_called_once()
 
 @patch('handlers.text_operation_handler.QMessageBox')
 def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
@@ -201,7 +201,7 @@ def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
     # verify status bar updated instead of a change applied
     mock_mw.statusBar.showMessage.assert_called_with("Auto-fix: No changes made.", 2000)
 
-from PyQt5.QtGui import QTextCursor
+from PyQt6.QtGui import QTextCursor
 
 @patch('handlers.text_operation_handler.QTextCursor')
 def test_TextOperationHandler_update_preview_content_partial(mock_cursor_cls, handler, mock_mw):
@@ -230,7 +230,7 @@ def test_TextOperationHandler_update_preview_content_partial(mock_cursor_cls, ha
     mock_mw.preview_text_edit.setPlainText.assert_not_called()
     mock_doc.findBlockByNumber.assert_called_with(1)
     mock_cursor.setPosition.assert_any_call(10)
-    mock_cursor.setPosition.assert_any_call(10 + len("prev_old"), mock_cursor_cls.KeepAnchor)
+    mock_cursor.setPosition.assert_any_call(10 + len("prev_old"), mock_cursor_cls.MoveMode.KeepAnchor)
     mock_cursor.insertText.assert_called_once_with("prev_current")
 
 def test_AsyncIssueScanner_execution(handler, mock_mw):

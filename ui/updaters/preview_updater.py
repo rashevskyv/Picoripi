@@ -1,5 +1,5 @@
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QTextCursor
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QColor, QTextCursor
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, remove_all_tags, calculate_strict_string_width
 from core.glossary_manager import GlossaryOccurrence
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor
@@ -62,7 +62,7 @@ class PreviewUpdater(BaseUIUpdater):
 
     def schedule_pre_cache(self):
         """Schedule pre-caching of preview lines to avoid blocking startup with a blank window."""
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
         if is_test:
             self.pre_cache_all_blocks()
@@ -78,12 +78,12 @@ class PreviewUpdater(BaseUIUpdater):
         if total_blocks == 0:
             return
 
-        from PyQt5.QtWidgets import QProgressDialog, QApplication, QWidget
-        from PyQt5.QtCore import Qt
+        from PyQt6.QtWidgets import QProgressDialog, QApplication, QWidget
+        from PyQt6.QtCore import Qt
 
         parent_widget = self.mw if isinstance(self.mw, QWidget) else None
         progress = QProgressDialog("Caching block preview data...", "Cancel", 0, total_blocks, parent_widget)
-        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(500)
         progress.setValue(0)
 
@@ -527,7 +527,7 @@ class PreviewUpdater(BaseUIUpdater):
 
             # Initialize lazy load timer if not exists
             if not hasattr(self, '_lazy_load_timer'):
-                from PyQt5.QtCore import QObject
+                from PyQt6.QtCore import QObject
                 timer_parent = self.mw if isinstance(self.mw, QObject) else None
                 self._lazy_load_timer = QTimer(timer_parent)
                 self._lazy_load_timer.timeout.connect(self._load_next_preview_chunk)
@@ -658,11 +658,11 @@ class PreviewUpdater(BaseUIUpdater):
                         show_progress = initial_chunk_size > 150 or getattr(self, '_load_fully_synchronously', False)
                         progress = None
                         if show_progress:
-                            from PyQt5.QtWidgets import QWidget, QProgressDialog, QApplication
-                            from PyQt5.QtCore import Qt
+                            from PyQt6.QtWidgets import QWidget, QProgressDialog, QApplication
+                            from PyQt6.QtCore import Qt
                             parent = self.mw if isinstance(self.mw, QWidget) else None
                             progress = QProgressDialog("Loading preview text...", "Cancel", 0, initial_chunk_size, parent)
-                            progress.setWindowModality(Qt.WindowModal)
+                            progress.setWindowModality(Qt.WindowModality.WindowModal)
                             progress.setMinimumDuration(0) # Show immediately
                             progress.setValue(0)
                             
@@ -726,7 +726,7 @@ class PreviewUpdater(BaseUIUpdater):
                                     block = doc.findBlockByNumber(current_line_idx)
                                     if block.isValid():
                                         cursor.setPosition(block.position())
-                                        cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                                        cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
                                         cursor.insertText(preview_line_text)
                                 cursor.endEditBlock()
                             
@@ -855,7 +855,7 @@ class PreviewUpdater(BaseUIUpdater):
                     block = doc.findBlockByNumber(line_idx)
                     if block.isValid():
                         cursor.setPosition(block.position())
-                        cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                        cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
                         cursor.insertText(preview_line_text)
                 cursor.endEditBlock()
                 
@@ -949,7 +949,7 @@ class PreviewUpdater(BaseUIUpdater):
                         try:
                             cursor = QTextCursor(doc)
                             cursor.setPosition(block.position())
-                            cursor.setPosition(block.position() + len(block.text()), QTextCursor.KeepAnchor)
+                            cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
                             cursor.insertText(preview_line_text)
                         finally:
                             self.mw.is_programmatically_changing_text = _saved_prog
@@ -977,7 +977,7 @@ class PreviewUpdater(BaseUIUpdater):
                 orig_edit.setPlainText(original_text_for_display)
                 new_orig_cursor = orig_edit.textCursor()
                 new_orig_cursor.setPosition(min(orig_anchor_pos, len(original_text_for_display)))
-                if orig_has_selection: new_orig_cursor.setPosition(min(orig_text_edit_cursor_pos, len(original_text_for_display)), QTextCursor.KeepAnchor)
+                if orig_has_selection: new_orig_cursor.setPosition(min(orig_text_edit_cursor_pos, len(original_text_for_display)), QTextCursor.MoveMode.KeepAnchor)
                 else: new_orig_cursor.setPosition(min(orig_text_edit_cursor_pos, len(original_text_for_display)))
                 orig_edit.setTextCursor(new_orig_cursor)
 
@@ -1003,7 +1003,7 @@ class PreviewUpdater(BaseUIUpdater):
                 new_edited_anchor_pos = min(saved_edited_anchor_pos, len(edited_text_for_display_converted))
                 new_edited_cursor_pos = min(saved_edited_cursor_pos, len(edited_text_for_display_converted))
                 restored_cursor.setPosition(new_edited_anchor_pos)
-                if saved_edited_has_selection: restored_cursor.setPosition(new_edited_cursor_pos, QTextCursor.KeepAnchor)
+                if saved_edited_has_selection: restored_cursor.setPosition(new_edited_cursor_pos, QTextCursor.MoveMode.KeepAnchor)
                 else: restored_cursor.setPosition(new_edited_cursor_pos)
                 edited_widget.setTextCursor(restored_cursor)
             

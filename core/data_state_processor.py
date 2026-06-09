@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 from pathlib import Path
-from PyQt5.QtWidgets import QMessageBox, QProgressDialog, QCheckBox
+from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QCheckBox
 from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_warning, log_error
 
@@ -181,9 +181,9 @@ class DataStateProcessor:
         show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater') and progress_dialog is None
         progress = progress_dialog
         if show_progress:
-            from PyQt5.QtCore import Qt
+            from PyQt6.QtCore import Qt
             progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, len(string_indices), self.mw)
-            progress.setWindowModality(Qt.WindowModal)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
             progress.setMinimumDuration(500)
             progress.setValue(0)
 
@@ -206,7 +206,7 @@ class DataStateProcessor:
                         progress.setValue(progress_offset + processed)
                     else:
                         progress.setValue(processed)
-                    from PyQt5.QtWidgets import QApplication
+                    from PyQt6.QtWidgets import QApplication
                     QApplication.processEvents()
         finally:
             if show_progress and progress:
@@ -311,9 +311,9 @@ class DataStateProcessor:
             reply = QMessageBox.question(
                 self.mw, 'Revert to Original', 
                 msg + "\n\nUnsaved changes for these strings will be lost.",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
             )
-            if reply == QMessageBox.No: return
+            if reply == QMessageBox.StandardButton.No: return
             
         if is_chapter_revert:
             # Group strings by block_idx
@@ -335,9 +335,9 @@ class DataStateProcessor:
             show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
             progress = None
             if show_progress:
-                from PyQt5.QtCore import Qt
+                from PyQt6.QtCore import Qt
                 progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, total_strings, self.mw)
-                progress.setWindowModality(Qt.WindowModal)
+                progress.setWindowModality(Qt.WindowModality.WindowModal)
                 progress.setMinimumDuration(500)
                 progress.setValue(0)
                 
@@ -405,9 +405,9 @@ class DataStateProcessor:
         show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
         progress = None
         if show_progress:
-            from PyQt5.QtCore import Qt
+            from PyQt6.QtCore import Qt
             progress = QProgressDialog("Reverting blocks to original...", "Cancel", 0, total_strings, self.mw)
-            progress.setWindowModality(Qt.WindowModal)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
             progress.setMinimumDuration(500)
             progress.setValue(0)
 
@@ -428,7 +428,7 @@ class DataStateProcessor:
                         processed += 1
                         if progress:
                             progress.setValue(processed)
-                            from PyQt5.QtWidgets import QApplication
+                            from PyQt6.QtWidgets import QApplication
                             QApplication.processEvents()
         finally:
             if progress:
@@ -463,8 +463,8 @@ class DataStateProcessor:
             return True
 
         if ask_confirmation:
-            reply = QMessageBox.question(self.mw, 'Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-            if reply == QMessageBox.No: return False
+            reply = QMessageBox.question(self.mw, 'Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
+            if reply == QMessageBox.StandardButton.No: return False
         
         try:
             if not self.mw.data_store.data: QMessageBox.critical(self.mw, "Save Error", "Original data not loaded. Cannot save."); return False
@@ -770,7 +770,7 @@ class DataStateProcessor:
                                             )
                                             if getattr(self.mw, 'show_archive_size_warnings', True):
                                                 msg_box = QMessageBox(self.mw)
-                                                msg_box.setIcon(QMessageBox.Warning)
+                                                msg_box.setIcon(QMessageBox.Icon.Warning)
                                                 msg_box.setWindowTitle("Archive Size Warning")
                                                 msg_box.setText(
                                                     f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
@@ -780,7 +780,7 @@ class DataStateProcessor:
                                                 )
                                                 cb = QCheckBox("Do not show this warning in the future", msg_box)
                                                 msg_box.setCheckBox(cb)
-                                                msg_box.exec_()
+                                                msg_box.exec()
                                                 if cb.isChecked():
                                                     self.mw.show_archive_size_warnings = False
                                                     self.mw.settings_manager.save_settings()
@@ -888,8 +888,8 @@ class DataStateProcessor:
             if not self.mw.data_store.data: QMessageBox.warning(self.mw, "Revert Error", "Original data is not loaded."); return False
             if not self.mw.current_game_rules: QMessageBox.critical(self.mw, "Revert Error", "No game plugin active to format the save file."); return False
     
-            reply = QMessageBox.question(self.mw, 'Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.No: return False
+            reply = QMessageBox.question(self.mw, 'Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.No: return False
             try:
                 output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data_store.data, self.mw.data_store.block_names)
     
@@ -940,8 +940,8 @@ class DataStateProcessor:
                 return False
         else:
             # Project mode revert
-            reply = QMessageBox.question(self.mw, 'Revert Project Changes', "This will overwrite all active block translation files with original data.\nAll previous edits in the translation files will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.No: return False
+            reply = QMessageBox.question(self.mw, 'Revert Project Changes', "This will overwrite all active block translation files with original data.\nAll previous edits in the translation files will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.No: return False
             
             try:
                 log_debug("Reverting in Project Mode: Splitting blocks back to their original state")

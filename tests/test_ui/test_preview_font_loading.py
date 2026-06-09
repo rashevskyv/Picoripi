@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QFileDialog
 from handlers.project_action_handler import ProjectActionHandler
 from ui.components.bfn_preview_widget import BfnPreviewWidget
 from core.bfn_core import BfnCore

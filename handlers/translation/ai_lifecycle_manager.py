@@ -1,7 +1,7 @@
 # handlers/translation/ai_lifecycle_manager.py
 from typing import Dict, List, Optional, Tuple, Union, Any, Callable
-from PyQt5.QtCore import QThread, QTimer, Qt
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtCore import QThread, QTimer, Qt
+from PyQt6.QtWidgets import QMessageBox
 
 from .base_translation_handler import BaseTranslationHandler
 from .ai_worker import AIWorker
@@ -205,8 +205,8 @@ class AILifecycleManager(BaseTranslationHandler):
 
             if is_timeout:
                 message = f"AI translation timed out after {timeout_seconds or '?'} seconds while processing {mode}.\n\nWould you like to wait longer and retry?"
-                user_choice = QMessageBox.question(self.mw, "AI Translation Timeout", message, QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-                if user_choice != QMessageBox.Yes:
+                user_choice = QMessageBox.question(self.mw, "AI Translation Timeout", message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
+                if user_choice != QMessageBox.StandardButton.Yes:
                     log_debug("User chose not to retry after timeout.")
                     pass
                 else:
@@ -220,7 +220,7 @@ class AILifecycleManager(BaseTranslationHandler):
                 
                 msg_box = QMessageBox(self.mw)
                 msg_box.setWindowTitle("AI Translation Error (Debug)")
-                msg_box.setIcon(QMessageBox.Warning)
+                msg_box.setIcon(QMessageBox.Icon.Warning)
                 msg_box.setText(f"An error occurred during AI operation (Attempt {attempt}/{max_attempts}).")
                 
                 info_text = f"<b>Mode:</b> {mode}<br><b>Error:</b> {error_message}"
@@ -236,7 +236,7 @@ class AILifecycleManager(BaseTranslationHandler):
                 msg_box.setDefaultButton(retry_btn)
                 
                 # If we have a status dialog, make sure we handle window modality
-                msg_box.exec_()
+                msg_box.exec()
                 
                 if msg_box.clickedButton() == retry_btn:
                     log_debug("User clicked Retry in debug dialog.")

@@ -1,11 +1,11 @@
 # components/custom_tree_widget.py
 """Project file-tree widget — thin orchestrator that composes all behaviour mixins."""
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QApplication, QToolTip,
-    QTreeWidgetItemIterator,
+    QTreeWidgetItemIterator, QAbstractItemView,
 )
-from PyQt5.QtCore import Qt, QPoint, QEvent, QTimer
-from PyQt5.QtGui import QColor, QIcon, QPixmap, QPainter
+from PyQt6.QtCore import Qt, QPoint, QEvent, QTimer
+from PyQt6.QtGui import QColor, QIcon, QPixmap, QPainter
 
 from utils.logging_utils import log_debug, log_error
 
@@ -38,30 +38,30 @@ class CustomTreeWidget(
         super().__init__(parent)
 
         # ── Basic widget setup ────────────────────────────────────────────────
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.viewport().setMouseTracking(True)
         self.setMouseTracking(True)
         self._is_programmatic_expansion = False
 
-        self.setAttribute(Qt.WA_AlwaysShowToolTips)
-        self.viewport().setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips)
+        self.viewport().setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips)
 
         from .custom_list_item_delegate import CustomListItemDelegate
         self.setItemDelegate(CustomListItemDelegate(self))
         self.setIndentation(15)
 
         self.setHeaderHidden(True)
-        self.setSelectionMode(QTreeWidget.ExtendedSelection)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
         # ── Drag & drop ───────────────────────────────────────────────────────
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
-        self.setDragDropMode(QTreeWidget.InternalMove)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.header().setStretchLastSection(True)
-        self.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         # Snapshot of items captured at startDrag() before Qt changes selection
         self._pending_drag_items = []
@@ -76,9 +76,9 @@ class CustomTreeWidget(
 
         # ── Color-marker palette ──────────────────────────────────────────────
         self.color_marker_definitions = {
-            "red": QColor(Qt.red),
-            "green": QColor(Qt.green),
-            "blue": QColor(Qt.blue),
+            "red": QColor(Qt.GlobalColor.red),
+            "green": QColor(Qt.GlobalColor.green),
+            "blue": QColor(Qt.GlobalColor.blue),
         }
 
         # ── Signal connections ────────────────────────────────────────────────
@@ -92,7 +92,7 @@ class CustomTreeWidget(
 
     def mousePressEvent(self, event):
         # Right-click on an already-selected item: don't let Qt clear the multi-selection.
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             item = self.itemAt(event.pos())
             if item and item in self.selectedItems():
                 event.accept()
@@ -101,31 +101,31 @@ class CustomTreeWidget(
 
     def keyPressEvent(self, event):
         log_debug(f"CustomTreeWidget: keyPressEvent key={event.key()}, mods={int(event.modifiers())}")
-        is_ctrl = bool(event.modifiers() & Qt.ControlModifier)
-        is_alt = bool(event.modifiers() & Qt.AltModifier)
-        is_shift = bool(event.modifiers() & Qt.ShiftModifier)
+        is_ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        is_alt = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
+        is_shift = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
 
         if is_ctrl and not is_alt and not is_shift:
-            if event.key() == Qt.Key_PageDown:
+            if event.key() == Qt.Key.Key_PageDown:
                 self.navigate_blocks(direction=1); event.accept(); return
-            if event.key() == Qt.Key_PageUp:
+            if event.key() == Qt.Key.Key_PageUp:
                 self.navigate_blocks(direction=-1); event.accept(); return
 
         if is_alt and is_shift and not is_ctrl:
             key = event.key()
-            if key == Qt.Key_Up:
+            if key == Qt.Key.Key_Up:
                 self.navigate_blocks(direction=-1); event.accept(); return
-            if key == Qt.Key_Down:
+            if key == Qt.Key.Key_Down:
                 self.navigate_blocks(direction=1); event.accept(); return
-            if key == Qt.Key_Left:
+            if key == Qt.Key.Key_Left:
                 self.navigate_folders(direction=-1); event.accept(); return
-            if key == Qt.Key_Right:
+            if key == Qt.Key.Key_Right:
                 self.navigate_folders(direction=1); event.accept(); return
 
         super().keyPressEvent(event)
 
     def wheelEvent(self, event):
-        if event.modifiers() & Qt.ControlModifier:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             mw = self.window()
             if hasattr(mw, 'handle_zoom'):
                 mw.handle_zoom(event.angleDelta().y(), target='tree')
@@ -141,26 +141,28 @@ class CustomTreeWidget(
             if drop_pos in ("Above", "Below"):
                 rect = self.visualItemRect(target_item)
                 painter = QPainter(self.viewport())
-                painter.setPen(Qt.NoPen)
+                painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(QColor("#0078D7"))
                 y = rect.top() if drop_pos == "Above" else rect.bottom()
                 painter.drawRect(rect.left(), y - 2, rect.width(), 4)
                 painter.end()
 
     def event(self, event):
-        if event.type() == QEvent.ToolTip:
+        if event.type() == QEvent.Type.ToolTip:
             log_debug("CustomTreeWidget: event() ToolTip received")
         return super().event(event)
 
     def viewportEvent(self, event):
-        if event.type() == QEvent.ToolTip:
+        if event.type() == QEvent.Type.ToolTip:
             log_debug(f"CustomTreeWidget: viewport ToolTip at {event.pos()}")
-        elif event.type() == QEvent.MouseMove:
+        elif event.type() == QEvent.Type.MouseMove:
             index = self.indexAt(event.pos())
             if index.isValid():
-                delegate = self.itemDelegate(index)
+                delegate = self.itemDelegateForIndex(index)
                 if delegate and hasattr(delegate, 'handle_tooltip'):
-                    option = self.viewOptions()
+                    from PyQt6.QtWidgets import QStyleOptionViewItem
+                    option = QStyleOptionViewItem()
+                    self.initViewItemOption(option)
                     option.rect = self.visualRect(index)
                     delegate.handle_tooltip(event, self, option, index)
             else:
@@ -173,18 +175,20 @@ class CustomTreeWidget(
 
     def _create_color_icon(self, color: QColor, size: int = 12) -> QIcon:
         pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(color)
-        painter.setPen(Qt.NoPen)
-        painter.drawEllipse(0, 0, size, size)
-        painter.end()
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setBrush(color)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(0, 0, size, size)
+        finally:
+            painter.end()
         return QIcon(pixmap)
 
-    def create_item(self, text: str, block_idx=None, role=Qt.UserRole) -> QTreeWidgetItem:
+    def create_item(self, text: str, block_idx=None, role=Qt.ItemDataRole.UserRole) -> QTreeWidgetItem:
         item = QTreeWidgetItem([text])
-        item.setFlags(item.flags() | Qt.ItemIsEditable)
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
         if block_idx is not None:
             item.setData(0, role, block_idx)
         return item
@@ -193,8 +197,8 @@ class CustomTreeWidget(
         iterator = QTreeWidgetItemIterator(self)
         while iterator.value():
             item = iterator.value()
-            item_block_idx = item.data(0, Qt.UserRole)
-            item_category = item.data(0, Qt.UserRole + 10)
+            item_block_idx = item.data(0, Qt.ItemDataRole.UserRole)
+            item_category = item.data(0, Qt.ItemDataRole.UserRole + 10)
             if category is not None:
                 match = (
                     item_block_idx == block_idx

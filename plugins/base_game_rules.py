@@ -1,5 +1,5 @@
 from typing import List, Tuple, Dict, Optional, Any, Set
-from PyQt5.QtGui import QTextCharFormat
+from PyQt6.QtGui import QTextCharFormat
 import json
 import re
 

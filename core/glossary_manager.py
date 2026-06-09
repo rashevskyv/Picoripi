@@ -729,4 +729,4 @@ def replace_preserve_case(text: str, find_word: str, replace_word: str) -> str:
     def repl(match):
         return preserve_case(match.group(0), replace_word)
         
-    return pattern.sub(repl, text)
+    return pattern.sub(repl, text)

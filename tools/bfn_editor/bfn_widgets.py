@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 class ImageView(QtWidgets.QGraphicsView):
     clicked = QtCore.pyqtSignal(QtCore.QPointF)
@@ -6,12 +6,12 @@ class ImageView(QtWidgets.QGraphicsView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setRenderHint(QtGui.QPainter.Antialiasing, False)
-        self.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, False)
-        self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
+        self.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, False)
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setMouseTracking(True)  # Needed to change cursor on hover
-        self.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
+        self.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.black))
         self.setStyleSheet("background-color: black;")
         
         self._panning = False
@@ -86,7 +86,7 @@ class ImageView(QtWidgets.QGraphicsView):
         elif event.button() == QtCore.Qt.MiddleButton:
             self._panning = True
             self._last_pos = event.pos()
-            self.setCursor(QtCore.Qt.ClosedHandCursor)
+            self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
             event.accept()
             return
             
@@ -321,7 +321,7 @@ class ImageView(QtWidgets.QGraphicsView):
         action_import = menu.addAction("Import Selected Glyph PNG...")
         action_export = menu.addAction("Export Selected Glyph PNG...")
         
-        action = menu.exec_(event.globalPos())
+        action = menu.exec(event.globalPos())
         if action == action_render:
             v.render_system_font_to_glyphs()
         elif action == action_import:
@@ -531,12 +531,12 @@ class SimImageView(QtWidgets.QGraphicsView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setRenderHint(QtGui.QPainter.Antialiasing, False)
-        self.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, False)
-        self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
+        self.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, False)
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setMouseTracking(True)
-        self.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
+        self.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.black))
         self.setStyleSheet("background-color: black;")
         
         self._panning = False
@@ -555,7 +555,7 @@ class SimImageView(QtWidgets.QGraphicsView):
         if event.button() == QtCore.Qt.MiddleButton:
             self._panning = True
             self._last_pos = event.pos()
-            self.setCursor(QtCore.Qt.ClosedHandCursor)
+            self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
             event.accept()
             return
             
@@ -734,7 +734,7 @@ class FillRangeDialog(QtWidgets.QDialog):
         layout.addWidget(help_lbl)
 
         buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel,
             self
         )
         buttons.accepted.connect(self.accept)
@@ -882,7 +882,7 @@ class ScaleSliderWidget(QtWidgets.QWidget):
         self.spin_min.setFixedWidth(55)
         
         # Slider
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.slider.setRange(min_val, max_val)
         self.slider.setValue(default_val)
         self.slider.setToolTip("Drag to adjust scale")
@@ -985,33 +985,33 @@ class RenderFontDialog(QtWidgets.QDialog):
         # Original
         orig_box = QtWidgets.QVBoxLayout()
         lbl_orig_title = QtWidgets.QLabel("Original Glyph:")
-        lbl_orig_title.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_orig_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         lbl_orig_title.setStyleSheet("font-weight: bold; color: #88888b; font-size: 11px;")
         orig_box.addWidget(lbl_orig_title)
         
         self.lbl_preview_orig = QtWidgets.QLabel()
         self.lbl_preview_orig.setFixedSize(128, 128)
         self.lbl_preview_orig.setStyleSheet("border: 1px solid #3d405b; background-color: #141419; border-radius: 4px;")
-        self.lbl_preview_orig.setAlignment(QtCore.Qt.AlignCenter)
+        self.lbl_preview_orig.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         orig_box.addWidget(self.lbl_preview_orig)
         preview_layout.addLayout(orig_box)
         
         # Arrow
         arrow_lbl = QtWidgets.QLabel("➔")
         arrow_lbl.setStyleSheet("font-size: 24px; color: #00b4d8;")
-        preview_layout.addWidget(arrow_lbl, 0, QtCore.Qt.AlignCenter)
+        preview_layout.addWidget(arrow_lbl, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
         
         # Rendered
         new_box = QtWidgets.QVBoxLayout()
         lbl_new_title = QtWidgets.QLabel("Rendered Font:")
-        lbl_new_title.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_new_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         lbl_new_title.setStyleSheet("font-weight: bold; color: #00b4d8; font-size: 11px;")
         new_box.addWidget(lbl_new_title)
         
         self.lbl_preview_new = QtWidgets.QLabel()
         self.lbl_preview_new.setFixedSize(128, 128)
         self.lbl_preview_new.setStyleSheet("border: 1px solid #3d405b; background-color: #141419; border-radius: 4px;")
-        self.lbl_preview_new.setAlignment(QtCore.Qt.AlignCenter)
+        self.lbl_preview_new.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         new_box.addWidget(self.lbl_preview_new)
         preview_layout.addLayout(new_box)
         
@@ -1024,9 +1024,9 @@ class RenderFontDialog(QtWidgets.QDialog):
         self.btn_prev.clicked.connect(self._on_prev_preview)
         
         self.lbl_preview_info = QtWidgets.QLabel("Glyph 1 of 1")
-        self.lbl_preview_info.setAlignment(QtCore.Qt.AlignCenter)
+        self.lbl_preview_info.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.lbl_preview_info.setStyleSheet("font-weight: bold; color: #00b4d8; font-size: 11px; text-decoration: underline;")
-        self.lbl_preview_info.setCursor(QtCore.Qt.PointingHandCursor)
+        self.lbl_preview_info.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.lbl_preview_info.setToolTip("Click to jump to a specific glyph index, character, or position (e.g., 24)")
         self.lbl_preview_info.mousePressEvent = self._on_preview_info_clicked
         
@@ -1120,9 +1120,9 @@ class RenderFontDialog(QtWidgets.QDialog):
         
         # 4. Horizontal Alignment
         self.combo_align_h = QtWidgets.QComboBox()
-        self.combo_align_h.addItem("Center", QtCore.Qt.AlignHCenter)
-        self.combo_align_h.addItem("Left", QtCore.Qt.AlignLeft)
-        self.combo_align_h.addItem("Right", QtCore.Qt.AlignRight)
+        self.combo_align_h.addItem("Center", QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.combo_align_h.addItem("Left", QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.combo_align_h.addItem("Right", QtCore.Qt.AlignmentFlag.AlignRight)
         if _LAST_RENDER_PARAMS["align_h"] is not None:
             idx = self.combo_align_h.findData(_LAST_RENDER_PARAMS["align_h"])
             if idx >= 0:
@@ -1131,9 +1131,9 @@ class RenderFontDialog(QtWidgets.QDialog):
         
         # 5. Vertical Alignment
         self.combo_align_v = QtWidgets.QComboBox()
-        self.combo_align_v.addItem("Center", QtCore.Qt.AlignVCenter)
-        self.combo_align_v.addItem("Top", QtCore.Qt.AlignTop)
-        self.combo_align_v.addItem("Bottom", QtCore.Qt.AlignBottom)
+        self.combo_align_v.addItem("Center", QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.combo_align_v.addItem("Top", QtCore.Qt.AlignmentFlag.AlignTop)
+        self.combo_align_v.addItem("Bottom", QtCore.Qt.AlignmentFlag.AlignBottom)
         self.combo_align_v.addItem("Baseline", "baseline")
         if _LAST_RENDER_PARAMS["align_v"] is not None:
             idx = self.combo_align_v.findData(_LAST_RENDER_PARAMS["align_v"])
@@ -1192,7 +1192,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         layout.addWidget(help_lbl)
         
         buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel,
             self
         )
         buttons.accepted.connect(self.accept)
@@ -1325,7 +1325,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         # Update original glyph view (pixelated scaled view)
         if self.orig_glyph_img:
             orig_pix = QtGui.QPixmap.fromImage(self.orig_glyph_img)
-            self.lbl_preview_orig.setPixmap(orig_pix.scaled(128, 128, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation))
+            self.lbl_preview_orig.setPixmap(orig_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.FastTransformation))
         else:
             self.lbl_preview_orig.setText("N/A")
             
@@ -1350,50 +1350,52 @@ class RenderFontDialog(QtWidgets.QDialog):
         align_v = params["align_v"]
         antialiasing = params["antialiasing"]
         
-        new_glyph = QtGui.QImage(self.cell_w, self.cell_h, QtGui.QImage.Format_ARGB32)
+        new_glyph = QtGui.QImage(self.cell_w, self.cell_h, QtGui.QImage.Format.Format_ARGB32)
         new_glyph.fill(QtGui.QColor(0, 0, 0, 0))
         
         painter = QtGui.QPainter(new_glyph)
-        if antialiasing:
-            painter.setRenderHint(QtGui.QPainter.TextAntialiasing, True)
-            painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        painter.setFont(font)
-        painter.setPen(QtGui.QColor(255, 255, 255, 255))
-        
-        ascent_val = self.ascent if self.ascent > 0 else int(self.cell_h * 0.75)
-        
-        # Apply scaling relative to the cell center
-        painter.save()
-        cx = self.cell_w / 2.0
-        cy = self.cell_h / 2.0
-        painter.translate(cx, cy)
-        painter.scale(h_scale / 100.0, v_scale / 100.0)
-        painter.translate(-cx, -cy)
-        
-        if align_v == "baseline":
-            font_metrics = QtGui.QFontMetrics(font)
-            text_width = font_metrics.horizontalAdvance(self.char_str)
-            x = x_offset
-            if align_h == QtCore.Qt.AlignHCenter:
-                x = max(0, (self.cell_w - text_width) // 2) + x_offset
-            elif align_h == QtCore.Qt.AlignRight:
-                x = self.cell_w - text_width + x_offset
+        try:
+            if antialiasing:
+                painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
+                painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+            painter.setFont(font)
+            painter.setPen(QtGui.QColor(255, 255, 255, 255))
             
-            painter.drawText(x, ascent_val + y_offset, self.char_str)
-        else:
-            alignment = QtCore.Qt.AlignmentFlag(0)
-            if align_h is not None:
-                alignment |= align_h
-            if align_v != "baseline" and align_v is not None:
-                alignment |= align_v
-            rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
-            painter.drawText(rect, alignment, self.char_str)
+            ascent_val = self.ascent if self.ascent > 0 else int(self.cell_h * 0.75)
             
-        painter.restore()
-        painter.end()
+            # Apply scaling relative to the cell center
+            painter.save()
+            cx = self.cell_w / 2.0
+            cy = self.cell_h / 2.0
+            painter.translate(cx, cy)
+            painter.scale(h_scale / 100.0, v_scale / 100.0)
+            painter.translate(-cx, -cy)
+            
+            if align_v == "baseline":
+                font_metrics = QtGui.QFontMetrics(font)
+                text_width = font_metrics.horizontalAdvance(self.char_str)
+                x = x_offset
+                if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
+                    x = max(0, (self.cell_w - text_width) // 2) + x_offset
+                elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
+                    x = self.cell_w - text_width + x_offset
+                
+                painter.drawText(x, ascent_val + y_offset, self.char_str)
+            else:
+                alignment = QtCore.Qt.AlignmentFlag(0)
+                if align_h is not None:
+                    alignment |= align_h
+                if align_v != "baseline" and align_v is not None:
+                    alignment |= align_v
+                rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
+                painter.drawText(rect, alignment, self.char_str)
+                
+            painter.restore()
+        finally:
+            painter.end()
         
         new_pix = QtGui.QPixmap.fromImage(new_glyph)
-        self.lbl_preview_new.setPixmap(new_pix.scaled(128, 128, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation))
+        self.lbl_preview_new.setPixmap(new_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.FastTransformation))
 
     def get_params(self):
         qfont = self.font_combo.currentFont()
@@ -1428,17 +1430,17 @@ class RenderFontDialog(QtWidgets.QDialog):
     def eventFilter(self, obj, event):
         if obj in (self.font_combo, self.font_combo.lineEdit()):
             if event.type() in (
-                QtCore.QEvent.FocusIn,
-                QtCore.QEvent.MouseButtonPress,
-                QtCore.QEvent.MouseButtonRelease,
-                QtCore.QEvent.MouseButtonDblClick
+                QtCore.QEvent.Type.FocusIn,
+                QtCore.QEvent.Type.MouseButtonPress,
+                QtCore.QEvent.Type.MouseButtonRelease,
+                QtCore.QEvent.Type.MouseButtonDblClick
             ):
                 line_edit = self.font_combo.lineEdit()
                 if line_edit:
                     QtCore.QTimer.singleShot(50, line_edit.selectAll)
                     
         elif obj == self.font_combo.view():
-            if event.type() == QtCore.QEvent.KeyPress:
+            if event.type() == QtCore.QEvent.Type.KeyPress:
                 key = event.key()
                 # Allow standard list navigation keys to work on the popup view
                 if key in (

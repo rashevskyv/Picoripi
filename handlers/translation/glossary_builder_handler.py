@@ -1,8 +1,8 @@
 # D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
 import json
 from typing import Dict, List, Optional
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtCore import QThread
+from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtCore import QThread
 from utils.logging_utils import log_debug
 from core.translation.providers import get_provider_for_config, ProviderResponse
 from utils.utils import ALL_TAGS_PATTERN

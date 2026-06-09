@@ -1,12 +1,12 @@
 import requests
 from pathlib import Path
 from typing import List
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton,
     QDialogButtonBox, QLabel, QProgressBar, QApplication, QLineEdit,
     QHBoxLayout
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from utils.logging_utils import log_debug, log_error
 import pycountry
 
@@ -87,7 +87,7 @@ class DictionaryManagerDialog(QDialog):
         self.status_label = QLabel("", self)
         main_layout.addWidget(self.status_label)
         
-        button_box = QDialogButtonBox(QDialogButtonBox.Close)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         button_box.rejected.connect(self.reject)
         main_layout.addWidget(button_box)
 
@@ -140,7 +140,7 @@ class DictionaryManagerDialog(QDialog):
             display_text = f"{lang_name} ({lang_code}) {status}"
             item = QListWidgetItem(display_text)
             item.setData(Qt.UserRole, lang_code)
-            item.setFlags(item.flags() & ~Qt.ItemIsSelectable if is_downloaded else item.flags() | Qt.ItemIsSelectable)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable if is_downloaded else item.flags() | Qt.ItemFlag.ItemIsSelectable)
             self.dict_list.addItem(item)
             
     def update_button_state(self):

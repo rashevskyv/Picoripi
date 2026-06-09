@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from tools.bfn_editor.bfn_widgets import ImageView, SimImageView
 from tools.bfn_editor.bfn_theme import apply_theme_by_settings
@@ -12,11 +12,11 @@ from tools.bfn_editor.bfn_view import BfnViewMixin
 
 VERSION = "1.0.21"
 
-ROLE_SHEET_IDX = QtCore.Qt.UserRole + 1
-ROLE_FONT_NAME = QtCore.Qt.UserRole + 2
-ROLE_ARCHIVE_NAME = QtCore.Qt.UserRole + 3
-ROLE_SOURCE_TYPE = QtCore.Qt.UserRole + 4
-ROLE_DISK_PATH = QtCore.Qt.UserRole + 5
+ROLE_SHEET_IDX = QtCore.Qt.ItemDataRole.UserRole + 1
+ROLE_FONT_NAME = QtCore.Qt.ItemDataRole.UserRole + 2
+ROLE_ARCHIVE_NAME = QtCore.Qt.ItemDataRole.UserRole + 3
+ROLE_SOURCE_TYPE = QtCore.Qt.ItemDataRole.UserRole + 4
+ROLE_DISK_PATH = QtCore.Qt.ItemDataRole.UserRole + 5
 
 
 class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigationMixin, BfnViewMixin):
@@ -63,7 +63,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.current_bfn_name = ""
         self.font_sources = {}
 
-        self.undo_stack = QtWidgets.QUndoStack(self)
+        self.undo_stack = QtGui.QUndoStack(self)
         self.undo_stack.cleanChanged.connect(lambda clean: self._set_dirty(not clean))
         
         self.auto_sync_timer = QtCore.QTimer(self)
@@ -178,9 +178,9 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
 
         # Undo/Redo
         self.action_undo = self.undo_stack.createUndoAction(self, "Undo")
-        self.action_undo.setShortcut(QtGui.QKeySequence.Undo)
+        self.action_undo.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         self.action_redo = self.undo_stack.createRedoAction(self, "Redo")
-        self.action_redo.setShortcut(QtGui.QKeySequence.Redo)
+        self.action_redo.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
         self.addAction(self.action_undo)
         self.addAction(self.action_redo)
 
@@ -220,7 +220,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         editor_layout.addLayout(toolbar)
 
         # Vertical splitter: glyph grid on top, simulator on bottom
-        editor_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        editor_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
 
         self.scene = QtWidgets.QGraphicsScene(self)
         self.view = ImageView()
@@ -250,15 +250,15 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         )
         self.sim_input.setMaximumHeight(65)
         self.sim_input.textChanged.connect(self.on_sim_text_changed)
-        self.sim_input.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.sim_input.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.sim_input.customContextMenuRequested.connect(self.show_sim_input_context_menu)
         sim_layout.addWidget(self.sim_input)
 
         self.sim_scene = QtWidgets.QGraphicsScene(self)
         self.sim_view = SimImageView()
         self.sim_view.setScene(self.sim_scene)
-        self.sim_view.setRenderHint(QtGui.QPainter.Antialiasing, False)
-        self.sim_view.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, False)
+        self.sim_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
+        self.sim_view.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, False)
         sim_layout.addWidget(self.sim_view, 1)
 
         editor_splitter.addWidget(sim_container)
@@ -293,7 +293,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
             if item:
                 item.setToolTip(header_text)
         header = self.table_glyphs.horizontalHeader()
-        header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Interactive)
         header.installEventFilter(self)
         
         # Connect double-click on header boundary to auto-resize column to fit contents
@@ -304,7 +304,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         
         self.table_glyphs.cellDoubleClicked.connect(self.on_table_cell_double_clicked)
         self.table_glyphs.itemChanged.connect(self.on_table_item_changed)
-        self.table_glyphs.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.table_glyphs.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_glyphs.customContextMenuRequested.connect(self.show_table_context_menu)
         table_layout.addWidget(self.table_glyphs)
 
@@ -313,17 +313,17 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
 
         def table_keyPressEvent(event):
             key = event.key()
-            if event.modifiers() & QtCore.Qt.ControlModifier:
-                if key == QtCore.Qt.Key_C:
+            if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
+                if key == QtCore.Qt.Key.Key_C:
                     self.copy_glyph_values()
                     event.accept()
                     return
-                elif key == QtCore.Qt.Key_V:
+                elif key == QtCore.Qt.Key.Key_V:
                     self.paste_glyph_values()
                     event.accept()
                     return
 
-            if key in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+            if key in (QtCore.Qt.Key.Key_Return, QtCore.Qt.Key.Key_Enter):
                 original_table_keyPress(event)
 
                 def move_down():
@@ -339,9 +339,9 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                 return
 
             if event.text() and not event.modifiers():
-                if key not in (QtCore.Qt.Key_Escape, QtCore.Qt.Key_Tab, QtCore.Qt.Key_Backtab,
-                               QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter,
-                               QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
+                if key not in (QtCore.Qt.Key.Key_Escape, QtCore.Qt.Key.Key_Tab, QtCore.Qt.Key.Key_Backtab,
+                               QtCore.Qt.Key.Key_Return, QtCore.Qt.Key.Key_Enter,
+                               QtCore.Qt.Key.Key_Delete, QtCore.Qt.Key.Key_Backspace):
                     current = self.table_glyphs.currentIndex()
                     if current.isValid() and current.column() in (3, 7, 8):
                         self.table_glyphs.edit(current)
@@ -466,28 +466,28 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         self.apply_theme()
 
     def setup_shortcuts(self):
-        self.sc_save = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+S"), self)
+        self.sc_save = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+S"), self)
         self.sc_save.activated.connect(self.save_changes)
 
-        self.sc_left = QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self)
+        self.sc_left = QtGui.QShortcut(QtGui.QKeySequence("Left"), self)
         self.sc_left.activated.connect(lambda: self.navigate_grid(-1, 0))
-        self.sc_right = QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self)
+        self.sc_right = QtGui.QShortcut(QtGui.QKeySequence("Right"), self)
         self.sc_right.activated.connect(lambda: self.navigate_grid(1, 0))
-        self.sc_up = QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self)
+        self.sc_up = QtGui.QShortcut(QtGui.QKeySequence("Up"), self)
         self.sc_up.activated.connect(lambda: self.navigate_grid(0, -1))
-        self.sc_down = QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self)
+        self.sc_down = QtGui.QShortcut(QtGui.QKeySequence("Down"), self)
         self.sc_down.activated.connect(lambda: self.navigate_grid(0, 1))
 
-        self.sc_close = QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self)
+        self.sc_close = QtGui.QShortcut(QtGui.QKeySequence("Esc"), self)
         self.sc_close.activated.connect(self.on_esc_pressed)
 
     def on_esc_pressed(self):
         focus_w = self.focusWidget()
         if hasattr(self, 'table_glyphs') and self.table_glyphs:
-            if self.table_glyphs.state() == QtWidgets.QAbstractItemView.EditingState:
+            if self.table_glyphs.state() == QtWidgets.QAbstractItemView.State.EditingState:
                 if focus_w:
                     self.sc_close.setEnabled(False)
-                    event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_Escape, QtCore.Qt.NoModifier)
+                    event = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Escape, QtCore.Qt.KeyboardModifier.NoModifier)
                     QtWidgets.QApplication.sendEvent(focus_w, event)
                     self.sc_close.setEnabled(True)
                 return
@@ -496,7 +496,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
     def eventFilter(self, source, event):
         if (hasattr(self, 'table_glyphs') and self.table_glyphs and
             source == self.table_glyphs.horizontalHeader() and
-            event.type() == QtCore.QEvent.MouseButtonDblClick):
+            event.type() == QtCore.QEvent.Type.MouseButtonDblClick):
             
             pos = event.pos()
             x = pos.x()
@@ -557,7 +557,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                 return curr.settings_manager
             curr = curr.parent()
         
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
         for w in QApplication.topLevelWidgets():
             if hasattr(w, "settings_manager") and w.settings_manager:
                 return w.settings_manager
@@ -845,11 +845,11 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                 self, 
                 'Unsaved Changes', 
                 f"You have unsaved changes in '{self.current_bfn_name}'! Do you want to save them before switching?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No | QtWidgets.QMessageBox.StandardButton.Cancel
             )
-            if reply == QtWidgets.QMessageBox.Yes:
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.save_changes()
-            elif reply == QtWidgets.QMessageBox.Cancel:
+            elif reply == QtWidgets.QMessageBox.StandardButton.Cancel:
                 self.set_current_sheet_row(self.current_sheet_index)
                 return
                 
@@ -980,7 +980,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
                 self.list_sheets.setCurrentItem(first_sheet)
 
     def on_auto_sync_toggled(self, state):
-        is_checked = (state == QtCore.Qt.Checked)
+        is_checked = (state == QtCore.Qt.CheckState.Checked)
         sm = self.get_settings_manager()
         if sm:
             sm.set("bfn_auto_sync_enabled", is_checked)

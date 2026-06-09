@@ -1,6 +1,6 @@
 import re
-from PyQt5.QtGui import QTextBlock
-from PyQt5.QtWidgets import QMainWindow
+from PyQt6.QtGui import QTextBlock
+from PyQt6.QtWidgets import QMainWindow
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 

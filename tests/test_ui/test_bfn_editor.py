@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 import os
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 from tools.bfn_editor.bfn_editor_window import BfnEditorWindow
 from core.bfn_core import BfnCore
 
@@ -62,8 +62,8 @@ def test_bfn_editor_window_init(qapp):
     
     # Verify Interactive header resize mode and signal connections
     header = editor.table_glyphs.horizontalHeader()
-    from PyQt5 import QtWidgets
-    assert header.sectionResizeMode(0) == QtWidgets.QHeaderView.Interactive
+    from PyQt6 import QtWidgets
+    assert header.sectionResizeMode(0) == QtWidgets.QHeaderView.ResizeMode.Interactive
     
     # Verify that emitting these signals works without errors (signaling correct connection)
     header.sectionHandleDoubleClicked.emit(0)
@@ -186,7 +186,7 @@ def test_bfn_editor_window_save_changes_translation_map(qapp, tmp_path, dummy_bf
     """Test that save_changes correctly saves translation_map.json when BFN is saved inside Picoripi context."""
     editor = BfnEditorWindow()
     
-    from PyQt5 import QtWidgets
+    from PyQt6 import QtWidgets
     # Mock parent window with active_game_plugin
     class MockParent(QtWidgets.QWidget):
         def __init__(self):
@@ -249,7 +249,7 @@ def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_pa
     """Test that save_changes correctly saves translation_map.json into active project directory when available."""
     editor = BfnEditorWindow()
     
-    from PyQt5 import QtWidgets
+    from PyQt6 import QtWidgets
     # Mock parent window with active_game_plugin and project_manager
     class MockProjectManager:
         def __init__(self, project_dir):
@@ -318,7 +318,7 @@ def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_pa
 
 def test_bfn_editor_window_parent_node_selection(qapp, dummy_bfn_bytes):
     """Test that selecting a parent BFN file node in the tree view automatically redirects to Sheet 0."""
-    from PyQt5 import QtWidgets
+    from PyQt6 import QtWidgets
     editor = BfnEditorWindow()
     editor.open_from_bytes(
         dummy_bfn_bytes,
@@ -355,7 +355,7 @@ def test_bfn_editor_window_parent_node_selection(qapp, dummy_bfn_bytes):
 
 def test_bfn_editor_window_escape_key_closes_window(qapp, dummy_bfn_bytes):
     """Test that pressing Escape key calls close() on the BFN editor window, and bypasses when editing."""
-    from PyQt5 import QtCore, QtGui, QtWidgets
+    from PyQt6 import QtCore, QtGui, QtWidgets
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     
@@ -374,7 +374,7 @@ def test_bfn_editor_window_escape_key_closes_window(qapp, dummy_bfn_bytes):
     # 2. Test bypass when editing in table
     close_called = False
     # Mock EditingState
-    editor.table_glyphs.state = lambda: QtWidgets.QAbstractItemView.EditingState
+    editor.table_glyphs.state = lambda: QtWidgets.QAbstractItemView.State.EditingState
     
     # Setup focus widget
     mock_focus = QtWidgets.QLineEdit(editor)
@@ -384,7 +384,7 @@ def test_bfn_editor_window_escape_key_closes_window(qapp, dummy_bfn_bytes):
     event_sent = False
     def mock_send_event(receiver, event):
         nonlocal event_sent
-        if receiver == mock_focus and event.key() == QtCore.Qt.Key_Escape:
+        if receiver == mock_focus and event.key() == QtCore.Qt.Key.Key_Escape:
             event_sent = True
         return True
         
@@ -403,7 +403,7 @@ def test_bfn_editor_window_escape_key_closes_window(qapp, dummy_bfn_bytes):
 
 def test_bfn_editor_window_event_filter_double_click(qapp, dummy_bfn_bytes):
     """Test that BfnEditorWindow event filter correctly intercepts double click on header boundaries."""
-    from PyQt5 import QtCore, QtGui
+    from PyQt6 import QtCore, QtGui
     editor = BfnEditorWindow()
     editor.open_from_bytes(
         dummy_bfn_bytes,
@@ -415,11 +415,11 @@ def test_bfn_editor_window_event_filter_double_click(qapp, dummy_bfn_bytes):
     
     # 1. Double click exactly on the boundary of column 0 (at x=100)
     event_on_boundary = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonDblClick,
-        QtCore.QPoint(100, 5),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier
+        QtCore.QEvent.Type.MouseButtonDblClick,
+        QtCore.QPointF(100, 5),
+        QtCore.Qt.MouseButton.LeftButton,
+        QtCore.Qt.MouseButton.LeftButton,
+        QtCore.Qt.KeyboardModifier.NoModifier
     )
     
     called_col = None
@@ -436,11 +436,11 @@ def test_bfn_editor_window_event_filter_double_click(qapp, dummy_bfn_bytes):
     # 2. Double click far from boundary (e.g. at x=50, middle of column 0)
     called_col = None
     event_not_on_boundary = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonDblClick,
-        QtCore.QPoint(50, 5),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier
+        QtCore.QEvent.Type.MouseButtonDblClick,
+        QtCore.QPointF(50, 5),
+        QtCore.Qt.MouseButton.LeftButton,
+        QtCore.Qt.MouseButton.LeftButton,
+        QtCore.Qt.KeyboardModifier.NoModifier
     )
     res = editor.eventFilter(header, event_not_on_boundary)
     assert res is not True, "Event filter should not intercept double click far from boundary"
@@ -533,7 +533,7 @@ def test_bfn_editor_window_column_widths_persistence(qapp, dummy_bfn_bytes):
 
 def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_bytes):
     """Test that Auto-sync and Force Recalculation features in BFN Editor window work correctly."""
-    from PyQt5 import QtCore
+    from PyQt6 import QtCore
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     
@@ -566,11 +566,11 @@ def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_byte
     
     # 3. Test Auto-sync toggling saves to settings
     editor.chk_auto_sync.setChecked(True)
-    editor.on_auto_sync_toggled(QtCore.Qt.Checked)
+    editor.on_auto_sync_toggled(QtCore.Qt.CheckState.Checked)
     assert mock_settings.get("bfn_auto_sync_enabled") is True
     
     editor.chk_auto_sync.setChecked(False)
-    editor.on_auto_sync_toggled(QtCore.Qt.Unchecked)
+    editor.on_auto_sync_toggled(QtCore.Qt.CheckState.Unchecked)
     assert mock_settings.get("bfn_auto_sync_enabled") is False
     
     # 4. Test Auto-sync triggers timer on dirty state
@@ -594,7 +594,7 @@ def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_byte
 
 def test_bfn_editor_window_dynamic_temp_dir_recreation(qapp, dummy_bfn_bytes):
     """Test that BFN Editor successfully recreates temp_dir on-the-fly if it was deleted or cleared before save."""
-    from PyQt5 import QtWidgets
+    from PyQt6 import QtWidgets
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     
@@ -612,7 +612,7 @@ def test_bfn_editor_window_dynamic_temp_dir_recreation(qapp, dummy_bfn_bytes):
     def mock_critical(parent, title, text):
         msg_boxes.append((title, text))
     
-    import PyQt5.QtWidgets as qw
+    import PyQt6.QtWidgets as qw
     original_critical = qw.QMessageBox.critical
     qw.QMessageBox.critical = mock_critical
     
@@ -670,7 +670,7 @@ def test_bfn_editor_window_unmapped_glyph_addition(qapp, dummy_bfn_bytes):
 
 from unittest.mock import patch
 
-@patch('PyQt5.QtWidgets.QApplication.clipboard')
+@patch('PyQt6.QtWidgets.QApplication.clipboard')
 def test_bfn_editor_window_copy_paste_chain(mock_clipboard, qapp, dummy_bfn_bytes):
     """Test that copy and paste chain features in BFN Editor window work correctly with undo/redo."""
     clipboard_mock = MagicMock()
@@ -696,10 +696,10 @@ def test_bfn_editor_window_copy_paste_chain(mock_clipboard, qapp, dummy_bfn_byte
     editor.table_glyphs.clearSelection()
     
     # Mock selection
-    from PyQt5.QtCore import QItemSelectionModel
+    from PyQt6.QtCore import QItemSelectionModel
     sel_model = editor.table_glyphs.selectionModel()
-    sel_model.select(editor.table_glyphs.model().index(0, 3), QItemSelectionModel.Select)
-    sel_model.select(editor.table_glyphs.model().index(1, 3), QItemSelectionModel.Select)
+    sel_model.select(editor.table_glyphs.model().index(0, 3), QItemSelectionModel.SelectionFlag.Select)
+    sel_model.select(editor.table_glyphs.model().index(1, 3), QItemSelectionModel.SelectionFlag.Select)
     
     editor.copy_glyph_values()
     
@@ -856,7 +856,7 @@ def test_bfn_editor_empty_glyph_automatic_physical_registration(qapp, dummy_bfn_
     assert not orig_char
     
     # 1. Trigger manual change of glyph 5 Character (column 3) to "Я"
-    from PyQt5.QtWidgets import QTableWidgetItem
+    from PyQt6.QtWidgets import QTableWidgetItem
     item = QTableWidgetItem("Я")
     
     # Setup table structure and mock item changed event
