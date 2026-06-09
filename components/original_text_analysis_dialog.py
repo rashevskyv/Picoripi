@@ -2,7 +2,7 @@
 """Interactive dialog for analysing original text width."""
 from __future__ import annotations
 
-from typing import Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
 from PyQt6.QtCore import QPoint, Qt, QRectF
 from PyQt6.QtGui import QColor, QPainter, QPen
@@ -63,7 +63,7 @@ class _AnalysisBarView(QGraphicsView):
         self.scale(factor, factor)
 
     def mousePressEvent(self, event) -> None:  # noqa: D401
-        if event.button() == Qt.MiddleButton:
+        if event.button() == Qt.MouseButton.MiddleButton:
             self._panning = True
             self._pan_start = event.pos()
             self._user_scaled = True
@@ -82,12 +82,12 @@ class _AnalysisBarView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:  # noqa: D401
-        if event.button() == Qt.MiddleButton and self._panning:
+        if event.button() == Qt.MouseButton.MiddleButton and self._panning:
             self._panning = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
             event.accept()
             return
-        if event.button() == Qt.LeftButton and not self._panning:
+        if event.button() == Qt.MouseButton.LeftButton and not self._panning:
             scene_pos = self.mapToScene(event.pos())
             item = self._scene.itemAt(scene_pos, self.transform())
             if isinstance(item, _BarItem) and self.on_bar_selected:

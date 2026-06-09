@@ -170,7 +170,7 @@ class AIChatDialog(QDialog):
                 tab.history_view.document().setDefaultStyleSheet(style)
 
     def eventFilter(self, obj, event):
-        if obj == self.tabs.tabBar() and event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MiddleButton:
+        if obj == self.tabs.tabBar() and event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.MiddleButton:
             tab_index = obj.tabAt(event.pos())
             if tab_index != -1:
                 self.remove_tab(tab_index)

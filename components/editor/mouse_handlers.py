@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QInputDialog, QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, QLabel, QSpinBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QInputDialog, QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, QLabel, QSpinBox, QStyle
 from PyQt6.QtGui import QTextCursor, QMouseEvent
 from PyQt6.QtCore import Qt, QPoint
 import re

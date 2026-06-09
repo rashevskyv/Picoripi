@@ -31,7 +31,7 @@ class ImageView(QtWidgets.QGraphicsView):
         self.scaleChanged.emit(self._scale)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             pos = event.pos()
             scene_pos = self.mapToScene(pos)
             
@@ -65,7 +65,7 @@ class ImageView(QtWidgets.QGraphicsView):
                             self._drag_start_scene_x = scene_pos.x()
                             self._drag_start_kern = kerning
                             self._drag_start_width = width
-                            self.setCursor(QtCore.Qt.SizeHorCursor)
+                            self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
                             event.accept()
                             return
                         elif abs(scene_pos.x() - right_x) <= tolerance:
@@ -73,7 +73,7 @@ class ImageView(QtWidgets.QGraphicsView):
                             self._drag_start_scene_x = scene_pos.x()
                             self._drag_start_kern = kerning
                             self._drag_start_width = width
-                            self.setCursor(QtCore.Qt.SizeHorCursor)
+                            self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
                             event.accept()
                             return
             
@@ -83,7 +83,7 @@ class ImageView(QtWidgets.QGraphicsView):
             event.accept()
             return
             
-        elif event.button() == QtCore.Qt.MiddleButton:
+        elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self._panning = True
             self._last_pos = event.pos()
             self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
@@ -178,7 +178,7 @@ class ImageView(QtWidgets.QGraphicsView):
                 tolerance = max(2.0, 8.0 / self._scale)
                 if y0 <= scene_pos.y() <= y0 + v.real_h:
                     if abs(scene_pos.x() - left_x) <= tolerance or abs(scene_pos.x() - right_x) <= tolerance:
-                        self.setCursor(QtCore.Qt.SizeHorCursor)
+                        self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
                         super().mouseMoveEvent(event)
                         return
                     
@@ -186,7 +186,7 @@ class ImageView(QtWidgets.QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.LeftButton and self._dragging_handle is not None:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton and self._dragging_handle is not None:
             v = self.parent()
             while v and not hasattr(v, 'selected_cell'):
                 v = v.parent()
@@ -218,7 +218,7 @@ class ImageView(QtWidgets.QGraphicsView):
             event.accept()
             return
             
-        if event.button() == QtCore.Qt.MiddleButton:
+        if event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self._panning = False
             self._last_pos = None
             self.unsetCursor()
@@ -234,7 +234,7 @@ class ImageView(QtWidgets.QGraphicsView):
             
         factor = 1.15 if delta > 0 else (1.0 / 1.15)
         
-        pos = event.pos()
+        pos = event.position().toPoint()
         old_scene_pos = self.mapToScene(pos)
         
         new_scale = self._scale * factor
@@ -405,7 +405,7 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
             painter.drawLine(right_x, 0, right_x, self.viewer.cell_h)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.viewer.select_sim_glyph(self)
             
             p = event.pos()
@@ -430,7 +430,7 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
                 self._drag_start_kern = kerning
                 self._drag_start_width = width
                 self.viewer._dragging_in_sim = True
-                self.setCursor(QtCore.Qt.SizeHorCursor)
+                self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
                 event.accept()
                 return
             elif abs(p.x() - right_x) <= tolerance:
@@ -439,7 +439,7 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
                 self._drag_start_kern = kerning
                 self._drag_start_width = width
                 self.viewer._dragging_in_sim = True
-                self.setCursor(QtCore.Qt.SizeHorCursor)
+                self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
                 event.accept()
                 return
                 
@@ -496,7 +496,7 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             if self._dragging_handle is not None:
                 wid = self.viewer.metadata.get("WID1", [{}])[0]
                 packets = wid.get("packets", [])
@@ -552,14 +552,14 @@ class SimImageView(QtWidgets.QGraphicsView):
         self.scaleChanged.emit(self._scale)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.MiddleButton:
+        if event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self._panning = True
             self._last_pos = event.pos()
             self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
             event.accept()
             return
             
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             scene_pos = self.mapToScene(event.pos())
             item = self.scene().itemAt(scene_pos, self.transform())
             if item is None:
@@ -588,7 +588,7 @@ class SimImageView(QtWidgets.QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.MiddleButton:
+        if event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self._panning = False
             self._last_pos = None
             self.unsetCursor()
@@ -603,7 +603,7 @@ class SimImageView(QtWidgets.QGraphicsView):
             
         factor = 1.15 if delta > 0 else (1.0 / 1.15)
         
-        pos = event.pos()
+        pos = event.position().toPoint()
         old_scene_pos = self.mapToScene(pos)
         
         new_scale = self._scale * factor
@@ -1325,7 +1325,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         # Update original glyph view (pixelated scaled view)
         if self.orig_glyph_img:
             orig_pix = QtGui.QPixmap.fromImage(self.orig_glyph_img)
-            self.lbl_preview_orig.setPixmap(orig_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.FastTransformation))
+            self.lbl_preview_orig.setPixmap(orig_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.FastTransformation))
         else:
             self.lbl_preview_orig.setText("N/A")
             
@@ -1395,7 +1395,7 @@ class RenderFontDialog(QtWidgets.QDialog):
             painter.end()
         
         new_pix = QtGui.QPixmap.fromImage(new_glyph)
-        self.lbl_preview_new.setPixmap(new_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.FastTransformation))
+        self.lbl_preview_new.setPixmap(new_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.FastTransformation))
 
     def get_params(self):
         qfont = self.font_combo.currentFont()
@@ -1444,13 +1444,13 @@ class RenderFontDialog(QtWidgets.QDialog):
                 key = event.key()
                 # Allow standard list navigation keys to work on the popup view
                 if key in (
-                    QtCore.Qt.Key_Up,
-                    QtCore.Qt.Key_Down,
-                    QtCore.Qt.Key_Enter,
-                    QtCore.Qt.Key_Return,
-                    QtCore.Qt.Key_Escape,
-                    QtCore.Qt.Key_PageUp,
-                    QtCore.Qt.Key_PageDown
+                    QtCore.Qt.Key.Key_Up,
+                    QtCore.Qt.Key.Key_Down,
+                    QtCore.Qt.Key.Key_Enter,
+                    QtCore.Qt.Key.Key_Return,
+                    QtCore.Qt.Key.Key_Escape,
+                    QtCore.Qt.Key.Key_PageUp,
+                    QtCore.Qt.Key.Key_PageDown
                 ):
                     return super().eventFilter(obj, event)
                     

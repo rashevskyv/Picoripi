@@ -90,13 +90,13 @@ class LNETContextMenuLogic:
                 existing_entry = translator.get_glossary_entry(add_term_candidate)
 
             if existing_entry and translator is not None:
-                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary EntryвЂ¦")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary Entry...")
                 action.setEnabled(True)
                 action.triggered.connect(
                     lambda checked=False, term=existing_entry.original: translator.edit_glossary_entry(term)
                 )
             else:
-                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to GlossaryвЂ¦")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to Glossary...")
                 action_enabled = bool(add_term_candidate) and translator is not None
                 action.setEnabled(action_enabled)
                 if action_enabled:
@@ -132,7 +132,7 @@ class LNETContextMenuLogic:
                     block = cursor_at_pos.block()
                     block_text = block.text()
                     position_in_block = click_position - block.position()
-                    text_with_spaces = block_text.replace('В·', ' ')
+                    text_with_spaces = block_text.replace('·', ' ')
 
                     word_under_cursor = ""
                     word_start = 0
@@ -150,7 +150,7 @@ class LNETContextMenuLogic:
                     word_cursor.setPosition(block.position() + word_end, QTextCursor.MoveMode.KeepAnchor)
                 else:
                     raw_text = cursor.selectedText().strip()
-                    text_with_spaces = raw_text.replace('В·', ' ')
+                    text_with_spaces = raw_text.replace('·', ' ')
                     word_under_cursor = text_with_spaces.split()[0].strip("'") if text_with_spaces.split() else ""
                     word_cursor = cursor
 
@@ -159,7 +159,7 @@ class LNETContextMenuLogic:
                         menu.addSeparator()
                         custom_actions_added = True
 
-                    cleaned_word = word_under_cursor.strip("'В·").lower()
+                    cleaned_word = word_under_cursor.strip("'·").lower()
                     if cleaned_word in spellchecker_manager._suggestions_cache:
                         suggestions = spellchecker_manager._suggestions_cache[cleaned_word]
                         if suggestions:
@@ -183,7 +183,7 @@ class LNETContextMenuLogic:
                                 menu.removeAction(no_suggestions_action)
                                 if suggs:
                                     for suggestion in suggs[:5]:
-                                        suggestion_action = menu.insertAction(separator_action, f"в†’ {suggestion}")
+                                        suggestion_action = menu.insertAction(separator_action, f"→ {suggestion}")
                                         suggestion_action.triggered.connect(
                                             lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
                                         )
@@ -211,21 +211,21 @@ class LNETContextMenuLogic:
                 # Check if there is an existing glossary entry under cursor
                 glossary_entry = self.editor._find_glossary_entry_at(position_in_widget_coords)
                 if glossary_entry:
-                    action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary EntryвЂ¦")
+                    action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary Entry...")
                     action.triggered.connect(
                         lambda checked=False, term=glossary_entry.original: translator.edit_glossary_entry(term)
                     )
                 else:
                     # Determine candidate for adding to glossary
                     if has_selection:
-                        add_term_candidate = cursor.selectedText().replace('В·', ' ').strip()
+                        add_term_candidate = cursor.selectedText().replace('·', ' ').strip()
                     else:
                         cursor_at_pos = self.editor.cursorForPosition(position_in_widget_coords)
                         cursor_at_pos.select(QTextCursor.SelectionType.WordUnderCursor)
                         add_term_candidate = cursor_at_pos.selectedText().strip()
                     
                     if add_term_candidate:
-                        action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to GlossaryвЂ¦")
+                        action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to Glossary...")
                         context_line = cursor.block().text().replace('\u2029', ' ').strip()
                         action.triggered.connect(
                             lambda checked=False, t=add_term_candidate, ctx=context_line: translator.add_glossary_entry(term="", translation=t, context=ctx)

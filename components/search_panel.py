@@ -40,9 +40,8 @@ class SearchLineEdit(QLineEdit):
             
             # Font metrics for baseline calculation
             fm = self.fontMetrics()
-            # Baseline Y calculation: centered vertically
-            y_base = (self.height() + fm.ascent() - fm.descent()) // 2
-            y = y_base + 1
+            # Draw wavy line near the bottom of QLineEdit client area (y_base relative to height)
+            y = self.height() - 4
             
             for match in words_iter:
                 word = match.group(0)
