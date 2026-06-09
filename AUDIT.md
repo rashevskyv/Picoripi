@@ -1,667 +1,347 @@
-# Аудит кодової бази — Picoripi
+# Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Оновлення аудиту:** 2026-06-09 — виправлено колір індикаторів подвійних/множинних пробілів (space dots `·`) у редакторі. Раніше вони ставали чорними через накладання стилю `bad_spacing_format`. Тепер колір примусово зберігається сірим (#BBBBBB) для кращої візуальної консистентності з іншими пробілами. Версію оновлено до v0.2.179.
-> **Оновлення аудиту:** 2026-06-09 — актуалізовано статус завдань рефакторингу з урахуванням переходу на PyQt6. Визначено нові пріоритети для категорії B (когнітивні задачі), зокрема повна ліквідація залишків `unittest.mock` у продуктовому коді та очищення `core/` модулів від графічних компонентів PyQt6.
-> **Оновлення аудиту:** 2026-06-09 — виправлено критичний runtime-збій `AttributeError: 'QDialog' object has no attribute 'Accepted'` при виклику `.exec()` діалогів у PyQt6. Усі виклики `dialog.Accepted` замінено на `QDialog.DialogCode.Accepted`. Виправлено також тестові моки та тестові сценарії, які перевіряли повернене значення `.exec()`. Версію оновлено до v0.2.176.
-> **Оновлення аудиту:** 2026-06-09 — виправлено тест `test_translation_editor_spellcheck_highlighting`: мок `currentBlock()` тепер правильно повертає валідний блок (`isValid=True`), `setFormat` перехоплюється на рівні класу, перевіряється `SpellCheckUnderline`. Версію оновлено до v0.2.175.
-> **Оновлення аудиту:** 2026-06-04 — розділено функціонал приховання тегів (Hide tags) на два незалежні налаштування для оригінальних та перекладених текстів. Оновлено синтаксичний підсвічувач для повного стиснення прихованих тегів (0 ширина) за допомогою відсоткового інтервалу та розтягування шрифту без пробілів на екрані. Версію оновлено до v0.2.161.
-> **Оновлення аудиту:** 2026-06-01 — розділено логіку бажаного орієнтира `Editor Line Width` (гайдлайн червоніє при перевищенні) та фізичного ліміту `Game Dialog Max Width` (червоний ворнінг у лівій колонці виникає тільки при перевищенні ліміту гри та тригерить Auto-fix). Виправлено воркер аналізу ширини та автофікс, а також впроваджено автоматичну інвалідацію застарілого кешу через версію формату 2. Версію оновлено до v0.2.151.
-> **Оновлення аудиту:** 2026-06-01 — виправлено критичний расовий стан (race condition) у функції Auto-fix: замість відкладеного збереження `text_edited()` реалізовано негайне синхронне збереження `data_processor.update_edited_data()` із зупинкою debounce-таймера. Також виправлено ширину символів Zelda BMG за допомогою `_calculate_width` плагіна, усунено розбіжності при розрахунках та додано відповідні юніт-тести. Версію оновлено до v0.2.149.
-> **Оновлення аудиту:** 2026-06-01 — реалізовано автономне збереження користувацьких аліасів у файл `aliases.json` усередині теки плагіна. Також виправлено runtime guard-перевірки Mock у юніт-тестах та усунено TypeError / sipBadCatcherResult збій при запуску тестів. Версію оновлено до v0.2.148.
-> **Оновлення аудиту:** 2026-06-01 — перенесено іконку запуску зовнішнього скрипту `>_` у крайній правий кут тулбару ліворуч від кнопки `Help`. Виправлено критичний збій `'QStatusBar' object is not callable` у методі `run_external_script()` шляхом виправлення виклику статус-бару як поля об'єкта `self.mw.statusBar` замість виклику функції. Версію програми оновлено до v0.2.147.
-> **Оновлення аудиту:** 2026-06-01 — інтегровано візуальний прогрес перекладу для віртуальних глав (Chapter -2) у лівому дереві проектів, а також усунено некоректний стрибок червоного маркера/guideline при посимвольному зрізі неповних тегів шляхом передчасного переривання циклу розрахунку ширини та ігнорування неповних тегів. Додатково стабілізовано тестовий набір через захист від `TypeError` при викликах встановлення іконок у тестах із `MagicMock`. Версію програми оновлено до v0.2.146.
-> **Оновлення аудиту:** 2026-06-01 — виправлено поведінку ліній-орієнтирів (guidelines) ширини тексту для випадків перенесення слів (Word Wrap). Тепер ширина для візуально перенесених сегментів логічного рядка вираховується кумулятивно від початку логічного блоку, а лінія малюється рівно один раз. Також усунено розсинхронізацію кольорів лінії (червоний/зелений) при наборі кириличного тексту шляхом синхронізації отримання мапи шрифтів (`font_map`) через активні плагіни безпосередньо у методі малювання. Версію програми оновлено до v0.2.145.
-> **Оновлення аудиту:** 2026-06-01 — оптимізовано швидкодію інтерфейсу (вимкнено підсвічування глосарію Aho-Corasick для текстового поля `preview_text_edit`, що усунуло 4-секундну затримку при перемиканні на великі блоки; реалізовано відкладене фонове кешування через `schedule_pre_cache()` з `QTimer.singleShot(100)` для запобігання появі білого екрану при запуску) та виправлено всі супутні помилки в тестах. Також додано автоматичне встановлення фокусу на текстове поле вводу аліасу в `TagAliasDialog`. Версію оновлено до v0.2.143.
-> **Оновлення аудиту:** 2026-06-01 — оновлено діалогове вікно керування аліасами (`TagAliasDialog`) для підтримки форсованих аліасів (Force Alias), інтегровано детальний опис (tooltip) та інформаційне вікно (`QMessageBox`) з бізнес-логікою фіксації імен Link/Epona, а також додано автоматичну фільтрацію префікса F: у текстовому полі. Версію оновлено до v0.2.142.
-> **Оновлення аудиту:** 2026-06-01 — реалізовано графічний інтерфейс для налаштування та редагування кастомної ширини аліасів (`TagAliasDialog` та `_save_font_overrides_to_disk`), що зберігає налаштування в `font_map.json` активного плагіна та миттєво перераховує ширину всього тексту в проекті. Виправлено баг із появою пробілів перед розділовими знаками після тегів під час переносу слів (в AI-перекладі та `Auto-fix`), оновлено версію до v0.2.141.
-> **Оновлення аудиту:** 2026-06-01 — додано функціонал запуску зовнішнього скрипту / білдера з тулбару головного вікна за допомогою іконки `>_`, реалізовано збереження шляху до скрипту в налаштуваннях (`external_script_path`) з діалогом вибору файлу, виправлено використання `MagicMock` у тестах та в робочому коді, оновлено версію програми до v0.2.140.
-> **Первинний аудит:** 2026-03-26
-> **Оновлення аудиту:** 2026-05-31 — інтегровано хронологічний переклад діалогів на основі ігрового скрипта та БД MemePalace, реалізовано автоматичне надсилання контексту сцени (scene_context) з оновленням та стисненням сесії при перевищенні ліміту повідомлень, виправлено AttributeError у TranslationHandler та додано відповідні юніт-тести, оновлено версію до v0.2.131.
-> **Оновлення аудиту:** 2026-05-29 — здійснено уніфікацію логіки перевірки проблем (Problem Analyzer) по всіх плагінах із виділенням базового класу `BaseProblemAnalyzer`, інтегровано нові тести перевірки проблем для `plain_text`, проведено рефакторинг та оптимізацію AI Prompt Composer та AIWorker, оновлено версію до v0.2.127.
-> **Оновлення аудиту:** 2026-05-27 — інтегровано ШІ-аналізатор скрипту MemePalace з глосарієм Picoripi: реалізовано автоматичне вилучення персонажів із детальними властивостями (стать, вік, звертання ти/ви, стосунки) та речей, ШІ-синтез (міксування) нових описів із наявними нотатками глосарію (із повним збереженням існуючого перекладу), автогенерацію перекладу українською для нових термінів, миттєве оновлення підсвітки в редакторах Picoripi, переведено вікно Builder у немодальний режим та успішно верифіковано 116 UI тестами під версією v0.2.120-dev.
-> **Оновлення аудиту:** 2026-05-27 — виправлено критичні баги синхронізації та відмальовки вертикальних ліній-орієнтирів (guidelines) ширини тексту в редакторах, реалізовано динамічні індивідуальні лінії з урахуванням проекту, виправлено авто-валідацію MemePalace in-memory кешу та оновлено версію до v0.2.119.
-> **Оновлення аудиту:** 2026-05-23 - впроваджено автоматичне завантаження гліфових BFN-шрифтів з блоків та архівів проекту при старті програми, реалізовано глобальне кешування завантажених у BFN Editor шрифтів в all_bfn_fonts головного вікна із захистом від очищення при оновленні налаштувань, впроваджено надійний Fallback-вибір першого наявного BFN-шрифту при роботі без проекту, виправлено зсув кодової таблиці лінійного мапінгу (mapping_type = 0) шляхом інтеграції автоматичної конвертації в тип 2 під час парсингу MAP1 в BfnCore та коригування відносного розрахунку координат гліфів.
-> **Повторний аудит:** 2026-04-01 — проведено з урахуванням паттернів аналізу Claude Code (go> **Оновлення аудиту:** 2026-05-23 — впроваджено HSL-стилювання меню (QMenuBar, QMenu) для світлої теми, додано відображення пояснювальних підказок (tooltips) для заблокованих пунктів меню за допомогою `MenuToolTipEventFilter`, виправлено прив'язку сигналу для Import Directory та синхронізовано стан кнопки закриття проекту при старті на основі автозавантаження сесії.
-> **Оновлення аудиту:** 2026-05-22 — впроваджено збереження налаштованої користувачем ширини стовпчиків у Glyph Editor при закритті всієї програми або вікна редактора, а також їх автоматичне відновлення при повторному відкритті чи побудові таблиці гліфів. Повністю інтегровано нативну in-memory підтримку архівів (RARC, U8, Yaz0) без зовнішніх утиліт та диск-операцій. Впроваджено Nintendo BFN Font Editor на базі PyQt5 з ієрархічним `QTreeWidget` деревом, автоматичним скануванням шрифтів та перепакуванням дисків на Ctrl+S. Видалено ручну кнопку "Open BFN / Folder..." та реалізовано автоматичне сканування директорій та оновлення дерева в `showEvent` BFN Editor. Впроваджено збереження стану розгорнутості дерева при зміні шрифтів і збереженні, встановлено постійний чорний фон для віджетів перегляду гліфів (ImageView, SimImageView) та для колонки "Glyph Render" у Glyph Table для уникнення злиття зі світлою темою. Додано кнопку швидкого відкриття BFN Font Editor на головний тулбар. Виправлено візуальне обрізання символів у вкладках (Glyph Table) та заголовках таблиці (Character) через QSS-налаштування та впроваджено розумне автоматичне масштабування стовпців таблиці (ResizeToContents та Stretch). Виправлено баг згортання сусідніх папок дерева при виборі та завантаженні аркушів шрифтів шляхом збереження стану дерева перед очищенням. Виправлено відображення гліфів оригінального тексту у BFN-прев'ю для неквадратних шрифтів шляхом виправлення розрахунку координат на текстурному аркуші та повернення оригінальної логіки мапінгу тип-2.
+> **Остання версія проекту:** v0.3.000 (Головний реліз-віха)
+> **Дата оновлення:** 2026-06-09
+> **Об'єм проекту:** ~50 372 LOC Python (без тестів і scratch), ~14 121 LOC тестів, 79 тестових файлів.
+> **Середовище та вимоги:** Python 3.10-3.12, PyQt6 (міграція з PyQt5 успішно завершена).
+
+Цей документ є **єдиним та консолідованим джерелом правди** щодо стану архітектури, якості коду, виявлених проблем, виконаних оптимізацій та детального плану рефакторингу проекту **Picoripi**. Він об'єднує в собі висновки первинного аудиту, додаткового аудиту від 2026-05-27 та структурований покроковий план рефакторингу за категоріями складності (раніше описані у файлах `Picoripi_AUDIT_2026-05-27.md` та `Picoripi_REFACTOR_SPLIT.md`).
 
 ---
 
-## Зміст
-
-1. [Загальна статистика](#1-загальна-статистика)
-2. [Виконані оптимізації (Legacy)](#2-виконані-оптимізації-legacy)
-3. [Архітектурні проблеми](#3-архітектурні-проблеми)
-4. [Якість коду та рефакторинг](#4-якість-коду-та-рефакторинг)
-5. [Дублювання та надмірність](#5-дублювання-та-надмірність)
-6. [Порушення поділу відповідальності (SRP)](#6-порушення-поділу-відповідальності-srp)
-7. [Типізація та безпека типів](#7-типізація-та-безпека-типів)
-8. [Тестування та покриття](#8-тестування-та-покриття)
-9. [Нові знахідки (2026-04-01)](#9-нові-знахідки-2026-04-01)
-10. [Зведена таблиця рекомендацій](#10-зведена-таблиця-рекомендацій)
-
----
-
-## 1. Загальна статистика
-
-| Показник | Значення |
-|---|---|
-| Всього `.py` файлів (код) | ~80 |
-| Всього `.py` файлів (тести) | ~50 |
-| Найбільший файл | `custom_tree_widget.py` — **1246 рядків** |
-| `project_action_handler.py` | **899 рядків** |
-| `translation_handler.py` | **836 рядків** |
-| `project_manager.py` | **792 рядків** |
-| `syntax_highlighter.py` | **693 рядків** |
-| `list_selection_handler.py` | **685 рядків** |
-| `glossary_dialog.py` | **574 рядків** |
-| `main.py` | **527 рядків** |
-| `search_handler.py` | **505 рядків** |
-| Файлів у `components/editor/` | **19 файлів** |
-| Файлів у `handlers/translation/` | **10 файлів** |
-| Тестових функцій (pytest) | **622+** |
-
----
-
-## 2. Виконані оптимізації (Legacy)
-
-Усі попередні оптимізації (v0.2.13 — v0.2.48) виконані та залишаються актуальними:
-
-| # | Що | Статус | Прискорення |
-|---|---|---|---|
-| 1 | `calculate_string_width` — Trie-дерево | ✅ | 6.7x |
-| 2 | `highlightBlock` — regex pre-compilation | ✅ | 1.6-8x |
-| 3 | `SpellcheckerManager` — persistent cache | ✅ | 2-5x |
-| 4 | `GlossaryManager` — Aho-Corasick | ✅ | 10-100x |
-| 5 | UI Recursion Fix — Reentrancy Guard | ✅ | Стабільність |
-| 6 | `UndoManager` — zlib стиснення | ✅ | RAM |
-| 7 | `ui_updater.py` — декомпозиція на sub-updaters | ✅ | Підтримка |
-| 8 | MainWindow property stubs — видалено | ✅ | Чистота |
-| 9 | Нативна підтримка ARC/RARC/U8/Yaz0 in-memory без зовнішніх утиліт та диск. операцій | ✅ | v0.2.63-dev |
-| 10 | Додано вікно Block Properties та відображення оригінальних розширень файлів для архівних блоків | ✅ | v0.2.66-dev |
-| 11 | Інтеграція BFN Font Editor (адаптація на PyQt5) для редагування .bfn шрифтів у RAM-архівах та синхронізація метрик | ✅ | v0.2.69-dev |
-| 12 | Інтеграція фонового сканера архівів, автореєстрація вкладених BFN/JSON шрифтів у RAM та ієрархічне QTreeWidget дерево в BFN редакторі | ✅ | v0.2.74-dev |
-| 13 | Видалено кнопку ручного відкриття 'Open BFN / Folder...' в BFN Font Editor завдяки повній автоматизації та інтеграції сканування | ✅ | v0.2.76-dev |
-| 14 | Виправлено візуальні баги обрізання шрифтів, впроваджено розумне масштабування таблиці гліфів, збереження стану дерева перед очищенням та швидкий запуск через тулбар | ✅ | v0.2.79-dev |
-| 15 | Додано збереження налаштованої користувачем ширини стовпчиків у Glyph Editor при закритті та автоматичне відновлення при відкритті | ✅ | v0.2.80-dev |
-| 16 | Виправлено рендеринг кирилиці у BFN-прев'ю (вікно перегляду тексту перекладу) шляхом виправлення мапінгу символів для mapping_type == 2 | ✅ | v0.2.81-dev |
-| 17 | Виправлено рендеринг оригінальних текстів у BFN-прев'ю для неквадратних гліф-сіток шрифтів | ✅ | v0.2.83-dev |
-| 18 | Р’РїСЂРѕРІР°РґР¶РµРЅРѕ HSL-СЃС‚РёР»СЋРІР°РЅРЅСЏ Light Theme РјРµРЅСЋ, РґРѕРґР°РЅРѕ С‚СѓР»С‚С–РїРё РґР»СЏ Р·Р°Р±Р»РѕРєРѕРІР°РЅРёС… РїСѓРЅРєС‚С–РІ, РІРёРїСЂР°РІР»РµРЅРѕ СЃРёРіРЅР°Р» Import Directory С‚Р° СЃРёРЅС…СЂРѕРЅС–Р·Р°С†С–СЋ РїРѕС‡Р°С‚РєРѕРІРѕРіРѕ СЃС‚Р°РЅСѓ РєРЅРѕРїРєРё Close Project | вњ… | v0.2.84-dev |ё:
-
-| # | Що | Статус | Прискорення |
-|---|---|---|---|
-| 1 | `calculate_string_width` — Trie-дерево | ✅ | 6.7x |
-| 2 | `highlightBlock` — regex pre-compilation | ✅ | 1.6-8x |
-| 3 | `SpellcheckerManager` — persistent cache | ✅ | 2-5x |
-| 4 | `GlossaryManager` — Aho-Corasick | ✅ | 10-100x |
-| 5 | UI Recursion Fix — Reentrancy Guard | ✅ | Стабільність |
-| 6 | `UndoManager` — zlib стиснення | ✅ | RAM |
-| 7 | `ui_updater.py` — декомпозиція на sub-updaters | ✅ | Підтримка |
-| 8 | MainWindow property stubs — видалено | ✅ | Чистота |
-| 9 | Нативна підтримка ARC/RARC/U8/Yaz0 in-memory без зовнішніх утиліт та диск. операцій | ✅ | v0.2.63-dev |
-| 10 | Додано вікно Block Properties та відображення оригінальних розширень файлів для архівних блоків | ✅ | v0.2.66-dev |
-| 11 | Інтеграція BFN Font Editor (адаптація на PyQt5) для редагування .bfn шрифтів у RAM-архівах та синхронізація метрик | ✅ | v0.2.69-dev |
-| 12 | Інтеграція фонового сканера архівів, автореєстрація вкладених BFN/JSON шрифтів у RAM та ієрархічне QTreeWidget дерево в BFN редакторі | ✅ | v0.2.74-dev |
-| 13 | Видалено кнопку ручного відкриття 'Open BFN / Folder...' в BFN Font Editor завдяки повній автоматизації та інтеграції сканування | ✅ | v0.2.76-dev |
-| 14 | Виправлено візуальні баги обрізання шрифтів, впроваджено розумне масштабування таблиці гліфів, збереження стану дерева перед очищенням та швидкий запуск через тулбар | ✅ | v0.2.79-dev |
-| 15 | Додано збереження налаштованої користувачем ширини стовпчиків у Glyph Editor при закритті та автоматичне відновлення при відкритті | ✅ | v0.2.80-dev |
-| 16 | Виправлено рендеринг кирилиці у BFN-прев'ю (вікно перегляду тексту перекладу) шляхом виправлення мапінгу символів для mapping_type == 2 | ✅ | v0.2.81-dev |
-| 17 | Виправлено рендеринг оригінальних текстів у BFN-прев'ю для неквадратних гліф-сіток шрифтів | ✅ | v0.2.83-dev |
-
----
-
-## 3. Архітектурні проблеми
-
-### 3.1. 🔴 `custom_tree_widget.py` — God-object (1246 рядків)
-
-**Файл:** [`custom_tree_widget.py`](file:///d:/git/dev/Picoripi/components/custom_tree_widget.py)
-
-**Проблема:** Найбільший файл проєкту. Один клас `CustomTreeWidget` містить абсолютно все:
-- Drag & Drop логіка (startDrag, dragMoveEvent, dropEvent — ~200 рядків)
-- Контекстне меню (`show_context_menu` — ~210 рядків)
-- Синхронізація з ProjectManager (`sync_tree_to_project_manager` — ~115 рядків)
-- Навігація по блоках та папках
-- Переміщення елементів вгору/вниз
-- Створення/перейменування/видалення папок
-- Обробка подій клавіатури та миші
-- Малювання (paintEvent)
-- Tooltip логіка
-
-**Рекомендація:** Декомпозиція на mixins або виділення логіки:
-- `TreeDragDropMixin` — вся DnD логіка
-- `TreeContextMenuMixin` — побудова контекстного меню
-- `TreeSyncMixin` — синхронізація з ProjectManager
-- `TreeNavigationMixin` — навігація та переміщення
-
----
-
-### 3.2. 🔴 `translation_handler.py` — Надмірна відповідальність (836 рядків)
-
-**Файл:** [`translation_handler.py`](file:///d:/git/dev/Picoripi/handlers/translation_handler.py)
-
-**Проблема:** Хоча translation subsystem вже частково декомпозована на `handlers/translation/` (10 файлів), основний handler все ще містить 836 рядків з ~37 методами, включаючи:
-- Glossary CRUD проксі (5 методів)
-- Session management
-- Single/block/preview translation
-- Batch translation з chunk processing
-- Progress bar management
-- Error handling
-
-**Рекомендація:** Винести batch-translation і glossary-проксі в окремі модулі.
-
----
-
-### 3.3. 🟡 `project_action_handler.py` — Великий файл (899 рядків)
-
-**Файл:** [`project_action_handler.py`](file:///d:/git/dev/Picoripi/handlers/project_action_handler.py)
-
-**Проблема:** Містить 25 методів: create, open, close, import, delete, move, folder operations, recent projects, block population. Метод `_populate_blocks_from_project` — ~170 рядків, `delete_block_action` — ~166 рядків.
-
-**Рекомендація:** Виділити `RecentProjectsManager` (меню "Нещодавні проєкти") та `BlockPopulationLogic`.
-
----
-
-### 3.4. 🟡 `main_window_helper.py` — Catch-all helper (256 рядків)
-
-**Файл:** [`main_window_helper.py`](file:///d:/git/dev/Picoripi/ui/main_window/main_window_helper.py)
-
-**Проблема:** Мішанина різнорідних функцій в одному класі:
-- Font map lookup (`get_font_map_for_string`)
-- Application restart (`restart_application`)
-- Search panel toggle (`toggle_search_panel`)
-- Data loading (`load_all_data_for_path`)
-- Settings restoration (`restore_state_after_settings_load`)
-- Close preparation (`prepare_to_close`)
-- Highlighter reconfiguration (`reconfigure_all_highlighters`)
-- Unsaved block rebuild (`rebuild_unsaved_block_indices`)
-
-**Рекомендація:** Це класичний "utils dump". Розкидати логіку по відповідних менеджерах: пошук → `SearchHandler`, рестарт → `MainWindowEventHandler`, font maps → `SettingsManager`.
-
----
-
-### 3.5. 🟡 `UIUpdater` — Порожній проксі-фасад (101 рядок)
-
-**Файл:** [`ui_updater.py`](file:///d:/git/dev/Picoripi/ui/ui_updater.py)
-
-**Проблема:** Після успішної декомпозиції на sub-updaters, `UIUpdater` перетворився на клас, де кожен з ~25 методів — це однорядковий proxy:
-```python
-def update_status_bar(self):
-    self.title_status_bar_updater.update_status_bar()
-```
-
-Це додатковий рівень індирекції без жодної власної логіки. Кожен виклик проходить через зайвий шар.
-
-**Рекомендація:** Два варіанти:
-1. Замінити `UIUpdater` на composition pattern, де хендлери звертаються напряму до `block_list_updater`, `preview_updater`, тощо.
-2. Або прийняти поточну архітектуру як свідомий Facade — але тоді прибрати делегування приватних (`_`) методів, що порушує інкапсуляцію (`_apply_highlights_for_block`, `_get_aggregated_problems_for_block`).
-
----
-
-### 3.6. 🟡 `components/editor/` — Надмірна фрагментація (19 файлів)
-
-**Директорія:** `components/editor/`
-
-**Проблема:** `LineNumberedTextEdit` розбитий на 19 файлів:
-- `line_numbered_text_edit.py` (533 рядків) — головний файл, 74 outline items
-- `mouse_handlers.py` (16.7 KB)
-- `lnet_context_menu_logic.py` (16.5 KB)
-- `line_number_area_paint_logic.py` (15.9 KB)
-- `text_highlight_manager.py` (20 KB)
-- `paint_event_logic.py`, `paint_helpers.py`, `paint_handlers.py`
-- `highlight_interface.py`, `lnet_highlight_wrappers.py`
-- `lnet_keyboard_handler.py`, `lnet_tag_helpers.py`, `lnet_tooltips.py`
-- `lnet_spellcheck_logic.py`, `lnet_dialogs.py`, `lnet_editor_setup.py`
-- `line_number_area.py`, `constants.py`
-
-Класи мають префікс `LNET...` і назви як `LNETPaintHelpers`, `LNETHighlightWrappers`, `LNETMouseHandlers` — типове розбиття mixin-базовані.
-
-Головний файл має три рядки заголовків-дублікатів:
-```python
-# --- START OF FILE components/editor/line_numbered_text_edit.py ---
-# --- START OF FILE components/line_numbered_text_edit.py ---
-# --- START OF FILE components/LineNumberedTextEdit.py ---
-```
-
-**Рекомендація:** Це надмірна фрагментація. 19 файлів для одного візуального компонента — це занадто. Об'єднати споріднені модулі:
-- `paint_event_logic.py` + `paint_helpers.py` + `paint_handlers.py` → один `paint.py`
-- `highlight_interface.py` + `lnet_highlight_wrappers.py` → один `highlighting.py`
-- Видалити дублікати заголовків
-
----
-
-## 4. Якість коду та рефакторинг
-
-### 4.1. 🔴 Незавершений рефакторинг `self.mw` → `self.ctx`
-
-**Файли:** Усі 15 хендлерів у `handlers/`
-
-**Проблема:** `BaseHandler` має проксі-property:
-```python
-@property
-def mw(self) -> Any:
-    """Temporary property for backward compatibility during refactoring."""
-    return self.ctx
-```
-
-Коментар каже "temporary", але `self.mw.` використовується у **всіх 15 хендлерах**:
-- `translation_handler.py`, `text_operation_handler.py`, `text_autofix_logic.py`
-- `search_handler.py`, `project_action_handler.py`, `list_selection_handler.py`
-- `app_action_handler.py`, `ai_chat_handler.py`, `issue_scan_handler.py`
-- `string_settings_handler.py`, `text_analysis_handler.py`
-- `handlers/translation/`: `glossary_handler.py`, `glossary_builder_handler.py`, `translation_ui_handler.py`, `ai_prompt_composer.py`
-
-Рефакторинг фактично не відбувся — `self.mw` залишається основним способом доступу до MainWindow.
-
-**Рекомендація:** Project-wide rename `self.mw` → `self.ctx` (це формальна, але чиста зміна). Або, якщо `ctx` — це контекст, а `mw` — main window, визначити чітко, що handler повинен мати доступ лише через Protocol, а не до всього MainWindow.
-
----
-
-### 4.2. 🟡 Подвійне створення `HotkeyManager` у `main.py`
-
-**Файл:** [`main.py`](file:///d:/git/dev/Picoripi/main.py) — рядки 249 та 354
-
-**Проблема:** `HotkeyManager` створюється двічі:
-```python
-# Рядок 249 (_init_handlers):
-self.hotkey_manager = HotkeyManager(self)
-
-# Рядок 354 (_init_ui):
-self.hotkey_manager = HotkeyManager(self)
-self.hotkey_manager.register()
-```
-
-Перший екземпляр створюється, але перезаписується другим. Це зайвий витрат ресурсів.
-
-**Рекомендація:** Видалити перше створення (рядок 249).
-
----
-
-### 4.3. 🟡 Property-проксі у `main.py` — 22 properties
-
-**Файл:** [`main.py`](file:///d:/git/dev/Picoripi/main.py)
-
-**Проблема:** `MainWindow` має **12 state-проксі** (рядки 74-132) для `StateManager` та **10 settings-проксі** (рядки 380-428) для `SettingsManager`. Це 44 рядки тільки для State та 49 рядків для Settings — разом **93 рядки** чистого boilerplate.
-
-Приклад:
-```python
-@property
-def is_loading_data(self): return self.state.is_active(AppState.LOADING_DATA)
-@is_loading_data.setter
-def is_loading_data(self, v): self.state.set_active(AppState.LOADING_DATA, v)
-```
-
-**Рекомендація:** Замість property-проксі, хендлери можуть звертатися до `self.ctx.state.is_active(AppState.LOADING_DATA)` напряму. Або використати `__getattr__`/descriptor-pattern для автоматичного делегування.
-
----
-
-### 4.4. 🟡 `_init_ui` — Null-ініціалізація атрибутів (рядки 251-281)
-
-**Файл:** [`main.py`](file:///d:/git/dev/Picoripi/main.py)
-
-**Проблема:** ~30 рядків `self.X = None` перед викликом `setup_main_window_ui(self)`:
-```python
-self.main_splitter = None
-self.right_splitter = None
-self.open_action = None; self.open_changes_action = None; ...
-```
-
-Це зроблено щоб IDE не скаржився на невизначені атрибути, але це anty-pattern — атрибути мають визначатися одного разу при створенні.
-
-**Рекомендація:** Перенести оголошення в окремий `__slots__` або в dataclass-стиль, або прийняти, що `setup_main_window_ui` створює ці атрибути та видалити подвійну ініціалізацію.
-
----
-
-### 4.5. 🟢 `handle_zoom` — дублювання логіки
-
-**Файл:** [`main.py`](file:///d:/git/dev/Picoripi/main.py) — рядки 431-465
-
-**Проблема:** 4 гілки if/elif з ідентичним кодом `max(5, min(72, old + step))`:
-```python
-if target == 'tree':
-    old = self.tree_font_size
-    new = max(5, min(72, old + step))
-    ...
-elif target == 'preview':
-    old = self.preview_font_size
-    new = max(5, min(72, old + step))
-    ...
-```
-
-**Рекомендація:** Витягнути таблицю маппінгу `target → (getter, setter)` для усунення повторення.
-
----
-
-## 5. Дублювання та надмірність
-
-### 5.1. 🟡 Дублювання find_next / find_previous в SearchHandler
-
-**Файл:** [`search_handler.py`](file:///d:/git/dev/Picoripi/handlers/search_handler.py)
-
-**Проблема:** `find_next` (рядки 105-168) та `find_previous` (рядки 170-237) — це ~130 рядків майже ідентичного коду з різницею лише в напрямку обходу.
-
-**Рекомендація:** Об'єднати в один метод `_find(direction: int)` з параметром напрямку.
-
----
-
-### 5.2. 🟡 Дублювання execute_find_next/previous в MainWindowHelper
-
-**Файл:** [`main_window_helper.py`](file:///d:/git/dev/Picoripi/ui/main_window/main_window_helper.py)
-
-**Проблема:** `execute_find_next_shortcut` (рядки 42-65) та `execute_find_previous_shortcut` (рядки 67-90) — майже ідентичні ~24-рядкові методи.
-
-**Рекомендація:** `_execute_find_shortcut(direction: str)`.
-
----
-
-### 5.3. 🟡 Дублювання move_up / move_down в CustomTreeWidget
-
-**Файл:** [`custom_tree_widget.py`](file:///d:/git/dev/Picoripi/components/custom_tree_widget.py)
-
-**Проблема:** `move_current_item_up` (рядки 1006-1039) та `move_current_item_down` (рядки 1041-1075) — ~35 рядків ідентичної логіки з різницею в `index ± 1`.
-
-**Рекомендація:** `_move_current_item(direction: int)`.
-
----
-
-### 5.4. 🟢 Дублювання navigate_blocks / navigate_folders в CustomTreeWidget
-
-**Файл:** [`custom_tree_widget.py`](file:///d:/git/dev/Picoripi/components/custom_tree_widget.py)
-
-**Проблема:** `navigate_blocks` і `navigate_folders` — схожі за структурою ітерації по дереву.
-
-**Рекомендація:** Низькопріоритетне, але можна витягнути загальний метод `_navigate_items(predicate)`.
-
----
-
-### 5.5. 🟡 Проксі-методи `GlossaryDialog` state persistence
-
-**Файл:** [`glossary_dialog.py`](file:///d:/git/dev/Picoripi/components/glossary_dialog.py)
-
-**Проблема:** Діалог має свою власну систему збереження/завантаження геометрії (`_load_dialog_state`, `_save_dialog_state`, `_read_settings_file`, `_write_settings_file`, `_geometry_to_dict`) — ~45 рядків. Аналогічний код існує у `session_state_manager.py`.
-
-**Рекомендація:** Витягнути загальний `DialogStatePersistence` mixin.
-
----
-
-## 6. Порушення поділу відповідальності (SRP)
-
-### 6.1. 🔴 `QMessageBox` у `core/` модулях
-
-**Файли:**
-- [`data_state_processor.py`](file:///d:/git/dev/Picoripi/core/data_state_processor.py) — імпортує та використовує `QMessageBox` для підтверджень збереження/реверту
-- [`plugin_settings.py`](file:///d:/git/dev/Picoripi/core/settings/plugin_settings.py) — показує `QMessageBox` при помилках
-
-**Проблема:** `core/` модулі повинні бути UI-агностичними. Вони мають містити бізнес-логіку, не Qt UI. Модулі з `QMessageBox` неможливо тестувати без мокання Qt та не можна використовувати в headless-режимі.
-
-**Рекомендація:** Замінити на callbacks або Signals:
-```python
-# Замість:
-result = QMessageBox.question(self.mw, "Save", "Save changes?")
-# На:
-if self.confirm_callback("Save changes?"):
-    ...
-```
-
----
-
-### 6.2. 🟡 `DataStateProcessor` має пряме посилання на `MainWindow`
-
-**Файл:** [`data_state_processor.py`](file:///d:/git/dev/Picoripi/core/data_state_processor.py)
-
-**Проблема:** Конструктор приймає `main_window: Any` та зберігає `self.mw = main_window`. Потім безпосередньо звертається до `self.mw.project_manager`, `self.mw.data_store`, `self.mw.current_game_rules`, `self.mw.unsaved_changes`, тощо.
-
-**Рекомендація:** Прийняти `data_store`, `project_manager`, `game_rules` як окремі аргументи або через Protocol.
-
----
-
-### 6.3. 🟡 `UndoManager` має пряме посилання на UI-компоненти
-
-**Файл:** [`undo_manager.py`](file:///d:/git/dev/Picoripi/core/undo_manager.py)
-
-**Проблема:** `UndoManager._apply_data` та `_navigate_to` напряму маніпулюють UI через `self.mw`:
-- Встановлює текст в `edited_text_edit`
-- Оновлює `block_list_widget` 
-- Керує cursor position
-
-**Рекомендація:** Undo/Redo має лише змінювати дані, а UI-оновлення мають відбуватися через сигнали або callbacks.
-
----
-
-## 7. Типізація та безпека типів
-
-### 7.1. 🔴 `ProjectContext` — повністю `Any`
-
-**Файл:** [`context.py`](file:///d:/git/dev/Picoripi/core/context.py)
-
-**Проблема:** Protocol `ProjectContext` оголошує всі типи як `Any`:
-```python
-class ProjectContext(Protocol):
-    @property
-    def project_manager(self) -> Any: ...
-    @property
-    def settings_manager(self) -> Any: ...
-    @property
-    def state(self) -> Any: ...
-    @property
-    def data_processor(self) -> Any: ...
-```
-
-Це зводить нанівець усі переваги Protocol — IDE не може надати підказки, mypy не ловить помилки, рефакторинг стає небезпечним.
-
-**Рекомендація:** Замінити `Any` на конкретні типи:
-```python
-from core.state_manager import StateManager
-from core.project_manager import ProjectManager
-
-class ProjectContext(Protocol):
-    @property
-    def project_manager(self) -> Optional[ProjectManager]: ...
-    @property
-    def state(self) -> StateManager: ...
-```
-
----
-
-### 7.2. 🟡 `BaseHandler` — повністю `Any`
-
-**Файл:** [`base_handler.py`](file:///d:/git/dev/Picoripi/handlers/base_handler.py)
-
-**Проблема:** Усі параметри та атрибути — `Any`:
-```python
-class BaseHandler:
-    def __init__(self, context: Any, data_processor: Any, ui_updater: Any):
-        self.ctx: Any = context
-        self.data_processor: Any = data_processor
-        self.ui_updater: Any = ui_updater
-```
-
-**Рекомендація:** Використовувати `ProjectContext` Protocol та конкретні типи.
-
----
-
-### 7.3. 🟡 Відсутність type annotations у ключових місцях
-
-**Файли:** Багато модулів
-
-**Проблема:** Ряд публічних методів не мають type annotations для повертаних значень. Наприклад, у `custom_tree_widget.py`, `main_window_helper.py`, `translation_handler.py`.
-
-**Рекомендація:** Додати return type hints як мінімум для публічних методів.
-
----
-
-## 8. Тестування та покриття
-
-### 8.1. 🟡 Тести не покривають translation subsystem
-
-**Проблема:** `handlers/translation/` (10 файлів, ~135 KB) — один з найскладніших модулів, але тестове покриття для AI lifecycle, prompt composition, batch translation може бути неповним.
-
-**Рекомендація:** Перевірити та додати тести для:
-- `AILifecycleManager` — queue, retry, cancellation
-- `AIPromptComposer` — prompt generation з різними контекстами
-- `GlossaryOccurrenceUpdater` — batch update логіка
-
----
-
-### 8.2. 🟢 Відсутність інтеграційних тестів
-
-**Проблема:** 622+ тести — це unit-тести з моками. Немає інтеграційних тестів, що перевіряють реальний flow: "відкрий проєкт → виділи блок → зроби зміну → збережи → перевір файл".
-
-**Рекомендація:** Додати smoke-тести для критичних flows з тимчасовими проєктами.
-
----
-
-## 9. Нові знахідки (2026-04-01)
-
-> Повторний аудит з фокусом на паттернах, що описані в аналізі Claude Code: defensive access, dead comments, import-всередині-методів, дублювання заголовків, залишки TODO.
-
----
-
-### 9.1. 🔴 Defensive Access — `hasattr`/`getattr(self.mw)` замість Protocol
-
-**Файли:** `translation_handler.py`, `text_operation_handler.py`, `glossary_handler.py`, `glossary_builder_handler.py`, `translation_ui_handler.py`, `ai_lifecycle_manager.py` та інші
-
-**Проблема:** Знайдено **142+ виклики** `hasattr(self.mw, ...)` і `getattr(self.mw, ..., None)` у хендлерах:
-
-```python
-# translation_handler.py
-if hasattr(self.mw, 'undo_manager'):
-    self.mw.undo_manager.begin_group()
-
-# glossary_builder_handler.py
-translation_handler = getattr(self.mw, 'translation_handler', None)
-self._glossary_manager = getattr(self.mw, 'glossary_manager', None)
-
-# text_operation_handler.py
-if not hasattr(self.mw, 'edited_sublines'):
-    return
-```
-
-Це **defensive access pattern** — код захищається від можливого відсутності атрибутів на `MainWindow`. Але якщо `Protocol ProjectContext` описує контракт, ці атрибути або є завжди, або їх немає і код не повинен мовчки ігнорувати це.
-
-**Чому це проблема:**
-- `getattr(self.mw, 'undo_manager', None)` приховує справжню помилку: або атрибут завжди є (тоді захищатися не треба), або він не завжди є (тоді Protocol неповний).
-- `hasattr` перевірки роблять код **функціонально схожим** на той, що в аналізі Claude Code критикують: умовна логіка замість контракту.
-- 142 виклики — ознака того, що `ProjectContext` Protocol фактично не використовується як гарантія.
-
-**Рекомендація:** Розділити на два кроки:
-1. Зафіксувати стан: які атрибути `MainWindow` гарантовано присутні після ініціалізації → внести до `ProjectContext` Protocol.
-2. Усунути `hasattr`/`getattr` перевірки там, де атрибути гарантовані. Залишити тільки там, де атрибут опціональний за природою (і задокументувати це).
-
----
-
-### 9.2. 🟡 Дублювання заголовків `# --- START OF FILE` у `components/editor/`
-
-**Директорія:** `components/editor/`
-
-**Проблема:** Кілька файлів у `editor/` мають **3 заголовки-дублікати** з різними (старими) шляхами рефакторингу:
-
-```python
-# line_numbered_text_edit.py
-# --- START OF FILE components/editor/line_numbered_text_edit.py ---
-# --- START OF FILE components/line_numbered_text_edit.py ---
-# --- START OF FILE components/LineNumberedTextEdit.py ---
-
-# text_highlight_manager.py
-# --- START OF FILE components/editor/text_highlight_manager.py ---
-# --- START OF FILE components/text_highlight_manager.py ---
-# --- START OF FILE components/TextHighlightManager.py ---
-
-# line_number_area.py
-# --- START OF FILE components/editor/line_number_area.py ---
-# --- START OF FILE components/line_number_area.py ---
-# --- START OF FILE components/LineNumberArea.py ---
-```
-
-Кожен такий файл несе три заголовки (поточний + два застарілі шляхи від часів рефакторингу). Це **артефакт рефакторингу** — файли були переміщені двічі і приносять з собою сліди попередніх місцезнаходжень.
-
-Аналогічно до того, що в аналізі Claude Code описано на прикладі `REPL.tsx` ("three duplicate header lines"), ці мертві коментарі засмічують код і дезорієнтують розробника.
-
-**Рекомендація:** Видалити другий і третій заголовки з усіх файлів у `components/editor/`. Залишити лише актуальний шлях або взагалі відмовитися від цього шаблону.
-
----
-
-### 9.3. 🟡 `import json` всередині методу у `project_dialogs.py`
-
-**Файл:** [`project_dialogs.py`](file:///d:/git/dev/Picoripi/components/project_dialogs.py) — рядок 162
-
-**Проблема:**
-```python
-def _scan_plugins(self):
-    for item_path in plugins_dir.iterdir():
-        try:
-            import json  # ← імпорт всередині методу!
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config_data = json.load(f)
-```
-
-`import json` викликається в циклі `for item_path in plugins_dir.iterdir()`. Хоча Python кешує імпорти і це не є критичною помилкою продуктивності, це порушує конвенцію PEP 8 (всі імпорти — на початку файлу) та вказує на те, що код додавали поспіхом.
-
-**Рекомендація:** Перемістити `import json` на початок файлу `project_dialogs.py`.
-
----
-
-### 9.4. 🟡 `TODO` у `OpenProjectDialog` — залишений dead comment
-
-**Файл:** [`project_dialogs.py`](file:///d:/git/dev/Picoripi/components/project_dialogs.py) — рядки 387–389
-
-**Проблема:**
-```python
-# TODO: Add recent projects list here
-# recent_group = QGroupBox("Recent Projects", self)
-# ...
-```
-
-`OpenProjectDialog` залишився закоментований блок коду з TODO. `RecentProjectsManager` (`core/settings/recent_projects_manager.py`) вже існує та підтримується. Функціонал "Recent Projects" реалізований у головному меню, але не підключений до `OpenProjectDialog`.
-
-**Рекомендація:** Або реалізувати список останніх проєктів у `OpenProjectDialog` (використовуючи вже існуючий `RecentProjectsManager`), або видалити за непотрібністю мертвий коментар.
-
----
-
-### 9.5. 🟢 `is_programmatically_changing_text` — boolean flag замість StateManager
-
-**Файли:** `translation_ui_handler.py` рядки 73, 78, 95, 99
-
-**Проблема:**
-```python
-self.mw.is_programmatically_changing_text = True
-# ... операції ...
-self.mw.is_programmatically_changing_text = False
-```
-
-Цей прапор встановлюється безпосередньо на `self.mw` у чотирьох місцях `translation_ui_handler.py`. `StateManager` (`core/state_manager.py`) вже має систему `AppState` для таких станів, але цей конкретний прапор обходить її.
-
-**Рекомендація:** Замінити `self.mw.is_programmatically_changing_text = True/False` на `with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):` або еквівалентний існуючий стан.
-
----
-
-## 10. Зведена таблиця рекомендацій
-
-| # | Пріоритет | Проблема | Тип | Складність | Вплив |
-|---|---|---|---|---|---|
-| 1 | ✅ | `custom_tree_widget.py` — декомпозовано на 5 міксинів (227 рядків → orchestrator) | Архітектура | Висока | Підтримка |
-| 2 | 🔴 | Незавершений `self.mw` → `self.ctx` рефакторинг | Техн. борг | Середня | Чистота |
-| 3 | 🔴 | `ProjectContext` повністю на `Any` (частково покращено типізацію UIProvider) | Типізація | Низька | Безпека |
-| 4 | 🔴 | `QMessageBox` та PyQt6 у `core/` модулях | SRP | Середня | Тестованість |
-| 5 | 🔴 | 142+ defensive `hasattr`/`getattr(self.mw)` замість Protocol | Техн. борг | Середня | Безпека+Чистота |
-| 6 | 🟡 | `translation_handler.py` — 836 рядків | Архітектура | Висока | Підтримка |
-| 7 | 🟡 | `project_action_handler.py` — 899 рядків | Архітектура | Висока | Підтримка |
-| 8 | 🟡 | `UIUpdater` — порожній проксі з `_private` делегуванням | Архітектура | Середня | Чистота |
-| 9 | 🟡 | `main_window_helper.py` — catch-all helper | Архітектура | Середня | Чистота |
-| 10 | 🟡 | `editor/` — 19 файлів, надмірна фрагментація | Архітектура | Середня | Навігація |
-| 11 | ✅ | Дублювання `# --- START OF FILE` заголовків в `editor/` | Dead code | Мінімальна | Чистота |
-| 12 | ✅ | `TODO` + dead comment у `OpenProjectDialog` | Dead code | Мінімальна | Чистота |
-| 13 | ✅ | Дублювання find_next/find_previous | Дублювання | Низька | Чистота |
-| 14 | ✅ | Дублювання move_up/move_down | Дублювання | Низька | Чистота |
-| 15 | 🟡 | 22 property-проксі у main.py (93 рядки) | Boilerplate | Низька | Чистота |
-| 16 | ✅ | Подвійне створення `HotkeyManager` | Баг | Мінімальна | Коректність |
-| 17 | 🟡 | `DataStateProcessor` / `UndoManager` → UI coupling | SRP | Висока | Тестованість |
-| 18 | 🔴 | `BaseHandler` — `Any` типи | Типізація | Низька | Безпека |
-| 19 | 🟡 | Dialog state persistence дублювання | Дублювання | Низька | Чистота |
-| 20 | ✅ | `is_programmatically_changing_text` — boolean flag замість StateManager | Техн. борг | Низька | Чистота |
-| 21 | 🟡 | Тести для translation subsystem | Тестування | Висока | Надійність |
-| 22 | ✅ | `import json` всередині методу (`project_dialogs.py`) | Code style | Мінімальна | Чистота |
-| 23 | ✅ | `handle_zoom` — дублювання гілок | Дублювання | Мінімальна | Чистота |
-| 24 | 🟢 | Інтеграційні тести | Тестування | Висока | Надійність |
+## Зміст
+1. [Історія оновлень та реалізованих функцій](#історія-оновлень-та-реалізованих-функцій)
+2. [Загальна статистика кодової бази](#1-загальна-статистика-кодової-бази)
+3. [Виконані оптимізації (Legacy)](#2-виконані-оптимізації-legacy)
+4. [Архітектурні проблеми та рекомендації](#3-архітектурні-проблеми-та-рекомендації)
+5. [Детальний план рефакторингу за категоріями](#4-детальний-план-рефакторингу-за-категоріями)
+6. [Рекомендований сценарій виконання (Спринти)](#5-рекомендований-сценарій-виконання-спринти)
+7. [Настанови для розробки та тестування](#6-настанови-для-розробки-та-тестування)
 
 ---
 
-> **Висновок (оновлено 2026-06-09):** Після успішного переходу на PyQt6 та завершення всіх механічних завдань (категорія A), фокус розробки змістився на складніші когнітивні завдання (категорія B). Пріоритетними завданнями є повне очищення `core/` від компонентів PyQt6 та `QMessageBox` для забезпечення повної ізоляції бізнес-логіки, вирішення питання залишкових імпортів `unittest.mock` з робочого коду (повністю очищено) та посилення типування через контракт `ProjectContext`.
+## Історія оновлень та реалізованих функцій
+
+Тут наведено хронологічний список оновлень проекту, починаючи з версії `v0.2.148` (коли розпочався активний процес аудиту та виправлень) до поточної версії `v0.3.000`:
+
+* **v0.3.000 (2026-06-09)**:
+  * **Головний реліз-віха: Міграція на PyQt6**: Повний перехід кодової бази та інтерфейсу користувача з PyQt5 на PyQt6.
+  * **Дедуплікація конфігурацій плагінів**: Реалізовано спільну фабрику конфігурацій [config_factory.py](file:///d:/git/dev/Picoripi/plugins/common/config_factory.py). Усі 5 плагінів (`zelda_ww`, `zelda_mc`, `zelda_bmg`, `pokemon_fr`, `plain_text`) переведені на використання фабрики, що усунуло дублювання коду в `config.py` плагінів.
+  * **Консолідація документації**: Об'єднання всіх звітів аудиту та рефакторингу в єдиний файл [AUDIT.md](file:///d:/git/dev/Picoripi/AUDIT.md).
+* **v0.2.179 (2026-06-09)**:
+  * Виправлено колір маркерів подвійних/множинних пробілів (space dots `·`) у редакторі. Тепер колір примусово зберігається сірим (`#BBBBBB`) замість чорного для кращої візуальної консистентності.
+* **v0.2.178 (2026-06-09)**:
+  * Повністю вилучено імпорти `unittest.mock` з робочого коду (`text_fixer.py` та `list_selection_handler.py`). Використано безпечну рантайм-перевірку назви класу для моків.
+  * Усунено дублювання ініціалізації `HotkeyManager` у `main.py`.
+* **v0.2.176 (2026-06-09)**:
+  * Виправлено збій `AttributeError: 'QDialog' object has no attribute 'Accepted'` у PyQt6. Усі виклики `dialog.Accepted` замінено на `QDialog.DialogCode.Accepted`.
+* **v0.2.175 (2026-06-09)**:
+  * Виправлено тест `test_translation_editor_spellcheck_highlighting` (коректне налаштування мок-блоку для spellcheck).
+* **v0.2.172 (2026-06-08)**:
+  * **Делікатне підкреслення помилок**: Реалізовано кастомний `paintEvent` у `SearchLineEdit` для малювання хвилястої лінії без зміни StyleSheet.
+  * **Robocopy з прогресом**: Впроваджено Robocopy для копіювання образів на флеш-накопичувачі Dusk у `pack_iso.bat`.
+  * **AsyncIssueScanner на QThreadPool**: Переписано `AsyncIssueScanner` на `QRunnable` із кооперативним скасуванням (Event-cancellation).
+  * **Оптимізація save без deep-copy**: Замінено повільний JSON-копіпаст на shallow-copy (`list(chosen_block)`) тільки для змінених блоків.
+* **v0.2.171 (2026-06-08)**:
+  * Реалізовано збереження стану фільтра "Hide Empty Strings" у `settings.json`.
+  * Створено нову стійку консоль для запуску зовнішніх скриптів на Windows (`cmd.exe /k`).
+* **v0.2.170 (2026-06-08)**:
+  * Виправлено поведінку Auto-fix для Zelda BMG: додано перевірку кодів переходу сторінок та збереження порожніх рядків як жорстких меж сторінок.
+* **v0.2.169 (2026-06-08)**:
+  * Впроваджено модальний прогрес-бар при скиданні великих фільтрів для усунення візуального миготіння та блокування інтерфейсу під час рендерингу.
+* **v0.2.168 (2026-06-08)**:
+  * Реалізовано 6-компонентний ключ кешу прев'ю та ледаче (chunk) завантаження великих блоків (> 200 рядків) для запобігання лагам Qt.
+* **v0.2.167 (2026-06-08)**:
+  * Виправлено скидання дефолтного значення у `MassWidthDialog` до жорсткого ліміту проекту (а не ліміту попередження).
+  * Уніфіковано стиль підсвітки `Font` та `Width` у `StringSettingsUpdater` (фіолетова рамка 2px).
+* **v0.2.165 - v0.2.166 (2026-06-06)**:
+  * Виправлено відображення роздільних ліній у Advanced Search: малювання спирається на `QTextBlock.blockNumber()` та логічні межі повідомлень.
+* **v0.2.164 (2026-06-05)**:
+  * Доопрацьовано автофікс висячих слів для переносу видимих та форсованих тегів в кінці рядка.
+  * Додано розумну навігацію `Alt+Up`/`Alt+Down`, яка пропускає порожні рядки.
+* **v0.2.163 (2026-06-05)**:
+  * Оновлено алгоритм висячих слів (Single Word Orphan Auto-fix): винесено з головного циклу у фінальний крок пост-обробки для усунення нескінченних петель.
+  * Повністю видалено застарілі ворнінги `Empty Odd Logical Subline` з Zelda BMG та WW.
+* **v0.2.162 (2026-06-05)**:
+  * Реалізовано виявлення та автофікс відсутності пробілів навколо іконок/кнопок (Missing Icon Spacing).
+* **v0.2.161 (2026-06-04)**:
+  * Розділено налаштування приховання тегів (Hide tags) на незалежні прапорці для оригінальних та перекладених текстів.
+  * Замінено нульовий шрифт для прихованих тегів на стиснення міжсимвольного інтервалу (`QFont.PercentageSpacing` = 1.0).
+* **v0.2.160 (2026-06-03)**:
+  * Виключено непусті теги (іконки `{(Y)}`, `{(X)}`) з перевірок подвійних пробілів (Bad Spacing).
+* **v0.2.158 - v0.2.159 (2026-06-03)**:
+  * Допилено систему пресетів налаштувань перекладу ШІ (`translation_presets` у `settings.json`).
+  * Уніфіковано виділення рядків при пошуку та додано кешування для AI Variations.
+* **v0.2.157 (2026-06-03)**:
+  * Впроваджено кешування варіацій AI Variations та кнопку Refresh.
+  * Додано чекбокс приховування попапу при встановленні Force Alias.
+  * Виправлено зсув індексів та відносний пошук у прев'ю-панелі.
+* **v0.2.156 (2026-06-03)**:
+  * Заборонено автоматичну появу прев'ю при зміні рядка, якщо прев'ю було приховано. Зупинено розрахунки прев'ю в фоні, якщо віджет `isHidden()`.
+* **v0.2.155 (2026-06-02)**:
+  * Додано перевірку розміру запакованого RAM-архіву порівняно з оригіналом із виведенням warning-попапу при перевищенні ліміту.
+* **v0.2.154 (2026-06-02)**:
+  * Оптимізовано Yaz0 компресор (`max_candidates` = 100) та додано автовирівнювання розміру стиснутих архівів нульовим падінгом (`\x00`) для Dolphin.
+* **v0.2.148 - v0.2.153 (2026-06-01 - 2026-06-02)**:
+  * Впроваджено HSL-стилювання світлої теми меню, додано тултіпи для заблокованих пунктів, виправлено сигнал Import Directory та Close Project.
+  * Реалізовано збереження ширини стовпчиків у Glyph Editor, покращено BFN Font Editor, виправлено рендеринг кирилиці у прев'ю (mapping_type 2).
+  * Розумне згортання порожніх рядків у прев'ю-панелі (Hide Empty Lines) з підсвічуванням сірим (`#888888`).
+  * Впроваджено збалансований перенос слів, цілісність речень на сторінках, розділено Editor Line Width та Game Dialog Max Width.
+  * Виправлено Global Replace в глосарії для збереження змін в `notes`.
+
+---
+
+## 1. Загальна статистика кодової бази
+
+| Показник | Значення |
+|---|---|
+| Всього `.py` файлів (код) | ~80 |
+| Всього `.py` файлів (тести) | ~50 |
+| Найбільший файл | `custom_tree_widget.py` — **1246 рядків** |
+| `project_action_handler.py` | **899 рядків** |
+| `translation_handler.py` | **836 рядків** |
+| `project_manager.py` | **792 рядків** |
+| `syntax_highlighter.py` | **693 рядків** |
+| `list_selection_handler.py` | **685 рядків** |
+| `glossary_dialog.py` | **574 рядків** |
+| `main.py` | **527 рядків** |
+| `search_handler.py` | **505 рядків** |
+| Файлів у `components/editor/` | **19 файлів** |
+| Файлів у `handlers/translation/` | **10 файлів** |
+| Тестових функцій (pytest) | **960+** |
+
+---
+
+## 2. Виконані оптимізації (Legacy)
+
+Усі попередні оптимізації (v0.2.13 — v0.2.179) виконані та залишаються актуальними:
+
+| # | Що | Статус | Коментар |
+|---|---|---|---|
+| 1 | `calculate_string_width` — Trie-дерево | ✅ | Прискорення в 6.7x |
+| 2 | `highlightBlock` — regex pre-compilation | ✅ | Прискорення 1.6-8x |
+| 3 | `SpellcheckerManager` — persistent cache | ✅ | Прискорення 2-5x |
+| 4 | `GlossaryManager` — Aho-Corasick | ✅ | Прискорення 10-100x |
+| 5 | UI Recursion Fix — Reentrancy Guard | ✅ | Стабільність |
+| 6 | `UndoManager` — zlib стиснення | ✅ | Оптимізація RAM |
+| 7 | `ui_updater.py` — декомпозиція на sub-updaters | ✅ | Покращення архітектури |
+| 8 | MainWindow property stubs — видалено | ✅ | Очищення коду |
+| 9 | Нативна підтримка ARC/RARC/U8/Yaz0 in-memory | ✅ | Без диск. операцій та зовнішніх утиліт (v0.2.63) |
+| 10 | Вікно Block Properties | ✅ | Відображення розширень для архівних блоків (v0.2.66) |
+| 11 | Nintendo BFN Font Editor | ✅ | Редагування .bfn шрифтів у RAM та синхронізація (v0.2.69) |
+| 12 | Фоновий сканер архівів у BFN редакторі | ✅ | Автореєстрація вкладених BFN та QTreeWidget (v0.2.74) |
+| 13 | Автоматичне сканування в BFN Font Editor | ✅ | Вилучено ручну кнопку вибору папки (v0.2.76) |
+| 14 | Уніфіковане малювання ліній-орієнтирів (guidelines) | ✅ | Динамічна та стабільна відмальовка ліній (v0.2.145) |
+| 15 | Гнучкий перенос слів та сторінкова верстка | ✅ | Авто-розбиття без розриву слів та меж речень (v0.2.150) |
+| 16 | Оптимізація Yaz0 компресора (`max_candidates`=100) | ✅ | Менший розмір архіву + zero-padding для Dolphin (v0.2.154) |
+| 17 | Оптимізована фонова робота прев'ю-панелі | ✅ | Призупинення розрахунків, коли панель прихована (v0.2.156) |
+| 18 | Чанкове (lazy) завантаження великих блоків | ✅ | Усунуло лаги Qt при відображенні >200 рядків (v0.2.168) |
+| 19 | Розрахунок save без deep-copy | ✅ | Лінійний прохід із копіюванням лише змінених блоків (v0.2.172) |
+| 20 | AsyncIssueScanner на базі `QThreadPool` | ✅ | `QRunnable` з кооперативним скасуванням запитів (v0.2.172) |
+| 21 | Busy-loop у spellchecker замінено на `Event` | ✅ | Усунуло навантаження 20 Гц на CPU в стані спокою (v0.2.172) |
+| 22 | Впроваджено HSL-стилювання Light Theme меню | ✅ | Додано підказки для заблокованих пунктів, виправлено Import Directory (v0.2.84) |
+| 23 | Дедуплікація конфігурацій плагінів | ✅ | Впроваджено `config_factory.py` для 5 плагінів (v0.3.000) |
+
+---
+
+## 3. Архітектурні проблеми та рекомендації
+
+### 3.1. Гігієна репозиторію та інфраструктура (БЛОКЕР)
+* **Засмічення історії Git (Вирішено частково)**: Великі файли логів (`ai_traffic.log`, `stderr_output.log`), БД (`mempalace_local.db`) та конфіги `session_state.json` були вилучені з індексу Git (`git rm --cached`). Проте, вони все ще залишаються в попередній історії Git, що роздуває розмір репозиторію.
+  * *Рекомендація*: Запустити повне очищення історії за допомогою BFG Repo-Cleaner або `git filter-repo` для видалення великих бінарників з історії коммітів (вимагає force-push).
+* **Requirements-dev та зайві залежності (Вирішено)**: `requirements.txt` раніше містив 40+ невикористовуваних пакетів (camoufox, playwright тощо). Файл очищено, PyQt6 зафіксовано.
+* **Відсутність CI**: Проект має понад 960 юніт-тестів, але вони запускаються лише локально.
+  * *Рекомендація*: Додати GitHub Actions workflow для автоматичного запуску `pytest tests/` та `ruff check` при кожному push/PR.
+
+### 3.2. Архітектурні проблеми (God-objects & SRP)
+* **`custom_tree_widget.py` — God-object (1246 рядків)**:
+  * *Проблема*: Один клас `CustomTreeWidget` виконує DnD, контекстні меню, синхронізацію з `ProjectManager`, навігацію, рендеринг тощо.
+  * *Рекомендація*: Декомпозиція на Mixin-класи або делегування: `TreeDragDropMixin`, `TreeContextMenuMixin`, `TreeSyncMixin`, `TreeNavigationMixin` (вже частково розпочато).
+* **`translation_handler.py` (836 рядків) та `project_action_handler.py` (899 рядків)**:
+  * *Проблема*: Хендлери мають надмірну відповідальність. Наприклад, `translation_handler.py` містить і AI request lifecycle, і glossary CRUD, і session management, і progress bars.
+  * *Рекомендація*: Винести batch-translation та glossary UI CRUD у допоміжні класи.
+* **Зчеплення з PyQt у `core/` (Порушення Layering)**:
+  * *Проблема*: Класи бізнес-логіки (`data_state_processor.py`, `settings/plugin_settings.py`) безпосередньо викликають графічні діалоги `QMessageBox.warning` чи `QMessageBox.question`. Це робить `core/` неможливим для тестування без ініціалізації графічного двигуна Qt та ламає можливість запуску CLI.
+  * *Рекомендація*: Винести всі виклики QMessageBox у хендлери або використовувати callbacks/сигнали.
+* **Пряме посилання на `MainWindow` (Tight Coupling)**:
+  * *Проблема*: `DataStateProcessor` та `UndoManager` зберігають пряме посилання на `self.mw` та керують UI-елементами безпосередньо.
+  * *Рекомендація*: Звертатися лише через Protocol `ProjectContext` або транслювати зміни через сигнали.
+
+### 3.3. Якість коду та техн. борг
+* **Незавершений рефакторинг `self.mw` → `self.ctx`**:
+  * *Проблема*: `BaseHandler` надає сумісну властивість `mw`, яка повертає `self.ctx`. В результаті, у більшості хендлерів розробники продовжують використовувати `self.mw`.
+  * *Рекомендація*: Поступово замінити `self.mw` на `self.ctx` по всій кодовій базі та видалити property-proxy.
+* **Property-проксі у `main.py` (22 властивості, 93 рядки)**:
+  * *Проблема*: Велика кількість boilerplate-коду для перенаправлення запитів стану/налаштувань до `StateManager` та `SettingsManager`.
+  * *Рекомендація*: Змінити доступ на прямий (`self.ctx.state.is_active(...)`) або використати `__getattr__` для динамічного делегування.
+* **Дублювання коментарів `# --- START OF FILE` (Вирішено)**:
+  * Однотипні коментарі-шапки з різними шляхами рефакторингу повністю видалено з кодової бази.
+
+### 3.4. Продуктивність (Вирішено основні моменти)
+* **Save з deep-copy та worker тіки**: Повільне копіювання через серіалізацію JSON замінено на `copy.deepcopy` (A5), а згодом на shallow-copy (B4). Busy-loop у spellchecker та thread-per-keystroke воркери виправлені у версії `v0.2.172`.
+* **Фрагментація `text_highlight_manager.py`**:
+  * *Проблема*: Менеджер зберігає 11 окремих списків `ExtraSelection` і щоразу виконує затратні виклики `setExtraSelections` при конкатенації.
+  * *Рекомендація*: Об'єднати їх у єдину чергу виділень із пріоритетами.
+
+### 3.5. Дублювання даних та коду (DRY)
+* **Дублювання файлів плагінів (Вирішено)**: `plain_text` та `zelda_ww` мали ідентичні `font_map.json` та `prompts.json`. Створено спільні defaults в `plugins/common/defaults/` із матеріалізацією на вимогу (on-demand copying) при зміні користувачем.
+* **Дублювання логіки (Вирішено)**:
+  * `find_next`/`find_previous` зведено в `_find(direction)`.
+  * `move_block_up`/`down` зведено в `move_block_action(direction)`.
+  * `calculate_string_width`/`calculate_strict_string_width` зведено в `_calculate_string_width_impl`.
+* **Дублювання конфігурацій плагінів (Вирішено у v0.3.000)**:
+  * Створено `plugins/common/config_factory.py`, що автоматично генерує baseline problem check конфіги, пріоритети та кольори, прибираючи дублювання `config.py` у 5 плагінах.
+
+### 3.6. Типізація та безпека типів
+* **`ProjectContext` та `BaseHandler` як `Any`**:
+  * *Проблема*: Брак конкретних типів у протоколі та базовому класі хендлера позбавляє IDE можливості автодоповнення та робить mypy неефективним.
+  * *Рекомендація*: Замінити `Any` на конкретні класи (`StateManager`, `ProjectManager`, `DataStateProcessor` тощо).
+
+### 3.7. Тестування
+* **Mock у продакшен-коді (Вирішено у v0.2.178)**:
+  * Вилучено імпорти `unittest.mock` з робочих файлів. Тепер використовуються безпечні рядкові перевірки назв класів без імпортування модулів тестування.
+* **Pytest-runner (Вирішено)**:
+  * Видалено застарілий повільний скрипт `run_tests.py`. Тести тепер запускаються однією командою `pytest tests/` або паралельно `pytest -n auto tests/`.
+
+---
+
+## 4. Детальний план рефакторингу за категоріями
+
+### Категорія A. Механічні задачі (Низька складність, чітний патерн)
+
+* **A1. Гігієна git репо** `[DONE]`:
+  * *Що*: Вилучити з Git файли логів, БД, налаштувань, які ігноруються `.gitignore`.
+  * *Результат*: Виконано (`git rm --cached`).
+* **A2. Видалення дублікатів `# --- START OF FILE`** `[DONE]`:
+  * *Що*: Очистити заголовки файлів від застарілих коментарів-шапок.
+  * *Результат*: Виконано.
+* **A3. Видалення `run_tests.py`, один `pytest.ini` → `pyproject.toml`** `[DONE]`:
+  * *Що*: Спростити запуск pytest.
+  * *Результат*: Виконано.
+* **A4. Чистка `requirements.txt`** `[DONE]`:
+  * *Що*: Видалити невикористовувані пакети, запинити PyQt.
+  * *Результат*: Виконано (запинено PyQt5/PyQt6 та dev-пакети).
+* **A5. Заміна `json.loads(json.dumps(x))` на `copy.deepcopy(x)`** `[DONE]`:
+  * *Що*: Швидке прискорення копіювання при save.
+  * *Результат*: Виконано (пізніше покращено в B4).
+* **A6. Видалення `print()` з production-коду** `[DONE]`:
+  * *Що*: Замінити print на логер у плагінах та bfn_editor.
+  * *Результат*: Виконано.
+* **A7. Уніфікація venv-назв (`.venv`)** `[DONE]`:
+  * *Що*: Забезпечити єдиний шлях віртуального оточення.
+  * *Результат*: Виконано.
+* **A8. Базовий CI workflow** `[SKIPPED]`:
+  * *Що*: Створення GitHub Actions workflow.
+  * *Результат*: Пропущено за згодою користувача.
+* **A9. Об'єднання `move_block_up`/`down`** `[DONE]`:
+  * *Що*: Звести дзеркальні методи в один параметризований.
+  * *Результат*: Виконано.
+* **A10. `handle_zoom` — таблиця замість 4 гілок** `[DONE]`:
+  * *Що*: Скоротити boilerplate у `main.py`.
+  * *Результат*: Виконано.
+* **A11. Зведення `find_next`/`find_previous` в один `_find(direction)`** `[DONE]`:
+  * *Що*: Усунути дублювання в `search_handler.py`.
+  * *Результат*: Виконано.
+* **A12. Об'єднання `calculate_string_width` / `calculate_strict_string_width`** `[DONE]`:
+  * *Що*: Звести в єдиний внутрішній обхід рядка.
+  * *Результат*: Виконано.
+* **A13. Видалення дублікатних файлів плагінів** `[DONE]`:
+  * *Що*: Вилучити однакові `font_map.json`/`prompts.json` на користь `defaults/`.
+  * *Результат*: Виконано (із підтримкою матеріалізації на вимогу).
+* **A14. Виправлення `import json` всередині методу** `[DONE]`:
+  * *Що*: Перенести імпорт на початок `project_dialogs.py`.
+  * *Результат*: Виконано.
+* **A15. TODO у `OpenProjectDialog`** `[DONE]`:
+  * *Що*: Видалити закоментований dead block.
+  * *Результат*: Виконано.
+* **A16. `is_programmatically_changing_text` → `state.enter()`** `[DONE]`:
+  * *Що*: Використати context manager замість bool-флага.
+  * *Результат*: Виконано.
+* **A17. Видалення `time.sleep(0.05)` busy-loop у spellchecker** `[DONE]`:
+  * *Що*: Замінити polling на очікування через `threading.Event()`.
+  * *Результат*: Виконано.
+
+### Категорія B. Когнітивні задачі (Висока складність, дизайн-рішення)
+
+* **B1. Видалення 4 `from unittest.mock import Mock` з production** `[PARTIALLY DONE]`:
+  * *Що*: Прибрати mock-перевірки з робочого коду та оновити тести.
+  * *Статус*: Вилучено імпорти `unittest.mock`. Для повної відповідності необхідно замінити MagicMock на справжні Stub-об'єкти безпосередньо у тестових сценаріях.
+* **B2. Інвентаризація `MainWindow` атрибутів → строгий `ProjectContext` Protocol** `[ ]`:
+  * *Що*: Зафіксувати гарантовані атрибути та прибрати 836 `hasattr`/`getattr` перевірок.
+  * *Статус*: Очікує виконання.
+* **B3. Типізація `BaseHandler` (прибрати `Any`)** `[ ]`:
+  * *Що*: Встановити строгі типи для контексту, процесора та апдейтера.
+  * *Статус*: Очікує виконання (залежить від B2).
+* **B4. Оптимізація save без deep-copy** `[DONE]`:
+  * *Що*: Лінійний прохід при збереженні без дублювання незмінених блоків.
+  * *Результат*: Виконано у версії `v0.2.172`.
+* **B5. AsyncIssueScanner → QThreadPool з cooperative cancellation** `[DONE]`:
+  * *Що*: Перехід з QThread на QRunnable із перевіркою скасування при наборі тексту.
+  * *Результат*: Виконано у версії `v0.2.172`.
+* **B6. Прибрати PyQt5 / PyQt6 та `QMessageBox` з `core/`** `[ ]`:
+  * *Що*: Забезпечити UI-незалежність ядра бізнес-логіки.
+  * *Статус*: Очікує виконання.
+* **B7. Декомпозиція god-методу `populate_glyph_table` (264 рядки)** `[ ]`:
+  * *Що*: Розбити на 5-8 дрібних методів за фазами побудови таблиці гліфів.
+  * *Статус*: Очікує виконання.
+* **B8. 22 property-проксі у `main.py` → інший патерн** `[ ]`:
+  * *Що*: Видалити проксі-методи або замінити на динамічний `__getattr__`.
+  * *Статус*: Очікує виконання.
+* **B9. `UIUpdater` — facade vs пряме звертання** `[ ]`:
+  * *Що*: Визначити доцільність фасаду та очистити private делегування.
+  * *Статус*: Очікує виконання.
+* **B10. Дедуплікація `plugins/*/config.py`** `[DONE]`:
+  * *Що*: Впровадити спільну фабрику конфігурацій `config_factory.py`.
+  * *Результат*: Виконано в `v0.3.000` (дедупліковано унікальні baseline problem config словники у 5 плагінах).
+* **B11. Стратегія `signal.disconnect()`** `[ ]`:
+  * *Що*: Додати disconnect для довгоіснуючих хендлерів для запобігання memory leak.
+  * *Статус*: Очікує виконання.
+* **B12. Видалення з git історії великих файлів** `[ ]`:
+  * *Що*: Запустити BFG/filter-repo для повного вилучення великих логів/БД з історії комітів.
+  * *Статус*: Очікує виконання (потрібне погодження користувача для force-push).
+* **B13. Decompose `MainWindow` як god-object** `[ ]`:
+  * *Що*: Перехід до Service Container pattern для послаблення tight coupling.
+  * *Статус*: Очікує виконання (фінальний етап рефакторингу).
+
+---
+
+## 5. Рекомендований сценарій виконання (Спринти)
+
+* **Спринт 1 (Гігієна та інфраструктура)** `[DONE]`:
+  * Завдання: A1, A2, A3, A4, A6, A7, A14, A15.
+* **Спринт 2 (Оптимізація та DRY)** `[DONE]`:
+  * Завдання: A5, A9, A10, A12, A13, A16, A17.
+* **Спринт 3 (Локальний DRY)** `[DONE]`:
+  * Завдання: A11.
+* **Спринт 4 (Покращення перформансу)** `[DONE]`:
+  * Завдання: B1 (частково), B4, B5.
+* **Спринт 5 (Дедуплікація плагінів)** `[DONE]`:
+  * Завдання: B10.
+* **Спринт 6 (Типізація та зчеплення, В процесі)**:
+  * Завдання: B2, B3, B8 (інвентаризація `self.mw`, типізація хендлерів та вилучення проксі).
+* **Спринт 7 (Ізоляція ядра та God-objects, В процесі)**:
+  * Завдання: B6 (core без PyQt/QMessageBox), B7 (glyph table split), B9 (UIUpdater).
+* **Спринт 8 (Витік сигналів та історія Git, Планується)**:
+  * Завдання: B11 (disconnect сигналів), B12 (очищення історії комітів).
+* **Спринт 9 (Архітектурний фінал, Планується)**:
+  * Завдання: B13 (Service Container).
+
+---
+
+## 6. Настанови для розробки та тестування
+
+### Підказки для автоматичних моделей (AI Agents)
+1. Змінювати лише файли, які безпосередньо стосуються поточного завдання.
+2. Після будь-якої модифікації коду обов'язково запускати тестування:
+   `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest tests/`
+3. Усі зміни повинні супроводжуватися відповідними юніт-тестами (якщо змінюється логіка).
+4. Заборонено видаляти старі фічі або реалізації без повної заміни аналогічним функціоналом.
+
+### Ручне тестування (Smoke-тести для перевірки цілісності)
+При рефакторингу критичних компонентів (DataStateProcessor, Preview, Search) виконати ручну перевірку:
+1. Запустити застосунок (`.\.venv\Scripts\python.exe main.py`).
+2. Створити/відкрити проект, переконатися в коректному відображенні дерева блоків.
+3. Здійснити редагування тексту, перевірити появу астерисків unsaved changes на дереві.
+4. Запустити Auto-fix на проблемному блоці, перевірити коректність виправлень та перенесення рядків.
+5. Виконати пошук (Search Panel), перевірити навігацію по результатах та виділення рядків.
+6. Зберегти зміни (Ctrl+S) та перевідкрити проект — перевірити збереження внесених даних.
