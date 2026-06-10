@@ -95,7 +95,7 @@ class AIChatDialog(QDialog):
 
         self.add_tab_button = QPushButton("+")
         self.add_tab_button.setToolTip("New Chat Session")
-        self.tabs.setCornerWidget(self.add_tab_button, Qt.TopLeftCorner)
+        self.tabs.setCornerWidget(self.add_tab_button, Qt.Corner.TopLeftCorner)
         
         self.tabs.tabCloseRequested.connect(self.remove_tab)
         

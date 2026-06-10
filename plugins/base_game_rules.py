@@ -121,11 +121,13 @@ class BaseGameRules:
         return set()
 
     def autofix_data_string(self,
-                            data_string: str,
-                            editor_font_map: dict,
-                            editor_line_width_threshold: int,
-                            logical_hard_limit: Optional[int] = None,
-                            allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+                             data_string: str,
+                             editor_font_map: dict,
+                             editor_line_width_threshold: int,
+                             logical_hard_limit: Optional[int] = None,
+                             allowed_problems: Optional[Set[str]] = None,
+                             block_idx: Optional[int] = None,
+                             string_idx: Optional[int] = None) -> Tuple[str, bool]:
         return data_string, False
 
     def process_pasted_segment(self,

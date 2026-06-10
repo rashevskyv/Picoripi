@@ -304,6 +304,10 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         autofix_settings = getattr(self.mw, 'autofix_enabled', {}); detection_settings = getattr(self.mw, 'detection_enabled', {})
         for problem_id, checkbox in self.autofix_checkboxes.items(): checkbox.setChecked(autofix_settings.get(problem_id, False))
         for problem_id, checkbox in self.detection_checkboxes.items(): checkbox.setChecked(detection_settings.get(problem_id, True))
+        
+        align_sentences = getattr(self.mw, 'align_sentences_to_original_pages', False)
+        if hasattr(self, 'align_sentences_checkbox'):
+            self.align_sentences_checkbox.setChecked(align_sentences)
 
         self.translation_presets = getattr(self.mw, 'translation_presets', {}).copy()
         current_preset = getattr(self.mw, 'current_translation_preset', 'default')
@@ -475,6 +479,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'show_width_guideline': self.show_width_guideline_checkbox.isChecked(),
             'lines_per_page': self.lines_per_page_spinbox.value(),
             'autofix_enabled': autofix_settings,
+            'align_sentences_to_original_pages': self.align_sentences_checkbox.isChecked() if hasattr(self, 'align_sentences_checkbox') else False,
             'translation_config': translation_config_to_save,
             'translation_presets': self.translation_presets,
             'current_translation_preset': self.translation_preset_combo.currentData(),

@@ -44,7 +44,7 @@ class SettingsManager:
         if hasattr(self.mw, key):
             cls = type(self.mw)
             attr = getattr(cls, key, None)
-            if not isinstance(attr, property):
+            if not (isinstance(attr, property) or hasattr(attr, '__set__')):
                 setattr(self.mw, key, value)
 
     def load_settings(self):

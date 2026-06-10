@@ -100,10 +100,10 @@ class GlobalSettings:
         """Loads global settings into the provided settings_dict and updates MainWindow."""
         for key, value in self.defaults.items():
             settings_dict[key] = value
-            # Compatibility: only set if not property
+            # Compatibility: only set if not property or descriptor
             cls = type(self.mw)
             attr = getattr(cls, key, None)
-            if not isinstance(attr, property):
+            if not (isinstance(attr, property) or hasattr(attr, '__set__')):
                 setattr(self.mw, key, value)
         
         self.mw.current_font_size = self.defaults['font_size']
@@ -118,21 +118,24 @@ class GlobalSettings:
 
             for key, default_value in self.defaults.items():
                 loaded_value = settings_data.get(key, default_value)
+                attr = getattr(type(self.mw), key, None)
+                is_prop_or_desc = isinstance(attr, property) or hasattr(attr, '__set__')
+
                 if key == "translation_config":
                     merged_value = merge_translation_config(default_value, loaded_value)
                     settings_dict[key] = merged_value
-                    if not isinstance(getattr(type(self.mw), key, None), property):
+                    if not is_prop_or_desc:
                         setattr(self.mw, key, merged_value)
                 elif isinstance(default_value, dict):
                     merged_value = default_value.copy()
                     if isinstance(loaded_value, dict):
                         merged_value.update(loaded_value)
                     settings_dict[key] = merged_value
-                    if not isinstance(getattr(type(self.mw), key, None), property):
+                    if not is_prop_or_desc:
                         setattr(self.mw, key, merged_value)
                 else:
                     settings_dict[key] = loaded_value
-                    if not isinstance(getattr(type(self.mw), key, None), property):
+                    if not is_prop_or_desc:
                         setattr(self.mw, key, loaded_value)
 
             # Specialized logic from original _load_global_settings

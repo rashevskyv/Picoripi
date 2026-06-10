@@ -208,7 +208,7 @@ class MenuBuilder:
         
         self.mw.auto_fix_action = QAction(QIcon.fromTheme("document-edit"), "Auto-&fix Current String", self.mw)
         self.mw.auto_fix_action.setShortcut(QKeySequence("Ctrl+Shift+A")) 
-        self.mw.auto_fix_action.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A)")
+        self.mw.auto_fix_action.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
         edit_menu.addAction(self.mw.auto_fix_action)
         edit_menu.addSeparator()
 

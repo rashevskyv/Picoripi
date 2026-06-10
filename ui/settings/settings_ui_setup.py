@@ -554,7 +554,20 @@ class SettingsDialogUiMixin:
         self._populate_checkbox_subtab(tab, self.detection_checkboxes, "Enable/disable problem detection:")
 
     def _setup_autofix_subtab(self, tab):
-        self._populate_checkbox_subtab(tab, self.autofix_checkboxes, "Enable/disable auto-fix for specific problems:")
+        layout = QVBoxLayout(tab)
+        
+        general_group = QGroupBox("General Auto-fix Settings", tab)
+        general_layout = QVBoxLayout(general_group)
+        self.align_sentences_checkbox = QCheckBox("Align sentences to original page layout", general_group)
+        self.align_sentences_checkbox.setToolTip("Align translation sentences structure and pages matching original layout.")
+        self.align_sentences_checkbox.stateChanged.connect(self.on_rules_changed)
+        general_layout.addWidget(self.align_sentences_checkbox)
+        layout.addWidget(general_group)
+        
+        sub_widget = QWidget(tab)
+        self._populate_checkbox_subtab(sub_widget, self.autofix_checkboxes, "Enable/disable auto-fix for specific problems:")
+        layout.addWidget(sub_widget)
+        layout.addStretch(1)
 
     def on_provider_changed(self, index):
         provider_key = self.translation_provider_combo.itemData(index)

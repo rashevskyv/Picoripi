@@ -1,4 +1,4 @@
-﻿# components/project_dialogs.py
+# components/project_dialogs.py
 """
 Dialog windows for project management:
 - NewProjectDialog: Create a new translation project
@@ -327,7 +327,7 @@ class NewProjectDialog(QDialog):
         Returns:
             dict: Project information or None if cancelled
         """
-        if self.result() == QDialog.Accepted:
+        if self.result() == QDialog.DialogCode.Accepted:
             return {
                 'name': self.project_name,
                 'directory': self.project_dir,
@@ -465,7 +465,7 @@ class OpenProjectDialog(QDialog):
         Returns:
             str: Project path or None if cancelled
         """
-        if self.result() == QDialog.Accepted:
+        if self.result() == QDialog.DialogCode.Accepted:
             return self.project_path
         return None
 
@@ -665,7 +665,7 @@ class ImportBlockDialog(QDialog):
         Returns:
             dict: Block information or None if cancelled
         """
-        if self.result() == QDialog.Accepted:
+        if self.result() == QDialog.DialogCode.Accepted:
             return {
                 'source_file': self.source_file,
                 'translation_file': self.translation_file,

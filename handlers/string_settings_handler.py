@@ -1,7 +1,7 @@
 # handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler
-from utils.utils import log_debug
+from utils.utils import log_debug, calculate_string_width
 
 class StringSettingsHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
@@ -256,4 +256,52 @@ class StringSettingsHandler(BaseHandler):
         if hasattr(self.mw, 'settings_manager'):
             self.mw.settings_manager.save_settings()
         
+        self._apply_and_rescan()
+
+    def apply_auto_width_from_original_to_lines(self, line_indices: List[int]) -> None:
+        block_idx: int = self.mw.data_store.current_block_idx
+        if block_idx == -1:
+            return
+
+        log_debug(f"Applying auto-width from original to lines {line_indices} in block {block_idx}")
+        
+        icon_sequences = getattr(self.mw, 'icon_sequences', [])
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None)
+
+        for line_idx in line_indices:
+            original_text = self.data_processor._get_string_from_source(
+                block_idx, line_idx, self.mw.data_store.data, "original_data"
+            )
+            if original_text is None:
+                continue
+
+            font_map = self.mw.helper.get_font_map_for_string(block_idx, line_idx)
+            
+            lines = str(original_text).split('\n')
+            max_w = 0
+            for line in lines:
+                w = calculate_string_width(line, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
+                if w > max_w:
+                    max_w = w
+
+            key: Tuple[int, int] = (block_idx, line_idx)
+            is_default_width = (max_w == 0 or max_w == self.mw.game_dialog_max_width_pixels)
+
+            if key not in self.mw.string_metadata:
+                if is_default_width:
+                    continue
+                self.mw.string_metadata[key] = {}
+
+            if is_default_width:
+                if "width" in self.mw.string_metadata[key]:
+                    del self.mw.string_metadata[key]["width"]
+            else:
+                self.mw.string_metadata[key]["width"] = max_w
+
+            if not self.mw.string_metadata[key]:
+                del self.mw.string_metadata[key]
+
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+
         self._apply_and_rescan()

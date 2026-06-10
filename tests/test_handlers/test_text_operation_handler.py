@@ -276,3 +276,34 @@ def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
     assert mock_mw.data_store.problems_per_subline[(0, 1, 0)] == {"PROB_FINISHED"}
     handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
     handler.ui_updater.update_text_views.assert_called()
+
+@patch('handlers.text_operation_handler.AutofixSelectionDialog')
+@patch('PyQt6.QtWidgets.QApplication.keyboardModifiers')
+@patch('handlers.text_operation_handler.convert_dots_to_spaces_from_editor', side_effect=lambda x: x)
+@patch('handlers.text_operation_handler.QTextCursor')
+def test_TextOperationHandler_auto_fix_current_string_with_ctrl_click(
+    mock_cursor, mock_conv, mock_modifiers, mock_dialog_cls, handler, mock_mw
+):
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QDialog
+    
+    mock_modifiers.return_value = Qt.KeyboardModifier.ControlModifier
+    
+    mock_dialog = MagicMock()
+    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
+    mock_dialog.get_selected_problems.return_value = {"some_problem"}
+    mock_dialog_cls.return_value = mock_dialog
+    
+    mock_mw.current_game_rules.get_problem_definitions.return_value = {"some_problem": {"name": "Some Problem"}}
+    mock_mw.edited_text_edit.toPlainText.side_effect = ["bad text", "fixed", "fixed", "fixed"]
+    
+    handler.auto_fix_current_string(from_button=True)
+    mock_dialog_cls.assert_called_once()
+    mock_dialog.exec.assert_called_once()
+    
+    mock_dialog_cls.reset_mock()
+    mock_dialog.exec.reset_mock()
+    
+    handler.auto_fix_current_string(from_button=False)
+    mock_dialog_cls.assert_not_called()
+    mock_dialog.exec.assert_not_called()

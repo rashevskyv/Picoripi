@@ -82,3 +82,18 @@ def test_StringSettingsHandler_delete_width_if_default(handler):
     with patch.object(handler, '_apply_and_rescan'):
         handler.apply_width_to_lines([0], 200) # 200 is threshold (default)
     assert "width" not in handler.mw.string_metadata.get((0,0), {})
+
+def test_StringSettingsHandler_apply_auto_width_from_original_to_lines(handler):
+    handler.mw.string_metadata = {}
+    handler.data_processor._get_string_from_source.return_value = "Line1\nLongerLine2"
+    handler.mw.helper.get_font_map_for_string.return_value = {}
+    handler.mw.icon_sequences = []
+    handler.mw.default_tag_mappings = {}
+    
+    with patch('handlers.string_settings_handler.calculate_string_width', side_effect=lambda text, *args, **kwargs: len(text) * 10), \
+         patch.object(handler, '_apply_and_rescan'):
+        handler.apply_auto_width_from_original_to_lines([0])
+        
+        # "Line1" length 5 * 10 = 50
+        # "LongerLine2" length 11 * 10 = 110
+        assert handler.mw.string_metadata[(0, 0)]["width"] == 110

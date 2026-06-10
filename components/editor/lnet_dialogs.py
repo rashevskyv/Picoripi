@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
 from pathlib import Path
 
 class MassFontDialog(QDialog):
@@ -52,6 +52,11 @@ class MassWidthDialog(QDialog):
         self.default_button.clicked.connect(self.set_default_width)
         controls_layout.addWidget(self.default_button)
         layout.addLayout(controls_layout)
+
+        self.auto_width_checkbox = QCheckBox("Auto-width from original", self)
+        self.auto_width_checkbox.setChecked(False)
+        self.auto_width_checkbox.toggled.connect(self.on_auto_width_toggled)
+        layout.addWidget(self.auto_width_checkbox)
         
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)
@@ -63,3 +68,10 @@ class MassWidthDialog(QDialog):
 
     def set_default_width(self):
         self.width_spinbox.setValue(self.default_width)
+
+    def on_auto_width_toggled(self, checked):
+        self.width_spinbox.setEnabled(not checked)
+        self.default_button.setEnabled(not checked)
+
+    def is_auto_width(self):
+        return self.auto_width_checkbox.isChecked()
