@@ -3,7 +3,7 @@ import math
 import re
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
-                             QColorDialog, QVBoxLayout, QPushButton, QFrame)
+                             QColorDialog, QVBoxLayout, QPushButton, QFrame, QDialog)
 from PyQt6.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
 from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
 
@@ -728,7 +728,7 @@ class BfnPreviewWidget(QWidget):
             },
             parent=self
         )
-        if dlg.exec() == TextEffectsDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             result = dlg.get_result()
             self.shadow_enabled = result["enabled"]
             self.shadow_color = result["color"]
@@ -752,7 +752,7 @@ class BfnPreviewWidget(QWidget):
             },
             parent=self
         )
-        if dlg.exec() == TextEffectsDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             result = dlg.get_result()
             self.glow_enabled = result["enabled"]
             self.glow_color = result["color"]

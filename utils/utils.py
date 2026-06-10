@@ -825,7 +825,32 @@ def get_line_words_and_visible_tags(line: str, mw: Optional[Any] = None) -> List
     
     unique_tags = sorted(list(set(tags)), key=len, reverse=True)
     for tag in unique_tags:
-        if is_visible_tag(tag, mappings, font_map, icon_sequences):
+        is_word = is_visible_tag(tag, mappings, font_map, icon_sequences)
+        if not is_word:
+            # Determine alias for matching
+            alias = tag
+            if mappings and tag not in mappings:
+                for a, orig in mappings.items():
+                    if orig == tag:
+                        alias = a
+                        break
+            
+            tag_lower = tag.lower()
+            alias_lower = alias.lower() if alias else ""
+            
+            # Check if tag is placeholder, variable, forced text, or button [...]
+            if ("player" in tag_lower or "player" in alias_lower or
+                "var:" in tag_lower or "var:" in alias_lower or
+                "variable" in tag_lower or "variable" in alias_lower or
+                "string:" in tag_lower or "string:" in alias_lower or
+                "number:" in tag_lower or "number:" in alias_lower):
+                is_word = True
+            elif (tag.startswith('[') and tag.endswith(']')) or (alias and alias.startswith('[') and alias.endswith(']')):
+                is_word = True
+            elif tag_lower.startswith('{f:') or tag_lower.startswith('[f:') or (alias_lower.startswith('{f:') or alias_lower.startswith('[f:')):
+                is_word = True
+                
+        if is_word:
             line_resolved = line_resolved.replace(tag, "visibleword")
         else:
             line_resolved = line_resolved.replace(tag, "")
@@ -833,3 +858,134 @@ def get_line_words_and_visible_tags(line: str, mw: Optional[Any] = None) -> List
     line_clean = ALL_TAGS_PATTERN.sub("", line_resolved)
     words = line_clean.split()
     return words
+
+
+def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page: int) -> Tuple[str, bool]:
+    if not isinstance(lines_per_page, int):
+        try:
+            lines_per_page = int(lines_per_page)
+        except Exception:
+            lines_per_page = 4
+
+    if not text or not original_text:
+        return text, False
+
+    # Helper function to segment text into sentences (list of lists of lines)
+    def segment_into_sentences(txt: str) -> List[List[str]]:
+        sublines = txt.split('\n')
+        if not any(sublines):
+            return []
+        sentences = []
+        current_sentence = []
+        for line in sublines:
+            if not line.strip():
+                if current_sentence:
+                    sentences.append(current_sentence)
+                    current_sentence = []
+                sentences.append([line])
+                continue
+            if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+                if current_sentence:
+                    sentences.append(current_sentence)
+                    current_sentence = []
+            current_sentence.append(line)
+            cleaned = remove_all_tags(line).strip()
+            is_end = False
+            if cleaned:
+                if re.search(r'\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+                    is_end = True
+                else:
+                    last_char = cleaned[-1]
+                    if last_char in ('.', '!', '?', '。', '！', '？'):
+                        is_end = True
+                    elif last_char in ('"', "'", '»', '`', ')') and len(cleaned) > 1:
+                        if cleaned[-2] in ('.', '!', '?', '。', '！', '？'):
+                            is_end = True
+            if is_end:
+                sentences.append(current_sentence)
+                current_sentence = []
+        if current_sentence:
+            sentences.append(current_sentence)
+        return sentences
+
+    orig_sentences = segment_into_sentences(original_text)
+    trans_sentences = segment_into_sentences(text)
+
+    if not orig_sentences or not trans_sentences or len(orig_sentences) != len(trans_sentences):
+        # Fallback to standard shift_split_sentences if lengths don't match
+        return shift_split_sentences(text, lines_per_page)
+
+    # Paginate original lines to assign page number to each original sentence
+    orig_sublines = original_text.split('\n')
+    orig_line_pages = []
+    curr_page = 0
+    curr_line_count = 0
+    for line in orig_sublines:
+        starts_with_page_break = False
+        if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+            starts_with_page_break = True
+        
+        if starts_with_page_break and curr_line_count > 0:
+            curr_page += 1
+            curr_line_count = 0
+            
+        orig_line_pages.append(curr_page)
+        curr_line_count += 1
+        
+        if curr_line_count == lines_per_page:
+            curr_page += 1
+            curr_line_count = 0
+
+    # Map each original sentence to its end page
+    orig_sentence_end_page = []
+    orig_line_idx = 0
+    for s_lines in orig_sentences:
+        s_len = len(s_lines)
+        end_line_idx = orig_line_idx + s_len - 1
+        end_page = orig_line_pages[end_line_idx] if end_line_idx < len(orig_line_pages) else curr_page
+        orig_sentence_end_page.append(end_page)
+        orig_line_idx += s_len
+
+    # Pack trans sentences to pages using original sentence page boundaries
+    pages = [[]]
+    for i in range(len(trans_sentences)):
+        s_lines = trans_sentences[i]
+        
+        should_start_new_page = False
+        if i > 0:
+            orig_prev_page = orig_sentence_end_page[i-1]
+            orig_curr_page = orig_sentence_end_page[i]
+            if orig_curr_page > orig_prev_page:
+                should_start_new_page = True
+                
+        if should_start_new_page:
+            current_len = len(pages[-1])
+            if current_len > 0 and (current_len % lines_per_page) != 0:
+                remaining_space = lines_per_page - (current_len % lines_per_page)
+                pages[-1].extend([""] * remaining_space)
+            pages.append(s_lines)
+        else:
+            s_len = len(s_lines)
+            current_len = len(pages[-1])
+            remaining_space = lines_per_page - (current_len % lines_per_page)
+            if remaining_space == 0:
+                remaining_space = lines_per_page
+                
+            if current_len > 0 and (current_len % lines_per_page) != 0:
+                if s_len <= remaining_space:
+                    pages[-1].extend(s_lines)
+                else:
+                    pages[-1].extend([""] * remaining_space)
+                    pages.append(s_lines)
+            else:
+                if current_len == 0:
+                    pages[-1].extend(s_lines)
+                else:
+                    pages.append(s_lines)
+
+    final_lines = []
+    for page in pages:
+        final_lines.extend(page)
+        
+    final_text = "\n".join(final_lines)
+    return final_text, final_text != text

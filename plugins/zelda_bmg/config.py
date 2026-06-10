@@ -15,6 +15,7 @@ PROBLEM_SINGLE_WORD_SUBLINE_NON_START = "ZBMG_SINGLE_WORD_SUBLINE_NON_START"
 PROBLEM_EMPTY_FIRST_LINE_OF_PAGE = "ZBMG_EMPTY_FIRST_LINE_OF_PAGE"
 PROBLEM_BAD_SPACING = "ZBMG_BAD_SPACING"
 PROBLEM_MISSING_ICON_SPACING = "ZBMG_MISSING_ICON_SPACING"
+PROBLEM_STAR_TAG_RULES = "ZBMG_STAR_TAG_RULES"
 
 PRIORITY_TAG_CRITICAL = 1 
 PRIORITY_TAG_WARNING = 2
@@ -24,6 +25,7 @@ PRIORITY_EMPTY_FIRST_LINE = 5
 PRIORITY_SINGLE_WORD_SUBLINE = 6 
 PRIORITY_SINGLE_WORD_SUBLINE_NON_START = 5
 PRIORITY_SHORT_LINE = 7
+PRIORITY_STAR_TAG_RULES = 8
 PRIORITY_DEFAULT = 99
 
 COLOR_CRITICAL_TAG = QColor(255, 192, 203, 100)
@@ -34,6 +36,7 @@ COLOR_SHORT_LINE = QColor(0, 200, 0, 100)
 COLOR_SINGLE_WORD_SUBLINE = QColor(0, 0, 255, 120) 
 COLOR_SINGLE_WORD_SUBLINE_NON_START = QColor(139, 69, 19, 120)
 COLOR_EMPTY_FIRST_LINE = QColor(255, 105, 180, 100)
+COLOR_STAR_TAG_RULES = QColor(147, 112, 219, 100)
 
 custom_problems = {
     "EMPTY_FIRST_LINE_OF_PAGE": {
@@ -41,6 +44,12 @@ custom_problems = {
         "color": COLOR_EMPTY_FIRST_LINE,
         "priority": PRIORITY_EMPTY_FIRST_LINE,
         "description": "The first line of a 4-line page is empty, but subsequent lines on the page are not."
+    },
+    "STAR_TAG_RULES": {
+        "name": "Star Tag Rules ({*} & {tab})",
+        "color": COLOR_STAR_TAG_RULES,
+        "priority": PRIORITY_STAR_TAG_RULES,
+        "description": "Enforce special {*} tag layout rules: no space after {*}, and {tab} at the start of sublines below {*}."
     }
 }
 

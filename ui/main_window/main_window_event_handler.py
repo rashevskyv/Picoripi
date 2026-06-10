@@ -147,9 +147,9 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'ai_variation_button') and self.mw.ai_variation_button:
             self.mw.ai_variation_button.clicked.connect(self.mw.translation_handler.generate_variation_for_current_string)
         if hasattr(self.mw, 'auto_fix_button') and self.mw.auto_fix_button:
-            self.mw.auto_fix_button.clicked.connect(self.mw.editor_operation_handler.auto_fix_current_string)
+            self.mw.auto_fix_button.clicked.connect(lambda checked=False: self.mw.editor_operation_handler.auto_fix_current_string(from_button=True))
         if hasattr(self.mw, 'auto_fix_action') and self.mw.auto_fix_action: 
-            self.mw.auto_fix_action.triggered.connect(self.mw.editor_operation_handler.auto_fix_current_string)
+            self.mw.auto_fix_action.triggered.connect(lambda checked=False: self.mw.editor_operation_handler.auto_fix_current_string(from_button=False))
             
         if hasattr(self.mw, 'navigate_up_button'):
             self.mw.navigate_up_button.clicked.connect(lambda: self.mw.list_selection_handler.navigate_to_problem_string(direction_down=False))

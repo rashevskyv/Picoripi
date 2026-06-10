@@ -1,9 +1,9 @@
 import re
-from typing import Optional, Set, Dict, Any, Tuple
+from typing import Optional, Set, Dict, Any, Tuple, List
 from plugins.common.text_fixer import GenericTextFixer
 from .tag_logic import ANY_TAG_PATTERN_BMG
 from utils.utils import remove_all_tags
-from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_STAR_TAG_RULES
 
 WORD_CHAR_PATTERN_ZBMG = re.compile(r"^[a-zA-Zа-яА-ЯіїєґІЇЄҐ]$")
 CLOSING_COLOR_TAG_BMG = "{COLOR_DEFAULT}"
@@ -174,90 +174,233 @@ class TextFixer(GenericTextFixer):
         new_text = '\n'.join(new_lines)
         return new_text, new_text != text
 
+    def _to_aliases(self, text: str) -> str:
+        """Convert escape codes to user-facing {*} and {tab} aliases."""
+        text = re.sub(r'\{escape:6:000a\}', '{*}', text, flags=re.IGNORECASE)
+        text = re.sub(r'\{escape:6:000b\}', '{tab}', text, flags=re.IGNORECASE)
+        return text
+
+    def _from_aliases(self, text: str) -> str:
+        """Convert {*} and {tab} aliases back to escape codes."""
+        text = text.replace('{*}', '{escape:6:000a}')
+        text = text.replace('{tab}', '{escape:6:000b}')
+        return text
+
+    def _split_into_star_sections(self, lines: List[str]) -> List[Tuple[bool, List[str]]]:
+        """Split lines into sections: (is_star_section, [lines]).
+        A star section starts at a line beginning with {*} and ends before the next {*} line.
+        Lines before the first {*} form a plain section.
+        """
+        sections: List[Tuple[bool, List[str]]] = []
+        current_lines: List[str] = []
+        current_is_star = False
+        started = False
+        for line in lines:
+            stripped = line.lstrip()
+            is_star_start = stripped.startswith('{*}')
+            if is_star_start:
+                if current_lines or started:
+                    sections.append((current_is_star, current_lines))
+                current_lines = [line]
+                current_is_star = True
+                started = True
+            else:
+                if not started:
+                    current_is_star = False
+                    started = True
+                current_lines.append(line)
+        if current_lines or started:
+            sections.append((current_is_star, current_lines))
+        return sections
+
+    def _fix_star_section(self, section_lines: List[str], editor_font_map: dict, threshold: int) -> List[str]:
+        """Merge all lines of a star section into clean text and re-split by width.
+        First result line gets {*} prefix, subsequent lines get {tab} prefix.
+        No space is inserted after {*} or {tab}.
+        """
+        # Strip {*} from first line, {tab} from subsequent lines, clean extra spaces
+        clean_parts: List[str] = []
+        for i, line in enumerate(section_lines):
+            stripped = line.strip()
+            if i == 0:
+                # Remove leading {*} and any space after it
+                stripped = re.sub(r'^\{\\*\}\s*', '', stripped)
+                stripped = re.sub(r'^\{\*\}\s*', '', stripped)
+            else:
+                # Remove all leading {tab} prefixes (including double {tab}{tab}) and any space after them
+                stripped = re.sub(r'^(\{tab\}\s*)+', '', stripped)
+            # Also remove any stray {*} or {tab} tags remaining inside the content
+            stripped = re.sub(r'\{\*\}', '', stripped)
+            stripped = re.sub(r'\{tab\}', '', stripped)
+
+            if stripped:
+                clean_parts.append(stripped)
+
+        # Join with spaces to form one long line
+        merged = ' '.join(clean_parts)
+
+        # Re-split by width (no lines_per_page limit)
+        output_lines: List[str] = []
+        remaining = merged
+        while remaining:
+            if self._calculate_width(remaining, editor_font_map) <= threshold:
+                output_lines.append(remaining)
+                break
+            parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', remaining)
+            best_split = -1
+            for j in range(len(parts) - 1, 0, -1):
+                candidate = ''.join(parts[:j]).rstrip()
+                if self._calculate_width(candidate, editor_font_map) <= threshold:
+                    best_split = j
+                    break
+            if best_split == -1:
+                best_split = 1 if len(parts) > 1 else len(parts)
+            line1 = ''.join(parts[:best_split]).rstrip()
+            line2 = ''.join(parts[best_split:]).lstrip()
+            output_lines.append(line1)
+            remaining = line2
+
+        # Add prefixes: {*} for first, {tab} for rest
+        result: List[str] = []
+        for i, line in enumerate(output_lines):
+            if i == 0:
+                result.append('{*}' + line)
+            else:
+                result.append('{tab}' + line)
+        return result
+
     def autofix_data_string(self,
                              data_string: str,
                              editor_font_map: dict,
                              editor_line_width_threshold: int,
                              logical_hard_limit: Optional[int] = None,
-                             allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+                             allowed_problems: Optional[Set[str]] = None,
+                             block_idx: Optional[int] = None,
+                             string_idx: Optional[int] = None) -> Tuple[str, bool]:
         if logical_hard_limit is None:
             logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
-        
+
         from .config import DEFAULT_AUTOFIX_SETTINGS
         autofix_config = getattr(self.mw, 'autofix_enabled', {}) if self.mw else DEFAULT_AUTOFIX_SETTINGS
         if not autofix_config:
             autofix_config = DEFAULT_AUTOFIX_SETTINGS
+
         def is_allowed(prob_id):
             if allowed_problems is not None:
                 return prob_id in allowed_problems
             return autofix_config.get(prob_id, False)
 
-        if is_allowed(PROBLEM_EMPTY_FIRST_LINE_OF_PAGE):
-            text_after_page_fix, _ = self.fix_empty_first_line_of_page(original_text)
-        else:
-            text_after_page_fix = original_text
+        # Convert escape codes to aliases for processing
+        working_text = self._to_aliases(original_text)
+        has_star = '{*}' in working_text
 
-        if is_allowed(PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY):
-            modified_text, _ = self._fix_empty_odd_sublines_zbmg(text_after_page_fix)
-        else:
-            modified_text = text_after_page_fix
+        if has_star and is_allowed(PROBLEM_STAR_TAG_RULES):
+            # --- Star-section mode ---
+            # Fix bad spacing and missing icon spacing first if enabled
+            if is_allowed(PROBLEM_BAD_SPACING):
+                working_text, _ = self._cleanup_spaces_around_tags_zbmg(working_text)
+                from utils.utils import clean_spaces
+                working_text = clean_spaces(working_text)
 
-        max_iterations = 10
-        for _ in range(max_iterations):
-            text_before_pass = modified_text
-            changed_merge = False
-            changed_split = False
-            
-            if is_allowed(PROBLEM_SHORT_LINE):
-                merged_text, changed_merge = self._fix_short_lines_zbmg(modified_text, editor_font_map, editor_line_width_threshold, logical_hard_limit)
-            else:
-                merged_text = modified_text
-                
-            if is_allowed(PROBLEM_WIDTH_EXCEEDED):
-                splitted_text, changed_split = self._fix_width_exceeded_generic(merged_text, editor_font_map, logical_hard_limit)
-            else:
-                splitted_text = merged_text
-                
-            modified_text = splitted_text
-            if not changed_merge and not changed_split:
-                break
-                
-        has_single_word_allowed = False
-        if allowed_problems is not None:
-            for p in allowed_problems:
-                if "SINGLE_WORD" in p:
-                    has_single_word_allowed = True
+            if is_allowed(PROBLEM_MISSING_ICON_SPACING):
+                from utils.utils import fix_missing_icon_spacing, is_visible_tag
+                default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+                icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
+                def check_visible_star(t):
+                    return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
+                working_text = fix_missing_icon_spacing(working_text, check_visible_star)
+
+            lines = working_text.split('\n')
+            sections = self._split_into_star_sections(lines)
+            result_lines: List[str] = []
+            for is_star_section, sec_lines in sections:
+                if is_star_section:
+                    fixed = self._fix_star_section(sec_lines, editor_font_map, logical_hard_limit)
+                    result_lines.extend(fixed)
+                else:
+                    # Plain section: apply standard short/width fixes if enabled
+                    plain_text = '\n'.join(sec_lines)
+                    for _ in range(10):
+                        changed_m = changed_s = False
+                        if is_allowed(PROBLEM_SHORT_LINE):
+                            plain_text, changed_m = self._fix_short_lines_zbmg(
+                                plain_text, editor_font_map, editor_line_width_threshold, logical_hard_limit
+                            )
+                        if is_allowed(PROBLEM_WIDTH_EXCEEDED):
+                            plain_text, changed_s = self._fix_width_exceeded_generic(
+                                plain_text, editor_font_map, logical_hard_limit
+                            )
+                        if not changed_m and not changed_s:
+                            break
+                    result_lines.extend(plain_text.split('\n'))
+
+            final_text = '\n'.join(result_lines)
+            # Convert aliases back to escape codes
+            final_text = self._from_aliases(final_text)
+            return final_text, final_text != original_text
+
+        else:
+            # --- Standard mode (no {*} tags) ---
+            modified_text = working_text
+
+            if is_allowed(PROBLEM_EMPTY_FIRST_LINE_OF_PAGE):
+                modified_text, _ = self.fix_empty_first_line_of_page(modified_text)
+
+            if is_allowed(PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY):
+                modified_text, _ = self._fix_empty_odd_sublines_zbmg(modified_text)
+
+            for _ in range(10):
+                changed_merge = changed_split = False
+                if is_allowed(PROBLEM_SHORT_LINE):
+                    modified_text, changed_merge = self._fix_short_lines_zbmg(
+                        modified_text, editor_font_map, editor_line_width_threshold, logical_hard_limit
+                    )
+                if is_allowed(PROBLEM_WIDTH_EXCEEDED):
+                    modified_text, changed_split = self._fix_width_exceeded_generic(
+                        modified_text, editor_font_map, logical_hard_limit
+                    )
+                if not changed_merge and not changed_split:
                     break
-        else:
-            has_single_word_allowed = autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or \
-                                      autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
 
-        if has_single_word_allowed:
-            modified_text, _ = self._fix_single_word_orphans_generic(modified_text)
+            has_single_word_allowed = False
+            if allowed_problems is not None:
+                has_single_word_allowed = any('SINGLE_WORD' in p for p in allowed_problems)
+            else:
+                has_single_word_allowed = (
+                    autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or
+                    autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
+                )
+            if has_single_word_allowed:
+                modified_text, _ = self._fix_single_word_orphans_generic(modified_text)
 
-        if is_allowed(PROBLEM_BAD_SPACING):
-            cleaned_text, _ = self._cleanup_spaces_around_tags_zbmg(modified_text)
-            from utils.utils import clean_spaces
-            final_text = clean_spaces(cleaned_text)
-        else:
-            final_text = modified_text
+            if is_allowed(PROBLEM_BAD_SPACING):
+                modified_text, _ = self._cleanup_spaces_around_tags_zbmg(modified_text)
+                from utils.utils import clean_spaces
+                modified_text = clean_spaces(modified_text)
 
-        changed_missing_spacing = False
-        if is_allowed(PROBLEM_MISSING_ICON_SPACING):
-            from utils.utils import fix_missing_icon_spacing, is_visible_tag
-            default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
-            icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
-            
-            def check_visible(t):
-                return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
-                
-            fixed_spacing_text = fix_missing_icon_spacing(final_text, check_visible)
-            if fixed_spacing_text != final_text:
-                final_text = fixed_spacing_text
-                changed_missing_spacing = True
+            changed_missing_spacing = False
+            if is_allowed(PROBLEM_MISSING_ICON_SPACING):
+                from utils.utils import fix_missing_icon_spacing, is_visible_tag
+                default_tag_mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
+                icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
+                def check_visible(t):
+                    return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
+                fixed_spacing_text = fix_missing_icon_spacing(modified_text, check_visible)
+                if fixed_spacing_text != modified_text:
+                    modified_text = fixed_spacing_text
+                    changed_missing_spacing = True
 
-        lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page)
+            original_message_text = None
+            if self.mw and block_idx is not None and string_idx is not None:
+                if (self.mw.data_store.data and
+                        0 <= block_idx < len(self.mw.data_store.data) and
+                        0 <= string_idx < len(self.mw.data_store.data[block_idx])):
+                    original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
 
-        return final_text, (final_text != original_text or changed_missing_spacing or changed_shift)
+            lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
+            final_text, changed_shift = self._shift_split_sentences(modified_text, lines_per_page, original_message_text)
+
+            # Convert aliases back (in case any were present in the original but no {*} triggered star mode)
+            final_text = self._from_aliases(final_text)
+            return final_text, (final_text != original_text or changed_missing_spacing or changed_shift)

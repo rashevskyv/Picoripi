@@ -182,7 +182,11 @@ class GenericTextFixer:
             
         return text, False
 
-    def _shift_split_sentences(self, text: str, lines_per_page: int) -> Tuple[str, bool]:
+    def _shift_split_sentences(self, text: str, lines_per_page: int, original_text: Optional[str] = None) -> Tuple[str, bool]:
+        align_enabled = getattr(self.mw, 'align_sentences_to_original_pages', False) if self.mw else False
+        if align_enabled and original_text:
+            from utils.utils import shift_split_sentences_aligned
+            return shift_split_sentences_aligned(text, original_text, lines_per_page)
         from utils.utils import shift_split_sentences
         return shift_split_sentences(text, lines_per_page)
 

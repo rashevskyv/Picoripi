@@ -24,6 +24,7 @@ def test_handle_mass_set_width_with_displayed_string_indices(app, mock_mw):
     with patch('components.editor.line_numbered_text_edit.MassWidthDialog') as MockDialog:
         mock_dialog = MockDialog.return_value
         mock_dialog.exec.return_value = True
+        mock_dialog.is_auto_width.return_value = False
         mock_dialog.get_width.return_value = 180
         
         # Act
@@ -32,6 +33,22 @@ def test_handle_mass_set_width_with_displayed_string_indices(app, mock_mw):
         # Assert
         # The visual line indices [0, 1] should have been mapped to real indices [10, 20]
         mock_mw.string_settings_handler.apply_width_to_lines.assert_called_once_with([10, 20], 180)
+
+def test_handle_mass_set_width_with_auto_width(app, mock_mw):
+    editor = LineNumberedTextEdit(None)
+    editor.window = MagicMock(return_value=mock_mw)
+    editor.get_selected_lines = MagicMock(return_value=[0, 1])
+    
+    with patch('components.editor.line_numbered_text_edit.MassWidthDialog') as MockDialog:
+        mock_dialog = MockDialog.return_value
+        mock_dialog.exec.return_value = True
+        mock_dialog.is_auto_width.return_value = True
+        
+        # Act
+        editor.handle_mass_set_width()
+        
+        # Assert
+        mock_mw.string_settings_handler.apply_auto_width_from_original_to_lines.assert_called_once_with([10, 20])
 
 def test_handle_mass_set_font_with_displayed_string_indices(app, mock_mw):
     editor = LineNumberedTextEdit(None)

@@ -40,6 +40,8 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         )
 
     def _check_short_line_zbmg(self, current_subline_text: str, next_subline_text: str, font_map: dict, threshold: int) -> bool:
+        if next_subline_text.lstrip().startswith("{*}") or next_subline_text.lstrip().startswith("{tab}"):
+            return False
         current_subline_no_tags_stripped = remove_all_tags(current_subline_text).strip()
         if not current_subline_no_tags_stripped or self._ends_with_sentence_punctuation_zbmg(current_subline_no_tags_stripped):
             return False
@@ -59,6 +61,9 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return (threshold - width_current_rstripped) >= (width_first_word_next + space_width)
 
     def check_for_empty_first_line_of_page(self, text: str) -> List[int]:
+        text_alias = re.sub(r'\{escape:6:000a\}', '{*}', text, flags=re.IGNORECASE)
+        if "{*}" in text_alias:
+            return []
         lines = text.split('\n')
         problem_lines = []
         lines_per_page = 4
@@ -77,9 +82,13 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return problem_lines
 
     def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
-        sublines = data_string.split('\n')
+        # Convert tags to aliases for rules check
+        data_string_alias = re.sub(r'\{escape:6:000a\}', '{*}', data_string, flags=re.IGNORECASE)
+        data_string_alias = re.sub(r'\{escape:6:000b\}', '{tab}', data_string_alias, flags=re.IGNORECASE)
+        
+        sublines = data_string_alias.split('\n')
         problems_per_subline = [set() for _ in sublines]
-        empty_first_lines = self.check_for_empty_first_line_of_page(data_string)
+        empty_first_lines = self.check_for_empty_first_line_of_page(data_string_alias)
         for line_idx in empty_first_lines:
             if line_idx < len(problems_per_subline):
                 problems_per_subline[line_idx].add(self.problem_ids.PROBLEM_EMPTY_FIRST_LINE_OF_PAGE)
@@ -87,25 +96,54 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
         if not isinstance(limit, (int, float)):
             limit = threshold
+            
+        has_star_tag = "{*}" in data_string_alias
+        
+        # Check {*} and {tab} formatting rules
+        in_tab_section = False
         for i, subline in enumerate(sublines):
-            pixel_width_subline = self._calculate_width(subline.rstrip(), font_map)
+            stripped_subline = subline.strip()
+            if stripped_subline.startswith("{*}"):
+                in_tab_section = True
+                if re.search(r'^\{\*\}\s', subline.lstrip()) or "{tab}" in subline:
+                    problems_per_subline[i].add(self.problem_ids.PROBLEM_STAR_TAG_RULES)
+            elif in_tab_section:
+                starts_with_tab = subline.startswith("{tab}")
+                has_space_after_tab = subline.startswith("{tab} ")
+                has_other_tabs = "{tab}" in subline[5:] if starts_with_tab else "{tab}" in subline
+                if not starts_with_tab or has_space_after_tab or has_other_tabs:
+                    problems_per_subline[i].add(self.problem_ids.PROBLEM_STAR_TAG_RULES)
+            else:
+                if "{tab}" in subline:
+                    problems_per_subline[i].add(self.problem_ids.PROBLEM_STAR_TAG_RULES)
+
+        for i, subline in enumerate(sublines):
+            # Calculate width with original string tags to preserve exact escape tag lengths
+            orig_subline = re.sub(r'\{\*\}', '{escape:6:000a}', subline)
+            orig_subline = re.sub(r'\{tab\}', '{escape:6:000b}', orig_subline)
+            pixel_width_subline = self._calculate_width(orig_subline.rstrip(), font_map)
             if pixel_width_subline > limit:
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
             if self._check_bad_spacing(subline):
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_BAD_SPACING)
             if self._check_missing_icon_spacing(subline):
                 problems_per_subline[i].add(self.problem_ids.PROBLEM_MISSING_ICON_SPACING)
-            lines_per_page = 4
-            if self.mw and hasattr(self.mw, 'lines_per_page'):
-                lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+            
+            if has_star_tag:
+                lines_per_page = len(sublines) + 1
+            else:
+                lines_per_page = 4
+                if self.mw and hasattr(self.mw, 'lines_per_page'):
+                    lines_per_page = getattr(self.mw, 'lines_per_page', 4)
 
             next_subline = sublines[i + 1] if i + 1 < len(sublines) else None
             if next_subline is not None:
-                if (i + 1) % lines_per_page != 0:
-                    if self._check_short_line_zbmg(subline, next_subline, font_map, threshold):
-                        problems_per_subline[i].add(self.problem_ids.PROBLEM_SHORT_LINE)
+                if not next_subline.lstrip().startswith("{*}") and not next_subline.lstrip().startswith("{tab}"):
+                    if (i + 1) % lines_per_page != 0:
+                        if self._check_short_line_zbmg(subline, next_subline, font_map, threshold):
+                            problems_per_subline[i].add(self.problem_ids.PROBLEM_SHORT_LINE)
             
-            if len(sublines) > 1:
+            if not has_star_tag and len(sublines) > 1:
                 if self._check_single_word_subline_generic(subline):
                     if not self._is_single_word_ok_generic(subline):
                         if i % lines_per_page == 0:

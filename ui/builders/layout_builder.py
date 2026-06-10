@@ -335,7 +335,7 @@ class LayoutBuilder:
         editable_text_header_layout.addWidget(self.mw.ai_variation_button)
 
         self.mw.auto_fix_button = QPushButton('Auto-fix')
-        self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A)")
+        self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
         editable_text_header_layout.addWidget(self.mw.auto_fix_button)
         
         right_header_layout.addLayout(editable_text_header_layout)
@@ -365,9 +365,32 @@ class LayoutBuilder:
         def show_width_context_menu(pos):
             menu = QMenu()
             reset_action = menu.addAction("Reset to Plugin Default")
+            set_from_original_action = menu.addAction("Set Width from Original")
             action = menu.exec(self.mw.width_spinbox.mapToGlobal(pos))
             if action == reset_action:
                 self.mw.width_spinbox.setValue(getattr(self.mw, 'game_dialog_max_width_pixels', 300))
+            elif action == set_from_original_action:
+                block_idx = self.mw.data_store.current_block_idx
+                string_idx = self.mw.data_store.current_string_idx
+                if block_idx != -1 and string_idx != -1:
+                    original_text = self.mw.data_processor._get_string_from_source(
+                        block_idx, string_idx, self.mw.data_store.data, "original_data"
+                    )
+                    if original_text is not None:
+                        font_map = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+                        icon_sequences = getattr(self.mw, 'icon_sequences', [])
+                        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None)
+                        
+                        from utils.utils import calculate_string_width
+                        lines = str(original_text).split('\n')
+                        max_w = 0
+                        for line in lines:
+                            w = calculate_string_width(line, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
+                            if w > max_w:
+                                max_w = w
+                        
+                        if max_w > 0:
+                            self.mw.width_spinbox.setValue(max_w)
 
         self.mw.width_spinbox.customContextMenuRequested.connect(show_width_context_menu)
         string_settings_layout.addWidget(self.mw.width_spinbox)

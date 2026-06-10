@@ -5,6 +5,111 @@ from tools.bfn_editor.bfn_commands import EditMetricsCommand, EditMapCommand, Ba
 from utils.logging_utils import log_info, log_error
 
 class BfnNavigationMixin:
+    def _resolve_char_from_maps(self, idx: int, maps: list) -> str:
+        for m in maps:
+            m_type = m.get("mapping_type", 0)
+            m_first = m.get("first_char", 0)
+            m_last = m.get("last_char", 0)
+            
+            if m_type == 0:
+                if m_first <= idx <= m_last:
+                    try:
+                        return bytes([idx]).decode('cp1252')
+                    except Exception:
+                        try:
+                            return chr(idx)
+                        except Exception:
+                            pass
+            elif m_type == 2:
+                entries = m.get("entries", [])
+                for c_idx, g_idx in enumerate(entries):
+                    if g_idx == idx:
+                        code = m_first + c_idx
+                        try:
+                            return bytes([code]).decode('cp1252')
+                        except Exception:
+                            try:
+                                return chr(code)
+                            except Exception:
+                                pass
+                        break
+            elif m_type == 3:
+                entries = m.get("entries", [])
+                half = len(entries) // 2
+                for k in range(half):
+                    if entries[half + k] == idx:
+                        code = entries[k]
+                        try:
+                            return bytes([code]).decode('cp1252')
+                        except Exception:
+                            try:
+                                return chr(code)
+                            except Exception:
+                                pass
+                        break
+        return ""
+
+    def _get_glyph_translation_mapping(self, idx: int, char_val: str) -> tuple[str, str]:
+        font_char_val = char_val
+        if char_val and hasattr(self, 'reverse_translation_map') and self.reverse_translation_map:
+            virtual_char = self.reverse_translation_map.get(char_val)
+            if virtual_char:
+                char_val = virtual_char
+        elif not char_val and hasattr(self, 'translation_map') and self.translation_map:
+            # Glyph has no MAP1 entry: check for a synthetic mapping "#g{idx}"
+            synthetic_key = f"#g{idx}"
+            virtual_char = self.translation_map.get(synthetic_key, "")
+            if virtual_char:
+                char_val = virtual_char
+        return char_val, font_char_val
+
+    def _calculate_glyph_position(self, idx: int) -> tuple[int, int, int]:
+        rem = idx - self.start_glyph
+        sheet_idx = rem // (self.rows * self.cols)
+        cell_idx = rem % (self.rows * self.cols)
+        gx = cell_idx % self.rows
+        gy = cell_idx // self.rows
+        return sheet_idx, gx, gy
+
+    def _get_glyph_metrics(self, idx: int, packets: list) -> tuple[int, int]:
+        wid_idx = idx - self.first_code
+        kerning = 0
+        width = self.cell_w
+        if 0 <= wid_idx < len(packets):
+            kerning = packets[wid_idx]["kerning"]
+            width = packets[wid_idx]["width"]
+        return kerning, width
+
+    def _create_glyph_image_label(self, sheet_images: list, sheet_idx: int, gx: int, gy: int) -> QtWidgets.QLabel:
+        lbl = QtWidgets.QLabel()
+        bg_color = "#000000"
+        lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
+        lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        
+        if sheet_images and 0 <= sheet_idx < len(sheet_images):
+            sheet_img = sheet_images[sheet_idx]
+            cell_x = gx * self.cell_w
+            cell_y = gy * self.cell_h
+            
+            glyph_crop = sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
+            pixmap = QtGui.QPixmap.fromImage(glyph_crop)
+            lbl.setPixmap(pixmap.scaled(
+                28, 28,
+                QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                QtCore.Qt.TransformationMode.SmoothTransformation
+            ))
+        return lbl
+
+    def _style_font_char_item(self, item: QtWidgets.QTableWidgetItem) -> None:
+        item.setFlags(item.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
+        if getattr(self, "is_dark_theme", True):
+            item.setForeground(QtGui.QBrush(QtGui.QColor("#88888b")))
+            item.setBackground(QtGui.QBrush(QtGui.QColor("#1a1a20")))
+        else:
+            item.setForeground(QtGui.QBrush(QtGui.QColor("#7e8a9b")))
+            item.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
+        item.setToolTip("Font Character (read-only, stored in font metadata)")
+
     def populate_glyph_table(self):
         if not self.sheet_images:
             return
@@ -18,167 +123,49 @@ class BfnNavigationMixin:
         
         glyph_to_char = {}
         for idx in range(self.start_glyph, self.end_glyph + 1):
-            char_val = ""
-            uni_val = ""
-            for m in maps:
-                m_type = m.get("mapping_type", 0)
-                m_first = m.get("first_char", 0)
-                m_last = m.get("last_char", 0)
-                
-                if m_type == 0:
-                    if m_first <= idx <= m_last:
-                        try:
-                            char_val = bytes([idx]).decode('cp1252')
-                            uni_val = f"U+{idx:04X}"
-                        except Exception:
-                            try:
-                                char_val = chr(idx)
-                                uni_val = f"U+{idx:04X}"
-                            except Exception:
-                                pass
-                elif m_type == 2:
-                    entries = m.get("entries", [])
-                    for c_idx, g_idx in enumerate(entries):
-                        if g_idx == idx:
-                            code = m_first + c_idx
-                            try:
-                                char_val = bytes([code]).decode('cp1252')
-                                uni_val = f"U+{code:04X}"
-                            except Exception:
-                                try:
-                                    char_val = chr(code)
-                                    uni_val = f"U+{code:04X}"
-                                except Exception:
-                                    pass
-                            break
-                elif m_type == 3:
-                    entries = m.get("entries", [])
-                    half = len(entries) // 2
-                    for k in range(half):
-                        if entries[half + k] == idx:
-                            code = entries[k]
-                            try:
-                                char_val = bytes([code]).decode('cp1252')
-                                uni_val = f"U+{code:04X}"
-                            except Exception:
-                                try:
-                                    char_val = chr(code)
-                                    uni_val = f"U+{code:04X}"
-                                except Exception:
-                                    pass
-                            break
-            
-            font_char_val = char_val
-            if char_val and hasattr(self, 'reverse_translation_map') and self.reverse_translation_map:
-                virtual_char = self.reverse_translation_map.get(char_val)
-                if virtual_char:
-                    char_val = virtual_char
-            elif not char_val and hasattr(self, 'translation_map') and self.translation_map:
-                # Glyph has no MAP1 entry: check for a synthetic mapping "#g{idx}"
-                synthetic_key = f"#g{idx}"
-                virtual_char = self.translation_map.get(synthetic_key, "")
-                if virtual_char:
-                    char_val = virtual_char
-
+            raw_char = self._resolve_char_from_maps(idx, maps)
+            char_val, font_char_val = self._get_glyph_translation_mapping(idx, raw_char)
             glyph_to_char[idx] = (char_val, font_char_val)
             
         orig_glyph_to_char = {}
         if self.original_font_metadata:
             orig_maps = self.original_font_metadata.get("MAP1", [])
             for idx in range(self.start_glyph, self.end_glyph + 1):
-                orig_char_val = ""
-                orig_uni_val = ""
-                for m in orig_maps:
-                    m_type = m.get("mapping_type", 0)
-                    m_first = m.get("first_char", 0)
-                    m_last = m.get("last_char", 0)
-                    
-                    if m_type == 0:
-                        if m_first <= idx <= m_last:
-                            try:
-                                orig_char_val = bytes([idx]).decode('cp1252')
-                                orig_uni_val = f"U+{idx:04X}"
-                            except Exception:
-                                try:
-                                    orig_char_val = chr(idx)
-                                    orig_uni_val = f"U+{idx:04X}"
-                                except Exception:
-                                    pass
-                    elif m_type == 2:
-                        entries = m.get("entries", [])
-                        for c_idx, g_idx in enumerate(entries):
-                            if g_idx == idx:
-                                code = m_first + c_idx
-                                try:
-                                    orig_char_val = bytes([code]).decode('cp1252')
-                                    orig_uni_val = f"U+{code:04X}"
-                                except Exception:
-                                    try:
-                                        orig_char_val = chr(code)
-                                        orig_uni_val = f"U+{code:04X}"
-                                    except Exception:
-                                        pass
-                                break
-                    elif m_type == 3:
-                        entries = m.get("entries", [])
-                        half = len(entries) // 2
-                        for k in range(half):
-                            if entries[half + k] == idx:
-                                code = entries[k]
-                                try:
-                                    orig_char_val = bytes([code]).decode('cp1252')
-                                    orig_uni_val = f"U+{code:04X}"
-                                except Exception:
-                                    try:
-                                        orig_char_val = chr(code)
-                                        orig_uni_val = f"U+{code:04X}"
-                                    except Exception:
-                                        pass
-                                break
-                orig_glyph_to_char[idx] = (orig_char_val, orig_uni_val)
+                orig_char = self._resolve_char_from_maps(idx, orig_maps)
+                orig_glyph_to_char[idx] = orig_char
             
         search_query = self.table_search.text().lower()
         
         rows_data = []
         for idx in range(self.start_glyph, self.end_glyph + 1):
             char_val, font_char_val = glyph_to_char.get(idx, ("", ""))
-            orig_char_val, _ = orig_glyph_to_char.get(idx, ("", ""))
+            orig_char_data = orig_glyph_to_char.get(idx, "")
             
-            rem = idx - self.start_glyph
-            sheet_idx = rem // (self.rows * self.cols)
-            cell_idx = rem % (self.rows * self.cols)
-            gx = cell_idx % self.rows
-            gy = cell_idx // self.rows
-            
-            kerning = 0
-            width = self.cell_w
-            wid_idx = idx - self.first_code
-            if 0 <= wid_idx < len(packets):
-                kerning = packets[wid_idx]["kerning"]
-                width = packets[wid_idx]["width"]
+            sheet_idx, gx, gy = self._calculate_glyph_position(idx)
+            kerning, width = self._get_glyph_metrics(idx, packets)
                 
             if search_query:
                 match = (
                     search_query in str(idx) or
                     search_query in char_val.lower() or
-                    search_query in orig_char_val.lower() or
+                    search_query in orig_char_data.lower() or
                     search_query in font_char_val.lower() or
                     search_query in f"sheet_{sheet_idx}".lower()
                 )
                 if not match:
                     continue
                     
-            rows_data.append((idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_val))
+            rows_data.append((idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data))
             
         self.table_glyphs.setRowCount(len(rows_data))
         self.table_glyphs.verticalHeader().setDefaultSectionSize(36)
         
         for r_idx, data in enumerate(rows_data):
-            idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_val = data
+            idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data = data
             
             self.table_glyphs.setVerticalHeaderItem(r_idx, QtWidgets.QTableWidgetItem(str(idx)))
             
-            item_orig_char = QtWidgets.QTableWidgetItem(orig_char_val)
+            item_orig_char = QtWidgets.QTableWidgetItem(orig_char_data)
             item_char = QtWidgets.QTableWidgetItem(char_val)
             item_font_char = QtWidgets.QTableWidgetItem(font_char_val)
             item_sheet = QtWidgets.QTableWidgetItem(f"Sheet {sheet_idx}")
@@ -186,17 +173,10 @@ class BfnNavigationMixin:
             item_kern = QtWidgets.QTableWidgetItem(str(kerning))
             item_width = QtWidgets.QTableWidgetItem(str(width))
             
-            for item in (item_orig_char, item_font_char, item_sheet, item_tile):
+            for item in (item_orig_char, item_sheet, item_tile):
                 item.setFlags(item.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
                 
-            # Visually mark Font Char as read-only
-            if getattr(self, "is_dark_theme", True):
-                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#88888b")))
-                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#1a1a20")))
-            else:
-                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#7e8a9b")))
-                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
-            item_font_char.setToolTip("Font Character (read-only, stored in font metadata)")
+            self._style_font_char_item(item_font_char)
                 
             item_char.setFlags(item_char.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
@@ -211,41 +191,12 @@ class BfnNavigationMixin:
             self.table_glyphs.setItem(r_idx, 8, item_width)
             
             # Original Render
-            if self.original_sheet_images and 0 <= sheet_idx < len(self.original_sheet_images):
-                orig_sheet_img = self.original_sheet_images[sheet_idx]
-                cell_x = gx * self.cell_w
-                cell_y = gy * self.cell_h
-                
-                orig_crop = orig_sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
-                orig_pixmap = QtGui.QPixmap.fromImage(orig_crop)
-                
-                orig_lbl = QtWidgets.QLabel()
-                orig_lbl.setPixmap(orig_pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
-                orig_lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                bg_color = "#000000"
-                orig_lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
-                self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
-            else:
-                orig_lbl = QtWidgets.QLabel()
-                bg_color = "#000000"
-                orig_lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
-                self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
+            orig_lbl = self._create_glyph_image_label(self.original_sheet_images, sheet_idx, gx, gy)
+            self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
             
             # Translated Render
-            if 0 <= sheet_idx < len(self.sheet_images):
-                sheet_img = self.sheet_images[sheet_idx]
-                cell_x = gx * self.cell_w
-                cell_y = gy * self.cell_h
-                
-                glyph_crop = sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
-                pixmap = QtGui.QPixmap.fromImage(glyph_crop)
-                
-                lbl = QtWidgets.QLabel()
-                lbl.setPixmap(pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
-                lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                bg_color = "#000000"
-                lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
-                self.table_glyphs.setCellWidget(r_idx, 2, lbl)
+            lbl = self._create_glyph_image_label(self.sheet_images, sheet_idx, gx, gy)
+            self.table_glyphs.setCellWidget(r_idx, 2, lbl)
                 
         if not getattr(self, "_table_headers_resized", False):
             # Try to restore column widths from settings
@@ -268,7 +219,7 @@ class BfnNavigationMixin:
             self._table_headers_resized = True
             
         self.table_glyphs.blockSignals(False)
-        
+
     def refresh_table_row(self, glyph_idx):
         if not self.sheet_images:
             return
@@ -286,67 +237,8 @@ class BfnNavigationMixin:
         self.table_glyphs.blockSignals(True)
         
         maps = self.metadata.get("MAP1", [])
-        char_val = ""
-        uni_val = ""
-        for m in maps:
-            m_type = m.get("mapping_type", 0)
-            m_first = m.get("first_char", 0)
-            m_last = m.get("last_char", 0)
-            
-            if m_type == 0:
-                if m_first <= glyph_idx <= m_last:
-                    try:
-                        char_val = bytes([glyph_idx]).decode('cp1252')
-                        uni_val = f"U+{glyph_idx:04X}"
-                    except Exception:
-                        try:
-                            char_val = chr(glyph_idx)
-                            uni_val = f"U+{glyph_idx:04X}"
-                        except Exception:
-                            pass
-            elif m_type == 2:
-                entries = m.get("entries", [])
-                for c_idx, g_idx in enumerate(entries):
-                    if g_idx == glyph_idx:
-                        code = m_first + c_idx
-                        try:
-                            char_val = bytes([code]).decode('cp1252')
-                            uni_val = f"U+{code:04X}"
-                        except Exception:
-                            try:
-                                char_val = chr(code)
-                                uni_val = f"U+{code:04X}"
-                            except Exception:
-                                pass
-                        break
-            elif m_type == 3:
-                entries = m.get("entries", [])
-                half = len(entries) // 2
-                for k in range(half):
-                    if entries[half + k] == glyph_idx:
-                        code = entries[k]
-                        try:
-                            char_val = bytes([code]).decode('cp1252')
-                            uni_val = f"U+{code:04X}"
-                        except Exception:
-                            try:
-                                char_val = chr(code)
-                                uni_val = f"U+{code:04X}"
-                            except Exception:
-                                pass
-                        break
-                        
-        font_char_val = char_val
-        if char_val and hasattr(self, 'reverse_translation_map') and self.reverse_translation_map:
-            virtual_char = self.reverse_translation_map.get(char_val)
-            if virtual_char:
-                char_val = virtual_char
-        elif not char_val and hasattr(self, 'translation_map') and self.translation_map:
-            # Glyph has no MAP1 entry: check for a synthetic mapping "#g{glyph_idx}"
-            synthetic_key = f"#g{glyph_idx}"
-            virtual_char = self.translation_map.get(synthetic_key, "")
-            if virtual_char:
-                char_val = virtual_char
+        raw_char = self._resolve_char_from_maps(glyph_idx, maps)
+        char_val, font_char_val = self._get_glyph_translation_mapping(glyph_idx, raw_char)
                 
         item_char = self.table_glyphs.item(found_row, 3)
         if item_char:
@@ -354,22 +246,11 @@ class BfnNavigationMixin:
         item_font_char = self.table_glyphs.item(found_row, 4)
         if item_font_char:
             item_font_char.setText(font_char_val)
-            if getattr(self, "is_dark_theme", True):
-                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#88888b")))
-                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#1a1a20")))
-            else:
-                item_font_char.setForeground(QtGui.QBrush(QtGui.QColor("#7e8a9b")))
-                item_font_char.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
-            item_font_char.setToolTip("Font Character (read-only, stored in font metadata)")
+            self._style_font_char_item(item_font_char)
             
         wid = self.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
-        wid_idx = glyph_idx - self.first_code
-        kerning = 0
-        width = self.cell_w
-        if 0 <= wid_idx < len(packets):
-            kerning = packets[wid_idx]["kerning"]
-            width = packets[wid_idx]["width"]
+        kerning, width = self._get_glyph_metrics(glyph_idx, packets)
             
         item_kern = self.table_glyphs.item(found_row, 7)
         if item_kern:
@@ -378,26 +259,10 @@ class BfnNavigationMixin:
         if item_width:
             item_width.setText(str(width))
             
-        rem = glyph_idx - self.start_glyph
-        sheet_idx = rem // (self.rows * self.cols)
-        cell_idx = rem % (self.rows * self.cols)
-        gx = cell_idx % self.rows
-        gy = cell_idx // self.rows
+        sheet_idx, gx, gy = self._calculate_glyph_position(glyph_idx)
         
-        if 0 <= sheet_idx < len(self.sheet_images):
-            sheet_img = self.sheet_images[sheet_idx]
-            cell_x = gx * self.cell_w
-            cell_y = gy * self.cell_h
-            
-            glyph_crop = sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
-            pixmap = QtGui.QPixmap.fromImage(glyph_crop)
-            
-            lbl = QtWidgets.QLabel()
-            lbl.setPixmap(pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation))
-            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-            bg_color = "#000000"
-            lbl.setStyleSheet(f"background-color: {bg_color}; margin: 2px;")
-            self.table_glyphs.setCellWidget(found_row, 2, lbl)
+        lbl = self._create_glyph_image_label(self.sheet_images, sheet_idx, gx, gy)
+        self.table_glyphs.setCellWidget(found_row, 2, lbl)
             
         self.table_glyphs.blockSignals(False)
 

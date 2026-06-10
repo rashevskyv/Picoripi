@@ -202,5 +202,181 @@ def test_autofix_zelda_bmg_no_remerge_bug():
     assert "and word here" in lines[1]
 
 
+def test_autofix_star_tag_rules():
+    rules = GameRules()
+    setup_test_mappings(rules)
+    
+    # Ensure our new autofix rule is enabled
+    rules.problem_analyzer.mw = None
+    
+    text = (
+        "{escape:3:000000000c80}На гачок вудки насаджена личинка.\n"
+        "{*} Признач її на {(Y)} або {(X)} і закидай,\n"
+        "   стоячи обличчям до води.\n"
+        "{*}Коли поплавець пірне, риба клює —\n"
+        "{tab}{tab} підсікай, нахиливши й утримуючи {(C-Stick)}{(▼)}."
+    )
+    
+    # Run autofix with empty font map and high threshold
+    fixed, changed = rules.autofix_data_string(text, {}, 10000)
+    lines = fixed.split('\n')
+    
+    assert changed is True
+    assert len(lines) == 3
+    
+    # 1. First line remains unchanged (before {*})
+    assert lines[0] == "{escape:3:000000000c80}На гачок вудки насаджена личинка."
+    
+    # 2. Second and third lines merged into one star section
+    assert lines[1] == "{escape:6:000a}Признач її на {(Y)} або {(X)} і закидай, стоячи обличчям до води."
+    
+    # 3. Fourth and fifth lines merged into one star section
+    assert lines[2] == "{escape:6:000a}Коли поплавець пірне, риба клює — підсікай, нахиливши й утримуючи {(C-Stick)}{(▼)}."
+
+
+def test_problem_analyzer_star_tag_rules():
+    rules = GameRules()
+    setup_test_mappings(rules)
+    
+    # 1. Check text with NO problems
+    valid_text = (
+        "{escape:3:000000000c80}На гачок вудки насаджена личинка.\n"
+        "{*}Признач її на {(Y)} або {(X)} і закидай,\n"
+        "{tab}стоячи обличчям до води.\n"
+        "{*}Коли поплавець пірне, риба клює —\n"
+        "{tab}підсікай, нахиливши й утримуючи {(C-Stick)}{(▼)}."
+    )
+    problems = rules.problem_analyzer.analyze_data_string(valid_text, {}, 10000)
+    for p_set in problems:
+        assert "ZBMG_STAR_TAG_RULES" not in p_set
+        
+    # 2. Check text with various violations
+    invalid_text = (
+        "{tab}На гачок вудки насаджена личинка.\n" # Viol: {tab} before {*}
+        "{*} Признач її на {(Y)} або {(X)} і закидай,\n" # Viol: space after {*}
+        " стоячи обличчям до води.\n" # Viol: missing {tab}
+        "{*}Коли поплавець пірне, риба клює —\n" # Valid
+        "{tab}підсікай, {tab} нахиливши й утримуючи." # Viol: multiple {tab} tags
+    )
+    problems = rules.problem_analyzer.analyze_data_string(invalid_text, {}, 10000)
+    assert "ZBMG_STAR_TAG_RULES" in problems[0]
+    assert "ZBMG_STAR_TAG_RULES" in problems[1]
+    assert "ZBMG_STAR_TAG_RULES" in problems[2]
+    assert "ZBMG_STAR_TAG_RULES" not in problems[3]
+    assert "ZBMG_STAR_TAG_RULES" in problems[4]
+
+
+def test_lines_per_page_ignored_with_star_tag():
+    rules = GameRules()
+    setup_test_mappings(rules)
+    
+    class MockMW:
+        lines_per_page = 2
+        game_dialog_max_width_pixels = 200
+        autofix_enabled = {
+            "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": True,
+            "ZBMG_SHORT_LINE": True,
+            "ZBMG_STAR_TAG_RULES": True
+        }
+    rules.mw = MockMW()
+    rules.problem_analyzer.mw = rules.mw
+    rules.text_fixer.mw = rules.mw
+    
+    # Message has {*}, so lines_per_page (normally 2) should NOT cause empty line warning,
+    # and should NOT cause single word checks or sentence shifting
+    text_with_empty_and_star = (
+        "\n" # Empty first line of page (would normally trigger problem on line 0)
+        "{*}Признач її.\n"
+        "{tab}стоячи."
+    )
+    
+    # 1. Test check_for_empty_first_line_of_page returns empty
+    empty_lines = rules.problem_analyzer.check_for_empty_first_line_of_page(text_with_empty_and_star)
+    assert empty_lines == []
+    
+    # 2. Test analyze_data_string doesn't flag empty first line
+    problems = rules.problem_analyzer.analyze_data_string(text_with_empty_and_star, {}, 200)
+    assert "ZBMG_EMPTY_FIRST_LINE_OF_PAGE" not in problems[0]
+    
+    # 3. Test short line checking doesn't merge if next is {*} or {tab}
+    short_line_text = (
+        "{*}Признач її\n" # Width is short
+        "{tab}стоячи"      # Next starts with {tab}
+    )
+    problems_short = rules.problem_analyzer.analyze_data_string(short_line_text, {}, 1000)
+    assert "ZBMG_SHORT_LINE" not in problems_short[0]
+    
+    # 4. Test autofix merges star-section lines (they fit in one width since threshold is huge)
+    fixed, changed = rules.autofix_data_string(short_line_text, {}, 1000)
+    assert "{escape:6:000a}Признач її стоячи" in fixed
+
+
+def test_star_tag_definitions_and_metadata():
+    rules = GameRules()
+    setup_test_mappings(rules)
+    
+    # Verify that ZBMG_STAR_TAG_RULES exists in problem definitions
+    defs = rules.get_problem_definitions()
+    assert "ZBMG_STAR_TAG_RULES" in defs
+    
+    rule_def = defs["ZBMG_STAR_TAG_RULES"]
+    assert rule_def["name"] == "Star Tag Rules ({*} & {tab})"
+    assert "Enforce special {*} tag layout rules" in rule_def["description"]
+    assert rule_def["priority"] == 8
+    
+    # Verify short name
+    short_name = rules.get_short_problem_name("ZBMG_STAR_TAG_RULES")
+    assert short_name == "StarTag"
+
+
+def test_star_tag_rules_with_escapes():
+    rules = GameRules()
+    setup_test_mappings(rules)
+
+    # Text with escape:6:000a and escape:6:000b instead of aliases
+    text = (
+        "{escape:3:000000000c80}На гачок вудки насаджена личинка.\n"
+        "{escape:6:000a} Признач її на {(Y)} або {(X)} і закидай,\n"
+        "   стоячи обличчям до води.\n"
+        "{escape:6:000a}Коли поплавець пірне, риба клює —\n"
+        " - {escape:6:000b} підсікай, нахиливши й утримуючи."
+    )
+
+    # 1. Test Problem Analyzer detects violations correctly
+    problems = rules.problem_analyzer.analyze_data_string(text, {}, 10000)
+    assert "ZBMG_STAR_TAG_RULES" in problems[1]  # space after {*}
+    assert "ZBMG_STAR_TAG_RULES" in problems[2]  # missing {tab}
+    assert "ZBMG_STAR_TAG_RULES" in problems[4]  # {tab} not at start (preceded by ' - ')
+
+    # 2. Test Autofix merges star sections and converts back to escape codes.
+    # New behavior: each star section is merged into one line (re-split by width if needed).
+    # Section 1: {*} Признач... \n    стоячи... -> {escape:6:000a}Признач... стоячи...
+    # Section 2: {*}Коли... \n - {tab} підсікай... -> {escape:6:000a}Коли... - підсікай...
+    fixed, changed = rules.autofix_data_string(text, {}, 10000)
+    assert changed is True
+    lines = fixed.split('\n')
+
+    # Plain section is unchanged
+    assert lines[0] == "{escape:3:000000000c80}На гачок вудки насаджена личинка."
+
+    # First star section: two source lines merged into one, prefix = escape:6:000a
+    assert lines[1].startswith("{escape:6:000a}")
+    assert "Признач її на" in lines[1]
+    assert "стоячи обличчям до води." in lines[1]
+    assert "{escape:6:000b}" not in lines[1]  # no stray {tab} escape inside
+
+    # Second star section: two source lines merged into one, prefix = escape:6:000a
+    assert lines[2].startswith("{escape:6:000a}")
+    assert "Коли поплавець пірне" in lines[2]
+    assert "підсікай" in lines[2]
+    assert "{escape:6:000b}" not in lines[2]  # no stray {tab} escape inside
+
+    # Total: 3 lines (1 plain + 2 star sections)
+    assert len(lines) == 3
+
+
+
+
+
 
 

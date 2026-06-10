@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+from PyQt6.QtWidgets import QDialog
 from handlers.text_operation_handler import TextOperationHandler
 
 class MockUIProvider:
@@ -89,8 +90,7 @@ def test_fix_all_strings_target_strings():
     with patch('handlers.text_operation_handler.AutofixSelectionDialog') as mock_dialog_class, \
          patch('handlers.text_operation_handler.QProgressDialog') as mock_progress_class:
         mock_dialog = MagicMock()
-        mock_dialog.exec.return_value = 1
-        mock_dialog_class.Accepted = 1
+        mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
         mock_dialog.get_selected_problems.return_value = ["some_problem"]
         mock_dialog_class.return_value = mock_dialog
 

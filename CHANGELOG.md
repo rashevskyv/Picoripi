@@ -1,5 +1,28 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.002] - 2026-06-10
+
+### Added
+- **Auto-width from Original (B10)**: Implemented an automated text limit matching mechanism. Added "Auto-width from original" checkbox to `MassWidthDialog` for single/multiple selected strings in Strings in Block. When enabled, it calculates the maximum pixel width among all sublines of the original string (taking into account active font maps, control tags, and icons) and assigns this value individually to each target string in the translation editor.
+- **Context Menu 'Set Width from Original'**: Integrated a quick action shortcut directly into the `Width` spinbox context menu on the right-hand settings panel, allowing users to instantly fetch and apply the original string's max width for the currently active translation item.
+- **Width tags as words (B9)**: Upgraded the single-word line spacing validator to treat tags that have a physical display width (e.g., buttons like `[L-Stick]`, `{PLAYER}`, `{var:0}`) as words, successfully resolving false single-word alignment warnings.
+
+## [0.3.001] - 2026-06-09
+
+### Fixed
+- **PyQt6 Migration: Dialog Return Codes**: Replaced deprecated `QDialog.Accepted` and class-specific `Accepted` attributes with `QDialog.DialogCode.Accepted` across all dialog handling code to prevent `AttributeError` runtime crashes:
+  - `handlers/text_operation_handler.py` (AutofixSelectionDialog)
+  - `handlers/translation/glossary_handler.py` (CategorySelectionDialog)
+  - `ui/components/bfn_preview_widget.py` (TextEffectsDialog)
+  - `components/project_dialogs.py` (NewProjectDialog, OpenProjectDialog, ImportBlockDialog)
+  - Updated mock-dialog asserts in `tests/test_text_operation_handler.py` to check for `QDialog.DialogCode.Accepted`.
+- **PyQt6 Migration: Qt Enums Namespace**: Fixed `AttributeError: type object 'Qt' has no attribute 'TopLeftCorner'` crash when opening the AI Chat window by referencing `Qt.Corner.TopLeftCorner`.
+- **Recursion Safeguard for Descriptors**: Updated `SettingsManager` and `GlobalSettings` to ignore class descriptors (detecting them via `hasattr(attr, '__set__')`) during settings loading to prevent infinite recursion loop on attributes like `theme` or `editors_font_size`.
+
+### Changed
+- **MainWindow Properties Refactoring (B8)**: Replaced 26 redundant boilerplate property-proxies for state and settings flags in `MainWindow` with unified class-level Python descriptors (`StateProperty` and `SettingsProperty`), shrinking `main.py` code footprint and enhancing maintainability.
+- **ProjectContext Decoupling & Typing (B2, B3)**: Finalized strict type hinting and protocol structures on `BaseHandler` and `ProjectContext` (`core/context.py`) and purged old defensive `hasattr`/`getattr` calls.
+
 ## [0.3.000] - 2026-06-09
 
 ### Changed

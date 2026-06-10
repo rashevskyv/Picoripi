@@ -62,6 +62,7 @@ class PluginSettings:
             "translation_config": build_default_translation_config(),
             "autofix_enabled": {},
             "detection_enabled": {},
+            "align_sentences_to_original_pages": False,
             "context_menu_tags": {"single_tags": [], "wrap_tags": []}
         }
         for key, value in defaults.items():
@@ -252,6 +253,7 @@ class PluginSettings:
             "autofix_enabled": self.mw.autofix_enabled,
             "detection_enabled": self.mw.detection_enabled,
             "translation_config": self.mw.translation_config,
+            "align_sentences_to_original_pages": getattr(self.mw, 'align_sentences_to_original_pages', False),
             "context_menu_tags": getattr(self.mw, 'context_menu_tags', {"single_tags": [], "wrap_tags": []})
         }
         

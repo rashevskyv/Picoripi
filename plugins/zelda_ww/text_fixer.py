@@ -155,7 +155,9 @@ class TextFixer(GenericTextFixer):
                              editor_font_map: dict,
                              editor_line_width_threshold: int,
                              logical_hard_limit: Optional[int] = None,
-                             allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+                             allowed_problems: Optional[Set[str]] = None,
+                             block_idx: Optional[int] = None,
+                             string_idx: Optional[int] = None) -> Tuple[str, bool]:
         if logical_hard_limit is None:
             logical_hard_limit = editor_line_width_threshold
         original_text = str(data_string)
@@ -233,7 +235,14 @@ class TextFixer(GenericTextFixer):
                 final_text = fixed_spacing_text
                 changed_missing_spacing = True
 
+        original_message_text = None
+        if self.mw and block_idx is not None and string_idx is not None:
+            if (self.mw.data_store.data and 
+                0 <= block_idx < len(self.mw.data_store.data) and 
+                0 <= string_idx < len(self.mw.data_store.data[block_idx])):
+                original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
+
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page)
+        final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page, original_message_text)
 
         return final_text, (final_text != original_text or changed_missing_spacing or changed_shift)

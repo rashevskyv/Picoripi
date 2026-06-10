@@ -557,7 +557,7 @@ Do not write any markdown formatting like ```json, just output raw JSON text.
             
         # Show Category Selection Dialog
         dialog = CategorySelectionDialog(self.dialog, suggested_categories)
-        if dialog.exec() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
             
         selected_categories = dialog.get_selected_categories()

@@ -79,10 +79,7 @@ class TranslationHandler(BaseHandler):
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
             
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        if not isinstance(block_map, dict):
-            block_map = {}
-            
+        block_map = self.mw.block_to_project_file_map
         proj_block_idx = block_map.get(block_idx, block_idx)
             
         if proj_block_idx < 0 or proj_block_idx >= len(self.mw.project_manager.project.blocks):
@@ -117,7 +114,7 @@ class TranslationHandler(BaseHandler):
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
             
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        block_map = self.mw.block_to_project_file_map
         # Create a reverse map to go from project block index back to data block index
         rev_block_map = {proj_idx: data_idx for data_idx, proj_idx in block_map.items()}
         
@@ -209,7 +206,7 @@ class TranslationHandler(BaseHandler):
         self.start_new_session = True
         log_debug(f"TranslationHandler.reset_translation_session: Manual reset. start_new_session set to {self.start_new_session}")
 
-        config = getattr(self.mw, 'translation_config', None)
+        config = self.mw.translation_config
         if config and config.get('provider') == 'gemini':
             provider_settings = config.get('providers', {}).get('gemini', {})
             if provider_settings:
@@ -240,7 +237,7 @@ class TranslationHandler(BaseHandler):
             is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
         else:
             is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-        enabled = getattr(self.mw, 'prompt_editor_enabled', True)
+        enabled = self.mw.prompt_editor_enabled
         if not is_ctrl_pressed and not enabled:
             return system_prompt, user_prompt
 
@@ -368,7 +365,7 @@ class TranslationHandler(BaseHandler):
                 if block_idx in self.translation_progress:
                     del self.translation_progress[block_idx]
 
-                self.ui_updater.populate_strings_for_block(block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+                self.ui_updater.populate_strings_for_block(block_idx, self.mw.data_store.current_category_name, force=True)
                 self.ui_updater.update_text_views()
         else:
             if block_idx == -2:
@@ -438,7 +435,7 @@ class TranslationHandler(BaseHandler):
 
         string_indices = list(range(start_line, end_line + 1))
         
-        displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
+        displayed_indices = self.mw.data_store.displayed_string_indices
         source_items = []
         temp_id_map = {}
         for idx in string_indices:
@@ -538,7 +535,7 @@ class TranslationHandler(BaseHandler):
 
         if target_block_idx == -2:
             if chapter_id is None:
-                chapter_id = getattr(self.mw.data_store, 'current_chapter_id', None)
+                chapter_id = self.mw.data_store.current_chapter_id
             if chapter_id is None:
                 self.ui_handler.finish_ai_operation()
                 QMessageBox.information(self.mw, "AI Translation", "No chapter ID available.")
@@ -585,7 +582,7 @@ class TranslationHandler(BaseHandler):
                 f"Starting chapter AI translation with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
             )
         else:
-            data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
+            data_source = self.mw.data_store.data
             if not isinstance(data_source, list) or not (0 <= target_block_idx < len(data_source)):
                 self.ui_handler.finish_ai_operation()
                 QMessageBox.information(self.mw, "AI Translation", "No block data available to translate.")
@@ -599,9 +596,9 @@ class TranslationHandler(BaseHandler):
 
             # Determine target indices
             target_indices = range(len(block_strings))
-            if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+            if category_name and self.mw.project_manager and self.mw.project_manager.project:
                 pm = self.mw.project_manager
-                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                block_map = self.mw.block_to_project_file_map
                 proj_b_idx = block_map.get(target_block_idx, target_block_idx)
                 if proj_b_idx < len(pm.project.blocks):
                     block = pm.project.blocks[proj_b_idx]
@@ -736,24 +733,20 @@ class TranslationHandler(BaseHandler):
         cleaned_text = re.sub(r'(\{[^}]*\}|\[[^\]]*\])\s+([,\.!?;:…])', r'\1\2', cleaned_text)
 
         # Get font map
-        font_map = None
-        if hasattr(self.mw, "current_font_map") and self.mw.current_font_map:
-            font_map = self.mw.current_font_map
-        elif hasattr(self.mw, "font_map") and self.mw.font_map:
-            font_map = self.mw.font_map
+        font_map = self.mw.current_font_map if self.mw.current_font_map else self.mw.font_map
 
         # Retrieve thresholds
-        string_meta = getattr(self.mw, 'string_metadata', {}).get((block_idx, string_idx), {})
+        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
         
         # Max allowed width (hard threshold, e.g. 460px)
-        max_width_raw = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 200))
+        max_width_raw = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
         try:
             max_width = int(max_width_raw)
         except (TypeError, ValueError):
             max_width = 200
 
         # Warning threshold (desired soft threshold, e.g. 410px)
-        warning_threshold_raw = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
+        warning_threshold_raw = self.mw.line_width_warning_threshold_pixels
         try:
             warning_threshold = int(warning_threshold_raw)
         except (TypeError, ValueError):
@@ -764,7 +757,7 @@ class TranslationHandler(BaseHandler):
             warning_threshold = max_width
 
         # Lines per page
-        lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+        lines_per_page = self.mw.lines_per_page
         try:
             lines_per_page = int(lines_per_page)
         except (TypeError, ValueError):
@@ -903,9 +896,7 @@ class TranslationHandler(BaseHandler):
             pages.append(current_page_lines)
 
         # 4. Join pages with page breaks (shift-enter char) and lines with newlines
-        shift_enter_char = "\n"
-        if hasattr(self.mw, "current_game_rules") and self.mw.current_game_rules:
-            shift_enter_char = self.mw.current_game_rules.get_shift_enter_char()
+        shift_enter_char = self.mw.current_game_rules.get_shift_enter_char() if self.mw.current_game_rules else "\n"
 
         page_strings = []
         for page_lines in pages:
@@ -944,9 +935,7 @@ class TranslationHandler(BaseHandler):
         formatted_editor_text = '\n'.join(clean_lines)
 
         # Convert to data format expected by update_edited_data
-        final_data_text = formatted_editor_text
-        if hasattr(self.mw, "current_game_rules") and self.mw.current_game_rules:
-            final_data_text = self.mw.current_game_rules.convert_editor_text_to_data(formatted_editor_text)
+        final_data_text = self.mw.current_game_rules.convert_editor_text_to_data(formatted_editor_text) if self.mw.current_game_rules else formatted_editor_text
 
         return final_data_text
 
@@ -1056,8 +1045,7 @@ class TranslationHandler(BaseHandler):
             block_idx = context['block_idx']
             parsed_json = json.loads(chunk_text)
             translated_strings = parsed_json.get("translated_strings", [])
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.begin_group()
+            self.mw.undo_manager.begin_group()
 
             temp_id_map = context.get('temp_id_map')
             modified_blocks = set()
@@ -1119,8 +1107,7 @@ class TranslationHandler(BaseHandler):
                     final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
                     self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
             
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.end_group("TRANSLATE")
+            self.mw.undo_manager.end_group("TRANSLATE")
             
             if block_idx == -2:
                 modified_blocks.add(-2)
@@ -1137,10 +1124,10 @@ class TranslationHandler(BaseHandler):
             
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
             
-            current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
-            if hasattr(self.mw, 'data_store') and getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+            current_view_block = self.mw.data_store.current_block_idx
+            if self.mw.data_store.current_chapter_id is not None:
                 current_view_block = -2
-            self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
+            self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
             self.translated_chunks_count = len(self.translation_progress.get(block_idx, {}).get('completed_chunks', set()))
             self.ui_handler.status_dialog.update_progress(self.translated_chunks_count)
             
@@ -1185,8 +1172,7 @@ class TranslationHandler(BaseHandler):
             if not isinstance(translated_strings, list) or len(translated_strings) != len(context['source_items']):
                 raise ValueError("Invalid response structure or item count mismatch.")
 
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.begin_group()
+            self.mw.undo_manager.begin_group()
                 
             self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
             
@@ -1257,8 +1243,7 @@ class TranslationHandler(BaseHandler):
                 final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
                 self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE")
 
-            if hasattr(self.mw, 'undo_manager'):
-                self.mw.undo_manager.end_group("TRANSLATE")
+            self.mw.undo_manager.end_group("TRANSLATE")
 
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_text, response=response)
 
@@ -1268,10 +1253,10 @@ class TranslationHandler(BaseHandler):
 
             self.ui_handler.finish_ai_operation()
             
-            current_view_block = self.mw.data_store.current_block_idx if hasattr(self.mw, 'data_store') else 0
-            if hasattr(self.mw, 'data_store') and getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+            current_view_block = self.mw.data_store.current_block_idx
+            if self.mw.data_store.current_chapter_id is not None:
                 current_view_block = -2
-            self.ui_updater.populate_strings_for_block(current_view_block, getattr(self.mw, 'current_category_name', None), force=True)
+            self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
             self.ui_updater.update_text_views()
             self.ui_updater.update_title()
             if hasattr(self.mw, 'app_action_handler'):
@@ -1310,9 +1295,9 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.apply_full_translation(final_text)
         self.ui_handler.finish_ai_operation()
         refresh_idx = block_idx
-        if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+        if self.mw.data_store.current_chapter_id is not None:
             refresh_idx = -2
-        self.ui_updater.populate_strings_for_block(refresh_idx, getattr(self.mw, 'current_category_name', None), force=True)
+        self.ui_updater.populate_strings_for_block(refresh_idx, self.mw.data_store.current_category_name, force=True)
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
         self.ai_lifecycle_manager.on_task_finished(context)
@@ -1359,11 +1344,9 @@ class TranslationHandler(BaseHandler):
         final_text = self._format_and_wrap_translation(chosen, block_idx, string_idx)
         
         # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
-        if hasattr(self.mw, 'undo_manager'):
-            self.mw.undo_manager.begin_group()
+        self.mw.undo_manager.begin_group()
         self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
-        if hasattr(self.mw, 'undo_manager'):
-            self.mw.undo_manager.end_group("TRANSLATE")
+        self.mw.undo_manager.end_group("TRANSLATE")
             
         if is_inline:
             self.ui_handler.apply_inline_variation(final_text)
@@ -1406,7 +1389,7 @@ class TranslationHandler(BaseHandler):
         
         # Apply force-aliases
         from utils.force_alias import prepare_text_for_ai
-        tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        tag_mappings = self.mw.default_tag_mappings
         original_text_for_ai, force_maps = prepare_text_for_ai(original_text, tag_mappings)
         p_map = {0: force_maps} if force_maps else {}
 
@@ -1464,7 +1447,7 @@ class TranslationHandler(BaseHandler):
         if not system_prompt:
             return        # Apply force-aliases
         from utils.force_alias import prepare_text_for_ai
-        tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        tag_mappings = self.mw.default_tag_mappings
         source_text_for_ai, force_maps = prepare_text_for_ai(source_text, tag_mappings)
         p_map = {0: force_maps} if force_maps else {}
 
@@ -1518,7 +1501,7 @@ class TranslationHandler(BaseHandler):
         Translates the lines currently selected in the preview editor.
         If no lines are selected, translates the current string.
         """
-        preview_edit = getattr(self.mw, 'preview_text_edit', None)
+        preview_edit = self.mw.preview_text_edit
         if preview_edit and preview_edit.get_selected_lines():
             # Pass a dummy point; translate_preview_selection prioritizes 
             # explicit selection over the mouse position.
@@ -1531,7 +1514,7 @@ class TranslationHandler(BaseHandler):
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
             
-        data_source = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
+        data_source = self.mw.data_store.data
         if not isinstance(data_source, list) or not data_source:
             QMessageBox.information(self.mw, "AI Translation", "No data available to translate.")
             return

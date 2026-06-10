@@ -21,7 +21,8 @@ from .config import (
     PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
     PROBLEM_EMPTY_FIRST_LINE_OF_PAGE,
     PROBLEM_BAD_SPACING,
-    PROBLEM_MISSING_ICON_SPACING
+    PROBLEM_MISSING_ICON_SPACING,
+    PROBLEM_STAR_TAG_RULES
 )
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
@@ -38,6 +39,7 @@ class ProblemIDs:
     PROBLEM_EMPTY_FIRST_LINE_OF_PAGE = PROBLEM_EMPTY_FIRST_LINE_OF_PAGE
     PROBLEM_BAD_SPACING = PROBLEM_BAD_SPACING
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+    PROBLEM_STAR_TAG_RULES = PROBLEM_STAR_TAG_RULES
 
 class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
@@ -288,6 +290,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: return "Empty1st"
         if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
         if problem_id == PROBLEM_MISSING_ICON_SPACING: return "IconSpacing"
+        if problem_id == PROBLEM_STAR_TAG_RULES: return "StarTag"
         return super().get_short_problem_name(problem_id)
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
@@ -339,9 +342,11 @@ class GameRules(BaseGameRules):
                             editor_font_map: dict,
                             editor_line_width_threshold: int,
                             logical_hard_limit: Optional[int] = None,
-                            allowed_problems: Optional[Set[str]] = None) -> Tuple[str, bool]:
+                            allowed_problems: Optional[Set[str]] = None,
+                            block_idx: Optional[int] = None,
+                            string_idx: Optional[int] = None) -> Tuple[str, bool]:
         return self.text_fixer.autofix_data_string(
-            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems
+            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx
         )
 
     def process_pasted_segment(self,

@@ -1,6 +1,6 @@
 import re
 from typing import Any, Optional, List, Dict, Tuple, Set, Union
-from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog
+from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog, QDialog
 from PyQt6.QtGui import QTextCursor, QTextBlock
 from PyQt6.QtCore import QTimer, Qt
 from ui.autofix_selection_dialog import AutofixSelectionDialog
@@ -594,10 +594,23 @@ class TextOperationHandler(BaseHandler):
             text_edit_for_size.setMinimumHeight(500)
         result_dialog.exec()
         
-    def auto_fix_current_string(self) -> None:
-        self._auto_fix_current_string_impl()
+    def auto_fix_current_string(self, from_button: bool = False) -> None:
+        modifiers = QApplication.keyboardModifiers()
+        if from_button and (modifiers & Qt.KeyboardModifier.ControlModifier):
+            if not self.mw.current_game_rules:
+                return
+            problem_definitions = self.mw.current_game_rules.get_problem_definitions()
+            if not problem_definitions:
+                return
+            autofix_settings = getattr(self.mw, 'autofix_enabled', {})
+            dialog = AutofixSelectionDialog(problem_definitions, autofix_settings, self.mw)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                selected_problems = dialog.get_selected_problems()
+                self._auto_fix_current_string_impl(allowed_problems=selected_problems)
+        else:
+            self._auto_fix_current_string_impl()
 
-    def _auto_fix_current_string_impl(self) -> None:
+    def _auto_fix_current_string_impl(self, allowed_problems: Optional[Set[str]] = None) -> None:
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
@@ -624,7 +637,10 @@ class TextOperationHandler(BaseHandler):
                 current_iter_text, 
                 font_map_for_string, 
                 width_threshold_for_string,
-                logical_hard_limit=logical_hard_limit_for_string
+                logical_hard_limit=logical_hard_limit_for_string,
+                allowed_problems=allowed_problems,
+                block_idx=self.mw.data_store.current_block_idx,
+                string_idx=self.mw.data_store.current_string_idx
             )
             if not changed or fixed_data == current_iter_text:
                 break
@@ -701,7 +717,7 @@ class TextOperationHandler(BaseHandler):
         # Fetch current autofix enabled settings as default checkbox states
         autofix_settings = getattr(self.mw, 'autofix_enabled', {})
         dialog = AutofixSelectionDialog(problem_definitions, autofix_settings, self.mw)
-        if dialog.exec() != AutofixSelectionDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         selected_problems = dialog.get_selected_problems()
@@ -769,7 +785,9 @@ class TextOperationHandler(BaseHandler):
                             font_map_for_string,
                             width_threshold_for_string,
                             logical_hard_limit=logical_hard_limit_for_string,
-                            allowed_problems=selected_problems
+                            allowed_problems=selected_problems,
+                            block_idx=block_idx,
+                            string_idx=string_idx
                         )
                         if not changed or fixed_text == current_iter_text:
                             break
@@ -815,7 +833,9 @@ class TextOperationHandler(BaseHandler):
                                 font_map_for_string,
                                 width_threshold_for_string,
                                 logical_hard_limit=logical_hard_limit_for_string,
-                                allowed_problems=selected_problems
+                                allowed_problems=selected_problems,
+                                block_idx=block_idx,
+                                string_idx=string_idx
                             )
                             if not changed or fixed_text == current_iter_text:
                                 break

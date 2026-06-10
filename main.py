@@ -81,67 +81,52 @@ from ui.main_window.main_window_block_handler import MainWindowBlockHandler
 from core.context import ProjectContext, UIProvider
 
 
+class StateProperty:
+    def __init__(self, state_enum: AppState):
+        self.state_enum = state_enum
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.state.is_active(self.state_enum)
+
+    def __set__(self, instance, value):
+        instance.state.set_active(self.state_enum, value)
+
+
+class SettingsProperty:
+    def __init__(self, key: str, default: Any):
+        self.key = key
+        self.default = default
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        val = instance.settings_manager.get(self.key, None)
+        if val is None:
+            if callable(self.default):
+                return self.default(instance)
+            return self.default
+        return val
+
+    def __set__(self, instance, value):
+        instance.settings_manager.set(self.key, value)
+
+
 class MainWindow(QMainWindow):
-    # --- State Properties (Proxy to StateManager) ---
-    @property
-    def is_adjusting_cursor(self): return self.state.is_active(AppState.ADJUSTING_CURSOR)
-    @is_adjusting_cursor.setter
-    def is_adjusting_cursor(self, v): self.state.set_active(AppState.ADJUSTING_CURSOR, v)
-
-    @property
-    def is_adjusting_selection(self): return self.state.is_active(AppState.ADJUSTING_SELECTION)
-    @is_adjusting_selection.setter
-    def is_adjusting_selection(self, v): self.state.set_active(AppState.ADJUSTING_SELECTION, v)
-
-    @property
-    def is_programmatically_changing_text(self): return self.state.is_active(AppState.PROGRAMMATIC_TEXT_CHANGE)
-    @is_programmatically_changing_text.setter
-    def is_programmatically_changing_text(self, v): self.state.set_active(AppState.PROGRAMMATIC_TEXT_CHANGE, v)
-
-    @property
-    def is_restart_in_progress(self): return self.state.is_active(AppState.RESTART_IN_PROGRESS)
-    @is_restart_in_progress.setter
-    def is_restart_in_progress(self, v): self.state.set_active(AppState.RESTART_IN_PROGRESS, v)
-
-    @property
-    def is_closing(self): return self.state.is_active(AppState.CLOSING)
-    @is_closing.setter
-    def is_closing(self, v): self.state.set_active(AppState.CLOSING, v)
-
-    @property
-    def is_loading_data(self): return self.state.is_active(AppState.LOADING_DATA)
-    @is_loading_data.setter
-    def is_loading_data(self, v): self.state.set_active(AppState.LOADING_DATA, v)
-
-    @property
-    def is_saving_data(self): return self.state.is_active(AppState.SAVING_DATA)
-    @is_saving_data.setter
-    def is_saving_data(self, v): self.state.set_active(AppState.SAVING_DATA, v)
-
-    @property
-    def is_reverting_data(self): return self.state.is_active(AppState.REVERTING_DATA)
-    @is_reverting_data.setter
-    def is_reverting_data(self, v): self.state.set_active(AppState.REVERTING_DATA, v)
-
-    @property
-    def is_reloading_data(self): return self.state.is_active(AppState.RELOADING_DATA)
-    @is_reloading_data.setter
-    def is_reloading_data(self, v): self.state.set_active(AppState.RELOADING_DATA, v)
-
-    @property
-    def is_pasting_block(self): return self.state.is_active(AppState.PASTING_BLOCK)
-    @is_pasting_block.setter
-    def is_pasting_block(self, v): self.state.set_active(AppState.PASTING_BLOCK, v)
-
-    @property
-    def is_undoing_paste(self): return self.state.is_active(AppState.UNDOING_PASTE)
-    @is_undoing_paste.setter
-    def is_undoing_paste(self, v): self.state.set_active(AppState.UNDOING_PASTE, v)
-
-    @property
-    def is_auto_fixing(self): return self.state.is_active(AppState.AUTO_FIXING)
-    @is_auto_fixing.setter
-    def is_auto_fixing(self, v): self.state.set_active(AppState.AUTO_FIXING, v)
+    # --- State Properties (Proxy to StateManager via Descriptors) ---
+    is_adjusting_cursor = StateProperty(AppState.ADJUSTING_CURSOR)
+    is_adjusting_selection = StateProperty(AppState.ADJUSTING_SELECTION)
+    is_programmatically_changing_text = StateProperty(AppState.PROGRAMMATIC_TEXT_CHANGE)
+    is_restart_in_progress = StateProperty(AppState.RESTART_IN_PROGRESS)
+    is_closing = StateProperty(AppState.CLOSING)
+    is_loading_data = StateProperty(AppState.LOADING_DATA)
+    is_saving_data = StateProperty(AppState.SAVING_DATA)
+    is_reverting_data = StateProperty(AppState.REVERTING_DATA)
+    is_reloading_data = StateProperty(AppState.RELOADING_DATA)
+    is_pasting_block = StateProperty(AppState.PASTING_BLOCK)
+    is_undoing_paste = StateProperty(AppState.UNDOING_PASTE)
+    is_auto_fixing = StateProperty(AppState.AUTO_FIXING)
 
 
 
@@ -438,76 +423,21 @@ class MainWindow(QMainWindow):
                 return True, result
         return False, 0
 
-    # --- Settings Properties ---
-    @property
-    def current_font_size(self): return self.settings_manager.get('font_size', DEFAULT_APP_FONT_SIZE)
-    @current_font_size.setter
-    def current_font_size(self, val): self.settings_manager.set('font_size', val)
-
-    @property
-    def active_game_plugin(self): return self.settings_manager.get('active_game_plugin', "zelda_mc")
-    @active_game_plugin.setter
-    def active_game_plugin(self, val): self.settings_manager.set('active_game_plugin', val)
-
-    @property
-    def show_multiple_spaces_as_dots(self): return self.settings_manager.get('show_multiple_spaces_as_dots', True)
-    @show_multiple_spaces_as_dots.setter
-    def show_multiple_spaces_as_dots(self, val): self.settings_manager.set('show_multiple_spaces_as_dots', val)
-
-    @property
-    def theme(self): return self.settings_manager.get('theme', "auto")
-    @theme.setter
-    def theme(self, val): self.settings_manager.set('theme', val)
-
-    @property
-    def restore_unsaved_on_startup(self): return self.settings_manager.get('restore_unsaved_on_startup', False)
-    @restore_unsaved_on_startup.setter
-    def restore_unsaved_on_startup(self, val): self.settings_manager.set('restore_unsaved_on_startup', val)
-
-    @property
-    def game_dialog_max_width_pixels(self): return self.settings_manager.get('game_dialog_max_width_pixels', DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS)
-    @game_dialog_max_width_pixels.setter
-    def game_dialog_max_width_pixels(self, val): self.settings_manager.set('game_dialog_max_width_pixels', val)
-
-    @property
-    def line_width_warning_threshold_pixels(self): return self.settings_manager.get('line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
-    @line_width_warning_threshold_pixels.setter
-    def line_width_warning_threshold_pixels(self, val): self.settings_manager.set('line_width_warning_threshold_pixels', val)
-
-    @property
-    def show_width_guideline(self): return self.settings_manager.get('show_width_guideline', True)
-    @show_width_guideline.setter
-    def show_width_guideline(self, val): self.settings_manager.set('show_width_guideline', val)
-
-    @property
-    def show_archive_size_warnings(self): return self.settings_manager.get('show_archive_size_warnings', True)
-    @show_archive_size_warnings.setter
-    def show_archive_size_warnings(self, val): self.settings_manager.set('show_archive_size_warnings', val)
-
-    @property
-    def tree_font_size(self): return self.settings_manager.get('tree_font_size', self.current_font_size)
-    @tree_font_size.setter
-    def tree_font_size(self, val): self.settings_manager.set('tree_font_size', val)
-
-    @property
-    def preview_font_size(self): return self.settings_manager.get('preview_font_size', self.current_font_size)
-    @preview_font_size.setter
-    def preview_font_size(self, val): self.settings_manager.set('preview_font_size', val)
-
-    @property
-    def editors_font_size(self): return self.settings_manager.get('editors_font_size', self.current_font_size)
-    @editors_font_size.setter
-    def editors_font_size(self, val): self.settings_manager.set('editors_font_size', val)
-
-    @property
-    def tooltip_font_size(self): return self.settings_manager.get('tooltip_font_size', 11)
-    @tooltip_font_size.setter
-    def tooltip_font_size(self, val): self.settings_manager.set('tooltip_font_size', val)
-
-    @property
-    def external_script_path(self): return self.settings_manager.get('external_script_path', "")
-    @external_script_path.setter
-    def external_script_path(self, val): self.settings_manager.set('external_script_path', val)
+    # --- Settings Properties (Proxy to SettingsManager via Descriptors) ---
+    current_font_size = SettingsProperty('font_size', DEFAULT_APP_FONT_SIZE)
+    active_game_plugin = SettingsProperty('active_game_plugin', "zelda_mc")
+    show_multiple_spaces_as_dots = SettingsProperty('show_multiple_spaces_as_dots', True)
+    theme = SettingsProperty('theme', "auto")
+    restore_unsaved_on_startup = SettingsProperty('restore_unsaved_on_startup', False)
+    game_dialog_max_width_pixels = SettingsProperty('game_dialog_max_width_pixels', DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS)
+    line_width_warning_threshold_pixels = SettingsProperty('line_width_warning_threshold_pixels', DEFAULT_LINE_WIDTH_WARNING_THRESHOLD)
+    show_width_guideline = SettingsProperty('show_width_guideline', True)
+    show_archive_size_warnings = SettingsProperty('show_archive_size_warnings', True)
+    tree_font_size = SettingsProperty('tree_font_size', lambda inst: inst.current_font_size)
+    preview_font_size = SettingsProperty('preview_font_size', lambda inst: inst.current_font_size)
+    editors_font_size = SettingsProperty('editors_font_size', lambda inst: inst.current_font_size)
+    tooltip_font_size = SettingsProperty('tooltip_font_size', 11)
+    external_script_path = SettingsProperty('external_script_path', "")
 
     @property
     def main_splitter_state(self) -> Optional[str]:

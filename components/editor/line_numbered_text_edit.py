@@ -736,8 +736,11 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
         dialog = MassWidthDialog(main_window)
         if dialog.exec():
-            width = dialog.get_width()
-            main_window.string_settings_handler.apply_width_to_lines(real_indices, width)
+            if dialog.is_auto_width():
+                main_window.string_settings_handler.apply_auto_width_from_original_to_lines(real_indices)
+            else:
+                width = dialog.get_width()
+                main_window.string_settings_handler.apply_width_to_lines(real_indices, width)
 
 
     @property

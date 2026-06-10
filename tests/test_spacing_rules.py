@@ -501,3 +501,33 @@ def test_autofix_visible_tag_as_word(mc_rules):
     assert fixed3 == "і використовуй за допомогою\n{F:бомблінги} або"
 
 
+def test_get_line_words_and_visible_tags_width_tags(bmg_rules):
+    from utils.utils import get_line_words_and_visible_tags
+    from plugins.zelda_bmg.config import PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    
+    # 1. Check get_line_words_and_visible_tags output directly
+    mw = MockMainWindow()
+    # Let's map [L-Stick] to {escape:0:0008}
+    mw.default_tag_mappings = {"[L-Stick]": "{escape:0:0008}"}
+    
+    words_stick = get_line_words_and_visible_tags("{escape:0:0008}", mw)
+    assert words_stick == ["visibleword"]
+    
+    words_player = get_line_words_and_visible_tags("{PLAYER}", mw)
+    assert words_player == ["visibleword"]
+    
+    words_var = get_line_words_and_visible_tags("{var:0}", mw)
+    assert words_var == ["visibleword"]
+    
+    words_color = get_line_words_and_visible_tags("{COLOR_RED}", mw)
+    assert words_color == [] # Color tags have 0 width and should be stripped
+    
+    # 2. Check that it triggers PROBLEM_SINGLE_WORD_SUBLINE_NON_START warning when standing alone
+    bmg_rules.mw.default_tag_mappings = {"[L-Stick]": "{escape:0:0008}"}
+    bmg_rules.mw.lines_per_page = 4
+    
+    text = "настінних\n{escape:0:0008}"
+    problems = bmg_rules.problem_analyzer.analyze_data_string(text, {}, 1000)
+    assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START in problems[1]
+
+
