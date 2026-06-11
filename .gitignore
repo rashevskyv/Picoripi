@@ -28,6 +28,8 @@ session_state.json
 tmp_benchmark.py
 *.bak
 *.migrated
+resources/spellchecker/spell_cache.json
+
 
 # Exclude temporary game rule rulesets and plugins
 /plugins/ENG/

@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.007] - 2026-06-11
+
+### 🔄 Changed
+- **Git Ignore Spellchecker Cache**: Excluded the dynamic Hunspell spellchecker cache (`resources/spellchecker/spell_cache.json`) from Git tracking and added it to `.gitignore` to prevent unnecessary large binary diff commits and history pollution.
+
 ## [0.3.006] - 2026-06-11
 
 ### 🚀 Added
