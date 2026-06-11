@@ -57,7 +57,7 @@ def test_UIUpdater_get_item_id(updater):
     from PyQt6.QtCore import Qt
     item = QTreeWidgetItem(["Test"])
     item.setData(0, Qt.UserRole, 1)
-    result = updater._get_item_id(item)
+    result = updater.block_list_updater._get_item_id(item)
     assert result == "block_1"
 
 def test_UIUpdater_highlight_glossary_occurrence(updater):
@@ -76,7 +76,7 @@ def test_UIUpdater_get_aggregated_problems_for_block(updater):
         (0, 0, 0): {"prob1", "prob2"}
     }
     updater.mw.detection_enabled = {"prob1": True, "prob2": False}
-    result = updater._get_aggregated_problems_for_block(0)
+    result = updater.block_list_updater._get_aggregated_problems_for_block(0)
     assert result.get("prob1") == 1
     assert result.get("prob2") == 0
 
@@ -89,7 +89,7 @@ def test_UIUpdater_create_block_tree_item(updater):
     updater.mw.data_store.problems_per_subline = {}
     updater.mw.current_game_rules = MagicMock()
     updater.mw.project_manager = None
-    item = updater._create_block_tree_item(0, {})
+    item = updater.block_list_updater._create_block_tree_item(0, {})
     assert item == mock_item
 
 def test_UIUpdater_add_virtual_folder_to_tree(updater):
@@ -104,7 +104,7 @@ def test_UIUpdater_add_virtual_folder_to_tree(updater):
     folder.is_expanded = False
     folder.children = []
     folder.block_ids = []
-    updater._add_virtual_folder_to_tree(updater.mw.block_list_widget.invisibleRootItem(), folder, {}, None)
+    updater.block_list_updater._add_virtual_folder_to_tree(updater.mw.block_list_widget.invisibleRootItem(), folder, {}, None)
 
 def test_UIUpdater_populate_blocks(updater):
     from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
@@ -167,7 +167,7 @@ def test_UIUpdater_apply_highlights_for_block(updater, mock_mw):
     }
     
     mock_mw.list_selection_handler._data_string_has_any_problem.side_effect = lambda b, r: r == 1
-    updater._apply_highlights_for_block(0)
+    updater.preview_updater._apply_highlights_for_block(0)
     
     mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
     mock_mw.preview_text_edit.addProblemLineHighlight.assert_called_once_with(1)
@@ -189,7 +189,7 @@ def test_UIUpdater_apply_highlights_to_editor(updater, mock_mw):
         (0, 0, 1): {"P2"}
     }
     
-    updater._apply_highlights_to_editor(editor, 0, 0)
+    updater.preview_updater._apply_highlights_to_editor(editor, 0, 0)
     
     editor.highlightManager.clearAllProblemHighlights.assert_called_once()
     editor.highlightManager.addCriticalProblemHighlight.assert_called_once_with(0)
@@ -198,14 +198,14 @@ def test_UIUpdater_apply_highlights_to_editor(updater, mock_mw):
 def test_UIUpdater_apply_highlights_for_block_no_edit(updater, mock_mw):
     """Early return when preview_edit is None."""
     mock_mw.preview_text_edit = None
-    updater._apply_highlights_for_block(0)  # should not raise
+    updater.preview_updater._apply_highlights_for_block(0)  # should not raise
 
 def test_UIUpdater_apply_highlights_for_block_no_rules(updater, mock_mw):
     """Early return when current_game_rules is None."""
     mock_mw.preview_text_edit = MagicMock()
     del mock_mw.preview_text_edit.highlightManager  # no highlightManager
     mock_mw.current_game_rules = MagicMock()
-    updater._apply_highlights_for_block(0)
+    updater.preview_updater._apply_highlights_for_block(0)
 
 def test_UIUpdater_apply_highlights_for_block_out_of_range(updater, mock_mw):
     """Early return when block_idx is out of range."""
@@ -213,7 +213,7 @@ def test_UIUpdater_apply_highlights_for_block_out_of_range(updater, mock_mw):
     mock_mw.preview_text_edit.highlightManager = MagicMock()
     mock_mw.current_game_rules = MagicMock()
     mock_mw.data = [["s1"]]
-    updater._apply_highlights_for_block(5)  # out of range
+    updater.preview_updater._apply_highlights_for_block(5)  # out of range
     mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
     mock_mw.preview_text_edit.addProblemLineHighlight.assert_not_called()
 
@@ -225,7 +225,7 @@ def test_UIUpdater_apply_highlights_for_block_with_no_displayed_indices(updater,
     mock_mw.data = [["s1", "s2"]]
     mock_mw.displayed_string_indices = []  # empty, should auto use all
     mock_mw.list_selection_handler._data_string_has_any_problem.return_value = False
-    updater._apply_highlights_for_block(0)
+    updater.preview_updater._apply_highlights_for_block(0)
     mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
 
 def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw):
@@ -255,19 +255,19 @@ def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw)
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
     
-    updater._apply_highlights_for_block(0)
+    updater.preview_updater._apply_highlights_for_block(0)
     # MUST call setCategorizedLineHighlights when data_store.highlight_categorized is True
     mock_mw.preview_text_edit.highlightManager.setCategorizedLineHighlights.assert_called_once()
 
 def test_UIUpdater_apply_highlights_to_editor_no_editor(updater, mock_mw):
     """Early return when editor is None."""
-    updater._apply_highlights_to_editor(None, 0, 0)  # should not raise
+    updater.preview_updater._apply_highlights_to_editor(None, 0, 0)  # should not raise
 
 def test_UIUpdater_apply_highlights_to_editor_negative_idx(updater, mock_mw):
     """Early return when block_idx or string_idx is negative."""
     editor = MagicMock()
     editor.highlightManager = MagicMock()
-    updater._apply_highlights_to_editor(editor, -1, 0)
+    updater.preview_updater._apply_highlights_to_editor(editor, -1, 0)
     editor.highlightManager.clearAllProblemHighlights.assert_called_once()
     editor.document.assert_not_called()  # should not proceed
 
@@ -286,11 +286,11 @@ def test_UIUpdater_apply_highlights_to_editor_with_empty_subline_problem(updater
     mock_mw.current_game_rules.problem_ids = problem_ids
     mock_mw.problems_per_subline = {(0, 0, 0): {"PEOS"}}
     
-    updater._apply_highlights_to_editor(editor, 0, 0)
+    updater.preview_updater._apply_highlights_to_editor(editor, 0, 0)
     editor.highlightManager.addEmptyOddSublineHighlight.assert_called_once_with(0)
 
 def test_UIUpdater_get_all_categorized_indices_for_block(updater, mock_mw):
-    assert updater._get_all_categorized_indices_for_block(-1) == set()
+    assert updater.preview_updater._get_all_categorized_indices_for_block(-1) == set()
     
     pm = MagicMock()
     proj = MagicMock()
@@ -303,7 +303,7 @@ def test_UIUpdater_get_all_categorized_indices_for_block(updater, mock_mw):
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
     
-    assert updater._get_all_categorized_indices_for_block(0) == {0, 1, 2}
+    assert updater.preview_updater._get_all_categorized_indices_for_block(0) == {0, 1, 2}
 
 @patch.object(PreviewUpdater, 'update_text_views')
 @patch.object(PreviewUpdater, '_apply_highlights_for_block')

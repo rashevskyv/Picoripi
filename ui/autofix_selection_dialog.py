@@ -8,15 +8,17 @@ from typing import Dict, Any, Set
 
 class AutofixSelectionDialog(QDialog):
     def __init__(self, problem_definitions: Dict[str, Dict[str, Any]], active_autofixes: Dict[str, bool], parent=None):
-        super().__init__(parent)
+        from PyQt6.QtWidgets import QWidget
+        parent_widget = parent if isinstance(parent, QWidget) else None
+        super().__init__(parent_widget)
         self.setWindowTitle("Selective Auto-Fix")
-        self.resize(450, 400)
-        self.setMinimumWidth(350)
+        self.setMinimumWidth(450)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         self.problem_definitions = problem_definitions
         self.active_autofixes = active_autofixes
         self.checkboxes: Dict[str, QCheckBox] = {}
+        self.mw = parent
 
         self._setup_ui()
 
@@ -85,6 +87,24 @@ class AutofixSelectionDialog(QDialog):
         scroll.setWidget(scroll_content)
         layout.addWidget(scroll)
 
+        # Align sentences checkbox
+        self.align_sentences_checkbox = QCheckBox("Align sentences to original page layout")
+        self.align_sentences_checkbox.setToolTip("Align translation sentences structure and pages matching original layout.")
+        if self.mw and hasattr(self.mw, 'align_sentences_to_original_pages'):
+            self.align_sentences_checkbox.setChecked(self.mw.align_sentences_to_original_pages)
+        else:
+            self.align_sentences_checkbox.setChecked(False)
+        layout.addWidget(self.align_sentences_checkbox)
+
+        # Prevent adding empty lines checkbox
+        self.prevent_empty_lines_checkbox = QCheckBox("Prevent adding empty padding lines during pagination")
+        self.prevent_empty_lines_checkbox.setToolTip("Do not add empty padding lines at the end of pages to fill remaining space.")
+        if self.mw and hasattr(self.mw, 'prevent_empty_lines_in_autofix'):
+            self.prevent_empty_lines_checkbox.setChecked(self.mw.prevent_empty_lines_in_autofix)
+        else:
+            self.prevent_empty_lines_checkbox.setChecked(False)
+        layout.addWidget(self.prevent_empty_lines_checkbox)
+
         # Selection helpers
         helper_layout = QHBoxLayout()
         select_all_btn = QPushButton("Select All")
@@ -111,6 +131,8 @@ class AutofixSelectionDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
 
+        self.adjustSize()
+
     def _select_all(self):
         for cb in self.checkboxes.values():
             cb.setChecked(True)
@@ -118,6 +140,15 @@ class AutofixSelectionDialog(QDialog):
     def _select_none(self):
         for cb in self.checkboxes.values():
             cb.setChecked(False)
+
+    def accept(self):
+        if self.mw and hasattr(self.mw, 'align_sentences_to_original_pages'):
+            self.mw.align_sentences_to_original_pages = self.align_sentences_checkbox.isChecked()
+        if self.mw and hasattr(self.mw, 'prevent_empty_lines_in_autofix'):
+            self.mw.prevent_empty_lines_in_autofix = self.prevent_empty_lines_checkbox.isChecked()
+        if self.mw and hasattr(self.mw, 'settings_manager') and hasattr(self.mw.settings_manager, 'plugin_settings'):
+            self.mw.settings_manager.plugin_settings.save()
+        super().accept()
 
     def get_selected_problems(self) -> Set[str]:
         return {pid for pid, cb in self.checkboxes.items() if cb.isChecked()}

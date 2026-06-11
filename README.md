@@ -1,6 +1,6 @@
-# Picoripi v0.3.002
+# Picoripi v0.3.003
  
-The **Picoripi** (v0.3.002) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.003) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -46,6 +46,8 @@ The **Picoripi** (v0.3.002) is a visual translation and localization workbench b
   - Introduces a light-blue warning (`QColor(173, 216, 230, 150)`) for missing spacing around physical icon/button tags (e.g., `{(A)}`, `[(A)]`, or tags with positive widths).
   - Intelligently ignores adjacent punctuation (`.`, `,`, `!`, `?`, `-`, `:`, `;`) so warnings only trigger when tags directly merge with alphanumeric characters.
   - Includes full, project-wide Auto-fix capabilities and configurable toggles in Global Settings.
+- **Prevent Empty Padding Lines in Auto-Fix**: Added a configurable option in Global Settings and the Ctrl+AutoFix dialog to completely omit trailing blank lines on page boundaries when wrapping or paginating, preventing unwanted empty padding lines from being generated.
+- **Unconditional Page Layout Sentence Alignment**: Refactored sentence wrapping to allow matching target text pages directly with the source. When enabled, it strips old layout markers and replicates exact game-specific page break codes (like `[escape:0:0007...]`) from matching source sentences.
 
 ---
 

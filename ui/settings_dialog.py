@@ -309,6 +309,10 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         if hasattr(self, 'align_sentences_checkbox'):
             self.align_sentences_checkbox.setChecked(align_sentences)
 
+        prevent_empty_lines = getattr(self.mw, 'prevent_empty_lines_in_autofix', False)
+        if hasattr(self, 'prevent_empty_lines_checkbox'):
+            self.prevent_empty_lines_checkbox.setChecked(prevent_empty_lines)
+
         self.translation_presets = getattr(self.mw, 'translation_presets', {}).copy()
         current_preset = getattr(self.mw, 'current_translation_preset', 'default')
 
@@ -480,6 +484,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'lines_per_page': self.lines_per_page_spinbox.value(),
             'autofix_enabled': autofix_settings,
             'align_sentences_to_original_pages': self.align_sentences_checkbox.isChecked() if hasattr(self, 'align_sentences_checkbox') else False,
+            'prevent_empty_lines_in_autofix': self.prevent_empty_lines_checkbox.isChecked() if hasattr(self, 'prevent_empty_lines_checkbox') else False,
             'translation_config': translation_config_to_save,
             'translation_presets': self.translation_presets,
             'current_translation_preset': self.translation_preset_combo.currentData(),

@@ -43,6 +43,7 @@ from handlers.translation_handler import TranslationHandler
 from handlers.text_analysis_handler import TextAnalysisHandler
 from handlers.ai_chat_handler import AIChatHandler
 from handlers.bookmark_handler import BookmarkHandler
+from handlers.saved_translations_handler import SavedTranslationsHandler
 
 from core.settings_manager import SettingsManager
 from core.data_state_processor import DataStateProcessor
@@ -264,6 +265,7 @@ class MainWindow(QMainWindow):
         self.text_analysis_handler = TextAnalysisHandler(self, self.data_processor, self.ui_updater)
         self.ai_chat_handler = AIChatHandler(self, self.data_processor, self.ui_updater)
         self.bookmark_handler = BookmarkHandler(self, self.data_processor, self.ui_updater)
+        self.saved_translations_handler = SavedTranslationsHandler(self, self.data_processor, self.ui_updater)
 
     def _init_ui(self) -> None:
         # UI Attributes (placeholders for setup_main_window_ui)
@@ -540,6 +542,66 @@ class MainWindow(QMainWindow):
         
         handler = GlossaryBuilderHandler(self)
         handler.build_glossary_for_block(target_block_idx, category_name)
+
+    def show_message(self, title: str, text: str, type: str = "info") -> None:
+        from PyQt6.QtWidgets import QMessageBox
+        if type == "error":
+            QMessageBox.critical(self, title, text)
+        elif type == "warning":
+            QMessageBox.warning(self, title, text)
+        else:
+            QMessageBox.information(self, title, text)
+
+    def ask_yes_no(self, title: str, text: str, default_yes: bool = True) -> bool:
+        from PyQt6.QtWidgets import QMessageBox
+        default_button = QMessageBox.StandardButton.Yes if default_yes else QMessageBox.StandardButton.No
+        reply = QMessageBox.question(
+            self, title, text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            default_button
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
+    def show_archive_size_warning(self, archive_rel_path: str, new_size: int, orig_size: int) -> None:
+        if not getattr(self, 'show_archive_size_warnings', True):
+            return
+        from PyQt6.QtWidgets import QMessageBox, QCheckBox
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Warning)
+        msg_box.setWindowTitle("Archive Size Warning")
+        msg_box.setText(
+            f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
+            f"exceeds the original archive size ({orig_size} bytes).\n\n"
+            f"This may lead to game crashes, text truncation, or corruption when importing the file into the ROM.\n\n"
+            f"Please shorten your translation strings in this archive to reduce its size."
+        )
+        cb = QCheckBox("Do not show this warning in the future", msg_box)
+        msg_box.setCheckBox(cb)
+        msg_box.exec()
+        if cb.isChecked():
+            self.show_archive_size_warnings = False
+            self.settings_manager.save_settings()
+
+    def create_progress_tracker(self, title: str, message: str, max_val: int) -> Any:
+        from PyQt6.QtWidgets import QProgressDialog
+        from PyQt6.QtCore import Qt
+        class UIProgressTracker:
+            def __init__(self, parent, title_str, msg_str, val_max):
+                self.dialog = QProgressDialog(msg_str, "Cancel", 0, val_max, parent)
+                self.dialog.setWindowTitle(title_str)
+                self.dialog.setWindowModality(Qt.WindowModality.WindowModal)
+                self.dialog.setMinimumDuration(500)
+                self.dialog.setValue(0)
+
+            def set_value(self, val: int):
+                self.dialog.setValue(val)
+                from PyQt6.QtWidgets import QApplication
+                QApplication.processEvents()
+
+            def was_canceled(self) -> bool:
+                return self.dialog.wasCanceled()
+        
+        return UIProgressTracker(self, title, message, max_val)
 
 
 def global_exception_handler(exc_type, exc_value, exc_traceback):

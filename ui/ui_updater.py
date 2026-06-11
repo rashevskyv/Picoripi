@@ -27,24 +27,8 @@ class UIUpdater:
     def apply_tree_state(self, state: dict):
         self.block_list_updater.apply_tree_state(state)
 
-    def _get_item_id(self, item) -> str:
-        return self.block_list_updater._get_item_id(item)
-
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         self.preview_updater.highlight_glossary_occurrence(occurrence)
-
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None) -> dict:
-        return self.block_list_updater._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts, category_name, chapter_id)
-
-
-    def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
-        self.block_list_updater._apply_issues_and_tooltip(item, base_display_name, problem_counts, problem_definitions)
-
-    def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
-        return self.block_list_updater._create_block_tree_item(block_idx, problem_definitions, pre_aggregated_counts)
-
-    def _add_virtual_folder_to_tree(self, parent_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts: dict = None, folder_id_to_select=None):
-        self.block_list_updater._add_virtual_folder_to_tree(parent_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts, folder_id_to_select)
 
     def populate_blocks(self, override_folder_id=None, override_block_idx=None):
         self.block_list_updater.populate_blocks(override_folder_id, override_block_idx)
@@ -61,18 +45,14 @@ class UIUpdater:
     def clear_status_bar(self):
         self.title_status_bar_updater.clear_status_bar()
 
-
     def synchronize_original_cursor(self):
         self.preview_updater.synchronize_original_cursor()
-
 
     def highlight_problem_block(self, block_idx: int, highlight: bool, is_critical: bool = True):
         self.block_list_updater.highlight_problem_block(block_idx, highlight, is_critical)
 
-
     def clear_all_problem_block_highlights_and_text(self): 
         self.block_list_updater.clear_all_problem_block_highlights_and_text()
-
             
     def update_title(self):
         self.title_status_bar_updater.update_title()
@@ -83,18 +63,8 @@ class UIUpdater:
     def update_statusbar_paths(self):
         self.title_status_bar_updater.update_statusbar_paths()
 
-    def _apply_highlights_for_block(self, block_idx: int):
-        self.preview_updater._apply_highlights_for_block(block_idx)
-
-    def _apply_highlights_to_editor(self, editor, block_idx: int, string_idx: int):
-        self.preview_updater._apply_highlights_to_editor(editor, block_idx, string_idx)
-
-    def _get_all_categorized_indices_for_block(self, block_idx: int) -> set:
-        return self.preview_updater._get_all_categorized_indices_for_block(block_idx)
-
     def populate_strings_for_block(self, block_idx, category_name=None, force=False):
         self.preview_updater.populate_strings_for_block(block_idx, category_name, force)
-
             
     def update_text_views(self): 
         self.preview_updater.update_text_views()

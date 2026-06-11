@@ -240,9 +240,6 @@ class TextFixer(GenericTextFixer):
         if is_allowed(PROBLEM_WIDTH_EXCEEDED):
             modified_text, changed3 = self._fix_width_exceeded_generic(modified_text, editor_font_map, logical_hard_limit)
         
-        if has_single_word_allowed:
-            modified_text, changed_orphans = self._fix_single_word_orphans_generic(modified_text)
-        
         if is_allowed(PROBLEM_BAD_SPACING):
             modified_text, changed4 = self._cleanup_spaces_around_tags_zmc(modified_text)
             modified_text, changed5 = self._fix_leading_spaces_in_sublines_zmc(modified_text)
@@ -277,6 +274,10 @@ class TextFixer(GenericTextFixer):
                 original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
 
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        cleaned_text, changed_shift = self._shift_split_sentences(cleaned_text, lines_per_page, original_message_text)
+        cleaned_text, changed_shift = self._shift_split_sentences(cleaned_text, lines_per_page, original_message_text, block_idx=block_idx, string_idx=string_idx)
         
+        changed_orphans = False
+        if has_single_word_allowed:
+            cleaned_text, changed_orphans = self._fix_single_word_orphans_generic(cleaned_text)
+
         return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing or changed_orphans or changed_shift)

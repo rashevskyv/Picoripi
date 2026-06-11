@@ -133,9 +133,8 @@ def test_revert_strings_to_original(dsp, mock_mw):
     mock_mw.ui_updater.update_text_views.assert_called()
 
 
-@patch("core.data_state_processor.QMessageBox.question")
-def test_perform_revert_strings_confirm_no(mock_qmb, dsp, mock_mw):
-    mock_qmb.return_value = QMessageBox.StandardButton.No
+def test_perform_revert_strings_confirm_no(dsp, mock_mw):
+    mock_mw.ui_provider.ask_yes_no.return_value = False
     
     mock_mw.edited_data = {(0, 0): "changed"}
     dsp.perform_revert_strings(0, [0])
@@ -144,9 +143,8 @@ def test_perform_revert_strings_confirm_no(mock_qmb, dsp, mock_mw):
     assert (0, 0) in mock_mw.edited_data
 
 
-@patch("core.data_state_processor.QMessageBox.question")
-def test_perform_revert_strings_confirm_yes(mock_qmb, dsp, mock_mw):
-    mock_qmb.return_value = QMessageBox.StandardButton.Yes
+def test_perform_revert_strings_confirm_yes(dsp, mock_mw):
+    mock_mw.ui_provider.ask_yes_no.return_value = True
     mock_mw.edited_data = {(0, 0): "changed"}
     
     dsp.perform_revert_strings(0, [0])
@@ -165,9 +163,8 @@ def test_revert_blocks_to_original(dsp, mock_mw):
     mock_mw.undo_manager.end_group.assert_called_with("REVERT_BLOCKS")
 
 
-@patch("core.data_state_processor.QMessageBox.information")
 @patch("core.data_state_processor.save_json_file")
-def test_save_current_edits_no_project(mock_save, mock_info, dsp, mock_mw):
+def test_save_current_edits_no_project(mock_save, dsp, mock_mw):
     mock_mw.unsaved_changes = True
     mock_mw.edited_data = {(0, 0): "edited_0_0"}
     mock_save.return_value = True
@@ -183,19 +180,16 @@ def test_save_current_edits_no_project(mock_save, mock_info, dsp, mock_mw):
     mock_mw.current_game_rules.load_data_from_json_obj.assert_called()
 
 
-@patch("core.data_state_processor.QMessageBox.information")
-def test_save_current_edits_no_changes(mock_info, dsp, mock_mw):
+def test_save_current_edits_no_changes(dsp, mock_mw):
     mock_mw.unsaved_changes = False
     result = dsp.save_current_edits(ask_confirmation=True)
     assert result is True
-    mock_info.assert_called_with(mock_mw, "Save", "No changes to save.")
+    mock_mw.ui_provider.show_message.assert_called_with("Save", "No changes to save.", "info")
 
 
-@patch("core.data_state_processor.QMessageBox.question")
-@patch("core.data_state_processor.QMessageBox.information")
 @patch("core.data_state_processor.save_json_file")
-def test_revert_edited_file_to_original_single_file(mock_save, mock_info, mock_qmb, dsp, mock_mw):
-    mock_qmb.return_value = QMessageBox.StandardButton.Yes
+def test_revert_edited_file_to_original_single_file(mock_save, dsp, mock_mw):
+    mock_mw.ui_provider.ask_yes_no.return_value = True
     mock_save.return_value = True
     
     mock_mw.edited_data = {(0, 0): "changed"}
@@ -206,12 +200,11 @@ def test_revert_edited_file_to_original_single_file(mock_save, mock_info, mock_q
     assert mock_mw.unsaved_changes is False
     assert mock_mw.edited_data == {}
     mock_save.assert_called_once()
-    mock_info.assert_called_once()
+    mock_mw.ui_provider.show_message.assert_called_once()
 
 
-@patch("core.data_state_processor.QMessageBox.information")
 @patch("core.data_state_processor.save_json_file")
-def test_save_current_edits_triggers_issue_cache_save(mock_save, mock_info, dsp, mock_mw):
+def test_save_current_edits_triggers_issue_cache_save(mock_save, dsp, mock_mw):
     mock_mw.unsaved_changes = True
     mock_mw.edited_data = {(0, 0): "edited_0_0"}
     mock_save.return_value = True
@@ -224,9 +217,10 @@ def test_save_current_edits_triggers_issue_cache_save(mock_save, mock_info, dsp,
     mock_mw.issue_scan_handler._save_issues_cache.assert_called_once()
 
 
-@patch("core.data_state_processor.QProgressDialog")
-def test_revert_strings_to_original_with_progress_dialog(mock_dialog, dsp, mock_mw):
-    mock_dialog.return_value.wasCanceled.return_value = False
+def test_revert_strings_to_original_with_progress_dialog(dsp, mock_mw):
+    mock_tracker = MagicMock()
+    mock_tracker.was_canceled.return_value = False
+    mock_mw.ui_provider.create_progress_tracker.return_value = mock_tracker
     
     # Setup many string indices (> 20)
     mock_mw.data_store.data = [["original"] * 25]
@@ -237,10 +231,9 @@ def test_revert_strings_to_original_with_progress_dialog(mock_dialog, dsp, mock_
     
     dsp.revert_strings_to_original(0, string_indices)
     
-    # Progress dialog should be created and updated
-    mock_dialog.assert_called_once()
-    mock_dialog_inst = mock_dialog.return_value
-    mock_dialog_inst.setValue.assert_called()
+    # Progress tracker should be created and updated
+    mock_mw.ui_provider.create_progress_tracker.assert_called_once()
+    mock_tracker.set_value.assert_called()
     
     # Check that update_block_item_text_with_problem_count was called only ONCE in the end (not 25 times!)
     mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(0)
@@ -249,9 +242,10 @@ def test_revert_strings_to_original_with_progress_dialog(mock_dialog, dsp, mock_
     assert mock_mw.edited_data == {}
 
 
-@patch("core.data_state_processor.QProgressDialog")
-def test_revert_blocks_to_original_with_progress_dialog(mock_dialog, dsp, mock_mw):
-    mock_dialog.return_value.wasCanceled.return_value = False
+def test_revert_blocks_to_original_with_progress_dialog(dsp, mock_mw):
+    mock_tracker = MagicMock()
+    mock_tracker.was_canceled.return_value = False
+    mock_mw.ui_provider.create_progress_tracker.return_value = mock_tracker
     
     # Setup data to have a large total string count (> 20)
     mock_mw.data_store.data = [["s"] * 15, ["s"] * 10]
@@ -261,8 +255,8 @@ def test_revert_blocks_to_original_with_progress_dialog(mock_dialog, dsp, mock_m
     
     dsp.revert_blocks_to_original([0, 1])
     
-    # Progress dialog should be created and updated
-    mock_dialog.assert_called_once()
+    # Progress tracker should be created and updated
+    mock_mw.ui_provider.create_progress_tracker.assert_called_once()
     
     # update_block_item_text_with_problem_count should be called once for each block
     mock_mw.ui_updater.update_block_item_text_with_problem_count.assert_any_call(0)
@@ -273,9 +267,10 @@ def test_revert_blocks_to_original_with_progress_dialog(mock_dialog, dsp, mock_m
     assert (1, 0) not in mock_mw.edited_data
 
 
-@patch("core.data_state_processor.QProgressDialog")
-def test_perform_revert_strings_chapter_progress_dialog(mock_dialog, dsp, mock_mw):
-    mock_dialog.return_value.wasCanceled.return_value = False
+def test_perform_revert_strings_chapter_progress_dialog(dsp, mock_mw):
+    mock_tracker = MagicMock()
+    mock_tracker.was_canceled.return_value = False
+    mock_mw.ui_provider.create_progress_tracker.return_value = mock_tracker
     
     # Setup data to have a large total string count (> 20)
     mock_mw.data_store.data = [["s"] * 15, ["s"] * 10]
@@ -292,8 +287,8 @@ def test_perform_revert_strings_chapter_progress_dialog(mock_dialog, dsp, mock_m
     # Call with block_idx=-2 (chapter/multi-block revert)
     dsp.perform_revert_strings(-2, flat_list, confirm=False)
     
-    # Unified progress dialog should be created only once
-    mock_dialog.assert_called_once()
+    # Unified progress tracker should be created only once
+    mock_mw.ui_provider.create_progress_tracker.assert_called_once()
     
     # And data should be completely reverted
     assert mock_mw.edited_data == {}

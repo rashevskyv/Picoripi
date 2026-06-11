@@ -2,7 +2,6 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, List, Any, Union
-from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
     DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,
@@ -63,6 +62,7 @@ class PluginSettings:
             "autofix_enabled": {},
             "detection_enabled": {},
             "align_sentences_to_original_pages": False,
+            "prevent_empty_lines_in_autofix": False,
             "context_menu_tags": {"single_tags": [], "wrap_tags": []}
         }
         for key, value in defaults.items():
@@ -254,6 +254,7 @@ class PluginSettings:
             "detection_enabled": self.mw.detection_enabled,
             "translation_config": self.mw.translation_config,
             "align_sentences_to_original_pages": getattr(self.mw, 'align_sentences_to_original_pages', False),
+            "prevent_empty_lines_in_autofix": getattr(self.mw, 'prevent_empty_lines_in_autofix', False),
             "context_menu_tags": getattr(self.mw, 'context_menu_tags', {"single_tags": [], "wrap_tags": []})
         }
         
@@ -266,7 +267,10 @@ class PluginSettings:
             log_debug(f"Project settings saved to '{project_settings_path}'.")
         except Exception as e:
             log_error(f"ERROR saving project settings to '{project_settings_path}': {e}", exc_info=True)
-            QMessageBox.critical(self.mw, "Save Error", f"Could not save project configuration to\n{project_settings_path}")
+            if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+                self.mw.ui_provider.show_message("Save Error", f"Could not save project configuration to\n{project_settings_path}", type="error")
+            else:
+                log_error(f"Could not save project configuration: UI provider not available.")
 
     def save_block_names(self) -> None:
         project_settings_path = self._get_project_settings_path()

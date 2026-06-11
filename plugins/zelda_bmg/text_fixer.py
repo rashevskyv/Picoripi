@@ -69,7 +69,7 @@ class TextFixer(GenericTextFixer):
                 next_line = new_sub_lines[i+1]
                 
                 # Don't merge if next_line starts with page break or pause control code
-                if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', next_line, re.IGNORECASE):
+                if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', next_line, re.IGNORECASE):
                     i -= 1
                     continue
 
@@ -371,8 +371,6 @@ class TextFixer(GenericTextFixer):
                     autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or
                     autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
                 )
-            if has_single_word_allowed:
-                modified_text, _ = self._fix_single_word_orphans_generic(modified_text)
 
             if is_allowed(PROBLEM_BAD_SPACING):
                 modified_text, _ = self._cleanup_spaces_around_tags_zbmg(modified_text)
@@ -399,8 +397,12 @@ class TextFixer(GenericTextFixer):
                     original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
 
             lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-            final_text, changed_shift = self._shift_split_sentences(modified_text, lines_per_page, original_message_text)
+            final_text, changed_shift = self._shift_split_sentences(modified_text, lines_per_page, original_message_text, block_idx=block_idx, string_idx=string_idx)
+
+            changed_orphans = False
+            if has_single_word_allowed:
+                final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
 
             # Convert aliases back (in case any were present in the original but no {*} triggered star mode)
             final_text = self._from_aliases(final_text)
-            return final_text, (final_text != original_text or changed_missing_spacing or changed_shift)
+            return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_orphans)

@@ -1,4 +1,4 @@
-﻿# components/tree_context_menu_mixin.py
+# components/tree_context_menu_mixin.py
 """Context-menu mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMenu, QStyle, QMessageBox
@@ -81,11 +81,11 @@ class TreeContextMenuMixin:
             rall.setEnabled(has_data)
             rall.triggered.connect(self._revert_all_blocks_to_original)
             
-            stm = getattr(main_window, 'saved_translations_manager', None)
-            if stm:
+            sth = getattr(main_window, 'saved_translations_handler', None)
+            if sth:
                 rst_all = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), "Restore All Translations")
                 rst_all.setEnabled(has_data)
-                rst_all.triggered.connect(lambda: stm.restore_all_saved_translations_action())
+                rst_all.triggered.connect(lambda: sth.restore_all_saved_translations_action())
                 
             menu.exec(self.mapToGlobal(pos))
             return
@@ -518,7 +518,7 @@ class TreeContextMenuMixin:
             for b_idx, s_indices in selected_strings.items():
                 saved_s_indices = [s_idx for s_idx in s_indices if main_window.saved_translations_manager.has_saved_translation(b_idx, s_idx)]
                 if saved_s_indices:
-                    main_window.saved_translations_manager.restore_translations_for_strings(b_idx, saved_s_indices)
+                    main_window.saved_translations_handler.restore_translations_for_strings(b_idx, saved_s_indices)
         finally:
             if has_undo:
                 main_window.undo_manager.end_group("RESTORE_STRINGS")
