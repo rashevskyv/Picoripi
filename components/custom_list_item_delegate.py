@@ -243,7 +243,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
                     problem_definitions = main_window.current_game_rules.get_problem_definitions()
 
-                if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
+                if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, 'block_list_updater') and hasattr(main_window.ui_updater.block_list_updater, '_get_aggregated_problems_for_block'):
                     if is_virtual_row:
                         s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
                         block_problem_counts = {}
@@ -257,7 +257,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                         block_problem_counts = {p_id: 1 for p_id in filtered_problems}
                     else:
                         ch_id = index.data(Qt.ItemDataRole.UserRole + 11)
-                        block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name, chapter_id=ch_id)
+                        block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name, chapter_id=ch_id)
 
 
         # 1. Calculate Problem Colors Early
@@ -634,8 +634,8 @@ class CustomListItemDelegate(QStyledItemDelegate):
         if has_metadata_changes:
             tooltip_lines.append("<b>Custom Layout Settings</b>: Layout settings override applied inside this item.")
             
-        if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, '_get_aggregated_problems_for_block'):
-            block_problem_counts = main_window.ui_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=chapter_id)
+        if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, 'block_list_updater'):
+            block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=chapter_id)
             if problem_definitions and block_problem_counts:
                 sorted_ids = sorted(block_problem_counts.keys(), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))
                 for pid in sorted_ids:

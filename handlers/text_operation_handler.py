@@ -136,7 +136,7 @@ class TextOperationHandler(BaseHandler):
         
         if hasattr(preview_edit, 'highlightManager'):
             preview_edit.highlightManager.clearAllProblemHighlights()
-            self.ui_updater._apply_highlights_for_block(block_idx)
+            self.ui_updater.preview_updater._apply_highlights_for_block(block_idx)
 
             if self.mw.data_store.current_string_idx != -1 and target_indices and self.mw.data_store.current_string_idx in target_indices:
                 preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
@@ -320,7 +320,7 @@ class TextOperationHandler(BaseHandler):
         
         # 3. Apply highlights to editor and trigger rehighlight to ensure everything is perfectly updated
         if edited_edit:
-            self.mw.ui_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx)
+            self.mw.ui_updater.preview_updater._apply_highlights_to_editor(edited_edit, block_idx, string_idx)
             if hasattr(edited_edit, 'highlighter') and edited_edit.highlighter:
                 edited_edit.highlighter.rehighlight()
             if hasattr(edited_edit, 'lineNumberArea'):

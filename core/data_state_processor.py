@@ -1,13 +1,28 @@
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 from pathlib import Path
-from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QCheckBox
 from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_warning, log_error
 
 class DataStateProcessor:
     def __init__(self, main_window: Any):
         self.mw = main_window
+
+    def _show_message(self, title: str, text: str, type: str = "info"):
+        if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+            self.mw.ui_provider.show_message(title, text, type)
+        else:
+            if type == "error":
+                log_error(f"{title}: {text}")
+            elif type == "warning":
+                log_warning(f"{title}: {text}")
+            else:
+                log_info(f"{title}: {text}")
+
+    def _ask_yes_no(self, title: str, text: str, default_yes: bool = True) -> bool:
+        if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+            return self.mw.ui_provider.ask_yes_no(title, text, default_yes)
+        return default_yes
 
     def _get_string_from_source(self, block_idx: int, string_idx: int, source_data: List[Any], source_name: str) -> Optional[str]:
         if not source_data:
@@ -180,17 +195,13 @@ class DataStateProcessor:
             
         show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater') and progress_dialog is None
         progress = progress_dialog
-        if show_progress:
-            from PyQt6.QtCore import Qt
-            progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, len(string_indices), self.mw)
-            progress.setWindowModality(Qt.WindowModality.WindowModal)
-            progress.setMinimumDuration(500)
-            progress.setValue(0)
+        if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+            progress = self.mw.ui_provider.create_progress_tracker("Revert Strings", "Reverting strings to original...", len(string_indices))
 
         processed = 0
         try:
             for i, s_idx in enumerate(string_indices):
-                if progress and progress.wasCanceled():
+                if progress and progress.was_canceled():
                     break
                 
                 # We specifically use self.mw.data_store.data here because "Original" refers to the source text (left panel)
@@ -203,14 +214,12 @@ class DataStateProcessor:
                 processed += 1
                 if progress:
                     if progress_dialog is not None:
-                        progress.setValue(progress_offset + processed)
+                        progress.set_value(progress_offset + processed)
                     else:
-                        progress.setValue(processed)
-                    from PyQt6.QtWidgets import QApplication
-                    QApplication.processEvents()
+                        progress.set_value(processed)
         finally:
             if show_progress and progress:
-                progress.setValue(len(string_indices))
+                progress.set_value(len(string_indices))
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT")
             
@@ -274,7 +283,7 @@ class DataStateProcessor:
                     # Refresh highlights
                     if hasattr(preview_edit, 'highlightManager'):
                         preview_edit.highlightManager.clearAllProblemHighlights()
-                        self.mw.ui_updater._apply_highlights_for_block(block_idx)
+                        self.mw.ui_updater.preview_updater._apply_highlights_for_block(block_idx)
                     
                     # Restore selection
                     if self.mw.data_store.current_string_idx != -1 and self.mw.data_store.current_string_idx in target_indices:
@@ -308,12 +317,9 @@ class DataStateProcessor:
                 msg = f"Revert {num} string(s) in this chapter to original?" if num > 1 else "Revert this string to original?"
             else:
                 msg = f"Revert {num} string(s) in this block to original?" if num > 1 else "Revert this string to original?"
-            reply = QMessageBox.question(
-                self.mw, 'Revert to Original', 
-                msg + "\n\nUnsaved changes for these strings will be lost.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.No: return
+            
+            reply = self._ask_yes_no('Revert to Original', msg + "\n\nUnsaved changes for these strings will be lost.", default_yes=False)
+            if not reply: return
             
         if is_chapter_revert:
             # Group strings by block_idx
@@ -334,23 +340,21 @@ class DataStateProcessor:
             total_strings = len(string_indices)
             show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
             progress = None
-            if show_progress:
-                from PyQt6.QtCore import Qt
-                progress = QProgressDialog("Reverting strings to original...", "Cancel", 0, total_strings, self.mw)
-                progress.setWindowModality(Qt.WindowModality.WindowModal)
-                progress.setMinimumDuration(500)
-                progress.setValue(0)
+            if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+                progress = self.mw.ui_provider.create_progress_tracker(
+                    "Revert Strings", "Reverting strings to original...", total_strings
+                )
                 
             processed = 0
             try:
                 for b_idx, s_indices in grouped.items():
-                    if progress and progress.wasCanceled():
+                    if progress and progress.was_canceled():
                         break
                     p_count = self.revert_strings_to_original(b_idx, s_indices, progress_dialog=progress, progress_offset=processed)
                     processed += p_count
             finally:
                 if show_progress and progress:
-                    progress.setValue(total_strings)
+                    progress.set_value(total_strings)
                 if has_undo:
                     self.mw.undo_manager.end_group("REVERT")
             
@@ -404,22 +408,20 @@ class DataStateProcessor:
                 
         show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
         progress = None
-        if show_progress:
-            from PyQt6.QtCore import Qt
-            progress = QProgressDialog("Reverting blocks to original...", "Cancel", 0, total_strings, self.mw)
-            progress.setWindowModality(Qt.WindowModality.WindowModal)
-            progress.setMinimumDuration(500)
-            progress.setValue(0)
+        if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+            progress = self.mw.ui_provider.create_progress_tracker(
+                "Revert Blocks", "Reverting blocks to original...", total_strings
+            )
 
         processed = 0
         try:
             for b_idx in block_indices:
-                if progress and progress.wasCanceled():
+                if progress and progress.was_canceled():
                     break
                 if 0 <= b_idx < len(self.mw.data_store.data):
                     num_strings = len(self.mw.data_store.data[b_idx])
                     for s_idx in range(num_strings):
-                        if progress and progress.wasCanceled():
+                        if progress and progress.was_canceled():
                             break
                         original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
                         if original_text is not None:
@@ -427,12 +429,10 @@ class DataStateProcessor:
                         
                         processed += 1
                         if progress:
-                            progress.setValue(processed)
-                            from PyQt6.QtWidgets import QApplication
-                            QApplication.processEvents()
+                            progress.set_value(processed)
         finally:
             if progress:
-                progress.setValue(total_strings)
+                progress.set_value(total_strings)
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT_BLOCKS")
             
@@ -450,24 +450,26 @@ class DataStateProcessor:
         if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
             self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
         if not self.mw.data_store.edited_json_path:
-            QMessageBox.warning(self.mw, "Save Error", "Edited file path is not set. Cannot save.")
+            self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
             return False
         if not self.mw.current_game_rules: 
-            QMessageBox.critical(self.mw, "Save Error", "No game plugin active to format the save file.")
+            self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
             return False
         
         if not self.mw.data_store.unsaved_changes:
             log_debug("Save called but no unsaved changes detected. Skipping file write.", category="file_ops")
             if ask_confirmation:
-                QMessageBox.information(self.mw, "Save", "No changes to save.")
+                self._show_message("Save", "No changes to save.", type="info")
             return True
 
         if ask_confirmation:
-            reply = QMessageBox.question(self.mw, 'Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
-            if reply == QMessageBox.StandardButton.No: return False
+            reply = self._ask_yes_no('Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", default_yes=True)
+            if not reply: return False
         
         try:
-            if not self.mw.data_store.data: QMessageBox.critical(self.mw, "Save Error", "Original data not loaded. Cannot save."); return False
+            if not self.mw.data_store.data:
+                self._show_message("Save Error", "Original data not loaded. Cannot save.", type="error")
+                return False
             
             # Build the merged save snapshot WITHOUT a full deep copy.
             #
@@ -769,21 +771,8 @@ class DataStateProcessor:
                                                 category="file_ops"
                                             )
                                             if getattr(self.mw, 'show_archive_size_warnings', True):
-                                                msg_box = QMessageBox(self.mw)
-                                                msg_box.setIcon(QMessageBox.Icon.Warning)
-                                                msg_box.setWindowTitle("Archive Size Warning")
-                                                msg_box.setText(
-                                                    f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
-                                                    f"exceeds the original archive size ({orig_size} bytes).\n\n"
-                                                    f"This may lead to game crashes, text truncation, or corruption when importing the file into the ROM.\n\n"
-                                                    f"Please shorten your translation strings in this archive to reduce its size."
-                                                )
-                                                cb = QCheckBox("Do not show this warning in the future", msg_box)
-                                                msg_box.setCheckBox(cb)
-                                                msg_box.exec()
-                                                if cb.isChecked():
-                                                    self.mw.show_archive_size_warnings = False
-                                                    self.mw.settings_manager.save_settings()
+                                                if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+                                                    self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
                                 except Exception as size_err:
                                     log_error(f"Error checking archive size: {size_err}", category="file_ops")
 
@@ -800,7 +789,7 @@ class DataStateProcessor:
                                 pack_errors.append(f"{archive_rel_path}: {archive_err}")
                                 
                         if pack_errors:
-                            QMessageBox.warning(self.mw, "Archive Pack Warning", f"Failed to pack some archives natively:\n" + "\n".join(pack_errors))
+                            self._show_message("Archive Pack Warning", f"Failed to pack some archives natively:\n" + "\n".join(pack_errors), type="warning")
 
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
@@ -811,7 +800,8 @@ class DataStateProcessor:
                     # Don't reload entire project to avoid freezing on full issue recalculation
                     self.mw.data_store.edited_file_data = output_data_list
 
-                    if ask_confirmation: QMessageBox.information(self.mw, "Project Saved", "All project translation files saved successfully.")
+                    if ask_confirmation:
+                        self._show_message("Project Saved", "All project translation files saved successfully.", type="info")
                     
                     if hasattr(self.mw, 'issue_scan_handler'):
                         self.mw.issue_scan_handler._save_issues_cache()
@@ -837,7 +827,7 @@ class DataStateProcessor:
                         save_file_success = save_text_file(self.mw.data_store.edited_json_path, final_obj_to_save)
                     else:
                         log_debug("Save Error: Plugin for .txt file did not return a string for saving.")
-                        QMessageBox.critical(self.mw, "Save Error", "Plugin save format error: expected a string for .txt file.")
+                        self._show_message("Save Error", "Plugin save format error: expected a string for .txt file.", type="error")
                         return False
                 elif file_extension == '.bmg':
                     try:
@@ -848,7 +838,7 @@ class DataStateProcessor:
                         save_file_success = True
                     except Exception as e:
                         log_debug(f"Failed to write BMG: {e}", category="file_ops")
-                        QMessageBox.critical(self.mw, "Save Error", f"Failed to save BMG file: {e}")
+                        self._show_message("Save Error", f"Failed to save BMG file: {e}", type="error")
                         save_file_success = False
                 
                 if save_file_success:
@@ -868,7 +858,8 @@ class DataStateProcessor:
                         
                     self.mw.data_store.edited_file_data = reloaded_edited_data
     
-                    if ask_confirmation: QMessageBox.information(self.mw, "Saved", f"Changes saved to\n'{Path(self.mw.data_store.edited_json_path).name}'.")
+                    if ask_confirmation:
+                        self._show_message("Saved", f"Changes saved to\n'{Path(self.mw.data_store.edited_json_path).name}'.", type="info")
                     
                     if hasattr(self.mw, 'issue_scan_handler'):
                         self.mw.issue_scan_handler._save_issues_cache()
@@ -877,19 +868,25 @@ class DataStateProcessor:
                 else: return False
         except Exception as e:
             log_error(f"Unexpected error during save prep: {e}", exc_info=True)
-            QMessageBox.critical(self.mw, "Save Error", f"Unexpected error during save prep:\n{e}"); 
+            self._show_message("Save Error", f"Unexpected error during save prep:\n{e}", type="error")
             return False
 
     def revert_edited_file_to_original(self) -> bool:
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
 
         if not is_project_mode:
-            if not self.mw.data_store.json_path or not self.mw.data_store.edited_json_path: QMessageBox.warning(self.mw, "Revert Error", "Original or Changes file path is not set."); return False
-            if not self.mw.data_store.data: QMessageBox.warning(self.mw, "Revert Error", "Original data is not loaded."); return False
-            if not self.mw.current_game_rules: QMessageBox.critical(self.mw, "Revert Error", "No game plugin active to format the save file."); return False
+            if not self.mw.data_store.json_path or not self.mw.data_store.edited_json_path:
+                self._show_message("Revert Error", "Original or Changes file path is not set.", type="warning")
+                return False
+            if not self.mw.data_store.data:
+                self._show_message("Revert Error", "Original data is not loaded.", type="warning")
+                return False
+            if not self.mw.current_game_rules:
+                self._show_message("Revert Error", "No game plugin active to format the save file.", type="error")
+                return False
     
-            reply = QMessageBox.question(self.mw, 'Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
-            if reply == QMessageBox.StandardButton.No: return False
+            reply = self._ask_yes_no('Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", default_yes=False)
+            if not reply: return False
             try:
                 output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data_store.data, self.mw.data_store.block_names)
     
@@ -903,7 +900,7 @@ class DataStateProcessor:
                         save_file_success = save_text_file(self.mw.data_store.edited_json_path, output_data)
                     else:
                         log_debug("Revert Error: Plugin for .txt file did not return a string for saving.")
-                        QMessageBox.critical(self.mw, "Revert Error", "Plugin save format error: expected a string for .txt file.")
+                        self._show_message("Revert Error", "Plugin save format error: expected a string for .txt file.", type="error")
                         return False
                 elif file_extension == '.bmg':
                     try:
@@ -929,19 +926,19 @@ class DataStateProcessor:
                         
                     self.mw.data_store.edited_file_data = reverted_data_list
     
-                    QMessageBox.information(self.mw, "Reverted", f"Changes file '{Path(self.mw.data_store.edited_json_path).name}' has been reverted to match the original.")
+                    self._show_message("Reverted", f"Changes file '{Path(self.mw.data_store.edited_json_path).name}' has been reverted to match the original.", type="info")
                     self.mw.ui_updater.update_title(); 
                     self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx) 
                     return True
                 else: return False
             except Exception as e:
                 log_error(f"Unexpected error during revert: {e}", exc_info=True)
-                QMessageBox.critical(self.mw, "Revert Error", f"Unexpected error during revert:\n{e}"); 
+                self._show_message("Revert Error", f"Unexpected error during revert:\n{e}", type="error")
                 return False
         else:
             # Project mode revert
-            reply = QMessageBox.question(self.mw, 'Revert Project Changes', "This will overwrite all active block translation files with original data.\nAll previous edits in the translation files will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
-            if reply == QMessageBox.StandardButton.No: return False
+            reply = self._ask_yes_no('Revert Project Changes', "This will overwrite all active block translation files with original data.\nAll previous edits in the translation files will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", default_yes=False)
+            if not reply: return False
             
             try:
                 log_debug("Reverting in Project Mode: Splitting blocks back to their original state")
@@ -957,7 +954,7 @@ class DataStateProcessor:
                 global_keys_backup = None
                 if hasattr(self.mw.current_game_rules, 'original_keys'):
                     global_keys_backup = list(self.mw.current_game_rules.original_keys)
-
+ 
                 for p_b_idx, data_indices in project_block_to_data_blocks.items():
                     if p_b_idx >= len(blocks): continue
                     
@@ -967,7 +964,7 @@ class DataStateProcessor:
                     # Extract original self.mw.data_store.data
                     file_data_list = [self.mw.data_store.data[d_idx] for d_idx in data_indices]
                     file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
-
+ 
                     if global_keys_backup is not None:
                         sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
                         self.mw.current_game_rules.original_keys = sliced_keys
@@ -991,7 +988,7 @@ class DataStateProcessor:
                             save_file_success = False
                     else:
                         save_file_success = save_text_file(trans_path, str(final_obj_to_save))
-
+ 
                     if not save_file_success:
                         success_all = False
                         break
@@ -1005,15 +1002,15 @@ class DataStateProcessor:
                     # Reload blocks
                     if hasattr(self.mw, 'project_action_handler') and self.mw.project_action_handler:
                         self.mw.project_action_handler._populate_blocks_from_project()
-
-                    QMessageBox.information(self.mw, "Project Reverted", "All project translation files reverted successfully.")
+ 
+                    self._show_message("Project Reverted", "All project translation files reverted successfully.", type="info")
                     return True
                 else: 
                     if global_keys_backup is not None:
                         self.mw.current_game_rules.original_keys = global_keys_backup
                     return False
-
+ 
             except Exception as e:
                 log_error(f"Unexpected error during project revert: {e}", exc_info=True)
-                QMessageBox.critical(self.mw, "Revert Error", f"Unexpected error during project revert:\n{e}"); 
+                self._show_message("Revert Error", f"Unexpected error during project revert:\n{e}", type="error")
                 return False

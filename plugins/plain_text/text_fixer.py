@@ -198,9 +198,6 @@ class TextFixer(GenericTextFixer):
             has_single_word_allowed = autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE, False) or \
                                       autofix_config.get(PROBLEM_SINGLE_WORD_SUBLINE_NON_START, False)
 
-        if has_single_word_allowed:
-            modified_text, _ = self._fix_single_word_orphans_generic(modified_text)
-
         if is_allowed(PROBLEM_BAD_SPACING):
             cleaned_text, _ = self._cleanup_spaces_around_tags_zww(modified_text)
             from utils.utils import clean_spaces
@@ -230,6 +227,10 @@ class TextFixer(GenericTextFixer):
                 original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
 
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page, original_message_text)
+        final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page, original_message_text, block_idx=block_idx, string_idx=string_idx)
 
-        return final_text, (final_text != original_text or changed_missing_spacing or changed_shift)
+        changed_orphans = False
+        if has_single_word_allowed:
+            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
+
+        return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_orphans)

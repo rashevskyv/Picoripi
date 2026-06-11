@@ -123,7 +123,7 @@ def test_TextOperationHandler_update_preview_content(handler, mock_mw):
     
     mock_mw.preview_text_edit.setPlainText.assert_called_with("prev_current\nprev_current")
     mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
-    mock_mw.ui_updater._apply_highlights_for_block.assert_called_once_with(0)
+    mock_mw.ui_updater.preview_updater._apply_highlights_for_block.assert_called_once_with(0)
 
 def test_TextOperationHandler_text_edited_early_returns(handler, mock_mw):
     mock_mw.is_programmatically_changing_text = True

@@ -562,6 +562,12 @@ class SettingsDialogUiMixin:
         self.align_sentences_checkbox.setToolTip("Align translation sentences structure and pages matching original layout.")
         self.align_sentences_checkbox.stateChanged.connect(self.on_rules_changed)
         general_layout.addWidget(self.align_sentences_checkbox)
+        
+        self.prevent_empty_lines_checkbox = QCheckBox("Prevent adding empty padding lines during pagination", general_group)
+        self.prevent_empty_lines_checkbox.setToolTip("Do not add empty padding lines at the end of pages to fill remaining space.")
+        self.prevent_empty_lines_checkbox.stateChanged.connect(self.on_rules_changed)
+        general_layout.addWidget(self.prevent_empty_lines_checkbox)
+        
         layout.addWidget(general_group)
         
         sub_widget = QWidget(tab)

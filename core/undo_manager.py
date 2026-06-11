@@ -429,7 +429,7 @@ class UndoManager:
                         self.mw.data_store.edited_sublines.add(i)
                 
                 # Re-apply highlights
-                self.mw.ui_updater._apply_highlights_to_editor(self.mw.edited_text_edit, block_idx, string_idx)
+                self.mw.ui_updater.preview_updater._apply_highlights_to_editor(self.mw.edited_text_edit, block_idx, string_idx)
                 
                 if hasattr(self.mw.edited_text_edit, 'lineNumberArea'):
                     self.mw.edited_text_edit.lineNumberArea.update()

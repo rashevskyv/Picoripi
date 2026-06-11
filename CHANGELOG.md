@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.003] - 2026-06-11
+
+### Added
+- **Option to prevent empty padding lines in AutoFix**: Added `prevent_empty_lines_in_autofix` option to the plugin settings and Ctrl+AutoFix dialog. This prevents the pagination/wrapping logic from adding trailing blank lines on page boundaries when autofixing.
+- **Single Word Orphan Auto-Fix Protection**: Relocated the single-word orphan fixer step (`_fix_single_word_orphans_generic`) to the final stage of text autofix execution, executing it after wrapping and pagination to prevent pagination rules from reversing orphan corrections.
+
+### Changed
+- **Unconditional Sentence Alignment with Original**: Improved `shift_split_sentences_aligned` to unconditionally strip old page split codes and accurately insert original page breaks (e.g. `[escape:0:0007...]`) from matching source sentences when aligning translations to the original page layout.
+- **Plugin Parameter Passing**: Refactored the core pagination helper in all 5 plugins (`zelda_bmg`, `zelda_ww`, `zelda_mc`, `pokemon_fr`, `plain_text`) to accept `block_idx` and `string_idx` parameters, ensuring correct font assets and width configuration constraints are accessed during mass/batch autofix tasks.
+- **UIUpdater Refactoring**: Cleaned up code duplication in `UIUpdater` by removing direct private methods (`_create_menu`, etc.) that were delegated to `main.py`.
+
 ## [0.3.002] - 2026-06-10
 
 ### Added

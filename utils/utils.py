@@ -693,7 +693,7 @@ def suggest_smart_translation(current_text: str, old_translation: str, new_trans
     return result_text
 
 
-def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
+def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: bool = False) -> Tuple[str, bool]:
     if not isinstance(lines_per_page, int):
         try:
             lines_per_page = int(lines_per_page)
@@ -724,7 +724,7 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
             continue
             
         # 2. If line starts with a page break/pause escape code, end the previous group
-        if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+        if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE):
             if current_sentence:
                 sentences.append(current_sentence)
                 current_sentence = []
@@ -734,7 +734,7 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
         is_end = False
         if cleaned:
             # 3. If line contains a page break escape code anywhere, end the group
-            if re.search(r'\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+            if re.search(r'[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE):
                 is_end = True
             else:
                 last_char = cleaned[-1]
@@ -760,7 +760,7 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
         starts_with_page_break = False
         if s_lines:
             first_line = s_lines[0]
-            if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', first_line, re.IGNORECASE):
+            if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', first_line, re.IGNORECASE):
                 starts_with_page_break = True
                 
         if starts_with_page_break:
@@ -769,7 +769,8 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
             if remaining_space == 0:
                 remaining_space = lines_per_page
             if current_len > 0 and (current_len % lines_per_page) != 0:
-                pages[-1].extend([""] * remaining_space)
+                if not prevent_empty_lines:
+                    pages[-1].extend([""] * remaining_space)
             pages.append(s_lines)
             continue
             
@@ -789,7 +790,8 @@ def shift_split_sentences(text: str, lines_per_page: int) -> Tuple[str, bool]:
                     pages[-1].extend(s_lines)
                 else:
                     # Pad current page to page boundary
-                    pages[-1].extend([""] * remaining_space)
+                    if not prevent_empty_lines:
+                        pages[-1].extend([""] * remaining_space)
                     pages.append(s_lines)
             else:
                 # Page is empty (or currently at exact boundary)
@@ -860,7 +862,7 @@ def get_line_words_and_visible_tags(line: str, mw: Optional[Any] = None) -> List
     return words
 
 
-def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page: int) -> Tuple[str, bool]:
+def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page: int, prevent_empty_lines: bool = False) -> Tuple[str, bool]:
     if not isinstance(lines_per_page, int):
         try:
             lines_per_page = int(lines_per_page)
@@ -884,7 +886,7 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
                     current_sentence = []
                 sentences.append([line])
                 continue
-            if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+            if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE):
                 if current_sentence:
                     sentences.append(current_sentence)
                     current_sentence = []
@@ -892,7 +894,7 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
             cleaned = remove_all_tags(line).strip()
             is_end = False
             if cleaned:
-                if re.search(r'\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+                if re.search(r'[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE):
                     is_end = True
                 else:
                     last_char = cleaned[-1]
@@ -913,7 +915,34 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
 
     if not orig_sentences or not trans_sentences or len(orig_sentences) != len(trans_sentences):
         # Fallback to standard shift_split_sentences if lengths don't match
-        return shift_split_sentences(text, lines_per_page)
+        return shift_split_sentences(text, lines_per_page, prevent_empty_lines=prevent_empty_lines)
+
+    # Align page break/pause codes from original sentences to translation sentences
+    PAGE_BREAK_PATTERN = re.compile(r'^\s*([\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]])', re.IGNORECASE)
+    for i in range(len(trans_sentences)):
+        orig_s = orig_sentences[i]
+        trans_s = trans_sentences[i]
+        
+        orig_pb = None
+        if orig_s:
+            match = PAGE_BREAK_PATTERN.match(orig_s[0])
+            if match:
+                orig_pb = match.group(1)
+                
+        if trans_s:
+            first_line = trans_s[0]
+            # Remove any existing page break codes from the start of the translated sentence
+            while True:
+                m = PAGE_BREAK_PATTERN.match(first_line)
+                if m:
+                    first_line = first_line[m.end():].lstrip()
+                else:
+                    break
+            
+            # Prepend original page break code if it was present
+            if orig_pb:
+                first_line = orig_pb + first_line
+            trans_s[0] = first_line
 
     # Paginate original lines to assign page number to each original sentence
     orig_sublines = original_text.split('\n')
@@ -922,7 +951,7 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
     curr_line_count = 0
     for line in orig_sublines:
         starts_with_page_break = False
-        if re.search(r'^\s*\{(?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)\}', line, re.IGNORECASE):
+        if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE):
             starts_with_page_break = True
         
         if starts_with_page_break and curr_line_count > 0:
@@ -962,7 +991,8 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
             current_len = len(pages[-1])
             if current_len > 0 and (current_len % lines_per_page) != 0:
                 remaining_space = lines_per_page - (current_len % lines_per_page)
-                pages[-1].extend([""] * remaining_space)
+                if not prevent_empty_lines:
+                    pages[-1].extend([""] * remaining_space)
             pages.append(s_lines)
         else:
             s_len = len(s_lines)
@@ -975,7 +1005,8 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
                 if s_len <= remaining_space:
                     pages[-1].extend(s_lines)
                 else:
-                    pages[-1].extend([""] * remaining_space)
+                    if not prevent_empty_lines:
+                        pages[-1].extend([""] * remaining_space)
                     pages.append(s_lines)
             else:
                 if current_len == 0:

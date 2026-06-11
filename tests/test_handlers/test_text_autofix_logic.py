@@ -242,3 +242,48 @@ def test_shift_split_sentences():
     res_escape, changed_escape = shift_split_sentences(text_with_escape, 4)
     assert res_escape == "Line 1.\n\n\n\n{escape:0:0007000a}Line 2."
     assert changed_escape is True
+
+
+def test_shift_split_sentences_aligned():
+    from utils.utils import shift_split_sentences_aligned
+    
+    # Scenario 1: Same number of sentences, page break code in original must be copied to translation
+    orig = "Line 1.\n[escape:0:0007000a]Line 2."
+    trans = "Trans 1.\nTrans 2."
+    res, changed = shift_split_sentences_aligned(trans, orig, 4)
+    assert changed is True
+    assert "[escape:0:0007000a]Trans 2." in res
+
+    # Scenario 2: Old incorrect page break in trans must be cleaned and aligned according to original
+    orig2 = "Line 1.\n[escape:0:0007000a]Line 2."
+    trans2 = "[escape:0:0007000a]Trans 1.\nTrans 2."
+    res2, changed2 = shift_split_sentences_aligned(trans2, orig2, 4)
+    assert "[escape:0:0007000a]Trans 1." not in res2
+    assert "[escape:0:0007000a]Trans 2." in res2
+
+
+def test_shift_split_sentences_prevent_empty_lines():
+    from utils.utils import shift_split_sentences, shift_split_sentences_aligned
+
+    # Test shift_split_sentences with prevent_empty_lines
+    text = "Line 1.\n{escape:0:0007000a}Line 2."
+    
+    # Without prevent_empty_lines (default: pad with empty lines to 4 lines per page)
+    res_pad, _ = shift_split_sentences(text, 4, prevent_empty_lines=False)
+    assert res_pad == "Line 1.\n\n\n\n{escape:0:0007000a}Line 2."
+    
+    # With prevent_empty_lines (no empty lines added)
+    res_no_pad, _ = shift_split_sentences(text, 4, prevent_empty_lines=True)
+    assert res_no_pad == "Line 1.\n{escape:0:0007000a}Line 2."
+
+    # Test shift_split_sentences_aligned with prevent_empty_lines
+    orig = "Orig 1.\n[escape:0:0007000a]Orig 2."
+    trans = "Trans 1.\nTrans 2."
+
+    # Without prevent_empty_lines (default)
+    res_align_pad, _ = shift_split_sentences_aligned(trans, orig, 4, prevent_empty_lines=False)
+    assert res_align_pad == "Trans 1.\n\n\n\n[escape:0:0007000a]Trans 2."
+
+    # With prevent_empty_lines
+    res_align_no_pad, _ = shift_split_sentences_aligned(trans, orig, 4, prevent_empty_lines=True)
+    assert res_align_no_pad == "Trans 1.\n[escape:0:0007000a]Trans 2."

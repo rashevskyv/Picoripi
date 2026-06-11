@@ -106,31 +106,47 @@ def test_save_translations_bulk(manager):
     assert translations["src/block0.json::bk0::0"] == "Trans 0"
     assert translations["src/block0.json::bk0::1"] == "Trans 1"
 
-@patch("core.saved_translations_manager.QMessageBox.warning")
-def test_restore_translation_not_found(mock_warning, manager):
+from handlers.saved_translations_handler import SavedTranslationsHandler
+
+@pytest.fixture
+def handler(mock_mw_for_saved, manager):
+    mock_mw_for_saved.saved_translations_manager = manager
+    # Ensure ui_updater has basic structure to not fail during calls
+    mock_mw_for_saved.ui_updater = MagicMock()
+    if not hasattr(mock_mw_for_saved, 'data_processor') or not mock_mw_for_saved.data_processor:
+        mock_mw_for_saved.data_processor = MagicMock()
+    return SavedTranslationsHandler(mock_mw_for_saved, mock_mw_for_saved.data_processor, mock_mw_for_saved.ui_updater)
+
+
+@patch("handlers.saved_translations_handler.QMessageBox.warning")
+def test_restore_translation_not_found(mock_warning, handler):
     # No saved translation exists yet
-    res = manager.restore_translation(0, 0)
+    res = handler.restore_translation(0, 0)
     assert res is False
     mock_warning.assert_called_once()
 
-def test_restore_translation_success(manager, mock_mw_for_saved):
+
+def test_restore_translation_success(handler, mock_mw_for_saved):
     mock_mw_for_saved.data_processor = MagicMock()
+    handler.data_processor = mock_mw_for_saved.data_processor
     mock_mw_for_saved.data_processor.get_current_string_text.return_value = ("original_0_0", "original_data")
     
-    manager.save_translation(0, 0, "Restored Text")
-    res = manager.restore_translation(0, 0)
+    mock_mw_for_saved.saved_translations_manager.save_translation(0, 0, "Restored Text")
+    res = handler.restore_translation(0, 0)
     
     assert res is True
     mock_mw_for_saved.data_processor.update_edited_data.assert_called_once_with(
         0, 0, "Restored Text", action_type="RESTORE"
     )
 
-def test_restore_translations_for_strings(manager, mock_mw_for_saved):
+
+def test_restore_translations_for_strings(handler, mock_mw_for_saved):
     mock_mw_for_saved.data_processor = MagicMock()
-    manager.save_translation(0, 0, "Restored 0")
-    manager.save_translation(0, 1, "Restored 1")
+    handler.data_processor = mock_mw_for_saved.data_processor
+    mock_mw_for_saved.saved_translations_manager.save_translation(0, 0, "Restored 0")
+    mock_mw_for_saved.saved_translations_manager.save_translation(0, 1, "Restored 1")
     
-    manager.restore_translations_for_strings(0, [0, 1])
+    handler.restore_translations_for_strings(0, [0, 1])
     
     assert mock_mw_for_saved.data_processor.update_edited_data.call_count == 2
     mock_mw_for_saved.data_processor.update_edited_data.assert_any_call(
@@ -140,18 +156,20 @@ def test_restore_translations_for_strings(manager, mock_mw_for_saved):
         0, 1, "Restored 1", action_type="RESTORE", skip_ui_refresh=True
     )
 
-@patch("core.saved_translations_manager.QFileDialog.getSaveFileName")
-@patch("core.saved_translations_manager.QMessageBox.information")
-def test_export_translations_action(mock_info, mock_fd, manager, mock_mw_for_saved, temp_project_dir):
+
+@patch("handlers.saved_translations_handler.QFileDialog.getSaveFileName")
+@patch("handlers.saved_translations_handler.QMessageBox.information")
+def test_export_translations_action(mock_info, mock_fd, handler, mock_mw_for_saved, temp_project_dir):
     export_path = temp_project_dir / "exported_trans.json"
     mock_fd.return_value = (str(export_path), "JSON Files (*.json)")
     
     mock_mw_for_saved.data_processor = MagicMock()
+    handler.data_processor = mock_mw_for_saved.data_processor
     # Mock string 0 as translated, string 1 as original
     mock_mw_for_saved.data_processor.is_string_translated.side_effect = lambda b, s: s == 0
     mock_mw_for_saved.data_processor.get_current_string_text.return_value = ("Exported Translation", "edited_data")
     
-    manager.export_translations_to_json_action()
+    handler.export_translations_to_json_action()
     
     assert export_path.exists()
     with export_path.open('r', encoding='utf-8') as f:
@@ -162,10 +180,11 @@ def test_export_translations_action(mock_info, mock_fd, manager, mock_mw_for_sav
     assert data["files"]["src/block0.json"]["bk0"]["0"] == "Exported Translation"
     mock_info.assert_called_once()
 
-@patch("core.saved_translations_manager.QFileDialog.getOpenFileName")
-@patch("core.saved_translations_manager.QMessageBox.question")
-@patch("core.saved_translations_manager.QMessageBox.information")
-def test_import_translations_action(mock_info, mock_q, mock_fd, manager, mock_mw_for_saved, temp_project_dir):
+
+@patch("handlers.saved_translations_handler.QFileDialog.getOpenFileName")
+@patch("handlers.saved_translations_handler.QMessageBox.question")
+@patch("handlers.saved_translations_handler.QMessageBox.information")
+def test_import_translations_action(mock_info, mock_q, mock_fd, handler, mock_mw_for_saved, temp_project_dir):
     mock_q.return_value = QMessageBox.StandardButton.Yes
     import_path = temp_project_dir / "import_trans.json"
     
@@ -184,8 +203,9 @@ def test_import_translations_action(mock_info, mock_q, mock_fd, manager, mock_mw
     mock_fd.return_value = (str(import_path), "JSON Files (*.json)")
     
     mock_mw_for_saved.data_processor = MagicMock()
+    handler.data_processor = mock_mw_for_saved.data_processor
     
-    manager.import_translations_from_json_action()
+    handler.import_translations_from_json_action()
     
     mock_mw_for_saved.data_processor.update_edited_data.assert_called_once_with(
         0, 0, "Imported Translation Text", action_type="IMPORT", skip_ui_refresh=True

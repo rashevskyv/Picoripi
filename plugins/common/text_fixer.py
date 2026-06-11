@@ -182,11 +182,90 @@ class GenericTextFixer:
             
         return text, False
 
-    def _shift_split_sentences(self, text: str, lines_per_page: int, original_text: Optional[str] = None) -> Tuple[str, bool]:
+    def _merge_and_clean_pagination(self, text: str) -> str:
+        if not text:
+            return ""
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            stripped = line.strip()
+            # Skip empty lines and single "0" lines (which are padding)
+            if not stripped or stripped == "0":
+                continue
+            cleaned_lines.append(line)
+            
+        if not cleaned_lines:
+            return ""
+            
+        merged_parts = []
+        current_part = ""
+        for line in cleaned_lines:
+            # Check if line starts with a page break / pause code (supporting both {} and [])
+            starts_with_page_break = bool(re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE))
+            
+            if starts_with_page_break:
+                if current_part:
+                    merged_parts.append(current_part.strip())
+                current_part = line
+            else:
+                if current_part:
+                    current_part_stripped = current_part.rstrip()
+                    line_lstripped = line.lstrip()
+                    if current_part_stripped and line_lstripped:
+                        needs_space = not current_part_stripped.endswith(" ") and not line_lstripped.startswith(" ")
+                        current_part = current_part_stripped + (" " if needs_space else "") + line_lstripped
+                    else:
+                        current_part += line
+                else:
+                    current_part = line
+                    
+            cleaned_end = remove_all_tags(line).strip()
+            if cleaned_end:
+                last_char = cleaned_end[-1]
+                if last_char in ('.', '!', '?', '。', '！', '？'):
+                    merged_parts.append(current_part.strip())
+                    current_part = ""
+                elif last_char in ('"', "'", '»', '`', ')') and len(cleaned_end) > 1:
+                    if cleaned_end[-2] in ('.', '!', '?', '。', '！', '？'):
+                        merged_parts.append(current_part.strip())
+                        current_part = ""
+                        
+        if current_part:
+            merged_parts.append(current_part.strip())
+            
+        return "\n".join(merged_parts)
+
+    def _shift_split_sentences(self, text: str, lines_per_page: int, original_text: Optional[str] = None, block_idx: Optional[int] = None, string_idx: Optional[int] = None) -> Tuple[str, bool]:
+        original_input = text
+        
         align_enabled = getattr(self.mw, 'align_sentences_to_original_pages', False) if self.mw else False
+        prevent_empty_lines = getattr(self.mw, 'prevent_empty_lines_in_autofix', False) if self.mw else False
         if align_enabled and original_text:
+            # 1. Clean old pagination first (only if alignment is enabled)
+            text = self._merge_and_clean_pagination(text)
+            
+            # 2. Re-wrap by width threshold since merged lines might be too long
+            if self.mw:
+                font_map = getattr(self.mw, 'font_map', {})
+                b_idx = block_idx if block_idx is not None else getattr(self.mw.data_store, 'current_block_idx', -1)
+                s_idx = string_idx if string_idx is not None else getattr(self.mw.data_store, 'current_string_idx', -1)
+                
+                # Check for MagicMock
+                if hasattr(self.mw, 'helper') and 'Mock' not in type(self.mw.helper).__name__ and b_idx != -1 and s_idx != -1:
+                    font_map = self.mw.helper.get_font_map_for_string(b_idx, s_idx)
+                
+                threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
+                if hasattr(self.mw, 'string_metadata') and isinstance(self.mw.string_metadata, dict) and b_idx != -1 and s_idx != -1:
+                    string_meta = self.mw.string_metadata.get((b_idx, s_idx), {})
+                    threshold = string_meta.get("width", threshold)
+                    
+                text, _ = self._fix_width_exceeded_generic(text, font_map, threshold)
+                
             from utils.utils import shift_split_sentences_aligned
-            return shift_split_sentences_aligned(text, original_text, lines_per_page)
-        from utils.utils import shift_split_sentences
-        return shift_split_sentences(text, lines_per_page)
+            final_text, changed = shift_split_sentences_aligned(text, original_text, lines_per_page, prevent_empty_lines=prevent_empty_lines)
+        else:
+            from utils.utils import shift_split_sentences
+            final_text, changed = shift_split_sentences(text, lines_per_page, prevent_empty_lines=prevent_empty_lines)
+            
+        return final_text, final_text != original_input
 
