@@ -162,8 +162,9 @@ class IssueScanHandler(BaseHandler):
         self._scan_timer.setSingleShot(True)
         self._scan_timer.timeout.connect(self._scan_next_batch)
         
+        import sys
         from PyQt6.QtWidgets import QApplication
-        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication)
         delay = 0 if is_test else 30
         self._scan_timer.start(delay)
 
@@ -267,8 +268,9 @@ class IssueScanHandler(BaseHandler):
             self._scan_timer.setSingleShot(True)
             self._scan_timer.timeout.connect(self._scan_next_batch)
             
+            import sys
             from PyQt6.QtWidgets import QApplication
-            is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+            is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication)
             delay = 0 if is_test else 30
             self._scan_timer.start(delay)
         else:

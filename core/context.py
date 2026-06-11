@@ -1,5 +1,5 @@
 # core/context.py
-from typing import Protocol, Optional, Any, Dict, List, Tuple, Set, TYPE_CHECKING
+from typing import Protocol, Optional, Any, Dict, List, Tuple, Set, TYPE_CHECKING, Type
 from PyQt6.QtWidgets import QStatusBar, QWidget, QListWidget, QComboBox, QSpinBox, QPushButton
 from PyQt6.QtGui import QAction
 
@@ -233,3 +233,6 @@ class ProjectContext(Protocol):
     def lines_per_page(self) -> int: ...
     @property
     def default_tag_mappings(self) -> Dict[str, str]: ...
+
+    def get_service(self, service_type: Type[Any]) -> Any: ...
+

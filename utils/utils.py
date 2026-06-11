@@ -1,7 +1,7 @@
 import datetime
 import re
 import difflib # Додано
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from .logging_utils import log_debug
 

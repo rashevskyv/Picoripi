@@ -56,7 +56,7 @@ def demo_scenario_1():
                 else:
                     f.write(f"Dialog line {i}: Shop keeper message.\n")
 
-        print(f"   ✓ Created source file with 100 lines")
+        print("   ✓ Created source file with 100 lines")
         print()
 
         # Step 3: Import block
@@ -172,8 +172,8 @@ def demo_scenario_3(manager, block):
         print()
         print("The translation handler would:")
         print(f"   1. Extract ONLY lines {outset_category.line_indices} from source file")
-        print(f"   2. Send these lines to AI for translation")
-        print(f"   3. Write translations to corresponding lines in translation file")
+        print("   2. Send these lines to AI for translation")
+        print("   3. Write translations to corresponding lines in translation file")
         print()
 
         # Show subcategory workflow
@@ -181,7 +181,7 @@ def demo_scenario_3(manager, block):
             child = outset_category.children[0]
             print(f"If user selects subcategory '{child.name}':")
             print(f"   • Line indices to translate: {child.line_indices}")
-            print(f"   • This is a focused subset of the parent category")
+            print("   • This is a focused subset of the parent category")
             print()
 
 

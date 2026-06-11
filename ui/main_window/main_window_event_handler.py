@@ -196,6 +196,7 @@ class MainWindowEventHandler:
         self.mw.app_action_handler.handle_close_event(event)
         
         if event.isAccepted():
+            self.disconnect_signals()
             if hasattr(self.mw, 'event_filter') and self.mw.event_filter:
                 try:
                     from PyQt6.QtWidgets import QApplication
@@ -207,6 +208,124 @@ class MainWindowEventHandler:
             if not self.mw.is_restart_in_progress:
                 self.mw.settings_manager.save_settings()
             super(self.mw.__class__, self.mw).closeEvent(event)
+
+    def disconnect_signals(self):
+        """Disconnects all signals connected during initialization."""
+        log_info("Disconnecting all event handler signals...")
+        
+        # Helper to safely disconnect a signal or slot
+        def safe_disconnect(obj, signal_name):
+            if hasattr(obj, signal_name):
+                sig = getattr(obj, signal_name)
+                try:
+                    sig.disconnect()
+                except (TypeError, RuntimeError):
+                    pass # Signal was not connected or object already deleted
+
+        mw = self.mw
+        # Actions and Buttons
+        safe_disconnect(mw, 'toggle_preview_action')
+        if hasattr(mw, 'toggle_preview_action'): safe_disconnect(mw.toggle_preview_action, 'triggered')
+        if hasattr(mw, 'open_settings_action'): safe_disconnect(mw.open_settings_action, 'triggered')
+        if hasattr(mw, 'run_external_script_action'): safe_disconnect(mw.run_external_script_action, 'triggered')
+        if hasattr(mw, 'bfn_editor_action'): safe_disconnect(mw.bfn_editor_action, 'triggered')
+        if hasattr(mw, 'mempalace_builder_action'): safe_disconnect(mw.mempalace_builder_action, 'triggered')
+        if hasattr(mw, 'inspect_story_context_action'): safe_disconnect(mw.inspect_story_context_action, 'triggered')
+        if hasattr(mw, 'mempalace_viewer_action'): safe_disconnect(mw.mempalace_viewer_action, 'triggered')
+        if hasattr(mw, 'fix_all_strings_action'): safe_disconnect(mw.fix_all_strings_action, 'triggered')
+        if hasattr(mw, 'export_bmg_json_action'): safe_disconnect(mw.export_bmg_json_action, 'triggered')
+        if hasattr(mw, 'import_bmg_json_action'): safe_disconnect(mw.import_bmg_json_action, 'triggered')
+        if hasattr(mw, 'help_shortcuts_action'): safe_disconnect(mw.help_shortcuts_action, 'triggered')
+        
+        # Widgets
+        if hasattr(mw, 'block_list_widget'):
+            safe_disconnect(mw.block_list_widget, 'currentItemChanged')
+            safe_disconnect(mw.block_list_widget, 'itemDoubleClicked')
+            safe_disconnect(mw.block_list_widget, 'itemChanged')
+            
+        if hasattr(mw, 'preview_text_edit'):
+            safe_disconnect(mw.preview_text_edit, 'lineClicked')
+            safe_disconnect(mw.preview_text_edit, 'previewSelectionChanged')
+
+        if hasattr(mw, 'edited_text_edit'):
+            safe_disconnect(mw.edited_text_edit, 'textChanged')
+            safe_disconnect(mw.edited_text_edit, 'cursorPositionChanged')
+            safe_disconnect(mw.edited_text_edit, 'selectionChanged')
+            safe_disconnect(mw.edited_text_edit, 'addTagMappingRequest')
+
+        if hasattr(mw, 'undo_typing_action'): safe_disconnect(mw.undo_typing_action, 'triggered')
+        if hasattr(mw, 'redo_typing_action'): safe_disconnect(mw.redo_typing_action, 'triggered')
+        if hasattr(mw, 'paste_block_action'): safe_disconnect(mw.paste_block_action, 'triggered')
+
+        # Project actions
+        if hasattr(mw, 'new_project_action'): safe_disconnect(mw.new_project_action, 'triggered')
+        if hasattr(mw, 'open_project_action'): safe_disconnect(mw.open_project_action, 'triggered')
+        if hasattr(mw, 'close_project_action'): safe_disconnect(mw.close_project_action, 'triggered')
+        if hasattr(mw, 'import_block_action'): safe_disconnect(mw.import_block_action, 'triggered')
+        if hasattr(mw, 'import_directory_action'): safe_disconnect(mw.import_directory_action, 'triggered')
+        if hasattr(mw, 'add_block_button'): safe_disconnect(mw.add_block_button, 'clicked')
+        if hasattr(mw, 'delete_block_button'): safe_disconnect(mw.delete_block_button, 'clicked')
+        if hasattr(mw, 'rename_block_button'): safe_disconnect(mw.rename_block_button, 'clicked')
+        if hasattr(mw, 'move_block_up_button'): safe_disconnect(mw.move_block_up_button, 'clicked')
+        if hasattr(mw, 'move_block_down_button'): safe_disconnect(mw.move_block_down_button, 'clicked')
+        if hasattr(mw, 'add_folder_button'): safe_disconnect(mw.add_folder_button, 'clicked')
+        if hasattr(mw, 'expand_all_button'): safe_disconnect(mw.expand_all_button, 'clicked')
+        if hasattr(mw, 'collapse_all_button'): safe_disconnect(mw.collapse_all_button, 'clicked')
+
+        # Navigation
+        if hasattr(mw, 'next_block_nav_action'): safe_disconnect(mw.next_block_nav_action, 'triggered')
+        if hasattr(mw, 'prev_block_nav_action'): safe_disconnect(mw.prev_block_nav_action, 'triggered')
+        if hasattr(mw, 'next_folder_nav_action'): safe_disconnect(mw.next_folder_nav_action, 'triggered')
+        if hasattr(mw, 'prev_folder_nav_action'): safe_disconnect(mw.prev_folder_nav_action, 'triggered')
+
+        # File actions
+        if hasattr(mw, 'save_action'): safe_disconnect(mw.save_action, 'triggered')
+        if hasattr(mw, 'reload_action'): safe_disconnect(mw.reload_action, 'triggered')
+        if hasattr(mw, 'save_as_action'): safe_disconnect(mw.save_as_action, 'triggered')
+        if hasattr(mw, 'revert_action'): safe_disconnect(mw.revert_action, 'triggered')
+        if hasattr(mw, 'undo_paste_action'): safe_disconnect(mw.undo_paste_action, 'triggered')
+        if hasattr(mw, 'rescan_all_tags_action'): safe_disconnect(mw.rescan_all_tags_action, 'triggered')
+        if hasattr(mw, 'recalculate_widths_action'): safe_disconnect(mw.recalculate_widths_action, 'triggered')
+        if hasattr(mw, 'reload_tag_mappings_action'): safe_disconnect(mw.reload_tag_mappings_action, 'triggered')
+        if hasattr(mw, 'find_action'): safe_disconnect(mw.find_action, 'triggered')
+        if hasattr(mw, 'add_bookmark_action'): safe_disconnect(mw.add_bookmark_action, 'triggered')
+        if hasattr(mw, 'clear_bookmarks_action'): safe_disconnect(mw.clear_bookmarks_action, 'triggered')
+        if hasattr(mw, 'open_ai_chat_action'): safe_disconnect(mw.open_ai_chat_action, 'triggered')
+
+        # Widgets and Custom Panels
+        if hasattr(mw, 'search_panel_widget') and mw.search_panel_widget:
+            safe_disconnect(mw.search_panel_widget, 'close_requested')
+            safe_disconnect(mw.search_panel_widget, 'find_next_requested')
+            safe_disconnect(mw.search_panel_widget, 'find_previous_requested')
+            safe_disconnect(mw.search_panel_widget, 'advanced_search_requested')
+
+        if hasattr(mw, 'restore_translation_button'): safe_disconnect(mw.restore_translation_button, 'clicked')
+        if hasattr(mw, 'save_translated_action'): safe_disconnect(mw.save_translated_action, 'triggered')
+        if hasattr(mw, 'restore_translated_action'): safe_disconnect(mw.restore_translated_action, 'triggered')
+        if hasattr(mw, 'export_translations_action'): safe_disconnect(mw.export_translations_action, 'triggered')
+        if hasattr(mw, 'import_translations_action'): safe_disconnect(mw.import_translations_action, 'triggered')
+
+        if hasattr(mw, 'ai_translate_button'): safe_disconnect(mw.ai_translate_button, 'clicked')
+        if hasattr(mw, 'ai_variation_button'): safe_disconnect(mw.ai_variation_button, 'clicked')
+        if hasattr(mw, 'auto_fix_button'): safe_disconnect(mw.auto_fix_button, 'clicked')
+        if hasattr(mw, 'auto_fix_action'): safe_disconnect(mw.auto_fix_action, 'triggered')
+        if hasattr(mw, 'navigate_up_button'): safe_disconnect(mw.navigate_up_button, 'clicked')
+        if hasattr(mw, 'navigate_down_button'): safe_disconnect(mw.navigate_down_button, 'clicked')
+        if hasattr(mw, 'revert_string_button'): safe_disconnect(mw.revert_string_button, 'clicked')
+        if hasattr(mw, 'inspect_story_context_button'): safe_disconnect(mw.inspect_story_context_button, 'clicked')
+
+        if hasattr(mw, 'font_combobox'): safe_disconnect(mw.font_combobox, 'currentIndexChanged')
+        if hasattr(mw, 'width_spinbox'): safe_disconnect(mw.width_spinbox, 'valueChanged')
+        if hasattr(mw, 'apply_width_button'): safe_disconnect(mw.apply_width_button, 'clicked')
+
+        # Checkboxes
+        if hasattr(mw, 'highlight_categorized_checkbox'): safe_disconnect(mw.highlight_categorized_checkbox, 'toggled')
+        if hasattr(mw, 'hide_categorized_checkbox'): safe_disconnect(mw.hide_categorized_checkbox, 'toggled')
+        if hasattr(mw, 'hide_empty_strings_checkbox'): safe_disconnect(mw.hide_empty_strings_checkbox, 'toggled')
+        if hasattr(mw, 'hide_translated_checkbox'): safe_disconnect(mw.hide_translated_checkbox, 'toggled')
+        if hasattr(mw, 'show_overrides_only_checkbox'): safe_disconnect(mw.show_overrides_only_checkbox, 'toggled')
+        if hasattr(mw, 'hide_original_tags_checkbox'): safe_disconnect(mw.hide_original_tags_checkbox, 'toggled')
+        if hasattr(mw, 'hide_translation_tags_checkbox'): safe_disconnect(mw.hide_translation_tags_checkbox, 'toggled')
 
     def handle_edited_cursor_position_changed(self):
         if self.mw.is_adjusting_cursor or self.mw.is_programmatically_changing_text:

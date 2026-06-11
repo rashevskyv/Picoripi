@@ -184,7 +184,7 @@ class GlobalSettings:
             "preview_font_size": getattr(self.mw, 'preview_font_size', self.mw.current_font_size),
             "editors_font_size": getattr(self.mw, 'editors_font_size', self.mw.current_font_size),
             "tooltip_font_size": getattr(self.mw, 'tooltip_font_size', 11),
-            "external_script_path": "" if type(getattr(self.mw, 'external_script_path', "")).__name__ in ('Mock', 'MagicMock') else getattr(self.mw, 'external_script_path', ""),
+            "external_script_path": getattr(self.mw, 'external_script_path', "") if isinstance(getattr(self.mw, 'external_script_path', ""), str) else "",
             "font_size": self.mw.current_font_size,
             "active_game_plugin": self.mw.active_game_plugin,
             "show_multiple_spaces_as_dots": self.mw.show_multiple_spaces_as_dots,
@@ -241,11 +241,11 @@ class GlobalSettings:
             "mempalace_selected_blocks": settings_dict.get("mempalace_selected_blocks", []),
             "mempalace_builder_width": settings_dict.get("mempalace_builder_width", 650),
             "mempalace_builder_height": settings_dict.get("mempalace_builder_height", 500),
-            "log_ai_traffic": False if type(getattr(self.mw, 'log_ai_traffic', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'log_ai_traffic', False)),
-            "show_force_alias_warning": True if type(getattr(self.mw, 'show_force_alias_warning', True)).__name__ in ('Mock', 'MagicMock') else bool(getattr(self.mw, 'show_force_alias_warning', True)),
+            "log_ai_traffic": bool(getattr(self.mw, 'log_ai_traffic', False)) if isinstance(getattr(self.mw, 'log_ai_traffic', False), bool) else False,
+            "show_force_alias_warning": bool(getattr(self.mw, 'show_force_alias_warning', True)) if isinstance(getattr(self.mw, 'show_force_alias_warning', True), bool) else True,
             "variations_window_geometry": getattr(self.mw, 'variations_window_geometry', None) if isinstance(getattr(self.mw, 'variations_window_geometry', None), dict) else None,
             "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None,
-            "hide_empty_strings": False if type(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)).__name__ in ('Mock', 'MagicMock') else bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False))
+            "hide_empty_strings": bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)) if isinstance(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False), bool) else False
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

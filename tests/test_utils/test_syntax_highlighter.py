@@ -260,8 +260,8 @@ def test_JsonTagHighlighter_translation_glossary_bridge(qapp, mock_mw):
     
     # Verify setFormat was called with format having fontUnderline == True
     underline_calls = []
-    for call in hl.setFormat.call_args_list:
-        args, kwargs = call
+    for c in hl.setFormat.call_args_list:
+        args, kwargs = c
         if len(args) >= 3 and args[2].fontUnderline():
             underline_calls.append(args)
     assert len(underline_calls) == 1
@@ -522,6 +522,21 @@ def test_JsonTagHighlighter_double_space_dot_color(highlighter):
                 found_space_dot_with_bad_spacing = True
                     
     assert found_space_dot_with_bad_spacing is True
+
+def test_JsonTagHighlighter_get_icon_matches_for_text(highlighter):
+    hl, doc = highlighter
+    
+    # 1. Simple matching
+    matches = hl._get_icon_matches_for_text("Hello [Icon1] and [Icon2] World", ["[Icon1]", "[Icon2]"])
+    assert len(matches) == 2
+    assert matches[0] == (6, 7)
+    assert matches[1] == (18, 7)
+    
+    # 2. Overlapping tokens (should match longer token first due to sorting)
+    matches_overlap = hl._get_icon_matches_for_text("[IconLonger] [Icon]", ["[Icon]", "[IconLonger]"])
+    assert len(matches_overlap) == 2
+    assert matches_overlap[0] == (0, 12)
+    assert matches_overlap[1] == (13, 6)
 
 
 

@@ -433,7 +433,7 @@ class TextAutofixLogic:
 
 
     def auto_fix_current_string(self) -> None:
-        log_debug(f"TextAutofixLogic.auto_fix_current_string: Called.")
+        log_debug("TextAutofixLogic.auto_fix_current_string: Called.")
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return

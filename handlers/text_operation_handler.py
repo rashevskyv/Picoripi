@@ -357,7 +357,7 @@ class TextOperationHandler(BaseHandler):
                 self.mw.data_store.edited_sublines.add(i)
 
     def paste_block_text(self) -> None:
-        log_debug(f"--> TextOperationHandler: paste_block_text triggered.")
+        log_debug("--> TextOperationHandler: paste_block_text triggered.")
         if self.mw.data_store.current_block_idx == -1:
             QMessageBox.warning(self.mw, "Paste Error", "Please select a block.")
             return

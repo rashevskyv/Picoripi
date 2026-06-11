@@ -353,7 +353,7 @@ class AppActionHandler(BaseHandler):
         num_to_process = len(target_indices) if target_indices is not None else num_strings_total
 
         if num_to_process == 0:
-            QMessageBox.information(self.mw, "Calculate Line Widths", f"Target is empty.")
+            QMessageBox.information(self.mw, "Calculate Line Widths", "Target is empty.")
             return
 
         block_data = list(all_strings_in_block) # snapshot

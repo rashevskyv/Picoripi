@@ -171,28 +171,12 @@ def test_ProjectActionHandler_move_block_action(mock_mw):
 def test_ProjectActionHandler_add_folder_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     h.add_folder_action()
-    mock_mw.block_list_widget._create_folder_at_cursor.assert_called_once()
+    mock_mw.virtual_folder_handler.add_folder_action.assert_called_once()
 
-@patch('components.project_dialogs.MoveToFolderDialog')
-def test_ProjectActionHandler_add_items_to_folder_action(mock_dialog_class, mock_mw):
-    mock_mw.project_manager = MagicMock()
-    mock_mw.block_to_project_file_map = {}
-    mock_block = MagicMock()
-    mock_block.id = "id_1"
-    mock_mw.project_manager.project.blocks = [mock_block]
+def test_ProjectActionHandler_add_items_to_folder_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    
-    mock_item = MagicMock()
-    mock_item.data.side_effect = lambda col, role: 0 if role == Qt.UserRole else None # block_idx = 0
-    mock_mw.block_list_widget.selectedItems.return_value = [mock_item]
-    
-    mock_dialog = mock_dialog_class.return_value
-    from PyQt6.QtWidgets import QDialog
-    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
-    mock_dialog.get_selected_folder_id.return_value = "folder_1"
-    
     h.add_items_to_folder_action()
-    mock_mw.project_manager.save.assert_called_once()
+    mock_mw.virtual_folder_handler.add_items_to_folder_action.assert_called_once()
 
 @patch('handlers.project_action_handler.Path.exists')
 def test_ProjectActionHandler_populate_blocks_from_project(mock_exists, mock_mw):
@@ -230,82 +214,23 @@ def test_ProjectActionHandler_collapse_all_action(mock_mw):
 
 def test_ProjectActionHandler_update_all_folder_expansion_state(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    mock_mw.project_manager = MagicMock()
-    folder1 = MagicMock(children=[])
-    folder2 = MagicMock(children=[folder1])
-    mock_mw.project_manager.project.virtual_folders = [folder2]
-    
     h._update_all_folder_expansion_state(True)
-    assert folder1.is_expanded is True
-    assert folder2.is_expanded is True
-    mock_mw.project_manager.save.assert_called_once()
+    mock_mw.virtual_folder_handler.update_all_folder_expansion_state.assert_called_once_with(True)
     
 # --- New Tests for missing coverage ---
 
-@patch('handlers.project_action_handler.QMessageBox')
-@patch('handlers.project_action_handler.FolderDeleteDialog')
-def test_ProjectActionHandler_delete_block_action_folder(mock_dialog_class, mock_msg_box, mock_mw):
+def test_ProjectActionHandler_delete_block_action_folder(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    mock_mw.project_manager = MagicMock()
-    pm = mock_mw.project_manager
-    pm.project.remove_block.return_value = True
-
-    h._populate_blocks_from_project = MagicMock()
-
-    # Create folder mock
-    folder = MagicMock()
-    folder.name = "TestFolder"
-    folder.block_ids = []
-    folder.children = []
-    pm.find_virtual_folder.return_value = folder
     
     mock_item = MagicMock()
-    # Return folder_id (not None), block_idx (None)
     def item_data(col, role):
         if role == Qt.UserRole + 1: return "folder_1"
         return None
     mock_item.data.side_effect = item_data
-    mock_parent = mock_item.parent.return_value
-    mock_parent.childCount.return_value = 0
     mock_mw.block_list_widget.currentItem.return_value = mock_item
-    mock_mw.block_list_widget.invisibleRootItem.return_value = mock_parent
-
-    mock_msg_box.StandardButton = QMessageBox.StandardButton
     
-    # Action 0 (Cancel Empty folder)
-    mock_msg_box.question.return_value = QMessageBox.StandardButton.No
     h.delete_block_action()
-    assert pm._remove_folder_from_anywhere.call_count == 0
-    
-    # Action 2 (Delete empty folder)
-    mock_parent.indexOfChild.return_value = 0
-    mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
-    h.delete_block_action()
-    pm._remove_folder_from_anywhere.assert_called_with("folder_1")
-    pm.save.assert_called()
-
-    # Action 1 (Delete folder, keep contents)
-    folder.block_ids = ["b1"] # No longer empty -> triggers FolderDeleteDialog
-    mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec.return_value = 1
-    mock_dialog.result_action = 1
-    folder.parent_id = "parent_folder"
-    parent_folder = MagicMock()
-    parent_folder.children = []
-    parent_folder.block_ids = []
-    pm.find_virtual_folder.side_effect = lambda id: parent_folder if id == "parent_folder" else folder
-    
-    pm._remove_folder_from_anywhere.reset_mock()
-    h.delete_block_action()
-    pm._remove_folder_from_anywhere.assert_called_with("folder_1")
-    assert "b1" in parent_folder.block_ids # Moved up
-    
-    # Action 2 via dialog (Delete folder + contents)
-    folder.parent_id = None
-    pm.find_virtual_folder.side_effect = lambda id: folder
-    mock_dialog.result_action = 2
-    h.delete_block_action()
-    pm.project.remove_block.assert_called_with("b1")
+    mock_mw.virtual_folder_handler.delete_folder_action.assert_called_once_with("folder_1", mock_item)
 
 
 @patch('handlers.project_action_handler.ProjectManager')

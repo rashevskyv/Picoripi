@@ -46,7 +46,7 @@ def test_save_current_edits_native_packing():
     # For relative BMG inside extracted folder
     def mock_get_absolute_path(rel_path, is_translation=False):
         if str(rel_path).startswith(".extracted/"):
-            return f"C:/Temp/project/.extracted/translation/bmgres.arc/zel_unit.bmg"
+            return "C:/Temp/project/.extracted/translation/bmgres.arc/zel_unit.bmg"
         else:
             return f"C:/Temp/project/translation/{rel_path}"
             

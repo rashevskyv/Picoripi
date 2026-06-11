@@ -13,10 +13,10 @@ class WidthCalculationWorker(QThread):
                  game_rules_plugin: Any, mw_settings: Dict[str, Any], 
                  all_font_maps: Optional[Dict[str, dict]] = None,
                  target_indices: Optional[set] = None, parent=None):
-        # Handle mocking in tests: MagicMock doesn't pass isinstance(QObject) but causes TypeError in super().__init__
-        if parent is not None and (not isinstance(parent, QObject) or "Mock" in str(type(parent))):
-            parent = None
-        super().__init__(parent)
+        try:
+            super().__init__(parent)
+        except TypeError:
+            super().__init__(None)
         self.block_idx = block_idx
         self.block_data = block_data
         self.block_name = block_name

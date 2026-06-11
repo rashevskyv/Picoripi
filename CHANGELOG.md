@@ -1,6 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.005] - 2026-06-11
+
+### 🚀 Added
+- **Handler Decomposition & SRP Compliance**: Extracted text wrapping and pagination logic from `translation_handler.py` into a dedicated `TextFormatter` class inside `handlers/translation/text_formatter.py`. Also refactored virtual folder operations from `project_action_handler.py` into a specialized `VirtualFolderHandler` class inside `handlers/virtual_folder_handler.py`. This ensures proper separation of concerns, simplifies maintenance, and improves overall system architecture.
+- **Double-Click Variation Apply Fix**: Resolved an `AttributeError: 'MainWindow' object has no attribute 'current_font_map'` crash that occurred when double-clicking or applying options in the AI Translation Variations dialog, by using `getattr` to safely access `current_font_map` or fallback to `font_map`.
+
+### 🧪 Tested
+- **TextFormatter & VirtualFolderHandler Unit Tests**: Implemented comprehensive unit test suites in `tests/test_handlers/test_text_formatter.py` and `tests/test_handlers/test_virtual_folder_handler.py` to verify formatting accuracy and project tree folder operations.
+
 ## [0.3.004] - 2026-06-11
+
 
 ### 🚀 Added
 - **AI Variations Progress Highlights Scroll Compensation**: Constrained the soft-green relative length progress bar highlights to the visible area (`viewport().width()`) in the AI Translation Variations dialog, and adjusted the painting offset by the horizontal scroll position (`scroll_bar.value()`). This prevents the progress bar background from scrolling off-screen and allows users to easily compare variation lengths visually without horizontal scrolling.

@@ -4,4 +4,3 @@ pytest-qt
 pytest-timeout
 pytest-xdist
 ruff
-mypy

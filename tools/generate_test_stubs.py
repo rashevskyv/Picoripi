@@ -55,7 +55,7 @@ def generate_stubs(src_dir, tests_dir):
                 # If test file doesn't exist, create it with stubs
                 if not os.path.exists(test_file_path):
                     with open(test_file_path, 'w', encoding='utf-8') as tfile:
-                        tfile.write(f"import pytest\n")
+                        tfile.write("import pytest\n")
                         original_rel = os.path.relpath(path, src_dir).replace('\\', '/')
                         tfile.write(f"# Auto-generated test file for {original_rel}\n\n")
                         for func in funcs:

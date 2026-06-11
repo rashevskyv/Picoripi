@@ -71,7 +71,7 @@ def test_calculate_widths_for_block_action_async_no_freeze(mock_mw, mock_ui, moc
         fallback_called = MockReportDialog.called
         
         assert handler_called or fallback_called, "No report dialog was shown"
-        assert handler_called, f"Fell back to text report instead of analysis handler"
+        assert handler_called, "Fell back to text report instead of analysis handler"
         
         # Verify entries were passed
         args, kwargs = mock_mw.text_analysis_handler.show_diagnostic_analysis.call_args

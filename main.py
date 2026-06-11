@@ -20,7 +20,8 @@ Qt.CheckStateRole = Qt.ItemDataRole.CheckStateRole
 Qt.FontRole = Qt.ItemDataRole.FontRole
 Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 from PyQt6.QtGui import QFont, QColor, QPalette, QIcon, QKeyEvent, QShowEvent
-from typing import Optional, Dict, Tuple, Set, Any
+from typing import Optional, Dict, Tuple, Set, Any, List, Type
+from core.service_container import ServiceContainer
 
 from ui.ui_setup import setup_main_window_ui
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
@@ -33,6 +34,7 @@ from ui.themes import DARK_THEME_STYLESHEET, LIGHT_THEME_STYLESHEET
 
 from handlers.app_action_handler import AppActionHandler
 from handlers.project_action_handler import ProjectActionHandler
+from handlers.virtual_folder_handler import VirtualFolderHandler
 from handlers.issue_scan_handler import IssueScanHandler
 from handlers.list_selection_handler import ListSelectionHandler
 from handlers.text_operation_handler import TextOperationHandler
@@ -258,6 +260,7 @@ class MainWindow(QMainWindow):
         self.editor_operation_handler = TextOperationHandler(self, self.data_processor, self.ui_updater)
         self.app_action_handler = AppActionHandler(self, self.data_processor, self.ui_updater, self.current_game_rules) 
         self.project_action_handler = ProjectActionHandler(self, self.data_processor, self.ui_updater)
+        self.virtual_folder_handler = VirtualFolderHandler(self, self.data_processor, self.ui_updater)
         self.issue_scan_handler = IssueScanHandler(self, self.data_processor, self.ui_updater)
         self.search_handler = SearchHandler(self, self.data_processor, self.ui_updater)
         self.string_settings_handler = StringSettingsHandler(self, self.data_processor, self.ui_updater)
@@ -266,6 +269,36 @@ class MainWindow(QMainWindow):
         self.ai_chat_handler = AIChatHandler(self, self.data_processor, self.ui_updater)
         self.bookmark_handler = BookmarkHandler(self, self.data_processor, self.ui_updater)
         self.saved_translations_handler = SavedTranslationsHandler(self, self.data_processor, self.ui_updater)
+
+        # Service Container Registration
+        self._container = ServiceContainer()
+        self._container.register(SettingsManager, self.settings_manager)
+        self._container.register(MainWindowHelper, self.helper)
+        self._container.register(MainWindowActions, self.actions)
+        self._container.register(DataStateProcessor, self.data_processor)
+        self._container.register(SavedTranslationsManager, self.saved_translations_manager)
+        self._container.register(UIUpdater, self.ui_updater)
+        self._container.register(UndoManager, self.undo_manager)
+        
+        self._container.register(StringSettingsUpdater, self.string_settings_updater)
+        self._container.register(SpellcheckerManager, self.spellchecker_manager)
+        self._container.register(MainWindowUIHandler, self.ui_handler)
+        self._container.register(MainWindowPluginHandler, self.plugin_handler)
+        self._container.register(MainWindowEventHandler, self.event_handler)
+        self._container.register(MainWindowBlockHandler, self.block_handler)
+        
+        self._container.register(ListSelectionHandler, self.list_selection_handler)
+        self._container.register(TextOperationHandler, self.editor_operation_handler)
+        self._container.register(AppActionHandler, self.app_action_handler)
+        self._container.register(ProjectActionHandler, self.project_action_handler)
+        self._container.register(IssueScanHandler, self.issue_scan_handler)
+        self._container.register(SearchHandler, self.search_handler)
+        self._container.register(StringSettingsHandler, self.string_settings_handler)
+        self._container.register(TranslationHandler, self.translation_handler)
+        self._container.register(TextAnalysisHandler, self.text_analysis_handler)
+        self._container.register(AIChatHandler, self.ai_chat_handler)
+        self._container.register(BookmarkHandler, self.bookmark_handler)
+        self._container.register(SavedTranslationsHandler, self.saved_translations_handler)
 
     def _init_ui(self) -> None:
         # UI Attributes (placeholders for setup_main_window_ui)
@@ -417,6 +450,12 @@ class MainWindow(QMainWindow):
         # Reload plugin settings to match the new active_game_plugin
         if hasattr(self, 'settings_manager'):
             self.settings_manager.plugin_settings.load(self.settings_manager._settings)
+
+    def get_service(self, service_type: Type[Any]) -> Any:
+        """
+        Retrieves a registered service instance from the container.
+        """
+        return self._container.get(service_type)
 
     def nativeEvent(self, eventType, message):
         if hasattr(self, 'hotkey_manager'):

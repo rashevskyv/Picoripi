@@ -270,7 +270,7 @@ class PluginSettings:
             if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                 self.mw.ui_provider.show_message("Save Error", f"Could not save project configuration to\n{project_settings_path}", type="error")
             else:
-                log_error(f"Could not save project configuration: UI provider not available.")
+                log_error("Could not save project configuration: UI provider not available.")
 
     def save_block_names(self) -> None:
         project_settings_path = self._get_project_settings_path()

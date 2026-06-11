@@ -12,8 +12,8 @@ class GenericTextFixer:
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
         
-        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
-            if 'Mock' not in type(self.mw.current_game_rules).__name__:
+        if self.mw and getattr(self.mw, 'current_game_rules', None):
+            if not hasattr(self.mw.current_game_rules, '_mock_self'):
                 if hasattr(self.mw.current_game_rules, 'calculate_string_width_override'):
                     override_val = self.mw.current_game_rules.calculate_string_width_override(text, font_map)
                     if override_val is not None:
@@ -251,7 +251,7 @@ class GenericTextFixer:
                 s_idx = string_idx if string_idx is not None else getattr(self.mw.data_store, 'current_string_idx', -1)
                 
                 # Check for MagicMock
-                if hasattr(self.mw, 'helper') and 'Mock' not in type(self.mw.helper).__name__ and b_idx != -1 and s_idx != -1:
+                if getattr(self.mw, 'helper', None) and not hasattr(self.mw.helper, '_mock_self') and b_idx != -1 and s_idx != -1:
                     font_map = self.mw.helper.get_font_map_for_string(b_idx, s_idx)
                 
                 threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)

@@ -254,6 +254,17 @@ def test_SpellcheckerManager_suggestions_loaded_signal(mock_mw):
     assert len(emitted_args) == 1
     assert emitted_args[0] == ("apple", ["test1", "test2"])
 
+def test_SpellcheckerManager_rehighlight_debounce(mock_mw):
+    sm = SpellcheckerManager(mock_mw)
+    sm._rehighlight_timer = MagicMock()
+    sm._trigger_rehighlight = MagicMock()
+    
+    # Trigger results ready with cache updated under simulated production environment (no 'pytest' in modules)
+    with patch('sys.modules', {}):
+        sm._on_spellcheck_results_ready({"apple": True}, {})
+        sm._rehighlight_timer.start.assert_called_once()
+        sm._trigger_rehighlight.assert_not_called()
+
 
 
 

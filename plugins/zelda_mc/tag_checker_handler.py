@@ -162,7 +162,7 @@ class TagCheckerHandler:
                 self.mw.original_text_edit.setTextCursor(cursor)
                 self.mw.original_text_edit.ensureCursorVisible()
         else:
-            log_debug(f"TagChecker: _highlight_mismatched_tag - original_text_edit or highlightManager not available.")
+            log_debug("TagChecker: _highlight_mismatched_tag - original_text_edit or highlightManager not available.")
 
     def _remove_mismatch_highlight(self):
         if self.currently_highlighted_mismatch['block_idx'] != -1:

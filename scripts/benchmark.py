@@ -264,7 +264,7 @@ for text in all_texts[:500]:
         if errors <= 3:
             print(f"  [MISMATCH] text={repr(text[:60])}  before={r_before}  after={r_after}")
 if errors == 0:
-    print(f"  Correctness: PASS (checked first 500 strings)")
+    print("  Correctness: PASS (checked first 500 strings)")
 else:
     print(f"  Correctness: FAIL — {errors} mismatches!")
 
@@ -374,7 +374,7 @@ for text in all_texts[:500]:
         if errors <= 3:
             print(f"  [MISMATCH] text={repr(text[:60])}")
 if errors == 0:
-    print(f"  Correctness: PASS (checked first 500 strings)")
+    print("  Correctness: PASS (checked first 500 strings)")
 else:
     print(f"  Correctness: FAIL — {errors} mismatches!")
 

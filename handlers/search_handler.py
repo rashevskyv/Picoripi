@@ -372,7 +372,7 @@ class SearchHandler(BaseHandler):
             
             raw_qtextblocks = raw_full_string_data.split('\n')
             if target_qtextblock_idx_in_editor >= len(raw_qtextblocks):
-                log_debug(f"ERROR: PreciseSearch: target_qtextblock_idx_in_editor out of bounds."); return
+                log_debug("ERROR: PreciseSearch: target_qtextblock_idx_in_editor out of bounds."); return
             
             raw_text_of_target_qtextblock = raw_qtextblocks[target_qtextblock_idx_in_editor]
             

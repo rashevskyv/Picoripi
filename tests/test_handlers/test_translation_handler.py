@@ -558,8 +558,8 @@ def test_format_and_wrap_translation_balanced_and_page_building(th):
     # Let's say: each character has a width of 10.
     # Warning threshold (410px) = 41 chars
     # Max width (460px) = 46 chars
-    with patch('handlers.translation_handler.calculate_string_width') as mock_width, \
-         patch('handlers.translation_handler.remove_all_tags') as mock_remove_tags:
+    with patch('handlers.translation.text_formatter.calculate_string_width') as mock_width, \
+         patch('handlers.translation.text_formatter.remove_all_tags') as mock_remove_tags:
         
         mock_width.side_effect = lambda text, *args, **kwargs: len(text) * 10
         mock_remove_tags.side_effect = lambda text: text

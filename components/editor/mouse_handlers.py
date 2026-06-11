@@ -196,7 +196,7 @@ class LNETMouseHandlers:
                         if hasattr(actual_main_window, 'statusBar'): actual_main_window.statusBar.showMessage(f"Replaced '{clicked_bracket_tag}' with '{clipboard_text}'", 2000)
                         self.editor._momentary_highlight_tag(current_block, tag_start_in_block, len(clipboard_text))
                     else:
-                        if hasattr(actual_main_window, 'statusBar'): actual_main_window.statusBar.showMessage(f"Clipboard does not contain a valid tag for replacement.", 2000)
+                        if hasattr(actual_main_window, 'statusBar'): actual_main_window.statusBar.showMessage("Clipboard does not contain a valid tag for replacement.", 2000)
                     event.accept(); return
 
     def handle_line_number_click(self, y_pos: int):
@@ -287,7 +287,7 @@ class LNETMouseHandlers:
                     if has_custom_width:
                         tooltip_lines.append(f"Custom Width: {width_val}px is applied")
                     
-                    metadata_tooltip = f"<b>Line Settings Overrides:</b><br>" + "<br>".join(tooltip_lines)
+                    metadata_tooltip = "<b>Line Settings Overrides:</b><br>" + "<br>".join(tooltip_lines)
 
         dummy_pos = QPoint(self.editor.lineNumberArea.width() + 10, event.pos().y())
         text_warning_tooltip = self.editor.tooltip_logic.find_warning_tooltip_at(dummy_pos)

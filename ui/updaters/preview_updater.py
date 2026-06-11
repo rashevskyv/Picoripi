@@ -1,3 +1,4 @@
+from typing import Optional
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QTextCursor
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, remove_all_tags, calculate_strict_string_width
@@ -63,7 +64,7 @@ class PreviewUpdater(BaseUIUpdater):
     def schedule_pre_cache(self):
         """Schedule pre-caching of preview lines to avoid blocking startup with a blank window."""
         from PyQt6.QtWidgets import QApplication
-        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        is_test = hasattr(self.mw, '_mock_self') or not isinstance(QApplication.instance(), QApplication)
         if is_test:
             self.pre_cache_all_blocks()
         else:
@@ -87,7 +88,7 @@ class PreviewUpdater(BaseUIUpdater):
         progress.setMinimumDuration(500)
         progress.setValue(0)
 
-        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        is_test = hasattr(self.mw, '_mock_self') or not isinstance(QApplication.instance(), QApplication)
         if not is_test:
             QApplication.processEvents()
 
@@ -164,7 +165,7 @@ class PreviewUpdater(BaseUIUpdater):
                 block_idx = -2
 
         data_source = getattr(self.mw.data_store, 'data', None)
-        if data_source is None or 'Mock' in type(data_source).__name__ or 'MagicMock' in type(data_source).__name__:
+        if data_source is None or hasattr(data_source, '_mock_self'):
             if hasattr(self.mw, 'data') and isinstance(self.mw.data, list):
                 data_source = self.mw.data
             elif data_source is None:
@@ -193,7 +194,7 @@ class PreviewUpdater(BaseUIUpdater):
         detection_config = getattr(self.mw, 'detection_enabled', {})
         if hasattr(self.mw.data_store, 'problems_per_subline'):
             problems_dict = self.mw.data_store.problems_per_subline
-            is_mock_problems = 'Mock' in type(problems_dict).__name__ or 'MagicMock' in type(problems_dict).__name__
+            is_mock_problems = hasattr(problems_dict, '_mock_self')
             if not is_mock_problems and hasattr(problems_dict, 'items'):
                 for key, problems in problems_dict.items():
                     if is_chapter:
@@ -382,7 +383,7 @@ class PreviewUpdater(BaseUIUpdater):
             self._last_populated_category_name = category_name
 
         data_source = getattr(self.mw.data_store, 'data', None)
-        if data_source is None or 'Mock' in type(data_source).__name__ or 'MagicMock' in type(data_source).__name__:
+        if data_source is None or hasattr(data_source, '_mock_self'):
             if hasattr(self.mw, 'data') and isinstance(self.mw.data, list):
                 data_source = self.mw.data
             elif data_source is None:
@@ -507,7 +508,7 @@ class PreviewUpdater(BaseUIUpdater):
                         self._placeholder_texts[len(collapsed_indices)-1] = f"[{start_idx}-{end_idx}] {count} empty line(s)"
                 target_indices = collapsed_indices
 
-            is_mock_old = 'Mock' in type(old_indices).__name__ or 'MagicMock' in type(old_indices).__name__
+            is_mock_old = hasattr(old_indices, '_mock_self')
             if is_mock_old:
                 displayed_indices_changed = False
             else:
@@ -599,7 +600,7 @@ class PreviewUpdater(BaseUIUpdater):
                 self._lazy_load_target_indices = target_indices
 
                 doc = preview_edit.document()
-                is_mock_doc = ('Mock' in type(doc).__name__ or 'MagicMock' in type(doc).__name__) and not getattr(self, '_force_progress_for_testing', False)
+                is_mock_doc = hasattr(doc, '_mock_self') and not getattr(self, '_force_progress_for_testing', False)
                 
                 # Determine if we need chunked first step with progress dialog
                 use_chunked_first_step = (getattr(self, '_load_fully_synchronously', False) or initial_chunk_size > 150) and not is_mock_doc
@@ -667,7 +668,7 @@ class PreviewUpdater(BaseUIUpdater):
                             progress.setValue(0)
                             
                             # Safely show progress dialog if it's not a MagicMock
-                            is_mock_progress = 'Mock' in type(progress).__name__ or 'MagicMock' in type(progress).__name__
+                            is_mock_progress = hasattr(progress, '_mock_self')
                             if not is_mock_progress:
                                 progress.show()
                                 progress.raise_()
@@ -685,7 +686,7 @@ class PreviewUpdater(BaseUIUpdater):
                             cache = self._preview_cache[cache_key]
                             
                         doc = preview_edit.document()
-                        is_mock_doc = 'Mock' in type(doc).__name__ or 'MagicMock' in type(doc).__name__
+                        is_mock_doc = hasattr(doc, '_mock_self')
                         cursor = None if is_mock_doc else QTextCursor(doc)
                         
                         chunk_size = 100

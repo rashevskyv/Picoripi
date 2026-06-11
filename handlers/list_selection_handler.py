@@ -229,7 +229,7 @@ class ListSelectionHandler(BaseHandler):
         if current_item:
             role_val = current_item.data(0, Qt.UserRole)
             ch_val = current_item.data(0, Qt.UserRole + 11)
-            if 'Mock' not in type(role_val).__name__:
+            if isinstance(role_val, int):
                 is_chapter = (role_val == -2 or ch_val is not None)
 
         if has_project and current_item and not is_chapter:

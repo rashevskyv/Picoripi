@@ -2,7 +2,7 @@ from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 from pathlib import Path
 from .data_manager import load_json_file, save_json_file, save_text_file
-from utils.logging_utils import log_debug, log_warning, log_error
+from utils.logging_utils import log_debug, log_info, log_warning, log_error
 
 class DataStateProcessor:
     def __init__(self, main_window: Any):
@@ -789,7 +789,7 @@ class DataStateProcessor:
                                 pack_errors.append(f"{archive_rel_path}: {archive_err}")
                                 
                         if pack_errors:
-                            self._show_message("Archive Pack Warning", f"Failed to pack some archives natively:\n" + "\n".join(pack_errors), type="warning")
+                            self._show_message("Archive Pack Warning", "Failed to pack some archives natively:\n" + "\n".join(pack_errors), type="warning")
 
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
