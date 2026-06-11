@@ -217,6 +217,8 @@ def test_is_visible_tag():
     assert is_visible_tag("{icon}", mappings, font_map, icon_seqs) is True
     # Regular tag with zero width
     assert is_visible_tag("{some_tag}", mappings, font_map, icon_seqs) is False
+    # Normalization variants (e.g. {A} -> {(A)})
+    assert is_visible_tag("{A}", mappings, font_map, icon_seqs) is True
 
 
 def test_find_missing_icon_spacing_spans():

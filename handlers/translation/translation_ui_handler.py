@@ -36,7 +36,18 @@ class TranslationUIHandler(BaseTranslationHandler):
     def show_variations_dialog(self, variations: List[str], show_refresh: bool = False) -> Optional[str]:
         self.update_status_message("AI: choose one of the suggested options", persistent=False)
         dialog = TranslationVariationsDialog(self.mw, variations, show_refresh=show_refresh)
-        res = dialog.exec()
+        dialog.setModal(False)
+        self._set_ai_controls_enabled(False)
+
+        from PyQt6.QtCore import QEventLoop
+        loop = QEventLoop()
+        dialog.finished.connect(lambda _: loop.quit())
+        dialog.show()
+        loop.exec()
+
+        self._set_ai_controls_enabled(True)
+
+        res = dialog.result()
         if res == QDialog.DialogCode.Accepted:
             return dialog.selected_translation
         elif res == 2:

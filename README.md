@@ -1,6 +1,6 @@
-# Picoripi v0.3.003
+# Picoripi v0.3.004
  
-The **Picoripi** (v0.3.003) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.004) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -110,6 +110,56 @@ The **Picoripi** (v0.3.003) is a visual translation and localization workbench b
 - **Texture Sheet Operations**: Exports/imports sheet PNGs with alpha transparency.
 - **Spreadsheet Glyph Grid**: Edits mapping ranges, Unicode offsets, widths, and kerning. Modifying values automatically triggers font map reloading and text editor guideline recalculations instantly.
 - **Live Simulator**: Renders real-time text layouts to test custom kerning.
+---
+
+## AI Translation Subsystem & Configuration
+
+Picoripi features a powerful, highly customizable AI Translation subsystem designed specifically to tackle the complexities of retro game localization. Below is an overview of the supported AI providers, capabilities, and configuration options.
+
+### 1. Supported AI Providers & Models
+You can configure the active translation engine in the **AI Translation** tab within the Global Settings dialog. The system supports:
+- **OpenAI Compatible**: Connects to the standard OpenAI chat completions API or any compatible endpoints (e.g., Local LLMs, Llama.cpp, OpenRouter, Perplexity, DeepSeek, Anthropic wrappers).
+  - *Parameters*: API Key, Endpoint URL, Model Name, Temperature, Max Output Tokens, Request Timeout.
+- **Google Gemini API**: Native Google Gemini integration supporting the official API endpoints or custom proxy endpoints.
+  - *Parameters*: Base URL (optional), API Key, Model Name (e.g., `gemini-1.5-flash-latest` or `gemini-1.5-pro-latest`).
+- **Ollama Chat API**: Fully local, zero-cost execution using Ollama.
+  - *Parameters*: Base URL (defaults to `http://localhost:11434`), Model Name, Temperature, Request Timeout, and Keep Alive settings (e.g., `5m` to keep models cached in VRAM).
+- **Perplexity API**: Tailored wrapper for Perplexity AI models, supporting custom temperatures and token limits.
+
+### 2. Core AI Capabilities
+- **Dialogue Translation**: Translate single lines, selected ranges in the preview panel, entire project blocks, or virtual chapters chronologically.
+- **Session/Chat History Tracking**: Enables session-based translations where the context of the conversation is preserved across multiple requests. This ensures consistent character tones, pronoun genders, and verbs (highly critical for languages like Ukrainian).
+- **Surrounding Context Injection**: For every string sent to translation, Picoripi gathers up to 3 preceding and 3 succeeding strings (with their current translation status) and injects them as conversation context, preventing the AI from translating sentences in a vacuum.
+- **Smart Glossary Filtering**: Only the glossary terms detected in the active lines are sent to the AI prompt, protecting system context limits and preventing model confusion.
+- **Tag Preservation (Force-Alias)**: Game control codes and tags (like `{Color:Red}`, `[L-Stick]`, `[PLAYER]`) are translated into plain-text equivalents (e.g., `{F:Link}`) before calling the API. They are translated contextually as real words and automatically restored post-translation, avoiding tag corruption or deletion.
+- **AI Translation Variations**: Generates up to 10 different translation variants for any selected string. Features a non-blocking modeless variations dialog, client-side variations caching to prevent duplicate token costs, and a manual "Refresh" trigger.
+- **Glossary Occurrence Batch Update**: When a term's translation in the glossary is updated, the AI can scan, locate, and automatically retranslate all of its occurrences in the project, adjusting grammar declensions contextually.
+- **AI Glossary Fill**: Generates translation suggestions and notes for new glossary entries automatically based on the term and the active game context.
+- **AI Chat Dialog**: A modeless chat window ("Discuss with AI") accessible from the editor context menu. It auto-fills with selected original/translated text, allowing real-time prompt conversations.
+
+### 3. Presets & Prompt Settings
+- **Translation Presets**: Save all active parameters (provider, endpoint, model, temperature, timeout, etc.) under custom names. Switch between different setups (e.g., local Ollama for drafts, Gemini Pro for final review) instantly.
+- **Editable Prompts JSON**: Hold custom system prompts for translations, glossary fills, and notes generation. Click the **Edit Prompts JSON** button on the settings panel to customize instructions globally.
+
+---
+
+## Power-User Features (Ctrl Modifier Shortcuts)
+
+Picoripi includes several advanced shortcuts and modifier combinations that simplify the translation workflow for power-users:
+
+### 1. Interactive Dialog Modifiers
+- **Ctrl + Click on AutoFix**: Instead of executing all Auto-Fix routines automatically, holding `Ctrl` opens the **Selective Auto-Fix Dialog**, where you can toggle specific rules (such as page alignment, icon spacing checks, or preventing empty padding lines).
+- **Ctrl + Click on Translate / iTranslations**: Opens the **Prompt Editor Dialog** instantly. This allows you to customize the system prompt or user prompt instructions specifically for the current translation run before calling the AI.
+- **Ctrl + Click on Variation (AI Variations)**: Triggers a **Force Prompt Dialog**, allowing you to append custom, specific instructions for the next variations generation (e.g. "make it sound more formal", "add a sarcastic tone").
+
+### 2. Editor & Tree Context Clicks
+- **Ctrl + Click on Glossary Words in Original Panel (Read-only)**: Instantly opens the glossary manager dialog focused on the clicked term, allowing you to edit its translations or notes directly.
+- **Ctrl + Click on Bracketed Tags (`[...]`) in Translation Panel**: If the clipboard contains a valid curly tag (like `{PLAYER}` or `{Color:Red}`), Ctrl+clicking a placeholder bracketed tag maps and replaces it with the clipboard contents instantly.
+- **Ctrl + Click on Preview Panel Lines**: Enables multi-line selection within the active block, useful for bulk operations or selective translations.
+
+### 3. Navigation & Zoom Shortcuts
+- **Ctrl + Mouse Wheel**: Adjusts zoom (font size scaling) dynamically. Works on the original and translation editor panes, the preview list panel, and the project file-tree widget.
+- **Ctrl + PageUp / PageDown**: Navigates to the previous or next block in the project block tree view without requiring mouse focus.
 
 ---
 

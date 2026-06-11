@@ -3,7 +3,7 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 ## Project Overview
 
-The "Picoripi" (v0.3.003) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.004) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -24,6 +24,7 @@ The application is designed to be highly versatile, with features tailored to ha
 - **Comprehensive Undo/Redo**: Multi-level undo system (`UndoManager`) that covers text edits, folder structure changes, block reverts, paste operations, and navigation history.
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
 - **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.
+- **Power-User Modifiers**: Rich set of modifier shortcuts (Ctrl+Click on AutoFix opens selective settings, Ctrl+Click on Translate edits prompt, Ctrl+Click on AI Variations appends instructions, Ctrl+Click on glossary words edits terms, and Ctrl+Click on bracket tags maps them using clipboard tags).
 
 ## Building and Running the Project
 

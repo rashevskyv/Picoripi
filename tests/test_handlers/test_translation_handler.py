@@ -637,6 +637,30 @@ def test_th_parse_variation_payload_robust(th):
     assert ui_handler.parse_variation_payload(numbered_list) == ["First variation", "Second variation"]
 
 
+def test_th_apply_chosen_variation_focus_changed(th):
+    # Setup: current block/string in data_store is 1/2
+    th.mw.data_store.current_block_idx = 1
+    th.mw.data_store.current_string_idx = 2
+
+    # We call _apply_chosen_variation for a target block/string which is NOT the current one (say, 0/0)
+    th.glossary_handler.glossary_manager = MagicMock()
+    th.mw.current_game_rules = MagicMock()
+    th.mw.current_game_rules.convert_editor_text_to_data.side_effect = lambda x: x
+    th.mw.current_game_rules.get_shift_enter_char.return_value = "\n"
+
+    th._apply_chosen_variation("new_translation", is_inline=False, target_block_idx=0, target_string_idx=0)
+
+    # Verify: target block/string data is updated
+    th.data_processor.update_edited_data.assert_called_with(0, 0, ANY, action_type="TRANSLATE", skip_ui_refresh=True)
+
+    # Verify: ui_handler.apply_full_translation is NOT called (because target != current)
+    th.ui_handler.apply_full_translation.assert_not_called()
+    th.ui_handler.apply_inline_variation.assert_not_called()
+
+    # Verify: ui_updater.populate_strings_for_block is called for target block (0)
+    th.ui_updater.populate_strings_for_block.assert_called_with(0, ANY, force=True)
+
+
 
 
 

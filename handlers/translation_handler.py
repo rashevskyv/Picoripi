@@ -1336,22 +1336,23 @@ class TranslationHandler(BaseHandler):
             QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
             return
         if chosen:
-            self._apply_chosen_variation(chosen, context.get('is_inline', False))
+            self._apply_chosen_variation(chosen, context.get('is_inline', False), target_block_idx=block_idx, target_string_idx=string_idx)
 
-    def _apply_chosen_variation(self, chosen: str, is_inline: bool) -> None:
-        block_idx = self.mw.data_store.current_block_idx
-        string_idx = self.mw.data_store.current_string_idx
-        final_text = self._format_and_wrap_translation(chosen, block_idx, string_idx)
+    def _apply_chosen_variation(self, chosen: str, is_inline: bool, target_block_idx: int, target_string_idx: int) -> None:
+        final_text = self._format_and_wrap_translation(chosen, target_block_idx, target_string_idx)
         
         # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
         self.mw.undo_manager.begin_group()
-        self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+        self.data_processor.update_edited_data(target_block_idx, target_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
         self.mw.undo_manager.end_group("TRANSLATE")
             
-        if is_inline:
-            self.ui_handler.apply_inline_variation(final_text)
+        if target_block_idx == self.mw.data_store.current_block_idx and target_string_idx == self.mw.data_store.current_string_idx:
+            if is_inline:
+                self.ui_handler.apply_inline_variation(final_text)
+            else:
+                self.ui_handler.apply_full_translation(final_text)
         else:
-            self.ui_handler.apply_full_translation(final_text)
+            self.ui_updater.populate_strings_for_block(target_block_idx, self.mw.data_store.current_category_name, force=True)
 
 
     def generate_variation_for_current_string(self, force: bool = False) -> None:
@@ -1376,7 +1377,7 @@ class TranslationHandler(BaseHandler):
             if chosen == "__REFRESH__":
                 QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
             elif chosen:
-                self._apply_chosen_variation(chosen, is_inline=False)
+                self._apply_chosen_variation(chosen, is_inline=False, target_block_idx=block_idx, target_string_idx=string_idx)
             return
         
         provider = self.ai_lifecycle_manager._prepare_provider()

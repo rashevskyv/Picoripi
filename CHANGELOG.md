@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.004] - 2026-06-11
+
+### 🚀 Added
+- **AI Variations Progress Highlights Scroll Compensation**: Constrained the soft-green relative length progress bar highlights to the visible area (`viewport().width()`) in the AI Translation Variations dialog, and adjusted the painting offset by the horizontal scroll position (`scroll_bar.value()`). This prevents the progress bar background from scrolling off-screen and allows users to easily compare variation lengths visually without horizontal scrolling.
+- **Button/Icon Tag Parentheses Normalization**: Implemented automated tag normalization in `is_visible_tag` and `get_tag_width` (`utils/utils.py`). This allows the editor to successfully resolve button/icon tags written without parentheses (such as `{btn5}`) against parenthesized definitions in mappings (`aliases.json`) and font metrics (`font_map.json`). It correctly computes their physical display width and eliminates false "bad spacing" and "extra spacing" warnings.
+
+### 🧪 Tested
+- **Tag Normalization Unit Test**: Added test coverage in `tests/test_spacing_rules.py` verifying that unparenthesized tags (e.g. `{A}`) are correctly recognized as visible when parenthesized definitions are present in the active configuration.
+
 ## [0.3.003] - 2026-06-11
 
 ### 🚀 Added

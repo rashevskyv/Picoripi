@@ -4,7 +4,8 @@ from __future__ import annotations
 import base64
 from typing import Iterable, List, Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QRect, QModelIndex
+from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -15,10 +16,74 @@ from PyQt6.QtWidgets import (
     QLabel,
     QSplitter,
     QAbstractItemView,
+    QStyledItemDelegate,
+    QStyle,
+    QStyleOptionViewItem,
 )
 
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from utils.logging_utils import log_warning
+
+
+class VariationsListDelegate(QStyledItemDelegate):
+    """Delegate for drawing progress background under variations list items."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.list_widget = parent
+
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+        # Paint the standard item background and text first
+        super().paint(painter, option, index)
+
+        # Get option text (raw translation string)
+        option_text = index.data(Qt.ItemDataRole.UserRole) or ""
+        text_len = len(option_text)
+
+        # Calculate max length among all options in the list widget
+        max_len = 0
+        if self.list_widget:
+            for i in range(self.list_widget.count()):
+                item = self.list_widget.item(i)
+                opt_data = item.data(Qt.ItemDataRole.UserRole) or ""
+                max_len = max(max_len, len(opt_data))
+
+        # Overlay the soft-green progress background based on relative length
+        if max_len > 0 and text_len > 0:
+            percentage = text_len / max_len
+            is_selected = bool(option.state & QStyle.StateFlag.State_Selected)
+
+            # Use viewport width and horizontal scroll to restrict progress bar length to the visible area
+            view_width = option.rect.width()
+            scroll_x = 0
+            if self.list_widget:
+                viewport_w = self.list_widget.viewport().width()
+                if viewport_w > 10:  # Safeguard for unrendered list widgets in unit tests
+                    view_width = viewport_w
+                
+                scroll_bar = self.list_widget.horizontalScrollBar()
+                if scroll_bar:
+                    scroll_x = scroll_bar.value()
+                    # If scroll is active, restrict width to viewport. Otherwise, use min of viewport and item rect width.
+                    if scroll_bar.maximum() > 0:
+                        view_width = viewport_w
+                    else:
+                        view_width = min(view_width, option.rect.width())
+
+            fill_w = int(view_width * percentage)
+            if fill_w > 0:
+                progress_rect = QRect(option.rect.left() + scroll_x, option.rect.top(), fill_w, option.rect.height())
+                
+                if is_selected:
+                    # Soft green overlay to blend with standard blue selection highlight
+                    progress_color = QColor(144, 238, 144, 50)
+                else:
+                    # Soft SeaGreen overlay for standard items
+                    progress_color = QColor(46, 139, 87, 35)
+
+                painter.save()
+                painter.fillRect(progress_rect, progress_color)
+                painter.restore()
 
 
 class TranslationVariationsDialog(QDialog):
@@ -37,6 +102,7 @@ class TranslationVariationsDialog(QDialog):
         self.splitter = QSplitter(Qt.Orientation.Horizontal, self)
         
         self._list = QListWidget(self)
+        self._list.setItemDelegate(VariationsListDelegate(self._list))
         self._list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._list.itemSelectionChanged.connect(self._update_preview)
         self._list.itemDoubleClicked.connect(self._apply_current_selection)

@@ -60,31 +60,56 @@ def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional
     if icon_sequences is None:
         icon_sequences = get_active_icon_sequences()
         
-    if icon_sequences and tag in icon_sequences:
-        return True
-        
-    if font_map and tag in font_map:
-        val = font_map.get(tag)
-        if val is not None:
-            w = val.get("width", 0) if isinstance(val, dict) else int(val)
-            if w > 0:
-                return True
-        
-    width = get_tag_width(tag, mappings, font_map, icon_sequences=icon_sequences)
-    if width > 0:
-        return True
-        
-    if mappings:
-        if tag in mappings:
-            orig = mappings[tag]
-            if orig and '(' in orig and ')' in orig:
-                return True
+    # Generate normalized variants to support tags with or without parentheses (e.g. {btn5} vs {(btn5)})
+    normalized_tags = [tag]
+    if tag.startswith('{') and tag.endswith('}'):
+        inner = tag[1:-1]
+        if not (inner.startswith('(') and inner.endswith(')')):
+            normalized_tags.append(f"{{({inner})}}")
         else:
-            for alias, orig in mappings.items():
-                if orig == tag:
-                    if alias and '(' in alias and ')' in alias:
-                        return True
-                    break
+            normalized_tags.append(f"{{{inner[1:-1]}}}")
+    elif tag.startswith('[') and tag.endswith(']'):
+        inner = tag[1:-1]
+        if not (inner.startswith('(') and inner.endswith(')')):
+            normalized_tags.append(f"[({inner})]")
+        else:
+            normalized_tags.append(f"[{inner[1:-1]}]")
+
+    for t in normalized_tags:
+        is_known = False
+        if icon_sequences and t in icon_sequences:
+            return True
+            
+        if font_map and t in font_map:
+            val = font_map.get(t)
+            if val is not None:
+                w = val.get("width", 0) if isinstance(val, dict) else int(val)
+                if w > 0:
+                    return True
+                is_known = True
+            
+        width = get_tag_width(t, mappings, font_map, icon_sequences=icon_sequences)
+        if width > 0:
+            return True
+            
+        if mappings:
+            if t in mappings:
+                orig = mappings[t]
+                if orig and '(' in orig and ')' in orig:
+                    return True
+                is_known = True
+            else:
+                for alias, orig in mappings.items():
+                    if orig == t:
+                        if alias and '(' in alias and ')' in alias:
+                            return True
+                        is_known = True
+                        break
+        
+        # If the variant contains parentheses and is a known tag in the system, treat it as visible
+        if '(' in t and ')' in t and is_known:
+            return True
+            
     return False
 
 
@@ -418,29 +443,45 @@ def get_tag_width(tag: str, default_tag_mappings: Optional[dict], font_map: dict
     if default_tag_mappings is None:
         default_tag_mappings = get_active_tag_mappings()
 
-    alias = None
-    if default_tag_mappings:
-        if tag in default_tag_mappings:
-            alias = tag
+    # Generate normalized variants to support tags with or without parentheses (e.g. {btn5} vs {(btn5)})
+    normalized_tags = [tag]
+    if tag.startswith('{') and tag.endswith('}'):
+        inner = tag[1:-1]
+        if not (inner.startswith('(') and inner.endswith(')')):
+            normalized_tags.append(f"{{({inner})}}")
         else:
-            for a, orig in default_tag_mappings.items():
-                if orig == tag:
-                    alias = a
-                    break
+            normalized_tags.append(f"{{{inner[1:-1]}}}")
+    elif tag.startswith('[') and tag.endswith(']'):
+        inner = tag[1:-1]
+        if not (inner.startswith('(') and inner.endswith(')')):
+            normalized_tags.append(f"[({inner})]")
+        else:
+            normalized_tags.append(f"[{inner[1:-1]}]")
 
-    if alias:
-        if font_map and alias in font_map:
-            alias_info = font_map.get(alias)
-            if alias_info is not None:
-                if isinstance(alias_info, dict):
-                    return alias_info.get("width", 0)
-                elif isinstance(alias_info, (int, float)):
-                    return int(alias_info)
-        if alias.startswith('{') and alias.endswith('}'):
-            alias_inner = alias[1:-1]
-            if alias_inner.lower().startswith('f:'):
-                forced_text = alias_inner[2:]
-                return _calculate_string_width_impl(forced_text, font_map, default_char_width, icon_sequences, strict, default_tag_mappings) or 0
+    for t in normalized_tags:
+        alias = None
+        if default_tag_mappings:
+            if t in default_tag_mappings:
+                alias = t
+            else:
+                for a, orig in default_tag_mappings.items():
+                    if orig == t:
+                        alias = a
+                        break
+
+        if alias:
+            if font_map and alias in font_map:
+                alias_info = font_map.get(alias)
+                if alias_info is not None:
+                    if isinstance(alias_info, dict):
+                        return alias_info.get("width", 0)
+                    elif isinstance(alias_info, (int, float)):
+                        return int(alias_info)
+            if alias.startswith('{') and alias.endswith('}'):
+                alias_inner = alias[1:-1]
+                if alias_inner.lower().startswith('f:'):
+                    forced_text = alias_inner[2:]
+                    return _calculate_string_width_impl(forced_text, font_map, default_char_width, icon_sequences, strict, default_tag_mappings) or 0
 
     return 0
 
