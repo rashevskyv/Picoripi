@@ -1,6 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.3.009] - 2026-06-11
+## [0.3.010] - 2026-06-11
+
+### 🐛 Fixed
+- **Sentence Compaction Breaking Page Layout**: Rewrote `_compact_sentences_on_pages` in `plugins/common/text_fixer.py` to fix a critical bug where the compactor was incorrectly restructuring pages when the input text had no empty-line padding (e.g. when `shift_split_sentences_aligned` was used or `prevent_empty_lines_in_autofix = True`).
+  - **Root cause**: The old implementation rebuilt the entire page layout from scratch using an internal `page_pos` counter. When the input text had no empty-line padding (pages separated only by escape codes), the `page_pos` tracking was incorrect, causing sentences to be placed on the wrong pages — e.g. line 4 becoming "Призначай..." instead of being an empty padding line.
+  - **New approach**: The compactor now works purely by **line-index arithmetic** (`line_index // lines_per_page`). It iterates over lines, and when a sentence-ending line `K` has empty slots remaining on its page, it looks for the next sentence. If that next sentence is **on the same page** (by index), a merge is attempted. If it's on a **different page** (or starts with a page-break code), the compactor **does nothing** — it never moves sentences between pages.
+  - **Guarantee**: The method now never changes which page a sentence is on. It only fills empty slots within an already-established page boundary.
+
+
 
 ### 🚀 Added
 - **Sentence Compaction on Pages (`_compact_sentences_on_pages`)**: New final AutoFix step in `plugins/common/text_fixer.py` that eliminates unnecessary empty padding lines between sentences within a page.
