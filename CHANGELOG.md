@@ -1,5 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.006] - 2026-06-11
+
+### 🚀 Added
+- **Asynchronous Save & Archive Packing**: Integrated `SaveWorker(QThread)` in `DataStateProcessor` and `AppActionHandler` to perform disk saves and Yaz0 archive compression on a background thread. Leverages a modal `QProgressDialog` and local `QEventLoop` to block the GUI during execution without triggering "Not Responding" application freezes.
+- **Dedicated AI Variations Handler**: Decomposed `TranslationHandler` by extracting caching, generation, and selection of AI translation variations into a specialized `AIVariationsHandler` class in `handlers/translation/ai_variations_handler.py`.
+
+### 🐛 Fixed
+- **MemePalace Worker GUI Freezes**: Removed high-latency `build_occurrence_index` invocations from intermediate progress reporting callbacks (`_handle_worker_progress`) in `ui/mempalace_builder_dialog.py`. The index is now rebuilt exactly once after the worker finishes executing.
+- **Spellchecker Startup Blocking**: Relocated the heavy synchronous Hunspell dictionary initialization (`Dictionary.from_files`) from the GUI thread constructor to an asynchronous background worker using `threading.Thread`. Replaced risky timers with a type-safe PyQt signal `dictionary_loaded` to thread-safely register the dictionary instance with the GUI thread.
+
+### ⚡ Improved
+- **SQLite Database Transaction Performance**: Optimized database operations in `MemePalaceClient` and `MemePalaceWorker` by adding support for shared connection context managers and wrapping multi-row insertion loops within single transaction blocks (`BEGIN/COMMIT`), dramatically reducing Disk I/O overhead.
+
+### 🧪 Tested
+- **Comprehensive Async & Decomposed Test Suites**: Added new unit tests verifying the asynchronous dictionary loading flow (`test_core/test_spellchecker_manager.py`), background save worker lifecycle and event loops (`test_app_action_handler.py`), and the state/caching behavior of the new `AIVariationsHandler` (`test_handlers/test_translation/test_ai_variations_handler.py`).
+
 ## [0.3.005] - 2026-06-11
 
 ### 🚀 Added

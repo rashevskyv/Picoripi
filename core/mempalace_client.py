@@ -278,7 +278,7 @@ class MemePalaceClient:
                 log_error(f"Local DB error in has_room: {e}")
         return False
 
-    def add_wing(self, name: str, description: str = "") -> bool:
+    def add_wing(self, name: str, description: str = "", conn: Optional[sqlite3.Connection] = None) -> bool:
         """Create a new top-level container (Wing) for the project."""
         log_info(f"Adding Wing: {name}")
         
@@ -298,20 +298,21 @@ class MemePalaceClient:
         # 2. Write to local SQLite database as fallback or local-first storage
         if self.db_path:
             try:
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
+                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
+                cursor = local_conn.cursor()
                 cursor.execute(
                     "INSERT OR IGNORE INTO wings (name, description) VALUES (?, ?)",
                     (name, description)
                 )
-                conn.commit()
-                conn.close()
+                if conn is None:
+                    local_conn.commit()
+                    local_conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_wing: {e}")
         return False
 
-    def add_room(self, wing_name: str, room_name: str, description: str = "") -> bool:
+    def add_room(self, wing_name: str, room_name: str, description: str = "", conn: Optional[sqlite3.Connection] = None) -> bool:
         """Add a specific room (location/scene category) to a wing."""
         log_info(f"Adding Room: {room_name} to Wing: {wing_name}")
         
@@ -331,8 +332,8 @@ class MemePalaceClient:
         # 2. Write to local SQLite
         if self.db_path:
             try:
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
+                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
+                cursor = local_conn.cursor()
                 # Find wing ID
                 cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
                 row = cursor.fetchone()
@@ -347,14 +348,15 @@ class MemePalaceClient:
                     "INSERT OR IGNORE INTO rooms (wing_id, name, description) VALUES (?, ?, ?)",
                     (wing_id, room_name, description)
                 )
-                conn.commit()
-                conn.close()
+                if conn is None:
+                    local_conn.commit()
+                    local_conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_room: {e}")
         return False
 
-    def add_drawer(self, wing_name: str, room_name: str, drawer_name: str, content: str, metadata: Dict[str, Any] = None) -> bool:
+    def add_drawer(self, wing_name: str, room_name: str, drawer_name: str, content: str, metadata: Dict[str, Any] = None, conn: Optional[sqlite3.Connection] = None) -> bool:
         """Add a verbatim transcription or scene description (Drawer) to a room."""
         meta_str = json.dumps(metadata or {})
         log_debug(f"Adding Drawer '{drawer_name}' to '{wing_name}/{room_name}'")
@@ -380,8 +382,8 @@ class MemePalaceClient:
         # 2. Write to local database
         if self.db_path:
             try:
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
+                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
+                cursor = local_conn.cursor()
                 # Get wing ID and room ID
                 cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
                 w_row = cursor.fetchone()
@@ -403,15 +405,16 @@ class MemePalaceClient:
                     "INSERT INTO drawers (room_id, name, content, metadata) VALUES (?, ?, ?, ?)",
                     (room_id, drawer_name, content, meta_str)
                 )
-                conn.commit()
-                conn.close()
+                if conn is None:
+                    local_conn.commit()
+                    local_conn.close()
                 self._cache_loaded = False  # Reset cache to reload new data on next access
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_drawer: {e}")
         return False
 
-    def add_relation(self, wing_name: str, source: str, relation: str, target: str, valid_from: str = "") -> bool:
+    def add_relation(self, wing_name: str, source: str, relation: str, target: str, valid_from: str = "", conn: Optional[sqlite3.Connection] = None) -> bool:
         """Add relationship rule between characters or entities to temporal knowledge graph."""
         log_info(f"Adding relation: {source} -[{relation}]-> {target}")
 
@@ -435,8 +438,8 @@ class MemePalaceClient:
 
         if self.db_path:
             try:
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
+                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
+                cursor = local_conn.cursor()
                 cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
                 w_row = cursor.fetchone()
                 if not w_row:
@@ -449,8 +452,9 @@ class MemePalaceClient:
                     "INSERT INTO knowledge_graph (wing_id, source_entity, target_entity, relation, valid_from) VALUES (?, ?, ?, ?, ?)",
                     (wing_id, source, target, relation, valid_from)
                 )
-                conn.commit()
-                conn.close()
+                if conn is None:
+                    local_conn.commit()
+                    local_conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_relation: {e}")

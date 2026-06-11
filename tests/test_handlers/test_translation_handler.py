@@ -351,7 +351,7 @@ def test_th_handle_variation_success(mock_box, th):
     th.ui_handler.show_variations_dialog.return_value = "v1"
     th.data_processor.get_current_string_text.return_value = ("original", "edited")
     
-    th._handle_variation_success(ProviderResponse(), ctx)
+    th.variations_handler._handle_variation_success(ProviderResponse(), ctx)
     th.data_processor.update_edited_data.assert_called_once()
     th.ui_handler.apply_inline_variation.assert_called_with("v1")
 
@@ -648,7 +648,7 @@ def test_th_apply_chosen_variation_focus_changed(th):
     th.mw.current_game_rules.convert_editor_text_to_data.side_effect = lambda x: x
     th.mw.current_game_rules.get_shift_enter_char.return_value = "\n"
 
-    th._apply_chosen_variation("new_translation", is_inline=False, target_block_idx=0, target_string_idx=0)
+    th.variations_handler._apply_chosen_variation("new_translation", is_inline=False, target_block_idx=0, target_string_idx=0)
 
     # Verify: target block/string data is updated
     th.data_processor.update_edited_data.assert_called_with(0, 0, ANY, action_type="TRANSLATE", skip_ui_refresh=True)

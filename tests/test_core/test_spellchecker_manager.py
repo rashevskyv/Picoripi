@@ -265,6 +265,69 @@ def test_SpellcheckerManager_rehighlight_debounce(mock_mw):
         sm._rehighlight_timer.start.assert_called_once()
         sm._trigger_rehighlight.assert_not_called()
 
+@patch('core.spellchecker_manager.Dictionary.from_files')
+def test_SpellcheckerManager_load_dictionary_async(mock_from_files, mock_mw, tmp_path):
+    dict_dir = tmp_path / "dict"
+    dict_dir.mkdir()
+    (dict_dir / "uk.dic").touch()
+    (dict_dir / "uk.aff").touch()
+    
+    mock_dict = MagicMock()
+    mock_from_files.return_value = mock_dict
+    
+    sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=dict_dir)
+    
+    emitted_dict = []
+    sm.dictionary_loaded.connect(lambda d: emitted_dict.append(d))
+    
+    sm._load_dictionary_async()
+    
+    assert len(emitted_dict) == 1
+    assert emitted_dict[0] == mock_dict
+    mock_from_files.assert_called_with(str(dict_dir / "uk"))
+
+
+@patch('core.spellchecker_manager.Dictionary.from_files')
+def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw, tmp_path):
+    import sys
+    from PyQt6.QtCore import QEventLoop, QTimer
+    
+    dict_dir = tmp_path / "dict"
+    dict_dir.mkdir()
+    (dict_dir / "uk.dic").touch()
+    (dict_dir / "uk.aff").touch()
+    
+    mock_dict = MagicMock()
+    mock_from_files.return_value = mock_dict
+    
+    # Construct a mock sys.modules without 'pytest' to force the async path
+    fake_modules = {k: v for k, v in sys.modules.items() if k != 'pytest'}
+    
+    with patch('sys.modules', fake_modules):
+        sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=dict_dir)
+        
+        # We wait for the dictionary_loaded signal using a QEventLoop
+        loop = QEventLoop()
+        sm.dictionary_loaded.connect(loop.quit)
+        
+        # Set a timeout timer in case the thread hangs
+        timeout_timer = QTimer()
+        timeout_timer.setSingleShot(True)
+        timeout_timer.timeout.connect(loop.quit)
+        timeout_timer.start(2000)
+        
+        loop.exec()
+        timeout_timer.stop()
+        
+        # Check that hunspell was loaded and prefetch worker was set up
+        assert sm.hunspell == mock_dict
+        assert hasattr(sm, 'worker')
+        assert hasattr(sm, 'worker_thread')
+        assert sm.worker_thread.isRunning()
+        
+        # Clean up thread
+        sm.prepare_to_close()
+
 
 
 

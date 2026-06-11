@@ -97,6 +97,7 @@ class SpellcheckWorker(QObject):
 
 class SpellcheckerManager(QObject):
     suggestions_loaded = pyqtSignal(str, list)
+    dictionary_loaded = pyqtSignal(object)  # Safe inter-thread signal for passing loaded dictionary
 
     def __init__(self, main_window, language='uk', custom_dict_path=None):
         super().__init__()
@@ -109,6 +110,8 @@ class SpellcheckerManager(QObject):
         self._spell_cache: Dict[str, bool] = {}
         self._suggestions_cache: Dict[str, List[str]] = {}
         self._cache_file = LOCAL_DICT_PATH / "spell_cache.json"
+
+        self.dictionary_loaded.connect(self._on_dictionary_loaded)
 
         self._initialize_spellchecker()
         self._load_persistent_cache()
@@ -197,6 +200,53 @@ class SpellcheckerManager(QObject):
             self.worker.enqueue(cleaned_word)
 
     def _initialize_spellchecker(self):
+        import sys
+        if 'pytest' in sys.modules:
+            self._do_initialize_spellchecker()
+        else:
+            import threading
+            threading.Thread(target=self._load_dictionary_async, daemon=True).start()
+
+    def _load_dictionary_async(self):
+        try:
+            dictionary_name = self.language
+            search_path = self.custom_dict_path
+            
+            dictionary_basename = search_path / dictionary_name
+            log_debug(f"Loading dictionary from basename asynchronously: '{dictionary_basename}'")
+
+            dic_path = dictionary_basename.with_suffix('.dic')
+            aff_path = dictionary_basename.with_suffix('.aff')
+
+            if not dic_path.exists() or not aff_path.exists():
+                log_warning(f"Dictionary files (.dic, .aff) for basename '{dictionary_basename}' not found. Spellchecker will be inactive.")
+                return
+
+            hunspell_dict = Dictionary.from_files(str(dictionary_basename))
+            
+            # Emit signal to safely pass the loaded dictionary back to the main GUI thread
+            self.dictionary_loaded.emit(hunspell_dict)
+        except Exception as e:
+            log_error(f"Failed to initialize spylls asynchronously for '{self.language}': {e}", exc_info=True)
+
+    def _on_dictionary_loaded(self, hunspell_dict):
+        self.hunspell = hunspell_dict
+        log_debug(f"spylls Dictionary object loaded successfully for language '{self.language}'.")
+        self._spell_cache.clear()
+        self._suggestions_cache.clear()
+        self._load_user_dictionary()
+        self._load_glossary_words()
+        
+        # Setup prefetch worker now that hunspell is ready
+        self._setup_prefetch_worker()
+        
+        # Trigger rehighlight if spellchecker is currently enabled
+        if self.enabled and hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+            if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
+                self.mw.edited_text_edit.highlighter.rehighlight()
+                log_debug("Rehighlighting after dictionary load completion")
+
+    def _do_initialize_spellchecker(self):
         log_debug("Attempting to initialize spellchecker...")
         try:
             dictionary_name = self.language

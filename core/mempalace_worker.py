@@ -1,6 +1,7 @@
 import json
 import re
 import difflib
+import sqlite3
 from PyQt6.QtCore import QThread, pyqtSignal
 from typing import List, Dict, Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
@@ -352,54 +353,97 @@ class MemePalaceWorker(QThread):
 
     def _save_mapped_data_to_local_palace(self, mapped_scenes: List[Dict[str, Any]]):
         """Quickly save mapped scenes directly to MemePalace client without AI additions."""
-        self.client.add_wing(self.wing_name, f"Chronological Memory Palace for {self.wing_name}")
-        
-        total = len(mapped_scenes)
-        for idx, scene in enumerate(mapped_scenes):
-            if self.is_cancelled:
-                break
-            if idx % 10 == 0 or idx == total - 1:
-                pct = int((idx / total) * 100)
-                self.progress.emit(pct, 100, f"Saving mapped scenes to database: {idx + 1}/{total}...")
-                
-            room_name = scene["room_name"]
-            self.client.add_room(self.wing_name, room_name, f"Chronological Scene at timeline: {scene['timestamp']}")
+        import sqlite3
+        conn = None
+        if self.client.db_path:
+            try:
+                conn = sqlite3.connect(self.client.db_path)
+                conn.execute("BEGIN TRANSACTION")
+            except Exception as e:
+                log_error(f"Failed to start transaction in _save_mapped_data_to_local_palace: {e}")
+                conn = None
+
+        try:
+            self.client.add_wing(self.wing_name, f"Chronological Memory Palace for {self.wing_name}", conn=conn)
             
-            # Store dialogues verbatim in a Drawer
-            content = "DIALOGUES:\n"
-            for bmg_text, bmg_id in zip(scene["bmg_texts"], scene["bmg_ids"]):
-                content += f"[{bmg_id}]: {bmg_text}\n"
+            total = len(mapped_scenes)
+            for idx, scene in enumerate(mapped_scenes):
+                if self.is_cancelled:
+                    break
+                if idx % 10 == 0 or idx == total - 1:
+                    pct = int((idx / total) * 100)
+                    self.progress.emit(pct, 100, f"Saving mapped scenes to database: {idx + 1}/{total}...")
+                    
+                room_name = scene["room_name"]
+                self.client.add_room(self.wing_name, room_name, f"Chronological Scene at timeline: {scene['timestamp']}", conn=conn)
                 
+                # Store dialogues verbatim in a Drawer
+                content = "DIALOGUES:\n"
+                for bmg_text, bmg_id in zip(scene["bmg_texts"], scene["bmg_ids"]):
+                    content += f"[{bmg_id}]: {bmg_text}\n"
+                    
+                self.client.add_drawer(
+                    self.wing_name, 
+                    room_name, 
+                    "dialogue_lines", 
+                    content, 
+                    {
+                        "bmg_start_idx": scene["bmg_start_idx"], 
+                        "timestamp": scene["timestamp"],
+                        "speaker_map": scene.get("speaker_map", {})
+                    },
+                    conn=conn
+                )
+            if conn:
+                conn.commit()
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            raise e
+        finally:
+            if conn:
+                conn.close()
+
+    def _save_single_scene_locally(self, scene: Dict[str, Any], conn: Optional[sqlite3.Connection] = None):
+        """Helper to save a single scene directly without AI queries."""
+        local_conn = conn
+        is_local_trans = False
+        if local_conn is None and self.client.db_path:
+            try:
+                local_conn = sqlite3.connect(self.client.db_path)
+                local_conn.execute("BEGIN TRANSACTION")
+                is_local_trans = True
+            except Exception as e:
+                log_error(f"Failed to start transaction in _save_single_scene_locally: {e}")
+                local_conn = None
+
+        try:
+            room_name = scene["room_name"]
+            self.client.add_room(self.wing_name, room_name, f"Timeline context: {scene['timestamp']}", conn=local_conn)
+            dialogue_block = ""
+            for bmg_text, bmg_id in zip(scene["bmg_texts"], scene["bmg_ids"]):
+                dialogue_block += f"[{bmg_id}]: {bmg_text}\n"
             self.client.add_drawer(
                 self.wing_name, 
                 room_name, 
-                "dialogue_lines", 
-                content, 
+                "dialogues", 
+                dialogue_block, 
                 {
                     "bmg_start_idx": scene["bmg_start_idx"], 
                     "timestamp": scene["timestamp"],
                     "speaker_map": scene.get("speaker_map", {})
-                }
+                },
+                conn=local_conn
             )
-
-    def _save_single_scene_locally(self, scene: Dict[str, Any]):
-        """Helper to save a single scene directly without AI queries."""
-        room_name = scene["room_name"]
-        self.client.add_room(self.wing_name, room_name, f"Timeline context: {scene['timestamp']}")
-        dialogue_block = ""
-        for bmg_text, bmg_id in zip(scene["bmg_texts"], scene["bmg_ids"]):
-            dialogue_block += f"[{bmg_id}]: {bmg_text}\n"
-        self.client.add_drawer(
-            self.wing_name, 
-            room_name, 
-            "dialogues", 
-            dialogue_block, 
-            {
-                "bmg_start_idx": scene["bmg_start_idx"], 
-                "timestamp": scene["timestamp"],
-                "speaker_map": scene.get("speaker_map", {})
-            }
-        )
+            if is_local_trans and local_conn:
+                local_conn.commit()
+        except Exception as e:
+            if is_local_trans and local_conn:
+                local_conn.rollback()
+            raise e
+        finally:
+            if is_local_trans and local_conn:
+                local_conn.close()
 
     def _generate_palace_via_llm(self, mapped_scenes: List[Dict[str, Any]]):
         """Query AI Provider to generate deep visual context and relation updates."""
@@ -539,34 +583,58 @@ JSON format example (assuming target language is Ukrainian):
                 # Log success to worker log console
                 self.log.emit(f"[Scene {idx+1}] AI annotated successfully. Speakers: {list(speaker_map.values())}")
                 
-                # Write to MemPalace Wing/Room/Drawers
-                # Write verbatim dialogues
-                self.client.add_drawer(
-                    self.wing_name, 
-                    room_name, 
-                    "dialogues", 
-                    dialogue_block, 
-                    {"bmg_start_idx": scene["bmg_start_idx"], "timestamp": scene["timestamp"], "speaker_map": speaker_map}
-                )
-                
-                # Write visual scene context drawer
-                self.client.add_drawer(
-                    self.wing_name, 
-                    room_name, 
-                    "visual_scene_context", 
-                    visual_context, 
-                    {"timestamp": scene["timestamp"]}
-                )
-                
-                # Write relations to temporal knowledge graph
-                for rel in relations:
-                    self.client.add_relation(
+                # Write to MemPalace Wing/Room/Drawers inside transaction
+                import sqlite3
+                conn = None
+                if self.client.db_path:
+                    try:
+                        conn = sqlite3.connect(self.client.db_path)
+                        conn.execute("BEGIN TRANSACTION")
+                    except Exception as e_tx:
+                        log_error(f"Failed to start transaction for AI scene writing: {e_tx}")
+                        conn = None
+
+                try:
+                    # Write verbatim dialogues
+                    self.client.add_drawer(
                         self.wing_name, 
-                        rel.get("source", "Unknown"), 
-                        rel.get("relation", "relates"), 
-                        rel.get("target", "Unknown"), 
-                        valid_from=scene["timestamp"]
+                        room_name, 
+                        "dialogues", 
+                        dialogue_block, 
+                        {"bmg_start_idx": scene["bmg_start_idx"], "timestamp": scene["timestamp"], "speaker_map": speaker_map},
+                        conn=conn
                     )
+                    
+                    # Write visual scene context drawer
+                    self.client.add_drawer(
+                        self.wing_name, 
+                        room_name, 
+                        "visual_scene_context", 
+                        visual_context, 
+                        {"timestamp": scene["timestamp"]},
+                        conn=conn
+                    )
+                    
+                    # Write relations to temporal knowledge graph
+                    for rel in relations:
+                        self.client.add_relation(
+                            self.wing_name, 
+                            rel.get("source", "Unknown"), 
+                            rel.get("relation", "relates"), 
+                            rel.get("target", "Unknown"), 
+                            valid_from=scene["timestamp"],
+                            conn=conn
+                        )
+                    if conn:
+                        conn.commit()
+                except Exception as e_db:
+                    if conn:
+                        conn.rollback()
+                    log_error(f"Error saving AI results to DB: {e_db}")
+                    raise e_db
+                finally:
+                    if conn:
+                        conn.close()
                     
             except Exception as e:
                 log_ai_traffic(mw, "mempalace_scene_annotation", messages, error=str(e))

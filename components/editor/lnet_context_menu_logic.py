@@ -164,7 +164,7 @@ class LNETContextMenuLogic:
                         suggestions = spellchecker_manager._suggestions_cache[cleaned_word]
                         if suggestions:
                             for suggestion in suggestions[:5]:
-                                suggestion_action = menu.addAction(f"в†’ {suggestion}")
+                                suggestion_action = menu.addAction(f"→ {suggestion}")
                                 suggestion_action.triggered.connect(
                                     lambda checked=False, s=suggestion, c=word_cursor: self.editor._replace_word_at_cursor(c, s)
                                 )
@@ -174,7 +174,7 @@ class LNETContextMenuLogic:
                             no_suggestions_action.setEnabled(False)
                             menu.addSeparator()
                     else:
-                        no_suggestions_action = menu.addAction("(Loading suggestions... рџ”„)")
+                        no_suggestions_action = menu.addAction("(Loading suggestions... 🔄)")
                         no_suggestions_action.setEnabled(False)
                         separator_action = menu.addSeparator()
 

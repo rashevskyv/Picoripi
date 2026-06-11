@@ -108,5 +108,93 @@ class TestAppActionHandler(unittest.TestCase):
         mock_worker_cls.assert_called_once()
         mock_worker_inst.start.assert_called_once()
 
+    @patch('handlers.app_action_handler.QProgressDialog')
+    @patch('handlers.app_action_handler.QEventLoop')
+    @patch('handlers.app_action_handler.SaveWorker')
+    @patch('handlers.app_action_handler.QMessageBox')
+    def test_perform_async_save_flow_success(self, mock_msg_box, mock_worker_cls, mock_event_loop, mock_progress):
+        # Setup mocks
+        mock_pd_inst = mock_progress.return_value
+        mock_loop_inst = mock_event_loop.return_value
+        mock_worker_inst = mock_worker_cls.return_value
+        
+        def mock_exec():
+            connect_mock = mock_worker_inst.finished_with_result.connect
+            connect_mock.assert_called()
+            on_finished_cb = connect_mock.call_args[0][0]
+            on_finished_cb(True, [("archive.rarc", 200, 100)], [])
+            
+        mock_loop_inst.exec.side_effect = mock_exec
+        
+        self.ctx.ui_provider = MagicMock()
+        self.ctx.show_archive_size_warnings = True
+        self.ctx.issue_scan_handler = MagicMock()
+        
+        res = self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True)
+        
+        self.assertTrue(res)
+        mock_progress.assert_called_once()
+        mock_worker_cls.assert_called_once()
+        mock_worker_inst.start.assert_called_once()
+        mock_loop_inst.exec.assert_called_once()
+        mock_pd_inst.close.assert_called_once()
+        
+        self.ctx.ui_provider.show_archive_size_warning.assert_called_once_with("archive.rarc", 200, 100)
+        mock_msg_box.information.assert_called_once()
+        self.ctx.issue_scan_handler._save_issues_cache.assert_called_once()
+
+    @patch('handlers.app_action_handler.QProgressDialog')
+    @patch('handlers.app_action_handler.QEventLoop')
+    @patch('handlers.app_action_handler.SaveWorker')
+    @patch('handlers.app_action_handler.QMessageBox')
+    def test_perform_async_save_flow_failure(self, mock_msg_box, mock_worker_cls, mock_event_loop, mock_progress):
+        mock_pd_inst = mock_progress.return_value
+        mock_loop_inst = mock_event_loop.return_value
+        mock_worker_inst = mock_worker_cls.return_value
+        
+        def mock_exec():
+            connect_mock = mock_worker_inst.finished_with_result.connect
+            on_finished_cb = connect_mock.call_args[0][0]
+            on_finished_cb(False, [], ["Disk full error"])
+            
+        mock_loop_inst.exec.side_effect = mock_exec
+        
+        res = self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True)
+        
+        self.assertFalse(res)
+        mock_msg_box.critical.assert_called_once()
+
+    def test_save_worker_run_success(self):
+        from handlers.app_action_handler import SaveWorker
+        mock_dsp = MagicMock()
+        mock_dsp._perform_save_impl.return_value = (True, [("w.rarc", 1, 2)], [])
+        
+        worker = SaveWorker(mock_dsp, [["data"]])
+        
+        finished_mock = MagicMock()
+        worker.finished_with_result.connect(finished_mock)
+        
+        worker.run()
+        
+        mock_dsp._perform_save_impl.assert_called_once()
+        args, kwargs = mock_dsp._perform_save_impl.call_args
+        self.assertEqual(args[0], [["data"]])
+        self.assertTrue(callable(kwargs['progress_callback']))
+        finished_mock.assert_called_once_with(True, [("w.rarc", 1, 2)], [])
+
+    def test_save_worker_run_exception(self):
+        from handlers.app_action_handler import SaveWorker
+        mock_dsp = MagicMock()
+        mock_dsp._perform_save_impl.side_effect = Exception("Write error")
+        
+        worker = SaveWorker(mock_dsp, [["data"]])
+        
+        finished_mock = MagicMock()
+        worker.finished_with_result.connect(finished_mock)
+        
+        worker.run()
+        
+        finished_mock.assert_called_once_with(False, [], ["Write error"])
+
 if __name__ == '__main__':
     unittest.main()

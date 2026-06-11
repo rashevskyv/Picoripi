@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal, QEventLoop
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
@@ -12,6 +12,27 @@ from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
 from components.report_dialog import LargeTextReportDialog
+
+class SaveWorker(QThread):
+    progress_updated = pyqtSignal(int, int, str)  # current_step, total_steps, label_text
+    finished_with_result = pyqtSignal(bool, list, list)  # success, warnings, errors
+
+    def __init__(self, data_processor: Any, output_data_list: List[Any]):
+        super().__init__()
+        self.data_processor = data_processor
+        self.output_data_list = output_data_list
+
+    def run(self):
+        try:
+            success, warnings, errors = self.data_processor._perform_save_impl(
+                self.output_data_list, 
+                progress_callback=self.progress_updated.emit
+            )
+            self.finished_with_result.emit(success, warnings, errors)
+        except Exception as e:
+            log_error(f"SaveWorker execution failed: {e}", exc_info=True)
+            self.finished_with_result.emit(False, [], [str(e)])
+
 
 class AppActionHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any, game_rules_plugin: Optional[BaseGameRules]):
@@ -151,6 +172,88 @@ class AppActionHandler(BaseHandler):
         except Exception as err:
             log_error(f"Error in AppActionHandler.save_data_action: {err}", exc_info=True, category="file_ops")
             return False
+
+    def perform_async_save_flow(self, output_data_list: List[Any], ask_confirmation: bool = True) -> bool:
+        log_info("Starting async save flow...", category="file_ops")
+        
+        # Block interface by setting SAVING_DATA state
+        self.mw.state.set_active(AppState.SAVING_DATA, True)
+        
+        # Create SaveWorker
+        self.save_worker = SaveWorker(self.data_processor, output_data_list)
+        
+        # Prepare QProgressDialog
+        progress_dialog = QProgressDialog("Initializing save operation...", None, 0, 100, self.mw)
+        progress_dialog.setWindowTitle("Saving Changes")
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setCancelButton(None)  # Disable cancel to prevent corrupted saves
+        
+        # Keep track of worker results
+        save_results = {
+            'success': False,
+            'warnings': [],
+            'errors': []
+        }
+        
+        # Setup event loop to wait synchronously in this method but keep GUI responsive
+        loop = QEventLoop()
+        
+        def on_progress(current_step, total_steps, label_text):
+            if total_steps > 0:
+                # Map progress to 0-100 range
+                val = int((current_step / total_steps) * 100)
+                progress_dialog.setValue(val)
+            progress_dialog.setLabelText(label_text)
+            
+        def on_finished(success, warnings, errors):
+            save_results['success'] = success
+            save_results['warnings'] = warnings
+            save_results['errors'] = errors
+            progress_dialog.close()
+            loop.quit()
+
+        self.save_worker.progress_updated.connect(on_progress)
+        self.save_worker.finished_with_result.connect(on_finished)
+        
+        # Run worker thread and wait
+        self.save_worker.start()
+        progress_dialog.show()
+        loop.exec()
+        
+        # Release interface state
+        self.mw.state.set_active(AppState.SAVING_DATA, False)
+        
+        success = save_results['success']
+        warnings = save_results['warnings']
+        errors = save_results['errors']
+        
+        if not success:
+            if errors:
+                QMessageBox.critical(self.mw, "Save Error", "Failed to save files:\n" + "\n".join(errors))
+            else:
+                QMessageBox.critical(self.mw, "Save Error", "Failed to save files due to an unknown error.")
+            return False
+            
+        # Post-save state updates
+        self.mw.data_store.unsaved_changes = False
+        self.mw.data_store.edited_data = {}
+        self.mw.data_store.edited_sublines.clear()
+        self.mw.data_store.edited_file_data = output_data_list
+        
+        # Process size warnings
+        for archive_rel_path, new_size, orig_size in warnings:
+            if getattr(self.mw, 'show_archive_size_warnings', True):
+                if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+                    self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
+                    
+        if ask_confirmation:
+            QMessageBox.information(self.mw, "Project Saved", "All project translation files saved successfully.")
+            
+        if hasattr(self.mw, 'issue_scan_handler'):
+            self.mw.issue_scan_handler._save_issues_cache()
+            
+        return True
 
     def save_as_dialog_action(self) -> None:
         log_info("Save As Dialog action triggered.")

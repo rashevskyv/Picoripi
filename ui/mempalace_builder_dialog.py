@@ -1173,19 +1173,6 @@ class MemePalaceBuilderDialog(QDialog):
                 self.progress_bar.setValue(int((current / total) * 100))
         self.append_log(text)
 
-        # Hot-reload glossary dialog if it is visible during profiling updates in real time
-        try:
-            gh = None
-            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
-                gh = getattr(self.mw.translation_handler, 'glossary_handler', None)
-            if gh and gh.dialog and gh.dialog.isVisible():
-                entries = sorted(gh.glossary_manager.get_entries(), key=lambda e: e.original.lower())
-                data_source = getattr(self.mw.data_store, "data", [])
-                occurrence_map = gh.glossary_manager.build_occurrence_index(data_source)
-                gh.dialog.reload_data(entries, occurrence_map)
-        except Exception as e:
-            log_error(f"Failed to hot-reload glossary dialog during worker progress: {e}")
-
 
     def _set_ui_enabled(self, enabled: bool):
         self.ai_analyze_btn.setEnabled(enabled)
