@@ -217,8 +217,20 @@ class TextFixer(GenericTextFixer):
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
         final_text, changed_shift = self._shift_split_sentences(final_text, lines_per_page, original_message_text, block_idx=block_idx, string_idx=string_idx)
 
+        short_line_allowed = (
+            PROBLEM_SHORT_LINE in allowed_problems
+            if allowed_problems is not None
+            else autofix_config.get(PROBLEM_SHORT_LINE, False)
+        )
+        changed_compact = False
+        if short_line_allowed:
+            changed_compact_val = self._compact_sentences_on_pages(
+                final_text, editor_font_map, editor_line_width_threshold, lines_per_page
+            )
+            final_text, changed_compact = changed_compact_val
+
         changed_orphans = False
         if has_single_word_allowed:
             final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
 
-        return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_orphans)
+        return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_compact or changed_orphans)

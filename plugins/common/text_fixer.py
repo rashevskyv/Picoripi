@@ -272,4 +272,205 @@ class GenericTextFixer:
             final_text, changed = shift_split_sentences(text, lines_per_page, prevent_empty_lines=prevent_empty_lines)
             
         return final_text, final_text != original_input
+    def _compact_sentences_on_pages(
+        self,
+        text: str,
+        font_map: dict,
+        threshold: int,
+        lines_per_page: int,
+    ) -> "Tuple[str, bool]":
+        """Try to merge consecutive sentences onto the same page.
+
+        After _shift_split_sentences has arranged the text into pages, this step
+        looks at each pair of adjacent sentences.  If the next sentence fits in
+        the remaining space on the current page (starting right after the last
+        line of the previous sentence), the two are merged.  Otherwise the next
+        sentence is pushed to a new page (empty padding lines are added or
+        removed depending on the *prevent_empty_lines_in_autofix* flag).
+
+        Sentence boundaries: a line whose last visible character is one of
+        ``.``, ``!``, ``?``, ``;`` (or a closing quote/paren after such char).
+        Page-break escape codes are always hard boundaries.
+        """
+        if not text:
+            return text, False
+
+        try:
+            lines_per_page = int(lines_per_page)
+        except (TypeError, ValueError):
+            lines_per_page = 4
+
+        if lines_per_page <= 0:
+            return text, False
+
+        prevent_empty_lines = (
+            getattr(self.mw, "prevent_empty_lines_in_autofix", False) if self.mw else False
+        )
+
+        lines = text.split("\n")
+        original_text = text
+
+        # ------------------------------------------------------------------ #
+        # Step 1 – segment lines into sentences (same boundary logic as
+        #          shift_split_sentences in utils.py).
+        # Each sentence is stored as a list of line strings.
+        # ------------------------------------------------------------------ #
+        PAGE_BREAK_RE = re.compile(
+            r"[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]",
+            re.IGNORECASE,
+        )
+        SENTENCE_END_CHARS = frozenset(".!?;。！？")
+        CLOSING_CHARS = frozenset("\"'»`)")
+
+        def _is_sentence_end(line: str) -> bool:
+            from utils.utils import remove_all_tags
+            cleaned = remove_all_tags(line).strip()
+            if not cleaned:
+                return False
+            if PAGE_BREAK_RE.search(line):
+                return True
+            last = cleaned[-1]
+            if last in SENTENCE_END_CHARS:
+                return True
+            if last in CLOSING_CHARS and len(cleaned) > 1 and cleaned[-2] in SENTENCE_END_CHARS:
+                return True
+            return False
+
+        def _starts_with_page_break(line: str) -> bool:
+            return bool(re.match(
+                r"^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]",
+                line,
+                re.IGNORECASE,
+            ))
+
+        sentences: "list[list[str]]" = []
+        current: "list[str]" = []
+
+        for line in lines:
+            if not line.strip():
+                # Empty line → flush current, treat empty as its own sentence
+                if current:
+                    sentences.append(current)
+                    current = []
+                sentences.append([line])
+                continue
+
+            if _starts_with_page_break(line) and current:
+                sentences.append(current)
+                current = []
+
+            current.append(line)
+
+            if _is_sentence_end(line):
+                sentences.append(current)
+                current = []
+
+        if current:
+            sentences.append(current)
+
+        if len(sentences) <= 1:
+            return text, False
+
+        # ------------------------------------------------------------------ #
+        # Step 2 – try to merge consecutive non-empty sentences that fit on
+        #           the same page.
+        # ------------------------------------------------------------------ #
+        result_sentences: "list[list[str]]" = []
+        page_pos = 0           # how many lines on the current page so far
+        i = 0
+
+        while i < len(sentences):
+            sent = sentences[i]
+            s_len = len(sent)
+            is_empty_sent = (s_len == 1 and not sent[0].strip())
+            has_page_break = sent and _starts_with_page_break(sent[0])
+
+            if has_page_break:
+                result_sentences.append(sent)
+                page_pos = s_len % lines_per_page
+                i += 1
+                continue
+
+            if is_empty_sent:
+                if not prevent_empty_lines:
+                    result_sentences.append(sent)
+                    page_pos = (page_pos + 1) % lines_per_page
+                # When prevent_empty_lines=True: silently skip
+                i += 1
+                continue
+
+            # Normal sentence → look ahead at the next non-empty sentence
+            if result_sentences or page_pos > 0:
+                remaining = lines_per_page - (page_pos % lines_per_page)
+                if remaining == 0:
+                    remaining = lines_per_page
+            else:
+                remaining = lines_per_page
+
+            # Try to merge: append next sentence right after the last line of
+            # the current sentence and rewrap to see how many lines it takes.
+            next_idx = i + 1
+            # Skip any empty-line sentences between them (they count as padding)
+            while next_idx < len(sentences) and (
+                len(sentences[next_idx]) == 1 and not sentences[next_idx][0].strip()
+            ):
+                next_idx += 1
+
+            if next_idx < len(sentences):
+                next_sent = sentences[next_idx]
+                next_has_break = next_sent and _starts_with_page_break(next_sent[0])
+
+                if not next_has_break and len(next_sent) <= lines_per_page:
+                    # Attempt to fit sent + next_sent on the current page
+                    # starting right after the last line of sent.
+                    last_line_of_sent = sent[-1].rstrip()
+                    next_text = " ".join(line.strip() for line in next_sent)
+                    combined = (last_line_of_sent + " " + next_text).strip() if last_line_of_sent else next_text
+
+                    # Rewrap combined starting from the last line position
+                    # (lines before the last line of sent are already placed)
+                    lines_before_last = sent[:-1]
+                    lines_used_before_last = len(lines_before_last)
+
+                    remaining_for_merge = remaining - lines_used_before_last
+                    if remaining_for_merge > 0:
+                        wrapped, _ = self._fix_width_exceeded_generic(combined, font_map, threshold)
+                        wrapped_lines = wrapped.split("\n")
+                        if len(wrapped_lines) <= remaining_for_merge:
+                            # Merge: build new sentence = lines before last + wrapped
+                            merged_sent = lines_before_last + wrapped_lines
+                            result_sentences.append(merged_sent)
+                            page_pos = (page_pos + len(merged_sent)) % lines_per_page
+                            # Skip the empty-line padding sentences between them
+                            # and skip the next real sentence (it's been merged)
+                            i = next_idx + 1
+                            continue
+
+            # No merge: place sentence as-is, filling page if needed
+            # How many lines does this sentence need vs what's available?
+            if page_pos > 0:
+                remaining = lines_per_page - (page_pos % lines_per_page)
+                if remaining == 0:
+                    remaining = lines_per_page
+                if s_len > remaining:
+                    # Push to new page
+                    if not prevent_empty_lines and result_sentences:
+                        # Pad current page to boundary
+                        padding = [""] * remaining
+                        result_sentences.append(padding)
+                    page_pos = 0
+            result_sentences.append(sent)
+            page_pos = (page_pos + s_len) % lines_per_page
+            i += 1
+
+        # ------------------------------------------------------------------ #
+        # Step 3 – flatten back to text
+        # ------------------------------------------------------------------ #
+        final_lines: "list[str]" = []
+        for sent in result_sentences:
+            final_lines.extend(sent)
+
+        final_text = "\n".join(final_lines)
+        return final_text, final_text != original_text
+
 

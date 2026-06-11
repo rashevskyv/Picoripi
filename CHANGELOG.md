@@ -1,6 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.3.008] - 2026-06-11
+## [0.3.009] - 2026-06-11
+
+### 🚀 Added
+- **Sentence Compaction on Pages (`_compact_sentences_on_pages`)**: New final AutoFix step in `plugins/common/text_fixer.py` that eliminates unnecessary empty padding lines between sentences within a page.
+  - **How it works**: After `_shift_split_sentences` lays out pages, the compactor inspects each consecutive sentence pair. It tries to append the next sentence directly after the last line of the current sentence (on the same line), then re-wraps the combined text by width. If the wrapped result fits within the remaining lines of the current page, the sentences are merged. Otherwise the next sentence is pushed to a new page.
+  - **Result**: `"Речення перше\nпродовження.\n\nРечення друге"` → `"Речення перше\nпродовження. Речення\nдруге"` when both fit on the page.
+  - **`prevent_empty_lines_in_autofix` flag**: When enabled, empty padding lines between sentences are removed; when disabled, they are preserved as-is before a page boundary.
+  - **Sentence detection**: Sentence boundary = line ending with `.` `!` `?` `;` (or closing quote/paren after these). Page-break escape codes (e.g. `{escape:0:0007...}`, `{pause}`) are always hard sentence/page boundaries and are never merged across.
+  - **Gate**: The compaction step is activated only when the `SHORT_LINE` AutoFix option is enabled, since it is semantically part of "reducing short/empty lines".
+  - **Placement**: Runs **before** `_fix_single_word_orphans_generic` so that any single-word orphans created by compaction are immediately cleaned up.
+  - **Scope**: Applied uniformly to all 5 plugins: `zelda_bmg`, `zelda_ww`, `zelda_mc`, `pokemon_fr`, `plain_text`.
+
+
 
 ### 🐛 Fixed
 - **Green SHORT_LINE Warnings Vanishing After AutoFix**: Fixed a race condition where green "short line" warning highlights would silently disappear after pressing AutoFix, even when no text was actually changed.
