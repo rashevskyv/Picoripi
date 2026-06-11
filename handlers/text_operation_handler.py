@@ -23,6 +23,21 @@ class TextOperationHandler(BaseHandler):
         # we can cooperatively cancel it when a newer scan supersedes it.
         self.current_scanner_thread: Optional[AsyncIssueScanner] = None
 
+    def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
+        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
+        logical_limit = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
+        if "width" in string_meta:
+            custom_w = string_meta["width"]
+            global_max = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
+            standard_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+            if global_max > 0:
+                threshold = int(custom_w * (standard_threshold / global_max))
+            else:
+                threshold = custom_w
+        else:
+            threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+        return threshold, logical_limit
+
     def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
         if not self.mw.current_game_rules:
             return
@@ -36,10 +51,7 @@ class TextOperationHandler(BaseHandler):
         sublines = new_text.split('\n')
         
         font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-        
-        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-        width_threshold_for_string = string_meta.get("width", getattr(self.mw, 'line_width_warning_threshold_pixels', 200))
-        logical_hard_limit_for_string = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 200))
+        width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
         
         problems_in_string = []
         if hasattr(analyzer, 'analyze_data_string'):
@@ -60,6 +72,60 @@ class TextOperationHandler(BaseHandler):
              if problem_set:
                  self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
 
+
+    def _launch_async_scanner_for_fixed_text(
+        self,
+        block_idx: int,
+        string_idx: int,
+        fixed_data: str,
+        font_map: dict,
+        width_threshold: int,
+        logical_hard_limit: int,
+    ) -> None:
+        """Launch a new AsyncIssueScanner for the given (fixed) text.
+
+        Called after AutoFix completes (regardless of whether the text changed).
+        The scanner updates glossary / spellcheck highlights in the background
+        without blocking the UI. Because the sync rescan already populated
+        problems_per_subline with the correct results, we keep the scanner output
+        consistent by scanning the same fixed_data — the async result should match.
+        """
+        if not self.mw.current_game_rules:
+            return
+
+        edited_edit = getattr(self.mw, 'edited_text_edit', None)
+        analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules)
+
+        source_text = ""
+        if hasattr(self.mw, 'original_text_edit') and self.mw.original_text_edit:
+            source_text = self.mw.original_text_edit.toPlainText()
+
+        editor_text = str(fixed_data)
+        if hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
+            editor_text = str(self.mw.current_game_rules.get_text_representation_for_editor(editor_text))
+
+        if self.current_scanner_thread is not None:
+            self.current_scanner_thread.cancel()
+            self.current_scanner_thread = None
+
+        self.current_scanner_thread = AsyncIssueScanner(
+            block_idx=block_idx,
+            string_idx=string_idx,
+            text=fixed_data,
+            font_map=dict(font_map),
+            width_threshold=width_threshold,
+            analyzer=analyzer,
+            glossary_manager=getattr(getattr(edited_edit, 'highlighter', None), '_glossary_manager', None),
+            spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
+            source_text=source_text,
+            active_word="",
+            warnings_enabled=getattr(self.mw, 'warnings_enabled', True),
+            glossary_enabled=getattr(self.mw, 'glossary_enabled', True),
+            editor_text=editor_text,
+            logical_hard_limit=logical_hard_limit,
+        )
+        self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
+        get_scanner_thread_pool().start(self.current_scanner_thread)
 
     def _log_undo_state(self, editor, context_message):
         pass
@@ -235,9 +301,7 @@ class TextOperationHandler(BaseHandler):
                 self.current_scanner_thread = None
 
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-            string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-            width_threshold_for_string = string_meta.get("width", getattr(self.mw, 'line_width_warning_threshold_pixels', 200))
-            logical_hard_limit_for_string = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 200))
+            width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
             analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules)
 
             # Start background async scanner
@@ -618,16 +682,22 @@ class TextOperationHandler(BaseHandler):
             QMessageBox.warning(self.mw, "Auto-fix Error", "Game rules plugin not loaded.")
             return
 
+        # Cancel any in-flight async scanner BEFORE AutoFix. If the old scanner
+        # finishes after the sync rescan below, it would overwrite the correct
+        # problems_per_subline with stale results based on the pre-fix text.
+        if self.current_scanner_thread is not None:
+            self.current_scanner_thread.cancel()
+            self.current_scanner_thread = None
+
         edited_text_edit = self.mw.edited_text_edit
         raw_text = edited_text_edit.toPlainText()
         text_with_spaces = convert_dots_to_spaces_from_editor(raw_text)
         data_to_fix = self.mw.current_game_rules.convert_editor_text_to_data(text_with_spaces)
         
-        font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
-        
-        string_meta = self.mw.string_metadata.get((self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx), {})
-        width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
-        logical_hard_limit_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
+        font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+        width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
         
         current_iter_text = data_to_fix
         any_changed = False
@@ -667,8 +737,17 @@ class TextOperationHandler(BaseHandler):
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("AUTOFIX")
 
-            # 1.1 Rescan issues for the fixed text so that UI updates with correct highlights immediately
+            # 1.1 Sync rescan: compute correct problems for the fixed text immediately
+            #     so that UI updates show correct highlights without waiting for async.
             self._rescan_issues_for_current_string(block_idx, string_idx, fixed_data)
+
+            # 1.2 Launch a new async scan for glossary/spellcheck highlights on the fixed text.
+            #     Do NOT use the debounce timer path — start the scanner directly so it
+            #     runs in the background while the rest of the UI updates proceed.
+            self._launch_async_scanner_for_fixed_text(
+                block_idx, string_idx, fixed_data, font_map_for_string,
+                width_threshold_for_string, logical_hard_limit_for_string
+            )
 
             # 2. Cancel any pending debounce timer so it doesn't overwrite
             #    the just-saved data with the pre-fix editor text.
@@ -698,6 +777,11 @@ class TextOperationHandler(BaseHandler):
             if hasattr(self.mw, 'statusBar'):
                 self.mw.statusBar.showMessage("Auto-fix applied.", 2000)
         else:
+            # No text changes were made. Still re-confirm warnings by doing a sync rescan.
+            # This prevents stale async scans that started before AutoFix (and may finish
+            # after this point) from silently clearing any existing problem highlights.
+            self._rescan_issues_for_current_string(block_idx, string_idx, fixed_data)
+            self.mw.ui_updater.update_text_views()
             if hasattr(self.mw, 'statusBar'):
                 self.mw.statusBar.showMessage("Auto-fix: No changes made.", 2000)
 
@@ -772,9 +856,7 @@ class TextOperationHandler(BaseHandler):
                         current_text = ""
 
                     font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-                    string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-                    width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
-                    logical_hard_limit_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+                    width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
 
                     current_iter_text = current_text
                     any_changed = False
@@ -820,9 +902,7 @@ class TextOperationHandler(BaseHandler):
                             current_text = ""
 
                         font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-                        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-                        width_threshold_for_string = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
-                        logical_hard_limit_for_string = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+                        width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
 
                         current_iter_text = current_text
                         any_changed = False

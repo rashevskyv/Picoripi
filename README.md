@@ -247,6 +247,56 @@ The suite consists of over 900 test cases using `pytest`:
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
 ```
 
+## Text Validation Rules & Auto-Fix Engine (Standard Plugin)
+
+Picoripi includes a comprehensive, real-time Text Analysis and Auto-Fix engine. Below is a detailed description of the 9 warning metrics, their visual indicator colors in the editor, and the rules applied by the Auto-Fix processor for the standard plugin (`plain_text`):
+
+### 1. Warning Classifications & Visual Gutter Highlights
+
+1. **Tag Validation Warning (`ZWW_TAG_WARNING`) — Yellow Marker (`rgba(255, 255, 0, 80)`)**
+   - *Rule*: Triggers when control codes or bracket tags have invalid format structures, unclosed brackets (e.g., `[Color:Red` instead of `[Color:Red]`), or non-matching tag pairs.
+   - *Auto-Fix*: Automatically attempts to close brackets or strip corrupted tag fragments.
+
+2. **Pixel Width Exceeded (`ZWW_WIDTH_EXCEEDED`) — Red Marker (`rgba(255, 0, 0, 100)`)**
+   - *Rule*: Triggers when a text subline's physical pixel width (calculated using custom font maps) exceeds the configured dialog threshold.
+   - *Auto-Fix*: Performs proportional Word Wrapping relative to the active font metrics and character guidelines.
+
+3. **Short Subline (`ZWW_SHORT_LINE`) — Green Marker (`rgba(0, 200, 0, 100)`)**
+   - *Rule*: Triggers when the first word of the next subline (including any preceding visible button/icon tags) can physically fit onto the current subline without violating warning width thresholds.
+   - *Lookahead Optimization*: If the next subline contains **exactly two words**, the warning will only trigger if **both** words can fit together on the current line, preventing a single word from being left isolated ("orphaned").
+   - *Single-Letter Lookahead*: If the first word of the next subline is a single-letter word (e.g., "в", "й", "і", "а", "з", "у" in Cyrillic, or any single-character alphabetical word), it will only trigger a warning if **both** the single-letter word **and** the word following it can fit together on the current line. This prevents creating orphaned single-letter hanging words/prepositions at the end of lines.
+   - *Auto-Fix*: Merges the qualifying words from the next subline into the current subline, maintaining correct spacing.
+
+4. **Empty Odd Subline (`ZWW_EMPTY_ODD_SUBLINE_DISPLAY`) — Orange Marker (`rgba(255, 165, 0, 180)`)**
+   - *Rule*: Enforced in specific gameplay layouts (such as dual-row scrolling text blocks) where an odd-numbered subline is left empty, disrupting text display flow.
+   - *Auto-Fix*: Collapses the empty subline and shifts text upwards to align with necessary row lines.
+
+5. **Single Word Page Start (`ZWW_SINGLE_WORD_SUBLINE`) — Blue Marker (`rgba(0, 0, 255, 120)`)**
+   - *Rule*: Triggers when a subline positioned at the very start of a text page contains only one single word, which looks visually unbalanced in standard text dialogs.
+   - *Auto-Fix*: Pulls words from subsequent lines or shifts layout blocks to keep text balanced.
+
+6. **Single Word Orphan (`ZWW_SINGLE_WORD_SUBLINE_NON_START`) — Brown Marker (`rgba(139, 69, 19, 120)`)**
+   - *Rule*: Triggers when a subline (other than the first line of a page) contains only a single word (an "orphan"), usually caused by aggressive wrapping.
+   - *Auto-Fix*: Pulls the last word from the preceding subline down to pair it with the orphaned word.
+
+7. **Empty First Line of Page (`ZWW_EMPTY_FIRST_LINE_OF_PAGE`) — Pink Marker (`rgba(255, 105, 180, 100)`)**
+   - *Rule*: Triggers when the very first line of a multi-line page is empty, but subsequent lines on the same page contain text (causing text to start awkwardly shifted down).
+   - *Auto-Fix*: Deletes the blank first line and shifts all subsequent lines on that page up by one slot.
+
+8. **Spacing & Punctuation Cleanup (`ZWW_BAD_SPACING`) — Warning Gutter Line**
+   - *Rule*: Triggers when there are multiple consecutive spaces, double spaces, or spaces incorrectly inserted before standard punctuation marks (`,`, `.`, `!`, `?`, `;`, `:`, `…`).
+   - *Universal Tag Fix*: Detects spaces inserted between game tags/closing brackets and punctuation (e.g. `[Color:Red] ,` or `{PLAYER} .`) and resolves them to clean spacing layouts (e.g. `[Color:Red],` or `{PLAYER}.`).
+   - *Auto-Fix*: Cleans double spaces and removes spaces before punctuation marks.
+
+9. **Missing Icon Spacing (`ZWW_MISSING_ICON_SPACING`) — Light Blue Marker (`rgba(173, 216, 230, 150)`)**
+   - *Rule*: Triggers when a visible button tag or graphic icon (e.g., `{(btn)}` or `[(A)]`) is merged directly with adjacent letters or numbers without a space (e.g., `press{(btn)}to` instead of `press {(btn)} to`). Ignored if the tag is adjacent to punctuation marks.
+   - *Auto-Fix*: Automatically inserts standard single spaces before and/or after the tag to guarantee clean visual separation.
+
+### 2. Page Break Optimization (Page Lookahead)
+
+When rendering and wrapping text across multiple pages (delimited by page boundary counts or control breaks):
+- **Rule**: If a page contains a trailing blank line (acting as a separator), and the subsequent page's sentence can fully fit onto the current page by removing the empty line, the optimizer automatically collapses the break and pulls the sentence up. This avoids creating unnecessary half-empty pages or orphan lines in game dialogues.
+
 ---
 
 ## License

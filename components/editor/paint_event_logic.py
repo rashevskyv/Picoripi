@@ -67,8 +67,14 @@ class LNETPaintEventLogic:
             if block_idx != -1 and string_idx != -1:
                 string_meta = getattr(main_window, 'string_metadata', {}).get((block_idx, string_idx), {})
                 if "width" in string_meta:
-                    max_allowed_width = string_meta["width"]
-                    limit_px = string_meta["width"]
+                    custom_w = string_meta["width"]
+                    max_allowed_width = custom_w
+                    global_max = getattr(main_window, 'game_dialog_max_width_pixels', limit_px)
+                    standard_threshold = getattr(main_window, 'line_width_warning_threshold_pixels', limit_px)
+                    if global_max > 0:
+                        limit_px = int(custom_w * (standard_threshold / global_max))
+                    else:
+                        limit_px = custom_w
 
             sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
             left_margin = viewport_offset.x() + self.editor.document().documentMargin()
@@ -147,21 +153,9 @@ class LNETPaintEventLogic:
 
                 # Draw dynamic line width guidelines if enabled
                 if draw_guidelines and layout.lineCount() > 0:
-                    block_text_raw = convert_dots_to_spaces_from_editor(block.text())
-                    block_width_px = calculate_string_width(block_text_raw.rstrip(), font_map, icon_sequences=sequences)
-
-                    # Determine pen styling based on the guideline limit (Editor Line Width or custom width)
-                    if block_width_px > limit_px:
-                        pen_guide = QPen(QColor(255, 0, 0, 180))
-                        pen_guide.setWidth(2)
-                        pen_guide.setStyle(Qt.PenStyle.SolidLine)
-                    else:
-                        pen_guide = QPen(self.editor.width_threshold_line_color)
-                        color = QColor(self.editor.width_threshold_line_color)
-                        color.setAlpha(120)
-                        pen_guide.setColor(color)
-                        pen_guide.setWidth(self.editor.width_threshold_line_width)
-                        pen_guide.setStyle(self.editor.width_threshold_line_style)
+                    block_num = block.blockNumber()
+                    if not hasattr(self.editor, 'guideline_positions'):
+                        self.editor.guideline_positions = {}
 
                     # Draw vertical tick for each visual line of the block individually
                     for i in range(layout.lineCount()):
@@ -169,16 +163,32 @@ class LNETPaintEventLogic:
                         if not line.isValid():
                             continue
 
-                        block_num = block.blockNumber()
-                        if not hasattr(self.editor, 'guideline_positions'):
-                            self.editor.guideline_positions = {}
-
                         if (block_num, i) not in self.editor.guideline_positions:
-                            self.editor.calculate_block_guidelines(block, font_map, sequences, limit_px)
+                            default_tag_mappings = getattr(main_window, 'default_tag_mappings', {}) if main_window else {}
+                            self.editor.calculate_block_guidelines(block, font_map, sequences, limit_px, default_tag_mappings=default_tag_mappings)
 
-                        limit_x = self.editor.guideline_positions.get((block_num, i))
-                        if limit_x is False or limit_x is None:
+                        val = self.editor.guideline_positions.get((block_num, i))
+                        if val is False or val is None:
                             continue
+
+                        if isinstance(val, tuple):
+                            limit_x, is_exceeded = val
+                        else:
+                            limit_x = val
+                            is_exceeded = False
+
+                        # Determine pen styling based on the guideline limit (is_exceeded)
+                        if is_exceeded:
+                            pen_guide = QPen(QColor(255, 0, 0, 180))
+                            pen_guide.setWidth(2)
+                            pen_guide.setStyle(Qt.PenStyle.SolidLine)
+                        else:
+                            pen_guide = QPen(self.editor.width_threshold_line_color)
+                            color = QColor(self.editor.width_threshold_line_color)
+                            color.setAlpha(120)
+                            pen_guide.setColor(color)
+                            pen_guide.setWidth(self.editor.width_threshold_line_width)
+                            pen_guide.setStyle(self.editor.width_threshold_line_style)
 
                         y_top = block_rect.top() + line.rect().top()
                         y_bottom = block_rect.top() + line.rect().bottom()

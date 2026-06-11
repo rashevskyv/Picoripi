@@ -176,6 +176,7 @@ class MainWindow(QMainWindow):
         self.current_game_rules: Optional[BaseGameRules] = None
         self.tag_checker_handler = None
         self.plugin_actions: Dict[str, Any] = {}
+        self.is_testing = 'pytest' in sys.modules
 
     def _init_visual_settings(self) -> None:
         # Style Settings

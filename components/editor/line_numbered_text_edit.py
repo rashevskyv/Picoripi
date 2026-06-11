@@ -256,7 +256,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         from PyQt6.QtCore import QTimer
         QTimer.singleShot(0, self.recalculate_guidelines)
 
-    def calculate_block_guidelines(self, block, font_map, sequences, limit_px) -> None:
+    def calculate_block_guidelines(self, block, font_map, sequences, limit_px, default_tag_mappings=None) -> None:
         from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
         from PyQt6.QtGui import QTextCursor
 
@@ -274,7 +274,17 @@ class LineNumberedTextEdit(QPlainTextEdit):
         for i in range(layout.lineCount()):
             self.guideline_positions[(block_num, i)] = False
 
-        block_width_px = calculate_string_width(block_text_raw.rstrip(), font_map, icon_sequences=sequences)
+        main_win = self.window()
+        rules = getattr(main_win, 'current_game_rules', None)
+
+        def get_width(txt):
+            if rules and hasattr(rules, 'calculate_string_width_override'):
+                override_val = rules.calculate_string_width_override(txt, font_map)
+                if isinstance(override_val, (int, float)):
+                    return override_val
+            return calculate_string_width(txt, font_map, icon_sequences=sequences, default_tag_mappings=default_tag_mappings)
+
+        block_width_px = get_width(block_text_raw.rstrip())
         is_exceeded = (block_width_px > limit_px)
 
         cursor = QTextCursor(self.document())
@@ -284,10 +294,10 @@ class LineNumberedTextEdit(QPlainTextEdit):
             found = False
             for k in range(1, len(block_text_raw) + 1):
                 prefix = block_text_raw[:k]
-                prefix_w = calculate_string_width(prefix, font_map, icon_sequences=sequences)
+                prefix_w = get_width(prefix)
                 if prefix_w >= limit_px:
                     prev_prefix = block_text_raw[:k-1]
-                    prev_w = calculate_string_width(prev_prefix, font_map, icon_sequences=sequences)
+                    prev_w = get_width(prev_prefix)
 
                     # Find which visual line contains character index k - 1
                     found_line = -1
@@ -316,7 +326,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
                         else:
                             fraction = 0
                         limit_x = x_prev + fraction * (x_curr - x_prev)
-                        self.guideline_positions[(block_num, found_line)] = limit_x
+                        self.guideline_positions[(block_num, found_line)] = (limit_x, True)
                         found = True
                         break
             # Fallback if somehow not found (should not happen if block_width_px > limit_px)
@@ -324,7 +334,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
                 last_idx = layout.lineCount() - 1
                 line = layout.lineAt(last_idx)
                 cursor.setPosition(block.position() + line.textStart() + line.textLength())
-                self.guideline_positions[(block_num, last_idx)] = self.cursorRect(cursor).left()
+                self.guideline_positions[(block_num, last_idx)] = (self.cursorRect(cursor).left(), True)
         else:
             # Not exceeded: green dashed line on the last visual line
             if layout.lineCount() > 0:
@@ -336,12 +346,8 @@ class LineNumberedTextEdit(QPlainTextEdit):
                     line_text = block_text_raw[line_start:line_start + line_len]
                     line_text_stripped = line_text.rstrip()
 
-                    cumulative_width_before_last_line = calculate_string_width(
-                        block_text_raw[:line_start], font_map, icon_sequences=sequences
-                    )
-                    last_line_game_width = calculate_string_width(
-                        line_text_stripped, font_map, icon_sequences=sequences
-                    )
+                    cumulative_width_before_last_line = get_width(block_text_raw[:line_start])
+                    last_line_game_width = get_width(line_text_stripped)
 
                     cursor.setPosition(block.position() + line_start)
                     x_start = self.cursorRect(cursor).left()
@@ -359,7 +365,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
                         char_w = fm.horizontalAdvance('A')
                         limit_x = x_start + remaining_px * (char_w / 7.5)
 
-                    self.guideline_positions[(block_num, last_idx)] = limit_x
+                    self.guideline_positions[(block_num, last_idx)] = (limit_x, False)
 
     def recalculate_guidelines(self) -> None:
         self.guideline_positions = {}
@@ -371,19 +377,31 @@ class LineNumberedTextEdit(QPlainTextEdit):
         if not font_map and hasattr(main_window, 'font_map'):
             font_map = main_window.font_map
 
+        limit_px = self.line_width_warning_threshold_pixels
+
         if hasattr(main_window, 'data_store') and hasattr(main_window, 'helper'):
             block_idx = main_window.data_store.current_block_idx
             string_idx = main_window.data_store.current_string_idx
             if block_idx != -1 and string_idx != -1:
                 font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)
+                
+                string_meta = getattr(main_window, 'string_metadata', {}).get((block_idx, string_idx), {})
+                if "width" in string_meta:
+                    custom_w = string_meta["width"]
+                    global_max = getattr(main_window, 'game_dialog_max_width_pixels', limit_px)
+                    standard_threshold = getattr(main_window, 'line_width_warning_threshold_pixels', limit_px)
+                    if global_max > 0:
+                        limit_px = int(custom_w * (standard_threshold / global_max))
+                    else:
+                        limit_px = custom_w
 
         sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
-        limit_px = self.line_width_warning_threshold_pixels
+        default_tag_mappings = getattr(main_window, 'default_tag_mappings', {}) if main_window else {}
 
         block = self.firstVisibleBlock()
 
         while block.isValid():
-            self.calculate_block_guidelines(block, font_map, sequences, limit_px)
+            self.calculate_block_guidelines(block, font_map, sequences, limit_px, default_tag_mappings=default_tag_mappings)
             block = block.next()
         self.viewport().update()
 

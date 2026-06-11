@@ -792,6 +792,69 @@ def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: b
     if current_sentence:
         sentences.append(current_sentence)
 
+    # Optimize sentences list: remove intermediate empty line sentences 
+    # if the surrounding text sentences can fit together on a single page.
+    optimized_sentences = []
+    current_page_len = 0
+    i = 0
+    while i < len(sentences):
+        s = sentences[i]
+        s_len = len(s)
+        
+        # Check if s is an empty line
+        is_empty_line = (s_len == 1 and not s[0].strip())
+        
+        if is_empty_line:
+            # We only optimize if it's not the first line of the page
+            # and there is a next sentence
+            if current_page_len > 0 and i + 1 < len(sentences):
+                next_s = sentences[i+1]
+                next_len = len(next_s)
+                
+                # Check if next sentence is not an empty line and doesn't start with page break
+                next_is_empty = (next_len == 1 and not next_s[0].strip())
+                next_starts_with_page_break = False
+                if next_s:
+                    first_line = next_s[0]
+                    if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', first_line, re.IGNORECASE):
+                        next_starts_with_page_break = True
+                        
+                if not next_is_empty and not next_starts_with_page_break:
+                    # Would next_s fit on the current page if we skip this empty line?
+                    remaining_space_with_empty = lines_per_page - current_page_len - 1
+                    remaining_space_without_empty = lines_per_page - current_page_len
+                    
+                    if next_len > remaining_space_with_empty and next_len <= remaining_space_without_empty:
+                        # Yes! Skipping the empty line allows the next sentence to fit on this page!
+                        # So we skip this empty line!
+                        i += 1
+                        continue
+        
+        # Add sentence and update current_page_len
+        optimized_sentences.append(s)
+        
+        # If it starts with page break, it starts a new page
+        starts_with_page_break = False
+        if s:
+            first_line = s[0]
+            if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', first_line, re.IGNORECASE):
+                starts_with_page_break = True
+                
+        if starts_with_page_break:
+            current_page_len = s_len
+        else:
+            # If s_len doesn't fit in the current page, it starts a new page (of size lines_per_page)
+            remaining_space = lines_per_page - current_page_len
+            if current_page_len > 0 and s_len > remaining_space and s_len <= lines_per_page:
+                current_page_len = s_len
+            else:
+                current_page_len = (current_page_len + s_len) % lines_per_page
+                if current_page_len == 0 and s_len > 0:
+                    current_page_len = lines_per_page
+                    
+        i += 1
+    sentences = optimized_sentences
+
     # Pack sentences into pages
     pages = [[]]
     for s_lines in sentences:
@@ -1061,3 +1124,46 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
         
     final_text = "\n".join(final_lines)
     return final_text, final_text != text
+
+
+def extract_first_word_with_tags(text: str) -> Tuple[str, str]:
+    if not text or not text.strip():
+        return "", text 
+    first_word_text = ""
+    char_idx = 0
+    while char_idx < len(text):
+        char = text[char_idx]
+        if char.isspace():
+            if first_word_text:
+                break
+            else:
+                first_word_text += char
+                char_idx += 1
+                continue
+        is_tag_char = False
+        for tag_match in ALL_TAGS_PATTERN.finditer(text[char_idx:]):
+            if tag_match.start() == 0:
+                tag_content = tag_match.group(0)
+                first_word_text += tag_content
+                char_idx += len(tag_content)
+                is_tag_char = True
+                break
+        if is_tag_char:
+            continue
+        first_word_text += char
+        char_idx += 1
+    remaining_text = text[len(first_word_text):].lstrip()
+    return first_word_text.rstrip(), remaining_text
+
+
+def has_visible_content(text: str, mappings: Optional[dict] = None, font_map: Optional[dict] = None, icon_sequences: Optional[List[str]] = None) -> bool:
+    if not text:
+        return False
+    text_no_tags = remove_all_tags(text, mappings)
+    if text_no_tags.strip():
+        return True
+    for tag_match in ALL_TAGS_PATTERN.finditer(text):
+        tag = tag_match.group(0)
+        if is_visible_tag(tag, mappings, font_map, icon_sequences):
+            return True
+    return False

@@ -234,3 +234,31 @@ def test_PluginSettings_translation_config_loading(dummy_mw, tmp_path):
     # Should overwrite since it's explicitly present in project settings
     assert dummy_mw.translation_config["provider"] == "Gemini"
     assert dummy_mw.translation_config["providers"]["Gemini"]["api_key"] == "proj_key"
+
+
+def test_PluginSettings_load_merges_autofix_and_detection_with_defaults(dummy_mw, tmp_path):
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({
+        "autofix_enabled": {"ZMC_WIDTH_EXCEEDED": True},
+        "detection_enabled": {"ZMC_WIDTH_EXCEEDED": False}
+    }))
+    
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
+    
+    dummy_mw.active_game_plugin = "zelda_mc"
+    
+    d = {}
+    ps.load(d)
+    
+    # ZMC_SHORT_LINE should be True (from plugin defaults)
+    assert dummy_mw.autofix_enabled.get("ZMC_SHORT_LINE") is True
+    # ZMC_WIDTH_EXCEEDED should be True (overlaid from project settings)
+    assert dummy_mw.autofix_enabled.get("ZMC_WIDTH_EXCEEDED") is True
+    
+    # ZMC_WIDTH_EXCEEDED detection should be False (overlaid from project settings)
+    assert dummy_mw.detection_enabled.get("ZMC_WIDTH_EXCEEDED") is False
+    # ZMC_SHORT_LINE detection should be True (from plugin defaults)
+    assert dummy_mw.detection_enabled.get("ZMC_SHORT_LINE") is True
+

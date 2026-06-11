@@ -1,6 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.3.007] - 2026-06-11
+## [0.3.008] - 2026-06-11
+
+### 🐛 Fixed
+- **Green SHORT_LINE Warnings Vanishing After AutoFix**: Fixed a race condition where green "short line" warning highlights would silently disappear after pressing AutoFix, even when no text was actually changed.
+  - **Root cause**: Any `AsyncIssueScanner` that was still running from a previous typing session could complete *after* the synchronous `_rescan_issues_for_current_string` call inside AutoFix, overwriting the freshly computed `problems_per_subline` with stale results based on the pre-fix text.
+  - **Fix**: AutoFix now cancels the in-flight async scanner at the very start (before running the fix logic). After the synchronous rescan, a new `AsyncIssueScanner` is launched against the fixed text so glossary and spellcheck highlights are also refreshed correctly.
+  - **No-change case**: When AutoFix makes no textual changes, a synchronous rescan is now performed and the UI is refreshed (`update_text_views`). This prevents stale async scans that may have been queued before AutoFix from later clearing existing problem highlights.
+- **Added `_launch_async_scanner_for_fixed_text` helper** in `TextOperationHandler` that correctly constructs and submits a new `AsyncIssueScanner` for a given fixed text, reusing the same parameters as the typing-debounce path but without going through the debounce timer.
+
+
 
 ### 🔄 Changed
 - **Git Ignore Spellchecker Cache**: Excluded the dynamic Hunspell spellchecker cache (`resources/spellchecker/spell_cache.json`) from Git tracking and added it to `.gitignore` to prevent unnecessary large binary diff commits and history pollution.

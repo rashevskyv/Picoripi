@@ -61,7 +61,7 @@
         "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": false,
         "ZBMG_SINGLE_WORD_SUBLINE": false,
         "ZBMG_SINGLE_WORD_SUBLINE_NON_START": false,
-        "ZBMG_SHORT_LINE": false,
+        "ZBMG_SHORT_LINE": true,
         "ZBMG_BAD_SPACING": true,
         "ZBMG_STAR_TAG_RULES": true
     },

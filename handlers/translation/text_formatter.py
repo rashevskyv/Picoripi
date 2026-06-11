@@ -52,6 +52,15 @@ class TextFormatter:
             warning_threshold = int(warning_threshold_raw)
         except (TypeError, ValueError):
             warning_threshold = 200
+
+        global_max = self.mw.game_dialog_max_width_pixels
+        try:
+            global_max_val = int(global_max)
+        except (TypeError, ValueError):
+            global_max_val = 200
+
+        if max_width != global_max_val and global_max_val > 0:
+            warning_threshold = int(max_width * (warning_threshold / global_max_val))
             
         # Ensure warning threshold is <= max_width
         if warning_threshold > max_width:
@@ -118,9 +127,11 @@ class TextFormatter:
             current_w = 0
             needs_space_flag = False
 
+            icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+            default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+
             for part in parts:
-                part_no_tags = remove_all_tags(part)
-                part_width = calculate_string_width(part_no_tags, font_map)
+                part_width = calculate_string_width(part, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
 
                 # Calculate width including space if needed
                 is_punctuation = part in (',', '.', '!', '?', ';', ':', '…')
@@ -144,14 +155,14 @@ class TextFormatter:
                     if current_needs_space:
                         current_line += " "
                     current_line += part
-                    current_w = calculate_string_width(remove_all_tags(current_line), font_map)
+                    current_w = calculate_string_width(current_line, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
                     needs_space_flag = not part.isspace()
                 else:
                     # Part does not fit, start a new line
                     if current_line:
                         segment_lines.append(current_line.rstrip())
                     current_line = part.strip()
-                    current_w = calculate_string_width(remove_all_tags(current_line), font_map)
+                    current_w = calculate_string_width(current_line, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
                     needs_space_flag = not part.isspace()
 
             if current_line:

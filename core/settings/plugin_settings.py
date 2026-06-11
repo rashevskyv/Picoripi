@@ -144,8 +144,32 @@ class PluginSettings:
             self._migrate_legacy_styles(combined_data)
             
             self.mw.search_history_to_save = combined_data.get("search_history", [])
-            self.mw.autofix_enabled = combined_data.get("autofix_enabled", {})
-            self.mw.detection_enabled = combined_data.get("detection_enabled", {})
+            
+            # Get plugin defaults
+            plugin_defaults_autofix = {}
+            plugin_defaults_detection = {}
+            plugin_name = getattr(self.mw, 'active_game_plugin', None)
+            if plugin_name:
+                try:
+                    import importlib
+                    config_module = importlib.import_module(f"plugins.{plugin_name}.config")
+                    plugin_defaults_autofix = getattr(config_module, 'DEFAULT_AUTOFIX_SETTINGS', {})
+                    plugin_defaults_detection = getattr(config_module, 'DEFAULT_DETECTION_SETTINGS', {})
+                except Exception as e:
+                    log_debug(f"Could not load config defaults for plugin {plugin_name}: {e}")
+
+            loaded_autofix = combined_data.get("autofix_enabled", {})
+            loaded_detection = combined_data.get("detection_enabled", {})
+
+            # Start with plugin defaults and overlay loaded values
+            merged_autofix = plugin_defaults_autofix.copy()
+            merged_autofix.update(loaded_autofix)
+
+            merged_detection = plugin_defaults_detection.copy()
+            merged_detection.update(loaded_detection)
+
+            self.mw.autofix_enabled = merged_autofix
+            self.mw.detection_enabled = merged_detection
 
             if "translation_config" in project_data and project_data["translation_config"]:
                 loaded_translation = project_data["translation_config"]

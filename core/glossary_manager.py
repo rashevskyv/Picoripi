@@ -256,6 +256,46 @@ class GlossaryManager:
         self._occurrence_index = occurrences
         return occurrences
 
+    def update_occurrences_for_entry(self, dataset: Sequence, old_term: Optional[str], new_entry: Optional[GlossaryEntry]) -> None:
+        """Incrementally update the occurrence index for a single glossary entry change."""
+        if not self._occurrence_index and self._entries:
+            self.build_occurrence_index(dataset)
+            return
+
+        if old_term:
+            self._occurrence_index.pop(old_term, None)
+
+        if new_entry and new_entry.original:
+            pattern = self._compiled_patterns.get(new_entry.original)
+            if not pattern:
+                pattern = self._build_regex(new_entry.original)
+
+            term_occurrences = []
+            if dataset:
+                for block_idx, block in enumerate(dataset):
+                    if not isinstance(block, list):
+                        continue
+                    for string_idx, value in enumerate(block):
+                        text = '' if value is None else str(value)
+                        if not text:
+                            continue
+                        lines = text.split('\n')
+                        for line_idx, line in enumerate(lines):
+                            if not line:
+                                continue
+                            for match in pattern.finditer(line):
+                                occ = GlossaryOccurrence(
+                                    entry=new_entry,
+                                    start=match.span()[0],
+                                    end=match.span()[1],
+                                    block_idx=block_idx,
+                                    string_idx=string_idx,
+                                    line_idx=line_idx,
+                                    line_text=line,
+                                )
+                                term_occurrences.append(occ)
+            self._occurrence_index[new_entry.original] = term_occurrences
+
     def get_occurrences_for(self, entry: GlossaryEntry) -> List[GlossaryOccurrence]:
         if entry is None or not entry.original:
             return []

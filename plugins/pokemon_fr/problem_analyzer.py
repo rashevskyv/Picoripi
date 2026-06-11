@@ -42,18 +42,47 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return text_no_tags_stripped[-1] in SENTENCE_END_PUNCTUATION_CHARS
 
     def _check_short_line(self, current_subline: str, next_subline: str, font_map: dict, threshold: int) -> bool:
+        from utils.utils import has_visible_content, extract_first_word_with_tags, get_line_words_and_visible_tags
+
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+
+        if not has_visible_content(current_subline, default_tag_mappings, font_map, icon_sequences):
+            return False
+
         current_subline_no_tags_stripped = remove_all_tags(current_subline).strip()
-        if not current_subline_no_tags_stripped or self._ends_with_sentence_punctuation(current_subline_no_tags_stripped):
+        if self._ends_with_sentence_punctuation(current_subline_no_tags_stripped):
             return False
-        next_subline_no_tags_stripped = remove_all_tags(next_subline).strip()
-        if not next_subline_no_tags_stripped:
-            return False
-        first_word_next = next_subline_no_tags_stripped.split(maxsplit=1)[0]
+
+        first_word_next, _ = extract_first_word_with_tags(next_subline)
         if not first_word_next:
             return False
-        width_current = calculate_string_width(current_subline, font_map)
-        width_first_word_next = calculate_string_width(first_word_next, font_map)
+
+        width_current = calculate_string_width(
+            current_subline, 
+            font_map, 
+            icon_sequences=icon_sequences, 
+            default_tag_mappings=default_tag_mappings
+        )
+        width_first_word_next = calculate_string_width(
+            first_word_next, 
+            font_map, 
+            icon_sequences=icon_sequences, 
+            default_tag_mappings=default_tag_mappings
+        )
         space_width = calculate_string_width(" ", font_map)
+
+        # If next line has exactly two words, only allow warning if BOTH words can fit
+        next_words = get_line_words_and_visible_tags(next_subline, self.mw)
+        if len(next_words) == 2:
+            width_next_full = calculate_string_width(
+                next_subline.strip(), 
+                font_map,
+                icon_sequences=icon_sequences,
+                default_tag_mappings=default_tag_mappings
+            )
+            return (width_current + space_width + width_next_full) <= threshold
+
         return (width_current + space_width + width_first_word_next) <= threshold
 
     def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:

@@ -160,6 +160,22 @@ class TextFixer(GenericTextFixer):
                              string_idx: Optional[int] = None) -> Tuple[str, bool]:
         if logical_hard_limit is None:
             logical_hard_limit = editor_line_width_threshold
+
+        global_max = getattr(self.mw, 'game_dialog_max_width_pixels', editor_line_width_threshold) if self.mw else editor_line_width_threshold
+        try:
+            global_max_val = int(global_max)
+        except (TypeError, ValueError):
+            global_max_val = editor_line_width_threshold
+            
+        standard_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', editor_line_width_threshold) if self.mw else editor_line_width_threshold
+        try:
+            standard_threshold_val = int(standard_threshold)
+        except (TypeError, ValueError):
+            standard_threshold_val = editor_line_width_threshold
+
+        if logical_hard_limit != global_max_val and global_max_val > 0:
+            editor_line_width_threshold = int(logical_hard_limit * (standard_threshold_val / global_max_val))
+
         original_text = str(data_string)
         
         from .config import DEFAULT_AUTOFIX_SETTINGS

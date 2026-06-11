@@ -44,6 +44,12 @@ class AppActionHandler(BaseHandler):
             self.mw.issue_scan_handler.rescan_all_tags()
 
     def handle_close_event(self, event: QEvent) -> None:
+        if getattr(self.mw, 'is_testing', False):
+            event.accept()
+            if self.mw.project_manager:
+                self.mw.project_manager.cleanup_temp_dir()
+            return
+
         if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(
                 self.mw, 'Unsaved Changes',

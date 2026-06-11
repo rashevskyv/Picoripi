@@ -86,6 +86,8 @@ def test_gh_install_menu_actions(mock_action, gh):
     # First time adds them
     assert gh._open_glossary_action is not None
     assert gh.main_handler._reset_session_action is not None
+    mock_action.return_value.setShortcut.assert_any_call("Ctrl+G")
+    mock_action.return_value.setToolTip.assert_any_call("Open glossary and jump to occurrences (Ctrl+G)")
     
     # Second time doesn't recreate
     action1 = gh._open_glossary_action
@@ -96,10 +98,24 @@ def test_gh_initialize_glossary_highlighting(gh):
     gh.initialize_glossary_highlighting()
     gh._prompt_manager.initialize_highlighting.assert_called_once()
 
+@patch('handlers.translation.glossary_handler.QProgressDialog')
+@patch('handlers.translation.glossary_handler.QEventLoop')
+@patch('handlers.translation.glossary_handler.GlossaryOccurrenceWorker')
 @patch('handlers.translation.glossary_handler.GlossaryDialog')
 @patch('handlers.translation.glossary_handler.QMessageBox')
-def test_gh_show_glossary_dialog(mock_box, mock_dialog, gh):
+def test_gh_show_glossary_dialog(mock_box, mock_dialog, mock_worker_cls, mock_event_loop, mock_progress, gh):
     mock_dialog_inst = mock_dialog.return_value
+    mock_pd_inst = mock_progress.return_value
+    mock_loop_inst = mock_event_loop.return_value
+    mock_worker_inst = mock_worker_cls.return_value
+
+    def mock_exec():
+        connect_mock = mock_worker_inst.finished_with_result.connect
+        connect_mock.assert_called()
+        on_finished_cb = connect_mock.call_args[0][0]
+        on_finished_cb({"a": []})
+
+    mock_loop_inst.exec.side_effect = mock_exec
     
     # Prompts None
     gh._prompt_manager.load_prompts.return_value = (None, None)
@@ -137,6 +153,37 @@ def test_gh_show_glossary_dialog(mock_box, mock_dialog, gh):
     # Close
     gh._on_glossary_dialog_closed()
     assert gh.dialog is None
+
+
+def test_glossary_occurrence_worker_run():
+    from handlers.translation.glossary_handler import GlossaryOccurrenceWorker
+    mock_gm = MagicMock()
+    mock_gm.build_occurrence_index.return_value = {"word": []}
+    
+    worker = GlossaryOccurrenceWorker(mock_gm, ["data"])
+    
+    finished_mock = MagicMock()
+    worker.finished_with_result.connect(finished_mock)
+    
+    worker.run()
+    
+    mock_gm.build_occurrence_index.assert_called_once_with(["data"])
+    finished_mock.assert_called_once_with({"word": []})
+
+
+def test_glossary_occurrence_worker_exception():
+    from handlers.translation.glossary_handler import GlossaryOccurrenceWorker
+    mock_gm = MagicMock()
+    mock_gm.build_occurrence_index.side_effect = Exception("Thread error")
+    
+    worker = GlossaryOccurrenceWorker(mock_gm, ["data"])
+    
+    finished_mock = MagicMock()
+    worker.finished_with_result.connect(finished_mock)
+    
+    worker.run()
+    
+    finished_mock.assert_called_once_with({})
 
 @patch('handlers.translation.glossary_handler.GlossaryEditDialog')
 def test_gh_add_edit_glossary_entry(mock_dialog, gh):

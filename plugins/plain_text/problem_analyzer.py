@@ -22,18 +22,63 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return last_char in SENTENCE_END_PUNCTUATION_CHARS_ZWW
 
     def _check_short_line_zww(self, current_subline_text: str, next_subline_text: str, font_map: dict, threshold: int) -> bool:
+        from utils.utils import has_visible_content, extract_first_word_with_tags, get_line_words_and_visible_tags
+
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+
+        if not has_visible_content(current_subline_text, default_tag_mappings, font_map, icon_sequences):
+            return False
+
         current_subline_no_tags_stripped = remove_all_tags(current_subline_text).strip()
-        if not current_subline_no_tags_stripped or self._ends_with_sentence_punctuation_zww(current_subline_no_tags_stripped):
+        if self._ends_with_sentence_punctuation_zww(current_subline_no_tags_stripped):
             return False
-        next_subline_no_tags_stripped = remove_all_tags(next_subline_text).strip()
-        if not next_subline_no_tags_stripped:
-            return False
-        first_word_next = next_subline_no_tags_stripped.split(maxsplit=1)[0]
+
+        first_word_next, remaining_next = extract_first_word_with_tags(next_subline_text)
         if not first_word_next:
             return False
-        width_current_rstripped = calculate_string_width(current_subline_text.rstrip(), font_map)
-        width_first_word_next = calculate_string_width(first_word_next, font_map)
+
+        width_current_rstripped = calculate_string_width(
+            current_subline_text.rstrip(), 
+            font_map, 
+            icon_sequences=icon_sequences, 
+            default_tag_mappings=default_tag_mappings
+        )
         space_width = calculate_string_width(" ", font_map)
+
+        # Check if first_word_next is a single-letter word
+        clean_first = remove_all_tags(first_word_next).strip()
+        clean_first_letters = re.sub(r'[^\w]', '', clean_first)
+        is_single_letter = len(clean_first_letters) == 1 and clean_first_letters.isalpha()
+
+        if is_single_letter and remaining_next.strip():
+            second_word_next, _ = extract_first_word_with_tags(remaining_next)
+            combined_word = first_word_next + " " + second_word_next
+            width_first_word_next = calculate_string_width(
+                combined_word, 
+                font_map, 
+                icon_sequences=icon_sequences, 
+                default_tag_mappings=default_tag_mappings
+            )
+        else:
+            width_first_word_next = calculate_string_width(
+                first_word_next, 
+                font_map, 
+                icon_sequences=icon_sequences, 
+                default_tag_mappings=default_tag_mappings
+            )
+
+        # If next line has exactly two words, only allow warning if BOTH words can fit
+        next_words = get_line_words_and_visible_tags(next_subline_text, self.mw)
+        if len(next_words) == 2:
+            width_next_full = calculate_string_width(
+                next_subline_text.strip(), 
+                font_map,
+                icon_sequences=icon_sequences,
+                default_tag_mappings=default_tag_mappings
+            )
+            return (threshold - width_current_rstripped) >= (width_next_full + space_width)
+
         return (threshold - width_current_rstripped) >= (width_first_word_next + space_width)
 
     def check_for_empty_first_line_of_page(self, text: str) -> List[int]:

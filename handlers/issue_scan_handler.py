@@ -1,7 +1,7 @@
 # handlers/issue_scan_handler.py
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 from PyQt6.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
@@ -13,6 +13,21 @@ class IssueScanHandler(BaseHandler):
         super().__init__(main_window, data_processor, ui_updater)
         self._progress_dialog = None
         self._scan_total_count = 0
+
+    def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
+        string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
+        logical_limit = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
+        if "width" in string_meta:
+            custom_w = string_meta["width"]
+            global_max = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
+            standard_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+            if global_max > 0:
+                threshold = int(custom_w * (standard_threshold / global_max))
+            else:
+                threshold = custom_w
+        else:
+            threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+        return threshold, logical_limit
 
     def _get_block_file_for_mtime(self, block_idx: int) -> Optional[str]:
         if not hasattr(self.mw, 'project_manager') or not self.mw.project_manager or not self.mw.project_manager.project:
@@ -114,9 +129,7 @@ class IssueScanHandler(BaseHandler):
             
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
             
-            string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-            width_threshold_for_string = string_meta.get("width", getattr(self.mw, 'line_width_warning_threshold_pixels', 280))
-            logical_hard_limit_for_string = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
+            width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
             
             all_problems_for_string = [] # List of sets, one per subline
             
@@ -146,12 +159,19 @@ class IssueScanHandler(BaseHandler):
     _SCAN_BATCH_SIZE = 5   # blocks per timer tick
 
     def _show_scan_progress_dialog(self, pending_scan_indices: list):
-        from PyQt6.QtWidgets import QWidget
-        parent_widget = self.mw if isinstance(self.mw, QWidget) else None
-        self._progress_dialog = QProgressDialog("Please wait, calculating issues...", "Cancel", 0, len(pending_scan_indices), parent_widget)
-        self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._progress_dialog.setMinimumDuration(0)
-        self._progress_dialog.setValue(0)
+        import sys
+        from PyQt6.QtWidgets import QApplication
+        is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication) or getattr(self.mw, 'is_testing', False)
+        
+        if is_test:
+            self._progress_dialog = None
+        else:
+            from PyQt6.QtWidgets import QWidget
+            parent_widget = self.mw if isinstance(self.mw, QWidget) else None
+            self._progress_dialog = QProgressDialog("Please wait, calculating issues...", "Cancel", 0, len(pending_scan_indices), parent_widget)
+            self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            self._progress_dialog.setMinimumDuration(0)
+            self._progress_dialog.setValue(0)
         
         # Save indices to scan
         self._scan_pending_indices = list(pending_scan_indices)
@@ -162,9 +182,6 @@ class IssueScanHandler(BaseHandler):
         self._scan_timer.setSingleShot(True)
         self._scan_timer.timeout.connect(self._scan_next_batch)
         
-        import sys
-        from PyQt6.QtWidgets import QApplication
-        is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication)
         delay = 0 if is_test else 30
         self._scan_timer.start(delay)
 

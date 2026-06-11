@@ -231,10 +231,10 @@ def test_shift_split_sentences():
     assert changed is True
     assert res == "Line 1.\nLine 2.\n\n\nHere is a sentence\nthat spans across\nthe page boundary."
 
-    # Test that empty lines are preserved and act as boundaries
-    text_with_empty = "Line 1.\nLine 2.\n\nLine 3."
+    # Test that empty lines are preserved and act as boundaries when sum exceeds page size
+    text_with_empty = "Line 1.\nLine 2a\nLine 2b\n\nLine 3a\nLine 3b"
     res_empty, changed_empty = shift_split_sentences(text_with_empty, 4)
-    assert res_empty == "Line 1.\nLine 2.\n\nLine 3."
+    assert res_empty == "Line 1.\nLine 2a\nLine 2b\n\nLine 3a\nLine 3b"
     assert changed_empty is False
 
     # Test that escape page breaks trigger a page split
@@ -287,3 +287,81 @@ def test_shift_split_sentences_prevent_empty_lines():
     # With prevent_empty_lines
     res_align_no_pad, _ = shift_split_sentences_aligned(trans, orig, 4, prevent_empty_lines=True)
     assert res_align_no_pad == "Trans 1.\n[escape:0:0007000a]Trans 2."
+
+
+def test_shift_split_sentences_optimize_page_breaks():
+    from utils.utils import shift_split_sentences
+    # Scenario 1: Same number of sentences, page break code in original must be copied to translation
+    # Sentence 1: 2 lines
+    # Sentence 2: empty line (1 line)
+    # Sentence 3: 2 lines
+    # lines_per_page = 4
+    # Without optimization, Sentence 3 would be pushed to next page due to the empty line.
+    # With optimization, the intermediate empty line is removed because 2 + 2 <= 4.
+    text = "Line 1\nLine 2.\n\nLine 3\nLine 4."
+    res, changed = shift_split_sentences(text, 4)
+    assert res == "Line 1\nLine 2.\nLine 3\nLine 4."
+    assert changed is True
+
+    # Scenario 2: Sum exceeds page size (3 + 2 = 5 > 4), so empty line should NOT be optimized out
+    text2 = "Line 1\nLine 2\nLine 3.\n\nLine 4\nLine 5."
+    res2, changed2 = shift_split_sentences(text2, 4)
+    assert res2 == "Line 1\nLine 2\nLine 3.\n\nLine 4\nLine 5."
+    assert changed2 is False
+
+
+def test_TextAutofixLogic_fix_short_lines_with_visible_tags(mock_autofix, mock_mw):
+    mock_mw.line_width_warning_threshold_pixels = 100
+    mock_mw.lines_per_page = 4
+    mock_mw.font_map = {"a": {"width": 10}, "b": {"width": 10}, " ": {"width": 5}, "{(btn)}": {"width": 50}}
+    mock_mw.icon_sequences = ["{(btn)}"]
+    mock_mw.default_tag_mappings = {"{(btn)}": "{(btn)}"}
+
+    # Case 1: If {(btn)} is 50px, "aaaa {(btn)}" is 95px.
+    # "bbbb" is 40px. Sum with space is 140px > 100px.
+    # They should NOT merge.
+    text = "aaaa {(btn)}\nbbbb"
+    res = mock_autofix._fix_short_lines(text)
+    assert res == "aaaa {(btn)}\nbbbb"
+
+    # Case 2: If {(btn)} is 0px (e.g. not in font_map/mappings), "aaaa {(btn)}" would be 45px.
+    # "bbbb" is 40px. Sum with space is 90px <= 100px.
+    # They would merge.
+    mock_mw.font_map = {"a": {"width": 10}, "b": {"width": 10}, " ": {"width": 5}}
+    mock_mw.default_tag_mappings = {}
+    mock_mw.icon_sequences = []
+    res = mock_autofix._fix_short_lines(text)
+    assert res == "aaaa {(btn)} bbbb"
+
+
+def test_TextAutofixLogic_fix_short_lines_starts_with_visible_tag(mock_autofix, mock_mw):
+    mock_mw.line_width_warning_threshold_pixels = 100
+    mock_mw.lines_per_page = 4
+    mock_mw.font_map = {"a": {"width": 10}, " ": {"width": 5}, "{(btn)}": {"width": 30}}
+    mock_mw.icon_sequences = ["{(btn)}"]
+    mock_mw.default_tag_mappings = {"{(btn)}": "{(btn)}"}
+
+    text = "aaaa\n{(btn)}"
+    res = mock_autofix._fix_short_lines(text)
+    assert res == "aaaa {(btn)}"
+
+
+def test_TextAutofixLogic_fix_short_lines_two_words_limit(mock_autofix, mock_mw):
+    mock_mw.line_width_warning_threshold_pixels = 100
+    mock_mw.lines_per_page = 4
+    mock_mw.font_map = {"a": {"width": 10}, "b": {"width": 10}, " ": {"width": 5}}
+    mock_mw.icon_sequences = []
+    mock_mw.default_tag_mappings = {}
+
+    # Both words fit: "aaaaa" (50) + " " (5) + "bb bb" (45) = 100 <= 100. Should merge.
+    text = "aaaaa\nbb bb"
+    res1 = mock_autofix._fix_short_lines(text)
+    assert res1 == "aaaaa bb bb"
+
+    # Only first word fits: "aaaaa" (50) + " " (5) + "bb bbb" (55) = 110 > 100. Should not merge.
+    text = "aaaaa\nbb bbb"
+    res2 = mock_autofix._fix_short_lines(text)
+    assert res2 == "aaaaa\nbb bbb"
+
+
+

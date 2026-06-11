@@ -396,14 +396,24 @@ def test_autofix_page_isolation(bmg_rules):
     bmg_rules.mw.autofix_enabled = {
         PROBLEM_SHORT_LINE: True
     }
-    
-    # Text with 5 lines, line 4 (index 3) is empty, line 5 (index 4) should NOT merge with line 4
+    # Text with 9 lines, line 7 (index 6) is empty, line 8 (index 7) should NOT merge with line 7
     # First lines end with dots to prevent in-page merging.
-    text = "Line 1.\nLine 2.\nLine 3\n\nLine 5"
-    fixed, changed = bmg_rules.autofix_data_string(text, {}, 1000)
-    # Since index 3 is boundary between page 1 (lines 0-3) and page 2 (lines 4-7), no cross-page merge should occur.
+    text = (
+        "Line 1.\n"
+        "Line 2.\n"
+        "Line 3.\n"
+        "Line 4.\n"
+        "Line 5b is a very very very very long line yesabc\n"
+        "Line 5c is a very very very very long line yesabc\n"
+        "Line 5d is a very very very very long line yesabc\n"
+        "\n"
+        "Line 7b is a very very very very long line yesabc\n"
+        "Line 7c is a very very very very long line yesabc"
+    )
+    fixed, changed = bmg_rules.autofix_data_string(text, {}, 300)
+    # Since index 7 is boundary between page 2 (lines 4-7) and page 3 (lines 8-11), no cross-page merge should occur.
     # The empty line should be preserved instead of compacted.
-    assert fixed == "Line 1.\nLine 2.\nLine 3\n\nLine 5"
+    assert fixed == text
     assert changed is False
 
 
@@ -531,5 +541,58 @@ def test_get_line_words_and_visible_tags_width_tags(bmg_rules):
     text = "настінних\n{escape:0:0008}"
     problems = bmg_rules.problem_analyzer.analyze_data_string(text, {}, 1000)
     assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START in problems[1]
+
+
+def test_punctuation_wrap_prevention(plain_rules):
+    # Characters are 8px wide by default in plain_rules
+    # "aaaaa bbbbbb, cccc"
+    # "aaaaa bbbbbb," is 13 chars = 104px
+    # "aaaaa bbbbbb" is 12 chars = 96px
+    # "bbbbbb, cccc" is 12 chars = 96px
+    # "aaaaa" is 5 chars = 40px
+    # If threshold is 100px:
+    # - "aaaaa bbbbbb," does not fit.
+    # - "aaaaa bbbbbb" fits.
+    # Normally, it would split as "aaaaa bbbbbb" and ", cccc".
+    # With punctuation wrap prevention, it splits as "aaaaa" and "bbbbbb, cccc".
+    text = "aaaaa bbbbbb, cccc"
+    fixed, changed = plain_rules.text_fixer._fix_width_exceeded_generic(text, {}, 100)
+    assert changed is True
+    assert fixed == "aaaaa\nbbbbbb, cccc"
+
+
+def test_single_letter_word_wrap_prevention(bmg_rules, plain_rules):
+    # Tests that if the next subline starts with a single-letter word,
+    # it is only merged if the single-letter word AND the subsequent word fit.
+    
+    # In bmg_rules/plain_rules, default width is char_len * 6 (or 8 for plain)
+    # Let's verify with plain_rules (default char width 8)
+    # "abc" (3 * 8 = 24px)
+    # "y def" -> first word "y" (8px), second "def" (24px)
+    # space is 8px
+    # Merging "y" only: "abc y" -> 5 * 8 = 40px.
+    # Merging "y def": "abc y def" -> 9 * 8 = 72px.
+    
+    # 1. If threshold is 50px:
+    # "abc y" (40px) fits. But "abc y def" (72px) does not fit.
+    # Because of single-letter rule, we should NOT merge "y" alone.
+    assert plain_rules.problem_analyzer._check_short_line_zww("abc", "y def", {}, 50) is False
+    
+    # 2. If threshold is 80px:
+    # "abc y def" (72px) fits. We can merge.
+    assert plain_rules.problem_analyzer._check_short_line_zww("abc", "y def", {}, 80) is True
+
+    # 3. For BMG rules (default char width 6)
+    # "abc" (18px)
+    # "y def" -> first "y" (6px), second "def" (18px)
+    # space 6px
+    # "abc y" -> 30px
+    # "abc y def" -> 54px
+    # If threshold is 40px: BMG should not merge
+    assert bmg_rules.problem_analyzer._check_short_line_zbmg("abc", "y def", {}, 40) is False
+    # If threshold is 60px: BMG should merge
+    assert bmg_rules.problem_analyzer._check_short_line_zbmg("abc", "y def", {}, 60) is True
+
+
 
 

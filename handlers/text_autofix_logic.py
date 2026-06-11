@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Tuple, Dict, Set
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
-from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
+from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display, is_visible_tag, has_visible_content, get_line_words_and_visible_tags
 from core.tag_utils import TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS
 
 SENTENCE_END_PUNCTUATION_CHARS = ['.', '!', '?']
@@ -117,6 +117,9 @@ class TextAutofixLogic:
         if len(sub_lines) <= 1:
             return text
 
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+
         made_change_in_this_fix_pass = True 
         iteration_count = 0
         lines_per_page = getattr(self.mw, 'lines_per_page', 4)
@@ -148,20 +151,19 @@ class TextAutofixLogic:
                     if not isinstance(limit, (int, float)):
                         limit = width_threshold
                     
-                    width_current = calculate_string_width(remove_all_tags(current_line.rstrip()), self.mw.font_map)
-                    width_next = calculate_string_width(remove_all_tags(next_line.strip()), self.mw.font_map)
+                    width_current = calculate_string_width(current_line.rstrip(), self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
+                    width_next = calculate_string_width(next_line.strip(), self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
                     space_width = calculate_string_width(" ", self.mw.font_map)
                     if width_current + space_width + width_next > limit:
                         i -= 1
                         continue
 
-                current_line_no_tags = remove_all_tags(current_line)
-                current_line_no_tags_stripped = current_line_no_tags.strip()
-
-                if not current_line_no_tags_stripped:
+                if not has_visible_content(current_line, default_tag_mappings, self.mw.font_map if self.mw else None, icon_sequences):
                     i -= 1
                     continue
                 
+                current_line_no_tags = remove_all_tags(current_line)
+                current_line_no_tags_stripped = current_line_no_tags.strip()
                 if self._ends_with_sentence_punctuation(current_line_no_tags_stripped):
                     i -= 1
                     continue
@@ -169,13 +171,20 @@ class TextAutofixLogic:
                 first_word_next_raw, rest_of_next_line_raw = self._extract_first_word_with_tags(next_line)
                 first_word_next_no_tags = remove_all_tags(first_word_next_raw).strip()
 
-                if not first_word_next_no_tags:
+                has_visible_tag = False
+                for tag_match in ALL_TAGS_PATTERN.finditer(first_word_next_raw):
+                    tag = tag_match.group(0)
+                    if is_visible_tag(tag, default_tag_mappings, self.mw.font_map if self.mw else None, icon_sequences):
+                        has_visible_tag = True
+                        break
+
+                if not first_word_next_no_tags and not has_visible_tag:
                     i -= 1
                     continue
                 
                 current_line_for_width_calc = current_line.rstrip() 
-                width_current_line_rstripped = calculate_string_width(remove_all_tags(current_line_for_width_calc), self.mw.font_map)
-                width_first_word_next = calculate_string_width(first_word_next_no_tags, self.mw.font_map)
+                width_current_line_rstripped = calculate_string_width(current_line_for_width_calc, self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
+                width_first_word_next = calculate_string_width(first_word_next_raw, self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
                 space_width = calculate_string_width(" ", self.mw.font_map)
                 
                 limit = width_threshold
@@ -184,7 +193,12 @@ class TextAutofixLogic:
                     if not isinstance(limit, (int, float)):
                         limit = width_threshold
                 
-                can_merge = width_current_line_rstripped + space_width + width_first_word_next <= limit
+                next_words = get_line_words_and_visible_tags(next_line, self.mw)
+                if len(next_words) == 2:
+                    width_next_full = calculate_string_width(next_line.strip(), self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
+                    can_merge = width_current_line_rstripped + space_width + width_next_full <= limit
+                else:
+                    can_merge = width_current_line_rstripped + space_width + width_first_word_next <= limit
 
                 if can_merge:
                     merged_line = current_line_for_width_calc
@@ -237,6 +251,9 @@ class TextAutofixLogic:
         sub_lines = text.split('\n')
         made_change_overall = False
         
+        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        
         new_full_text_lines = []
 
         for line_idx, current_line_text in enumerate(sub_lines):
@@ -244,7 +261,7 @@ class TextAutofixLogic:
             temp_newly_created_lines_for_this_original_line = []
 
             while True: 
-                line_width_no_tags = calculate_string_width(remove_all_tags(current_processing_line), self.mw.font_map)
+                line_width_no_tags = calculate_string_width(current_processing_line, self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
 
                 if line_width_no_tags <= width_threshold:
                     if current_processing_line or not temp_newly_created_lines_for_this_original_line or \
@@ -264,8 +281,7 @@ class TextAutofixLogic:
                 width_to_check = 0
 
                 for i, part in enumerate(line_parts):
-                    part_no_tags = remove_all_tags(part)
-                    part_width = calculate_string_width(part_no_tags, self.mw.font_map)
+                    part_width = calculate_string_width(part, self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
                     
                     is_punctuation = part in (',', '.', '!', '?', ';', ':', '…')
                     current_needs_space_before = needs_space_before_next_part and not part.isspace() and not is_punctuation and text_fits and not text_fits.endswith(" ")
@@ -278,7 +294,7 @@ class TextAutofixLogic:
                         if current_needs_space_before:
                             text_fits += " "
                         text_fits += part
-                        current_temp_width = calculate_string_width(remove_all_tags(text_fits), self.mw.font_map) 
+                        current_temp_width = calculate_string_width(text_fits, self.mw.font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings) 
                         last_fit_index = i
                         if not part.isspace():
                             needs_space_before_next_part = True

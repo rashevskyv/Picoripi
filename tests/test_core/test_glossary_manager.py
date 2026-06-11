@@ -327,3 +327,42 @@ def test_GlossaryManager_global_replace(manager):
     assert modified[1][2].translation == "Старійшина Ґоронів"
 
 
+def test_GlossaryManager_update_occurrences_for_entry(manager):
+    dataset = [
+        ["I have a sword.", "Nothing here"],
+        ["Shield of destiny"]
+    ]
+    
+    # 1. Add entry
+    e1 = GlossaryEntry("Sword", "Меч")
+    manager._entries = [e1]
+    manager._build_pattern_cache()
+    
+    manager.update_occurrences_for_entry(dataset, old_term=None, new_entry=e1)
+    
+    occs = manager.get_occurrences_for(e1)
+    assert len(occs) == 1
+    assert occs[0].block_idx == 0
+    assert occs[0].string_idx == 0
+    
+    # 2. Update entry (rename Sword to Shield)
+    e2 = GlossaryEntry("Shield", "Щит")
+    manager._entries = [e2]
+    manager._build_pattern_cache()
+    
+    manager.update_occurrences_for_entry(dataset, old_term="Sword", new_entry=e2)
+    
+    # Sword occurrences should be gone
+    assert len(manager.get_occurrences_for(e1)) == 0
+    # Shield occurrences should be found
+    occs_shield = manager.get_occurrences_for(e2)
+    assert len(occs_shield) == 1
+    assert occs_shield[0].block_idx == 1
+    assert occs_shield[0].string_idx == 0
+    
+    # 3. Delete entry
+    manager.update_occurrences_for_entry(dataset, old_term="Shield", new_entry=None)
+    assert len(manager.get_occurrences_for(e2)) == 0
+
+
+

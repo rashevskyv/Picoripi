@@ -64,9 +64,13 @@ class GenericTextFixer:
                 made_change = True
                 line_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
                 best_split_point = -1
+                punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'"}
                 for j in range(len(line_parts) - 1, 0, -1):
                     line_part_one = "".join(line_parts[:j]).rstrip()
                     if self._calculate_width(line_part_one, font_map) <= threshold:
+                        line_part_two = "".join(line_parts[j:]).lstrip()
+                        if line_part_two and line_part_two[0] in punctuation_chars:
+                            continue
                         best_split_point = j
                         break
                 if best_split_point == -1 and len(line_parts) > 1:

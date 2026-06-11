@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from PyQt6.QtWidgets import (QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, QWidget, QDialogButtonBox)
+from PyQt6.QtWidgets import (QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, QWidget, QDialogButtonBox, QProgressDialog)
 from PyQt6.QtGui import (QAction)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QEventLoop
 
 from .base_translation_handler import BaseTranslationHandler
 from .glossary_prompt_manager import GlossaryPromptManager
@@ -69,6 +69,24 @@ class CategorySelectionDialog(QDialog):
                 if clean_item and clean_item not in selected:
                     selected.append(clean_item)
         return selected
+
+
+class GlossaryOccurrenceWorker(QThread):
+    finished_with_result = pyqtSignal(dict)
+
+    def __init__(self, glossary_manager: GlossaryManager, data_source: list):
+        super().__init__()
+        self.glossary_manager = glossary_manager
+        self.data_source = data_source
+
+    def run(self):
+        try:
+            occurrence_map = self.glossary_manager.build_occurrence_index(self.data_source)
+            self.finished_with_result.emit(occurrence_map)
+        except Exception as e:
+            from utils.logging_utils import log_error
+            log_error(f"GlossaryOccurrenceWorker failed: {e}", exc_info=True)
+            self.finished_with_result.emit({})
 
 
 class GlossaryHandler(BaseTranslationHandler):
@@ -150,7 +168,8 @@ class GlossaryHandler(BaseTranslationHandler):
             return
         if self._open_glossary_action is None:
             action = QAction("Open Glossary...", self.mw)
-            action.setToolTip("Open glossary and jump to occurrences")
+            action.setShortcut("Ctrl+G")
+            action.setToolTip("Open glossary and jump to occurrences (Ctrl+G)")
             action.triggered.connect(self.show_glossary_dialog)
             tools_menu.addAction(action)
             self._open_glossary_action = action
@@ -187,7 +206,31 @@ class GlossaryHandler(BaseTranslationHandler):
             QMessageBox.information(self.mw, "Glossary", "No data is loaded for analysis.")
             return
 
-        occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
+        # Prepare and run GlossaryOccurrenceWorker with QProgressDialog
+        progress_dialog = QProgressDialog("Building glossary occurrence index...", None, 0, 100, self.mw)
+        progress_dialog.setWindowTitle("Please Wait")
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setCancelButton(None)
+
+        worker_results = {
+            'occurrence_map': {}
+        }
+        loop = QEventLoop()
+
+        worker = GlossaryOccurrenceWorker(self.glossary_manager, data_source)
+
+        def on_finished(occurrence_map):
+            worker_results['occurrence_map'] = occurrence_map
+            progress_dialog.close()
+            loop.quit()
+
+        worker.finished_with_result.connect(on_finished)
+        worker.start()
+        progress_dialog.show()
+        loop.exec()
+
+        occurrence_map = worker_results['occurrence_map']
         entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
         self.dialog = GlossaryDialog(
             parent=self.mw, entries=entries, occurrence_map=occurrence_map,
@@ -220,9 +263,17 @@ class GlossaryHandler(BaseTranslationHandler):
             return
 
         new_translation, new_notes = dialog.get_values()
+        
+        old_index = self.glossary_manager._occurrence_index.copy() if self.glossary_manager._occurrence_index else {}
+
         if not new_translation:
             if entry and new_notes != entry.notes:
                 if self.glossary_manager.update_entry(term, entry.translation, new_notes):
+                    self.glossary_manager._occurrence_index = old_index
+                    data_source = getattr(self.mw.data_store, "data", [])
+                    updated_entry = self.glossary_manager.get_entry(term)
+                    self.glossary_manager.update_occurrences_for_entry(data_source, term, updated_entry)
+
                     self.glossary_manager.save_to_disk()
                     self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
                     self._update_glossary_highlighting()
@@ -233,14 +284,16 @@ class GlossaryHandler(BaseTranslationHandler):
         else:
             updated_entry = self.glossary_manager.update_entry(term, new_translation, new_notes)
 
+        self.glossary_manager._occurrence_index = old_index
+        data_source = getattr(self.mw.data_store, "data", [])
+        self.glossary_manager.update_occurrences_for_entry(data_source, term if not is_new else None, updated_entry)
+
         self.glossary_manager.save_to_disk()
         self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
         self._update_glossary_highlighting()
 
         if updated_entry and updated_entry.translation.strip() != "":
-            data_source = getattr(self.mw.data_store, "data", [])
-            occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
-            occurrences = occurrence_map.get(updated_entry.original, [])
+            occurrences = self.glossary_manager.get_occurrences_for(updated_entry)
             if occurrences:
                 log_debug(f"Glossary: Showing update dialog for '{term}'.")
                 self._occurrence_updater.show_translation_update_dialog(
@@ -394,7 +447,9 @@ class GlossaryHandler(BaseTranslationHandler):
         context_line: Optional[str] = None
         data_source = getattr(self.mw.data_store, "data", None)
         if isinstance(data_source, list):
-            occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
+            occurrence_map = self.glossary_manager.get_occurrence_map()
+            if not occurrence_map:
+                occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
             occ_list = occurrence_map.get(entry.original, [])
             if occ_list:
                 context_line = getattr(occ_list[0], "line_text", None)
@@ -461,17 +516,22 @@ class GlossaryHandler(BaseTranslationHandler):
         previous_entry = self.glossary_manager.get_entry(original)
         previous_translation = previous_entry.translation if previous_entry else None
 
+        old_index = self.glossary_manager._occurrence_index.copy() if self.glossary_manager._occurrence_index else {}
+
         if self.glossary_manager.update_entry(original, translation, notes, profiled=profiled):
-            self.glossary_manager.save_to_disk()
+            self.glossary_manager._occurrence_index = old_index
             data_source = getattr(self.mw.data_store, "data", [])
-            occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
+            updated_entry = self.glossary_manager.get_entry(original)
+            self.glossary_manager.update_occurrences_for_entry(data_source, original, updated_entry)
+
+            self.glossary_manager.save_to_disk()
+            occurrence_map = self.glossary_manager.get_occurrence_map()
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._update_glossary_highlighting()
             self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
             if self.mw.statusBar:
                 self.mw.statusBar.showMessage(f"Glossary updated: {original}", 4000)
 
-            updated_entry = self.glossary_manager.get_entry(original)
             if (
                 updated_entry is not None
                 and updated_entry.translation.strip() != ""
@@ -487,10 +547,14 @@ class GlossaryHandler(BaseTranslationHandler):
         return None
 
     def _handle_glossary_entry_delete(self, original: str):
+        old_index = self.glossary_manager._occurrence_index.copy() if self.glossary_manager._occurrence_index else {}
         if self.glossary_manager.delete_entry(original):
-            self.glossary_manager.save_to_disk()
+            self.glossary_manager._occurrence_index = old_index
             data_source = getattr(self.mw.data_store, "data", [])
-            occurrence_map = self.glossary_manager.build_occurrence_index(data_source)
+            self.glossary_manager.update_occurrences_for_entry(data_source, original, None)
+
+            self.glossary_manager.save_to_disk()
+            occurrence_map = self.glossary_manager.get_occurrence_map()
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._update_glossary_highlighting()
             self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
