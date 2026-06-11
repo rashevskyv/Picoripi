@@ -110,32 +110,36 @@ class BfnNavigationMixin:
             item.setBackground(QtGui.QBrush(QtGui.QColor("#eef1f6")))
         item.setToolTip("Font Character (read-only, stored in font metadata)")
 
-    def populate_glyph_table(self):
-        if not self.sheet_images:
-            return
-            
-        self.table_glyphs.setRowCount(0)
-        self.table_glyphs.blockSignals(True)
-        
+    def _prepare_font_metadata(self) -> tuple[list, list]:
         maps = self.metadata.get("MAP1", [])
         wid = self.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
-        
+        return maps, packets
+
+    def _build_glyph_to_char_mapping(self, maps: list) -> dict[int, tuple[str, str]]:
         glyph_to_char = {}
         for idx in range(self.start_glyph, self.end_glyph + 1):
             raw_char = self._resolve_char_from_maps(idx, maps)
             char_val, font_char_val = self._get_glyph_translation_mapping(idx, raw_char)
             glyph_to_char[idx] = (char_val, font_char_val)
-            
+        return glyph_to_char
+
+    def _build_original_glyph_to_char_mapping(self) -> dict[int, str]:
         orig_glyph_to_char = {}
         if self.original_font_metadata:
             orig_maps = self.original_font_metadata.get("MAP1", [])
             for idx in range(self.start_glyph, self.end_glyph + 1):
                 orig_char = self._resolve_char_from_maps(idx, orig_maps)
                 orig_glyph_to_char[idx] = orig_char
-            
-        search_query = self.table_search.text().lower()
-        
+        return orig_glyph_to_char
+
+    def _filter_glyphs_by_search(
+        self,
+        glyph_to_char: dict[int, tuple[str, str]],
+        orig_glyph_to_char: dict[int, str],
+        packets: list,
+        search_query: str
+    ) -> list[tuple]:
         rows_data = []
         for idx in range(self.start_glyph, self.end_glyph + 1):
             char_val, font_char_val = glyph_to_char.get(idx, ("", ""))
@@ -156,48 +160,54 @@ class BfnNavigationMixin:
                     continue
                     
             rows_data.append((idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data))
+        return rows_data
+
+    def _populate_single_glyph_row(self, r_idx: int, data: tuple) -> None:
+        idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data = data
+        
+        self.table_glyphs.setVerticalHeaderItem(r_idx, QtWidgets.QTableWidgetItem(str(idx)))
+        
+        item_orig_char = QtWidgets.QTableWidgetItem(orig_char_data)
+        item_char = QtWidgets.QTableWidgetItem(char_val)
+        item_font_char = QtWidgets.QTableWidgetItem(font_char_val)
+        item_sheet = QtWidgets.QTableWidgetItem(f"Sheet {sheet_idx}")
+        item_tile = QtWidgets.QTableWidgetItem(f"Row {gy}, Col {gx}")
+        item_kern = QtWidgets.QTableWidgetItem(str(kerning))
+        item_width = QtWidgets.QTableWidgetItem(str(width))
+        
+        for item in (item_orig_char, item_sheet, item_tile):
+            item.setFlags(item.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
             
+        self._style_font_char_item(item_font_char)
+            
+        item_char.setFlags(item_char.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+        item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+        item_width.setFlags(item_width.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+        
+        self.table_glyphs.setItem(r_idx, 1, item_orig_char)
+        self.table_glyphs.setItem(r_idx, 3, item_char)
+        self.table_glyphs.setItem(r_idx, 4, item_font_char)
+        self.table_glyphs.setItem(r_idx, 5, item_sheet)
+        self.table_glyphs.setItem(r_idx, 6, item_tile)
+        self.table_glyphs.setItem(r_idx, 7, item_kern)
+        self.table_glyphs.setItem(r_idx, 8, item_width)
+        
+        # Original Render
+        orig_lbl = self._create_glyph_image_label(self.original_sheet_images, sheet_idx, gx, gy)
+        self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
+        
+        # Translated Render
+        lbl = self._create_glyph_image_label(self.sheet_images, sheet_idx, gx, gy)
+        self.table_glyphs.setCellWidget(r_idx, 2, lbl)
+
+    def _fill_glyph_table(self, rows_data: list[tuple]) -> None:
         self.table_glyphs.setRowCount(len(rows_data))
         self.table_glyphs.verticalHeader().setDefaultSectionSize(36)
         
         for r_idx, data in enumerate(rows_data):
-            idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data = data
-            
-            self.table_glyphs.setVerticalHeaderItem(r_idx, QtWidgets.QTableWidgetItem(str(idx)))
-            
-            item_orig_char = QtWidgets.QTableWidgetItem(orig_char_data)
-            item_char = QtWidgets.QTableWidgetItem(char_val)
-            item_font_char = QtWidgets.QTableWidgetItem(font_char_val)
-            item_sheet = QtWidgets.QTableWidgetItem(f"Sheet {sheet_idx}")
-            item_tile = QtWidgets.QTableWidgetItem(f"Row {gy}, Col {gx}")
-            item_kern = QtWidgets.QTableWidgetItem(str(kerning))
-            item_width = QtWidgets.QTableWidgetItem(str(width))
-            
-            for item in (item_orig_char, item_sheet, item_tile):
-                item.setFlags(item.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
-                
-            self._style_font_char_item(item_font_char)
-                
-            item_char.setFlags(item_char.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
-            item_kern.setFlags(item_kern.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
-            item_width.setFlags(item_width.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
-            
-            self.table_glyphs.setItem(r_idx, 1, item_orig_char)
-            self.table_glyphs.setItem(r_idx, 3, item_char)
-            self.table_glyphs.setItem(r_idx, 4, item_font_char)
-            self.table_glyphs.setItem(r_idx, 5, item_sheet)
-            self.table_glyphs.setItem(r_idx, 6, item_tile)
-            self.table_glyphs.setItem(r_idx, 7, item_kern)
-            self.table_glyphs.setItem(r_idx, 8, item_width)
-            
-            # Original Render
-            orig_lbl = self._create_glyph_image_label(self.original_sheet_images, sheet_idx, gx, gy)
-            self.table_glyphs.setCellWidget(r_idx, 0, orig_lbl)
-            
-            # Translated Render
-            lbl = self._create_glyph_image_label(self.sheet_images, sheet_idx, gx, gy)
-            self.table_glyphs.setCellWidget(r_idx, 2, lbl)
-                
+            self._populate_single_glyph_row(r_idx, data)
+
+    def _restore_glyph_table_column_widths(self) -> None:
         if not getattr(self, "_table_headers_resized", False):
             # Try to restore column widths from settings
             sm = getattr(self, "get_settings_manager", lambda: None)()
@@ -217,6 +227,24 @@ class BfnNavigationMixin:
                     self.table_glyphs.resizeColumnsToContents()
             
             self._table_headers_resized = True
+
+    def populate_glyph_table(self):
+        if not self.sheet_images:
+            return
+            
+        self.table_glyphs.setRowCount(0)
+        self.table_glyphs.blockSignals(True)
+        
+        maps, packets = self._prepare_font_metadata()
+        
+        glyph_to_char = self._build_glyph_to_char_mapping(maps)
+        orig_glyph_to_char = self._build_original_glyph_to_char_mapping()
+        
+        search_query = self.table_search.text().lower()
+        rows_data = self._filter_glyphs_by_search(glyph_to_char, orig_glyph_to_char, packets, search_query)
+        
+        self._fill_glyph_table(rows_data)
+        self._restore_glyph_table_column_widths()
             
         self.table_glyphs.blockSignals(False)
 

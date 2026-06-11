@@ -345,3 +345,13 @@ class AILifecycleManager(BaseTranslationHandler):
             self.main_handler.ui_handler.finish_ai_operation(success=False)
             QMessageBox.critical(self.mw, "AI Operation Failed", f"Retry logic not implemented for task '{task_type}'.")
 
+    def prepare_to_close(self) -> None:
+        if self.thread and self.thread.isRunning():
+            if self.worker:
+                try:
+                    self.worker.deleteLater()
+                except Exception:
+                    pass
+            self.thread.quit()
+            self.thread.wait(1000)
+

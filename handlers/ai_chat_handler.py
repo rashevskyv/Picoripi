@@ -309,3 +309,8 @@ class AIChatHandler(BaseHandler):
         if self._worker:
             self._worker.deleteLater()
             self._worker = None
+
+    def prepare_to_close(self) -> None:
+        if self._thread and self._thread.isRunning():
+            self._thread.quit()
+            self._thread.wait(1000)

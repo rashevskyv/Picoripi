@@ -154,7 +154,7 @@ class ImportGlyphCommand(QtGui.QUndoCommand):
     def undo(self):
         sheet_qimg = self.viewer.sheet_images[self.sheet_idx]
         painter = QtGui.QPainter(sheet_qimg)
-        painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+        painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_Source)
         painter.drawImage(self.cell_x, self.cell_y, self.old_glyph_img)
         painter.end()
         
@@ -166,7 +166,7 @@ class ImportGlyphCommand(QtGui.QUndoCommand):
     def redo(self):
         sheet_qimg = self.viewer.sheet_images[self.sheet_idx]
         painter = QtGui.QPainter(sheet_qimg)
-        painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+        painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_Source)
         painter.drawImage(self.cell_x, self.cell_y, self.new_glyph_img)
         painter.end()
         
@@ -189,7 +189,7 @@ class RenderFontCommand(QtGui.QUndoCommand):
         for sheet_idx, cell_x, cell_y, old_img, _ in self.pixel_changes:
             sheet_qimg = self.viewer.sheet_images[sheet_idx]
             painter = QtGui.QPainter(sheet_qimg)
-            painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+            painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_Source)
             painter.drawImage(cell_x, cell_y, old_img)
             painter.end()
             sheets_to_update.add(sheet_idx)
@@ -226,7 +226,7 @@ class RenderFontCommand(QtGui.QUndoCommand):
         for sheet_idx, cell_x, cell_y, _, new_img in self.pixel_changes:
             sheet_qimg = self.viewer.sheet_images[sheet_idx]
             painter = QtGui.QPainter(sheet_qimg)
-            painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+            painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_Source)
             painter.drawImage(cell_x, cell_y, new_img)
             painter.end()
             sheets_to_update.add(sheet_idx)

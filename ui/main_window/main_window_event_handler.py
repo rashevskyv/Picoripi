@@ -196,6 +196,13 @@ class MainWindowEventHandler:
         self.mw.app_action_handler.handle_close_event(event)
         
         if event.isAccepted():
+            if hasattr(self.mw, 'event_filter') and self.mw.event_filter:
+                try:
+                    from PyQt6.QtWidgets import QApplication
+                    QApplication.instance().removeEventFilter(self.mw.event_filter)
+                    self.mw.event_filter = None
+                except Exception as e:
+                    log_debug(f"Error removing event filter: {e}")
             # Always save user settings (geometry, last path, etc.) unless restarting
             if not self.mw.is_restart_in_progress:
                 self.mw.settings_manager.save_settings()
