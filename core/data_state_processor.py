@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
+from components.toast import ToastNotification
 
 class DataStateProcessor:
     def __init__(self, main_window: Any):
@@ -793,8 +794,7 @@ class DataStateProcessor:
                         if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                             self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
                             
-                if ask_confirmation:
-                    self._show_message("Project Saved", "All project translation files saved successfully.", type="info")
+                ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                 if hasattr(self.mw, 'issue_scan_handler'):
                     self.mw.issue_scan_handler._save_issues_cache()
                 return True
@@ -820,8 +820,7 @@ class DataStateProcessor:
                         if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                             self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
                             
-                if ask_confirmation:
-                    self._show_message("Project Saved", "All project translation files saved successfully.", type="info")
+                ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                 if hasattr(self.mw, 'issue_scan_handler'):
                     self.mw.issue_scan_handler._save_issues_cache()
                 return True

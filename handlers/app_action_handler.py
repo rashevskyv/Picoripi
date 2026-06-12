@@ -12,6 +12,7 @@ from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
 from components.report_dialog import LargeTextReportDialog
+from components.toast import ToastNotification
 
 class SaveWorker(QThread):
     progress_updated = pyqtSignal(int, int, str)  # current_step, total_steps, label_text
@@ -253,8 +254,7 @@ class AppActionHandler(BaseHandler):
                 if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                     self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
                     
-        if ask_confirmation:
-            QMessageBox.information(self.mw, "Project Saved", "All project translation files saved successfully.")
+        ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
             
         if hasattr(self.mw, 'issue_scan_handler'):
             self.mw.issue_scan_handler._save_issues_cache()

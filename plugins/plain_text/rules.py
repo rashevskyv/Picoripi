@@ -189,13 +189,15 @@ class GameRules(BaseGameRules):
         logical_hard_limit: Optional[int] = None,
         allowed_problems: Optional[Set[str]] = None,
         block_idx: Optional[int] = None,
-        string_idx: Optional[int] = None
+        string_idx: Optional[int] = None,
+        page_local: bool = False,
+        disable_pagination: bool = False
     ) -> Tuple[str, bool]:
         
         text_for_fixing = self.get_text_representation_for_editor(data_string)
         
         fixed_text, was_modified = self.text_fixer.autofix_data_string(
-            text_for_fixing, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx
+            text_for_fixing, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx, page_local, disable_pagination
         )
         
         final_text = self.convert_editor_text_to_data(fixed_text)

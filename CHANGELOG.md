@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.011] - 2026-06-12
+
+### 🚀 Added
+- **Non-blocking Toast Notifications**: Implemented a custom semi-transparent black `ToastNotification` widget to notify users of events like successful saves. The notifications appear in the bottom-left corner, staying for 2 seconds with fade-out animation and a width matching the project sidebar (260-300px), without blocking user input.
+- **Unit Tests for Toast Notifications**: Added a comprehensive test suite in `tests/test_ui/test_toast.py` to verify the creation, lifecycle, parent handling, and cleaning up of toast notifications.
+
+### 🔄 Changed
+- **Silent Save Flow**: Pressing `Ctrl+S` or clicking "Save" now saves the project silently without showing a modal dialog. Confirmation dialogs are now shown exclusively when closing the application with unsaved changes.
+
+### 🐛 Fixed
+- **Strict Page-Local AutoFix (Shift+AutoFix)**: Restored page isolation during Shift+AutoFix (`page_local = True`). The fixer now pads modified pages back to their original size to prevent sentences from subsequent pages from shifting upwards into empty lines on the current page, ensuring clean page-boundary enforcement even when `prevent_empty_lines_in_autofix` is globally active.
+
 ## [0.3.010] - 2026-06-11
 
 ### 🐛 Fixed

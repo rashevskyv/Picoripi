@@ -761,7 +761,6 @@ def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: b
             if current_sentence:
                 sentences.append(current_sentence)
                 current_sentence = []
-            sentences.append([line])
             continue
             
         # 2. If line starts with a page break/pause escape code, end the previous group
@@ -868,11 +867,11 @@ def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: b
                 starts_with_page_break = True
                 
         if starts_with_page_break:
-            current_len = len(pages[-1])
-            remaining_space = max(0, lines_per_page - (current_len % lines_per_page))
+            total_len = sum(len(p) for p in pages)
+            remaining_space = max(0, lines_per_page - (total_len % lines_per_page))
             if remaining_space == 0:
                 remaining_space = lines_per_page
-            if current_len > 0 and (current_len % lines_per_page) != 0:
+            if total_len > 0 and (total_len % lines_per_page) != 0:
                 if not prevent_empty_lines:
                     pages[-1].extend([""] * remaining_space)
             pages.append(s_lines)
@@ -883,23 +882,25 @@ def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: b
             # Append directly to the current page.
             pages[-1].extend(s_lines)
         else:
-            current_len = len(pages[-1])
-            remaining_space = max(0, lines_per_page - (current_len % lines_per_page))
+            total_len = sum(len(p) for p in pages)
+            remaining_space = max(0, lines_per_page - (total_len % lines_per_page))
             if remaining_space == 0:
                 remaining_space = lines_per_page
                 
             # If current page has some lines, check if it fits in remaining space
-            if current_len > 0 and (current_len % lines_per_page) != 0:
+            if total_len > 0 and (total_len % lines_per_page) != 0:
                 if s_len <= remaining_space:
                     pages[-1].extend(s_lines)
                 else:
-                    # Pad current page to page boundary
-                    if not prevent_empty_lines:
+                    if prevent_empty_lines:
+                        pages[-1].extend(s_lines)
+                    else:
+                        # Always pad current page to page boundary if next sentence doesn't fit
                         pages[-1].extend([""] * remaining_space)
-                    pages.append(s_lines)
+                        pages.append(s_lines)
             else:
                 # Page is empty (or currently at exact boundary)
-                if current_len == 0:
+                if total_len == 0:
                     pages[-1].extend(s_lines)
                 else:
                     pages.append(s_lines)
@@ -988,7 +989,6 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
                 if current_sentence:
                     sentences.append(current_sentence)
                     current_sentence = []
-                sentences.append([line])
                 continue
             if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', line, re.IGNORECASE):
                 if current_sentence:
@@ -1092,28 +1092,38 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
                 should_start_new_page = True
                 
         if should_start_new_page:
-            current_len = len(pages[-1])
-            if current_len > 0 and (current_len % lines_per_page) != 0:
-                remaining_space = lines_per_page - (current_len % lines_per_page)
+            total_len = sum(len(p) for p in pages)
+            if total_len > 0 and (total_len % lines_per_page) != 0:
+                remaining_space = lines_per_page - (total_len % lines_per_page)
+                starts_with_page_break = False
+                if s_lines:
+                    first_line = s_lines[0]
+                    if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', first_line, re.IGNORECASE):
+                        starts_with_page_break = True
+                
+                # Always pad to page boundary unless prevent_empty_lines is True
                 if not prevent_empty_lines:
                     pages[-1].extend([""] * remaining_space)
             pages.append(s_lines)
         else:
             s_len = len(s_lines)
-            current_len = len(pages[-1])
-            remaining_space = lines_per_page - (current_len % lines_per_page)
+            total_len = sum(len(p) for p in pages)
+            remaining_space = lines_per_page - (total_len % lines_per_page)
             if remaining_space == 0:
                 remaining_space = lines_per_page
                 
-            if current_len > 0 and (current_len % lines_per_page) != 0:
+            if total_len > 0 and (total_len % lines_per_page) != 0:
                 if s_len <= remaining_space:
                     pages[-1].extend(s_lines)
                 else:
-                    if not prevent_empty_lines:
+                    if prevent_empty_lines:
+                        pages[-1].extend(s_lines)
+                    else:
+                        # Always pad to page boundary to prevent sentence from getting split
                         pages[-1].extend([""] * remaining_space)
-                    pages.append(s_lines)
+                        pages.append(s_lines)
             else:
-                if current_len == 0:
+                if total_len == 0:
                     pages[-1].extend(s_lines)
                 else:
                     pages.append(s_lines)

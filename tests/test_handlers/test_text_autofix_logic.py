@@ -272,7 +272,7 @@ def test_shift_split_sentences_prevent_empty_lines():
     res_pad, _ = shift_split_sentences(text, 4, prevent_empty_lines=False)
     assert res_pad == "Line 1.\n\n\n\n{escape:0:0007000a}Line 2."
     
-    # With prevent_empty_lines (no empty lines added)
+    # With prevent_empty_lines: next sentence starts with page break, so we do NOT pad!
     res_no_pad, _ = shift_split_sentences(text, 4, prevent_empty_lines=True)
     assert res_no_pad == "Line 1.\n{escape:0:0007000a}Line 2."
 
@@ -284,9 +284,21 @@ def test_shift_split_sentences_prevent_empty_lines():
     res_align_pad, _ = shift_split_sentences_aligned(trans, orig, 4, prevent_empty_lines=False)
     assert res_align_pad == "Trans 1.\n\n\n\n[escape:0:0007000a]Trans 2."
 
-    # With prevent_empty_lines
+    # With prevent_empty_lines: next sentence starts with page break, do NOT pad
     res_align_no_pad, _ = shift_split_sentences_aligned(trans, orig, 4, prevent_empty_lines=True)
     assert res_align_no_pad == "Trans 1.\n[escape:0:0007000a]Trans 2."
+
+    # Test shift_split_sentences_aligned with prevent_empty_lines where the sentence does NOT start with a page break
+    orig_no_pb = "Orig 1.\nOrig 2 line 1\nOrig 2 line 2\nOrig 2 line 3\nOrig 2 line 4."  # sentence 1 ends on page 0, sentence 2 ends on page 1
+    trans_no_pb = "Trans 1.\nTrans 2."
+
+    # Without prevent_empty_lines (default) -> pads page 1 with empty lines
+    res_align_pad_no_pb, _ = shift_split_sentences_aligned(trans_no_pb, orig_no_pb, 4, prevent_empty_lines=False)
+    assert res_align_pad_no_pb == "Trans 1.\n\n\n\nTrans 2."
+
+    # With prevent_empty_lines -> does not pad page 1
+    res_align_no_pad_no_pb, _ = shift_split_sentences_aligned(trans_no_pb, orig_no_pb, 4, prevent_empty_lines=True)
+    assert res_align_no_pad_no_pb == "Trans 1.\nTrans 2."
 
 
 def test_shift_split_sentences_optimize_page_breaks():

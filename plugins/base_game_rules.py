@@ -127,7 +127,9 @@ class BaseGameRules:
                              logical_hard_limit: Optional[int] = None,
                              allowed_problems: Optional[Set[str]] = None,
                              block_idx: Optional[int] = None,
-                             string_idx: Optional[int] = None) -> Tuple[str, bool]:
+                             string_idx: Optional[int] = None,
+                             page_local: bool = False,
+                             disable_pagination: bool = False) -> Tuple[str, bool]:
         return data_string, False
 
     def process_pasted_segment(self,

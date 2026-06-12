@@ -607,5 +607,119 @@ def test_single_letter_word_wrap_prevention(bmg_rules, plain_rules):
     assert bmg_rules.problem_analyzer._check_short_line_zbmg("abc", "y def", {}, 60) is True
 
 
+def test_short_line_merge_across_padding(bmg_rules, ww_rules, mc_rules, pokemon_rules):
+    # Test that _fix_short_lines does not merge across empty padding lines (which represent page boundaries)
+    
+    # 1. Zelda BMG
+    text_bmg = "{escape:0:0001}Ти отримав {color:red}Карту{color:white}.\n\n\n\nПризначай її на\nпотрібну кнопку\nта користуйся."
+    fixed_bmg, changed_bmg = bmg_rules.text_fixer._fix_short_lines_zbmg(text_bmg, {}, 414)
+    expected_bmg = "{escape:0:0001}Ти отримав {color:red}Карту{color:white}.\n\n\n\nПризначай її на потрібну кнопку та користуйся."
+    assert fixed_bmg == expected_bmg
+    assert changed_bmg is True
+
+    # 2. Zelda WW
+    text_ww = "Ти отримав Карту.\n\n\n\nПризначай її на\nпотрібну кнопку."
+    fixed_ww, changed_ww = ww_rules.text_fixer._fix_short_lines_zww(text_ww, {}, 414)
+    expected_ww = "Ти отримав Карту.\n\n\n\nПризначай її на потрібну кнопку."
+    assert fixed_ww == expected_ww
+    assert changed_ww is True
+
+    # 3. Zelda MC
+    text_mc = "Ти отримав Карту.\n\n\n\nПризначай її на\nпотрібну кнопку."
+    fixed_mc, changed_mc = mc_rules.text_fixer._fix_short_lines_zmc(text_mc, {}, 414)
+    expected_mc = "Ти отримав Карту.\n\n\n\nПризначай її на потрібну кнопку."
+    assert fixed_mc == expected_mc
+    assert changed_mc is True
+
+    # 4. Pokemon FR
+    text_pk = "Ти отримав Карту.\\n\\n\\n\\nПризначай її на\\nпотрібну кнопку."
+    fixed_pk = pokemon_rules.text_fixer._fix_short_lines(text_pk, {}, 414)
+    expected_pk = "Ти отримав Карту.\\n\\n\\n\\nПризначай її на потрібну кнопку."
+    assert fixed_pk == expected_pk
+
+
+def test_autofix_page_local(mc_rules):
+    # Disable short line merging so we test page boundary behavior
+    from plugins.zelda_mc.config import PROBLEM_SHORT_LINE
+    mc_rules.mw.lines_per_page = 4
+    mc_rules.mw.autofix_enabled = {
+        PROBLEM_SHORT_LINE: False
+    }
+    
+    text = "Line 1.\nLine 2.\nHere is a sentence\nthat spans across\nthe page boundary."
+    
+    # 1. With page_local=False, it should shift the sentence to start on page 2 (adding padding on page 1)
+    fixed_normal, changed_normal = mc_rules.autofix_data_string(text, {}, 1000, page_local=False)
+    assert changed_normal is True
+    assert fixed_normal == "Line 1.\nLine 2.\n\n\nHere is a sentence\nthat spans across\nthe page boundary."
+    
+    # 2. With page_local=True, it should fix each page locally, leaving the structure intact
+    fixed_local, changed_local = mc_rules.autofix_data_string(text, {}, 1000, page_local=True)
+    assert fixed_local == text
+    assert changed_local is False
+
+    # 3. Test that a page-break/pause code inside a page does not trigger shifting under page_local=True
+    text_with_escape = "Line 1.\n{escape:0:0007000a}Line 2.\nLine 3.\n"
+    # Normal: shifts because of escape on line 2
+    fixed_normal_esc, changed_normal_esc = mc_rules.autofix_data_string(text_with_escape, {}, 1000, page_local=False)
+    assert changed_normal_esc is True
+    assert fixed_normal_esc == "Line 1.\n\n\n\n{escape:0:0007000a}Line 2.\nLine 3."
+    
+    # Local: keeps it strictly in place
+    fixed_local_esc, changed_local_esc = mc_rules.autofix_data_string(text_with_escape, {}, 1000, page_local=True)
+    assert fixed_local_esc == text_with_escape
+    assert changed_local_esc is False
+
+    # 4. Test that if we merge lines (e.g. short lines), the page is padded back to its original line count
+    mc_rules.mw.autofix_enabled[PROBLEM_SHORT_LINE] = True
+    # S1: "Line 1\nLine 2" (no punctuation, total width fits in 1000px, so they will merge)
+    text_short = "Line 1\nLine 2\nLine 3.\n" # 4 lines in page 1
+    # Local: S1 and Line 3. merge to "Line 1 Line 2 Line 3.", decreasing lines to 1, but wrapper pads back to 4 lines
+    fixed_local_short, changed_local_short = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
+    assert changed_local_short is True
+    assert fixed_local_short == "Line 1 Line 2 Line 3.\n\n\n"
+
+
+
+
+def test_shift_split_sentences_dense_packing():
+    # Test that multiple sentences are packed on a page when prevent_empty_lines=False
+    # S1 (len 2), S2 (len 1), S3 (len 2). lines_per_page = 4.
+    # S1 and S2 fit on page 1. S3 does not fit, so page 1 is padded with 1 empty line.
+    from utils.utils import shift_split_sentences
+    text = "S1 line 1a\nS1 line 1b.\nS2 line 1.\nS3 line 1a\nS3 line 1b."
+    res, changed = shift_split_sentences(text, lines_per_page=4, prevent_empty_lines=False)
+    assert res == "S1 line 1a\nS1 line 1b.\nS2 line 1.\n\nS3 line 1a\nS3 line 1b."
+    assert changed is True
+
+
+def test_zelda_mc_autofix_page_local_prevent_empty(mc_rules):
+    from plugins.zelda_mc.config import PROBLEM_SHORT_LINE
+    # Enable short line autofix
+    if not hasattr(mc_rules.mw, 'autofix_enabled'):
+        mc_rules.mw.autofix_enabled = {}
+    mc_rules.mw.autofix_enabled[PROBLEM_SHORT_LINE] = True
+    
+    # 1. With prevent_empty_lines_in_autofix = True, local autofix should STILL pad to keep page boundaries
+    mc_rules.mw.prevent_empty_lines_in_autofix = True
+    text_short = "Line 1\nLine 2\nLine 3.\n" # 4 lines in page 1
+    fixed, changed = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
+    assert changed is True
+    # Should STILL pad with empty lines at the end
+    assert fixed == "Line 1 Line 2 Line 3.\n\n\n"
+
+    # 2. Reset prevent_empty_lines_in_autofix to False (should have same behavior)
+    mc_rules.mw.prevent_empty_lines_in_autofix = False
+    fixed_padded, changed_padded = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
+    assert changed_padded is True
+    # Should pad with empty lines
+    assert fixed_padded == "Line 1 Line 2 Line 3.\n\n\n"
+
+
+
+
+
+
+
 
 

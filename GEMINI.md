@@ -3,7 +3,7 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 ## Project Overview
 
-The "Picoripi" (v0.3.007) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.011) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -123,7 +123,7 @@ The project follows a well-organized, modular structure with clear separation of
     -   `builders/`: UI construction modules (`layout_builder.py`, `menu_builder.py`, `toolbar_builder.py`, `statusbar_builder.py`).
     -   `updaters/`: Decomposed UI updaters: `block_list_updater.py`, `preview_updater.py`, `string_settings_updater.py`, `title_status_bar_updater.py`.
     -   `main_window/`: MainWindow event handling and actions.
--   `components/`: Reusable PyQt6 widgets (text editors, tree widgets, dialogs, glossary edit dialog). Contains `block_properties_dialog.py` for displaying file metadata.
+-   `components/`: Reusable PyQt6 widgets (text editors, tree widgets, dialogs, glossary edit dialog, toast notification). Contains `block_properties_dialog.py` for displaying file metadata and `toast.py` for non-blocking notifications.
 -   `plugins/`: Game-specific plugin modules:
     -   `base_game_rules.py`: Abstract base class for all plugins.
     -   `common/`: Shared markers and utilities (`markers.py`).

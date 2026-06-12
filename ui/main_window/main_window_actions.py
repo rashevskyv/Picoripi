@@ -390,7 +390,7 @@ class MainWindowActions:
             log_info(f"trigger_save_action details: has_app_action_handler={hasattr(self.mw, 'app_action_handler')}, "
                      f"unsaved_changes={getattr(self.mw.data_store, 'unsaved_changes', 'N/A')}, "
                      f"edited_keys_count={len(getattr(self.mw.data_store, 'edited_data', {}))}", category="file_ops")
-            if self.mw.app_action_handler.save_data_action(ask_confirmation=True):
+            if self.mw.app_action_handler.save_data_action(ask_confirmation=False):
                  self.helper.rebuild_unsaved_block_indices()
                  log_info("Save action processed and unsaved block indices rebuilt.", category="file_ops")
             else:

@@ -111,8 +111,8 @@ class TestAppActionHandler(unittest.TestCase):
     @patch('handlers.app_action_handler.QProgressDialog')
     @patch('handlers.app_action_handler.QEventLoop')
     @patch('handlers.app_action_handler.SaveWorker')
-    @patch('handlers.app_action_handler.QMessageBox')
-    def test_perform_async_save_flow_success(self, mock_msg_box, mock_worker_cls, mock_event_loop, mock_progress):
+    @patch('handlers.app_action_handler.ToastNotification')
+    def test_perform_async_save_flow_success(self, mock_toast, mock_worker_cls, mock_event_loop, mock_progress):
         # Setup mocks
         mock_pd_inst = mock_progress.return_value
         mock_loop_inst = mock_event_loop.return_value
@@ -140,7 +140,7 @@ class TestAppActionHandler(unittest.TestCase):
         mock_pd_inst.close.assert_called_once()
         
         self.ctx.ui_provider.show_archive_size_warning.assert_called_once_with("archive.rarc", 200, 100)
-        mock_msg_box.information.assert_called_once()
+        mock_toast.show_toast.assert_called_once()
         self.ctx.issue_scan_handler._save_issues_cache.assert_called_once()
 
     @patch('handlers.app_action_handler.QProgressDialog')

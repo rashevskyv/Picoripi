@@ -338,15 +338,17 @@ class GameRules(BaseGameRules):
         )
 
     def autofix_data_string(self,
-                            data_string: str,
-                            editor_font_map: dict,
-                            editor_line_width_threshold: int,
-                            logical_hard_limit: Optional[int] = None,
-                            allowed_problems: Optional[Set[str]] = None,
-                            block_idx: Optional[int] = None,
-                            string_idx: Optional[int] = None) -> Tuple[str, bool]:
+                             data_string: str,
+                             editor_font_map: dict,
+                             editor_line_width_threshold: int,
+                             logical_hard_limit: Optional[int] = None,
+                             allowed_problems: Optional[Set[str]] = None,
+                             block_idx: Optional[int] = None,
+                             string_idx: Optional[int] = None,
+                             page_local: bool = False,
+                             disable_pagination: bool = False) -> Tuple[str, bool]:
         return self.text_fixer.autofix_data_string(
-            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx
+            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx, page_local, disable_pagination
         )
 
     def process_pasted_segment(self,

@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Set
 import re
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
 
@@ -449,4 +449,56 @@ class GenericTextFixer:
         final_text = "\n".join(lines)
         # Normalize: only report changed if text actually differs
         return final_text, final_text != text
+
+    def autofix_page_local_wrapper(self,
+                                   autofix_func,
+                                   data_string: str,
+                                   editor_font_map: dict,
+                                   editor_line_width_threshold: int,
+                                   logical_hard_limit: Optional[int] = None,
+                                   allowed_problems: Optional[Set[str]] = None,
+                                   block_idx: Optional[int] = None,
+                                   string_idx: Optional[int] = None) -> Tuple[str, bool]:
+        if not data_string:
+            return data_string, False
+            
+        lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
+        lines = data_string.split('\n')
+        
+        # Split into chunks of lines_per_page
+        pages_chunks = [lines[i:i + lines_per_page] for i in range(0, len(lines), lines_per_page)]
+        
+        fixed_pages = []
+        any_changed = False
+        
+        for chunk in pages_chunks:
+            original_len = len(chunk)
+            page_text = "\n".join(chunk)
+            # Call the actual autofix function on this page chunk
+            fixed_page_text, changed = autofix_func(
+                page_text,
+                editor_font_map,
+                editor_line_width_threshold,
+                logical_hard_limit=logical_hard_limit,
+                allowed_problems=allowed_problems,
+                block_idx=block_idx,
+                string_idx=string_idx,
+                page_local=False, # Disable recursion
+                disable_pagination=True
+            )
+            
+            # Pad back to original height if the lines decreased during merging.
+            # Local page autofix (Shift+AutoFix) must preserve physical page boundaries,
+            # so we always pad back to original chunk length.
+            fixed_chunk_lines = fixed_page_text.split('\n')
+            if len(fixed_chunk_lines) < original_len:
+                fixed_chunk_lines.extend([""] * (original_len - len(fixed_chunk_lines)))
+                fixed_page_text = "\n".join(fixed_chunk_lines)
+                
+            fixed_pages.append(fixed_page_text)
+            if changed or fixed_page_text != page_text:
+                any_changed = True
+                
+        final_text = "\n".join(fixed_pages)
+        return final_text, final_text != data_string
 

@@ -660,6 +660,7 @@ class TextOperationHandler(BaseHandler):
         
     def auto_fix_current_string(self, from_button: bool = False) -> None:
         modifiers = QApplication.keyboardModifiers()
+        is_shift_pressed = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
         if from_button and (modifiers & Qt.KeyboardModifier.ControlModifier):
             if not self.mw.current_game_rules:
                 return
@@ -670,11 +671,11 @@ class TextOperationHandler(BaseHandler):
             dialog = AutofixSelectionDialog(problem_definitions, autofix_settings, self.mw)
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 selected_problems = dialog.get_selected_problems()
-                self._auto_fix_current_string_impl(allowed_problems=selected_problems)
+                self._auto_fix_current_string_impl(allowed_problems=selected_problems, page_local=is_shift_pressed)
         else:
-            self._auto_fix_current_string_impl()
+            self._auto_fix_current_string_impl(page_local=is_shift_pressed)
 
-    def _auto_fix_current_string_impl(self, allowed_problems: Optional[Set[str]] = None) -> None:
+    def _auto_fix_current_string_impl(self, allowed_problems: Optional[Set[str]] = None, page_local: bool = False) -> None:
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
@@ -710,7 +711,8 @@ class TextOperationHandler(BaseHandler):
                 logical_hard_limit=logical_hard_limit_for_string,
                 allowed_problems=allowed_problems,
                 block_idx=self.mw.data_store.current_block_idx,
-                string_idx=self.mw.data_store.current_string_idx
+                string_idx=self.mw.data_store.current_string_idx,
+                page_local=page_local
             )
             if not changed or fixed_data == current_iter_text:
                 break
@@ -786,6 +788,9 @@ class TextOperationHandler(BaseHandler):
                 self.mw.statusBar.showMessage("Auto-fix: No changes made.", 2000)
 
     def fix_all_strings(self, target_strings: list = None) -> None:
+        modifiers = QApplication.keyboardModifiers()
+        is_shift_pressed = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+
         if isinstance(target_strings, bool):
             target_strings = None
 
@@ -869,7 +874,8 @@ class TextOperationHandler(BaseHandler):
                             logical_hard_limit=logical_hard_limit_for_string,
                             allowed_problems=selected_problems,
                             block_idx=block_idx,
-                            string_idx=string_idx
+                            string_idx=string_idx,
+                            page_local=is_shift_pressed
                         )
                         if not changed or fixed_text == current_iter_text:
                             break
@@ -915,7 +921,8 @@ class TextOperationHandler(BaseHandler):
                                 logical_hard_limit=logical_hard_limit_for_string,
                                 allowed_problems=selected_problems,
                                 block_idx=block_idx,
-                                string_idx=string_idx
+                                string_idx=string_idx,
+                                page_local=is_shift_pressed
                             )
                             if not changed or fixed_text == current_iter_text:
                                 break

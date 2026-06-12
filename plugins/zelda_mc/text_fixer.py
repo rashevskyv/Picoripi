@@ -59,6 +59,12 @@ class TextFixer(GenericTextFixer):
                 next_line = new_sub_lines[i+1]
                 
                 is_boundary = (i + 1) % lines_per_page == 0
+
+                # Don't merge across empty lines (page-boundary padding)
+                if not next_line.strip():
+                    i -= 1
+                    continue
+
                 if is_boundary:
                     is_next_single_word_lowercase = (
                         self.problem_analyzer._check_single_word_subline_generic(next_line) and
@@ -204,7 +210,21 @@ class TextFixer(GenericTextFixer):
                             logical_hard_limit: Optional[int] = None,
                             allowed_problems: Optional[Set[str]] = None,
                             block_idx: Optional[int] = None,
-                            string_idx: Optional[int] = None) -> Tuple[str, bool]:
+                            string_idx: Optional[int] = None,
+                            page_local: bool = False,
+                            disable_pagination: bool = False) -> Tuple[str, bool]:
+        if page_local:
+            return self.autofix_page_local_wrapper(
+                self.autofix_data_string,
+                data_string,
+                editor_font_map,
+                editor_line_width_threshold,
+                logical_hard_limit,
+                allowed_problems,
+                block_idx,
+                string_idx
+            )
+
         if logical_hard_limit is None:
             logical_hard_limit = editor_line_width_threshold
 
@@ -290,13 +310,14 @@ class TextFixer(GenericTextFixer):
                 original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
 
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        cleaned_text, changed_shift = self._shift_split_sentences(cleaned_text, lines_per_page, original_message_text, block_idx=block_idx, string_idx=string_idx)
-        
+        changed_shift = False
         changed_compact = False
-        if is_allowed(PROBLEM_SHORT_LINE):
-            cleaned_text, changed_compact = self._compact_sentences_on_pages(
-                cleaned_text, editor_font_map, editor_line_width_threshold, lines_per_page
-            )
+        if not disable_pagination:
+            cleaned_text, changed_shift = self._shift_split_sentences(cleaned_text, lines_per_page, original_message_text, block_idx=block_idx, string_idx=string_idx)
+            if is_allowed(PROBLEM_SHORT_LINE):
+                cleaned_text, changed_compact = self._compact_sentences_on_pages(
+                    cleaned_text, editor_font_map, editor_line_width_threshold, lines_per_page
+                )
 
         changed_orphans = False
         if has_single_word_allowed:
