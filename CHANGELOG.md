@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.013] - 2026-06-12
+
+### 🚀 Added
+- **Smart Search & Navigation**: Implemented punctuation-insensitive and word-level case-sensitive search behavior.
+  - If the search query contains punctuation marks (e.g. `Та годі тобі, Бет`), the search performs a strict match matching punctuation. If no punctuation is typed in the search query, the engine ignores punctuation in the target strings, matching across commas, quotes, and hyphens.
+  - Word-level case sensitivity: Search is case-sensitive only for words that contain capital letters in the query. For example, searching `Та` matches only `Та` (case-sensitive), but `годі` matches both `годі` and `Годі` (case-insensitive).
+- **Search Focus Preservation**: Pressing the Enter key while the search input panel is active cycles to the next result, updating the text editor and highlighting the text, but keeps keyboard focus active on the search input itself. This allows for fluid, continuous "Next" traversal without manual mouse focus restoration.
+- **Unit Test Coverage for Smart Search**: Added comprehensive unit tests in `tests/test_handlers/test_search_handler_logic.py` and updated existing tests in `test_search_handler.py` and `test_search_review_dialog.py` to verify the new search behavior.
+
 ## [0.3.012] - 2026-06-12
 
 ### 🐛 Fixed

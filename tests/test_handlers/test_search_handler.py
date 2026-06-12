@@ -39,7 +39,9 @@ def test_SearchHandler_reset_search(search_handler, mock_mw):
 
 def test_SearchHandler_find_in_text(search_handler):
     assert search_handler._find_in_text("hello world", "world", 0, True) == (6, 5)
-    assert search_handler._find_in_text("hello world", "WORLD", 0, False) == (6, 5)
+    # Under smart search rules, "WORLD" contains uppercase letters so it is matched case-sensitively, returning (-1, 0) against lowercase "world"
+    assert search_handler._find_in_text("hello world", "WORLD", 0, False) == (-1, 0)
+    assert search_handler._find_in_text("hello world", "world", 0, False) == (6, 5)
 
 def test_SearchHandler_find_nth_occurrence_in_display_text(search_handler):
     text = "test apple test"

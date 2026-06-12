@@ -1176,4 +1176,77 @@ def has_visible_content(text: str, mappings: Optional[dict] = None, font_map: Op
         tag = tag_match.group(0)
         if is_visible_tag(tag, mappings, font_map, icon_sequences):
             return True
-    return False
+    return False
+
+
+import string
+
+PUNCTUATION_CHARS = set(string.punctuation + "«»—–“”„")
+
+def clean_and_map_punctuation(text: str) -> Tuple[str, List[int]]:
+    if text is None:
+        return "", []
+    clean_chars = []
+    mapping = []
+    for idx, char in enumerate(text):
+        if char not in PUNCTUATION_CHARS:
+            clean_chars.append(char)
+            mapping.append(idx)
+    return "".join(clean_chars), mapping
+
+def find_smart_matches(text: str, query: str, case_sensitive: bool = False) -> List[Tuple[int, int]]:
+    if not query or not text:
+        return []
+        
+    has_punctuation = any(c in PUNCTUATION_CHARS for c in query)
+    
+    if not has_punctuation:
+        clean_text, mapping = clean_and_map_punctuation(text)
+        clean_query, _ = clean_and_map_punctuation(query)
+    else:
+        clean_text = text
+        mapping = list(range(len(text)))
+        clean_query = query
+        
+    if not clean_query:
+        return []
+        
+    # Build regex pattern for clean_query
+    # Split by word characters to find individual words
+    tokens = re.split(r'(\w+)', clean_query)
+    pattern_parts = []
+    
+    for token in tokens:
+        if not token:
+            continue
+        if token.isalnum(): # It's a word
+            # Check if word has any uppercase characters
+            has_upper = any(c.isupper() for c in token)
+            escaped_token = re.escape(token)
+            if case_sensitive or has_upper:
+                pattern_parts.append(escaped_token)
+            else:
+                pattern_parts.append(f"(?i:{escaped_token})")
+        else: # It's non-word (spaces, etc.)
+            pattern_parts.append(re.escape(token))
+            
+    pattern = "".join(pattern_parts)
+    
+    matches = []
+    try:
+        for match in re.finditer(pattern, clean_text):
+            start_in_clean = match.start()
+            end_in_clean = match.end()
+            if start_in_clean < end_in_clean:
+                # Map back to original text indices
+                orig_start = mapping[start_in_clean]
+                orig_end = mapping[end_in_clean - 1] + 1
+                matches.append((orig_start, orig_end))
+    except re.error:
+        # Fallback to simple find if regex fails
+        pass
+        
+    return matches
+
+
+

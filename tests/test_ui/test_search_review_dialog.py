@@ -257,7 +257,7 @@ def test_SearchReviewDialog_dynamic_search(qapp):
     assert dialog.current_text == ""
     assert len(dialog.items_to_review) == 0
     
-    dialog.find_input.setText("Line")
+    dialog.find_input.setText("line")
     dialog.perform_search()
     
     assert len(dialog.items_to_review) == 3

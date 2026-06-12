@@ -6,7 +6,7 @@ from PyQt6.QtGui import QColor, QTextCursor
 from PyQt6.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
-from utils.utils import convert_spaces_to_dots_for_display, remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match
+from utils.utils import convert_spaces_to_dots_for_display, remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches, clean_and_map_punctuation
 
 class SearchHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
@@ -67,17 +67,18 @@ class SearchHandler(BaseHandler):
         
         # 1. Standard search (exact)
         if not is_fuzzy:
-            compare_text = text_to_search_in
-            compare_query = query_to_find
-            if not case_sensitive:
-                compare_text = text_to_search_in.lower()
-                compare_query = query_to_find.lower()
-
+            matches = find_smart_matches(text_to_search_in, query_to_find, case_sensitive)
+            if not matches:
+                return -1, 0
+            
             if find_reverse:
-                pos = compare_text.rfind(compare_query, 0, start_offset + 1)
+                # Find the last match that starts at or before start_offset
+                valid_matches = [(pos, end_idx - pos) for pos, end_idx in matches if pos <= start_offset]
+                return valid_matches[-1] if valid_matches else (-1, 0)
             else:
-                pos = compare_text.find(compare_query, start_offset)
-            return (pos, len(query_to_find)) if pos != -1 else (-1, 0)
+                # Find the first match that starts at or after start_offset
+                valid_matches = [(pos, end_idx - pos) for pos, end_idx in matches if pos >= start_offset]
+                return valid_matches[0] if valid_matches else (-1, 0)
         
         # 2. Fuzzy search
         else:

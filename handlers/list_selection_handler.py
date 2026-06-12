@@ -1,6 +1,6 @@
 # handlers/list_selection_handler.py
 from typing import Any, Optional, List, Dict, Union, Tuple
-from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem
+from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock 
 from .base_handler import BaseHandler
@@ -476,7 +476,19 @@ class ListSelectionHandler(BaseHandler):
             preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
             
         if self.mw.data_store.current_string_idx != -1 and hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
-            self.mw.edited_text_edit.setFocus()
+            search_has_focus = False
+            if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget and self.mw.search_panel_widget.isVisible():
+                focus_widget = QApplication.focusWidget()
+                if focus_widget:
+                    parent = focus_widget
+                    while parent:
+                        if parent == self.mw.search_panel_widget:
+                            search_has_focus = True
+                            break
+                        parent = parent.parentWidget()
+            
+            if not search_has_focus:
+                self.mw.edited_text_edit.setFocus()
             cursor = self.mw.edited_text_edit.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
             self.mw.edited_text_edit.setTextCursor(cursor)

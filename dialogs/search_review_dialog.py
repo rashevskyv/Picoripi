@@ -6,7 +6,7 @@ from typing import List, Tuple
 import re
 from utils.logging_utils import log_debug, log_error
 from dialogs.base_text_review_dialog import BaseTextReviewDialog
-from utils.utils import ALL_TAGS_PATTERN, FORCED_ALIAS_PATTERN, prepare_text_for_tagless_search, is_fuzzy_match
+from utils.utils import ALL_TAGS_PATTERN, FORCED_ALIAS_PATTERN, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches, clean_and_map_punctuation
 
 def map_forced_aliases(text: str) -> Tuple[str, List[int]]:
     # Returns (processed_text, list of original indices)
@@ -280,18 +280,8 @@ class SearchReviewDialog(BaseTextReviewDialog):
                         matched_text = line[raw_start:raw_end]
                         self.items_to_review.append((start_pos, end_pos, matched_text, line_idx))
             else:
-                compare_query = effective_query if self.case_sensitive else effective_query.lower()
-                compare_line = clean_line if self.case_sensitive else clean_line.lower()
-                
-                start_search_pos = 0
-                while True:
-                    match_pos = compare_line.find(compare_query, start_search_pos)
-                    if match_pos == -1:
-                        break
-                    
-                    start_in_clean = match_pos
-                    end_in_clean = start_in_clean + len(compare_query)
-                    
+                matches = find_smart_matches(clean_line, effective_query, self.case_sensitive)
+                for start_in_clean, end_in_clean in matches:
                     raw_start = mapping[start_in_clean]
                     raw_end = mapping[end_in_clean - 1] + 1
                     
@@ -299,8 +289,6 @@ class SearchReviewDialog(BaseTextReviewDialog):
                     end_pos = char_offset + raw_end
                     matched_text = line[raw_start:raw_end]
                     self.items_to_review.append((start_pos, end_pos, matched_text, line_idx))
-                    
-                    start_search_pos = match_pos + max(1, len(compare_query))
                 
             char_offset += len(line) + 1
 

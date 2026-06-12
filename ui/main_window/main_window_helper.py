@@ -148,7 +148,7 @@ class MainWindowHelper:
             block_indices = []
 
             import re
-            from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match
+            from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches
 
             effective_query = query
             if ignore_tags and query:
@@ -176,15 +176,13 @@ class MainWindowHelper:
                                 line_numbers.append(string_idx)
                                 block_indices.append(b_idx)
                 else:
-                    compare_query = effective_query if case_sensitive else effective_query.lower()
                     for b_idx, string_idx, text in all_lines:
                         if ignore_tags:
                             text_for_search = prepare_text_for_tagless_search(text)
                         else:
                             text_for_search = text.replace('·', ' ')
 
-                        compare_text = text_for_search if case_sensitive else text_for_search.lower()
-                        if compare_query in compare_text:
+                        if find_smart_matches(text_for_search, effective_query, case_sensitive):
                             text_parts.append(text)
                             subline_count = text.count('\n') + 1
                             for _ in range(subline_count):
