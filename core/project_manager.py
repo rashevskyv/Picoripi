@@ -63,6 +63,8 @@ class ProjectManager:
         'default_tag_mappings',
         'autofix_enabled',
         'detection_enabled',
+        'align_sentences_to_original_pages',
+        'prevent_empty_lines_in_autofix',
         'context_menu_tags',
         'bookmarks',
         'main_splitter_state',

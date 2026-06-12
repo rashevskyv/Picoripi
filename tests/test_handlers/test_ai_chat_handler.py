@@ -119,4 +119,25 @@ def test_AIChatHandler_cleanup_worker(chat_handler):
     worker_mock.deleteLater.assert_called_once()
     assert chat_handler._thread is None
 
+def test_AIChatHandler_history_limit(chat_handler):
+    from core.translation.session_manager import TranslationSessionState
+    state = TranslationSessionState(
+        provider_key="openai",
+        base_system_prompt="system",
+        current_system_prompt="system"
+    )
+    # Record exchange 25 times (limit is 20 pairs = 40 messages)
+    for i in range(25):
+        state.record_exchange(
+            user_content=f"user {i}",
+            assistant_content=f"ai {i}",
+            conversation_id=None
+        )
+    # Check that history length is capped at 40 (MAX_HISTORY_MESSAGES * 2)
+    assert len(state.history) == 40
+    # The oldest messages (0 to 4) should be discarded
+    assert state.history[0]["content"] == "user 5"
+    assert state.history[-1]["content"] == "ai 24"
+
+
 

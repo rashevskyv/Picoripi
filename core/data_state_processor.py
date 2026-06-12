@@ -1,5 +1,7 @@
 from typing import List, Dict, Tuple, Optional, Any, Union
 import json
+import re
+import datetime
 from pathlib import Path
 from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
@@ -82,7 +84,6 @@ class DataStateProcessor:
             return False
             
         original_text = str(block_original[string_idx])
-        import re
         cleaned_original = re.sub(r'\{[^}]*\}|\[[^\]]*\]', '', original_text).strip()
         return bool(cleaned_original)
 
@@ -135,7 +136,6 @@ class DataStateProcessor:
                         if "translation_status" not in block.metadata:
                             block.metadata["translation_status"] = {}
                         
-                        import datetime
                         now_str = datetime.datetime.now().isoformat()
                         
                         model_name = "User Edit"

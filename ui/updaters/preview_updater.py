@@ -1,4 +1,5 @@
 from typing import Optional
+import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QTextCursor
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, remove_all_tags, calculate_strict_string_width
@@ -279,7 +280,6 @@ class PreviewUpdater(BaseUIUpdater):
                 line_text_no_tags_for_width_calc = remove_all_tags(line_text_with_spaces_and_tags).rstrip()
                 
                 if line_text_with_spaces_and_tags.rstrip():
-                    import re
                     font_map_for_line = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
                     visual_line_width_game_px = calculate_string_width(line_text_with_spaces_and_tags.rstrip(), font_map_for_line, default_tag_mappings=getattr(self.mw, 'default_tag_mappings', None))
                     

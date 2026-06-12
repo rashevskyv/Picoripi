@@ -146,8 +146,16 @@ class AutofixSelectionDialog(QDialog):
             self.mw.align_sentences_to_original_pages = self.align_sentences_checkbox.isChecked()
         if self.mw and hasattr(self.mw, 'prevent_empty_lines_in_autofix'):
             self.mw.prevent_empty_lines_in_autofix = self.prevent_empty_lines_checkbox.isChecked()
+        if self.mw and hasattr(self.mw, 'autofix_enabled'):
+            self.mw.autofix_enabled = {pid: cb.isChecked() for pid, cb in self.checkboxes.items()}
         if self.mw and hasattr(self.mw, 'settings_manager') and hasattr(self.mw.settings_manager, 'plugin_settings'):
             self.mw.settings_manager.plugin_settings.save()
+        from utils.logging_utils import log_debug
+        log_debug(
+            f"[AutofixDialog] accept: prevent_empty={getattr(self.mw, 'prevent_empty_lines_in_autofix', 'N/A')}, "
+            f"align={getattr(self.mw, 'align_sentences_to_original_pages', 'N/A')}, "
+            f"autofix_enabled={getattr(self.mw, 'autofix_enabled', 'N/A')}"
+        )
         super().accept()
 
     def get_selected_problems(self) -> Set[str]:

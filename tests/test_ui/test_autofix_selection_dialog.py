@@ -19,16 +19,19 @@ def test_AutofixSelectionDialog_init(mock_mw):
 def test_AutofixSelectionDialog_accept(mock_mw):
     mock_mw.align_sentences_to_original_pages = False
     mock_mw.prevent_empty_lines_in_autofix = False
+    mock_mw.autofix_enabled = {}
     mock_mw.settings_manager = MagicMock()
     problem_defs = {"prob1": {"name": "Problem 1", "description": "Desc 1", "priority": 1}}
-    active_autofixes = {"prob1": True}
+    active_autofixes = {"prob1": False}
 
     dialog = AutofixSelectionDialog(problem_defs, active_autofixes, mock_mw)
     dialog.align_sentences_checkbox.setChecked(True)
     dialog.prevent_empty_lines_checkbox.setChecked(True)
+    dialog.checkboxes["prob1"].setChecked(True)
     
     dialog.accept()
     
     assert mock_mw.align_sentences_to_original_pages is True
     assert mock_mw.prevent_empty_lines_in_autofix is True
+    assert mock_mw.autofix_enabled == {"prob1": True}
     mock_mw.settings_manager.plugin_settings.save.assert_called_once()

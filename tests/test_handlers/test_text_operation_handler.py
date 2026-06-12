@@ -15,6 +15,7 @@ def handler(mock_mw):
     mock_mw.preview_text_edit.document.return_value.blockCount.return_value = 10
     mock_mw.problems_per_subline = {}
     mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.get_problem_definitions.return_value = {"PROB_A": {"name": "Problem A"}}
     mock_mw.edited_data = {}
     mock_mw.edited_sublines = set()
     mock_mw.string_metadata = {}
@@ -24,6 +25,7 @@ def handler(mock_mw):
     mock_mw.EDITOR_PLAYER_TAG = "[PLAYER]"
     mock_mw.data = [["original"]]
     mock_mw.before_paste_edited_data_snapshot = {}
+    mock_mw.autofix_enabled = {"PROB_A": True}
     
     # Setup DataProcessor mocks
     mock_mw.data_processor.get_current_string_text.return_value = ("current", False)
@@ -193,6 +195,7 @@ def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
     mock_mbox.warning.assert_called_once()
     
     mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.get_problem_definitions.return_value = {}
     mock_mw.current_game_rules.convert_editor_text_to_data.return_value = "d"
     mock_mw.current_game_rules.autofix_data_string.return_value = ("d", False)
     

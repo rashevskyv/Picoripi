@@ -1,3 +1,4 @@
+import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
@@ -633,7 +634,6 @@ class BlockListUpdater(BaseUIUpdater):
                                 ch_id = ch.get("id")
                                 
                                 # Parse Act and Chapter
-                                import re
                                 m = re.search(r'Act\s+([^,]+),\s*Ch\s+(.+)', num, re.IGNORECASE)
                                 if m:
                                     act_part = m.group(1).strip()

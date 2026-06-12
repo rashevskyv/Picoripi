@@ -127,7 +127,7 @@ class AIChatHandler(BaseHandler):
             provider_key=provider_key,
             base_system_prompt=self.system_prompt,
             full_system_prompt=self.system_prompt,
-            supports_sessions=provider.supports_sessions,
+            supports_sessions=True,
             start_new_session=False
         )
 

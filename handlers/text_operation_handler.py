@@ -660,7 +660,10 @@ class TextOperationHandler(BaseHandler):
         
     def auto_fix_current_string(self, from_button: bool = False) -> None:
         modifiers = QApplication.keyboardModifiers()
-        is_shift_pressed = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+        # Shift+AutoFix (page-local mode) only applies when using the button directly.
+        # When triggered via keyboard shortcut (Ctrl+Shift+A), Shift is part of the
+        # shortcut itself and must NOT activate page_local mode.
+        is_shift_pressed = from_button and bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
         if from_button and (modifiers & Qt.KeyboardModifier.ControlModifier):
             if not self.mw.current_game_rules:
                 return
@@ -673,7 +676,25 @@ class TextOperationHandler(BaseHandler):
                 selected_problems = dialog.get_selected_problems()
                 self._auto_fix_current_string_impl(allowed_problems=selected_problems, page_local=is_shift_pressed)
         else:
-            self._auto_fix_current_string_impl(page_local=is_shift_pressed)
+            # Build allowed_problems the same way the dialog does:
+            # use current autofix_enabled with True as default for any unset problem IDs.
+            # This guarantees identical behaviour between direct AutoFix and Ctrl+AutoFix→Fix All.
+            allowed_problems: Optional[Set[str]] = None
+            if self.mw.current_game_rules:
+                problem_definitions = self.mw.current_game_rules.get_problem_definitions()
+                if problem_definitions:
+                    autofix_settings = getattr(self.mw, 'autofix_enabled', {})
+                    allowed_problems = {
+                        pid for pid in problem_definitions
+                        if autofix_settings.get(pid, True)
+                    }
+            from utils.logging_utils import log_debug
+            log_debug(
+                f"[AutoFix] Simple button: prevent_empty={getattr(self.mw, 'prevent_empty_lines_in_autofix', False)}, "
+                f"align={getattr(self.mw, 'align_sentences_to_original_pages', False)}, "
+                f"allowed_problems={allowed_problems}"
+            )
+            self._auto_fix_current_string_impl(allowed_problems=allowed_problems, page_local=is_shift_pressed)
 
     def _auto_fix_current_string_impl(self, allowed_problems: Optional[Set[str]] = None, page_local: bool = False) -> None:
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:

@@ -365,10 +365,11 @@ def test_autofix_disabled_settings(mc_rules):
 
 
 def test_autofix_single_word_orphan_with_punctuation(mc_rules):
-    from plugins.zelda_mc.config import PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    from plugins.zelda_mc.config import PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_SHORT_LINE
     mc_rules.mw.autofix_enabled = {
         PROBLEM_SINGLE_WORD_SUBLINE: True,
-        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True
+        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True,
+        PROBLEM_SHORT_LINE: False
     }
     
     # 1. With punctuation (lowercase): SHOULD fix
@@ -500,11 +501,12 @@ def test_autofix_sentence_page_boundary_shifting(mc_rules):
 
 
 def test_autofix_visible_tag_as_word(mc_rules):
-    from plugins.zelda_mc.config import PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    from plugins.zelda_mc.config import PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START, PROBLEM_SHORT_LINE
     mc_rules.mw.lines_per_page = 4
     mc_rules.mw.autofix_enabled = {
         PROBLEM_SINGLE_WORD_SUBLINE: True,
-        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True
+        PROBLEM_SINGLE_WORD_SUBLINE_NON_START: True,
+        PROBLEM_SHORT_LINE: False
     }
     
     # "{(X)}." is a visible tag, so it should be treated as a single word orphan and pull "або" down
@@ -670,14 +672,14 @@ def test_autofix_page_local(mc_rules):
     assert fixed_local_esc == text_with_escape
     assert changed_local_esc is False
 
-    # 4. Test that if we merge lines (e.g. short lines), the page is padded back to its original line count
+    # 4. Test that if we merge lines (e.g. short lines), non-last pages are padded back to their original line count, but the last page is not.
     mc_rules.mw.autofix_enabled[PROBLEM_SHORT_LINE] = True
-    # S1: "Line 1\nLine 2" (no punctuation, total width fits in 1000px, so they will merge)
-    text_short = "Line 1\nLine 2\nLine 3.\n" # 4 lines in page 1
-    # Local: S1 and Line 3. merge to "Line 1 Line 2 Line 3.", decreasing lines to 1, but wrapper pads back to 4 lines
+    text_short = "Line 1\nLine 2\nLine 3.\n\nLine 4\nLine 5\nLine 6."
+    # Local: Page 1 merges to "Line 1 Line 2 Line 3.", padded to 4 lines.
+    # Page 2 merges to "Line 4 Line 5 Line 6.", not padded because it is the last page.
     fixed_local_short, changed_local_short = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
     assert changed_local_short is True
-    assert fixed_local_short == "Line 1 Line 2 Line 3.\n\n\n"
+    assert fixed_local_short == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
 
 
 
@@ -700,20 +702,19 @@ def test_zelda_mc_autofix_page_local_prevent_empty(mc_rules):
         mc_rules.mw.autofix_enabled = {}
     mc_rules.mw.autofix_enabled[PROBLEM_SHORT_LINE] = True
     
-    # 1. With prevent_empty_lines_in_autofix = True, local autofix should STILL pad to keep page boundaries
+    # 1. With prevent_empty_lines_in_autofix = True, local autofix should STILL pad intermediate pages to keep page boundaries
     mc_rules.mw.prevent_empty_lines_in_autofix = True
-    text_short = "Line 1\nLine 2\nLine 3.\n" # 4 lines in page 1
+    text_short = "Line 1\nLine 2\nLine 3.\n\nLine 4\nLine 5\nLine 6."
     fixed, changed = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
     assert changed is True
-    # Should STILL pad with empty lines at the end
-    assert fixed == "Line 1 Line 2 Line 3.\n\n\n"
+    # Should STILL pad intermediate page, but NOT the last page
+    assert fixed == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
 
     # 2. Reset prevent_empty_lines_in_autofix to False (should have same behavior)
     mc_rules.mw.prevent_empty_lines_in_autofix = False
     fixed_padded, changed_padded = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
     assert changed_padded is True
-    # Should pad with empty lines
-    assert fixed_padded == "Line 1 Line 2 Line 3.\n\n\n"
+    assert fixed_padded == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
 
 
 

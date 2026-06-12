@@ -159,9 +159,9 @@ class TextFixer(GenericTextFixer):
         original_text = str(data_string)
         modified_text = original_text
         from .config import DEFAULT_AUTOFIX_SETTINGS
-        autofix_config = getattr(self.mw, 'autofix_enabled', {}) if self.mw else DEFAULT_AUTOFIX_SETTINGS
-        if not autofix_config:
-            autofix_config = DEFAULT_AUTOFIX_SETTINGS
+        autofix_config = DEFAULT_AUTOFIX_SETTINGS.copy()
+        if self.mw and hasattr(self.mw, 'autofix_enabled') and self.mw.autofix_enabled:
+            autofix_config.update(self.mw.autofix_enabled)
         max_iterations = 5
         for _ in range(max_iterations):
             text_before_pass = modified_text

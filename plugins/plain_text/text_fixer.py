@@ -182,9 +182,9 @@ class TextFixer(GenericTextFixer):
         original_text = str(data_string)
         
         from .config import DEFAULT_AUTOFIX_SETTINGS
-        autofix_config = getattr(self.mw, 'autofix_enabled', {}) if self.mw else DEFAULT_AUTOFIX_SETTINGS
-        if not autofix_config:
-            autofix_config = DEFAULT_AUTOFIX_SETTINGS
+        autofix_config = DEFAULT_AUTOFIX_SETTINGS.copy()
+        if self.mw and hasattr(self.mw, 'autofix_enabled') and self.mw.autofix_enabled:
+            autofix_config.update(self.mw.autofix_enabled)
         def is_allowed(prob_id):
             if allowed_problems is not None:
                 return prob_id in allowed_problems

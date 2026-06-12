@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.012] - 2026-06-12
+
+### 🐛 Fixed
+- **AutoFix Dialog Settings Synchronization**: Fixed an issue where the simple "AutoFix" button click and the "Fix All" button inside the Ctrl+AutoFix settings dialog would produce different formatting results. The app now properly honors active plugin-specific configurations (such as `prevent_empty_lines_in_autofix`) in all AutoFix workflows.
+- **Ctrl+Shift+A Hotkey Interference**: Corrected a bug where using the keyboard shortcut `Ctrl+Shift+A` mistakenly triggered the page-local AutoFix isolation mode. The `Shift` modifier is now ignored as a page isolation trigger when it is pressed as part of a keyboard shortcut, ensuring consistent project-wide AutoFix execution across both UI buttons and hotkeys.
+
 ## [0.3.011] - 2026-06-12
 
 ### 🚀 Added

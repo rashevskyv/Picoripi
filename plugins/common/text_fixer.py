@@ -471,7 +471,7 @@ class GenericTextFixer:
         fixed_pages = []
         any_changed = False
         
-        for chunk in pages_chunks:
+        for idx, chunk in enumerate(pages_chunks):
             original_len = len(chunk)
             page_text = "\n".join(chunk)
             # Call the actual autofix function on this page chunk
@@ -490,8 +490,11 @@ class GenericTextFixer:
             # Pad back to original height if the lines decreased during merging.
             # Local page autofix (Shift+AutoFix) must preserve physical page boundaries,
             # so we always pad back to original chunk length.
+            # However, for the last page, there are no subsequent pages that could shift up,
+            # so we do not need to pad it.
+            is_last_page = (idx == len(pages_chunks) - 1)
             fixed_chunk_lines = fixed_page_text.split('\n')
-            if len(fixed_chunk_lines) < original_len:
+            if not is_last_page and len(fixed_chunk_lines) < original_len:
                 fixed_chunk_lines.extend([""] * (original_len - len(fixed_chunk_lines)))
                 fixed_page_text = "\n".join(fixed_chunk_lines)
                 
