@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional
 from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
 from PyQt6.QtGui import QTextCursor
@@ -7,12 +7,15 @@ from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 
 class LNETContextMenuLogic:
+    """L n e t context menu logic implementation."""
     WORD_PATTERN = re.compile(r"[a-zA-Zа-яА-ЯіїІЄєґҐ']+")
 
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def _find_tag_at(self, position_in_widget_coords: QPoint) -> Optional[str]:
+        """Internal helper to find tag at."""
         cursor = self.editor.cursorForPosition(position_in_widget_coords)
         block_text = cursor.block().text()
         pos_in_block = cursor.position() - cursor.block().position()
@@ -24,6 +27,7 @@ class LNETContextMenuLogic:
         return None
 
     def populate(self, menu: QMenu, position_in_widget_coords: QPoint):
+        """Populate."""
         log_debug(f"LNET ({self.editor.objectName()}): populateContextMenu called (delegated).")
         main_window = self.editor.window()
         if not isinstance(main_window, QMainWindow):

@@ -1,4 +1,4 @@
-"""Force-alias utilities for AI translation.
+﻿"""Force-alias utilities for AI translation.
 
 A 'Force alias' is a tag alias whose display name starts with ``F:`` or ``f:``.
 When text is prepared for AI translation:
@@ -72,6 +72,7 @@ def extract_force_aliases(
     # (tag_mappings is already alias -> original_tag)
 
     def _replace(match: re.Match) -> str:
+        """Internal helper to replace."""
         full_alias = match.group(0)          # e.g. "{F:Link}"
         word = match.group(1)                # e.g. "Link"
         original_tag = tag_mappings.get(full_alias, "")

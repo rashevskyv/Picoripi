@@ -1,4 +1,4 @@
-import re
+﻿import re
 from PyQt6.QtGui import QTextBlock
 from PyQt6.QtWidgets import QMainWindow
 from utils.logging_utils import log_debug
@@ -7,10 +7,13 @@ from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to
 SENTENCE_END_PUNCTUATION_PATTERN = re.compile(r'[.,!?](?:["\']|")?$')
 
 class LNETPaintHelpers:
+    """L n e t paint helpers implementation."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def _map_no_tag_index_to_raw_text_index(self, raw_qtextline_text: str, line_text_segment_no_tags: str, target_no_tag_index_in_segment: int) -> int:
+        """Internal helper to map no tag index to raw text index."""
         if target_no_tag_index_in_segment == 0:
             current_idx = 0
             while current_idx < len(raw_qtextline_text):

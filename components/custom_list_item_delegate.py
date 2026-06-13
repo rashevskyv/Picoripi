@@ -1,11 +1,13 @@
-from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
+﻿from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
 from PyQt6.QtGui import QPainter, QColor, QPalette, QBrush, QPen, QFontMetrics, QFont, QIcon, QCursor
 from PyQt6.QtCore import QRect, Qt, QPoint, QSize, QModelIndex, QEvent
 from utils.logging_utils import log_debug
 from utils.constants import LT_PREVIEW_SELECTED_LINE_COLOR, DT_PREVIEW_SELECTED_LINE_COLOR
 
 class CustomListItemDelegate(QStyledItemDelegate):
+    """Custom list item delegate implementation."""
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.list_widget = parent
         
@@ -32,6 +34,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         }
 
     def _get_current_number_area_width(self, option: QStyleOptionViewItem) -> int:
+        """Internal helper to get the current number area width."""
         font_to_use = option.font
         if not font_to_use.family():
             font_for_metrics = QFont()
@@ -47,14 +50,17 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
     def _get_problem_indicator_zone_width(self) -> int:
         # Indicators are now drawn INSIDE the wider number area
+        """Internal helper to get the problem indicator zone width."""
         return 0
     
     def _get_color_marker_zone_width(self) -> int:
+        """Internal helper to get the color marker zone width."""
         if self.max_color_markers == 0: return 0
         return (self.color_marker_size * self.max_color_markers) + \
                (self.color_marker_spacing * (self.max_color_markers -1))
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
+        """Sizehint."""
         default_hint = super().sizeHint(option, index)
         font_to_use = option.font
         if not font_to_use.family():
@@ -80,6 +86,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         return QSize(max(default_hint.width(), calculated_width), max(default_hint.height(), min_height))
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index):
+        """Paint."""
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -384,6 +391,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         
         def draw_stacked_icon(icon_obj, target_rect, p):
             # No stroke, just draw the icon
+            """Draw stacked icon."""
             icon_obj.paint(p, target_rect)
 
         if compaction_type in [1, 2] and merged_ids:
@@ -547,6 +555,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         painter.restore()
 
     def handle_tooltip(self, event, view, option, index):
+        """Handle tooltip."""
         mouse_pos = event.pos()
         item_rect = option.rect
         main_window = self.list_widget.window() if self.list_widget else None
@@ -566,6 +575,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         QToolTip.hideText()
 
     def _get_problems_tooltip_text(self, main_window, index) -> str:
+        """Internal helper to get the problems tooltip text."""
         block_idx = index.data(Qt.ItemDataRole.UserRole)
         category_name = index.data(Qt.ItemDataRole.UserRole + 10)
         chapter_id = index.data(Qt.ItemDataRole.UserRole + 11)
@@ -651,6 +661,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         return ""
 
     def helpEvent(self, event, view, option, index) -> bool:
+        """Helpevent."""
         if event.type() == QEvent.Type.ToolTip:
             self.handle_tooltip(event, view, option, index)
             return True
@@ -659,6 +670,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
     def setEditorData(self, editor, index):
         # We explicitly stored the pure name in Qt.ItemDataRole.UserRole + 4 to avoid 
         # issues where QTreeWidget fallback pulls the DisplayRole (which has issue counts).
+        """Seteditordata."""
         pure_name = index.data(Qt.ItemDataRole.UserRole + 4)
         if pure_name is not None:
             if hasattr(editor, 'setText'):
@@ -667,6 +679,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         super().setEditorData(editor, index)
 
     def setModelData(self, editor, model, index):
+        """Setmodeldata."""
         if hasattr(editor, 'text'):
             new_text = editor.text()
             model.setData(index, new_text, Qt.EditRole)
@@ -674,6 +687,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
             super().setModelData(editor, model, index)
 
     def updateEditorGeometry(self, editor, option, index):
+        """Updateeditorgeometry."""
         item_rect = option.rect
         current_number_area_width = self._get_current_number_area_width(option)
         text_start_x = item_rect.left() + current_number_area_width + self.padding_after_number_area

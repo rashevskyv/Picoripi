@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QPainter, QColor, QPen, QFont
+﻿from PyQt6.QtGui import QPainter, QColor, QPen, QFont
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QMainWindow, QTextEdit
 from utils.logging_utils import log_debug
@@ -6,14 +6,17 @@ from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to
 from .constants import PAIR_SEPARATOR_LINE_COLOR, PAIR_SEPARATOR_LINE_STYLE, PAIR_SEPARATOR_LINE_THICKNESS
 
 class LNETLineNumberAreaPaintLogic:
+    """L n e t line number area paint logic implementation."""
 
     def __init__(self, editor, helpers, main_window):
+        """Initialize a new instance."""
         self.editor = editor
         self.helpers = helpers
         self.mw = main_window
         self.metadata_indicator_color = QColor(148, 0, 211, 180) # DarkViolet
 
     def execute_paint_event(self, event, painter_device):
+        """Execute paint event."""
         painter = QPainter(painter_device)
         try:
             if not self.mw:

@@ -1,14 +1,17 @@
-from typing import Tuple, List, Optional, Set
+﻿from typing import Tuple, List, Optional, Set
 import re
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
 
 class GenericTextFixer:
+    """Generic text fixer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_analyzer_ref):
+        """Initialize a new instance."""
         self.mw = main_window_ref
         self.tag_manager = tag_manager_ref
         self.problem_analyzer = problem_analyzer_ref
 
     def _calculate_width(self, text: str, font_map: dict) -> int:
+        """Internal helper to calculate width."""
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
         
@@ -27,6 +30,7 @@ class GenericTextFixer:
         )
 
     def _extract_first_word_with_tags_generic(self, text: str) -> Tuple[str, str]:
+        """Internal helper to extract first word with tags generic."""
         if not text.strip(): return "", text
         first_word_text = ""
         char_idx = 0
@@ -50,6 +54,7 @@ class GenericTextFixer:
         return first_word_text.rstrip(), remaining_text
 
     def _fix_width_exceeded_generic(self, text: str, font_map: dict, threshold: int) -> Tuple[str, bool]:
+        """Internal helper to fix width exceeded generic."""
         original_text = text
         sub_lines = text.split('\n')
         made_change = False
@@ -92,6 +97,7 @@ class GenericTextFixer:
         return final_text, final_text != original_text
 
     def _fix_single_word_orphans_generic(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to fix single word orphans generic."""
         if not text:
             return text, False
             
@@ -187,6 +193,7 @@ class GenericTextFixer:
         return text, False
 
     def _merge_and_clean_pagination(self, text: str) -> str:
+        """Internal helper to merge and clean pagination."""
         if not text:
             return ""
         lines = text.split('\n')
@@ -240,6 +247,7 @@ class GenericTextFixer:
         return "\n".join(merged_parts)
 
     def _shift_split_sentences(self, text: str, lines_per_page: int, original_text: Optional[str] = None, block_idx: Optional[int] = None, string_idx: Optional[int] = None) -> Tuple[str, bool]:
+        """Internal helper to shift split sentences."""
         original_input = text
         
         align_enabled = getattr(self.mw, 'align_sentences_to_original_pages', False) if self.mw else False
@@ -320,6 +328,7 @@ class GenericTextFixer:
         CLOSING_CHARS = frozenset("\"'»`)")
 
         def _is_sentence_end(line: str) -> bool:
+            """Internal helper to check if is sentence end."""
             from utils.utils import remove_all_tags
             cleaned = remove_all_tags(line).strip()
             if not cleaned:
@@ -334,6 +343,7 @@ class GenericTextFixer:
             return False
 
         def _starts_with_page_break(line: str) -> bool:
+            """Internal helper to starts with page break."""
             return bool(re.match(
                 r"^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]",
                 line,
@@ -459,6 +469,7 @@ class GenericTextFixer:
                                    allowed_problems: Optional[Set[str]] = None,
                                    block_idx: Optional[int] = None,
                                    string_idx: Optional[int] = None) -> Tuple[str, bool]:
+        """Autofix page local wrapper."""
         if not data_string:
             return data_string, False
             

@@ -1,11 +1,14 @@
-from PyQt6.QtWidgets import QStatusBar, QLabel, QStyle
+﻿from PyQt6.QtWidgets import QStatusBar, QLabel, QStyle
 from PyQt6.QtGui import QFont, QFontMetrics
 
 class StatusBarBuilder:
+    """Status bar builder implementation."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def build(self):
+        """Create ."""
         self.mw.statusBar = QStatusBar()
         self.mw.setStatusBar(self.mw.statusBar)
         self.mw.original_path_label = QLabel("Original: [not specified]")

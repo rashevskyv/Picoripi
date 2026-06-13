@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 from typing import Any, Optional
 from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator
 from PyQt6.QtCore import Qt, QTimer
@@ -11,6 +11,7 @@ class BookmarkHandler(BaseHandler):
     Bookmarks are saved persistently inside settings.json.
     """
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
 
     def add_bookmark(self) -> None:

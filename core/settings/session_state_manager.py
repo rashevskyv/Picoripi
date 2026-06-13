@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 from typing import Dict, Any, Union, Optional
 from utils.logging_utils import log_debug, log_error
@@ -6,11 +6,13 @@ from utils.logging_utils import log_debug, log_error
 class SessionStateManager:
     """Manages the UI session state (expanded nodes, selection, etc.)"""
     def __init__(self, settings_file_path: Union[str, Path] = "session_state.json"):
+        """Initialize a new instance."""
         self.settings_file_path = settings_file_path
         self._state: Dict[str, Any] = {}
         self.load()
 
     def load(self) -> None:
+        """Load ."""
         p_file = Path(self.settings_file_path)
         if not p_file.exists():
             self._state = {}
@@ -23,6 +25,7 @@ class SessionStateManager:
             self._state = {}
 
     def save(self) -> None:
+        """Save ."""
         try:
             p_file = Path(self.settings_file_path)
             with p_file.open('w', encoding='utf-8') as f:
@@ -36,11 +39,13 @@ class SessionStateManager:
         return self._state.get(file_path_key, {})
 
     def set_state_for_file(self, file_path_key: str, state_data: Dict[str, Any]) -> None:
+        """Set the state for file."""
         self._state[file_path_key] = state_data
         self.save()
 
     def cleanup_old_states(self, max_entries: int = 50) -> None:
         # Optional: prevent the file from growing indefinitely
+        """Cleanup old states."""
         if len(self._state) > max_entries:
             # Simple cleanup: keep newest entries
             pass

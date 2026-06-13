@@ -1,4 +1,4 @@
-import json
+﻿import json
 import math
 import re
 from pathlib import Path
@@ -38,6 +38,7 @@ class BfnSideButton(QPushButton):
     SIZE = 30
 
     def __init__(self, icon_text: str, tooltip: str, checkable: bool = False, parent=None):
+        """Initialize a new instance."""
         super().__init__(icon_text, parent)
         self.setFixedSize(self.SIZE, self.SIZE)
         self.setToolTip(tooltip)
@@ -45,6 +46,7 @@ class BfnSideButton(QPushButton):
         self._apply_style(False)
 
     def _apply_style(self, checked: bool):
+        """Internal helper to apply style."""
         base = (
             "QPushButton {"
             "  background: #1e1e1e;"
@@ -68,6 +70,7 @@ class BfnSideButton(QPushButton):
         self.setStyleSheet(base + active)
 
     def setActive(self, active: bool):
+        """Setactive."""
         self.setProperty("active", active)
         self.style().unpolish(self)
         self.style().polish(self)
@@ -78,6 +81,7 @@ class BfnPreviewSideBar(QFrame):
     WIDTH = 38
 
     def __init__(self, preview_widget: 'BfnPreviewWidget'):
+        """Initialize a new instance."""
         super().__init__(preview_widget)
         self.pw = preview_widget
         self.setFixedWidth(self.WIDTH)
@@ -172,10 +176,12 @@ class BfnPreviewSideBar(QFrame):
         self.btn_shadow.setChecked(self.pw.shadow_enabled)
 
     def _on_glow_clicked(self, checked: bool):
+        """Internal helper to handle the glow clicked event."""
         self.pw._open_glow_dialog()
         self.btn_glow.setChecked(self.pw.glow_enabled)
 
     def _on_set_bg(self):
+        """Internal helper to handle the set bg event."""
         file_path, _ = QFileDialog.getOpenFileName(
             self.pw, "Select Background Image", "", "Images (*.png *.jpg *.jpeg *.bmp)"
         )
@@ -202,6 +208,7 @@ class BfnPreviewSideBar(QFrame):
         self.pw.update()
 
     def _on_hide_bg(self, checked: bool):
+        """Internal helper to handle the hide bg event."""
         self.pw.bg_hidden = checked
         self.pw.mw.preview_bg_hidden = checked
         if hasattr(self.pw.mw, 'settings_manager'):
@@ -209,6 +216,7 @@ class BfnPreviewSideBar(QFrame):
         self.pw.update()
 
     def _on_set_spacing(self):
+        """Internal helper to handle the set spacing event."""
         val, ok = QInputDialog.getInt(
             self.pw, "Set Line Spacing", "Enter line spacing in pixels:",
             self.pw.line_spacing, -100, 100
@@ -221,34 +229,44 @@ class BfnPreviewSideBar(QFrame):
             self.pw.update()
 
 class BfnEditorAdapter:
+    """Bfn editor adapter implementation."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     @property
     def gly1(self):
+        """Gly1."""
         return self.editor.metadata.get("GLY1", [])
 
     @property
     def map1(self):
+        """Map1."""
         return self.editor.metadata.get("MAP1", [])
 
     @property
     def wid1(self):
+        """Wid1."""
         return self.editor.metadata.get("WID1", [])
 
     @property
     def inf1(self):
+        """Inf1."""
         return self.editor.metadata.get("INF1", [])
 
     def get_sheets_qimages(self):
+        """Get the sheets qimages."""
         return self.editor.sheet_images
 
     def layout_text(self, text: str, translation_map = None, line_spacing: int = 10):
+        """Layout text."""
         from core.bfn_core import BfnCore
         return BfnCore.layout_text(self, text, translation_map, line_spacing)
 
 class BfnPreviewWidget(QWidget):
+    """Widget component for bfn preview."""
     def __init__(self, main_window, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.mw = main_window
         self.text = ""
@@ -316,6 +334,7 @@ class BfnPreviewWidget(QWidget):
         self._position_sidebar()
 
     def load_translation_map(self):
+        """Load translation map."""
         project_dir = None
         if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
             project_dir = self.mw.project_manager.project_dir
@@ -415,6 +434,7 @@ class BfnPreviewWidget(QWidget):
         return None
 
     def get_handles_dict(self):
+        """Get the handles dict."""
         abs_rect = self.get_absolute_text_rect()
         rx, ry, rw, rh = abs_rect.x(), abs_rect.y(), abs_rect.width(), abs_rect.height()
         handle_size = 6
@@ -431,12 +451,14 @@ class BfnPreviewWidget(QWidget):
         }
 
     def get_handle_under_mouse(self, pos):
+        """Get the handle under mouse."""
         for name, rect in self.get_handles_dict().items():
             if rect.contains(pos):
                 return name
         return None
 
     def draw_bounding_box(self, painter):
+        """Draw bounding box."""
         abs_rect = self.get_absolute_text_rect()
         if self.mouse_inside or self.drag_active or self.resize_active:
             # Active state: solid blue border
@@ -464,16 +486,19 @@ class BfnPreviewWidget(QWidget):
             self.sidebar.raise_()
 
     def resizeEvent(self, event):
+        """Resizeevent."""
         super().resizeEvent(event)
         self._position_sidebar()
 
     def enterEvent(self, event):
+        """Enterevent."""
         self.mouse_inside = True
         self.update()
         super().enterEvent(event)
 
 
     def leaveEvent(self, event):
+        """Leaveevent."""
         self.mouse_inside = False
         self.hover_handle = None
         self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -481,6 +506,7 @@ class BfnPreviewWidget(QWidget):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
+        """Mousepressevent."""
         if event.button() == Qt.MouseButton.LeftButton:
             modifiers = event.modifiers()
             if modifiers & Qt.KeyboardModifier.ControlModifier and self.bg_image:
@@ -510,6 +536,7 @@ class BfnPreviewWidget(QWidget):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        """Mousemoveevent."""
         if self.scale_drag_active:
             # Calculate shift vertically. Move up increases scale, down decreases.
             dy = self.drag_start_pos.y() - event.pos().y()
@@ -579,6 +606,7 @@ class BfnPreviewWidget(QWidget):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        """Mousereleaseevent."""
         if event.button() == Qt.MouseButton.LeftButton:
             if self.scale_drag_active:
                 self.mw.preview_bg_scale = self.bg_scale
@@ -606,6 +634,7 @@ class BfnPreviewWidget(QWidget):
         super().mouseReleaseEvent(event)
 
     def show_context_menu(self, pos):
+        """Show context menu."""
         menu = QMenu(self)
         
         action_set_bg = menu.addAction("Set Background Image...")
@@ -706,6 +735,7 @@ class BfnPreviewWidget(QWidget):
     # ── Text Effects dialogs ──────────────────────────────────────────────────
 
     def _open_text_color_dialog(self):
+        """Internal helper to open text color dialog."""
         initial = QColor(self.text_color)
         color = QColorDialog.getColor(initial, self, "Select Text Color")
         if color.isValid():
@@ -716,6 +746,7 @@ class BfnPreviewWidget(QWidget):
             self.update()
 
     def _open_shadow_dialog(self):
+        """Internal helper to open shadow dialog."""
         from ui.components.text_effects_dialog import TextEffectsDialog
         dlg = TextEffectsDialog(
             TextEffectsDialog.MODE_SHADOW,
@@ -741,6 +772,7 @@ class BfnPreviewWidget(QWidget):
             self.update()
 
     def _open_glow_dialog(self):
+        """Internal helper to open glow dialog."""
         from ui.components.text_effects_dialog import TextEffectsDialog
         dlg = TextEffectsDialog(
             TextEffectsDialog.MODE_GLOW,
@@ -843,6 +875,7 @@ class BfnPreviewWidget(QWidget):
     # ── paintEvent ────────────────────────────────────────────────────────────
 
     def paintEvent(self, event):
+        """Paintevent."""
         if self.isHidden():
             return
             
@@ -857,6 +890,7 @@ class BfnPreviewWidget(QWidget):
                 painter.end()
 
     def _paint_event_impl(self, painter, event):
+        """Internal helper to paint event impl."""
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         
         # ── 1. Background ─────────────────────────────────────────────────────

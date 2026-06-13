@@ -1,4 +1,4 @@
-"""Dialog for viewing glossary entries and navigating to occurrences."""
+﻿"""Dialog for viewing glossary entries and navigating to occurrences."""
 from __future__ import annotations
 import json
 from html import escape
@@ -36,6 +36,7 @@ class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
 
     def paint(self, painter, option, index):  # type: ignore[override]
+        """Paint."""
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             super().paint(painter, option, index)
@@ -77,6 +78,7 @@ class _RichTextItemDelegate(QStyledItemDelegate):
         painter.restore()
 
     def sizeHint(self, option, index):  # type: ignore[override]
+        """Sizehint."""
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             return super().sizeHint(option, index)
@@ -115,6 +117,7 @@ class GlossaryDialog(QDialog):
         global_replace_callback: Optional[Callable[[str, str], None]] = None,
         initial_term: Optional[str] = None,
     ) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Glossary")
         self.resize(840, 520)
@@ -242,6 +245,7 @@ class GlossaryDialog(QDialog):
             self._show_entry_for_row(0)
 
     def _active_table(self) -> QTableWidget:
+        """Internal helper to active table."""
         if not hasattr(self, '_tab_widget') or self._tab_widget.count() == 0:
             # Fallback legacy table if it somehow exists
             return self._entry_table if self._entry_table else QTableWidget(self)
@@ -251,6 +255,7 @@ class GlossaryDialog(QDialog):
         return self._entry_table if self._entry_table else QTableWidget(self)
 
     def _on_tab_changed(self, index: int) -> None:
+        """Internal helper to handle the tab changed event."""
         if self._is_populating:
             return
         active_table = self._active_table()
@@ -258,10 +263,12 @@ class GlossaryDialog(QDialog):
         self._show_entry_for_row(row)
 
     def _on_ai_classify_clicked(self) -> None:
+        """Internal helper to handle the ai classify clicked event."""
         if self._ai_classify_callback:
             self._ai_classify_callback()
 
     def _on_global_replace_clicked(self) -> None:
+        """Internal helper to handle the global replace clicked event."""
         if not self._global_replace_callback:
             return
             
@@ -303,6 +310,7 @@ class GlossaryDialog(QDialog):
         self._global_replace_callback(find_text, replace_text)
 
     def _populate_entries(self, entries: Sequence[GlossaryEntry]) -> None:
+        """Internal helper to populate entries."""
         self._is_populating = True
         
         # Save current selected term and tab to restore after population
@@ -409,6 +417,7 @@ class GlossaryDialog(QDialog):
             self._clear_entry_details()
 
     def _select_initial_term(self, term: str, switch_tab: bool = True) -> None:
+        """Internal helper to select initial term."""
         if not term:
             return
         
@@ -450,6 +459,7 @@ class GlossaryDialog(QDialog):
                 self._show_entry_for_row(row)
                 return
     def _show_entry_for_row(self, row: int) -> None:
+        """Internal helper to show entry for row."""
         if row < 0:
             self._clear_entry_details()
             return
@@ -461,12 +471,15 @@ class GlossaryDialog(QDialog):
             self._clear_entry_details()
 
     def _on_entry_current_changed(self, row: int, _column: int, _prev_row: int, _prev_column: int) -> None:
+        """Internal helper to handle the entry current changed event."""
         if self._is_populating:
             return
         self._show_entry_for_row(row)
     def _on_entry_selected(self, row: int, _column: int) -> None:
+        """Internal helper to handle the entry selected event."""
         self._show_entry_for_row(row)
     def _on_entry_edited(self, item: QTableWidgetItem) -> None:
+        """Internal helper to handle the entry edited event."""
         if self._is_populating or not self._update_callback:
             return
         row = item.row()
@@ -499,6 +512,7 @@ class GlossaryDialog(QDialog):
         if self._current_entry and self._current_entry.original == entry.original:
             self._populate_entry_details(entry)
     def _activate_selected_occurrence(self, item: Optional[QListWidgetItem] = None) -> None:
+        """Internal helper to activate selected occurrence."""
         if not item:
             item = self._occurrence_list.currentItem()
         if not item:
@@ -512,6 +526,7 @@ class GlossaryDialog(QDialog):
             self._jump_callback(occurrence)
 
     def _set_notes_variation_busy(self, busy: bool) -> None:
+        """Internal helper to set the notes variation busy."""
         if not hasattr(self, '_notes_variation_button'):
             return
         self._notes_variation_busy = busy
@@ -524,6 +539,7 @@ class GlossaryDialog(QDialog):
         self._notes_variation_button.setEnabled(should_enable)
 
     def apply_notes_variation(self, new_notes: str) -> None:
+        """Apply notes variation."""
         if not self._current_entry:
             return
         self._suppress_editor_signals = True
@@ -532,11 +548,13 @@ class GlossaryDialog(QDialog):
         self._on_editor_content_changed()
 
     def _on_notes_variation_clicked(self) -> None:
+        """Internal helper to handle the notes variation clicked event."""
         if not self._ai_variation_callback or not self._current_entry:
             return
         self._ai_variation_callback(self._current_entry)
 
     def _on_editor_content_changed(self) -> None:
+        """Internal helper to handle the editor content changed event."""
         if self._suppress_editor_signals or not self._update_callback or not self._current_entry:
             return
         current_translation = self._translation_edit.text().strip()
@@ -549,9 +567,11 @@ class GlossaryDialog(QDialog):
         )
         self._mark_editor_dirty(has_changes)
     def _mark_editor_dirty(self, dirty: bool) -> None:
+        """Internal helper to mark editor dirty."""
         self._editor_dirty = bool(dirty) if self._update_callback else False
         self._update_editor_enabled_state()
     def _update_editor_enabled_state(self) -> None:
+        """Internal helper to update the editor enabled state."""
         can_edit = self._update_callback is not None and self._current_entry is not None
         self._translation_edit.setReadOnly(not can_edit)
         self._notes_edit.setReadOnly(not can_edit)
@@ -569,6 +589,7 @@ class GlossaryDialog(QDialog):
                 self._save_button.setVisible(True)
                 self._save_button.setEnabled(can_edit)
     def _save_editor_changes(self) -> None:
+        """Internal helper to save editor changes."""
         if self._is_populating or not self._update_callback or not self._current_entry:
             return
         new_translation = self._translation_edit.text().strip()
@@ -580,6 +601,7 @@ class GlossaryDialog(QDialog):
             return
         self._mark_editor_dirty(False)
     def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None) -> bool:
+        """Internal helper to attempt entry update."""
         if not self._update_callback:
             return False
         result = self._update_callback(entry.original, new_translation, new_notes, profiled)
@@ -592,6 +614,7 @@ class GlossaryDialog(QDialog):
         self._apply_filter(self._search_field.text())
         return True
     def _attempt_entry_delete(self, entry: GlossaryEntry) -> None:
+        """Internal helper to attempt entry delete."""
         if not self._delete_callback:
             return
         response = QMessageBox.question(
@@ -615,6 +638,7 @@ class GlossaryDialog(QDialog):
         self._pending_select_term = None
         self._apply_filter(self._search_field.text())
     def _on_entry_context_menu(self, pos) -> None:
+        """Internal helper to handle the entry context menu event."""
         row = self._active_table().rowAt(pos.y())
         if row < 0:
             return
@@ -629,6 +653,7 @@ class GlossaryDialog(QDialog):
             self._active_table().selectRow(row)
             self._attempt_entry_delete(entry)
     def _load_dialog_state(self) -> None:
+        """Internal helper to load dialog state."""
         data = self._read_settings_file()
         state = data.get('glossary_dialog_state')
         if not isinstance(state, dict):
@@ -644,6 +669,7 @@ class GlossaryDialog(QDialog):
             self.setGeometry(rect)
         self._restore_maximized_on_show = bool(state.get('is_maximized', False))
     def _save_dialog_state(self) -> None:
+        """Internal helper to save dialog state."""
         data = self._read_settings_file()
         state = data.get('glossary_dialog_state', {})
         geometry_source = self.normalGeometry() if self.isMaximized() else self.geometry()
@@ -652,6 +678,7 @@ class GlossaryDialog(QDialog):
         data['glossary_dialog_state'] = state
         self._write_settings_file(data)
     def _read_settings_file(self) -> Dict[str, Any]:
+        """Internal helper to read settings file."""
         try:
             if not self._settings_path.exists():
                 return {}
@@ -660,6 +687,7 @@ class GlossaryDialog(QDialog):
         except Exception:
             return {}
     def _write_settings_file(self, data: Dict[str, Any]) -> None:
+        """Internal helper to write settings file."""
         try:
             if self._settings_path.parent and not self._settings_path.parent.exists():
                 self._settings_path.parent.mkdir(parents=True, exist_ok=True)
@@ -669,6 +697,7 @@ class GlossaryDialog(QDialog):
             pass
     @staticmethod
     def _geometry_to_dict(rect: QRect) -> Dict[str, int]:
+        """Internal helper to geometry to dict."""
         return {
             'x': rect.x(),
             'y': rect.y(),
@@ -676,15 +705,18 @@ class GlossaryDialog(QDialog):
             'height': rect.height(),
         }
     def showEvent(self, event) -> None:
+        """Showevent."""
         super().showEvent(event)
         if self._restore_maximized_on_show:
             self._restore_maximized_on_show = False
             self.showMaximized()
     def closeEvent(self, event) -> None:
+        """Closeevent."""
         self._save_dialog_state()
         super().closeEvent(event)
 
     def keyPressEvent(self, event) -> None:
+        """Keypressevent."""
         if event.key() == Qt.Key_Escape:
             self.reject()
             event.accept()
@@ -692,6 +724,7 @@ class GlossaryDialog(QDialog):
         super().keyPressEvent(event)
 
     def _update_occurrences(self, entry: GlossaryEntry) -> None:
+        """Internal helper to update the occurrences."""
         occ_list = self._occurrences.get(entry.original, [])
         self._occurrence_list.clear()
         for index, occ in enumerate(occ_list, start=1):
@@ -709,6 +742,7 @@ class GlossaryDialog(QDialog):
             self._occurrence_list.addItem(item)
         self._occurrence_label.setText(f"Occurrences: {len(occ_list)}")
     def _entry_for_row(self, row: int) -> Optional[GlossaryEntry]:
+        """Internal helper to entry for row."""
         if row < 0:
             return None
         active_table = self._active_table()
@@ -724,6 +758,7 @@ class GlossaryDialog(QDialog):
             return self._filtered_entries[row]
         return None
     def _populate_entry_details(self, entry: GlossaryEntry) -> None:
+        """Internal helper to populate entry details."""
         self._current_entry = entry
         self._suppress_editor_signals = True
         self._original_label.setText(f"Term: {entry.original}")
@@ -737,6 +772,7 @@ class GlossaryDialog(QDialog):
         self._mark_editor_dirty(False)
         self._update_editor_enabled_state()
     def _clear_entry_details(self) -> None:
+        """Internal helper to remove entry details."""
         self._current_entry = None
         self._suppress_editor_signals = True
         self._original_label.setText('Nothing selected')
@@ -751,6 +787,7 @@ class GlossaryDialog(QDialog):
         self._update_editor_enabled_state()
 
     def _apply_filter(self, text: str) -> None:
+        """Internal helper to apply filter."""
         pattern = text.strip().lower()
         if not pattern:
             self._filtered_entries = list(self._all_entries)

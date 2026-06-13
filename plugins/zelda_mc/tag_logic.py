@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Tuple
 from utils.logging_utils import log_debug
 from utils.utils import ALL_TAGS_PATTERN
@@ -20,6 +20,7 @@ PLAYER_REPLACEMENT_CURLY_PATTERN = re.compile(
 )
 
 def analyze_tags_for_issues_zmc(processed_text: str, original_text: str, editor_player_tag:str) -> Tuple[str, str]:
+    """Analyze tags for issues zmc."""
     temp_processed_text = processed_text
     temp_original_text = original_text
     num_original_player_tags = temp_original_text.count(ORIGINAL_PLAYER_TAG)
@@ -58,6 +59,7 @@ def process_segment_tags_aggressively_zmc(
     original_text_for_tags: str,
     editor_player_tag_const: str
 ) -> Tuple[str, str, str]:
+    """Process segment tags aggressively zmc."""
     log_debug(f"ZeldaMC Plugin Logic: Input Segment='{segment_to_insert[:80]}', Original='{original_text_for_tags[:80]}'")
     current_segment_state = str(segment_to_insert)
 

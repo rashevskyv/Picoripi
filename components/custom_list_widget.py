@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
+﻿from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt, QPoint, QSize, QEvent
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
@@ -6,7 +6,9 @@ from .custom_list_item_delegate import CustomListItemDelegate
 from utils.logging_utils import log_debug, log_error
 
 class CustomListWidget(QListWidget):
+    """Widget component for custom list."""
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
@@ -25,6 +27,7 @@ class CustomListWidget(QListWidget):
         }
 
     def _create_color_icon(self, color: QColor, size: int = 12) -> QIcon:
+        """Internal helper to create color icon."""
         pixmap = QPixmap(size, size)
         pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
@@ -38,11 +41,13 @@ class CustomListWidget(QListWidget):
         return QIcon(pixmap)
 
     def create_item(self, text, data, role=Qt.ItemDataRole.UserRole):
+        """Create item."""
         item = QListWidgetItem(text)
         item.setData(role, data)
         return item
     
     def show_context_menu(self, pos: QPoint):
+        """Show context menu."""
         item = self.itemAt(pos)
         main_window = self.window()
         menu = QMenu(self)
@@ -118,6 +123,7 @@ class CustomListWidget(QListWidget):
         menu.exec(self.mapToGlobal(pos))
 
     def viewportEvent(self, event):
+        """Viewportevent."""
         if event.type() == QEvent.Type.ToolTip:
             log_debug(f"CustomListWidget: viewport ToolTip event at {event.pos()}")
             index = self.indexAt(event.pos())

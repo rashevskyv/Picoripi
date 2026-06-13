@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, List, Any, Union
@@ -10,16 +10,20 @@ from utils.constants import (
 from core.translation.config import build_default_translation_config, merge_translation_config
 
 class PluginSettings:
+    """Plugin settings implementation."""
     def __init__(self, main_window: Any):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def _get_plugin_config_path(self) -> Optional[Path]:
+        """Internal helper to get the plugin config path."""
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         if not plugin_name:
             return None
         return Path("plugins") / plugin_name / "config.json"
 
     def _get_project_settings_path(self) -> Optional[Path]:
+        """Internal helper to get the project settings path."""
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_dir:
             return Path(self.mw.project_manager.project_dir) / "project_settings.json"
         return None
@@ -186,6 +190,7 @@ class PluginSettings:
 
     def _migrate_legacy_styles(self, plugin_data: Dict[str, Any]) -> None:
         # Implementation of style migration from SettingsManager
+        """Internal helper to migrate legacy styles."""
         if not hasattr(self.mw, 'tag_color_rgba') or not getattr(self.mw, 'tag_color_rgba', None):
             self.mw.tag_color_rgba = plugin_data.get('bracket_tag_color_hex') or '#FF8C00'
         if not hasattr(self.mw, 'tag_bold'): self.mw.tag_bold = True
@@ -297,6 +302,7 @@ class PluginSettings:
                 log_error("Could not save project configuration: UI provider not available.")
 
     def save_block_names(self) -> None:
+        """Save block names."""
         project_settings_path = self._get_project_settings_path()
         if not project_settings_path: return
 

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple, Set, Optional, List
+﻿from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 from plugins.base_game_rules import BaseGameRules
@@ -12,7 +12,9 @@ from utils.utils import convert_spaces_to_dots_for_display
 import re
 
 class GameRules(BaseGameRules):
+    """Game rules and translation logic for Game."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.original_keys = []
         
@@ -23,6 +25,7 @@ class GameRules(BaseGameRules):
         self.problem_ids = self.problem_analyzer.problem_ids
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
+        """Load data from json obj."""
         if not isinstance(json_data, dict):
             return [], {}
         
@@ -47,6 +50,7 @@ class GameRules(BaseGameRules):
         return app_data, block_names
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        """Save data to json obj."""
         if not self.original_keys or len(self.original_keys) != len(data):
             raise ValueError("Original keys for Pokemon data are missing or mismatched. Cannot save.")
             
@@ -73,6 +77,7 @@ class GameRules(BaseGameRules):
         return output_json
         
     def get_text_representation_for_preview(self, data_string: str) -> str:
+        """Get the text representation for preview."""
         newline_symbol = "↵"
         if self.mw and hasattr(self.mw, "newline_display_symbol"):
             val = self.mw.newline_display_symbol
@@ -93,21 +98,26 @@ class GameRules(BaseGameRules):
         return convert_spaces_to_dots_for_display(processed_string, show_dots)
 
     def get_enter_char(self) -> str:
+        """Get the enter char."""
         return '\n'
 
     def get_shift_enter_char(self) -> str:
+        """Get the shift enter char."""
         return f"{P_VISUAL_EDITOR_MARKER}\n"
 
     def get_ctrl_enter_char(self) -> str:
+        """Get the ctrl enter char."""
         return f"{L_VISUAL_EDITOR_MARKER}\n"
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
+        """Get the text representation for editor."""
         processed = str(data_string_subline).replace('\\p', f"{P_VISUAL_EDITOR_MARKER}\n")
         processed = processed.replace('\\l', f"{L_VISUAL_EDITOR_MARKER}\n")
         processed = processed.replace('\\n', '\n')
         return super().get_text_representation_for_editor(processed)
 
     def convert_editor_text_to_data(self, text: str) -> str:
+        """Convert editor text to data."""
         converted = super().convert_editor_text_to_data(text)
         actual_text = converted.replace(f"{P_VISUAL_EDITOR_MARKER}\n", '\\p')
         actual_text = actual_text.replace(f"{L_VISUAL_EDITOR_MARKER}\n", '\\l')
@@ -115,18 +125,23 @@ class GameRules(BaseGameRules):
         return actual_text
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         return self.tag_manager.get_syntax_highlighting_rules()
 
     def get_display_name(self) -> str:
+        """Get the display name."""
         return "Pokémon FireRed/LeafGreen"
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
+        """Get the problem definitions."""
         return PROBLEM_DEFINITIONS
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
+        """Get the default tag mappings."""
         return DEFAULT_TAG_MAPPINGS_POKEMON_FR
 
     def get_short_problem_name(self, problem_id: str) -> str:
+        """Get the short problem name."""
         if problem_id == PROBLEM_BAD_SPACING:
             return "Spacing"
         if problem_id == PROBLEM_MISSING_ICON_SPACING:
@@ -145,6 +160,7 @@ class GameRules(BaseGameRules):
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
         
+        """Analyze subline."""
         problems_per_subline = self.problem_analyzer.analyze_data_string(
             full_data_string_text_for_logical_check,
             editor_font_map,
@@ -158,11 +174,13 @@ class GameRules(BaseGameRules):
         return set()
 
     def autofix_data_string(self, data_string: str, editor_font_map: dict, editor_line_width_threshold: int, logical_hard_limit: Optional[int] = None, allowed_problems: Optional[Set[str]] = None, block_idx: Optional[int] = None, string_idx: Optional[int] = None, page_local: bool = False, disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         return self.text_fixer.autofix_data_string(
             data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx, page_local, disable_pagination
         )
 
     def process_pasted_segment(self, segment_to_insert: str, *args, **kwargs) -> Tuple[str, str, str]:
+        """Process pasted segment."""
         from utils.utils import clean_spaces
         cleaned_segment = clean_spaces(segment_to_insert)
         return cleaned_segment, "OK", ""

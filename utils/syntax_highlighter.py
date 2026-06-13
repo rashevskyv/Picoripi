@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
 from PyQt6.QtCore import QRegularExpression, Qt
@@ -35,8 +35,11 @@ _LEADING_SPACE_PATTERN = re.compile(r"^(?:\{(?!f:|F:)[^}]*\}|\[[^\]]*\])*([ ·]+
 _TAG_SPLIT_SPACE_PATTERN = re.compile(r"[ ·](?:\{(?!f:|F:)[^}]*\}|\[[^\]]*\])+[ ·]")
 
 class JsonTagHighlighter(QSyntaxHighlighter):
+    """Json tag highlighter implementation."""
     class GlossaryBlockData(QTextBlockUserData):
+        """Glossary block data implementation."""
         def __init__(self, matches: List[GlossaryMatch]) -> None:
+            """Initialize a new instance."""
             super().__init__()
             self.matches = matches
 
@@ -52,6 +55,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
 
     def __init__(self, parent: QTextDocument, main_window_ref=None, editor_widget_ref=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.mw = main_window_ref
         self._editor_widget_ref = editor_widget_ref  # Store reference to the editor widget
@@ -122,6 +126,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self.reconfigure_styles()
         
     def on_contents_change(self, position, chars_removed, chars_added):
+        """Handle the contents change event."""
         self._invalidate_icon_cache()
         self._glossary_cache_revision = None
         self._translation_cache_revision = None
@@ -129,6 +134,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Calling rehighlight() here can interrupt its internal state and strip colors during setPlainText.
 
     def set_glossary_manager(self, manager: Optional[GlossaryManager]) -> None:
+        """Set the glossary manager."""
         self._glossary_manager = manager
         mw_enabled = getattr(self.mw, 'glossary_enabled', True) if self.mw else True
         
@@ -179,6 +185,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         self.rehighlight()
 
     def _apply_css_to_format(self, char_format, css_str, base_color=None):
+        """Internal helper to apply css to format."""
         if base_color:
             char_format.setForeground(base_color)
 
@@ -218,6 +225,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                            show_multiple_spaces_as_dots=True,
                            space_dot_color_hex="#BBBBBB",
                            bracket_tag_color_hex="#FF8C00"):
+        """Reconfigure styles."""
         doc = self.document()
         editor_widget = doc.parent() if doc else None
         
@@ -370,11 +378,13 @@ class JsonTagHighlighter(QSyntaxHighlighter):
              self.rehighlight()
 
     def _invalidate_icon_cache(self) -> None:
+        """Internal helper to invalidate icon cache."""
         self._icon_sequences_cache.clear()
         self._icon_cache_revision = None
         self._icon_sequences_snapshot = ()
 
     def _rebuild_glossary_cache(self) -> None:
+        """Internal helper to rebuild glossary cache."""
         doc = self.document()
         if not doc:
             self._glossary_matches_cache.clear()
@@ -487,9 +497,11 @@ class JsonTagHighlighter(QSyntaxHighlighter):
     def _ensure_icon_cache(self, sequences: List[str]) -> None:
         # Keep as no-op for backwards compatibility. Matches are now processed
         # locally for the current block in _get_icon_matches_for_block.
+        """Internal helper to ensure icon cache."""
         pass
 
     def _get_icon_matches_for_text(self, text: str, sequences: List[str]) -> List[Tuple[int, int]]:
+        """Internal helper to get the icon matches for text."""
         if not sequences or not text:
             return []
             
@@ -523,6 +535,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         return matches
 
     def _get_icon_matches_for_block(self, sequences: List[str]) -> List[Tuple[int, int]]:
+        """Internal helper to get the icon matches for block."""
         if not sequences:
             return []
         block = self.currentBlock()
@@ -552,6 +565,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
 
     def _get_icon_sequences(self) -> List[str]:
+        """Internal helper to get the icon sequences."""
         main_window = self.mw
         sequences = getattr(main_window, 'icon_sequences', None) if main_window else None
         if isinstance(sequences, list):
@@ -559,6 +573,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         return []
 
     def _should_highlight_icons(self) -> bool:
+        """Internal helper to check if should highlight icons."""
         doc = self.document()
         if not doc:
             return False
@@ -591,6 +606,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         return words
 
     def _is_forced_alias(self, tag: str) -> bool:
+        """Internal helper to check if is forced alias."""
         if tag.lower().startswith("{f:"):
             return True
         mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
@@ -601,6 +617,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         return False
 
     def _tag_has_length(self, tag: str) -> bool:
+        """Internal helper to tag has length."""
         font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
@@ -608,6 +625,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         return width > 0
 
     def _is_visible_tag(self, tag: str) -> bool:
+        """Internal helper to check if is visible tag."""
         from utils.utils import is_visible_tag
         font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
@@ -617,6 +635,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
     def highlightBlock(self, text):
         # In preview_text_edit each line is an independent game string,
         # so color must NOT bleed from one string to the next.
+        """Highlightblock."""
         _is_preview_widget = (
             self._editor_widget_ref is not None
             and hasattr(self._editor_widget_ref, 'objectName')
@@ -910,4 +929,4 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                         self.setFormat(start, end - start, self.missing_icon_spacing_format)
 
         # In preview_text_edit, never carry colour state to the next line.
-        self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)
+        self.setCurrentBlockState(self.STATE_DEFAULT if _is_preview_widget else current_block_color_state)

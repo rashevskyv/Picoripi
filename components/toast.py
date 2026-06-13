@@ -1,14 +1,16 @@
-# components/toast.py
+﻿# components/toast.py
 import sys
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
 from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QPoint, QEasingCurve
 from PyQt6.QtGui import QFont, QColor
 
 class ToastNotification(QWidget):
+    """Toast notification implementation."""
     _active_toasts = []  # Keep references to prevent garbage collection
 
     def __init__(self, parent, message: str, duration: int = 2000, toast_type: str = "success"):
         # Safe fallback for mock objects in testing environments
+        """Initialize a new instance."""
         actual_parent = parent if isinstance(parent, QWidget) else None
         super().__init__(actual_parent)
         self.message = message
@@ -100,6 +102,7 @@ class ToastNotification(QWidget):
         self.timer.timeout.connect(self.start_fade_out)
         
     def position_toast(self, parent):
+        """Position toast."""
         if parent and isinstance(parent, QWidget):
             try:
                 # Get geometry of parent
@@ -127,6 +130,7 @@ class ToastNotification(QWidget):
         self.move(x, y)
 
     def paintEvent(self, event):
+        """Paintevent."""
         from PyQt6.QtGui import QPainter
         from PyQt6.QtWidgets import QStyleOption, QStyle
         opt = QStyleOption()
@@ -135,14 +139,17 @@ class ToastNotification(QWidget):
         self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
 
     def show_toast_notification(self):
+        """Show toast notification."""
         self.show()
         self.anim_in.start()
         self.timer.start(self.duration)
         
     def start_fade_out(self):
+        """Start fade out."""
         self.anim_out.start()
         
     def close_and_cleanup(self):
+        """Close and cleanup."""
         self.close()
         if self in self.__class__._active_toasts:
             self.__class__._active_toasts.remove(self)
@@ -150,6 +157,7 @@ class ToastNotification(QWidget):
 
     @classmethod
     def show_toast(cls, parent, message: str, duration: int = 2000, toast_type: str = "success"):
+        """Show toast."""
         if not QApplication.instance():
             return None
         toast = cls(parent, message, duration, toast_type)

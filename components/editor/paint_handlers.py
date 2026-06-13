@@ -1,13 +1,16 @@
-from PyQt6.QtGui import QPainter, QColor, QFontMetrics, QTextBlock, QPaintEvent
+﻿from PyQt6.QtGui import QPainter, QColor, QFontMetrics, QTextBlock, QPaintEvent
 from PyQt6.QtCore import Qt, QRectF
 from typing import Optional
 from utils.utils import calculate_string_width, SPACE_DOT_SYMBOL
 
 class LNETPaintHandlers:
+    """L n e t paint handlers implementation."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def paintEvent(self, event: QPaintEvent):
+        """Paintevent."""
         self.editor.super_paintEvent(event)
         
         if not hasattr(self.editor, 'lineNumberArea') or not hasattr(self.editor.lineNumberArea, 'paint_logic'):
@@ -22,6 +25,7 @@ class LNETPaintHandlers:
             painter.end()
 
     def lineNumberAreaPaintEvent(self, event, painter_device):
+        """Linenumberareapaintevent."""
         if not hasattr(self.editor, 'lineNumberArea') or not hasattr(self.editor.lineNumberArea, 'paint_logic'):
             return
             

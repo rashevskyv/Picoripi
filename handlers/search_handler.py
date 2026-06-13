@@ -1,4 +1,4 @@
-# handlers/search_handler.py
+﻿# handlers/search_handler.py
 import re
 from typing import Any, Optional, List, Dict, Tuple, Set
 from PyQt6.QtCore import Qt, QPoint
@@ -9,7 +9,9 @@ from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display, remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches, clean_and_map_punctuation
 
 class SearchHandler(BaseHandler):
+    """Handler for search operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self.current_query: str = ""
         self.is_case_sensitive: bool = False
@@ -23,9 +25,11 @@ class SearchHandler(BaseHandler):
         self.current_search_index: int = -1
         
     def get_current_search_params(self) -> Tuple[str, bool, bool, bool, bool]:
+        """Get the current search params."""
         return self.current_query, self.is_case_sensitive, self.search_in_original, self.ignore_tags_newlines, self.is_fuzzy
 
     def _get_text_for_search(self, block_idx: int, string_idx: int, search_in_original_flag: bool, ignore_tags_flag: bool) -> str:
+        """Internal helper to get the text for search."""
         text_to_process = ""
         if search_in_original_flag:
             if 0 <= block_idx < len(self.mw.data_store.data) and \
@@ -42,6 +46,7 @@ class SearchHandler(BaseHandler):
         return text_to_process
 
     def reset_search(self, new_query: str = "", new_case_sensitive: bool = False, new_search_in_original: bool = False, new_ignore_tags: bool = True) -> None:
+        """Reset search."""
         log_debug(f"SearchHandler: Resetting search. Q: '{new_query}', Case: {new_case_sensitive}, Orig: {new_search_in_original}, IgnoreTags: {new_ignore_tags}")
         
         self.current_query = new_query
@@ -104,6 +109,7 @@ class SearchHandler(BaseHandler):
                 return matches[0]
 
     def _update_search_state(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool) -> None:
+        """Internal helper to update the search state."""
         if (self.current_query != query or
             self.is_case_sensitive != case_sensitive or
             self.search_in_original != search_in_original or
@@ -120,16 +126,19 @@ class SearchHandler(BaseHandler):
         self.is_fuzzy = is_fuzzy
 
     def find_next(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
+        """Find next."""
         log_debug(f"SearchHandler: find_next. Q: '{query}', Case: {case_sensitive}, Orig: {search_in_original}, IgnoreTags: {ignore_tags}, Fuzzy: {is_fuzzy}")
         self._update_search_state(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
         return self._find(direction=1)
 
     def find_previous(self, query: str, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False) -> bool:
+        """Find previous."""
         log_debug(f"SearchHandler: find_previous. Q: '{query}', Case: {case_sensitive}, Orig: {search_in_original}, IgnoreTags: {ignore_tags}, Fuzzy: {is_fuzzy}")
         self._update_search_state(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
         return self._find(direction=-1)
 
     def _find(self, direction: int) -> bool:
+        """Internal helper to find."""
         effective_query = prepare_text_for_tagless_search(self.current_query) if self.ignore_tags_newlines else self.current_query
         if not effective_query:
             if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget.isVisible():
@@ -209,6 +218,7 @@ class SearchHandler(BaseHandler):
         return False
 
     def _find_nth_occurrence_in_display_text(self, display_text: str, display_query: str, target_occurrence: int, case_sensitive: bool) -> Tuple[int, int]:
+        """Internal helper to find nth occurrence in display text."""
         current_occurrence: int = 0; search_start_pos: int = 0
         text_to_scan: str = display_text; query_to_scan: str = display_query
         if not case_sensitive:
@@ -223,6 +233,7 @@ class SearchHandler(BaseHandler):
             if search_start_pos >= len(text_to_scan): return -1, -1
 
     def _calculate_qtextblock_and_pos_in_block(self, raw_text_line_with_newlines: str, char_pos_in_raw_string_with_newlines: int) -> Tuple[int, int]:
+        """Internal helper to calculate qtextblock and pos in block."""
         qtextblock_idx: int = 0; pos_in_qtextblock: int = char_pos_in_raw_string_with_newlines
         last_newline_pos: int = -1; current_pos: int = 0
         while current_pos < char_pos_in_raw_string_with_newlines:
@@ -236,6 +247,7 @@ class SearchHandler(BaseHandler):
     def _navigate_to_match(self, block_idx_match_in_data: int, string_idx_match_in_data: int,
                            char_pos_in_search_text: int, match_len_in_search_text: int,
                            was_search_tagless_and_newline_agnostic: bool) -> None:
+        """Internal helper to navigate to match."""
         log_debug(f"Navigating. Data: B:{block_idx_match_in_data}, S:{string_idx_match_in_data}. SearchTextPos:{char_pos_in_search_text}, SearchTextLen:{match_len_in_search_text}, TaglessNLSearch:{was_search_tagless_and_newline_agnostic}")
         self.clear_all_search_highlights()
         
@@ -486,6 +498,7 @@ class SearchHandler(BaseHandler):
             self.mw.block_list_widget.viewport().update()
 
     def clear_all_search_highlights(self) -> None:
+        """Remove all search highlights."""
         log_debug("SearchHandler: Clearing all search highlights.")
         for editor in [self.mw.preview_text_edit, self.mw.original_text_edit, self.mw.edited_text_edit]:
             if editor and hasattr(editor, 'highlightManager'):

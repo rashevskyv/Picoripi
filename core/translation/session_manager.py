@@ -1,4 +1,4 @@
-"""Session manager for chat-based translation providers."""
+﻿"""Session manager for chat-based translation providers."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,6 +23,7 @@ class TranslationSessionState:
     bootstrap_viewed: bool = False
 
     def set_instructions(self, instructions: str) -> None:
+        """Set the instructions."""
         self.session_instructions = (instructions or "").strip()
 
     def prepare_request(
@@ -129,9 +130,11 @@ class TranslationSessionManager:
     """Manage creation and reset of translation sessions."""
 
     def __init__(self) -> None:
+        """Initialize a new instance."""
         self._state: Optional[TranslationSessionState] = None
 
     def reset(self) -> None:
+        """Reset."""
         self._state = None
 
     def ensure_session(
@@ -143,6 +146,7 @@ class TranslationSessionManager:
         supports_sessions: bool,
         start_new_session: bool = False,
     ) -> Optional[TranslationSessionState]:
+        """Ensure session."""
         if not supports_sessions:
             self._state = None
             return None
@@ -165,4 +169,5 @@ class TranslationSessionManager:
         return self._state
 
     def get_state(self) -> Optional[TranslationSessionState]:
+        """Get the state."""
         return self._state

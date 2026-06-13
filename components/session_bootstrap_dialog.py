@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (
+﻿from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -11,6 +11,7 @@ class SessionBootstrapDialog(QDialog):
     """Dialog that shows the system prompt and collects optional session instructions."""
 
     def __init__(self, parent, system_prompt: str) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("AI Translation – Start Session")
         self.setModal(True)
@@ -46,4 +47,5 @@ class SessionBootstrapDialog(QDialog):
         layout.addWidget(buttons)
 
     def get_instructions(self) -> str:
+        """Get the instructions."""
         return self._instructions_edit.toPlainText().strip()

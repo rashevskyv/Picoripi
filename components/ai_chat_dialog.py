@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (
+﻿from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QTabWidget, QWidget, QTextBrowser,
     QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QDialogButtonBox,
     QCheckBox
@@ -8,10 +8,13 @@ from PyQt6.QtGui import QTextCursor
 
 
 class _ChatInputEventFilter(QObject):
+    """_ chat input event filter implementation."""
     def __init__(self, parent):
+        """Initialize a new instance."""
         super().__init__(parent)
 
     def eventFilter(self, obj, event):
+        """Eventfilter."""
         if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
                 obj.parent().message_sent.emit()
@@ -20,9 +23,11 @@ class _ChatInputEventFilter(QObject):
 
 
 class _ChatTab(QWidget):
+    """_ chat tab implementation."""
     message_sent = pyqtSignal()
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -70,6 +75,7 @@ class _ChatTab(QWidget):
         self.send_button.clicked.connect(self.message_sent.emit)
 
     def populate_models(self, providers_data: dict):
+        """Populate models."""
         self.model_combo.clear()
         for provider_key, provider_info in providers_data.items():
             display_name = provider_info.get('display_name', provider_key)
@@ -77,9 +83,11 @@ class _ChatTab(QWidget):
 
 
 class AIChatDialog(QDialog):
+    """Dialog class for a i chat."""
     message_sent = pyqtSignal(int, str, str, bool)  # tab_index, message, provider_key, web_search_enabled
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("AI Chat")
         self.resize(700, 800)
@@ -102,6 +110,7 @@ class AIChatDialog(QDialog):
         self._set_theme_styles()
 
     def _set_theme_styles(self):
+        """Internal helper to set the theme styles."""
         is_dark = self.palette().window().color().lightness() < 128
         user_bg = "#3A3A3A" if is_dark else "#E8F0FE"
         ai_bg = "#2E2E2E" if is_dark else "#F7F7F7"
@@ -170,6 +179,7 @@ class AIChatDialog(QDialog):
                 tab.history_view.document().setDefaultStyleSheet(style)
 
     def eventFilter(self, obj, event):
+        """Eventfilter."""
         if obj == self.tabs.tabBar() and event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.MiddleButton:
             tab_index = obj.tabAt(event.pos())
             if tab_index != -1:
@@ -178,6 +188,7 @@ class AIChatDialog(QDialog):
         return super().eventFilter(obj, event)
 
     def add_new_tab(self):
+        """Add new tab."""
         tab_index = self.tabs.count()
         new_tab = _ChatTab(self)
         self.tabs.addTab(new_tab, f"Chat {tab_index + 1}")
@@ -189,6 +200,7 @@ class AIChatDialog(QDialog):
         return new_tab
 
     def remove_tab(self, index: int):
+        """Remove tab."""
         if self.tabs.count() > 1:
             widget = self.tabs.widget(index)
             self.tabs.removeTab(index)
@@ -198,6 +210,7 @@ class AIChatDialog(QDialog):
             self.close()
 
     def _emit_message_sent(self, tab_index):
+        """Internal helper to emit message sent."""
         if tab_index < 0: return
         tab = self.tabs.widget(tab_index)
         if isinstance(tab, _ChatTab):
@@ -209,12 +222,14 @@ class AIChatDialog(QDialog):
                 tab.input_edit.clear()
 
     def append_to_history(self, tab_index: int, html_text: str):
+        """Append to history."""
         if 0 <= tab_index < self.tabs.count():
             tab = self.tabs.widget(tab_index)
             if isinstance(tab, _ChatTab):
                 tab.history_view.append(html_text)
 
     def set_input_enabled(self, tab_index: int, enabled: bool):
+        """Set the input enabled."""
         if 0 <= tab_index < self.tabs.count():
             tab = self.tabs.widget(tab_index)
             if isinstance(tab, _ChatTab):

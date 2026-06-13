@@ -1,10 +1,12 @@
-import re
+﻿import re
 from typing import List, Set, Tuple, Optional
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 from PyQt6.QtCore import Qt
 
 class GenericTagManager:
+    """Manager class for generic tag."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         self.mw = main_window_ref
         self.curly_tag_format = QTextCharFormat()
         self.bracket_tag_format = QTextCharFormat()
@@ -12,6 +14,7 @@ class GenericTagManager:
         self.reconfigure_styles()
 
     def reconfigure_styles(self):
+        """Reconfigure styles."""
         if not self.mw:
             return
             
@@ -19,6 +22,7 @@ class GenericTagManager:
         newline_color_str = getattr(self.mw, 'newline_color_rgba', "#A020F0")
 
         def get_safe_color(color_str, default_hex):
+            """Get the safe color."""
             if not color_str:
                 return QColor(default_hex)
             color = QColor(color_str)
@@ -57,6 +61,7 @@ class GenericTagManager:
         self.newline_symbol_format.setFontUnderline(getattr(self.mw, 'newline_underline', False))
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         self.reconfigure_styles()
         rules = [
             (r"(\{[^}]*\})", self.curly_tag_format),
@@ -67,7 +72,9 @@ class GenericTagManager:
         return rules
 
     def is_tag_legitimate(self, tag: str) -> bool:
+        """Check if is tag legitimate."""
         return True
 
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         return set()

@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QWidget, QHBoxLayout, QWidgetAction, QToolTip)
+﻿from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QWidget, QHBoxLayout, QWidgetAction, QToolTip)
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtGui import (QFont, QPaintEvent, QKeyEvent, QMouseEvent, QTextCursor, QDrag)
 from PyQt6.QtCore import Qt, QRect, QRectF, pyqtSignal, QPoint, QMimeData, QByteArray
@@ -37,12 +37,14 @@ from .lnet_keyboard_handler import LNETKeyboardHandler
 from . import lnet_editor_setup
 
 class LineNumberedTextEdit(QPlainTextEdit):
+    """Line numbered text edit implementation."""
     lineClicked = pyqtSignal(int)
     previewSelectionChanged = pyqtSignal(list)
     addTagMappingRequest = pyqtSignal(str, str)
     calculateLineWidthRequest = pyqtSignal(int)
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.widget_id = str(id(self))[-6:]
         
@@ -135,12 +137,15 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.highlightManager.update_zebra_stripes()
 
     def handle_line_number_click(self, y_pos: int):
+        """Handle line number click."""
         self.mouse_handler.handle_line_number_click(y_pos)
 
     def handle_line_number_double_click(self, y_pos: int):
+        """Handle line number double click."""
         self.mouse_handler.handle_line_number_double_click(y_pos)
 
     def set_glossary_manager(self, manager) -> None:
+        """Set the glossary manager."""
         self._glossary_manager = manager
         if hasattr(self, 'highlighter') and self.highlighter:
             self.highlighter.set_glossary_manager(manager)
@@ -151,12 +156,15 @@ class LineNumberedTextEdit(QPlainTextEdit):
             word_cursor.insertText(replacement)
 
     def _open_spellcheck_dialog_for_selection(self, position_in_widget_coords: QPoint) -> None:
+        """Internal helper to open spellcheck dialog for selection."""
         self.spellcheck_logic.open_dialog_for_selection(position_in_widget_coords)
 
     def _apply_corrected_text_to_editor(self, corrected_text: str, line_numbers: List[int]) -> None:
+        """Internal helper to apply corrected text to editor."""
         self.spellcheck_logic.apply_corrected_text(corrected_text, line_numbers)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        """Mousemoveevent."""
         cursor = self.cursorForPosition(event.pos())
         block = cursor.block()
         entry = self._find_glossary_entry_at(event.pos())
@@ -218,6 +226,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
     def setPlainText(self, text: str):
         # When text is reset entirely, we MUST clear all document-specific highlights
         # because the old cursors will be invalid.
+        """Setplaintext."""
         self._selected_lines.clear()
         self._previously_selected_lines.clear()
         self._last_clicked_line = -1
@@ -257,6 +266,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         QTimer.singleShot(0, self.recalculate_guidelines)
 
     def calculate_block_guidelines(self, block, font_map, sequences, limit_px, default_tag_mappings=None) -> None:
+        """Calculate block guidelines."""
         from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
         from PyQt6.QtGui import QTextCursor
 
@@ -278,6 +288,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         rules = getattr(main_win, 'current_game_rules', None)
 
         def get_width(txt):
+            """Get the width."""
             if rules and hasattr(rules, 'calculate_string_width_override'):
                 override_val = rules.calculate_string_width_override(txt, font_map)
                 if isinstance(override_val, (int, float)):
@@ -368,6 +379,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
                     self.guideline_positions[(block_num, last_idx)] = (limit_x, False)
 
     def recalculate_guidelines(self) -> None:
+        """Recalculate guidelines."""
         self.guideline_positions = {}
         if not self.show_width_guideline or self.line_width_warning_threshold_pixels <= 0:
             return
@@ -415,10 +427,12 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.viewport().update()
 
     def handle_line_number_area_mouse_move(self, event: QMouseEvent):
+        """Handle line number area mouse move."""
         self.mouse_handler.handle_line_number_area_mouse_move(event)
 
 
     def get_selected_lines(self):
+        """Get the selected lines."""
         return sorted(list(self._selected_lines))
 
     def set_selected_lines(self, lines: List[int]):
@@ -426,6 +440,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         # If we currently have multiple lines selected (len > 1), and a programmatic call
         # tries to select a single line that is already part of the current selection,
         # we ignore it to prevent lazy-loading or text updates from resetting user's selection.
+        """Set the selected lines."""
         if len(lines) == 1 and len(self._selected_lines) > 1 and lines[0] in self._selected_lines:
             return
 
@@ -437,12 +452,14 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._emit_selection_changed()
 
     def clear_selection(self):
+        """Remove selection."""
         self._selected_lines.clear()
         self._last_clicked_line = -1
         self._update_selection_highlight()
         self._emit_selection_changed()
 
     def _update_selection_highlight(self):
+        """Internal helper to update the selection highlight."""
         lines_to_highlight = self._selected_lines - self._previously_selected_lines
         lines_to_clear = self._previously_selected_lines - self._selected_lines
         
@@ -451,9 +468,11 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._previously_selected_lines = self._selected_lines.copy()
 
     def _emit_selection_changed(self):
+        """Internal helper to emit selection changed."""
         self.previewSelectionChanged.emit(self.get_selected_lines())
 
     def leaveEvent(self, event) -> None:
+        """Leaveevent."""
         if getattr(self, '_current_combined_tooltip', None):
             QToolTip.hideText()
             self._current_combined_tooltip = None
@@ -463,6 +482,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         super().leaveEvent(event)
 
     def _find_glossary_entry_at(self, pos):
+        """Internal helper to find glossary entry at."""
         if not hasattr(self, '_glossary_manager') or not self._glossary_manager:
             return None
             
@@ -482,22 +502,28 @@ class LineNumberedTextEdit(QPlainTextEdit):
         return None
 
     def _find_warning_tooltip_at(self, pos: QPoint) -> Optional[str]:
+        """Internal helper to find warning tooltip at."""
         return self.tooltip_logic.find_warning_tooltip_at(pos)
 
 
     def _set_theme_colors(self, main_window_ref):
+        """Internal helper to set the theme colors."""
         lnet_editor_setup.set_theme_colors(self, main_window_ref)
 
     def _create_tag_button(self, parent_widget, display: str, open_tag: str, close_tag: str = None, menu: QMenu = None):
+        """Internal helper to create tag button."""
         return lnet_editor_setup.create_tag_button(self, parent_widget, display, open_tag, close_tag, menu)
 
     def populateContextMenu(self, menu: QMenu, position_in_widget_coords):
+        """Populatecontextmenu."""
         self.context_menu_logic.populate(menu, position_in_widget_coords)
 
     def _update_auxiliary_widths(self):
+        """Internal helper to update the auxiliary widths."""
         lnet_editor_setup.update_auxiliary_widths(self)
 
     def setFont(self, font: QFont):
+        """Setfont."""
         super().setFont(font)
         if hasattr(self, 'highlighter') and self.highlighter:
             self.highlighter.rehighlight()
@@ -507,6 +533,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.viewport().update()
 
     def wheelEvent(self, event):
+        """Wheelevent."""
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             main_window = self.window()
             if hasattr(main_window, 'handle_zoom'):
@@ -523,18 +550,21 @@ class LineNumberedTextEdit(QPlainTextEdit):
         super().wheelEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent):
+        """Keypressevent."""
         if self.keyboard_handler.handle_key_press(event):
             event.accept()
             return
         super().keyPressEvent(event)
 
     def setReadOnly(self, ro):
+        """Setreadonly."""
         super().setReadOnly(ro)
         self.highlightManager.clearAllHighlights()
         if not ro:
              self.highlightManager.updateCurrentLineHighlight()
              self.setUndoRedoEnabled(False)
     def lineNumberAreaWidth(self):
+        """Linenumberareawidth."""
         total_blocks = self.override_total_lines if self.override_total_lines is not None else self.blockCount()
         if hasattr(self, 'custom_line_numbers') and self.custom_line_numbers:
             max_num = max((v for v in self.custom_line_numbers if v is not None), default=1)
@@ -562,6 +592,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         return base_width + additional_width
 
     def updateLineNumberAreaWidth(self, _):
+        """Updatelinenumberareawidth."""
         new_width = self.lineNumberAreaWidth()
         if self.viewportMargins().left() != new_width:
             self.setViewportMargins(new_width, 0, 0, 0)
@@ -570,11 +601,13 @@ class LineNumberedTextEdit(QPlainTextEdit):
             self.lineNumberArea.update()
 
     def updateLineNumberArea(self, rect: QRectF, dy: int):
+        """Updatelinenumberarea."""
         if hasattr(self, 'lineNumberArea'): 
             if dy: self.lineNumberArea.scroll(0, dy)
             else: self.lineNumberArea.update(0, 0, self.lineNumberArea.width(), self.lineNumberArea.height())
 
     def resizeEvent(self, event):
+        """Resizeevent."""
         super().resizeEvent(event)
         cr = self.contentsRect()
         if hasattr(self, 'lineNumberArea'): 
@@ -583,36 +616,45 @@ class LineNumberedTextEdit(QPlainTextEdit):
             self.viewport().update()
 
     def paintEvent(self, event: QPaintEvent):
+        """Paintevent."""
         super().paintEvent(event)
         if hasattr(self, 'paint_event_logic'): 
             self.paint_event_logic.execute_paint_event(event)
 
     def lineNumberAreaPaintEvent(self, event, painter_device):
+        """Linenumberareapaintevent."""
         if hasattr(self.lineNumberArea, 'paint_logic'):
             self.lineNumberArea.paint_logic.execute_paint_event(event, painter_device)
 
     def mousePressEvent(self, event: QMouseEvent):
+        """Mousepressevent."""
         self.mouse_handler.mousePressEvent(event) 
 
     def super_mousePressEvent(self, event: QMouseEvent):
+        """Super mousepressevent."""
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
+        """Mousereleaseevent."""
         self.mouse_handler.mouseReleaseEvent(event) 
 
     def super_mouseReleaseEvent(self, event: QMouseEvent):
+        """Super mousereleaseevent."""
         super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
+        """Mousedoubleclickevent."""
         if self.custom_double_click_handler:
             self.custom_double_click_handler(event)
         else:
             super().mouseDoubleClickEvent(event)
 
     def super_mouseDoubleClickEvent(self, event: QMouseEvent):
+        """Super mousedoubleclickevent."""
         super().mouseDoubleClickEvent(event)
 
     def _get_icon_sequences(self) -> List[str]:
+        """Internal helper to get the icon sequences."""
         if self.objectName() == 'preview_text_edit':
             return []
         main_window = self.window()
@@ -623,103 +665,136 @@ class LineNumberedTextEdit(QPlainTextEdit):
         return []
 
     def _find_icon_sequence_in_block(self, block_text: str, sequences: List[str], position_in_block: int) -> Optional[Tuple[int, int, str]]:
+        """Internal helper to find icon sequence in block."""
         return self.tag_helpers.find_icon_sequence_in_block(block_text, sequences, position_in_block)
 
     def _snap_cursor_out_of_icon_sequences(self, move_right: bool) -> bool:
+        """Internal helper to snap cursor out of icon sequences."""
         return self.tag_helpers.snap_cursor_out_of_icon_sequences(move_right)
 
     def _momentary_highlight_tag(self, block, start_in_block, length):
+        """Internal helper to momentary highlight tag."""
         self.highlight_interface._momentary_highlight_tag(block, start_in_block, length)
 
     def _apply_all_extra_selections(self):
+        """Internal helper to apply all extra selections."""
         self.highlight_interface._apply_all_extra_selections()
 
     def addCriticalProblemHighlight(self, line_number: int):
+        """Addcriticalproblemhighlight."""
         self.hi_wrappers.addCriticalProblemHighlight(line_number)
 
     def removeCriticalProblemHighlight(self, line_number: int) -> bool:
+        """Removecriticalproblemhighlight."""
         return self.hi_wrappers.removeCriticalProblemHighlight(line_number)
 
     def clearCriticalProblemHighlights(self):
+        """Clearcriticalproblemhighlights."""
         self.hi_wrappers.clearCriticalProblemHighlights()
 
     def hasCriticalProblemHighlight(self, line_number = None) -> bool:
+        """Hascriticalproblemhighlight."""
         return self.hi_wrappers.hasCriticalProblemHighlight(line_number)
 
     def addWarningLineHighlight(self, line_number: int):
+        """Addwarninglinehighlight."""
         self.hi_wrappers.addWarningLineHighlight(line_number)
 
     def removeWarningLineHighlight(self, line_number: int) -> bool:
+        """Removewarninglinehighlight."""
         return self.hi_wrappers.removeWarningLineHighlight(line_number)
 
     def clearWarningLineHighlights(self):
+        """Clearwarninglinehighlights."""
         self.hi_wrappers.clearWarningLineHighlights()
 
     def hasWarningLineHighlight(self, line_number = None) -> bool:
+        """Haswarninglinehighlight."""
         return self.hi_wrappers.hasWarningLineHighlight(line_number)
 
     def addWidthExceededHighlight(self, line_number: int):
+        """Addwidthexceededhighlight."""
         self.hi_wrappers.addWidthExceededHighlight(line_number)
 
     def removeWidthExceededHighlight(self, line_number: int) -> bool:
+        """Removewidthexceededhighlight."""
         return self.hi_wrappers.removeWidthExceededHighlight(line_number)
 
     def clearWidthExceededHighlights(self):
+        """Clearwidthexceededhighlights."""
         self.hi_wrappers.clearWidthExceededHighlights()
 
     def hasWidthExceededHighlight(self, line_number = None) -> bool:
+        """Haswidthexceededhighlight."""
         return self.hi_wrappers.hasWidthExceededHighlight(line_number)
     
     def addShortLineHighlight(self, line_number: int):
+        """Addshortlinehighlight."""
         self.hi_wrappers.addShortLineHighlight(line_number)
 
     def removeShortLineHighlight(self, line_number: int) -> bool:
+        """Removeshortlinehighlight."""
         return self.hi_wrappers.removeShortLineHighlight(line_number)
 
     def clearShortLineHighlights(self):
+        """Clearshortlinehighlights."""
         self.hi_wrappers.clearShortLineHighlights()
 
     def hasShortLineHighlight(self, line_number = None) -> bool:
+        """Hasshortlinehighlight."""
         return self.hi_wrappers.hasShortLineHighlight(line_number)
 
     def addEmptyOddSublineHighlight(self, block_number: int):
+        """Addemptyoddsublinehighlight."""
         self.hi_wrappers.addEmptyOddSublineHighlight(block_number)
 
     def removeEmptyOddSublineHighlight(self, block_number: int) -> bool:
+        """Removeemptyoddsublinehighlight."""
         return self.hi_wrappers.removeEmptyOddSublineHighlight(block_number)
 
     def clearEmptyOddSublineHighlights(self):
+        """Clearemptyoddsublinehighlights."""
         self.hi_wrappers.clearEmptyOddSublineHighlights()
 
     def hasEmptyOddSublineHighlight(self, block_number = None) -> bool:
+        """Hasemptyoddsublinehighlight."""
         return self.hi_wrappers.hasEmptyOddSublineHighlight(block_number)
 
     def clearPreviewSelectedLineHighlight(self):
+        """Clearpreviewselectedlinehighlight."""
         self.highlightManager.set_background_for_lines(set(), self._previously_selected_lines)
         self.clear_selection()
 
     def setLinkedCursorPosition(self, line_number: int, column_number: int):
+        """Setlinkedcursorposition."""
         self.hi_wrappers.hi.setLinkedCursorPosition(line_number, column_number)
 
     def applyQueuedHighlights(self):
+        """Applyqueuedhighlights."""
         self.highlightManager.applyHighlights()
 
     def clearAllProblemTypeHighlights(self):
+        """Clearallproblemtypehighlights."""
         self.highlightManager.clearAllProblemHighlights()
 
     def addProblemLineHighlight(self, line_number: int):
+        """Addproblemlinehighlight."""
         self.addCriticalProblemHighlight(line_number)
 
     def removeProblemLineHighlight(self, line_number: int) -> bool:
+        """Removeproblemlinehighlight."""
         return self.removeCriticalProblemHighlight(line_number)
 
     def clearProblemLineHighlights(self):
+        """Clearproblemlinehighlights."""
         self.clearAllProblemTypeHighlights()
         
     def hasProblemHighlight(self, line_number = None) -> bool:
+        """Hasproblemhighlight."""
         return self.hasCriticalProblemHighlight(line_number)
 
     def handle_mass_set_font(self):
+        """Handle mass set font."""
         selected_lines = self.get_selected_lines()
         if not selected_lines: return
 
@@ -739,6 +814,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
             main_window.string_settings_handler.apply_font_to_lines(real_indices, font_file)
 
     def handle_mass_set_width(self):
+        """Handle mass set width."""
         selected_lines = self.get_selected_lines()
         if not selected_lines: return
 
@@ -763,6 +839,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
     @property
     def game_dialog_max_width_pixels(self):
+        """Game dialog max width pixels."""
         main_window = self.window()
         if main_window is not self and isinstance(main_window, QMainWindow) and hasattr(main_window, 'game_dialog_max_width_pixels'):
             return main_window.game_dialog_max_width_pixels
@@ -770,10 +847,12 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
     @game_dialog_max_width_pixels.setter
     def game_dialog_max_width_pixels(self, val):
+        """Game dialog max width pixels."""
         self._game_dialog_max_width_pixels = val
 
     @property
     def line_width_warning_threshold_pixels(self):
+        """Line width warning threshold pixels."""
         main_window = self.window()
         if main_window is not self and isinstance(main_window, QMainWindow) and hasattr(main_window, 'line_width_warning_threshold_pixels'):
             return main_window.line_width_warning_threshold_pixels
@@ -781,10 +860,12 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
     @line_width_warning_threshold_pixels.setter
     def line_width_warning_threshold_pixels(self, val):
+        """Line width warning threshold pixels."""
         self._line_width_warning_threshold_pixels = val
 
     @property
     def show_width_guideline(self):
+        """Show width guideline."""
         main_window = self.window()
         if main_window is not self and isinstance(main_window, QMainWindow) and hasattr(main_window, 'show_width_guideline'):
             return main_window.show_width_guideline
@@ -792,4 +873,5 @@ class LineNumberedTextEdit(QPlainTextEdit):
 
     @show_width_guideline.setter
     def show_width_guideline(self, val):
+        """Show width guideline."""
         self._show_width_guideline = val

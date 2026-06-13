@@ -1,4 +1,4 @@
-"""Reusable prompt editor dialog for AI requests."""
+﻿"""Reusable prompt editor dialog for AI requests."""
 from __future__ import annotations
 from typing import Optional, Tuple
 
@@ -25,6 +25,7 @@ class PromptEditorDialog(QDialog):
         user_prompt: str,
         allow_save: bool = True,
     ) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle(title or "Prompt Editor")
         self.resize(900, 600)

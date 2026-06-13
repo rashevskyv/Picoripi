@@ -1,4 +1,4 @@
-import re
+﻿import re
 from utils.logging_utils import log_debug
 
 ANY_TAG_PATTERN = re.compile(r'\[[^\]]*\]|\{[^}]*\}')
@@ -9,6 +9,7 @@ TAG_STATUS_MISMATCHED_CURLY = "MISMATCHED_CURLY"
 TAG_STATUS_UNRESOLVED_BRACKETS = "UNRESOLVED_BRACKETS"
 
 def apply_default_mappings_only(text_segment: str, default_mappings: dict) -> tuple[str, bool]:
+    """Apply default mappings only."""
     if not default_mappings or not text_segment: return text_segment, False
     modified_segment = str(text_segment); changed = False
     sorted_keys = sorted(default_mappings.keys(), key=len, reverse=True)

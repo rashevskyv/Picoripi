@@ -1,4 +1,4 @@
-import re
+﻿import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
@@ -7,11 +7,14 @@ from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
 
 class BlockListUpdater(BaseUIUpdater):
+    """Block list updater implementation."""
     def __init__(self, main_window, data_processor):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor)
         self._block_items_cache = {}  # {block_idx: [QTreeWidgetItem, ...]}
 
     def _set_item_style_icon(self, item: QTreeWidgetItem, column: int, standard_icon_enum) -> None:
+        """Internal helper to set the item style icon."""
         try:
             if hasattr(self.mw, 'style') and self.mw.style():
                 icon = self.mw.style().standardIcon(standard_icon_enum)
@@ -22,11 +25,13 @@ class BlockListUpdater(BaseUIUpdater):
             pass
 
     def _register_item_in_cache(self, item: QTreeWidgetItem):
+        """Internal helper to register item in cache."""
         block_idx = item.data(0, Qt.ItemDataRole.UserRole)
         if block_idx is not None:
             self._block_items_cache.setdefault(block_idx, []).append(item)
 
     def _get_block_display_name_with_ext(self, block_idx: int, base_display_name: str) -> str:
+        """Internal helper to get the block display name with ext."""
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
             pm = self.mw.project_manager
             block_map = getattr(self.mw, 'block_to_project_file_map', {})
@@ -230,6 +235,7 @@ class BlockListUpdater(BaseUIUpdater):
         return None
 
     def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None) -> dict:
+        """Internal helper to get the aggregated problems for block."""
         problem_counts = {}
         if not self.mw.current_game_rules:
             return problem_counts
@@ -298,6 +304,7 @@ class BlockListUpdater(BaseUIUpdater):
         return problem_counts
 
     def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
+        """Internal helper to apply issues and tooltip."""
         display_name_with_issues = base_display_name
         tooltip_lines = []
         total_issues = sum(problem_counts.values())
@@ -491,6 +498,7 @@ class BlockListUpdater(BaseUIUpdater):
                 folder_item.setSelected(True)
 
     def populate_blocks(self, override_folder_id=None, override_block_idx=None):
+        """Populate blocks."""
         if not hasattr(self.mw, 'block_list_widget') or not self.mw.block_list_widget:
             return  # Sometimes called during initialization before block_list_widget is created
 
@@ -692,6 +700,7 @@ class BlockListUpdater(BaseUIUpdater):
         self.mw.block_list_widget.viewport().update()
 
     def update_block_item_text_with_problem_count(self, block_idx: int):
+        """Update the block item text with problem count."""
         if not hasattr(self.mw, 'block_list_widget'):
             return
         
@@ -733,9 +742,11 @@ class BlockListUpdater(BaseUIUpdater):
         self.mw.block_list_widget.viewport().update()
 
     def highlight_problem_block(self, block_idx: int, highlight: bool, is_critical: bool = True):
+        """Highlight problem block."""
         pass 
 
     def clear_all_problem_block_highlights_and_text(self): 
+        """Remove all problem block highlights and text."""
         if not hasattr(self.mw, 'block_list_widget'): return
         
         iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)

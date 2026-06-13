@@ -1,4 +1,4 @@
-"""Glossary management helpers: loading, caching, and pattern matching."""
+﻿"""Glossary management helpers: loading, caching, and pattern matching."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,6 +22,7 @@ class GlossaryEntry:
     profiled: bool = False
 
     def is_valid(self) -> bool:
+        """Check if is valid."""
         return bool(self.original and self.translation)
 
 
@@ -51,6 +52,7 @@ class GlossaryManager:
     """Load and cache glossary entries for a plugin with search utilities."""
 
     def __init__(self) -> None:
+        """Initialize a new instance."""
         self._entries: List[GlossaryEntry] = []
         self._raw_text: str = ""
         self._compiled_patterns: Dict[str, re.Pattern[str]] = {}
@@ -69,6 +71,7 @@ class GlossaryManager:
 
     @staticmethod
     def normalize_term(value: str) -> str:
+        """Normalize term."""
         if value is None:
             return ""
         cleaned = unicodedata.normalize('NFKD', value)
@@ -131,6 +134,7 @@ class GlossaryManager:
         )
 
     def refresh_from_disk(self) -> None:
+        """Update the from disk."""
         if self._glossary_path and self._glossary_path.exists():
             text = self._glossary_path.read_text(encoding='utf-8')
             self.load_from_text(
@@ -147,9 +151,11 @@ class GlossaryManager:
             )
 
     def get_raw_text(self) -> str:
+        """Get the raw text."""
         return self._raw_text
 
     def get_entries(self) -> Sequence[GlossaryEntry]:
+        """Get the entries."""
         return list(self._entries)
 
     def get_entry(self, term: str) -> Optional[GlossaryEntry]:
@@ -163,20 +169,24 @@ class GlossaryManager:
         return None
 
     def get_entries_sorted_by_length(self) -> Sequence[GlossaryEntry]:
+        """Get the entries sorted by length."""
         return sorted(self._entries, key=lambda item: len(item.original or ""), reverse=True)
 
     def get_compiled_pattern(self, entry: GlossaryEntry) -> Optional[re.Pattern[str]]:
+        """Get the compiled pattern."""
         if not entry or not entry.original:
             return None
         return self._compiled_patterns.get(entry.original)
 
     def iter_compiled(self) -> Iterable[Tuple[GlossaryEntry, re.Pattern[str]]]:
+        """Iter compiled."""
         for entry in self._entries:
             pattern = self._compiled_patterns.get(entry.original)
             if pattern:
                 yield entry, pattern
 
     def find_matches(self, text: str) -> List[GlossaryMatch]:
+        """Find matches."""
         if not text:
             return []
             
@@ -218,6 +228,7 @@ class GlossaryManager:
         return sorted(matches, key=lambda m: m.start)
 
     def build_occurrence_index(self, dataset: Sequence) -> Dict[str, List[GlossaryOccurrence]]:
+        """Create occurrence index."""
         occurrences: Dict[str, List[GlossaryOccurrence]] = {entry.original: [] for entry in self._entries}
         if not dataset:
             self._occurrence_index = occurrences
@@ -297,11 +308,13 @@ class GlossaryManager:
             self._occurrence_index[new_entry.original] = term_occurrences
 
     def get_occurrences_for(self, entry: GlossaryEntry) -> List[GlossaryOccurrence]:
+        """Get the occurrences for."""
         if entry is None or not entry.original:
             return []
         return list(self._occurrence_index.get(entry.original, []))
 
     def get_occurrence_map(self) -> Dict[str, List[GlossaryOccurrence]]:
+        """Get the occurrence map."""
         return {key: list(value) for key, value in self._occurrence_index.items()}
 
     def get_relevant_terms(self, text: str) -> List[GlossaryEntry]:
@@ -327,6 +340,7 @@ class GlossaryManager:
 
 
     def add_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: bool = False) -> Optional[GlossaryEntry]:
+        """Add entry."""
         original_key = (original or '').strip()
         if not original_key:
             return None
@@ -349,6 +363,7 @@ class GlossaryManager:
         return new_entry
 
     def update_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: Optional[bool] = None) -> Optional[GlossaryEntry]:
+        """Update the entry."""
         original_key = (original or '').strip()
         updated_translation = translation.strip()
         updated_notes = notes.strip()
@@ -374,6 +389,7 @@ class GlossaryManager:
         return None
 
     def delete_entry(self, original: str) -> bool:
+        """Remove entry."""
         original_key = (original or '').strip()
         if not original_key:
             return False
@@ -389,9 +405,11 @@ class GlossaryManager:
         return True
 
     def save_to_disk(self) -> None:
+        """Save to disk."""
         self._persist(write_only=True)
 
     def _parse_markdown(self, text: str) -> List[GlossaryEntry]:
+        """Internal helper to parse markdown."""
         self._header_lines = []
         self._section_order = []
         if not text:
@@ -465,6 +483,7 @@ class GlossaryManager:
         return entries
 
     def _table_lines(self, entries: Sequence[GlossaryEntry]) -> List[str]:
+        """Internal helper to table lines."""
         lines = ['| Original | Translation | Notes |', '|----------|-------------|-------|']
         for entry in entries:
             # Escape newlines as <br> and pipe characters as \| inside markdown table cells
@@ -479,6 +498,7 @@ class GlossaryManager:
         return lines
 
     def _generate_markdown(self) -> str:
+        """Internal helper to generate markdown."""
         lines: List[str] = []
         if self._header_lines:
             lines.extend(self._header_lines)
@@ -521,6 +541,7 @@ class GlossaryManager:
         return markdown
 
     def _persist(self, write_only: bool = False) -> None:
+        """Internal helper to persist."""
         if self._glossary_path:
             # Migration logic: if current path is .md, migrate it to .json!
             if self._glossary_path.suffix.lower() == '.md':
@@ -576,6 +597,7 @@ class GlossaryManager:
             self._build_pattern_cache()
 
     def _build_pattern_cache(self) -> None:
+        """Internal helper to create pattern cache."""
         self._compiled_patterns.clear()
         self._first_word_index.clear()
         self._non_word_patterns.clear()
@@ -609,6 +631,7 @@ class GlossaryManager:
 
     @staticmethod
     def _build_regex(term: str) -> re.Pattern[str]:
+        """Internal helper to create regex."""
         if not term:
             return re.compile(r"(?!x)x")
 
@@ -767,6 +790,7 @@ def replace_preserve_case(text: str, find_word: str, replace_word: str) -> str:
     pattern = re.compile(re.escape(find_word), re.IGNORECASE)
     
     def repl(match):
+        """Repl."""
         return preserve_case(match.group(0), replace_word)
         
     return pattern.sub(repl, text)

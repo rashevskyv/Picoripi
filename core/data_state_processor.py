@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Optional, Any, Union
+﻿from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 import re
 import datetime
@@ -8,10 +8,13 @@ from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from components.toast import ToastNotification
 
 class DataStateProcessor:
+    """Data state processor implementation."""
     def __init__(self, main_window: Any):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def _show_message(self, title: str, text: str, type: str = "info"):
+        """Internal helper to show message."""
         if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
             self.mw.ui_provider.show_message(title, text, type)
         else:
@@ -23,11 +26,13 @@ class DataStateProcessor:
                 log_info(f"{title}: {text}")
 
     def _ask_yes_no(self, title: str, text: str, default_yes: bool = True) -> bool:
+        """Internal helper to ask yes no."""
         if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
             return self.mw.ui_provider.ask_yes_no(title, text, default_yes)
         return default_yes
 
     def _get_string_from_source(self, block_idx: int, string_idx: int, source_data: List[Any], source_name: str) -> Optional[str]:
+        """Internal helper to get the string from source."""
         if not source_data:
             return None
         if not (0 <= block_idx < len(source_data)):
@@ -44,6 +49,7 @@ class DataStateProcessor:
         return value
 
     def get_current_string_text(self, block_idx: int, string_idx: int) -> Tuple[str, str]:
+        """Get the current string text."""
         edit_key = (block_idx, string_idx)
         if edit_key in self.mw.data_store.edited_data:
             return self.mw.data_store.edited_data[edit_key], "edited_data (in-memory)"
@@ -64,6 +70,7 @@ class DataStateProcessor:
         return "", "initial_load" 
 
     def get_block_texts(self, block_idx: int) -> List[str]:
+        """Get the block texts."""
         if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return []
         
@@ -105,6 +112,7 @@ class DataStateProcessor:
         return current_text.strip() != original_text.strip()
 
     def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT", skip_ui_refresh: bool = False) -> bool:
+        """Update the edited data."""
         edit_key = (block_idx, string_idx)
         
         # Get old text for undo
@@ -446,6 +454,7 @@ class DataStateProcessor:
 
 
     def _perform_save_impl(self, output_data_list: List[Any], progress_callback=None) -> Tuple[bool, List[Tuple[str, int, int]], List[str]]:
+        """Internal helper to perform save impl."""
         warnings = []
         errors = []
         
@@ -723,6 +732,7 @@ class DataStateProcessor:
 
 
     def save_current_edits(self, ask_confirmation: bool = True) -> bool:
+        """Save current edits."""
         log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}", category="file_ops")
         if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
             self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
@@ -831,6 +841,7 @@ class DataStateProcessor:
             return False
 
     def revert_edited_file_to_original(self) -> bool:
+        """Revert edited file to original."""
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
 
         if not is_project_mode:

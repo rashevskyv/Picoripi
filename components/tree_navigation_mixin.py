@@ -1,4 +1,4 @@
-# components/tree_navigation_mixin.py
+﻿# components/tree_navigation_mixin.py
 """Navigation and item reordering mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QTreeWidgetItemIterator
@@ -14,6 +14,7 @@ class TreeNavigationMixin:
     # -------------------------------------------------------------------------
 
     def navigate_blocks(self, direction: int):
+        """Navigate blocks."""
         log_debug(f"CustomTreeWidget: navigate_blocks direction={direction}")
         current_item = self.currentItem()
         iterator = QTreeWidgetItemIterator(self)
@@ -42,6 +43,7 @@ class TreeNavigationMixin:
         self.scrollToItem(target_item)
 
     def navigate_folders(self, direction: int):
+        """Navigate folders."""
         log_debug(f"CustomTreeWidget: navigate_folders direction={direction}")
         current_item = self.currentItem()
         iterator = QTreeWidgetItemIterator(self)

@@ -1,4 +1,4 @@
-"""
+﻿"""
 U8 archive container for Nintendo GameCube/Wii games.
 
 U8 is a flat-list archive format (magic 0x55AA382D, "U.8-") commonly used
@@ -51,6 +51,7 @@ class U8Container(BaseArchiveContainer):
 
     @classmethod
     def can_handle(cls, data: bytes) -> bool:
+        """Check if can handle."""
         if len(data) < 4:
             return False
         if data[:4] == _U8_MAGIC:
@@ -64,6 +65,7 @@ class U8Container(BaseArchiveContainer):
         return False
 
     def __init__(self, data: bytes) -> None:
+        """Initialize a new instance."""
         self._is_yaz0: bool = data[:4] == _YAZ0_MAGIC
         if self._is_yaz0:
             data = yaz0.decompress(data)
@@ -80,6 +82,7 @@ class U8Container(BaseArchiveContainer):
     # ------------------------------------------------------------------
 
     def _parse(self) -> None:
+        """Internal helper to parse."""
         d = self._raw
         self._root_off: int = struct.unpack_from(">I", d, 0x04)[0]   # always 0x20
         self._hdr_size: int = struct.unpack_from(">I", d, 0x08)[0]   # nodes + str table
@@ -121,12 +124,14 @@ class U8Container(BaseArchiveContainer):
         self._traverse_dir(node_idx=0, prefix="")
 
     def _get_string(self, name_off: int) -> str:
+        """Internal helper to get the string."""
         d = self._raw
         start = self._str_table_off + name_off
         end   = d.index(b"\x00", start)
         return d[start:end].decode("ascii", "replace")
 
     def _traverse_dir(self, node_idx: int, prefix: str) -> None:
+        """Internal helper to traverse dir."""
         node = self._nodes[node_idx]
         assert node["type"] == _NODE_DIR
 
@@ -151,9 +156,11 @@ class U8Container(BaseArchiveContainer):
     # ------------------------------------------------------------------
 
     def list_files(self) -> list[str]:
+        """List files."""
         return list(self._file_paths.keys())
 
     def read_file(self, path: str) -> bytes:
+        """Read file."""
         if path in self._overlay:
             return self._overlay[path]
         if path not in self._file_paths:
@@ -162,6 +169,7 @@ class U8Container(BaseArchiveContainer):
         return self._raw[node["data_off"] : node["data_off"] + node["size"]]
 
     def write_file(self, path: str, data: bytes) -> None:
+        """Write file."""
         if path not in self._file_paths:
             raise KeyError(f"File not found in U8 archive: {path!r}")
         self._overlay[path] = data

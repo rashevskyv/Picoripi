@@ -1,9 +1,10 @@
-# handlers/width_calculation_worker.py
+﻿# handlers/width_calculation_worker.py
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 from typing import List, Dict, Any, Optional
 from utils.utils import calculate_string_width, remove_all_tags
 
 class WidthCalculationWorker(QThread):
+    """Width calculation worker implementation."""
     progress_updated = pyqtSignal(int)
     calculation_finished = pyqtSignal(dict)
     cancelled = pyqtSignal()
@@ -13,6 +14,7 @@ class WidthCalculationWorker(QThread):
                  game_rules_plugin: Any, mw_settings: Dict[str, Any], 
                  all_font_maps: Optional[Dict[str, dict]] = None,
                  target_indices: Optional[set] = None, parent=None):
+        """Initialize a new instance."""
         try:
             super().__init__(parent)
         except TypeError:
@@ -29,10 +31,12 @@ class WidthCalculationWorker(QThread):
         self.is_cancelled = False
         
     def cancel(self):
+        """Cancel."""
         self.is_cancelled = True
         
     def run(self):
         # We use num_strings for progress bar scale. 
+        """Run."""
         num_strings = len(self.block_data)
         
         # Determine actual indices to process

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 from typing import Any, Tuple, Dict, List, Set, Optional
 
@@ -24,6 +24,7 @@ from .text_fixer import TextFixer
 from .tag_logic import process_segment_tags_aggressively_zww
 
 class ProblemIDs:
+    """Problem i ds implementation."""
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
     PROBLEM_WIDTH_EXCEEDED = PROBLEM_WIDTH_EXCEEDED
     PROBLEM_SHORT_LINE = PROBLEM_SHORT_LINE
@@ -35,7 +36,9 @@ class ProblemIDs:
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
 
 class GameRules(BaseGameRules):
+    """Game rules and translation logic for Game."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.problem_definitions_cache = PROBLEM_DEFINITIONS
         # Додаємо посилання на ProblemIDs, щоб UI міг звертатися до self.mw.current_game_rules.problem_ids
@@ -47,29 +50,37 @@ class GameRules(BaseGameRules):
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Optional[Dict[str, str]]]:
         # Use base class implementation for Kruptar format support
+        """Load data from json obj."""
         return super().load_data_from_json_obj(json_obj)
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         # Use base class implementation for Kruptar format support
+        """Save data to json obj."""
         return super().save_data_to_json_obj(data, block_names)
 
     def get_display_name(self) -> str:
+        """Get the display name."""
         return "Zelda: The Wind Waker"
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
+        """Get the problem definitions."""
         return self.problem_definitions_cache
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, Any]]:
+        """Get the syntax highlighting rules."""
         return self.tag_manager.get_syntax_highlighting_rules()
         
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         return self.tag_manager.get_legitimate_tags()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
+        """Check if is tag legitimate."""
         return self.tag_manager.is_tag_legitimate(tag_to_check)
 
     def analyze_subline(self, text: str, next_text: Optional[str], subline_number_in_data_string: int, qtextblock_number_in_editor: int, is_last_subline_in_data_string: bool, editor_font_map: dict, editor_line_width_threshold: int, full_data_string_text_for_logical_check: str, is_target_for_debug: bool = False, logical_hard_limit: Optional[int] = None) -> set:
         
+        """Analyze subline."""
         all_problems = self.problem_analyzer.analyze_data_string(full_data_string_text_for_logical_check, editor_font_map, editor_line_width_threshold, logical_hard_limit)
 
         if subline_number_in_data_string < len(all_problems):
@@ -89,6 +100,7 @@ class GameRules(BaseGameRules):
         )
 
     def autofix_data_string(self, data_string: str, editor_font_map: dict, editor_line_width_threshold: int, logical_hard_limit: Optional[int] = None, allowed_problems: Optional[Set[str]] = None, block_idx: Optional[int] = None, string_idx: Optional[int] = None, page_local: bool = False, disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         return self.text_fixer.autofix_data_string(
             data_string=data_string,
             editor_font_map=editor_font_map,
@@ -102,6 +114,7 @@ class GameRules(BaseGameRules):
         )
 
     def process_pasted_segment(self, segment_to_insert: str, original_text_for_tags: str, editor_player_tag_const: str) -> Tuple[str, str, str]:
+        """Process pasted segment."""
         from utils.utils import clean_spaces
         cleaned_segment = clean_spaces(segment_to_insert)
         return process_segment_tags_aggressively_zww(
@@ -111,10 +124,12 @@ class GameRules(BaseGameRules):
         )
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
+        """Calculate string width override."""
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
         return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
         
     def get_short_problem_name(self, problem_id: str) -> str:
+        """Get the short problem name."""
         if problem_id == PROBLEM_WIDTH_EXCEEDED: return "Width"
         if problem_id == PROBLEM_SHORT_LINE: return "Short"
         if problem_id == PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: return "EmptyOddD"
@@ -126,6 +141,7 @@ class GameRules(BaseGameRules):
         return super().get_short_problem_name(problem_id)
         
     def get_text_representation_for_preview(self, data_string: str) -> str:
+        """Get the text representation for preview."""
         newline_symbol = "↵"
         if self.mw and hasattr(self.mw, "newline_display_symbol"):
             val = self.mw.newline_display_symbol
@@ -142,14 +158,23 @@ class GameRules(BaseGameRules):
         return convert_spaces_to_dots_for_display(processed_string, show_dots)
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
+        """Get the text representation for editor."""
         return super().get_text_representation_for_editor(str(data_string_subline))
         
     def convert_editor_text_to_data(self, text: str) -> str:
+        """Convert editor text to data."""
         return super().convert_editor_text_to_data(text)
         
-    def get_enter_char(self) -> str: return '\n'
-    def get_shift_enter_char(self) -> str: return '\n'
-    def get_ctrl_enter_char(self) -> str: return '\n'
+    def get_enter_char(self) -> str:
+        """Get the enter char."""
+        return '\n'
+    def get_shift_enter_char(self) -> str:
+        """Get the shift enter char."""
+        return '\n'
+    def get_ctrl_enter_char(self) -> str:
+        """Get the ctrl enter char."""
+        return '\n'
     
     def get_editor_page_size(self) -> int:
+        """Get the editor page size."""
         return 1

@@ -1,4 +1,4 @@
-"""Dialog for choosing among AI translation variations."""
+﻿"""Dialog for choosing among AI translation variations."""
 from __future__ import annotations
 
 import base64
@@ -29,11 +29,13 @@ class VariationsListDelegate(QStyledItemDelegate):
     """Delegate for drawing progress background under variations list items."""
 
     def __init__(self, parent=None) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.list_widget = parent
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         # Paint the standard item background and text first
+        """Paint."""
         super().paint(painter, option, index)
 
         # Get option text (raw translation string)
@@ -90,6 +92,7 @@ class TranslationVariationsDialog(QDialog):
     """Show multiple translation options and allow the user to pick one."""
 
     def __init__(self, parent=None, variations: Optional[Iterable[str]] = None, show_refresh: bool = False) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.mw = parent
         self.setWindowTitle("AI Translation Variations")
@@ -147,6 +150,7 @@ class TranslationVariationsDialog(QDialog):
             self._populate_variations(list(variations))
 
     def _load_state(self) -> None:
+        """Internal helper to load state."""
         if not self.mw:
             self.resize(720, 520)
             return
@@ -172,6 +176,7 @@ class TranslationVariationsDialog(QDialog):
                 log_warning(f"Failed to restore variations splitter state: {e}")
 
     def _save_state(self) -> None:
+        """Internal helper to save state."""
         if not self.mw:
             return
         
@@ -205,13 +210,16 @@ class TranslationVariationsDialog(QDialog):
                 log_warning(f"Failed to save settings in variations dialog: {e}")
 
     def done(self, r: int) -> None:
+        """Done."""
         self._save_state()
         super().done(r)
 
     def _on_refresh(self) -> None:
+        """Internal helper to handle the refresh event."""
         self.done(2)
 
     def _populate_variations(self, variations: List[str]) -> None:
+        """Internal helper to populate variations."""
         self._list.clear()
         for index, option in enumerate(variations, start=1):
             display = option.replace("\n", " ⏎ ")
@@ -224,6 +232,7 @@ class TranslationVariationsDialog(QDialog):
             self._list.setCurrentRow(0)
 
     def _update_preview(self) -> None:
+        """Internal helper to update the preview."""
         current = self._list.currentItem()
         text = current.data(Qt.UserRole) if current else ""
         if text and self.mw and getattr(self.mw, 'current_game_rules', None):
@@ -231,6 +240,7 @@ class TranslationVariationsDialog(QDialog):
         self._preview.setPlainText(text or "")
 
     def _apply_current_selection(self) -> None:
+        """Internal helper to apply current selection."""
         current = self._list.currentItem()
         if not current:
             return

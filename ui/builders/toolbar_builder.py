@@ -1,14 +1,17 @@
-from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
+﻿from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 
 class ToolBarBuilder:
+    """Tool bar builder implementation."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self.style = main_window.style()
 
     def build(self):
+        """Create ."""
         self.mw.main_toolbar = QToolBar("Main Toolbar")
         self.mw.addToolBar(self.mw.main_toolbar)
         self.mw.main_toolbar.setIconSize(QSize(24, 24))

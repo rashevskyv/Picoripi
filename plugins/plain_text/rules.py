@@ -1,4 +1,4 @@
-"""
+﻿"""
 Plain Text plugin for text translation workbench.
 
 This plugin provides text editing functionality with problem detection and autofix:
@@ -32,6 +32,7 @@ from .tag_logic import process_segment_tags_aggressively_zww
 
 
 class ProblemIDs:
+    """Problem i ds implementation."""
     PROBLEM_WIDTH_EXCEEDED = PROBLEM_WIDTH_EXCEEDED
     PROBLEM_SHORT_LINE = PROBLEM_SHORT_LINE
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
@@ -59,9 +60,11 @@ class GameRules(BaseGameRules):
         return "Plain Text"
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
+        """Get the default tag mappings."""
         return {}
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Optional[Dict[str, str]]]:
+        """Load data from json obj."""
         blocks = []
         block_names = {}
         if isinstance(json_obj, str):
@@ -76,15 +79,18 @@ class GameRules(BaseGameRules):
         return blocks, block_names
 
     def save_data_to_json_obj(self, blocks: List[List[str]], block_names: Optional[Dict[str, str]] = None) -> Any:
+        """Save data to json obj."""
         all_strings = []
         for block in blocks:
             all_strings.extend(block)
         return '\n'.join(str(s) for s in all_strings)
 
     def get_tag_pattern(self) -> Optional[re.Pattern]:
+        """Get the tag pattern."""
         return re.compile(r'\[([^\]]+)\]')
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
+        """Get the text representation for preview."""
         newline_symbol = "↵"
         if self.mw and hasattr(self.mw, "newline_display_symbol"):
             val = self.mw.newline_display_symbol
@@ -102,28 +108,35 @@ class GameRules(BaseGameRules):
         return convert_spaces_to_dots_for_display(processed, show_dots)
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
+        """Get the text representation for editor."""
         processed = str(data_string_subline)
         processed = processed.replace('\\n', '\n')
         processed = processed.replace('\\r', '\n')
         return super().get_text_representation_for_editor(processed)
 
     def convert_editor_text_to_data(self, text: str) -> str:
+        """Convert editor text to data."""
         converted = super().convert_editor_text_to_data(text)
         return converted.replace('\n', '\\n')
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         return self.tag_manager.get_syntax_highlighting_rules()
 
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         return self.tag_manager.get_legitimate_tags()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
+        """Check if is tag legitimate."""
         return self.tag_manager.is_tag_legitimate(tag_to_check)
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
+        """Get the problem definitions."""
         return self.problem_definitions_cache
 
     def get_short_problem_name(self, problem_id: str) -> str:
+        """Get the short problem name."""
         if problem_id == PROBLEM_WIDTH_EXCEEDED: return "Width"
         if problem_id == PROBLEM_SHORT_LINE: return "Short"
         if problem_id == PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: return "Empty1st"
@@ -135,6 +148,7 @@ class GameRules(BaseGameRules):
         return super().get_short_problem_name(problem_id)
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
+        """Calculate string width override."""
         return calculate_string_width(text, font_map, default_char_width, icon_sequences=[])
 
     def analyze_subline(
@@ -151,6 +165,7 @@ class GameRules(BaseGameRules):
         logical_hard_limit: Optional[int] = None
     ) -> set:
 
+        """Analyze subline."""
         all_problems = self.problem_analyzer.analyze_data_string(
             full_data_string_text_for_logical_check,
             editor_font_map,
@@ -194,6 +209,7 @@ class GameRules(BaseGameRules):
         disable_pagination: bool = False
     ) -> Tuple[str, bool]:
         
+        """Autofix data string."""
         text_for_fixing = self.get_text_representation_for_editor(data_string)
         
         fixed_text, was_modified = self.text_fixer.autofix_data_string(
@@ -205,6 +221,7 @@ class GameRules(BaseGameRules):
         return final_text, was_modified
 
     def process_pasted_segment(self, segment_to_insert: str, original_text_for_tags: str, editor_player_tag_const: str) -> Tuple[str, str, str]:
+        """Process pasted segment."""
         from utils.utils import clean_spaces
         cleaned_segment = clean_spaces(segment_to_insert)
         return process_segment_tags_aggressively_zww(

@@ -1,9 +1,11 @@
-from pathlib import Path
+﻿from pathlib import Path
 from typing import Any, List
 from utils.logging_utils import log_debug
 
 class RecentProjectsManager:
+    """Manager class for recent projects."""
     def __init__(self, main_window: Any):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def add_recent_project(self, project_path: str, max_recent: int = 10) -> None:

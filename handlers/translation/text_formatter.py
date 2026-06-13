@@ -1,4 +1,4 @@
-# handlers/translation/text_formatter.py
+﻿# handlers/translation/text_formatter.py
 
 import re
 from typing import Any, List
@@ -11,6 +11,7 @@ class TextFormatter:
     for translations.
     """
     def __init__(self, main_window: Any):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def format_and_wrap_translation(self, text: str, block_idx: int, string_idx: int) -> str:
@@ -76,6 +77,7 @@ class TextFormatter:
         # 2. Split text into sentences (tag-aware).
         # We split by (. ! ? …) followed by spaces, but ignoring punctuation inside {...} or [...] tags.
         def split_sentences_tag_aware(txt: str) -> List[str]:
+            """Split sentences tag aware."""
             sentences_list = []
             current_sentence = []
             in_curly = False
@@ -121,6 +123,7 @@ class TextFormatter:
 
         # Helper to wrap a single sentence/text into lines based on warning_threshold and max_width
         def wrap_text_segment(segment_text: str) -> List[str]:
+            """Wrap text segment."""
             parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', segment_text)
             segment_lines = []
             current_line = ""

@@ -1,4 +1,4 @@
-import json
+﻿import json
 import base64
 from pathlib import Path
 from typing import Dict, Any, Union, Optional
@@ -7,12 +7,15 @@ from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from core.translation.config import build_default_translation_config, merge_translation_config
 
 class GlobalSettings:
+    """Global settings implementation."""
     def __init__(self, main_window: Any, settings_file_path: Union[str, Path] = "settings.json"):
+        """Initialize a new instance."""
         self.mw = main_window
         self.settings_file_path = settings_file_path
         self.defaults = self._get_defaults()
 
     def _get_defaults(self) -> Dict[str, Any]:
+        """Internal helper to get the defaults."""
         default_font_size = QFont().pointSize() if QFont().pointSize() > 0 else 10
         return {
             "tree_font_size": default_font_size,

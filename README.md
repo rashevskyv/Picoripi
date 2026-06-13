@@ -1,6 +1,6 @@
-# Picoripi v0.3.013
+# Picoripi v0.3.014
  
-The **Picoripi** (v0.3.013) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.014) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -102,7 +102,7 @@ The **Picoripi** (v0.3.013) is a visual translation and localization workbench b
 - **Narrative Event Chapters**: Segments game scripts into acts, chapters, and locations, storing them in a local SQLite database (`mempalace_local.db`).
 - **Interactive Database Viewer**: Browses generated visual descriptions, characters, and dialogues. Double-clicking any row jumps directly to the editor line.
 - **Local Markdown Script Parser**:
-  - Local parsing of `.md` scripts formatted using the [script_template.md](file:///d:/git/dev/Picoripi/plugins/script_template.md) file.
+  - Local parsing of `.md` scripts formatted using the [script_template.md](plugins/script_template.md) file.
   - Automatically extracts cast profiles, terms, and chapters locally, saving all AI API token costs for the pre-analysis step.
 
 ---

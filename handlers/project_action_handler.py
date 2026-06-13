@@ -1,4 +1,4 @@
-# handlers/project_action_handler.py
+﻿# handlers/project_action_handler.py
 import os
 import json
 import uuid
@@ -14,7 +14,9 @@ from utils.logging_utils import log_info, log_warning, log_error, log_debug
 from components.folder_delete_dialog import FolderDeleteDialog
 
 class ProjectActionHandler(BaseHandler):
+    """Handler for project action operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         # Ensure ProjectManager is initialized on the main window
         if not hasattr(self.mw, 'project_manager') or self.mw.project_manager is None:
@@ -76,6 +78,7 @@ class ProjectActionHandler(BaseHandler):
 
 
     def create_new_project_action(self) -> None:
+        """Create new project action."""
         from components.project_dialogs import NewProjectDialog
         log_info("Create New Project action triggered.")
 
@@ -161,6 +164,7 @@ class ProjectActionHandler(BaseHandler):
             QMessageBox.critical(self.mw, "Project Creation Failed", "Failed to create project.")
 
     def open_project_action(self) -> None:
+        """Open project action."""
         log_info("Open Project action triggered.")
 
         # Open file dialog directly
@@ -235,6 +239,7 @@ class ProjectActionHandler(BaseHandler):
             )
 
     def close_project_action(self) -> None:
+        """Close project action."""
         log_info("Close Project action triggered.")
 
         if self.mw.data_store.unsaved_changes:
@@ -300,6 +305,7 @@ class ProjectActionHandler(BaseHandler):
         log_info("Project closed.")
 
     def import_block_action(self) -> None:
+        """Import block action."""
         from components.project_dialogs import ImportBlockDialog
         log_info("Import Block action triggered.")
 
@@ -333,6 +339,7 @@ class ProjectActionHandler(BaseHandler):
             QMessageBox.critical(self.mw, "Import Failed", "Failed to import block.")
 
     def import_directory_action(self) -> None:
+        """Import directory action."""
         log_info("Import Directory action triggered.")
 
         if not self.mw.project_manager or not self.mw.project_manager.project:
@@ -362,6 +369,7 @@ class ProjectActionHandler(BaseHandler):
             QMessageBox.information(self.mw, "Import Result", "No supported files found or failed to import.")
 
     def delete_block_action(self) -> None:
+        """Remove block action."""
         log_info("Delete Item action triggered.")
 
         if not self.mw.project_manager or not self.mw.project_manager.project:
@@ -430,9 +438,11 @@ class ProjectActionHandler(BaseHandler):
             self.mw.block_list_widget.move_current_item(direction)
 
     def add_folder_action(self) -> None:
+        """Add folder action."""
         self.mw.virtual_folder_handler.add_folder_action()
 
     def add_items_to_folder_action(self) -> None:
+        """Add items to folder action."""
         self.mw.virtual_folder_handler.add_items_to_folder_action()
 
 
@@ -889,4 +899,5 @@ class ProjectActionHandler(BaseHandler):
             log_debug("Tree collapsed all.")
 
     def _update_all_folder_expansion_state(self, expanded: bool) -> None:
+        """Internal helper to update the all folder expansion state."""
         self.mw.virtual_folder_handler.update_all_folder_expansion_state(expanded)

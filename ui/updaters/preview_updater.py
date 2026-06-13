@@ -1,4 +1,4 @@
-from typing import Optional
+﻿from typing import Optional
 import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QTextCursor
@@ -8,13 +8,16 @@ from ui.components.bfn_preview_widget import _looks_like_bfn_editor
 from .base_ui_updater import BaseUIUpdater
 
 class PreviewUpdater(BaseUIUpdater):
+    """Preview updater implementation."""
     def __init__(self, main_window, data_processor):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor)
         self._preview_cache = {}
         self._active_progress_dialog = None
         self._keep_progress_dialog_open = False
 
     def get_cache_key(self, block_idx: int, category_name: Optional[str]) -> tuple:
+        """Get the cache key."""
         show_overrides = getattr(self.mw.data_store, 'show_overrides_only', False)
         hide_trans = getattr(self.mw.data_store, 'hide_translated', False)
         hide_cat = getattr(self.mw.data_store, 'hide_categorized', False)
@@ -37,6 +40,7 @@ class PreviewUpdater(BaseUIUpdater):
                         pass
 
     def _block_has_overrides(self, block_idx: int) -> bool:
+        """Internal helper to block has overrides."""
         if block_idx == -1:
             return False
         default_font = getattr(self.mw, 'default_font_file', None)
@@ -143,6 +147,7 @@ class PreviewUpdater(BaseUIUpdater):
         editor.highlightManager.add_search_match_highlight(block_number, start_char, length)
 
     def synchronize_original_cursor(self):
+        """Synchronize original cursor."""
         if not hasattr(self.mw, 'edited_text_edit') or not hasattr(self.mw, 'original_text_edit') or \
            not self.mw.edited_text_edit or not self.mw.original_text_edit:
             return
@@ -161,6 +166,7 @@ class PreviewUpdater(BaseUIUpdater):
             self.mw.original_text_edit.highlightManager.setLinkedCursorPosition(current_line_in_edited, current_col_in_edited)
 
     def _apply_highlights_for_block(self, block_idx: int):
+        """Internal helper to apply highlights for block."""
         if block_idx not in (-1,):
             if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
                 block_idx = -2
@@ -229,6 +235,7 @@ class PreviewUpdater(BaseUIUpdater):
             preview_edit.highlightManager.clearCategorizedLineHighlights()
 
     def _apply_highlights_to_editor(self, editor, block_idx: int, string_idx: int):
+        """Internal helper to apply highlights to editor."""
         if not editor or not hasattr(editor, 'highlightManager'):
             return
         
@@ -328,6 +335,7 @@ class PreviewUpdater(BaseUIUpdater):
         return categorized_indices
 
     def populate_strings_for_block(self, block_idx, category_name=None, force=False):
+        """Populate strings for block."""
         if block_idx not in (-1,):
             if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
                 block_idx = -2
@@ -798,6 +806,7 @@ class PreviewUpdater(BaseUIUpdater):
         self.mw.is_programmatically_changing_text = _saved_programmatic_flag
 
     def _load_next_preview_chunk(self):
+        """Internal helper to load next preview chunk."""
         from utils.logging_utils import log_info, log_error
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit or not hasattr(self, '_lazy_load_next_index') or not hasattr(self, '_lazy_load_target_indices'):
@@ -893,6 +902,7 @@ class PreviewUpdater(BaseUIUpdater):
                 self._lazy_load_timer.stop()
 
     def update_text_views(self): 
+        """Update the text views."""
         if getattr(self, '_in_update_text_views', False):
             return
         self._in_update_text_views = True
@@ -907,6 +917,7 @@ class PreviewUpdater(BaseUIUpdater):
 
     def _do_update_text_views(self, is_programmatic_call_flag_original):
 
+        """Internal helper to do update text views."""
         original_text_raw = ""
         edited_text_raw = ""
         if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1:

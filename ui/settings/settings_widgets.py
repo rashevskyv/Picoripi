@@ -1,13 +1,15 @@
-# /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
+﻿# /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 import os
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QColorDialog, QPushButton
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import pyqtSignal
 
 class ColorPickerButton(QPushButton):
+    """Color picker button implementation."""
     colorChanged = pyqtSignal(QColor)
 
     def __init__(self, initial_color=QColor("black"), parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self._color = QColor(initial_color)
         try:
@@ -19,9 +21,11 @@ class ColorPickerButton(QPushButton):
         self._update_style()
 
     def color(self) -> QColor:
+        """Color."""
         return self._color
 
     def setColor(self, color: QColor):
+        """Setcolor."""
         if self._color != color:
             self._color = color
             try:
@@ -32,12 +36,15 @@ class ColorPickerButton(QPushButton):
             self.colorChanged.emit(self._color)
 
     def _update_style(self):
+        """Internal helper to update the style."""
         self.setStyleSheet(f"background-color: {self._color.name()}; color: {self._get_contrasting_text_color(self._color)};")
 
     def _get_contrasting_text_color(self, bg_color: QColor) -> str:
+        """Internal helper to get the contrasting text color."""
         return "white" if bg_color.lightness() < 128 else "black"
 
     def pick_color(self):
+        """Pick color."""
         try:
             options = QColorDialog.ShowAlphaChannel
         except Exception:
@@ -47,9 +54,11 @@ class ColorPickerButton(QPushButton):
             self.setColor(chosen)
 
 class TagDisplayWidget(QWidget):
+    """Widget component for tag display."""
     textChanged = pyqtSignal(str)
 
     def __init__(self, initial_text="", parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
@@ -68,6 +77,7 @@ class TagDisplayWidget(QWidget):
         self._update_btn_color()
 
     def _update_btn_color(self):
+        """Internal helper to update the btn color."""
         text = self.line_edit.text().strip()
         if text.startswith('#') and len(text) in (4, 7, 9):
             self.color_btn.setStyleSheet(f"background-color: {text}; border: 1px solid gray; border-radius: 2px;")
@@ -78,6 +88,7 @@ class TagDisplayWidget(QWidget):
         self.textChanged.emit(text)
 
     def _pick_color(self):
+        """Internal helper to pick color."""
         current_text = self.line_edit.text().strip()
         initial_color = QColor(current_text) if current_text.startswith('#') else QColor("white")
         
@@ -94,4 +105,5 @@ class TagDisplayWidget(QWidget):
                 self.line_edit.setText(color.name().upper())
 
     def text(self):
+        """Text."""
         return self.line_edit.text().strip()

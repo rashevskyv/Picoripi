@@ -1,4 +1,4 @@
-# components/tree_folder_mixin.py
+﻿# components/tree_folder_mixin.py
 """Virtual folder CRUD, tree↔PM synchronisation, expansion-state mixin for CustomTreeWidget."""
 import re
 from PyQt6.QtCore import Qt, QTimer
@@ -15,6 +15,7 @@ class TreeFolderMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _handle_item_changed(self, item, column):
+        """Internal helper to handle item changed."""
         if getattr(self, '_is_programmatic_expansion', False):
             return
 
@@ -47,6 +48,7 @@ class TreeFolderMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _create_folder_at_cursor(self):
+        """Internal helper to create folder at cursor."""
         main_window = self.window()
         pm = getattr(main_window, 'project_manager', None)
         if not pm or not pm.project:
@@ -121,6 +123,7 @@ class TreeFolderMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _delete_folder(self, item):
+        """Internal helper to remove folder."""
         self.setCurrentItem(item)
         main_window = self.window()
         pah = getattr(main_window, 'project_action_handler', None)
@@ -147,10 +150,12 @@ class TreeFolderMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _create_subfolder(self, item):
+        """Internal helper to create subfolder."""
         folder_id = item.data(0, Qt.UserRole + 1)
         self._create_subfolder_by_id(folder_id)
 
     def _create_subfolder_by_id(self, folder_id):
+        """Internal helper to create subfolder by id."""
         main_window = self.window()
         pm = main_window.project_manager
         default_name = self._get_next_unnamed_name(pm)
@@ -220,6 +225,7 @@ class TreeFolderMixin:
         project = pm.project
 
         def rebuild_from_item(tree_item, parent_id=None):
+            """Rebuild from item."""
             folder_map = {}
             block_ids = []
 

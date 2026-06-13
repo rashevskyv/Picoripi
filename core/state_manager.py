@@ -1,4 +1,4 @@
-from enum import Enum, auto
+﻿from enum import Enum, auto
 from typing import Set, ContextManager
 from contextlib import contextmanager
 from utils.logging_utils import log_debug
@@ -43,6 +43,7 @@ class StateManager:
     Prevents recursive events and tracks long-running operations.
     """
     def __init__(self):
+        """Initialize a new instance."""
         self._active_states: Set[AppState] = set()
 
     @contextmanager

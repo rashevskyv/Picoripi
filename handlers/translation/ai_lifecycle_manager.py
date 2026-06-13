@@ -1,4 +1,4 @@
-# handlers/translation/ai_lifecycle_manager.py
+﻿# handlers/translation/ai_lifecycle_manager.py
 from typing import Dict, List, Optional, Tuple, Union, Any, Callable
 from PyQt6.QtCore import QThread, QTimer, Qt
 from PyQt6.QtWidgets import QMessageBox
@@ -16,7 +16,9 @@ from core.translation.config import build_default_translation_config
 from utils.logging_utils import log_debug, log_warning, log_info
 
 class AILifecycleManager(BaseTranslationHandler):
+    """Manager class for a i lifecycle."""
     def __init__(self, main_handler):
+        """Initialize a new instance."""
         super().__init__(main_handler)
         self.thread: Optional[QThread] = None
         self.worker: Optional[AIWorker] = None
@@ -35,6 +37,7 @@ class AILifecycleManager(BaseTranslationHandler):
         self._is_waiting_retry_delay = False
 
     def register_handler(self, task_type: str, success_cb: Callable, error_cb: Optional[Callable] = None, chunk_cb: Optional[Callable] = None):
+        """Register handler."""
         self._success_handlers[task_type] = success_cb
         if error_cb:
             self._error_handlers[task_type] = error_cb
@@ -42,6 +45,7 @@ class AILifecycleManager(BaseTranslationHandler):
             self._chunk_handlers[task_type] = chunk_cb
 
     def _prepare_provider(self, provider_key_override: Optional[str] = None):
+        """Internal helper to prepare provider."""
         config = getattr(self.mw, 'translation_config', None) or build_default_translation_config()
         provider_key = provider_key_override if provider_key_override is not None else config.get('provider', 'disabled')
         
@@ -72,6 +76,7 @@ class AILifecycleManager(BaseTranslationHandler):
             return None
 
     def run_ai_task(self, provider: BaseTranslationProvider, task_details: dict):
+        """Run ai task."""
         self.is_ai_running = True
         self.main_handler.is_ai_running = True # Keep hub state in sync for now
         
@@ -106,6 +111,7 @@ class AILifecycleManager(BaseTranslationHandler):
         self.thread.start()
 
     def _on_thread_finished(self):
+        """Internal helper to handle the thread finished event."""
         log_debug("AILifecycleManager: Worker thread finished. Cleaning up.")
         if self.worker:
             self.worker.deleteLater()
@@ -129,6 +135,7 @@ class AILifecycleManager(BaseTranslationHandler):
             self._perform_retry()
 
     def _on_success(self, response: ProviderResponse, context: dict):
+        """Internal helper to handle the success event."""
         task_type = context.get('type')
         handler = self._success_handlers.get(task_type)
         if handler:
@@ -137,6 +144,7 @@ class AILifecycleManager(BaseTranslationHandler):
             log_warning(f"AILifecycleManager: No success handler registered for task type '{task_type}'")
 
     def _on_chunk_translated(self, chunk_index: int, chunk_text: str, context: dict):
+        """Internal helper to handle the chunk translated event."""
         task_type = context.get('type')
         handler = self._chunk_handlers.get(task_type)
         if handler:
@@ -147,11 +155,13 @@ class AILifecycleManager(BaseTranslationHandler):
                 self.main_handler._handle_chunk_translated(chunk_index, chunk_text, context)
 
     def _on_worker_cancelled(self):
+        """Internal helper to handle the worker cancelled event."""
         log_debug("AILifecycleManager: Worker has confirmed cancellation.")
         self.main_handler.reset_translation_session()
         self.main_handler.prompt_for_revert_after_cancel()
 
     def _on_error(self, error_message: str, context: dict):
+        """Internal helper to handle the error event."""
         task_type = context.get('type')
         handler = self._error_handlers.get(task_type)
         if handler:
@@ -160,6 +170,7 @@ class AILifecycleManager(BaseTranslationHandler):
             self._handle_task_error(error_message, context)
 
     def _handle_task_error(self, error_message: str, context: dict):
+        """Internal helper to handle task error."""
         attempt = context.get('attempt', 1)
         max_attempts = context.get('max_retries', 1)
         mode = context.get('mode_description', 'unknown')
@@ -261,6 +272,7 @@ class AILifecycleManager(BaseTranslationHandler):
         QMessageBox.critical(self.mw, "AI Operation Failed", failure_message)
 
     def _record_session_exchange(self, *, context: dict, assistant_content: str, response: Optional[ProviderResponse] = None) -> None:
+        """Internal helper to record session exchange."""
         state = context.get('session_state') if isinstance(context, dict) else None
         user_content = context.get('session_user_message') if isinstance(context, dict) else None
         if not state or not isinstance(user_content, str):
@@ -275,6 +287,7 @@ class AILifecycleManager(BaseTranslationHandler):
         )
 
     def _clean_model_output(self, raw_output: Union[str, ProviderResponse], expect_json: bool = False) -> str:
+        """Internal helper to clean model output."""
         text = raw_output.text if isinstance(raw_output, ProviderResponse) else str(raw_output or '')
         if not text:
             return ""
@@ -306,12 +319,14 @@ class AILifecycleManager(BaseTranslationHandler):
             
         return text.strip()
     def _trim_trailing_whitespace_from_lines(self, text: str) -> str:
+        """Internal helper to trim trailing whitespace from lines."""
         if not text:
             return ""
         lines = text.split("\n")
         return "\n".join(line.rstrip() for line in lines)
 
     def _on_retry_timer_timeout(self):
+        """Internal helper to handle the retry timer timeout event."""
         log_debug("AILifecycleManager: Retry delay finished. Carrying out retry.")
         self._is_waiting_retry_delay = False
         
@@ -321,6 +336,7 @@ class AILifecycleManager(BaseTranslationHandler):
             self._perform_retry()
 
     def _perform_retry(self):
+        """Internal helper to perform retry."""
         if not self._retry_context:
             return
             
@@ -346,6 +362,7 @@ class AILifecycleManager(BaseTranslationHandler):
             QMessageBox.critical(self.mw, "AI Operation Failed", f"Retry logic not implemented for task '{task_type}'.")
 
     def prepare_to_close(self) -> None:
+        """Prepare to close."""
         if self.thread and self.thread.isRunning():
             if self.worker:
                 try:

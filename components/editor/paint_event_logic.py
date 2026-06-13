@@ -1,4 +1,4 @@
-import re
+﻿import re
 from PyQt6.QtGui import QPainter, QColor, QPen, QPaintEvent, QTextLine
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow
@@ -6,11 +6,14 @@ from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to
 from .constants import PAIR_SEPARATOR_LINE_COLOR, PAIR_SEPARATOR_LINE_STYLE, PAIR_SEPARATOR_LINE_THICKNESS
 
 class LNETPaintEventLogic:
+    """L n e t paint event logic implementation."""
     def __init__(self, editor, helpers):
+        """Initialize a new instance."""
         self.editor = editor
         self.helpers = helpers
 
     def execute_paint_event(self, event: QPaintEvent):
+        """Execute paint event."""
         painter_lines = QPainter(self.editor.viewport())
         try:
             is_preview = self.editor.objectName() == "preview_text_edit"
@@ -199,4 +202,4 @@ class LNETPaintEventLogic:
                     break
                 block = block.next()
         finally:
-            painter_lines.end()
+            painter_lines.end()

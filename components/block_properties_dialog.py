@@ -1,4 +1,4 @@
-# components/block_properties_dialog.py
+﻿# components/block_properties_dialog.py
 import os
 from pathlib import Path
 from PyQt6.QtWidgets import (
@@ -8,7 +8,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 class BlockPropertiesDialog(QDialog):
+    """Dialog class for block properties."""
     def __init__(self, parent, block_idx: int):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Block Properties")
         self.setMinimumWidth(550)
@@ -130,6 +132,7 @@ class BlockPropertiesDialog(QDialog):
         layout.addWidget(button_box)
 
     def add_form_row(self, layout: QFormLayout, label_text: str, value_text: str):
+        """Add form row."""
         edit = QLineEdit(value_text, self)
         edit.setReadOnly(True)
         edit.setStyleSheet("QLineEdit { background: transparent; border: none; }")

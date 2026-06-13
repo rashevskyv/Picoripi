@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional
+﻿from typing import List, Tuple, Dict, Optional
 from plugins.base_game_rules import BaseGameRules 
 # from utils.logging_utils import log_debug # Якщо буде логування в apply_mappings_to_text
 
@@ -12,10 +12,13 @@ TAG_STATUS_MISMATCHED_CURLY = "MISMATCHED_CURLY"
 TAG_STATUS_WARNING = "WARNING" 
 
 class BaseImportRules:
+    """Game rules and translation logic for Base import."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         self.mw = main_window_ref
 
     def parse_clipboard_text(self, clipboard_text: str) -> List[str]:
+        """Parse clipboard text."""
         raise NotImplementedError("Subclasses must implement parse_clipboard_text")
 
     def process_segment_for_insertion(self, 
@@ -25,6 +28,7 @@ class BaseImportRules:
                                       default_tag_mappings: Dict[str, str],
                                       editor_player_tag: str
                                       ) -> Tuple[str, str, str]:
+        """Process segment for insertion."""
         raise NotImplementedError("Subclasses must implement process_segment_for_insertion")
 
     def apply_mappings_to_text(self, text_segment: str, mappings: Dict[str, str]) -> Tuple[str, bool]:

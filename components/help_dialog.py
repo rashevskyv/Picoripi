@@ -1,9 +1,11 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout, QAbstractItemView
+﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout, QAbstractItemView
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
 
 class HelpShortcutsDialog(QDialog):
+    """Dialog class for help shortcuts."""
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Keyboard Shortcuts Reference")
         self.setMinimumWidth(600)
@@ -87,5 +89,6 @@ class HelpShortcutsDialog(QDialog):
         layout.addLayout(footer_layout)
 
 def show_shortcuts_dialog(parent):
+    """Show shortcuts dialog."""
     dialog = HelpShortcutsDialog(parent)
     dialog.exec()

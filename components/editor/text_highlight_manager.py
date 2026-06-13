@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QTextEdit
+﻿from PyQt6.QtWidgets import QTextEdit
 from PyQt6.QtGui import QColor, QTextBlockFormat, QTextFormat, QTextCursor, QTextBlock, QTextCharFormat
 from PyQt6.QtCore import QTimer, QPoint, Qt
 from typing import Optional, List, Tuple
@@ -6,7 +6,9 @@ import re
 from utils.logging_utils import log_debug
 
 class TextHighlightManager:
+    """Manager class for text highlight."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
         
         # State trackers to prevent infinite recursion
@@ -32,6 +34,7 @@ class TextHighlightManager:
         self._current_selected_lines = []
 
     def _create_block_background_selection(self, block: QTextBlock, color: QColor, use_full_width: bool = False) -> List[QTextEdit.ExtraSelection]:
+        """Internal helper to create block background selection."""
         if not block.isValid(): return []
         
         layout = block.layout()
@@ -65,6 +68,7 @@ class TextHighlightManager:
         return selections
 
     def _create_search_match_selection(self, block_number: int, start_char_in_block: int, length: int, color: QColor) -> Optional[QTextEdit.ExtraSelection]:
+        """Internal helper to create search match selection."""
         doc = self.editor.document()
         if not (0 <= block_number < doc.blockCount()):
             return None
@@ -85,6 +89,7 @@ class TextHighlightManager:
         return None
 
     def applyHighlights(self):
+        """Applyhighlights."""
         all_selections = []
         if self._active_line_selections: all_selections.extend(list(self._active_line_selections)) 
         if self._linked_cursor_selections: 
@@ -117,6 +122,7 @@ class TextHighlightManager:
 
 
     def updateCurrentLineHighlight(self): 
+        """Updatecurrentlinehighlight."""
         if self.editor.isReadOnly():
             if getattr(self, '_last_active_line_block', None) is not None:
                 self._last_active_line_block = None
@@ -143,12 +149,14 @@ class TextHighlightManager:
         self.applyHighlights()
 
     def clearCurrentLineHighlight(self):
+        """Clearcurrentlinehighlight."""
         self._last_active_line_block = None
         if self._active_line_selections:
              self._active_line_selections = []
              self.applyHighlights()
 
     def setLinkedCursorPosition(self, line_number: int, column_number: int): 
+        """Setlinkedcursorposition."""
         if getattr(self, '_last_linked_cursor_params', None) == (line_number, column_number):
             return
         self._last_linked_cursor_params = (line_number, column_number)
@@ -184,12 +192,14 @@ class TextHighlightManager:
         self.applyHighlights()
 
     def clearLinkedCursorPosition(self):
+         """Clearlinkedcursorposition."""
          self._last_linked_cursor_params = None
          if self._linked_cursor_selections:
               self._linked_cursor_selections = []
               self.applyHighlights()
 
     def setPreviewSelectedLineHighlight(self, line_numbers: List[int]):
+        """Setpreviewselectedlinehighlight."""
         self._current_selected_lines = line_numbers.copy()
         new_selections = []
         doc = self.editor.document()
@@ -206,6 +216,7 @@ class TextHighlightManager:
     def set_background_for_lines(self, lines_to_highlight: set, lines_to_clear: set):
         # Using ExtraSelections instead of QTextBlockFormat to avoid RecursionError
         # and keep the document content clean.
+        """Set the background for lines."""
         doc = self.editor.document()
         new_selections = list(self._preview_selected_line_selections)
         
@@ -223,11 +234,13 @@ class TextHighlightManager:
         self.applyHighlights()
 
     def clearPreviewSelectedLineHighlight(self):
+        """Clearpreviewselectedlinehighlight."""
         if self._preview_selected_line_selections:
             self._preview_selected_line_selections = []
             self.applyHighlights()
 
     def setCategorizedLineHighlights(self, line_numbers: List[int], color: QColor):
+        """Setcategorizedlinehighlights."""
         new_selections = []
         doc = self.editor.document()
         for line_number in line_numbers:
@@ -239,18 +252,22 @@ class TextHighlightManager:
         self.applyHighlights()
 
     def clearCategorizedLineHighlights(self):
+        """Clearcategorizedlinehighlights."""
         if self._categorized_line_selections:
             self._categorized_line_selections = []
             self.applyHighlights()
 
     def addProblemLineHighlight(self, line_number: int):
+        """Addproblemlinehighlight."""
         self.addCriticalProblemHighlight(line_number)
 
     def addCriticalProblemHighlight(self, line_number: int, color: QColor = None):
         # Не підсвічуємо фон тексту в редакторах, тільки в прев'ю (якщо потрібно)
+        """Addcriticalproblemhighlight."""
         return
 
     def removeCriticalProblemHighlight(self, line_number: int) -> bool:
+        """Removecriticalproblemhighlight."""
         removed = False; initial_len = len(self._critical_problem_selections)
         self._critical_problem_selections = [s for s in self._critical_problem_selections if s.cursor.blockNumber() != line_number]
         if len(self._critical_problem_selections) < initial_len: 
@@ -259,19 +276,23 @@ class TextHighlightManager:
         return removed
 
     def clearCriticalProblemHighlights(self):
+        """Clearcriticalproblemhighlights."""
         needs_update = bool(self._critical_problem_selections)
         self._critical_problem_selections = []
         if needs_update: self.applyHighlights()
 
     def hasCriticalProblemHighlight(self, line_number: Optional[int] = None) -> bool:
+        """Hascriticalproblemhighlight."""
         if line_number is not None: return any(s.cursor.blockNumber() == line_number for s in self._critical_problem_selections)
         return bool(self._critical_problem_selections)
 
     def addWarningLineHighlight(self, line_number: int, color: QColor = None):
         # Не підсвічуємо фон тексту в редакторах
+        """Addwarninglinehighlight."""
         return
 
     def removeWarningLineHighlight(self, line_number: int) -> bool:
+        """Removewarninglinehighlight."""
         removed = False; initial_len = len(self._warning_problem_selections)
         self._warning_problem_selections = [s for s in self._warning_problem_selections if s.cursor.blockNumber() != line_number]
         if len(self._warning_problem_selections) < initial_len: 
@@ -280,15 +301,18 @@ class TextHighlightManager:
         return removed
 
     def clearWarningLineHighlights(self):
+        """Clearwarninglinehighlights."""
         needs_update = bool(self._warning_problem_selections)
         self._warning_problem_selections = []
         if needs_update: self.applyHighlights()
 
     def hasWarningLineHighlight(self, line_number: Optional[int] = None) -> bool:
+        """Haswarninglinehighlight."""
         if line_number is not None: return any(s.cursor.blockNumber() == line_number for s in self._warning_problem_selections)
         return bool(self._warning_problem_selections)
 
     def momentaryHighlightTag(self, block, start_in_block, length):
+        """Momentaryhighlighttag."""
         if not block.isValid(): return
         self.clearTagInteractionHighlight() 
         selection = QTextEdit.ExtraSelection()
@@ -302,11 +326,13 @@ class TextHighlightManager:
         self._tag_highlight_timer.start(300)
 
     def clearTagInteractionHighlight(self):
+        """Cleartaginteractionhighlight."""
         if self._tag_interaction_selections:
             self._tag_interaction_selections = []
             self.applyHighlights()
 
     def add_search_match_highlight(self, block_number: int, start_char_in_block: int, length: int):
+        """Add search match highlight."""
         selection = self._create_search_match_selection(block_number, start_char_in_block, length, self.editor.search_match_highlight_color)
         if selection:
             current_selections = list(self._search_match_selections)
@@ -315,11 +341,13 @@ class TextHighlightManager:
             self.applyHighlights()
 
     def clear_search_match_highlights(self):
+        """Remove search match highlights."""
         if self._search_match_selections:
             self._search_match_selections = []
             self.applyHighlights()
             
     def add_width_exceed_char_highlight(self, block: QTextBlock, char_index_in_block: int, color: QColor):
+        """Add width exceed char highlight."""
         if not block.isValid():
             return
         selection = QTextEdit.ExtraSelection()
@@ -343,15 +371,18 @@ class TextHighlightManager:
                 self.applyHighlights()
 
     def clear_width_exceed_char_highlights(self):
+        """Remove width exceed char highlights."""
         if self._width_exceed_char_selections:
             self._width_exceed_char_selections = []
             self.applyHighlights()
 
     def addEmptyOddSublineHighlight(self, block_number: int):
         # Background highlighting disabled by request to keep the text area clean
+        """Addemptyoddsublinehighlight."""
         return
 
     def removeEmptyOddSublineHighlight(self, block_number: int) -> bool:
+        """Removeemptyoddsublinehighlight."""
         removed = False
         initial_len = len(self._empty_odd_subline_selections)
         self._empty_odd_subline_selections = [s for s in self._empty_odd_subline_selections if s.cursor.blockNumber() != block_number]
@@ -361,17 +392,20 @@ class TextHighlightManager:
         return removed
 
     def clearEmptyOddSublineHighlights(self):
+        """Clearemptyoddsublinehighlights."""
         needs_update = bool(self._empty_odd_subline_selections)
         self._empty_odd_subline_selections = []
         if needs_update:
             self.applyHighlights()
 
     def hasEmptyOddSublineHighlight(self, block_number: Optional[int] = None) -> bool:
+        """Hasemptyoddsublinehighlight."""
         if block_number is not None:
             return any(s.cursor.blockNumber() == block_number for s in self._empty_odd_subline_selections)
         return bool(self._empty_odd_subline_selections)
 
     def clearAllProblemHighlights(self):
+        """Clearallproblemhighlights."""
         needs_update = bool(self._critical_problem_selections) or \
                        bool(self._warning_problem_selections) or \
                        bool(self._empty_odd_subline_selections)
@@ -387,6 +421,7 @@ class TextHighlightManager:
         if needs_update: self.applyHighlights()
         
     def clearAllHighlights(self):
+        """Clearallhighlights."""
         self._last_active_line_block = None
         self._last_linked_cursor_params = None
         self._active_line_selections = [] 
@@ -403,6 +438,7 @@ class TextHighlightManager:
         self.applyHighlights()
 
     def update_zebra_stripes(self):
+        """Update the zebra stripes."""
         new_selections = []
         doc = self.editor.document()
         odd_color = getattr(self.editor, 'zebra_odd_color', None)

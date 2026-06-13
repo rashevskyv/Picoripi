@@ -1,4 +1,4 @@
-# handlers/translation/ai_variations_handler.py
+﻿# handlers/translation/ai_variations_handler.py
 
 from typing import Any, Dict, List, Optional
 from PyQt6.QtCore import QTimer, Qt
@@ -10,11 +10,14 @@ from utils.logging_utils import log_debug
 
 
 class AIVariationsHandler(BaseTranslationHandler):
+    """Handler for a i variations operations."""
     def __init__(self, main_handler: Any):
+        """Initialize a new instance."""
         super().__init__(main_handler)
         self.variations_cache: Dict[tuple, Dict[str, Any]] = {}
 
     def _handle_variation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
+        """Internal helper to handle variation success."""
         self.main_handler.ui_handler.update_ai_operation_step(
             3, 
             self.main_handler.ui_handler.status_dialog.steps[3], 
@@ -55,6 +58,7 @@ class AIVariationsHandler(BaseTranslationHandler):
             self._apply_chosen_variation(chosen, context.get('is_inline', False), target_block_idx=block_idx, target_string_idx=string_idx)
 
     def _apply_chosen_variation(self, chosen: str, is_inline: bool, target_block_idx: int, target_string_idx: int) -> None:
+        """Internal helper to apply chosen variation."""
         final_text = self.main_handler._format_and_wrap_translation(chosen, target_block_idx, target_string_idx)
         
         # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
@@ -71,6 +75,7 @@ class AIVariationsHandler(BaseTranslationHandler):
             self.ui_updater.populate_strings_for_block(target_block_idx, self.mw.data_store.current_category_name, force=True)
 
     def generate_variation_for_current_string(self, force: bool = False) -> None:
+        """Generate variation for current string."""
         if self.main_handler.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return

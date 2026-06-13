@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional, Set
+﻿from typing import Tuple, List, Optional, Set
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.text_fixer import GenericTextFixer
@@ -7,10 +7,13 @@ from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_SU
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
 
 class TextFixer(GenericTextFixer):
+    """Text fixer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_analyzer_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_analyzer_ref)
 
     def _get_sublines_with_tags(self, text: str) -> List[Tuple[str, str]]:
+        """Internal helper to get the sublines with tags."""
         if not text:
             return []
         sublines = []
@@ -26,9 +29,11 @@ class TextFixer(GenericTextFixer):
         return sublines
 
     def _reassemble_data_string(self, sublines_with_tags: List[Tuple[str, str]]) -> str:
+        """Internal helper to reassemble data string."""
         return "".join([text + tag for text, tag in sublines_with_tags])
 
     def _fix_width_exceeded(self, text: str, font_map: dict, threshold: int) -> str:
+        """Internal helper to fix width exceeded."""
         sublines = self._get_sublines_with_tags(text)
         new_sublines_reassembled = []
         for text_part, original_newline_tag in sublines:
@@ -52,6 +57,7 @@ class TextFixer(GenericTextFixer):
         return self._reassemble_data_string(new_sublines_reassembled)
 
     def _fix_short_lines(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> str:
+        """Internal helper to fix short lines."""
         sublines = self._get_sublines_with_tags(text)
         if len(sublines) < 2:
             return text
@@ -104,6 +110,7 @@ class TextFixer(GenericTextFixer):
         return self._reassemble_data_string(sublines)
 
     def _fix_empty_sublines(self, text: str) -> str:
+        """Internal helper to fix empty sublines."""
         sublines = self._get_sublines_with_tags(text)
         if not sublines:
             return text
@@ -126,6 +133,7 @@ class TextFixer(GenericTextFixer):
                              string_idx: Optional[int] = None,
                              page_local: bool = False,
                              disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         if page_local:
             return self.autofix_page_local_wrapper(
                 self.autofix_data_string,

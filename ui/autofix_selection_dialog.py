@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (
+﻿from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QPushButton,
     QLabel, QScrollArea, QWidget
 )
@@ -7,7 +7,9 @@ from PyQt6.QtCore import Qt
 from typing import Dict, Any, Set
 
 class AutofixSelectionDialog(QDialog):
+    """Dialog class for autofix selection."""
     def __init__(self, problem_definitions: Dict[str, Dict[str, Any]], active_autofixes: Dict[str, bool], parent=None):
+        """Initialize a new instance."""
         from PyQt6.QtWidgets import QWidget
         parent_widget = parent if isinstance(parent, QWidget) else None
         super().__init__(parent_widget)
@@ -23,6 +25,7 @@ class AutofixSelectionDialog(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -134,14 +137,17 @@ class AutofixSelectionDialog(QDialog):
         self.adjustSize()
 
     def _select_all(self):
+        """Internal helper to select all."""
         for cb in self.checkboxes.values():
             cb.setChecked(True)
 
     def _select_none(self):
+        """Internal helper to select none."""
         for cb in self.checkboxes.values():
             cb.setChecked(False)
 
     def accept(self):
+        """Accept."""
         if self.mw and hasattr(self.mw, 'align_sentences_to_original_pages'):
             self.mw.align_sentences_to_original_pages = self.align_sentences_checkbox.isChecked()
         if self.mw and hasattr(self.mw, 'prevent_empty_lines_in_autofix'):
@@ -159,4 +165,5 @@ class AutofixSelectionDialog(QDialog):
         super().accept()
 
     def get_selected_problems(self) -> Set[str]:
+        """Get the selected problems."""
         return {pid for pid, cb in self.checkboxes.items() if cb.isChecked()}

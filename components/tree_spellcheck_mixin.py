@@ -1,4 +1,4 @@
-# components/tree_spellcheck_mixin.py
+﻿# components/tree_spellcheck_mixin.py
 """Spellcheck and Reveal-in-Explorer mixin for CustomTreeWidget."""
 import platform
 import re
@@ -18,6 +18,7 @@ class TreeSpellcheckMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _reveal_in_explorer(self, block_idx: int, is_translation: bool = False):
+        """Internal helper to reveal in explorer."""
         main_window = self.window()
         pm = getattr(main_window, 'project_manager', None)
 
@@ -50,6 +51,7 @@ class TreeSpellcheckMixin:
             self._open_explorer_at_path(abs_path)
 
     def _open_explorer_at_path(self, abs_path: str):
+        """Internal helper to open explorer at path."""
         path_obj = Path(abs_path)
         if not path_obj.exists():
             QMessageBox.warning(self, "Reveal", f"File not found:\n{abs_path}")
@@ -66,6 +68,7 @@ class TreeSpellcheckMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _open_spellcheck_for_block(self, block_idx: int, category_name: str = None):
+        """Internal helper to open spellcheck for block."""
         log_debug(f"CustomTreeWidget: spellcheck block={block_idx} category={category_name!r}")
         try:
             main_window = self.window()

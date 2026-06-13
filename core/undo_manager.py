@@ -1,4 +1,4 @@
-import time
+﻿import time
 import zlib
 import pickle
 from dataclasses import dataclass
@@ -27,7 +27,9 @@ def _decompress_any(data: Any, is_snapshot: bool = False) -> Any:
     return decompressed.decode('utf-8')
 
 class UndoAction:
+    """Undo action implementation."""
     def __init__(self, action_type: str, block_idx: int, string_idx: int, old_text: str, new_text: str, timestamp: float, cursor_pos: Optional[int] = None, metadata: Optional[dict] = None):
+        """Initialize a new instance."""
         self.action_type = action_type
         self.block_idx = block_idx
         self.string_idx = string_idx
@@ -39,28 +41,35 @@ class UndoAction:
 
     @property
     def old_text(self) -> str:
+        """Old text."""
         return _decompress_any(self._old_data)
     
     @old_text.setter
     def old_text(self, value: str):
+        """Old text."""
         self._old_data = _compress_any(value)
     
     @property
     def new_text(self) -> str:
+        """New text."""
         return _decompress_any(self._new_data)
 
     @new_text.setter
     def new_text(self, value: str):
+        """New text."""
         self._new_data = _compress_any(value)
 
 @dataclass
 class GroupAction:
+    """Group action implementation."""
     actions: List[UndoAction]
     action_type: str
     timestamp: float
 
 class StructuralAction:
+    """Structural action implementation."""
     def __init__(self, action_type: str, before_snapshot: dict, after_snapshot: dict, label: str, timestamp: float):
+        """Initialize a new instance."""
         self.action_type = action_type
         self._before_data = _compress_any(before_snapshot)
         self._after_data = _compress_any(after_snapshot)
@@ -69,14 +78,18 @@ class StructuralAction:
 
     @property
     def before_snapshot(self) -> dict:
+        """Before snapshot."""
         return _decompress_any(self._before_data, is_snapshot=True)
     
     @property
     def after_snapshot(self) -> dict:
+        """After snapshot."""
         return _decompress_any(self._after_data, is_snapshot=True)
 
 class UndoManager:
+    """Manager class for undo."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self.undo_stack: List[Any] = []
         self.redo_stack: List[Any] = []
@@ -85,9 +98,11 @@ class UndoManager:
         self.current_group: Optional[List[UndoAction]] = None
         
     def begin_group(self):
+        """Begin group."""
         self.current_group = []
         
     def end_group(self, action_type: str = "COMPOSITE"):
+        """End group."""
         if self.current_group:
             group = GroupAction(
                 actions=self.current_group,
@@ -99,9 +114,11 @@ class UndoManager:
         self.current_group = None
 
     def _is_word_char(self, c: str) -> bool:
+        """Internal helper to check if is word char."""
         return c.isalnum() or c == '_'
 
     def record_action(self, action_type: str, block_idx: int, string_idx: int, old_text: str, new_text: str, metadata: dict = None):
+        """Record action."""
         if self.is_undoing_redoing:
             return
 
@@ -245,6 +262,7 @@ class UndoManager:
 
 
     def record_navigation(self, block_idx: int, string_idx: int, prev_block_idx: int, prev_string_idx: int, category: str = None, prev_category: str = None):
+        """Record navigation."""
         if self.is_undoing_redoing or self.current_group is not None:
             return
 
@@ -284,6 +302,7 @@ class UndoManager:
         log_debug(f"UndoManager: Recorded navigation to ({block_idx}, {string_idx})")
 
     def undo(self):
+        """Undo."""
         if not self.undo_stack:
             log_debug("UndoManager: Undo stack empty")
             return
@@ -314,6 +333,7 @@ class UndoManager:
             self.is_undoing_redoing = False
 
     def redo(self):
+        """Redo."""
         if not self.redo_stack:
             log_debug("UndoManager: Redo stack empty")
             return
@@ -340,6 +360,7 @@ class UndoManager:
 
 
     def _get_item_location(self, item: Any, is_undo: bool) -> tuple[int, int]:
+        """Internal helper to get the item location."""
         if isinstance(item, UndoAction):
             return item.block_idx, item.string_idx
         elif isinstance(item, GroupAction) and item.actions:
@@ -350,6 +371,7 @@ class UndoManager:
         return -1, -1
 
     def _navigate_to(self, block_idx: int, string_idx: int, category: str = None):
+        """Internal helper to navigate to."""
         if block_idx == -1: return
 
         current_block = self.mw.data_store.current_block_idx
@@ -376,6 +398,7 @@ class UndoManager:
     def _apply_data(self, block_idx: int, string_idx: int, text: str, cursor_pos: Optional[int] = None):
         # We assume the navigation has already been performed or is not needed
         # but we stay at the correct focus just in case (though we should already be there)
+        """Internal helper to apply data."""
         self._navigate_to(block_idx, string_idx)
 
         # 2. Apply text to data and UI
@@ -438,5 +461,6 @@ class UndoManager:
             self.mw.is_programmatically_changing_text = was_programmatic
 
     def clear(self):
+        """Remove ."""
         self.undo_stack.clear()
         self.redo_stack.clear()

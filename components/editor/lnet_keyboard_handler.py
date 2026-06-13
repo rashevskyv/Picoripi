@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow
+﻿from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QKeyEvent, QKeySequence
 from PyQt6.QtCore import Qt
 
@@ -9,6 +9,7 @@ class LNETKeyboardHandler:
     """Handles keyboard input for LineNumberedTextEdit."""
 
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def handle_key_press(self, event: QKeyEvent) -> bool:

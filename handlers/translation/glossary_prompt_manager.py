@@ -1,4 +1,4 @@
-# handlers/translation/glossary_prompt_manager.py
+﻿# handlers/translation/glossary_prompt_manager.py
 """
 Manages loading, caching, and saving of translation prompts and the glossary file.
 Isolated from AI request logic and dialog handling.
@@ -24,6 +24,7 @@ class GlossaryPromptManager:
     """
 
     def __init__(self, mw, main_handler, glossary_manager) -> None:
+        """Initialize a new instance."""
         self._mw = mw
         self._main_handler = main_handler
         self._glossary_manager = glossary_manager
@@ -38,12 +39,15 @@ class GlossaryPromptManager:
     # ── Prompt directory resolution ─────────────────────────────────────
 
     def _plugin_dir(self, plugin_name: Optional[str]) -> Optional[Path]:
+        """Internal helper to plugin dir."""
         return Path("plugins", plugin_name, "translation_prompts") if plugin_name else None
 
     def _fallback_dir(self) -> Path:
+        """Internal helper to fallback dir."""
         return Path("translation_prompts")
 
     def _resolve_file(self, filename: str, plugin_name: Optional[str]) -> Optional[Path]:
+        """Internal helper to resolve file."""
         candidates = [
             self._plugin_dir(plugin_name) and self._plugin_dir(plugin_name) / filename,
             Path("plugins", "common", "defaults") / filename,
@@ -256,6 +260,7 @@ class GlossaryPromptManager:
     # ── Internal helpers ─────────────────────────────────────────────────
 
     def _extract_system_prompt(self, payload: Dict) -> Optional[str]:
+        """Internal helper to extract system prompt."""
         if not isinstance(payload, dict):
             return None
         translation_section = payload.get("translation")
@@ -269,6 +274,7 @@ class GlossaryPromptManager:
         return None
 
     def _extract_glossary_prompt(self, payload: Dict) -> Optional[str]:
+        """Internal helper to extract glossary prompt."""
         if not isinstance(payload, dict):
             return None
         glossary_section = payload.get("glossary")
@@ -288,6 +294,7 @@ class GlossaryPromptManager:
         plugin_name: Optional[str],
         glossary_path: Optional[Path],
     ) -> None:
+        """Internal helper to ensure glossary loaded."""
         if glossary_text is None:
             return
         self._glossary_manager.load_from_text(
@@ -296,6 +303,7 @@ class GlossaryPromptManager:
         self._update_glossary_highlighting()
 
     def _update_glossary_highlighting(self) -> None:
+        """Internal helper to update the glossary highlighting."""
         manager = self._glossary_manager if self._glossary_manager.get_entries() else None
         
         # Update all three editors

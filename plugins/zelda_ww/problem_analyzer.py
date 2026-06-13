@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional, Set, Dict, Any, List
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
@@ -7,10 +7,13 @@ SENTENCE_END_PUNCTUATION_CHARS_ZWW = ['.', '!', '?']
 OPTIONAL_TRAILING_CHARS_ZWW = ['"', "'"]
 
 class ProblemAnalyzer(GenericProblemAnalyzer):
+    """Problem analyzer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref)
 
     def _ends_with_sentence_punctuation_zww(self, text_no_tags_stripped: str) -> bool:
+        """Internal helper to ends with sentence punctuation zww."""
         if not text_no_tags_stripped:
             return False
         last_char = text_no_tags_stripped[-1]
@@ -22,6 +25,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return last_char in SENTENCE_END_PUNCTUATION_CHARS_ZWW
 
     def _check_short_line_zww(self, current_subline_text: str, next_subline_text: str, font_map: dict, threshold: int) -> bool:
+        """Internal helper to check short line zww."""
         from utils.utils import has_visible_content, extract_first_word_with_tags, get_line_words_and_visible_tags
 
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
@@ -66,6 +70,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return (threshold - width_current_rstripped) >= (width_first_word_next + space_width)
 
     def check_for_empty_first_line_of_page(self, text: str) -> List[int]:
+        """Check for empty first line of page."""
         lines = text.split('\n')
         problem_lines = []
         for i in range(len(lines)):
@@ -80,6 +85,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return problem_lines
 
     def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
+        """Analyze data string."""
         sublines = data_string.split('\n')
         problems_per_subline = [set() for _ in sublines]
         empty_first_lines = self.check_for_empty_first_line_of_page(data_string)
@@ -122,4 +128,5 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return problems_per_subline
 
     def analyze_subline(self, *args, **kwargs) -> Set[str]:
+        """Analyze subline."""
         return set()

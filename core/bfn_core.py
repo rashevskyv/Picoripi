@@ -1,4 +1,4 @@
-import os
+﻿import os
 import struct
 import json
 from typing import Dict, Any, List, Tuple, Optional
@@ -6,12 +6,15 @@ from PyQt6.QtGui import QImage, QColor
 from utils.logging_utils import log_info, log_warning, log_error
 
 def align_to(value: int, alignment: int) -> int:
+    """Align to."""
     if value % alignment == 0:
         return value
     return value + (alignment - (value % alignment))
 
 class BfnCore:
+    """Bfn core implementation."""
     def __init__(self):
+        """Initialize a new instance."""
         self.signature = "FFNT1bnd"
         self.num_chunks = 0
         self.inf1 = []
@@ -21,11 +24,13 @@ class BfnCore:
         self._qimages_cache = None
 
     def load_file(self, path: str) -> None:
+        """Load file."""
         with open(path, 'rb') as f:
             data = f.read()
         self.load(data)
 
     def load(self, data: bytes) -> None:
+        """Load ."""
         self._qimages_cache = None
         if len(data) < 32:
             raise ValueError("File is too small to be a valid BFN file.")
@@ -155,6 +160,7 @@ class BfnCore:
             offset = chunk_data_end
 
     def save(self) -> bytes:
+        """Save ."""
         writer_buf = bytearray()
         chunk_counts = 0
         
@@ -441,6 +447,7 @@ class BfnCore:
 
         # Parse MAP1 maps
         def code_to_char(code):
+            """Code to char."""
             try:
                 return bytes([code]).decode('cp1252')
             except Exception:

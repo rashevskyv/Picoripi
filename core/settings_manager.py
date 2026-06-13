@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, List
@@ -20,7 +20,9 @@ except ImportError:
     pass
 
 class SettingsManager:
+    """Manager class for settings."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self.settings_file_path = SETTINGS_FILE_PATH
         SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -48,6 +50,7 @@ class SettingsManager:
                 setattr(self.mw, key, value)
 
     def load_settings(self):
+        """Load settings."""
         log_info(f"Loading settings from {self.settings_file_path}...")
         self.global_settings.load(self._settings)
         self.plugin_settings.load(self._settings)
@@ -78,12 +81,14 @@ class SettingsManager:
         log_info("Settings loading finished.")
 
     def save_settings(self, save_project_settings: bool = True):
+        """Save settings."""
         log_debug("Saving all settings...")
         self.global_settings.save(self._settings)
         if save_project_settings:
             self.plugin_settings.save()
 
     def load_unsaved_session(self):
+        """Load unsaved session."""
         log_debug("Attempting to load unsaved session data...")
         if not Path(self.settings_file_path).exists():
             return
@@ -112,22 +117,29 @@ class SettingsManager:
 
     # Delegation methods for backward compatibility
     def load_all_font_maps(self):
+        """Load all font maps."""
         self.font_map_loader.load_all_font_maps()
 
     def add_recent_project(self, project_path: str, max_recent: int = 10):
+        """Add recent project."""
         self.recent_projects_manager.add_recent_project(project_path, max_recent)
 
     def remove_recent_project(self, project_path: str):
+        """Remove recent project."""
         self.recent_projects_manager.remove_recent_project(project_path)
 
     def clear_recent_projects(self):
+        """Remove recent projects."""
         self.recent_projects_manager.clear_recent_projects()
 
     def save_block_names(self):
+        """Save block names."""
         self.plugin_settings.save_block_names()
 
     def _update_icon_sequences_cache(self):
+        """Internal helper to update the icon sequences cache."""
         self.font_map_loader.update_icon_sequences_cache()
 
     def _refresh_icon_highlighting(self):
+        """Internal helper to update the icon highlighting."""
         self.font_map_loader.refresh_icon_highlighting()

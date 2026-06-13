@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import json
 import pycountry
 from PyQt6.QtWidgets import *
@@ -11,7 +11,9 @@ from core.translation.config import build_default_translation_config, merge_tran
 from .settings_widgets import ColorPickerButton, TagDisplayWidget
 
 class SettingsDialogUiMixin:
+    """Settings dialog ui mixin implementation."""
     def setup_general_tab(self):
+        """Setup general tab."""
         layout = QFormLayout(self.general_tab)
         
         self.theme_combo = QComboBox(self)
@@ -63,12 +65,14 @@ class SettingsDialogUiMixin:
 
 
     def setup_plugin_tab(self):
+        """Setup plugin tab."""
         plugin_layout = QVBoxLayout(self.plugin_tab)
         self.plugin_tabs = QTabWidget(self.plugin_tab)
         plugin_layout.addWidget(self.plugin_tabs)
         self.rebuild_plugin_tabs()
 
     def rebuild_plugin_tabs(self):
+        """Rebuild plugin tabs."""
         while self.plugin_tabs.count():
             self.plugin_tabs.removeTab(0)
 
@@ -103,6 +107,7 @@ class SettingsDialogUiMixin:
         self._setup_autofix_subtab(autofix_tab)
 
     def setup_spelling_tab(self):
+        """Setup spelling tab."""
         layout = QFormLayout(self.spelling_tab)
         
         self.spellcheck_enabled_checkbox = QCheckBox("Enable spell checking", self)
@@ -118,11 +123,13 @@ class SettingsDialogUiMixin:
         self.populate_spellchecker_languages()
 
     def _open_dictionary_manager(self):
+        """Internal helper to open dictionary manager."""
         dialog = DictionaryManagerDialog(self)
         dialog.exec()
         self.populate_spellchecker_languages()
 
     def populate_spellchecker_languages(self):
+        """Populate spellchecker languages."""
         current_lang_data = self.spellcheck_language_combo.currentData()
         self.spellcheck_language_combo.clear()
         if self.mw and self.mw.spellchecker_manager:
@@ -137,6 +144,7 @@ class SettingsDialogUiMixin:
                 self.spellcheck_language_combo.setCurrentIndex(index)
 
     def _populate_font_list(self, plugin_dir_name: str):
+        """Internal helper to populate font list."""
         self.font_file_combo.clear()
         self.font_file_combo.addItem("None", "")
 
@@ -177,6 +185,7 @@ class SettingsDialogUiMixin:
                             self.font_file_combo.addItem(font_path.name, font_path.name)
 
     def _setup_display_subtab(self, tab):
+        """Internal helper to setup display subtab."""
         layout = QFormLayout(tab)
         self.font_file_combo = QComboBox(self)
         layout.addRow("Default Font for Project:", self.font_file_combo)
@@ -215,10 +224,12 @@ class SettingsDialogUiMixin:
         layout.addRow("Tag Style:", tag_style_row)
 
     def on_rules_changed(self):
+        """Handle the rules changed event."""
         self.rules_changed_requires_rescan = True
         log_debug("SettingsDialog: Rules changed, marked for rescan.")
 
     def _setup_rules_subtab(self, tab):
+        """Internal helper to setup rules subtab."""
         layout = QFormLayout(tab)
         self.game_dialog_width_spinbox = LabeledSpinBox("Game Dialog Max Width (px):", 100, 10000, 240, parent=self)
         self.game_dialog_width_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
@@ -242,6 +253,7 @@ class SettingsDialogUiMixin:
         layout.addRow(self.lines_per_page_spinbox)
 
     def _setup_context_tags_subtab(self, tab):
+        """Internal helper to setup context tags subtab."""
         layout = QVBoxLayout(tab)
         
         # Search Filter
@@ -301,6 +313,7 @@ class SettingsDialogUiMixin:
         layout.addWidget(wrap_group)
 
     def _handle_table_double_click(self, event, table):
+        """Internal helper to handle table double click."""
         item = table.itemAt(event.pos())
         if item is None:
             row = table.rowAt(event.pos().y())
@@ -312,6 +325,7 @@ class SettingsDialogUiMixin:
             QTableWidget.mouseDoubleClickEvent(table, event)
 
     def _show_table_context_menu(self, pos, table):
+        """Internal helper to show table context menu."""
         menu = QMenu(self)
         
         item = table.itemAt(pos)
@@ -358,6 +372,7 @@ class SettingsDialogUiMixin:
                 table.removeRow(row)
 
     def _add_table_row(self, table, display_text="", col1="", col2="", insert_at_row=None):
+        """Internal helper to add table row."""
         sorting_was_enabled = table.isSortingEnabled()
         if sorting_was_enabled:
             table.setSortingEnabled(False)
@@ -385,6 +400,7 @@ class SettingsDialogUiMixin:
             table.setSortingEnabled(True)
 
     def _filter_tags_tables(self, text):
+        """Internal helper to filter tags tables."""
         search_text = text.lower()
         for table in (self.single_tags_table, self.wrap_tags_table):
             for r in range(table.rowCount()):
@@ -402,11 +418,13 @@ class SettingsDialogUiMixin:
                 table.setRowHidden(r, not row_matches)
 
     def _remove_table_row(self, table):
+        """Internal helper to remove table row."""
         curr = table.currentRow()
         if curr != -1: table.removeRow(curr)
         elif table.rowCount() > 0: table.removeRow(table.rowCount() - 1)
 
     def _setup_paths_subtab(self, tab):
+        """Internal helper to setup paths subtab."""
         layout = QFormLayout(tab)
         
         self.dir_mode_checkbox = QCheckBox("Directory Mode (Load from folder)", tab)
@@ -450,6 +468,7 @@ class SettingsDialogUiMixin:
         self.orig_fonts_path_edit.textChanged.connect(self._on_orig_fonts_dir_changed)
 
     def _on_dir_mode_changed(self, state):
+        """Internal helper to handle the dir mode changed event."""
         is_dir = (state == Qt.CheckState.Checked)
         if is_dir:
             self.orig_label_widget.setText("Original Directory Path:")
@@ -460,6 +479,7 @@ class SettingsDialogUiMixin:
         self._update_auto_changes_path()
 
     def _on_auto_generate_changed(self, state):
+        """Internal helper to handle the auto generate changed event."""
         is_auto = (state == Qt.CheckState.Checked)
         if hasattr(self, 'edited_path_selector'):
             self.edited_path_selector.setEnabled(not is_auto)
@@ -468,6 +488,7 @@ class SettingsDialogUiMixin:
         self._update_auto_changes_path()
 
     def _update_auto_changes_path(self):
+        """Internal helper to update the auto changes path."""
         if not hasattr(self, 'auto_generate_checkbox') or not self.auto_generate_checkbox.isChecked():
             return
         
@@ -497,6 +518,7 @@ class SettingsDialogUiMixin:
             self.edited_path_edit.setText(f"{orig_path}_translation")
 
     def _populate_checkbox_subtab(self, tab, checkbox_dict, title):
+        """Internal helper to populate checkbox subtab."""
         layout = QFormLayout(tab)
         layout.addRow(QLabel(title))
 
@@ -551,9 +573,11 @@ class SettingsDialogUiMixin:
             layout.addRow(row_widget)
 
     def _setup_detection_subtab(self, tab):
+        """Internal helper to setup detection subtab."""
         self._populate_checkbox_subtab(tab, self.detection_checkboxes, "Enable/disable problem detection:")
 
     def _setup_autofix_subtab(self, tab):
+        """Internal helper to setup autofix subtab."""
         layout = QVBoxLayout(tab)
         
         general_group = QGroupBox("General Auto-fix Settings", tab)
@@ -576,6 +600,7 @@ class SettingsDialogUiMixin:
         layout.addStretch(1)
 
     def on_provider_changed(self, index):
+        """Handle the provider changed event."""
         provider_key = self.translation_provider_combo.itemData(index)
         page_index = self.provider_page_map.get(provider_key, 0)
         self.ai_provider_pages.setCurrentIndex(page_index)
@@ -583,6 +608,7 @@ class SettingsDialogUiMixin:
             self.test_provider_btn.setEnabled(provider_key != 'disabled')
 
     def setup_ai_translation_tab(self):
+        """Setup ai translation tab."""
         layout = QVBoxLayout(self.ai_translation_tab)
         provider_form = QFormLayout()
         
@@ -702,6 +728,7 @@ class SettingsDialogUiMixin:
         layout.addStretch(1)
 
     def setup_ai_glossary_tab(self):
+        """Setup ai glossary tab."""
         layout = QFormLayout(self.ai_glossary_tab)
 
         self.glossary_provider_combo = QComboBox(self)
@@ -733,6 +760,7 @@ class SettingsDialogUiMixin:
 
 
     def _set_glossary_api_key_text(self, value: str) -> None:
+        """Internal helper to set the glossary api key text."""
         self._glossary_updating_api_key = True
         try:
             self.glossary_api_key_edit.setText(value or "")
@@ -740,6 +768,7 @@ class SettingsDialogUiMixin:
             self._glossary_updating_api_key = False
 
     def _get_translation_credentials_for_glossary(self, provider_name: str) -> dict:
+        """Internal helper to get the translation credentials for glossary."""
         providers_cfg = {}
         if isinstance(self.translation_config_snapshot, dict):
             providers_cfg = self.translation_config_snapshot.get('providers', {}) or {}
@@ -773,6 +802,7 @@ class SettingsDialogUiMixin:
         return {}
 
     def _update_glossary_api_key_controls(self, provider_name: str = None) -> None:
+        """Internal helper to update the glossary api key controls."""
         provider = provider_name or self.glossary_provider_combo.currentText()
         use_translation = self.glossary_use_translation_key_checkbox.isChecked()
         self.glossary_api_key_edit.setEnabled(not use_translation)
@@ -785,6 +815,7 @@ class SettingsDialogUiMixin:
             self._set_glossary_api_key_text(manual_value)
 
     def _refresh_glossary_api_key_from_translation(self, *args):
+        """Internal helper to update the glossary api key from translation."""
         if not self.glossary_use_translation_key_checkbox.isChecked():
             return
         provider = self.glossary_provider_combo.currentText()
@@ -792,18 +823,21 @@ class SettingsDialogUiMixin:
             self._update_glossary_api_key_controls(provider)
 
     def _on_glossary_use_translation_key_changed(self, state):
+        """Internal helper to handle the glossary use translation key changed event."""
         provider = self.glossary_provider_combo.currentText()
         if state == Qt.CheckState.Checked:
             self._glossary_manual_api_keys[provider] = self.glossary_api_key_edit.text().strip()
         self._update_glossary_api_key_controls(provider)
 
     def _on_glossary_provider_changed(self, index):
+        """Internal helper to handle the glossary provider changed event."""
         provider = self.glossary_provider_combo.itemText(index)
         if not provider:
             provider = self.glossary_provider_combo.currentText()
         self._update_glossary_api_key_controls(provider)
 
     def _on_glossary_api_key_changed(self, text):
+        """Internal helper to handle the glossary api key changed event."""
         if self._glossary_updating_api_key:
             return
         if self.glossary_use_translation_key_checkbox.isChecked():
@@ -813,6 +847,7 @@ class SettingsDialogUiMixin:
 
 
     def find_plugins(self):
+        """Find plugins."""
         plugins_dir = Path("plugins")
         found_plugins = {}
         if not plugins_dir.is_dir():
@@ -832,6 +867,7 @@ class SettingsDialogUiMixin:
         return found_plugins
 
     def populate_plugin_list(self):
+        """Populate plugin list."""
         self.plugin_map = self.find_plugins()
         self.plugin_combo.clear()
         self.plugin_combo.addItem("None", "")
@@ -839,6 +875,7 @@ class SettingsDialogUiMixin:
             self.plugin_combo.addItem(display_name, dir_name)
 
     def setup_logging_tab(self):
+        """Setup logging tab."""
         layout = QVBoxLayout(self.logging_tab)
         
         handler_group = QGroupBox("Log Destinations", self.logging_tab)
@@ -881,6 +918,7 @@ class SettingsDialogUiMixin:
         layout.addStretch(1)
 
     def on_theme_changed(self, index):
+        """Handle the theme changed event."""
         log_debug("SettingsDialog: Theme changed in dropdown.")
         selected_theme = self.theme_combo.currentText().lower()
         if selected_theme != self.initial_theme:
@@ -890,6 +928,7 @@ class SettingsDialogUiMixin:
             self.theme_changed_requires_restart = False
 
     def on_plugin_changed(self, index):
+        """Handle the plugin changed event."""
         log_debug("SettingsDialog: Plugin changed in dropdown.")
         selected_dir_name = self.plugin_combo.currentData()
         
@@ -900,6 +939,7 @@ class SettingsDialogUiMixin:
 
 
     def _setup_aliases_subtab(self, tab):
+        """Internal helper to setup aliases subtab."""
         layout = QVBoxLayout(tab)
         
         # Search Filter
@@ -938,6 +978,7 @@ class SettingsDialogUiMixin:
         self._populate_aliases_table()
 
     def _populate_aliases_table(self):
+        """Internal helper to populate aliases table."""
         self.aliases_table.setRowCount(0)
         default_tag_mappings = getattr(self.mw, "default_tag_mappings", {})
         for idx, (alias, orig_tag) in enumerate(default_tag_mappings.items()):
@@ -947,6 +988,7 @@ class SettingsDialogUiMixin:
         self.aliases_table.resizeColumnsToContents()
 
     def _add_alias_row(self, alias="", orig_tag="", insert_at_row=None):
+        """Internal helper to add alias row."""
         if insert_at_row is not None:
             row = insert_at_row
         else:
@@ -956,6 +998,7 @@ class SettingsDialogUiMixin:
         self.aliases_table.setItem(row, 1, QTableWidgetItem(orig_tag))
 
     def _remove_alias_row(self):
+        """Internal helper to remove alias row."""
         curr = self.aliases_table.currentRow()
         if curr != -1:
             self.aliases_table.removeRow(curr)
@@ -963,6 +1006,7 @@ class SettingsDialogUiMixin:
             self.aliases_table.removeRow(self.aliases_table.rowCount() - 1)
 
     def _filter_aliases_table(self, text):
+        """Internal helper to filter aliases table."""
         search_text = text.lower()
         for r in range(self.aliases_table.rowCount()):
             row_matches = False
@@ -975,6 +1019,7 @@ class SettingsDialogUiMixin:
             self.aliases_table.setRowHidden(r, not row_matches)
 
     def _handle_aliases_double_click(self, event):
+        """Internal helper to handle aliases double click."""
         item = self.aliases_table.itemAt(event.pos())
         if item is None:
             row = self.aliases_table.rowAt(event.pos().y())
@@ -986,6 +1031,7 @@ class SettingsDialogUiMixin:
             QTableWidget.mouseDoubleClickEvent(self.aliases_table, event)
 
     def _show_aliases_context_menu(self, pos):
+        """Internal helper to show aliases context menu."""
         menu = QMenu(self)
         item = self.aliases_table.itemAt(pos)
         clicked_row = item.row() if item else -1
@@ -1024,6 +1070,7 @@ class SettingsDialogUiMixin:
 
 
     def _setup_font_map_subtab(self, tab):
+        """Internal helper to setup font map subtab."""
         layout = QVBoxLayout(tab)
         
         # Search Filter
@@ -1062,6 +1109,7 @@ class SettingsDialogUiMixin:
         self._populate_font_map_table()
 
     def _populate_font_map_table(self):
+        """Internal helper to populate font map table."""
         self.font_map_table.setRowCount(0)
         
         # Read from current font_map.json
@@ -1100,6 +1148,7 @@ class SettingsDialogUiMixin:
         self.font_map_table.resizeColumnsToContents()
 
     def _add_font_map_row(self, char="", width_val="", insert_at_row=None):
+        """Internal helper to add font map row."""
         if insert_at_row is not None:
             row = insert_at_row
         else:
@@ -1109,6 +1158,7 @@ class SettingsDialogUiMixin:
         self.font_map_table.setItem(row, 1, QTableWidgetItem(width_val))
 
     def _remove_font_map_row(self):
+        """Internal helper to remove font map row."""
         curr = self.font_map_table.currentRow()
         if curr != -1:
             self.font_map_table.removeRow(curr)
@@ -1116,6 +1166,7 @@ class SettingsDialogUiMixin:
             self.font_map_table.removeRow(self.font_map_table.rowCount() - 1)
 
     def _filter_font_map_table(self, text):
+        """Internal helper to filter font map table."""
         search_text = text.lower()
         for r in range(self.font_map_table.rowCount()):
             row_matches = False
@@ -1128,6 +1179,7 @@ class SettingsDialogUiMixin:
             self.font_map_table.setRowHidden(r, not row_matches)
 
     def _handle_font_map_double_click(self, event):
+        """Internal helper to handle font map double click."""
         item = self.font_map_table.itemAt(event.pos())
         if item is None:
             row = self.font_map_table.rowAt(event.pos().y())
@@ -1139,6 +1191,7 @@ class SettingsDialogUiMixin:
             QTableWidget.mouseDoubleClickEvent(self.font_map_table, event)
 
     def _show_font_map_context_menu(self, pos):
+        """Internal helper to show font map context menu."""
         menu = QMenu(self)
         item = self.font_map_table.itemAt(pos)
         clicked_row = item.row() if item else -1

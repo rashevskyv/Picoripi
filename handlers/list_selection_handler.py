@@ -1,4 +1,4 @@
-# handlers/list_selection_handler.py
+﻿# handlers/list_selection_handler.py
 from typing import Any, Optional, List, Dict, Union, Tuple
 from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
 from PyQt6.QtCore import Qt, QTimer
@@ -8,7 +8,9 @@ from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
 
 class ListSelectionHandler(BaseHandler):
+    """Handler for list selection operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self._restoring_selection: bool = False
         self._target_string_idx: Optional[int] = None
@@ -27,6 +29,7 @@ class ListSelectionHandler(BaseHandler):
         self.mw.block_list_widget.navigate_folders(direction)
 
     def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
+        """Block selected."""
         if self.mw.is_loading_data or self._restoring_selection:
             return
  
@@ -203,6 +206,7 @@ class ListSelectionHandler(BaseHandler):
             self.mw.is_programmatically_changing_text = False
 
     def _restore_block_selection(self) -> None:
+        """Internal helper to restore block selection."""
         if self.mw.data_store.current_block_idx != -1:
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
@@ -354,6 +358,7 @@ class ListSelectionHandler(BaseHandler):
         self.string_selected_from_preview(rel_idx)
 
     def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False) -> None:
+        """String selected from preview."""
         log_debug(f"DIAG_STRING_SELECTED_FROM_PREVIEW: line={line_number}, is_manual={is_manual_click}")
         
         if hasattr(self.mw, 'editor_operation_handler'):
@@ -495,6 +500,7 @@ class ListSelectionHandler(BaseHandler):
 
 
     def rename_block(self, item: QTreeWidgetItem) -> None:
+        """Rename block."""
         if not item: return
         self.mw.block_list_widget.editItem(item, 0)
 
@@ -675,6 +681,7 @@ class ListSelectionHandler(BaseHandler):
             undo_mgr.record_structural_action(before, action_type, action_label)
 
     def _data_string_has_any_problem(self, block_idx: int, string_idx: int) -> bool:
+        """Internal helper to data string has any problem."""
         if not self.mw.current_game_rules:
             return False
 
@@ -696,6 +703,7 @@ class ListSelectionHandler(BaseHandler):
         return False
 
     def navigate_to_problem_string(self, direction_down: bool):
+        """Navigate to problem string."""
         if self.mw.data_store.current_block_idx == -1 or not self.mw.data_store.data or \
            not (0 <= self.mw.data_store.current_block_idx < len(self.mw.data_store.data)):
             return
@@ -754,6 +762,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.is_programmatically_changing_text = original_programmatic_state
 
     def handle_preview_selection_changed(self, selected_lines: Optional[List[int]] = None) -> None:
+        """Handle preview selection changed."""
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         log_debug(f"DIAG_HANDLE_PREVIEW_SELECTION_CHANGED: selected={selected_lines}, focus={preview_edit.hasFocus() if preview_edit else False}, programmatic={self.mw.is_programmatically_changing_text}")
         if not preview_edit or self.mw.is_programmatically_changing_text:
@@ -1029,6 +1038,7 @@ class ListSelectionHandler(BaseHandler):
                     QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
 
     def _get_displayed_indices(self) -> list:
+        """Internal helper to get the displayed indices."""
         indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
         if not indices and hasattr(self.mw, 'displayed_string_indices'):
             indices = self.mw.displayed_string_indices

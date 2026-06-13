@@ -1,4 +1,4 @@
-"""Background scanner that runs line-width analysis, glossary matching, and
+﻿"""Background scanner that runs line-width analysis, glossary matching, and
 spellcheck off the UI thread.
 
 Historically this was a fresh QThread spawned on every keystroke debounce tick;
@@ -55,6 +55,7 @@ class AsyncIssueScanner(QRunnable):
         editor_text: str = "",
         logical_hard_limit: Optional[int] = None,
     ):
+        """Initialize a new instance."""
         super().__init__()
         self.setAutoDelete(True)
         self.signals = _ScannerSignals()
@@ -84,10 +85,12 @@ class AsyncIssueScanner(QRunnable):
         self._cancel_event.set()
 
     def is_cancelled(self) -> bool:
+        """Check if is cancelled."""
         return self._cancel_event.is_set()
 
     # Backwards-compatible shim: callers used to introspect a QThread.
     def isRunning(self) -> bool:  # noqa: N802 - matches Qt naming
+        """Isrunning."""
         return not self._cancel_event.is_set()
 
     @property
@@ -103,6 +106,7 @@ class AsyncIssueScanner(QRunnable):
     # ---------------------------------------------------------------- internal
 
     def run(self) -> None:  # noqa: D401 - QRunnable entry point
+        """Run."""
         try:
             if self.is_cancelled():
                 return
@@ -151,6 +155,7 @@ class AsyncIssueScanner(QRunnable):
 
     # 1. Warnings (line width, etc.) — plugin-defined.
     def _run_warnings(self) -> list:
+        """Internal helper to run warnings."""
         if not self.warnings_enabled:
             return []
 
@@ -185,6 +190,7 @@ class AsyncIssueScanner(QRunnable):
 
     # 2. Glossary occurrences in the edited text.
     def _run_glossary_matches(self) -> list:
+        """Internal helper to run glossary matches."""
         if not (
             self.glossary_enabled
             and self.glossary_manager
@@ -211,6 +217,7 @@ class AsyncIssueScanner(QRunnable):
     # 3. Translation-glossary bridge: terms from the source text reflected
     # in the edited text via the glossary's translation regex.
     def _run_translation_matches(self) -> list:
+        """Internal helper to run translation matches."""
         if not (self.glossary_enabled and self.glossary_manager and self.source_text):
             return []
         translation_matches: list = []
@@ -239,6 +246,7 @@ class AsyncIssueScanner(QRunnable):
 
     # 4. Spellcheck: walk word tokens, consult hunspell, cache results.
     def _run_spellcheck(self) -> list:
+        """Internal helper to run spellcheck."""
         sm = self.spellchecker_manager
         if not (sm and sm.enabled and sm.hunspell):
             return []

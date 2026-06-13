@@ -1,4 +1,4 @@
-# core/project_manager.py
+﻿# core/project_manager.py
 """
 Project management system for the translation workbench.
 
@@ -326,6 +326,7 @@ class ProjectManager:
         import shutil
 
         def process_source_file(filepath: Path, rel_path: str):
+            """Process source file."""
             if filepath.suffix.lower() in {'.arc', '.rarc', '.ark'}:
                 archive_rel_path = rel_path
                 try:
@@ -510,6 +511,7 @@ class ProjectManager:
         return container
 
     def clear_archive_cache(self) -> None:
+        """Remove archive cache."""
         self._archive_cache.clear()
 
     def get_relative_path(self, absolute_path: Union[str, Path], is_translation: bool = False) -> str:
@@ -788,6 +790,7 @@ class ProjectManager:
             return False
             
         def search_recursive(folders: List[VirtualFolder]) -> bool:
+            """Search recursive."""
             for f in folders:
                 if f.id == potential_child_id:
                     return True
@@ -842,6 +845,7 @@ class ProjectManager:
         self.save()
 
     def _remove_block_id_from_any_folder(self, block_id: str, search_list: Optional[List[VirtualFolder]] = None) -> None:
+        """Internal helper to remove block id from any folder."""
         if search_list is None:
             if not self.project: return
             search_list = self.project.virtual_folders
@@ -864,6 +868,7 @@ class ProjectManager:
         all_ids = []
         
         def collect_recursive(f):
+            """Collect recursive."""
             all_ids.extend(f.block_ids)
             for child in f.children:
                 collect_recursive(child)
@@ -886,6 +891,7 @@ class ProjectManager:
                 
         # Check nested
         def remove_from_list(folders: List[VirtualFolder]) -> bool:
+            """Remove from list."""
             for i, f in enumerate(folders):
                 if f.id == folder_id:
                     folders.pop(i)

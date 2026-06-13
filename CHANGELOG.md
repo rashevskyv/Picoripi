@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.014] - 2026-06-13
+
+### 🔄 Changed
+- **Migration to PyQt6 and Refactoring**: Completed the global migration of all UI components, dialogs, widgets, and handlers from PyQt5 to PyQt6, ensuring support for modern windowing frameworks.
+- **Docstring Documentation Coverage**: Added extensive Python docstrings (PEP 257 compliant) across all modules, classes, and functions in the codebase (including components, core logic, handlers, and utility scripts) to improve static linting, code readability, and development quality.
+- **UTF-8 BOM Encoding**: Saved all modified Python source code files with UTF-8 BOM encoding to maximize editor compatibility under Windows environments.
+
 ## [0.3.013] - 2026-06-12
 
 ### 🚀 Added
@@ -823,9 +830,9 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ### Fixed
 - **Fixed Multi-Selection Reset in Strings in Block Preview**: Fixed a critical bug where Shift-clicking or Ctrl-clicking to select multiple lines in the preview list ("Strings in block") would immediately reset and disappear.
-  - Implemented instant focus setting (`setFocus()`) in `mousePressEvent` in [mouse_handlers.py](file:///d:/git/dev/Picoripi/components/editor/mouse_handlers.py) to resolve async focus transfer latency when clicking from the translation editor.
-  - Optimized focus checks in `handle_preview_selection_changed` in [list_selection_handler.py](file:///d:/git/dev/Picoripi/handlers/list_selection_handler.py) to perform `hasFocus()` verification only on native Qt selection updates, skipping it entirely for custom selection signals.
-  - Protected multi-selection state in `set_selected_lines` in [line_numbered_text_edit.py](file:///d:/git/dev/Picoripi/components/editor/line_numbered_text_edit.py) from being programmatically overwritten by lazy-loading timer blocks or background view updates, ignoring single line selection events if they are already part of an active multi-selection.
+  - Implemented instant focus setting (`setFocus()`) in `mousePressEvent` in [mouse_handlers.py](components/editor/mouse_handlers.py) to resolve async focus transfer latency when clicking from the translation editor.
+  - Optimized focus checks in `handle_preview_selection_changed` in [list_selection_handler.py](handlers/list_selection_handler.py) to perform `hasFocus()` verification only on native Qt selection updates, skipping it entirely for custom selection signals.
+  - Protected multi-selection state in `set_selected_lines` in [line_numbered_text_edit.py](components/editor/line_numbered_text_edit.py) from being programmatically overwritten by lazy-loading timer blocks or background view updates, ignoring single line selection events if they are already part of an active multi-selection.
 
 ## [0.2.109] - 2026-05-24
 

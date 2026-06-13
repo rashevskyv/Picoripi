@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Tuple
 from utils.logging_utils import log_debug
 
@@ -13,6 +13,7 @@ PLAYER_TAG_BMG = "{PLAYER}"
 COLOR_TAG_PATTERN_BMG = re.compile(r"\{COLOR_[^}]+\}", re.IGNORECASE)
 
 def _analyze_tags_for_issues_zbmg(processed_text: str, original_text: str) -> Tuple[str, str]:
+    """Internal helper to analyze tags for issues zbmg."""
     processed_tags = ANY_TAG_PATTERN_BMG.findall(processed_text)
     original_tags = ANY_TAG_PATTERN_BMG.findall(original_text)
 
@@ -42,6 +43,7 @@ def process_segment_tags_aggressively_zbmg(
     original_text_for_tags: str,
     editor_player_tag_const: str
 ) -> Tuple[str, str, str]:
+    """Process segment tags aggressively zbmg."""
     log_debug(f"ZeldaBMG Plugin Logic: Input Segment='{segment_to_insert[:80]}', Original='{original_text_for_tags[:80]}'")
     
     status, msg = _analyze_tags_for_issues_zbmg(segment_to_insert, original_text_for_tags)

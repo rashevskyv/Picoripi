@@ -1,4 +1,4 @@
-# handlers/translation/translation_handler.py
+﻿# handlers/translation/translation_handler.py
 
 import json
 import re
@@ -31,9 +31,11 @@ from utils.utils import convert_spaces_to_dots_for_display
 
 
 class TranslationHandler(BaseHandler):
+    """Handler for translation operations."""
     _MAX_LOG_EXCERPT: int = 160
 
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self._cached_system_prompt: Optional[str] = None
         self._cached_glossary: Optional[str] = None
@@ -158,21 +160,27 @@ class TranslationHandler(BaseHandler):
         log_debug(f"Loaded translation progress for {len(self.translation_progress)} blocks from project metadata.")
 
     def initialize_glossary_highlighting(self) -> None:
+        """Initialize glossary highlighting."""
         self.glossary_handler.initialize_glossary_highlighting()
 
     def show_glossary_dialog(self, initial_term: Optional[str] = None) -> None:
+        """Show glossary dialog."""
         self.glossary_handler.show_glossary_dialog(initial_term)
 
     def get_glossary_entry(self, term: str) -> Optional[GlossaryEntry]:
+        """Get the glossary entry."""
         return self.glossary_handler.glossary_manager.get_entry(term)
 
     def add_glossary_entry(self, term: str, context: Optional[str] = None, translation: str = "") -> None:
+        """Add glossary entry."""
         self.glossary_handler.add_glossary_entry(term, context, translation)
 
     def edit_glossary_entry(self, term: str, translation: str = "") -> None:
+        """Edit glossary entry."""
         self.glossary_handler.edit_glossary_entry(term, translation=translation)
 
     def append_selection_to_glossary(self) -> None:
+        """Append selection to glossary."""
         preview_edit = self.mw.preview_text_edit
         selected_lines = preview_edit.get_selected_lines()
         if not selected_lines:
@@ -200,9 +208,11 @@ class TranslationHandler(BaseHandler):
 
 
     def _prepare_provider(self, provider_key_override: Optional[str] = None) -> Optional[BaseTranslationProvider]:
+        """Internal helper to prepare provider."""
         return self.ai_lifecycle_manager._prepare_provider(provider_key_override)
 
     def reset_translation_session(self) -> None:
+        """Reset translation session."""
         self._session_manager.reset()
         self._cached_system_prompt = None
         self._cached_glossary = None
@@ -232,6 +242,7 @@ class TranslationHandler(BaseHandler):
         save_section: Optional[str] = None,
         save_field: str = 'system_prompt',
     ) -> Optional[Tuple[str, str]]:
+        """Internal helper to maybe edit prompt."""
         modifiers = QApplication.keyboardModifiers()
         is_ctrl_pressed = False
         if hasattr(modifiers, 'value'):
@@ -267,11 +278,13 @@ class TranslationHandler(BaseHandler):
 
 
     def _should_use_session(self, task_type: str) -> bool:
+        """Internal helper to check if should use session."""
         if not self._provider_supports_sessions:
             return False
         return task_type in ('chat_message', 'chat_message_stream', 'translate_block_chunked')
 
     def _prepare_session_for_request(self, *, base_system_prompt: str, full_system_prompt: str, user_prompt: str, task_type: str) -> Optional[dict]:
+        """Internal helper to prepare session for request."""
         log_debug(f"Preparing session, start_new_session is {self.start_new_session}")
         if not self._should_use_session(task_type):
             return None
@@ -294,6 +307,7 @@ class TranslationHandler(BaseHandler):
         }
 
     def _attach_session_to_task(self, task_details: dict, *, base_system_prompt: str, full_system_prompt: str, user_prompt: str, task_type: str) -> bool:
+        """Internal helper to attach session to task."""
         session_info = self._prepare_session_for_request(
             base_system_prompt=base_system_prompt,
             full_system_prompt=full_system_prompt,
@@ -308,6 +322,7 @@ class TranslationHandler(BaseHandler):
         return True
 
     def _set_notes_dialog_busy(self, dialog_obj, busy: bool) -> None:
+        """Internal helper to set the notes dialog busy."""
         if not dialog_obj:
             return
         if hasattr(dialog_obj, 'set_ai_busy'):
@@ -316,12 +331,15 @@ class TranslationHandler(BaseHandler):
             dialog_obj.set_notes_variation_busy(busy)
 
     def _run_ai_task(self, provider: BaseTranslationProvider, task_details: Dict[str, Any]) -> None:
+        """Internal helper to run ai task."""
         self.ai_lifecycle_manager.run_ai_task(provider, task_details)
 
     def _handle_ai_cancel(self, context: Dict[str, Any]) -> None:
+        """Internal helper to handle ai cancel."""
         self.ai_lifecycle_manager._handle_ai_cancel(context)
 
     def prompt_for_revert_after_cancel(self) -> None:
+        """Prompt for revert after cancel."""
         if not self.worker:
             self.ui_handler.finish_ai_operation()
             return
@@ -396,6 +414,7 @@ class TranslationHandler(BaseHandler):
 
 
     def _setup_progress_bar(self, total_chunks: int, completed_chunks: int) -> None:
+        """Internal helper to setup progress bar."""
         block_idx = self.worker.task_details.get('block_idx')
         if block_idx is not None and block_idx in self.translation_progress:
             self.translation_progress[block_idx]['total_chunks'] = total_chunks
@@ -404,6 +423,7 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.status_dialog.setup_progress_bar(total_chunks, completed_chunks)
 
     def translate_current_string(self) -> None:
+        """Translate current string."""
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -417,6 +437,7 @@ class TranslationHandler(BaseHandler):
         )
 
     def translate_preview_selection(self, context_menu_pos: QPoint) -> None:
+        """Translate preview selection."""
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -507,6 +528,7 @@ class TranslationHandler(BaseHandler):
         self._initiate_batch_translation(task_details)
 
     def translate_current_block(self, block_idx: Optional[int] = None, category_name: Optional[str] = None, chapter_id: Optional[int] = None) -> None:
+        """Translate current block."""
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -649,6 +671,7 @@ class TranslationHandler(BaseHandler):
         }
         self._initiate_batch_translation(task_details)
     def resume_block_translation(self, block_idx: int) -> None:
+        """Resume block translation."""
         if block_idx not in self.translation_progress:
             QMessageBox.information(self.mw, "Resume Translation", "No active translation session found for this block.")
             return
@@ -706,9 +729,11 @@ class TranslationHandler(BaseHandler):
         self._initiate_batch_translation(task_details)
 
     def _on_chunk_timer_timeout(self) -> None:
+        """Internal helper to handle the chunk timer timeout event."""
         pass # This method was likely intended to be implemented or removed.
 
     def _resolve_base_timeout(self, provider: BaseTranslationProvider) -> int:
+        """Internal helper to resolve base timeout."""
         try:
             base = int(provider.settings.get('timeout', 120))
         except (TypeError, ValueError):
@@ -724,6 +749,7 @@ class TranslationHandler(BaseHandler):
 
 
     def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
+        """Internal helper to initiate batch translation."""
         self.translated_chunks_count = 0
         provider = context['provider']
         
@@ -824,6 +850,7 @@ class TranslationHandler(BaseHandler):
         self._run_ai_task(provider, context)
 
     def _handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: Dict[str, Any]) -> None:
+        """Internal helper to handle chunk translated."""
         log_debug(f"Received translated chunk {chunk_index}. Raw AI response:\n{chunk_text}")
         try:
             block_idx = context['block_idx']
@@ -947,6 +974,7 @@ class TranslationHandler(BaseHandler):
             self._handle_ai_error(f"Failed to process chunk {chunk_index + 1}: {e}", context)
 
     def _handle_preview_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
+        """Internal helper to handle preview translation success."""
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_text = self.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         
@@ -1052,9 +1080,11 @@ class TranslationHandler(BaseHandler):
             self._handle_ai_error(f"Validation failed: {e}", context)
 
     def _handle_ai_error(self, error_msg: str, context: Dict[str, Any]) -> None:
+        """Internal helper to handle ai error."""
         self.ai_lifecycle_manager._handle_task_error(error_msg, context)
 
     def _handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
+        """Internal helper to handle single translation success."""
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
         
@@ -1084,12 +1114,15 @@ class TranslationHandler(BaseHandler):
         self.ui_updater.populate_strings_for_block(refresh_idx, self.mw.data_store.current_category_name, force=True)
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
+        """Internal helper to handle the task finished event."""
         self.ai_lifecycle_manager.on_task_finished(context)
 
     def generate_variation_for_current_string(self, force: bool = False) -> None:
+        """Generate variation for current string."""
         self.variations_handler.generate_variation_for_current_string(force)
 
     def _translate_and_apply(self, *, source_text: str, expected_lines: int, mode_description: str, block_idx: int, string_idx: int) -> None:
+        """Internal helper to translate and apply."""
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return
 
@@ -1143,6 +1176,7 @@ class TranslationHandler(BaseHandler):
         self._run_ai_task(provider, task_details)
         
     def _handle_block_translation_success(self, response: ProviderResponse, context: dict):
+        """Internal helper to handle block translation success."""
         log_debug(f"Block translation finished for block {context.get('block_idx')}")
         self.ui_handler.finish_ai_operation()
 
@@ -1160,6 +1194,7 @@ class TranslationHandler(BaseHandler):
             self.translate_current_string()
 
     def translate_all_blocks_chronologically(self) -> None:
+        """Translate all blocks chronologically."""
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return

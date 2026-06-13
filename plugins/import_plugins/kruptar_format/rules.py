@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional
+﻿from typing import List, Tuple, Dict, Optional
 import re
 from ..base_import_rules import BaseImportRules, TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS, TAG_STATUS_WARNING
 from plugins.base_game_rules import BaseGameRules 
@@ -10,6 +10,7 @@ from utils.utils import ALL_TAGS_PATTERN
 PLAYER_PSEUDO_TAG_FOR_COUNTING = "{PLAYER_CONSTRUCT_INTERNAL_KIF}" 
 
 def _analyze_tags_for_issues_kruptar(processed_text: str, original_text: str, editor_player_tag:str) -> Tuple[str, str]:
+    """Internal helper to analyze tags for issues kruptar."""
     temp_processed_text = str(processed_text) 
     temp_original_text = str(original_text)   
 
@@ -40,7 +41,9 @@ def _analyze_tags_for_issues_kruptar(processed_text: str, original_text: str, ed
 
 
 class ImportRules(BaseImportRules): 
+    """Game rules and translation logic for Import."""
     def parse_clipboard_text(self, clipboard_text: str) -> List[str]:
+        """Parse clipboard text."""
         segments_from_clipboard_raw = re.split(r'\{END\}\r?\n', clipboard_text)
         parsed_strings = []
         num_raw_segments = len(segments_from_clipboard_raw)
@@ -64,6 +67,7 @@ class ImportRules(BaseImportRules):
                                       editor_player_tag: str
                                       ) -> Tuple[str, str, str]:
         
+        """Process segment for insertion."""
         current_segment_state = str(segment_to_insert)
 
         segment_had_slash00 = "/00" in current_segment_state

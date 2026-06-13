@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 from PyQt6.QtWidgets import (
     QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
@@ -12,7 +12,9 @@ from core.mempalace_client import MemePalaceClient
 from utils.logging_utils import log_info, log_error
 
 class MemePalaceViewerDialog(QDialog):
+    """Dialog class for meme palace viewer."""
     def __init__(self, main_window, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent or main_window)
         self.mw = main_window
         self.setWindowTitle("MemePalace Database Viewer")
@@ -147,6 +149,7 @@ class MemePalaceViewerDialog(QDialog):
             log_error(f"Failed to initialize database client in viewer: {e}")
 
     def _setup_ui(self):
+        """Internal helper to setup ui."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 15)
         main_layout.setSpacing(12)
@@ -369,6 +372,7 @@ class MemePalaceViewerDialog(QDialog):
 
     @pyqtSlot(int)
     def _handle_wing_changed(self, index):
+        """Internal helper to handle wing changed."""
         self._load_rooms_and_relations()
 
     @pyqtSlot()

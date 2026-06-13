@@ -1,9 +1,11 @@
-from typing import Dict, Type, Any, TypeVar
+﻿from typing import Dict, Type, Any, TypeVar
 
 T = TypeVar('T')
 
 class ServiceContainer:
+    """Service container implementation."""
     def __init__(self) -> None:
+        """Initialize a new instance."""
         self._services: Dict[Type[Any], Any] = {}
 
     def register(self, service_type: Type[T], instance: T) -> None:

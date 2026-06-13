@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional, Set, Dict, Any
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
@@ -8,10 +8,13 @@ SENTENCE_END_PUNCTUATION_CHARS_ZMC = ['.', '!', '?']
 OPTIONAL_TRAILING_CHARS_ZMC = ['"', "'"]
 
 class ProblemAnalyzer(GenericProblemAnalyzer):
+    """Problem analyzer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref)
 
     def _ends_with_sentence_punctuation_zmc(self, text_no_tags_stripped: str) -> bool:
+        """Internal helper to ends with sentence punctuation zmc."""
         if not text_no_tags_stripped:
             return False
         last_char = text_no_tags_stripped[-1]
@@ -23,6 +26,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return last_char in SENTENCE_END_PUNCTUATION_CHARS_ZMC
 
     def _check_short_line_zmc(self, current_subline_text: str, next_subline_text: str, font_map: dict, threshold: int) -> bool:
+        """Internal helper to check short line zmc."""
         from utils.utils import has_visible_content, extract_first_word_with_tags, get_line_words_and_visible_tags
 
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
@@ -75,6 +79,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                                              subline_qtextblock_number_in_editor: int,
                                              is_logically_single_and_empty_data_string: bool) -> bool:
 
+        """Internal helper to check empty odd subline display zmc."""
         lines_per_page = getattr(self.mw, 'lines_per_page', 4)
         is_first_line_of_page = (subline_qtextblock_number_in_editor % lines_per_page) == 0
 
@@ -103,6 +108,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
 
+        """Analyze subline."""
         found_problems = super().analyze_subline(text, next_text, subline_number_in_data_string, qtextblock_number_in_editor, is_last_subline_in_data_string, editor_font_map, editor_line_width_threshold, full_data_string_text_for_logical_check, is_target_for_debug, logical_hard_limit=logical_hard_limit)
         
         text_with_spaces = convert_dots_to_spaces_from_editor(text)

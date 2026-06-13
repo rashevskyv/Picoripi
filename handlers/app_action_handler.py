@@ -1,4 +1,4 @@
-# handlers/app_action_handler.py
+﻿# handlers/app_action_handler.py
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
@@ -15,15 +15,18 @@ from components.report_dialog import LargeTextReportDialog
 from components.toast import ToastNotification
 
 class SaveWorker(QThread):
+    """Save worker implementation."""
     progress_updated = pyqtSignal(int, int, str)  # current_step, total_steps, label_text
     finished_with_result = pyqtSignal(bool, list, list)  # success, warnings, errors
 
     def __init__(self, data_processor: Any, output_data_list: List[Any]):
+        """Initialize a new instance."""
         super().__init__()
         self.data_processor = data_processor
         self.output_data_list = output_data_list
 
     def run(self):
+        """Run."""
         try:
             success, warnings, errors = self.data_processor._perform_save_impl(
                 self.output_data_list, 
@@ -36,15 +39,19 @@ class SaveWorker(QThread):
 
 
 class AppActionHandler(BaseHandler):
+    """Handler for app action operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any, game_rules_plugin: Optional[BaseGameRules]):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self.game_rules_plugin = game_rules_plugin
 
     def rescan_all_tags(self) -> None:
+        """Rescan all tags."""
         if hasattr(self.mw, 'issue_scan_handler'):
             self.mw.issue_scan_handler.rescan_all_tags()
 
     def handle_close_event(self, event: QEvent) -> None:
+        """Handle close event."""
         if getattr(self.mw, 'is_testing', False):
             event.accept()
             if self.mw.project_manager:
@@ -70,12 +77,14 @@ class AppActionHandler(BaseHandler):
             self.mw.project_manager.cleanup_temp_dir()
             
     def _derive_edited_path(self, original_path: Union[str, Path]) -> Optional[str]:
+        """Internal helper to derive edited path."""
         if not original_path:
             return None
         p = Path(original_path)
         return str(p.parent / f"{p.stem}_edited{p.suffix}")
 
     def open_file_dialog_action(self) -> None:
+        """Open file dialog action."""
         log_info("Open File Dialog action triggered.")
         if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
@@ -94,6 +103,7 @@ class AppActionHandler(BaseHandler):
             self.load_all_data_for_path(path, manually_set_edited_path=None, is_initial_load_from_settings=False)
 
     def open_changes_file_dialog_action(self) -> None:
+        """Open changes file dialog action."""
         log_info("Open Changes File Dialog action triggered.")
         if not self.mw.data_store.json_path:
             QMessageBox.warning(self.mw, "Open Changes File", "Please open an original file first.")
@@ -181,6 +191,7 @@ class AppActionHandler(BaseHandler):
             return False
 
     def perform_async_save_flow(self, output_data_list: List[Any], ask_confirmation: bool = True) -> bool:
+        """Perform async save flow."""
         log_info("Starting async save flow...", category="file_ops")
         
         # Block interface by setting SAVING_DATA state
@@ -207,6 +218,7 @@ class AppActionHandler(BaseHandler):
         loop = QEventLoop()
         
         def on_progress(current_step, total_steps, label_text):
+            """Handle the progress event."""
             if total_steps > 0:
                 # Map progress to 0-100 range
                 val = int((current_step / total_steps) * 100)
@@ -214,6 +226,7 @@ class AppActionHandler(BaseHandler):
             progress_dialog.setLabelText(label_text)
             
         def on_finished(success, warnings, errors):
+            """Handle the finished event."""
             save_results['success'] = success
             save_results['warnings'] = warnings
             save_results['errors'] = errors
@@ -262,6 +275,7 @@ class AppActionHandler(BaseHandler):
         return True
 
     def save_as_dialog_action(self) -> None:
+        """Save as dialog action."""
         log_info("Save As Dialog action triggered.")
         if not self.mw.data_store.json_path:
             QMessageBox.warning(self.mw, "Save As Error", "No original file open.")
@@ -285,6 +299,7 @@ class AppActionHandler(BaseHandler):
                 self.ui_updater.update_statusbar_paths()
 
     def load_all_data_for_path(self, original_file_path: Union[str, Path], manually_set_edited_path: Optional[Union[str, Path]] = None, is_initial_load_from_settings: bool = False) -> None:
+        """Load all data for path."""
         log_info(f"Loading all data for path: '{original_file_path}'")
         
         with self.mw.state.enter(AppState.LOADING_DATA), self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
@@ -417,6 +432,7 @@ class AppActionHandler(BaseHandler):
                      self.ui_updater.apply_tree_state(state)
 
     def reload_original_data_action(self) -> None:
+        """Update the original data action."""
         log_info("Reload Original action triggered.")
         if not self.mw.data_store.json_path:
             QMessageBox.information(self.mw, "Reload", "No file open.")
@@ -431,6 +447,7 @@ class AppActionHandler(BaseHandler):
         self.load_all_data_for_path(self.mw.data_store.json_path, manually_set_edited_path=current_edited_path_before_reload, is_initial_load_from_settings=False)
 
     def calculate_widths_for_block_action(self, block_idx: int, category_name: Optional[str] = None) -> None:
+        """Calculate widths for block action."""
         if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
             QMessageBox.warning(self.mw, "Calculate Widths Error", "Invalid block selected or no data.")
             return
@@ -490,6 +507,7 @@ class AppActionHandler(BaseHandler):
         progress.setMinimumDuration(0)
         
         def on_finished(result_dict):
+            """Handle the finished event."""
             if progress.isVisible():
                 progress.close()
             
@@ -520,6 +538,7 @@ class AppActionHandler(BaseHandler):
                 result_dialog.show()
         
         def on_cancelled():
+            """Handle the cancelled event."""
             log_info("Width calculation worker cancelled.")
             progress.close()
 
@@ -532,6 +551,7 @@ class AppActionHandler(BaseHandler):
         progress.exec()
 
     def _perform_initial_silent_scan_all_issues(self) -> None:
+        """Internal helper to perform initial silent scan all issues."""
         if hasattr(self.mw, 'issue_scan_handler'):
             self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
 

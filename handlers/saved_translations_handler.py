@@ -1,4 +1,4 @@
-# handlers/saved_translations_handler.py
+﻿# handlers/saved_translations_handler.py
 import json
 import datetime
 from pathlib import Path
@@ -9,10 +9,13 @@ from handlers.base_handler import BaseHandler
 from utils.logging_utils import log_info, log_error, log_debug
 
 class SavedTranslationsHandler(BaseHandler):
+    """Handler for saved translations operations."""
     def __init__(self, context, data_processor, ui_updater):
+        """Initialize a new instance."""
         super().__init__(context, data_processor, ui_updater)
 
     def restore_translation(self, block_idx: int, string_idx: int) -> bool:
+        """Restore translation."""
         manager = self.ctx.saved_translations_manager
         saved_text = manager.get_saved_translation(block_idx, string_idx)
         if saved_text is None:
@@ -50,6 +53,7 @@ class SavedTranslationsHandler(BaseHandler):
         return True
 
     def restore_translations_for_strings(self, block_idx: int, string_indices: List[int]) -> None:
+        """Restore translations for strings."""
         manager = self.ctx.saved_translations_manager
         translations = manager.load_all_saved_translations()
         has_undo = hasattr(self.ctx, 'undo_manager')
@@ -86,12 +90,14 @@ class SavedTranslationsHandler(BaseHandler):
             QMessageBox.information(self.ctx, "Restore Translation", "No saved translations were found for the selected lines.")
 
     def restore_translations_for_block(self, block_idx: int) -> None:
+        """Restore translations for block."""
         if block_idx < 0 or not self.data_store.data or block_idx >= len(self.data_store.data):
             return
         num_strings = len(self.data_store.data[block_idx])
         self.restore_translations_for_strings(block_idx, list(range(num_strings)))
 
     def restore_all_saved_translations_action(self) -> None:
+        """Restore all saved translations action."""
         if not self.data_store.data:
             return
             
@@ -150,6 +156,7 @@ class SavedTranslationsHandler(BaseHandler):
             QMessageBox.information(self.ctx, "Restore All Translations", "All translations in memory are already matching the saved translations.")
 
     def save_translation_action(self) -> None:
+        """Save translation action."""
         block_idx = self.data_store.current_block_idx
         string_idx = self.data_store.current_string_idx
         if block_idx == -1 or string_idx == -1:
@@ -167,6 +174,7 @@ class SavedTranslationsHandler(BaseHandler):
         QMessageBox.information(self.ctx, "Save Translation", f"Translation for line {string_idx + 1} has been saved.")
 
     def restore_translation_action(self) -> None:
+        """Restore translation action."""
         block_idx = self.data_store.current_block_idx
         string_idx = self.data_store.current_string_idx
         if block_idx == -1 or string_idx == -1:
@@ -176,6 +184,7 @@ class SavedTranslationsHandler(BaseHandler):
         self.restore_translation(block_idx, string_idx)
 
     def export_translations_to_json_action(self) -> None:
+        """Export translations to json action."""
         if not self.data_store.data:
             QMessageBox.warning(self.ctx, "Export Error", "No project or file is currently open.")
             return
@@ -243,6 +252,7 @@ class SavedTranslationsHandler(BaseHandler):
             QMessageBox.critical(self.ctx, 'Export Error', f'Failed to save JSON:\\n{e}')
 
     def import_translations_from_json_action(self) -> None:
+        """Import translations from json action."""
         if not self.data_store.data:
             QMessageBox.warning(self.ctx, "Import Error", "No project or file is currently open.")
             return

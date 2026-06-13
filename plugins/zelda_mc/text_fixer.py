@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional, Set, Dict, Any, Tuple
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
@@ -11,10 +11,13 @@ COLOR_WHITE_TAG_PATTERN_ZMC = re.compile(r"\{Color:White\}", re.IGNORECASE)
 PUNCTUATION_PATTERN_ZMC = re.compile(r"^[,\.!?]$")
 
 class TextFixer(GenericTextFixer):
+    """Text fixer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_analyzer_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_analyzer_ref)
 
     def _fix_empty_odd_sublines_zmc(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to fix empty odd sublines zmc."""
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
             return text, False
@@ -45,6 +48,7 @@ class TextFixer(GenericTextFixer):
         return joined_text, joined_text != text
 
     def _fix_short_lines_zmc(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> Tuple[str, bool]:
+        """Internal helper to fix short lines zmc."""
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1: return text, False
         original_text = text
@@ -115,6 +119,7 @@ class TextFixer(GenericTextFixer):
         return final_text, final_text != original_text
 
     def _fix_blue_sublines_zmc(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to fix blue sublines zmc."""
         sub_lines = text.split('\n')
         if len(sub_lines) < 2: 
             return text, False
@@ -158,6 +163,7 @@ class TextFixer(GenericTextFixer):
         return text, False
 
     def _fix_leading_spaces_in_sublines_zmc(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to fix leading spaces in sublines zmc."""
         sub_lines = text.split('\n')
         fixed_sub_lines = []
         changed = False
@@ -173,6 +179,7 @@ class TextFixer(GenericTextFixer):
         return text, False
 
     def _cleanup_spaces_around_tags_zmc(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to cleanup spaces around tags zmc."""
         original_text = text
         text_changed_this_function_call = False
         pattern = re.compile(f"(?P<tag>{ANY_TAG_RE_PATTERN_ZMC})(?P<space> )(?P<after_space>.)?")
@@ -213,6 +220,7 @@ class TextFixer(GenericTextFixer):
                             string_idx: Optional[int] = None,
                             page_local: bool = False,
                             disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         if page_local:
             return self.autofix_page_local_wrapper(
                 self.autofix_data_string,
@@ -253,6 +261,7 @@ class TextFixer(GenericTextFixer):
         if self.mw and hasattr(self.mw, 'autofix_enabled') and self.mw.autofix_enabled:
             autofix_config.update(self.mw.autofix_enabled)
         def is_allowed(prob_id):
+            """Check if is allowed."""
             if allowed_problems is not None:
                 return prob_id in allowed_problems
             return autofix_config.get(prob_id, False)

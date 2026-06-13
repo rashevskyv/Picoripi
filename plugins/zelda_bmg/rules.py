@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
@@ -30,6 +30,7 @@ from .text_fixer import TextFixer
 from .tag_logic import process_segment_tags_aggressively_zbmg
 
 class ProblemIDs:
+    """Problem i ds implementation."""
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
     PROBLEM_WIDTH_EXCEEDED = PROBLEM_WIDTH_EXCEEDED
     PROBLEM_SHORT_LINE = PROBLEM_SHORT_LINE
@@ -42,7 +43,9 @@ class ProblemIDs:
     PROBLEM_STAR_TAG_RULES = PROBLEM_STAR_TAG_RULES
 
 class GameRules(BaseGameRules):
+    """Game rules and translation logic for Game."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.problem_definitions_cache = PROBLEM_DEFINITIONS
         self.problem_ids = ProblemIDs
@@ -79,6 +82,7 @@ class GameRules(BaseGameRules):
 
 
     def load_translation_map(self):
+        """Load translation map."""
         project_dir = None
         if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
             project_dir = self.mw.project_manager.project_dir
@@ -208,6 +212,7 @@ class GameRules(BaseGameRules):
         return content
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Optional[Dict[str, str]]]:
+        """Load data from json obj."""
         if not isinstance(json_obj, bytes):
             # Fallback to standard BaseGameRules logic if not binary
             return super().load_data_from_json_obj(json_obj)
@@ -236,6 +241,7 @@ class GameRules(BaseGameRules):
         return [strings_list], block_names
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        """Save data to json obj."""
         try:
             log_debug(f"zelda_bmg: save_data_to_json_obj called. data type={type(data)}, len={len(data) if data else 0}", category="file_ops")
             if data and len(data) > 0:
@@ -276,12 +282,15 @@ class GameRules(BaseGameRules):
             return b""
 
     def get_display_name(self) -> str:
+        """Get the display name."""
         return "Zelda: Twilight Princess BMG"
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
+        """Get the problem definitions."""
         return self.problem_definitions_cache
 
     def get_short_problem_name(self, problem_id: str) -> str:
+        """Get the short problem name."""
         if problem_id == PROBLEM_WIDTH_EXCEEDED: return "Width"
         if problem_id == PROBLEM_SHORT_LINE: return "Short"
         if problem_id == PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: return "EmptyOddD"
@@ -294,19 +303,24 @@ class GameRules(BaseGameRules):
         return super().get_short_problem_name(problem_id)
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         return self.tag_manager.get_syntax_highlighting_rules()
 
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         return self.tag_manager.get_legitimate_tags()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
+        """Check if is tag legitimate."""
         return self.tag_manager.is_tag_legitimate(tag_to_check)
 
     def get_spellcheck_ignore_pattern(self) -> str:
         # Ignore curly braces {...} which are used for tags and escape sequences
+        """Get the spellcheck ignore pattern."""
         return r'\{[^}]*\}'
 
     def get_editor_page_size(self) -> int:
+        """Get the editor page size."""
         return 1
 
     def analyze_subline(self,
@@ -320,6 +334,7 @@ class GameRules(BaseGameRules):
                         full_data_string_text_for_logical_check: str,
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
+        """Analyze subline."""
         all_problems = self.problem_analyzer.analyze_data_string(full_data_string_text_for_logical_check, editor_font_map, editor_line_width_threshold, logical_hard_limit)
 
         if subline_number_in_data_string < len(all_problems):
@@ -347,6 +362,7 @@ class GameRules(BaseGameRules):
                              string_idx: Optional[int] = None,
                              page_local: bool = False,
                              disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         return self.text_fixer.autofix_data_string(
             data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx, page_local, disable_pagination
         )
@@ -355,6 +371,7 @@ class GameRules(BaseGameRules):
                                 segment_to_insert: str,
                                 original_text_for_tags: str,
                                 editor_player_tag_const: str) -> Tuple[str, str, str]:
+        """Process pasted segment."""
         from utils.utils import clean_spaces
         cleaned_segment = clean_spaces(segment_to_insert)
         return process_segment_tags_aggressively_zbmg(
@@ -364,11 +381,13 @@ class GameRules(BaseGameRules):
         )
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
+        """Calculate string width override."""
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
         from utils.utils import calculate_string_width
         return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
+        """Get the text representation for preview."""
         newline_symbol = "↵"
         if self.mw and hasattr(self.mw, "newline_display_symbol"):
             val = self.mw.newline_display_symbol
@@ -385,7 +404,9 @@ class GameRules(BaseGameRules):
         return convert_spaces_to_dots_for_display(processed_string, show_dots)
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
+        """Get the text representation for editor."""
         return super().get_text_representation_for_editor(str(data_string_subline))
 
     def convert_editor_text_to_data(self, text: str) -> str:
+        """Convert editor text to data."""
         return super().convert_editor_text_to_data(text)

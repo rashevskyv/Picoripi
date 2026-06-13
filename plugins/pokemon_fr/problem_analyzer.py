@@ -1,4 +1,4 @@
-from typing import Optional, Set, List, Tuple
+﻿from typing import Optional, Set, List, Tuple
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
@@ -10,7 +10,9 @@ SENTENCE_END_PUNCTUATION_CHARS = ['.', '!', '?']
 NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
 
 class ProblemAnalyzer(GenericProblemAnalyzer):
+    """Problem analyzer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref)
         self.problem_ids = {
             'WIDTH': PROBLEM_WIDTH_EXCEEDED,
@@ -24,6 +26,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         }
 
     def _get_sublines_from_data_string(self, data_string: str) -> List[Tuple[str, str]]:
+        """Internal helper to get the sublines from data string."""
         sublines = []
         parts = NEWLINE_TAGS_PATTERN.split(data_string)
         current_text = parts[0]
@@ -37,11 +40,13 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return sublines
 
     def _ends_with_sentence_punctuation(self, text_no_tags_stripped: str) -> bool:
+        """Internal helper to ends with sentence punctuation."""
         if not text_no_tags_stripped:
             return False
         return text_no_tags_stripped[-1] in SENTENCE_END_PUNCTUATION_CHARS
 
     def _check_short_line(self, current_subline: str, next_subline: str, font_map: dict, threshold: int) -> bool:
+        """Internal helper to check short line."""
         from utils.utils import has_visible_content, extract_first_word_with_tags, get_line_words_and_visible_tags
 
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
@@ -86,6 +91,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return (width_current + space_width + width_first_word_next) <= threshold
 
     def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
+        """Analyze data string."""
         if not data_string:
             return []
         sublines_with_tags = self._get_sublines_from_data_string(data_string)
@@ -133,6 +139,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return problems_per_subline_idx
 
     def analyze_subline(self, text: str, **kwargs) -> Set[str]:
+        """Analyze subline."""
         return super().analyze_subline(
             text, None, 0, 0, True, 
             kwargs.get('editor_font_map', {}), 

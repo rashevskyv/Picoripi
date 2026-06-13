@@ -1,14 +1,17 @@
-from PyQt6.QtCore import QObject, QEvent, Qt
+﻿from PyQt6.QtCore import QObject, QEvent, Qt
 from PyQt6.QtWidgets import QApplication, QWidget
 from utils.logging_utils import log_debug
 
 class TextEditEventFilter(QObject):
+    """Text edit event filter implementation."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         parent = main_window if isinstance(main_window, QObject) else None
         super().__init__(parent)
         self.mw = main_window
 
     def eventFilter(self, obj, event):
+        """Eventfilter."""
         if event.type() == QEvent.Type.KeyPress:
             is_ctrl_pressed = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
             is_alt_pressed = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
@@ -140,11 +143,14 @@ class TextEditEventFilter(QObject):
 
 
 class MainWindowEventFilter(QObject):
+    """Main window event filter implementation."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         super().__init__(main_window)
         self.mw = main_window
 
     def eventFilter(self, obj, event):
+        """Eventfilter."""
         if event.type() == QEvent.Type.KeyPress:
             if event.modifiers() & Qt.KeyboardModifier.AltModifier and event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
                 if event.key() == Qt.Key.Key_Up:

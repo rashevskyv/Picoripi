@@ -1,4 +1,4 @@
-"""
+﻿"""
 RARC (Resource ARChive) container for Nintendo GameCube/Wii games.
 
 Supports reading and writing RARC archives in-memory, including archives
@@ -82,6 +82,7 @@ class RarcContainer(BaseArchiveContainer):
 
     @classmethod
     def can_handle(cls, data: bytes) -> bool:
+        """Check if can handle."""
         if len(data) < 4:
             return False
         if data[:4] == _RARC_MAGIC:
@@ -98,6 +99,7 @@ class RarcContainer(BaseArchiveContainer):
 
     def __init__(self, data: bytes) -> None:
         # Detect and strip Yaz0 wrapper
+        """Initialize a new instance."""
         self._is_yaz0: bool = data[:4] == _YAZ0_MAGIC
         if self._is_yaz0:
             data = yaz0.decompress(data)
@@ -115,6 +117,7 @@ class RarcContainer(BaseArchiveContainer):
     # ------------------------------------------------------------------
 
     def _parse(self) -> None:
+        """Internal helper to parse."""
         d = self._raw
 
         # RARC header
@@ -221,9 +224,11 @@ class RarcContainer(BaseArchiveContainer):
     # ------------------------------------------------------------------
 
     def list_files(self) -> list[str]:
+        """List files."""
         return list(self._file_paths.keys())
 
     def read_file(self, path: str) -> bytes:
+        """Read file."""
         if path in self._overlay:
             return self._overlay[path]
         if path not in self._file_paths:
@@ -233,6 +238,7 @@ class RarcContainer(BaseArchiveContainer):
         return self._raw[off : off + entry["size"]]
 
     def write_file(self, path: str, data: bytes) -> None:
+        """Write file."""
         if path not in self._file_paths:
             raise KeyError(f"File not found in RARC archive: {path!r}")
         self._overlay[path] = data

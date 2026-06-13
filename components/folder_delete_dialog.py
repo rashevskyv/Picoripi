@@ -2,7 +2,9 @@
 from PyQt6.QtCore import Qt
 
 class FolderDeleteDialog(QDialog):
+    """Dialog class for folder delete."""
     def __init__(self, folder_name: str, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Delete Folder")
         self.setModal(True)
@@ -12,6 +14,7 @@ class FolderDeleteDialog(QDialog):
         self._setup_ui(folder_name)
         
     def _setup_ui(self, folder_name: str):
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
         
         # Warning icon and text
@@ -56,9 +59,11 @@ class FolderDeleteDialog(QDialog):
         self.resize(350, 200)
 
     def _on_keep_clicked(self):
+        """Internal helper to handle the keep clicked event."""
         self.result_action = 1
         self.accept()
         
     def _on_delete_all_clicked(self):
+        """Internal helper to handle the delete all clicked event."""
         self.result_action = 2
         self.accept()

@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
+﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
 from pathlib import Path
 
 class MassFontDialog(QDialog):
+    """Dialog class for mass font."""
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Set Font for Multiple Lines")
         layout = QVBoxLayout(self)
@@ -20,6 +22,7 @@ class MassFontDialog(QDialog):
 
     def populate_fonts(self, main_window):
         # We need access to main_window attributes
+        """Populate fonts."""
         default_font = getattr(main_window, 'default_font_file', 'None')
         self.font_combo.addItem(f"Plugin Default ({default_font})", "default")
         
@@ -30,10 +33,13 @@ class MassFontDialog(QDialog):
                     self.font_combo.addItem(font_key, font_key)
 
     def get_selected_font(self):
+        """Get the selected font."""
         return self.font_combo.currentData()
 
 class MassWidthDialog(QDialog):
+    """Dialog class for mass width."""
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.main_window = parent
         self.setWindowTitle("Set Width for Multiple Lines")
@@ -64,14 +70,18 @@ class MassWidthDialog(QDialog):
         layout.addWidget(buttons)
         
     def get_width(self):
+        """Get the width."""
         return self.width_spinbox.value()
 
     def set_default_width(self):
+        """Set the default width."""
         self.width_spinbox.setValue(self.default_width)
 
     def on_auto_width_toggled(self, checked):
+        """Handle the auto width toggled event."""
         self.width_spinbox.setEnabled(not checked)
         self.default_button.setEnabled(not checked)
 
     def is_auto_width(self):
+        """Check if is auto width."""
         return self.auto_width_checkbox.isChecked()

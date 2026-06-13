@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional, Set, List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor
 from PyQt6.QtCore import Qt
@@ -6,7 +6,9 @@ from plugins.common.tag_manager import GenericTagManager
 from utils.logging_utils import log_debug
 
 class TagManager(GenericTagManager):
+    """Manager class for tag."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         self.literal_newline_format = QTextCharFormat()
         self.color_red_format = QTextCharFormat()
         self.color_green_format = QTextCharFormat()
@@ -17,6 +19,7 @@ class TagManager(GenericTagManager):
         self.reconfigure_styles()
 
     def reconfigure_styles(self):
+        """Reconfigure styles."""
         super().reconfigure_styles()
         self.literal_newline_format = QTextCharFormat()
         self.literal_newline_format.setForeground(QColor("red"))
@@ -27,6 +30,7 @@ class TagManager(GenericTagManager):
         self.color_blue_format.setForeground(QColor("blue"))
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         rules = super().get_syntax_highlighting_rules()
         
         # Add Zelda-specific rules
@@ -40,6 +44,7 @@ class TagManager(GenericTagManager):
         return rules
 
     def _ensure_exact_tags_loaded(self):
+        """Internal helper to ensure exact tags loaded."""
         if self._legitimate_exact_tags_cache is None:
             self._legitimate_exact_tags_cache = set()
             if self.mw and hasattr(self.mw, 'default_tag_mappings'):
@@ -50,8 +55,10 @@ class TagManager(GenericTagManager):
             log_debug(f"Loaded {len(self._legitimate_exact_tags_cache)} exact legitimate tags.")
 
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         self._ensure_exact_tags_loaded()
         return self._legitimate_exact_tags_cache if self._legitimate_exact_tags_cache is not None else set()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
+        """Check if is tag legitimate."""
         return True

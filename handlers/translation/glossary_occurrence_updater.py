@@ -1,4 +1,4 @@
-# handlers/translation/glossary_occurrence_updater.py
+﻿# handlers/translation/glossary_occurrence_updater.py
 """
 Manages AI-driven retranslation of glossary term occurrences.
 
@@ -22,6 +22,7 @@ class GlossaryOccurrenceUpdater:
     """
 
     def __init__(self, glossary_handler) -> None:
+        """Initialize a new instance."""
         self._gh = glossary_handler  # parent GlossaryHandler
 
         # State
@@ -35,10 +36,12 @@ class GlossaryOccurrenceUpdater:
 
     @property
     def _mw(self):
+        """Internal helper to mw."""
         return self._gh.mw
 
     @property
     def _main_handler(self):
+        """Internal helper to main handler."""
         return self._gh.main_handler
 
     # ── Dialog lifecycle ──────────────────────────────────────────────────
@@ -50,6 +53,7 @@ class GlossaryOccurrenceUpdater:
         previous_translation: str,
         occurrences: Sequence[GlossaryOccurrence],
     ) -> None:
+        """Show translation update dialog."""
         if self.translation_update_dialog and self.translation_update_dialog.isVisible():
             self.translation_update_dialog.raise_()
             self.translation_update_dialog.activateWindow()
@@ -85,6 +89,7 @@ class GlossaryOccurrenceUpdater:
         self.translation_update_dialog = dialog
 
     def _on_dialog_closed(self, *_args) -> None:
+        """Internal helper to handle the dialog closed event."""
         self.translation_update_dialog = None
         self._pending_ai_occurrences = []
         self._current_translation_entry = None
@@ -94,15 +99,18 @@ class GlossaryOccurrenceUpdater:
     # ── Occurrence data helpers ───────────────────────────────────────────
 
     def _get_occurrence_original_text(self, occurrence: GlossaryOccurrence) -> str:
+        """Internal helper to get the occurrence original text."""
         return str(self._gh._get_original_string(occurrence.block_idx, occurrence.string_idx) or "")
 
     def _get_occurrence_translation_text(self, occurrence: GlossaryOccurrence) -> str:
+        """Internal helper to get the occurrence translation text."""
         text, _ = self._main_handler.data_processor.get_current_string_text(
             occurrence.block_idx, occurrence.string_idx
         )
         return str(text or "")
 
     def _apply_occurrence_translation(self, occurrence: GlossaryOccurrence, new_text: str) -> None:
+        """Internal helper to apply occurrence translation."""
         self._main_handler.data_processor.update_edited_data(
             occurrence.block_idx, occurrence.string_idx, new_text
         )
@@ -119,6 +127,7 @@ class GlossaryOccurrenceUpdater:
     # ── Single occurrence AI update ───────────────────────────────────────
 
     def _request_ai_occurrence_update(self, occurrence: GlossaryOccurrence, from_batch: bool) -> None:
+        """Internal helper to request ai occurrence update."""
         if not self.translation_update_dialog or not self._current_translation_entry:
             return
         dialog = self.translation_update_dialog
@@ -163,6 +172,7 @@ class GlossaryOccurrenceUpdater:
         from_batch: bool,
         prompt_override: Optional[Tuple[str, str]] = None,
     ) -> Optional[Tuple[str, str]]:
+        """Request glossary occurrence update."""
         provider = self._main_handler.ai_lifecycle_manager._prepare_provider()
         if not provider:
             self._handle_occurrence_ai_error("AI provider is not configured.", from_batch)
@@ -228,6 +238,7 @@ class GlossaryOccurrenceUpdater:
     # ── Batch occurrence AI update ────────────────────────────────────────
 
     def _start_ai_occurrence_batch(self, occurrences: List[GlossaryOccurrence]) -> None:
+        """Internal helper to start ai occurrence batch."""
         if not occurrences:
             QMessageBox.information(self._mw, "AI Update", "No occurrences to process.")
             return
@@ -250,6 +261,7 @@ class GlossaryOccurrenceUpdater:
         self._batch_prompt_override = None
 
     def _resume_ai_occurrence_batch(self) -> None:
+        """Internal helper to resume ai occurrence batch."""
         if not self._pending_ai_occurrences:
             if self.translation_update_dialog:
                 self.translation_update_dialog.set_ai_busy(False)
@@ -267,6 +279,7 @@ class GlossaryOccurrenceUpdater:
         new_term_translation: str,
         dialog,
     ) -> bool:
+        """Request glossary occurrence batch update."""
         if not occurrences:
             self._handle_occurrence_ai_error("No occurrences to process.", True)
             return False
@@ -346,6 +359,7 @@ class GlossaryOccurrenceUpdater:
     # ── AI response handlers ──────────────────────────────────────────────
 
     def handle_occurrence_ai_result(self, *, occurrence, updated_translation, from_batch) -> None:
+        """Handle occurrence ai result."""
         dialog = self.translation_update_dialog
         if dialog:
             dialog.on_ai_result(occurrence, updated_translation)
@@ -373,6 +387,7 @@ class GlossaryOccurrenceUpdater:
             )
 
     def handle_occurrence_batch_success(self, *, results, context) -> None:
+        """Handle occurrence batch success."""
         dialog = self.translation_update_dialog
         occurrence_lookup = context.get("occurrence_lookup") or {}
         applied_count = 0
@@ -397,6 +412,7 @@ class GlossaryOccurrenceUpdater:
         self._batch_prompt_override = None
 
     def _handle_occurrence_ai_error(self, message: str, from_batch: bool) -> None:
+        """Internal helper to handle occurrence ai error."""
         dialog = self.translation_update_dialog
         if dialog:
             dialog.on_ai_error(message)
@@ -408,6 +424,7 @@ class GlossaryOccurrenceUpdater:
         self._batch_prompt_override = None
 
     def handle_glossary_occurrence_update_success(self, response, context: dict) -> None:
+        """Handle glossary occurrence update success."""
         from_batch = context.get("from_batch", False)
         occurrence = context.get("occurrence")
         composer_args = context.get("composer_args") or {}
@@ -446,6 +463,7 @@ class GlossaryOccurrenceUpdater:
         log_debug("Glossary AI occurrence update validated and applied.")
 
     def handle_glossary_occurrence_batch_success(self, response, context: dict) -> None:
+        """Handle glossary occurrence batch success."""
         from_batch = context.get("from_batch", True)
         expected_lines = context.get("expected_lines") or {}
         occurrence_lookup = context.get("occurrence_lookup") or {}
@@ -513,6 +531,7 @@ class GlossaryOccurrenceUpdater:
         context_line: Optional[str],
         dialog,
     ) -> bool:
+        """Request glossary notes variation."""
         provider = self._main_handler.ai_lifecycle_manager._prepare_provider()
         if not provider:
             return False

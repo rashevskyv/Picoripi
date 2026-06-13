@@ -1,10 +1,12 @@
-# components/report_dialog.py
+﻿# components/report_dialog.py
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QPushButton
 from PyQt6.QtCore import Qt
 
 class LargeTextReportDialog(QDialog):
+    """Dialog class for large text report."""
     def __init__(self, title: str, text: str, parent=None):
         # Handle mocking in tests
+        """Initialize a new instance."""
         from PyQt6.QtWidgets import QWidget
         if parent is not None and (not isinstance(parent, QWidget) or "Mock" in str(type(parent))):
             parent = None

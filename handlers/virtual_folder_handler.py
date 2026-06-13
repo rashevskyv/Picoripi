@@ -1,4 +1,4 @@
-# handlers/virtual_folder_handler.py
+﻿# handlers/virtual_folder_handler.py
 
 from typing import Any, List, Dict, Optional
 from PyQt6.QtWidgets import QMessageBox, QTreeWidgetItem
@@ -14,9 +14,11 @@ class VirtualFolderHandler(BaseHandler):
     such as folder creation, deletion, moving items, and managing expansion state.
     """
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
 
     def add_folder_action(self) -> None:
+        """Add folder action."""
         log_info("Add Folder action triggered.")
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget._create_folder_at_cursor()
@@ -200,6 +202,7 @@ class VirtualFolderHandler(BaseHandler):
             return
             
         def update_folder(f: Any) -> None:
+            """Update the folder."""
             f.is_expanded = expanded
             for child in f.children:
                 update_folder(child)

@@ -1,4 +1,4 @@
-# /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
+﻿# /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Any, List
 if TYPE_CHECKING:
@@ -21,7 +21,9 @@ FORCE_ALIAS_INFO = (
 )
 
 class TagAliasDialog(QDialog):
+    """Dialog class for tag alias."""
     def __init__(self, parent, title: str, original_tag: str, current_alias: str = "", current_width: int = None):
+        """Initialize a new instance."""
         self._is_initializing = True
         self.mw = parent
         from PyQt6.QtWidgets import QWidget
@@ -103,12 +105,14 @@ class TagAliasDialog(QDialog):
         QTimer.singleShot(0, self.alias_edit.setFocus)
 
     def showEvent(self, event):
+        """Showevent."""
         super().showEvent(event)
         from PyQt6.QtCore import QTimer
         QTimer.singleShot(50, self.alias_edit.setFocus)
         QTimer.singleShot(100, self.alias_edit.selectAll)
 
     def _on_force_changed(self, state):
+        """Internal helper to handle the force changed event."""
         is_checked = self.force_checkbox.isChecked()
         self.prefix_label.setVisible(is_checked)
         
@@ -141,10 +145,12 @@ class TagAliasDialog(QDialog):
 
     def _on_text_changed(self, text):
         # If Force Alias is enabled, prevent user from typing the 'F:' prefix manually inside the text field
+        """Internal helper to handle the text changed event."""
         if self.force_checkbox.isChecked() and text.lower().startswith('f:'):
             self.alias_edit.setText(text[2:])
 
     def get_data(self) -> tuple[str, int | None]:
+        """Get the data."""
         alias = self.alias_edit.text().strip()
         alias = alias.lstrip('{').rstrip('}')
         if alias.lower().startswith('f:'):
@@ -162,9 +168,11 @@ class TagAliasDialog(QDialog):
 
 
 class AliasUpdateWorker(QThread):
+    """Alias update worker implementation."""
     finished_signal = pyqtSignal(object, object, object)
 
     def __init__(self, edited_data_copy: dict, data_copy: list, edited_file_data_copy: list, alias: str, original_tag: str):
+        """Initialize a new instance."""
         super().__init__()
         self.edited_data_copy = edited_data_copy
         self.data_copy = data_copy
@@ -174,6 +182,7 @@ class AliasUpdateWorker(QThread):
 
     def run(self):
         # 1. Update edited_data
+        """Run."""
         for key, val in list(self.edited_data_copy.items()):
             if isinstance(val, str) and self.alias in val:
                 self.edited_data_copy[key] = val.replace(self.alias, self.original_tag)
@@ -200,11 +209,14 @@ class AliasUpdateWorker(QThread):
 
 
 class MainWindowActions:
+    """Main window actions implementation."""
     def __init__(self, main_window: MainWindow):
+        """Initialize a new instance."""
         self.mw = main_window
         self.helper = main_window.helper
     
     def open_settings_dialog(self):
+        """Open settings dialog."""
         log_info("Opening settings dialog...")
         
         # Save current rules values to compare later
@@ -385,6 +397,7 @@ class MainWindowActions:
 
 
     def trigger_save_action(self):
+        """Trigger save action."""
         log_info("Save action triggered.", category="file_ops")
         try:
             log_info(f"trigger_save_action details: has_app_action_handler={hasattr(self.mw, 'app_action_handler')}, "
@@ -399,6 +412,7 @@ class MainWindowActions:
             log_error(f"CRITICAL ERROR in trigger_save_action: {save_err}", exc_info=True, category="file_ops")
 
     def trigger_revert_action(self):
+        """Trigger revert action."""
         log_info("Revert changes file action triggered.")
         if self.mw.data_processor.revert_edited_file_to_original():
             log_info("Revert successful.")
@@ -408,6 +422,7 @@ class MainWindowActions:
         else: log_info("Revert was cancelled or failed.")
 
     def trigger_undo_paste_action(self):
+        """Trigger undo paste action."""
         log_info("Undo Paste Block action triggered.")
         if not self.mw.can_undo_paste:
             QMessageBox.information(self.mw, "Undo Paste", "Nothing to undo for the last paste operation.")
@@ -469,6 +484,7 @@ class MainWindowActions:
         if hasattr(self.mw, 'statusBar'): self.mw.statusBar.showMessage("Last paste operation undone.", 2000)
 
     def trigger_reload_tag_mappings(self):
+        """Trigger reload tag mappings."""
         log_info("Reload Tag Mappings action triggered.")
         
         if not self.mw.settings_manager: return
@@ -494,6 +510,7 @@ class MainWindowActions:
             QMessageBox.critical(self.mw, "Reload Error", f"Failed to read plugin config:\n{e}")
 
     def handle_add_tag_mapping_request(self, bracket_tag: str, curly_tag: str):
+        """Handle add tag mapping request."""
         log_info(f"Received request to map '{bracket_tag}' -> '{curly_tag}'")
         if not bracket_tag or not curly_tag:
             QMessageBox.warning(self.mw, "Add Tag Mapping Error", "Both tags must be non-empty.")
@@ -528,6 +545,7 @@ class MainWindowActions:
         else: log_info("User cancelled overwrite or no action taken.")
 
     def show_shortcuts_help(self):
+        """Show shortcuts help."""
         from components.help_dialog import show_shortcuts_dialog
         show_shortcuts_dialog(self.mw)
 
@@ -997,6 +1015,7 @@ class MainWindowActions:
 
         # Determine which BMGs to export: translation first, then source
         def _read_bmg_bytes(is_translation: bool):
+            """Internal helper to read bmg bytes."""
             if is_archive:
                 arc_rel = block.metadata.get('archive_rel_path', '')
                 inner = block.metadata.get('archive_file_name', '')
@@ -1024,6 +1043,7 @@ class MainWindowActions:
             return
 
         def bmg_bytes_to_dict(raw: bytes, label: str) -> dict:
+            """Bmg bytes to dict."""
             bmg = BMGFile()
             bmg.load(raw)
             messages = []
@@ -1231,6 +1251,7 @@ class MainWindowActions:
         QMessageBox.information(self.mw, "Recalculation Complete", "All text widths and issues have been successfully recalculated!")
 
     def add_tag_alias(self, original_tag: str):
+        """Add tag alias."""
         dialog = TagAliasDialog(self.mw, "Add Tag Alias", original_tag)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
@@ -1280,6 +1301,7 @@ class MainWindowActions:
         self._refresh_editors_after_alias_change()
 
     def edit_tag_alias(self, alias: str, original_tag: str):
+        """Edit tag alias."""
         current_width = None
         if hasattr(self.mw, 'font_map_overrides') and self.mw.font_map_overrides:
             current_width = self.mw.font_map_overrides.get(alias, {}).get('width')
@@ -1327,6 +1349,7 @@ class MainWindowActions:
         # Clean up stale alias from in-memory edits to prevent desync asynchronously
         def on_complete():
             # Save settings
+            """Handle the complete event."""
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_settings()
                 
@@ -1339,6 +1362,7 @@ class MainWindowActions:
         self._update_aliases_in_edited_data(alias, original_tag, on_complete)
 
     def remove_tag_alias(self, alias: str, original_tag: str):
+        """Remove tag alias."""
         reply = QMessageBox.question(
             self.mw,
             "Remove Tag Alias",
@@ -1401,6 +1425,7 @@ class MainWindowActions:
         self._alias_worker = AliasUpdateWorker(edited_data_copy, data_copy, edited_file_data_copy, alias, original_tag)
         
         def on_worker_finished(updated_edited_data, updated_data, updated_edited_file_data):
+            """Handle the worker finished event."""
             self.mw.data_store.edited_data = updated_edited_data
             if updated_data:
                 self.mw.data_store.data = updated_data
@@ -1430,6 +1455,7 @@ class MainWindowActions:
 
 
     def _refresh_editors_after_alias_change(self):
+        """Internal helper to update the editors after alias change."""
         rules = getattr(self.mw, 'current_game_rules', None)
         if rules:
             if hasattr(rules, 'tag_manager') and rules.tag_manager:
@@ -1452,6 +1478,7 @@ class MainWindowActions:
                 
 
     def _save_font_overrides_to_disk(self):
+        """Internal helper to save font overrides to disk."""
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         if not plugin_name:
             return

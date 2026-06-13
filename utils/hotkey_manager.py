@@ -1,4 +1,4 @@
-"""
+﻿"""
 Windows-level global hotkey manager.
 
 Used to intercept key combinations that are grabbed by the OS before Qt can
@@ -63,6 +63,7 @@ class HotkeyManager:
     """Registers global hotkeys on Windows that bypass OS-level interception."""
 
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self._hwnd = None
         self._registered = False
@@ -159,6 +160,7 @@ class HotkeyManager:
 
         user32 = ctypes.windll.user32
         def is_down(key):
+            """Check if is down."""
             return bool(user32.GetAsyncKeyState(key) & 0x8000)
 
         if is_down(VK_ALT) and is_down(VK_SHIFT) and is_down(vk):

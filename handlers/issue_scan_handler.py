@@ -1,4 +1,4 @@
-# handlers/issue_scan_handler.py
+﻿# handlers/issue_scan_handler.py
 import json
 from pathlib import Path
 from typing import Optional, Tuple
@@ -9,12 +9,15 @@ from utils.logging_utils import log_info, log_debug, log_error
 from utils.constants import APP_VERSION
 
 class IssueScanHandler(BaseHandler):
+    """Handler for issue scan operations."""
     def __init__(self, main_window, data_processor, ui_updater):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self._progress_dialog = None
         self._scan_total_count = 0
 
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
+        """Internal helper to get the string thresholds."""
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
         logical_limit = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
         if "width" in string_meta:
@@ -30,6 +33,7 @@ class IssueScanHandler(BaseHandler):
         return threshold, logical_limit
 
     def _get_block_file_for_mtime(self, block_idx: int) -> Optional[str]:
+        """Internal helper to get the block file for mtime."""
         if not hasattr(self.mw, 'project_manager') or not self.mw.project_manager or not self.mw.project_manager.project:
             return None
         
@@ -48,11 +52,13 @@ class IssueScanHandler(BaseHandler):
         return self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
 
     def _get_cache_path(self) -> Optional[Path]:
+        """Internal helper to get the cache path."""
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_dir:
             return Path(self.mw.project_manager.project_dir) / "issues_cache.json"
         return None
 
     def _save_issues_cache(self):
+        """Internal helper to save issues cache."""
         cache_path = self._get_cache_path()
         if not cache_path:
             return
@@ -92,6 +98,7 @@ class IssueScanHandler(BaseHandler):
             log_error(f"Failed to save issues cache: {e}", exc_info=True)
 
     def _load_issues_cache(self) -> Optional[dict]:
+        """Internal helper to load issues cache."""
         cache_path = self._get_cache_path()
         if not cache_path or not cache_path.exists():
             return None
@@ -104,6 +111,7 @@ class IssueScanHandler(BaseHandler):
             return None
 
     def _perform_issues_scan_for_block(self, block_idx: int, is_single_block_scan: bool = False, use_default_mappings_in_scan: bool = False):
+        """Internal helper to perform issues scan for block."""
         if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
@@ -159,6 +167,7 @@ class IssueScanHandler(BaseHandler):
     _SCAN_BATCH_SIZE = 5   # blocks per timer tick
 
     def _show_scan_progress_dialog(self, pending_scan_indices: list):
+        """Internal helper to show scan progress dialog."""
         import sys
         from PyQt6.QtWidgets import QApplication
         is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication) or getattr(self.mw, 'is_testing', False)
@@ -299,6 +308,7 @@ class IssueScanHandler(BaseHandler):
             self._save_issues_cache()
 
     def rescan_issues_for_single_block(self, block_idx: int = -1, show_message_on_completion: bool = True, use_default_mappings: bool = True):
+        """Rescan issues for single block."""
         target_block_idx = block_idx if block_idx != -1 else self.mw.data_store.current_block_idx
         if target_block_idx == -1: return
         
@@ -345,6 +355,7 @@ class IssueScanHandler(BaseHandler):
 
     def rescan_all_tags(self):
         # Invalidate cache to force a full scan
+        """Rescan all tags."""
         cache_path = self._get_cache_path()
         if cache_path and cache_path.exists():
             try:

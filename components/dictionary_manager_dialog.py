@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 from pathlib import Path
 from typing import List
 from PyQt6.QtWidgets import (
@@ -15,14 +15,17 @@ DICTIONARY_DOWNLOAD_URL_TEMPLATE = "https://raw.githubusercontent.com/wooorm/dic
 LOCAL_DICT_PATH = "resources/spellchecker"
 
 class DownloadThread(QThread):
+    """Download thread implementation."""
     progress = pyqtSignal(str, int)
     finished = pyqtSignal(str, bool, str)
 
     def __init__(self, downloads: List[tuple[str, str]]):
+        """Initialize a new instance."""
         super().__init__()
         self.downloads = downloads
 
     def run(self):
+        """Run."""
         for url, save_path in self.downloads:
             save_path_obj = Path(save_path)
             file_name = save_path_obj.name
@@ -53,7 +56,9 @@ class DownloadThread(QThread):
 
 
 class DictionaryManagerDialog(QDialog):
+    """Dialog class for dictionary manager."""
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Dictionary Manager")
         self.setMinimumSize(450, 400)
@@ -98,6 +103,7 @@ class DictionaryManagerDialog(QDialog):
         self.load_dictionaries()
 
     def _get_lang_name(self, code):
+        """Internal helper to get the lang name."""
         try:
             lang_code_part = code.split('_')[0]
             lang = pycountry.languages.get(alpha_2=lang_code_part)
@@ -106,6 +112,7 @@ class DictionaryManagerDialog(QDialog):
             return code
 
     def load_dictionaries(self):
+        """Load dictionaries."""
         self.status_label.setText("Fetching remote dictionary list...")
         QApplication.processEvents()
         try:
@@ -125,6 +132,7 @@ class DictionaryManagerDialog(QDialog):
         self.refresh_list()
 
     def refresh_list(self):
+        """Update the list."""
         self.dict_list.clear()
         self.local_languages = self.spellchecker_manager.scan_local_dictionaries() if self.spellchecker_manager else {}
         filter_text = self.filter_edit.text().lower()
@@ -144,9 +152,11 @@ class DictionaryManagerDialog(QDialog):
             self.dict_list.addItem(item)
             
     def update_button_state(self):
+        """Update the button state."""
         self.download_button.setEnabled(len(self.dict_list.selectedItems()) > 0)
 
     def download_selected(self):
+        """Download selected."""
         selected_items = self.dict_list.selectedItems()
         if not selected_items:
             return
@@ -170,10 +180,12 @@ class DictionaryManagerDialog(QDialog):
         self.download_thread.start()
         
     def on_download_progress(self, message, value):
+        """Handle the download progress event."""
         self.status_label.setText(message)
         self.progress_bar.setValue(value)
 
     def on_download_finished(self, url, success, message):
+        """Handle the download finished event."""
         self.progress_bar.setVisible(False)
         self.status_label.setText(message)
         if success:

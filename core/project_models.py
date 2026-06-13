@@ -1,4 +1,4 @@
-# core/project_models.py
+﻿# core/project_models.py
 """
 Data models for the project-oriented paradigm:
 - Project: Top-level container holding all project data
@@ -87,6 +87,7 @@ class VirtualFolder:
     is_expanded: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
+        """To dict."""
         return {
             'id': self.id,
             'name': self.name,
@@ -98,6 +99,7 @@ class VirtualFolder:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'VirtualFolder':
+        """From dict."""
         children = [VirtualFolder.from_dict(child) for child in data.get('children', [])]
         return VirtualFolder(
             id=data.get('id', str(uuid.uuid4())),

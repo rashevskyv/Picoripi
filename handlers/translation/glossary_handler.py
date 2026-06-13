@@ -1,4 +1,4 @@
-# Refactored: GlossaryHandler is now a thin facade delegating to:
+﻿# Refactored: GlossaryHandler is now a thin facade delegating to:
 #   - GlossaryPromptManager      (prompt I/O and caching)
 #   - GlossaryOccurrenceUpdater  (AI retranslation of occurrences)
 #   - components/GlossaryEditDialog (entry edit UI)
@@ -23,6 +23,7 @@ from utils.logging_utils import log_debug
 class CategorySelectionDialog(QDialog):
     """Dialog for choosing and adding categories for glossary AI classification."""
     def __init__(self, parent, categories: List[str]):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Choose Glossary Categories")
         self.resize(360, 400)
@@ -61,6 +62,7 @@ class CategorySelectionDialog(QDialog):
         layout.addWidget(button_box)
         
     def get_selected_categories(self) -> List[str]:
+        """Get the selected categories."""
         selected = [cb.text() for cb in self.checkboxes if cb.isChecked()]
         custom_text = self.custom_input.text().strip()
         if custom_text:
@@ -72,14 +74,17 @@ class CategorySelectionDialog(QDialog):
 
 
 class GlossaryOccurrenceWorker(QThread):
+    """Glossary occurrence worker implementation."""
     finished_with_result = pyqtSignal(dict)
 
     def __init__(self, glossary_manager: GlossaryManager, data_source: list):
+        """Initialize a new instance."""
         super().__init__()
         self.glossary_manager = glossary_manager
         self.data_source = data_source
 
     def run(self):
+        """Run."""
         try:
             occurrence_map = self.glossary_manager.build_occurrence_index(self.data_source)
             self.finished_with_result.emit(occurrence_map)
@@ -90,8 +95,10 @@ class GlossaryOccurrenceWorker(QThread):
 
 
 class GlossaryHandler(BaseTranslationHandler):
+    """Handler for glossary operations."""
 
     def __init__(self, main_handler):
+        """Initialize a new instance."""
         super().__init__(main_handler)
         self.glossary_manager = GlossaryManager()
         self._open_glossary_action: Optional[QAction] = None
@@ -107,29 +114,37 @@ class GlossaryHandler(BaseTranslationHandler):
 
     @property
     def _current_prompts_path(self) -> Optional[Path]:
+        """Internal helper to current prompts path."""
         return self._prompt_manager.current_prompts_path
 
     @property
     def translation_update_dialog(self):
+        """Translation update dialog."""
         return self._occurrence_updater.translation_update_dialog
 
     @translation_update_dialog.setter
     def translation_update_dialog(self, value):
+        """Translation update dialog."""
         self._occurrence_updater.translation_update_dialog = value
 
     def load_prompts(self) -> Tuple[Optional[str], Optional[str]]:
+        """Load prompts."""
         return self._prompt_manager.load_prompts()
 
     def save_prompt_section(self, section: str, field: str, value: str) -> bool:
+        """Save prompt section."""
         return self._prompt_manager.save_prompt_section(section, field, value)
 
     def _get_glossary_prompt_template(self) -> Tuple[str, Optional[Path]]:
+        """Internal helper to get the glossary prompt template."""
         return self._prompt_manager.get_glossary_prompt_template()
 
     def _update_glossary_highlighting(self) -> None:
+        """Internal helper to update the glossary highlighting."""
         self._prompt_manager._update_glossary_highlighting()
 
     def _ensure_glossary_loaded(self, *, glossary_text, plugin_name, glossary_path) -> None:
+        """Internal helper to ensure glossary loaded."""
         self._prompt_manager._ensure_glossary_loaded(
             glossary_text=glossary_text, plugin_name=plugin_name, glossary_path=glossary_path
         )
@@ -137,32 +152,41 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── Occurrence updater proxy (used by TranslationHandler success handlers) ──
 
     def request_glossary_occurrence_update(self, **kwargs):
+        """Request glossary occurrence update."""
         return self._occurrence_updater.request_glossary_occurrence_update(**kwargs)
 
     def request_glossary_occurrence_batch_update(self, **kwargs):
+        """Request glossary occurrence batch update."""
         return self._occurrence_updater.request_glossary_occurrence_batch_update(**kwargs)
 
     def request_glossary_notes_variation(self, **kwargs):
+        """Request glossary notes variation."""
         return self._occurrence_updater.request_glossary_notes_variation(**kwargs)
 
     def _handle_occurrence_ai_result(self, **kwargs):
+        """Internal helper to handle occurrence ai result."""
         return self._occurrence_updater.handle_occurrence_ai_result(**kwargs)
 
     def _handle_occurrence_batch_success(self, **kwargs):
+        """Internal helper to handle occurrence batch success."""
         return self._occurrence_updater.handle_occurrence_batch_success(**kwargs)
 
     def _handle_occurrence_ai_error(self, message, from_batch):
+        """Internal helper to handle occurrence ai error."""
         return self._occurrence_updater._handle_occurrence_ai_error(message, from_batch)
 
     def _handle_glossary_occurrence_update_success(self, response, context):
+        """Internal helper to handle glossary occurrence update success."""
         return self._occurrence_updater.handle_glossary_occurrence_update_success(response, context)
 
     def _handle_glossary_occurrence_batch_success(self, response, context):
+        """Internal helper to handle glossary occurrence batch success."""
         return self._occurrence_updater.handle_glossary_occurrence_batch_success(response, context)
 
     # ── Menu / initialization ─────────────────────────────────────────────
 
     def install_menu_actions(self) -> None:
+        """Install menu actions."""
         tools_menu = getattr(self.mw, "tools_menu", None)
         if not tools_menu:
             return
@@ -183,15 +207,18 @@ class GlossaryHandler(BaseTranslationHandler):
             self.main_handler._reset_session_action = reset_action
 
     def initialize_glossary_highlighting(self) -> None:
+        """Initialize glossary highlighting."""
         self._prompt_manager.initialize_highlighting()
 
     # ── Glossary dialog ───────────────────────────────────────────────────
 
     def _on_glossary_dialog_closed(self):
+        """Internal helper to handle the glossary dialog closed event."""
         self.dialog = None
         log_debug("Glossary dialog closed and reference cleared.")
 
     def show_glossary_dialog(self, initial_term: Optional[str] = None) -> None:
+        """Show glossary dialog."""
         if self.dialog and self.dialog.isVisible():
             self.dialog.raise_()
             self.dialog.activateWindow()
@@ -221,6 +248,7 @@ class GlossaryHandler(BaseTranslationHandler):
         worker = GlossaryOccurrenceWorker(self.glossary_manager, data_source)
 
         def on_finished(occurrence_map):
+            """Handle the finished event."""
             worker_results['occurrence_map'] = occurrence_map
             progress_dialog.close()
             loop.quit()
@@ -248,9 +276,11 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── Entry CRUD ────────────────────────────────────────────────────────
 
     def add_glossary_entry(self, term: str, context: Optional[str] = None, translation: str = "") -> None:
+        """Add glossary entry."""
         self.edit_glossary_entry(term, is_new=True, context=context, translation=translation)
 
     def edit_glossary_entry(self, term: str, is_new: bool = False, context: Optional[str] = None, translation: str = "") -> None:
+        """Edit glossary entry."""
         entry = self.glossary_manager.get_entry(term) if not is_new else None
         old_translation = entry.translation if entry else None
         
@@ -302,17 +332,20 @@ class GlossaryHandler(BaseTranslationHandler):
 
 
     def _create_edit_dialog(self, term: str, entry: Optional[GlossaryEntry], context: Optional[str], initial_translation: str = "") -> GlossaryEditDialog:
+        """Internal helper to create edit dialog."""
         dialog_ref: Dict[str, GlossaryEditDialog] = {}
         
         # Use initial_translation if provided, otherwise fallback to existing entry's translation
         translation_to_use = initial_translation or (entry.translation if entry else "")
 
         def _ai_fill_wrapper() -> None:
+            """Internal helper to ai fill wrapper."""
             d = dialog_ref.get("dialog")
             if d:
                 self._ai_fill_glossary_entry(term, context, d)
 
         def _notes_variation_wrapper() -> None:
+            """Internal helper to notes variation wrapper."""
             d = dialog_ref.get("dialog")
             if not d:
                 return
@@ -337,6 +370,7 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── AI Fill glossary entry ────────────────────────────────────────────
 
     def _ai_fill_glossary_entry(self, term: str, context: Optional[str], dialog: GlossaryEditDialog) -> None:
+        """Internal helper to ai fill glossary entry."""
         provider = self.main_handler._prepare_provider()
         if not provider:
             return
@@ -384,6 +418,7 @@ class GlossaryHandler(BaseTranslationHandler):
         self.main_handler._run_ai_task(provider, task_details)
 
     def _handle_ai_fill_success(self, response, context: dict) -> None:
+        """Internal helper to handle ai fill success."""
         self.main_handler.ui_handler.finish_ai_operation()
         dialog = context.get("dialog") if isinstance(context, dict) else None
         if not isinstance(dialog, GlossaryEditDialog):
@@ -416,6 +451,7 @@ class GlossaryHandler(BaseTranslationHandler):
         self.main_handler._record_session_exchange(context=context, assistant_content=cleaned)
 
     def _handle_ai_fill_error(self, error_message: str, context: dict) -> None:
+        """Internal helper to handle ai fill error."""
         dialog = context.get("dialog") if isinstance(context, dict) else None
         if isinstance(dialog, GlossaryEditDialog):
             dialog.set_ai_busy(False)
@@ -425,6 +461,7 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── Notes variation ───────────────────────────────────────────────────
 
     def _set_notes_dialog_busy(self, dialog_obj, busy: bool) -> None:
+        """Internal helper to set the notes dialog busy."""
         if not dialog_obj:
             return
         if hasattr(dialog_obj, "set_ai_busy"):
@@ -433,6 +470,7 @@ class GlossaryHandler(BaseTranslationHandler):
             dialog_obj.set_notes_variation_busy(busy)
 
     def _start_glossary_notes_variation(self, *, term, translation, notes, context_line, target_dialog) -> None:
+        """Internal helper to start glossary notes variation."""
         self._set_notes_dialog_busy(target_dialog, True)
         started = self._occurrence_updater.request_glossary_notes_variation(
             term=term, translation=translation, current_notes=notes,
@@ -442,6 +480,7 @@ class GlossaryHandler(BaseTranslationHandler):
             self._set_notes_dialog_busy(target_dialog, False)
 
     def _handle_notes_variation_from_dialog(self, entry: GlossaryEntry) -> None:
+        """Internal helper to handle notes variation from dialog."""
         if not entry or not self.dialog:
             return
         context_line: Optional[str] = None
@@ -459,6 +498,7 @@ class GlossaryHandler(BaseTranslationHandler):
         )
 
     def _handle_glossary_notes_variation_success(self, response, context: dict) -> None:
+        """Internal helper to handle glossary notes variation success."""
         self.main_handler.ui_handler.finish_ai_operation()
         cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         self.main_handler.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned, response=response)
@@ -486,11 +526,13 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── Navigation & data helpers ─────────────────────────────────────────
 
     def _get_original_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """Internal helper to get the original string."""
         return self.data_processor._get_string_from_source(
             block_idx, string_idx, getattr(self.mw.data_store, "data", None), "original_for_translation"
         )
 
     def _get_original_block(self, block_idx: int) -> List[str]:
+        """Internal helper to get the original block."""
         data_source = getattr(self.mw.data_store, "data", None)
         if not isinstance(data_source, list) or not (0 <= block_idx < len(data_source)):
             return []
@@ -498,6 +540,7 @@ class GlossaryHandler(BaseTranslationHandler):
         return [str(item) for item in block] if isinstance(block, list) else []
 
     def _jump_to_occurrence(self, occurrence: GlossaryOccurrence) -> None:
+        """Internal helper to jump to occurrence."""
         if occurrence is None:
             return
         entry = {
@@ -513,6 +556,7 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── Entry update/delete callbacks (called from GlossaryDialog) ────────
 
     def _handle_glossary_entry_update(self, original: str, translation: str, notes: str, profiled: Optional[bool] = None):
+        """Internal helper to handle glossary entry update."""
         previous_entry = self.glossary_manager.get_entry(original)
         previous_translation = previous_entry.translation if previous_entry else None
 
@@ -547,6 +591,7 @@ class GlossaryHandler(BaseTranslationHandler):
         return None
 
     def _handle_glossary_entry_delete(self, original: str):
+        """Internal helper to handle glossary entry delete."""
         old_index = self.glossary_manager._occurrence_index.copy() if self.glossary_manager._occurrence_index else {}
         if self.glossary_manager.delete_entry(original):
             self.glossary_manager._occurrence_index = old_index
@@ -566,6 +611,7 @@ class GlossaryHandler(BaseTranslationHandler):
     # ── AI Glossary Classification ───────────────────────────────────────
 
     def classify_glossary_via_ai(self) -> None:
+        """Classify glossary via ai."""
         entries = self.glossary_manager.get_entries()
         if not entries:
             QMessageBox.information(self.mw, "Glossary", "No glossary entries to classify.")
@@ -609,6 +655,7 @@ Do not write any markdown formatting like ```json, just output raw JSON text.
         self.main_handler.ai_lifecycle_manager.run_ai_task(provider, task_details)
 
     def _handle_classify_suggest_success(self, response, context: dict) -> None:
+        """Internal helper to handle classify suggest success."""
         self.main_handler.ui_handler.finish_ai_operation()
         cleaned = self.mw.translation_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         
@@ -672,6 +719,7 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         self.main_handler.ai_lifecycle_manager.run_ai_task(provider, task_details)
 
     def _handle_classify_apply_success(self, response, context: dict) -> None:
+        """Internal helper to handle classify apply success."""
         self.main_handler.ui_handler.finish_ai_operation()
         cleaned = self.mw.translation_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         
@@ -717,12 +765,14 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         )
 
     def _handle_classify_error(self, error_message: str, context: dict) -> None:
+        """Internal helper to handle classify error."""
         self.main_handler.ui_handler.finish_ai_operation()
         msg = error_message or "AI request failed."
         QMessageBox.warning(self.dialog if self.dialog else self.mw, "AI Error", msg)
 
     def global_replace_glossary(self, find_word: str, replace_word: str) -> None:
         # Build occurrence index BEFORE replacing so we know where old original terms were
+        """Global replace glossary."""
         data_source = getattr(self.mw.data_store, "data", [])
         occurrence_map_before = self.glossary_manager.build_occurrence_index(data_source)
 
@@ -779,6 +829,7 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
 
         # Sequential showing of update dialogs
         def show_next_update():
+            """Show next update."""
             if not valid_updates:
                 return
             entry, prev_trans, occs = valid_updates.pop(0)

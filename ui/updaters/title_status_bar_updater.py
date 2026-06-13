@@ -1,10 +1,12 @@
-from pathlib import Path
+﻿from pathlib import Path
 from utils.constants import APP_VERSION
 from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor, remove_all_tags
 from .base_ui_updater import BaseUIUpdater
 
 class TitleStatusBarUpdater(BaseUIUpdater):
+    """Title status bar updater implementation."""
     def update_status_bar(self):
+        """Update the status bar."""
         if not hasattr(self.mw, 'edited_text_edit') or not self.mw.edited_text_edit or \
            not all(hasattr(self.mw, label_name) for label_name in ['status_label_part1', 'status_label_part2', 'status_label_part3']):
             return
@@ -40,6 +42,7 @@ class TitleStatusBarUpdater(BaseUIUpdater):
         self.mw.ui_updater.synchronize_original_cursor()
 
     def update_status_bar_selection(self):
+        """Update the status bar selection."""
         if not hasattr(self.mw, 'edited_text_edit') or not self.mw.edited_text_edit or \
            not all(hasattr(self.mw, label_name) for label_name in ['status_label_part1', 'status_label_part2', 'status_label_part3']):
             return
@@ -83,11 +86,13 @@ class TitleStatusBarUpdater(BaseUIUpdater):
         self.mw.status_label_part3.setText(f"Width: {pixel_width}px")
 
     def clear_status_bar(self):
+        """Remove status bar."""
         if hasattr(self.mw, 'status_label_part1'): self.mw.status_label_part1.setText("Pos: 0")
         if hasattr(self.mw, 'status_label_part2'): self.mw.status_label_part2.setText("Line: 0/0")
         if hasattr(self.mw, 'status_label_part3'): self.mw.status_label_part3.setText("Width: 0px")
 
     def update_title(self):
+        """Update the title."""
         title = f"Picoripi v{APP_VERSION}"
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and hasattr(self.mw.project_manager, 'project') and self.mw.project_manager.project:
             title += f" - [{self.mw.project_manager.project.name}]"
@@ -100,6 +105,7 @@ class TitleStatusBarUpdater(BaseUIUpdater):
         self.mw.setWindowTitle(title)
 
     def update_plugin_status_label(self):
+        """Update the plugin status label."""
         if self.mw.plugin_status_label:
             if getattr(self.mw, 'current_game_rules', None):
                 display_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else "Unknown"
@@ -108,6 +114,7 @@ class TitleStatusBarUpdater(BaseUIUpdater):
                 self.mw.plugin_status_label.setText("Plugin: [None]")
 
     def update_statusbar_paths(self):
+        """Update the statusbar paths."""
         if hasattr(self.mw, 'original_path_label') and self.mw.original_path_label:
             orig_filename = Path(self.mw.data_store.json_path).name if self.mw.data_store.json_path else "[not specified]"
             self.mw.original_path_label.setText(f"Original: {orig_filename}")

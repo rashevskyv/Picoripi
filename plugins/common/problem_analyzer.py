@@ -1,15 +1,18 @@
-from typing import Optional, Set, List
+﻿from typing import Optional, Set, List
 import re
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, get_tag_width, ALL_TAGS_PATTERN
 
 class GenericProblemAnalyzer:
+    """Generic problem analyzer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
+        """Initialize a new instance."""
         self.mw = main_window_ref
         self.tag_manager = tag_manager_ref
         self.problem_definitions = problem_definitions_ref
         self.problem_ids = problem_ids_ref
 
     def _check_bad_spacing(self, text: str) -> bool:
+        """Internal helper to check bad spacing."""
         if not text:
             return False
         clean_text = convert_dots_to_spaces_from_editor(text)
@@ -20,6 +23,7 @@ class GenericProblemAnalyzer:
         
         from utils.utils import is_visible_tag
         def repl(match):
+            """Repl."""
             tag = match.group(0)
             if tag.lower().startswith("{f:") or tag.lower().startswith("[f:"):
                 return "X"
@@ -36,6 +40,7 @@ class GenericProblemAnalyzer:
         return False
 
     def _check_missing_icon_spacing(self, text: str) -> bool:
+        """Internal helper to check missing icon spacing."""
         missing_spacing_id = getattr(self.problem_ids, 'PROBLEM_MISSING_ICON_SPACING', None)
         if not missing_spacing_id and isinstance(self.problem_ids, dict):
             missing_spacing_id = self.problem_ids.get('MISSING_ICON_SPACING', None)
@@ -57,12 +62,14 @@ class GenericProblemAnalyzer:
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         
         def check_visible(t):
+            """Check visible."""
             return is_visible_tag(t, default_tag_mappings, font_map, icon_sequences)
             
         spans = find_missing_icon_spacing_spans(text, check_visible)
         return len(spans) > 0
 
     def _check_single_word_subline_generic(self, subline_text: str) -> bool:
+        """Internal helper to check single word subline generic."""
         from utils.utils import get_line_words_and_visible_tags
         words = get_line_words_and_visible_tags(subline_text, self.mw)
         if len(words) != 1:
@@ -72,6 +79,7 @@ class GenericProblemAnalyzer:
         return bool(word_content_pattern.search(word))
 
     def _is_single_word_ok_generic(self, subline_text: str) -> bool:
+        """Internal helper to check if is single word ok generic."""
         from utils.utils import get_line_words_and_visible_tags
         words = get_line_words_and_visible_tags(subline_text, self.mw)
         if len(words) != 1:
@@ -101,6 +109,7 @@ class GenericProblemAnalyzer:
                         full_data_string_text_for_logical_check: str,
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
+        """Analyze subline."""
         found_problems = set()
         
         # Common width check

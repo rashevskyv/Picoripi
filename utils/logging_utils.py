@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import time
 import threading
 from collections import deque
@@ -18,6 +18,7 @@ class SafeRotatingFileHandler(RotatingFileHandler):
     writing to the current log file.
     """
     def doRollover(self):
+        """Dorollover."""
         try:
             super().doRollover()
         except (PermissionError, OSError):
@@ -40,6 +41,7 @@ class DuplicateFilter(logging.Filter):
     This prevents log spam from repeated identical messages.
     """
     def __init__(self, time_window=0.5, max_history=100):
+        """Initialize a new instance."""
         super().__init__()
         self.time_window = time_window
         self.max_history = max_history
@@ -47,6 +49,7 @@ class DuplicateFilter(logging.Filter):
         self._lock = threading.Lock()
 
     def filter(self, record):
+        """Filter."""
         try:
             current_time = time.time()
             message = record.getMessage()
@@ -80,10 +83,12 @@ _enabled_categories = {
 }
 
 def set_enabled_log_categories(categories: list):
+    """Set the enabled log categories."""
     global _enabled_categories
     _enabled_categories = set(categories)
 
 def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: str = None):
+    """Update the logger handlers."""
     global _file_handler, _console_handler, log_file_path, _cleared_paths
     
     if file_path:
@@ -160,17 +165,21 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
 
 
 def _should_log(category: str) -> bool:
+    """Internal helper to check if should log."""
     return category in _enabled_categories
 
 # Wrapper class to inject category into Formatter
 class CategoryAdapter(logging.LoggerAdapter):
+    """Category adapter implementation."""
     def process(self, msg, kwargs):
+        """Process."""
         extra = kwargs.get("extra", {})
         extra["category"] = self.extra["category"].upper()
         kwargs["extra"] = extra
         return msg, kwargs
 
 def _log_message(level, message: str, category: str, exc_info=False):
+    """Internal helper to log message."""
     if level < logging.ERROR and not _should_log(category):
         return
     adapter = CategoryAdapter(logger, {"category": category})
@@ -187,15 +196,19 @@ def _log_message(level, message: str, category: str, exc_info=False):
 update_logger_handlers(True, True)
 
 def log_debug(message: str, category: str = "general"):
+    """Log debug."""
     _log_message(logging.DEBUG, message, category)
 
 def log_info(message: str, category: str = "general"):
+    """Log info."""
     _log_message(logging.INFO, message, category)
 
 def log_warning(message: str, category: str = "general"):
+    """Log warning."""
     _log_message(logging.WARNING, message, category)
 
 def log_error(message: str, exc_info=False, category: str = "general"):
+    """Log error."""
     _log_message(logging.ERROR, message, category, exc_info)
 
 def log_ai_traffic(mw, task_type: str, messages: list, response_text: str = None, error: str = None):

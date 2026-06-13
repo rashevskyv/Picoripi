@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -16,6 +16,7 @@ class AIPromptComposer(BaseTranslationHandler):
     """Compose prompts for AI translation/variation tasks and manage placeholders."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize a new instance."""
         super().__init__(*args, **kwargs)
         self._script_lines_cache = None
         self._global_distilled_text_cache = None
@@ -30,6 +31,7 @@ class AIPromptComposer(BaseTranslationHandler):
         source_text: str,
         glossary_entries: Sequence[GlossaryEntry],  # kept for possible future use
     ) -> Tuple[str, Dict[str, Dict[str, str]]]:
+        """Prepare text for translation."""
         return source_text or '', {}
 
     def restore_placeholders(
@@ -39,6 +41,7 @@ class AIPromptComposer(BaseTranslationHandler):
         *,
         key: Optional[int] = None,
     ) -> str:
+        """Restore placeholders."""
         if not translated_text:
             return ''
             
@@ -83,6 +86,7 @@ class AIPromptComposer(BaseTranslationHandler):
         retry_reason: str = '',
         temp_id_map: Optional[Dict] = None,
     ) -> Tuple[str, str, Dict]:
+        """Compose batch request."""
         placeholder_map: Dict = {}
         glossary_manager = self.main_handler._glossary_manager
         client = self._get_mempalace_client()
@@ -464,6 +468,7 @@ class AIPromptComposer(BaseTranslationHandler):
         session_state: Optional[TranslationSessionState] = None,
         mode_description: str = 'translation variations',
     ) -> Tuple[str, str]:
+        """Compose variation request."""
         combined_system, user_content = self.compose_messages(
             system_prompt,
             source_text,
@@ -491,6 +496,7 @@ class AIPromptComposer(BaseTranslationHandler):
         current_translation: Optional[str] = None,
     ) -> Tuple[str, str]:
         # Fetch relevant glossary terms for this single string or variation
+        """Compose messages."""
         glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
         
@@ -648,6 +654,7 @@ class AIPromptComposer(BaseTranslationHandler):
         expected_lines: int,
         session_state: Optional[TranslationSessionState] = None,
     ) -> Tuple[str, str]:
+        """Compose glossary occurrence update request."""
         combined_system = self._prepare_glossary_for_prompt(system_prompt, session_state)
 
         instructions = [
@@ -686,6 +693,7 @@ class AIPromptComposer(BaseTranslationHandler):
         batch_items: List[Dict],
         session_state: Optional[TranslationSessionState] = None,
     ) -> Tuple[str, str]:
+        """Compose glossary occurrence batch request."""
         combined_system = self._prepare_glossary_for_prompt(system_prompt, session_state)
 
         instructions = [
@@ -714,6 +722,7 @@ class AIPromptComposer(BaseTranslationHandler):
         return combined_system, user_content
 
     def compose_glossary_request(self, system_prompt: str, user_content: str, **_: Dict) -> Tuple[str, str]:
+        """Compose glossary request."""
         return system_prompt.strip(), user_content
 
     def _append_speaker_glossary_entries(
@@ -927,6 +936,7 @@ class AIPromptComposer(BaseTranslationHandler):
 
         # Helper to try and resolve speaker via script fallback if missing
         def get_script_speaker_fallback() -> Optional[Tuple[str, str, str]]:
+            """Get the script speaker fallback."""
             if script_res:
                 raw_spk, lines_str = script_res
                 return raw_spk, self._translate_speaker(raw_spk), lines_str
@@ -1245,6 +1255,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 pass
 
         def line_strip_is_speaker(s: str) -> bool:
+            """Line strip is speaker."""
             return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
 
         # If direct mapping found, we can load the script and find the speaker directly from that line index
@@ -1289,6 +1300,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 pass
 
         def distill(t: str) -> str:
+            """Distill."""
             if not t:
                 return ""
             # First replace known dynamic name tags (e.g. {escape:0:0022} -> "Epona")
@@ -1378,9 +1390,11 @@ class AIPromptComposer(BaseTranslationHandler):
             return "NONE", None
 
         def line_strip_is_speaker(s: str) -> bool:
+            """Line strip is speaker."""
             return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
 
         def is_line_boundary(line_str: str) -> bool:
+            """Check if is line boundary."""
             s = line_str.strip()
             if not s:
                 return True
@@ -1391,6 +1405,7 @@ class AIPromptComposer(BaseTranslationHandler):
             return False
 
         def get_script_remainder(e_pos: int) -> str:
+            """Get the script remainder."""
             remainder_chars = []
             prev_line = char_to_line_map[e_pos - 1] if e_pos > 0 else 1
             for i in range(e_pos, len(global_distilled_text)):
@@ -1401,6 +1416,7 @@ class AIPromptComposer(BaseTranslationHandler):
             return "".join(remainder_chars)
 
         def get_prev_script_text(l_num: int) -> str:
+            """Get the prev script text."""
             for idx in range(l_num - 2, -1, -1):
                 line_str = lines[idx].strip()
                 if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):
@@ -1409,6 +1425,7 @@ class AIPromptComposer(BaseTranslationHandler):
             return ""
 
         def get_next_script_text(l_num: int) -> str:
+            """Get the next script text."""
             for idx in range(l_num, len(lines)):
                 line_str = lines[idx].strip()
                 if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):

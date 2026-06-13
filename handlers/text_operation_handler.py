@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Any, Optional, List, Dict, Tuple, Set, Union
 from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog, QDialog
 from PyQt6.QtGui import QTextCursor, QTextBlock
@@ -12,7 +12,9 @@ from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 PREVIEW_UPDATE_DELAY = 250
 
 class TextOperationHandler(BaseHandler):
+    """Handler for text operation operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self.preview_update_timer = QTimer()
         self.preview_update_timer.setSingleShot(True)
@@ -24,6 +26,7 @@ class TextOperationHandler(BaseHandler):
         self.current_scanner_thread: Optional[AsyncIssueScanner] = None
 
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
+        """Internal helper to get the string thresholds."""
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
         logical_limit = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
         if "width" in string_meta:
@@ -39,6 +42,7 @@ class TextOperationHandler(BaseHandler):
         return threshold, logical_limit
 
     def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
+        """Internal helper to rescan issues for current string."""
         if not self.mw.current_game_rules:
             return
 
@@ -128,9 +132,11 @@ class TextOperationHandler(BaseHandler):
         get_scanner_thread_pool().start(self.current_scanner_thread)
 
     def _log_undo_state(self, editor, context_message):
+        """Internal helper to log undo state."""
         pass
 
     def _update_preview_content(self) -> None:
+        """Internal helper to update the preview content."""
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit or self.mw.data_store.current_block_idx == -1:
             return
@@ -220,12 +226,14 @@ class TextOperationHandler(BaseHandler):
         main_window_ref.is_programmatically_changing_text = was_programmatically_changing
         
     def stop_and_flush_editor_changes(self) -> None:
+        """Stop and flush editor changes."""
         if hasattr(self, 'preview_update_timer') and self.preview_update_timer.isActive():
             log_debug("Flushing pending editor changes synchronously before selection change.")
             self.preview_update_timer.stop()
             self._on_preview_update_timer_timeout()
 
     def text_edited(self) -> None:
+        """Text edited."""
         if self.mw.is_programmatically_changing_text:
             return
             
@@ -245,6 +253,7 @@ class TextOperationHandler(BaseHandler):
         self.preview_update_timer.start(PREVIEW_UPDATE_DELAY)
 
     def _on_preview_update_timer_timeout(self) -> None:
+        """Internal helper to handle the preview update timer timeout event."""
         block_idx = self._debounce_block_idx
         string_idx = self._debounce_string_idx
         
@@ -355,6 +364,7 @@ class TextOperationHandler(BaseHandler):
     def _on_issue_scan_finished(self, block_idx: int, string_idx: int, text: str, problems_in_string: list,
                                  glossary_matches: list, translation_matches: list, spellcheck_matches: list) -> None:
         # Check if the block/string selection has changed while scanning
+        """Internal helper to handle the issue scan finished event."""
         if block_idx != self.mw.data_store.current_block_idx or string_idx != self.mw.data_store.current_string_idx:
             return
 
@@ -421,6 +431,7 @@ class TextOperationHandler(BaseHandler):
                 self.mw.data_store.edited_sublines.add(i)
 
     def paste_block_text(self) -> None:
+        """Paste block text."""
         log_debug("--> TextOperationHandler: paste_block_text triggered.")
         if self.mw.data_store.current_block_idx == -1:
             QMessageBox.warning(self.mw, "Paste Error", "Please select a block.")
@@ -519,6 +530,7 @@ class TextOperationHandler(BaseHandler):
 
 
     def revert_single_line(self, line_index: int) -> None:
+        """Revert single line."""
         block_idx = self.mw.data_store.current_block_idx
         if block_idx == -1:
              return
@@ -562,6 +574,7 @@ class TextOperationHandler(BaseHandler):
 
 
     def calculate_width_for_data_line_action(self, data_line_idx: int) -> None:
+        """Calculate width for data line action."""
         if self.mw.data_store.current_block_idx == -1 or data_line_idx < 0:
             QMessageBox.warning(self.mw, "Calculate Width Error", "No block or data line selected.")
             return
@@ -659,6 +672,7 @@ class TextOperationHandler(BaseHandler):
         result_dialog.exec()
         
     def auto_fix_current_string(self, from_button: bool = False) -> None:
+        """Auto fix current string."""
         modifiers = QApplication.keyboardModifiers()
         # Shift+AutoFix (page-local mode) only applies when using the button directly.
         # When triggered via keyboard shortcut (Ctrl+Shift+A), Shift is part of the
@@ -697,6 +711,7 @@ class TextOperationHandler(BaseHandler):
             self._auto_fix_current_string_impl(allowed_problems=allowed_problems, page_local=is_shift_pressed)
 
     def _auto_fix_current_string_impl(self, allowed_problems: Optional[Set[str]] = None, page_local: bool = False) -> None:
+        """Internal helper to auto fix current string impl."""
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
@@ -809,6 +824,7 @@ class TextOperationHandler(BaseHandler):
                 self.mw.statusBar.showMessage("Auto-fix: No changes made.", 2000)
 
     def fix_all_strings(self, target_strings: list = None) -> None:
+        """Fix all strings."""
         modifiers = QApplication.keyboardModifiers()
         is_shift_pressed = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
 

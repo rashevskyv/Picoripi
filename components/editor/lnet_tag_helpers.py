@@ -1,11 +1,14 @@
-from typing import List, Optional, Tuple
+﻿from typing import List, Optional, Tuple
 from PyQt6.QtGui import QTextCursor
 
 class LNETTagHelpers:
+    """L n e t tag helpers implementation."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def find_icon_sequence_in_block(self, block_text: str, sequences: List[str], position_in_block: int) -> Optional[Tuple[int, int, str]]:
+        """Find icon sequence in block."""
         if not block_text or not sequences:
             return None
         
@@ -21,6 +24,7 @@ class LNETTagHelpers:
         return None
 
     def snap_cursor_out_of_icon_sequences(self, move_right: bool) -> bool:
+        """Snap cursor out of icon sequences."""
         cursor = self.editor.textCursor()
         if cursor.hasSelection(): return False
         

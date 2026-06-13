@@ -1,4 +1,4 @@
-# components/tree_drag_drop_mixin.py
+﻿# components/tree_drag_drop_mixin.py
 """Drag-and-drop mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt, QPoint, QTimer
 from PyQt6.QtGui import QDrag, QFontMetrics, QPixmap, QPainter, QColor
@@ -54,6 +54,7 @@ class TreeDragDropMixin:
         drag.exec(supportedActions)
 
     def dragMoveEvent(self, event):
+        """Dragmoveevent."""
         super().dragMoveEvent(event)
         self._custom_drop_target = None
         item = self.itemAt(event.pos())
@@ -68,11 +69,13 @@ class TreeDragDropMixin:
         self.viewport().update()
 
     def dragLeaveEvent(self, event):
+        """Dragleaveevent."""
         self._custom_drop_target = None
         super().dragLeaveEvent(event)
         self.viewport().update()
 
     def dropEvent(self, event):
+        """Dropevent."""
         target_info = getattr(self, '_custom_drop_target', None)
         self._custom_drop_target = None
         self.viewport().update()

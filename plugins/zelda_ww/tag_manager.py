@@ -1,11 +1,13 @@
-import re
+﻿import re
 from typing import Optional, Set, List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 from PyQt6.QtCore import Qt
 from utils.logging_utils import log_debug
 
 class TagManager:
+    """Manager class for tag."""
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         self.mw = main_window_ref
         
         # Initialize formats immediately
@@ -20,6 +22,7 @@ class TagManager:
 
     def reconfigure_styles(self):
         # Use Tag Style from settings
+        """Reconfigure styles."""
         tag_color = getattr(self.mw, 'tag_color_rgba', "#FF8C00") if self.mw else "#FF8C00"
         self.tag_format.setForeground(QColor(tag_color))
         self.tag_format.setFontWeight(QFont.Weight.Bold if getattr(self.mw, 'tag_bold', True) else QFont.Weight.Normal)
@@ -43,6 +46,7 @@ class TagManager:
         self.color_default_format.setForeground(default_text_color)
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         self.reconfigure_styles() 
         
         rules = [
@@ -55,7 +59,9 @@ class TagManager:
         return rules
         
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         return set()
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
+        """Check if is tag legitimate."""
         return True

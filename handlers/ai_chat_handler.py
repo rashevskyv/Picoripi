@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List, Any
+﻿from typing import Dict, Optional, List, Any
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QThread
 from PyQt6.QtGui import QTextCursor
@@ -13,7 +13,9 @@ import re
 import markdown
 
 class AIChatHandler(BaseHandler):
+    """Handler for a i chat operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self.dialog: Optional[AIChatDialog] = None
         self.sessions: Dict[int, TranslationSessionManager] = {}
@@ -23,6 +25,7 @@ class AIChatHandler(BaseHandler):
         self._stream_buffer: Dict[int, str] = {}
 
     def _get_available_providers(self) -> Dict[str, Dict[str, str]]:
+        """Internal helper to get the available providers."""
         providers_data: Dict[str, Dict[str, str]] = {}
         config: Dict[str, Any] = getattr(self.mw, 'translation_config', {}).get('providers', {})
         for key, info in config.items():
@@ -37,6 +40,7 @@ class AIChatHandler(BaseHandler):
         return providers_data
 
     def show_chat_window(self, initial_text: str = "") -> None:
+        """Show chat window."""
         if self.dialog is None:
             self.dialog = AIChatDialog(self.mw)
             self.dialog.message_sent.connect(self._handle_send_message)
@@ -63,6 +67,7 @@ class AIChatHandler(BaseHandler):
             current_tab.input_edit.setFocus()
 
     def _add_new_chat_session(self) -> None:
+        """Internal helper to add new chat session."""
         if not self.dialog: return
 
         new_tab = self.dialog.add_new_tab()
@@ -73,6 +78,7 @@ class AIChatHandler(BaseHandler):
         self.sessions[tab_index] = TranslationSessionManager()
 
     def _handle_tab_closed(self, index: int) -> None:
+        """Internal helper to handle tab closed."""
         if index in self.sessions:
             del self.sessions[index]
             log_debug(f"AI Chat: Session for tab {index} has been removed.")
@@ -82,6 +88,7 @@ class AIChatHandler(BaseHandler):
                 log_debug(f"AI Chat: Session for tab index {index} has been removed.")
 
     def _handle_send_message(self, tab_index: int, message: str, provider_key: str, web_search_enabled: bool) -> None:
+        """Internal helper to handle send message."""
         if self.dialog:
             html = f"""
             <table class="message-table user-message">
@@ -173,6 +180,7 @@ class AIChatHandler(BaseHandler):
         self._thread.start()
     
     def _process_annotations(self, text: str, annotations: List[Dict[str, Any]]) -> str:
+        """Internal helper to process annotations."""
         if not annotations:
             return text
         
@@ -193,6 +201,7 @@ class AIChatHandler(BaseHandler):
         return modified_text
 
     def _format_ai_response_for_display(self, text: str, annotations: Optional[List[Dict[str, Any]]]) -> str:
+        """Internal helper to format ai response for display."""
         text_with_citations = self._process_annotations(text, annotations) if annotations else text
         
         html_output = markdown.markdown(text_with_citations, extensions=['nl2br', 'fenced_code'])
@@ -200,6 +209,7 @@ class AIChatHandler(BaseHandler):
         return html_output
 
     def _on_ai_chunk_received(self, context: Dict[str, Any], chunk: str) -> None:
+        """Internal helper to handle the ai chunk received event."""
         tab_index = context.get('tab_index')
         if self.dialog and tab_index is not None:
             tab = self.dialog.tabs.widget(tab_index)
@@ -211,6 +221,7 @@ class AIChatHandler(BaseHandler):
                 self._stream_buffer[tab_index] = self._stream_buffer.get(tab_index, "") + chunk
     
     def _on_ai_stream_finished(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
+        """Internal helper to handle the ai stream finished event."""
         tab_index = context.get('tab_index')
         if self.dialog and tab_index is not None:
             full_response = self._stream_buffer.get(tab_index, "")
@@ -247,6 +258,7 @@ class AIChatHandler(BaseHandler):
                 )
 
     def _on_ai_chat_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
+        """Internal helper to handle the ai chat success event."""
         tab_index: Optional[int] = context.get('tab_index')
         if self.dialog and tab_index is not None:
             self.dialog.set_input_enabled(tab_index, True)
@@ -271,6 +283,7 @@ class AIChatHandler(BaseHandler):
                 state.record_exchange(user_content=user_content, assistant_content=ai_response_text, conversation_id=response.conversation_id)
 
     def _on_ai_error(self, message: str, context: Dict[str, Any]) -> None:
+        """Internal helper to handle the ai error event."""
         tab_index = context.get('tab_index')
         if self.dialog and tab_index is not None:
             content_end_pos_before = context.get('content_end_pos_before', 0)
@@ -296,6 +309,7 @@ class AIChatHandler(BaseHandler):
             self.dialog.append_to_history(tab_index, html)
 
     def _cleanup_worker(self) -> None:
+        """Internal helper to cleanup worker."""
         tab_index = self._worker.task_details.get('tab_index') if self._worker else None
         if self.dialog and tab_index is not None:
             self.dialog.set_input_enabled(tab_index, True)
@@ -311,6 +325,7 @@ class AIChatHandler(BaseHandler):
             self._worker = None
 
     def prepare_to_close(self) -> None:
+        """Prepare to close."""
         if self._thread and self._thread.isRunning():
             self._thread.quit()
             self._thread.wait(1000)

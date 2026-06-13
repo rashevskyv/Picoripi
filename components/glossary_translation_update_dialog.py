@@ -1,4 +1,4 @@
-"""Dialog for reviewing translations after a glossary change."""
+﻿"""Dialog for reviewing translations after a glossary change."""
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional, Sequence
@@ -41,6 +41,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         ai_request_single: Optional[Callable[[GlossaryOccurrence], None]] = None,
         ai_request_all: Optional[Callable[[List[GlossaryOccurrence]], None]] = None,
     ) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle(f"Update \"{term}\" translations")
         self.resize(880, 560)
@@ -69,6 +70,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
     # UI building
     # ------------------------------------------------------------------
     def _build_ui(self) -> None:
+        """Internal helper to create ui."""
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
@@ -161,12 +163,14 @@ class GlossaryTranslationUpdateDialog(QDialog):
     # Occurrence helpers
     # ------------------------------------------------------------------
     def _populate_occurrences(self) -> None:
+        """Internal helper to populate occurrences."""
         self._occurrence_list.clear()
         for idx, occ in enumerate(self._occurrences, start=1):
             item = QListWidgetItem(self._format_occurrence_label(idx, occ))
             self._occurrence_list.addItem(item)
 
     def _format_occurrence_label(self, number: int, occ: GlossaryOccurrence) -> str:
+        """Internal helper to format occurrence label."""
         status = self._status.get(id(occ))
         suffix = ""
         if status == 'applied':
@@ -176,6 +180,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         return f"#{number} | Block {occ.block_idx} | Row {occ.string_idx}{suffix}"
 
     def _refresh_occurrence_item(self, occ: GlossaryOccurrence) -> None:
+        """Internal helper to update the occurrence item."""
         occ_id = id(occ)
         for row in range(self._occurrence_list.count()):
             data_occ = self._occurrences[row]
@@ -186,6 +191,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
                 break
 
     def _load_occurrence(self, row: int) -> None:
+        """Internal helper to load occurrence."""
         if not (0 <= row < len(self._occurrences)):
             self._original_view.clear()
             self._translation_edit.clear()
@@ -211,16 +217,19 @@ class GlossaryTranslationUpdateDialog(QDialog):
     # Actions
     # ------------------------------------------------------------------
     def _current_occurrence(self) -> Optional[GlossaryOccurrence]:
+        """Internal helper to current occurrence."""
         row = self._occurrence_list.currentRow()
         if 0 <= row < len(self._occurrences):
             return self._occurrences[row]
         return None
 
     def _suggest_translation(self, current_text: str) -> str:
+        """Internal helper to suggest translation."""
         from utils.utils import suggest_smart_translation
         return suggest_smart_translation(current_text, self._old_translation, self._new_translation)
 
     def _apply_current(self, next_item: bool = False) -> None:
+        """Internal helper to apply current."""
         occ = self._current_occurrence()
         if not occ:
             return
@@ -252,6 +261,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         highlight_color = QColor(0, 255, 0, 80) # Light green background
 
         def get_selections_for_term(editor, term_phrase):
+            """Get the selections for term."""
             selections = []
             if not term_phrase:
                 return selections
@@ -315,6 +325,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._translation_edit.setExtraSelections(trans_selections)
 
     def _skip_current(self) -> None:
+        """Internal helper to skip current."""
         occ = self._current_occurrence()
         if not occ:
             return
@@ -324,11 +335,13 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._select_next()
 
     def _select_next(self) -> None:
+        """Internal helper to select next."""
         row = self._occurrence_list.currentRow()
         if row + 1 < self._occurrence_list.count():
             self._occurrence_list.setCurrentRow(row + 1)
 
     def _run_ai_for_current(self) -> None:
+        """Internal helper to run ai for current."""
         if not self._ai_request_single or self._ai_busy:
             return
         occ = self._current_occurrence()
@@ -338,6 +351,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._ai_request_single(occ)
 
     def _run_ai_for_all(self) -> None:
+        """Internal helper to run ai for all."""
         if not self._ai_request_all or self._ai_busy:
             return
         remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
@@ -358,6 +372,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._ai_request_all(remaining)
 
     def set_ai_busy(self, busy: bool) -> None:
+        """Set the ai busy."""
         self._ai_busy = busy
         if getattr(self, '_ai_current_button', None):
             self._ai_current_button.setEnabled(bool(self._ai_request_single) and not busy)
@@ -365,11 +380,13 @@ class GlossaryTranslationUpdateDialog(QDialog):
             self._ai_all_button.setEnabled(bool(self._ai_request_all) and not busy and not self._batch_mode)
 
     def set_batch_active(self, active: bool) -> None:
+        """Set the batch active."""
         self._batch_mode = bool(active)
         if getattr(self, '_ai_all_button', None):
             self._ai_all_button.setEnabled(bool(self._ai_request_all) and not self._ai_busy and not self._batch_mode)
 
     def on_ai_result(self, occurrence: GlossaryOccurrence, new_translation: str) -> None:
+        """Handle the ai result event."""
         self._apply_translation_cb(occurrence, new_translation)
         self._status[id(occurrence)] = 'applied'
         self._refresh_occurrence_item(occurrence)
@@ -380,12 +397,14 @@ class GlossaryTranslationUpdateDialog(QDialog):
             self._select_next()
 
     def on_ai_error(self, message: str) -> None:
+        """Handle the ai error event."""
         if message:
             QMessageBox.warning(self, "AI Update", message)
         self.set_batch_active(False)
         self.set_ai_busy(False)
 
     def _run_quick_replace_all(self) -> None:
+        """Internal helper to run quick replace all."""
         remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, "Replace All", "All occurrences already applied.")
@@ -439,6 +458,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
             self._load_occurrence(curr_row)
 
     def _on_old_translation_changed(self, text: str) -> None:
+        """Internal helper to handle the old translation changed event."""
         self._old_translation = text
         row = self._occurrence_list.currentRow()
         if 0 <= row < len(self._occurrences):

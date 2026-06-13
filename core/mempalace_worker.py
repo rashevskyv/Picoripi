@@ -1,4 +1,4 @@
-import json
+﻿import json
 import re
 import difflib
 import sqlite3
@@ -30,6 +30,7 @@ def robust_json_loads(text: str) -> dict:
 
 
 class MemePalaceWorker(QThread):
+    """Meme palace worker implementation."""
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current_step, total_steps, status_text
     log = pyqtSignal(str)                 # log message to display in UI
@@ -47,6 +48,7 @@ class MemePalaceWorker(QThread):
                  target_lang: str = "Ukrainian",
                  glossary_manager: Optional[Any] = None,
                  glossary_entries: Optional[List[Any]] = None):
+        """Initialize a new instance."""
         super().__init__()
         self.client = client
         self.bmg_strings = bmg_strings
@@ -63,10 +65,12 @@ class MemePalaceWorker(QThread):
         self.mapped_results = []  # Pairs of BMG strings mapped to transcript timeline
 
     def cancel(self):
+        """Cancel."""
         self.is_cancelled = True
         self.log.emit("Cancellation requested...")
 
     def run(self):
+        """Run."""
         try:
             self.log.emit("Starting MemePalace Context Weaver...")
             
@@ -126,6 +130,7 @@ class MemePalaceWorker(QThread):
                 pass
 
         def clean_for_match(text: str) -> str:
+            """Clean for match."""
             if not text:
                 return ""
             # Replace known dynamic name tags (e.g. {escape:0:0000} -> "Link") before stripping tags
@@ -651,6 +656,7 @@ JSON format example (assuming target language is Ukrainian):
                 )
 
 class MemePalaceScriptAnalyzerWorker(QThread):
+    """Meme palace script analyzer worker implementation."""
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current, total, status
     log = pyqtSignal(str)                 # log message
@@ -665,6 +671,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
                  target_lang: str = "Ukrainian",
                  plugin_name: Optional[str] = None,
                  mw=None):
+        """Initialize a new instance."""
         super().__init__()
         self.client = client
         self.file_path = file_path
@@ -677,6 +684,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
         self.is_cancelled = False
 
     def cancel(self):
+        """Cancel."""
         self.is_cancelled = True
         self.log.emit("Script pre-analysis cancellation requested...")
 
@@ -920,6 +928,7 @@ JSON structure:
         return new_term_system_prompt, new_term_user_prompt
 
     def run(self):
+        """Run."""
         try:
             self.log.emit("Starting AI Script Pre-Analyzer...")
             self.progress.emit(10, 100, "Reading script introduction...")
@@ -1289,11 +1298,13 @@ JSON structure:
             self.finished.emit(False, f"Error occurred: {str(e)}")
 
 class MemePalaceChapterMapperWorker(QThread):
+    """Meme palace chapter mapper worker implementation."""
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
 
     def __init__(self, client: MemePalaceClient, composer, wing_name: str):
+        """Initialize a new instance."""
         super().__init__()
         self.client = client
         self.composer = composer
@@ -1301,9 +1312,11 @@ class MemePalaceChapterMapperWorker(QThread):
         self.is_cancelled = False
 
     def cancel(self):
+        """Cancel."""
         self.is_cancelled = True
 
     def run(self):
+        """Run."""
         import os
         try:
             self.log.emit("Starting Chapter Mapping Process...")
@@ -1381,11 +1394,13 @@ class MemePalaceChapterMapperWorker(QThread):
             self.finished.emit(False, f"Error: {e}")
 
 class MemePalaceChapterAIAnalyzerWorker(QThread):
+    """Meme palace chapter a i analyzer worker implementation."""
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
 
     def __init__(self, client: MemePalaceClient, ai_provider, chapter_id: int, num: str, title: str, content: str, start_line: int = 1, target_lang: str = "Ukrainian", mw=None):
+        """Initialize a new instance."""
         super().__init__()
         self.client = client
         self.ai_provider = ai_provider
@@ -1399,9 +1414,11 @@ class MemePalaceChapterAIAnalyzerWorker(QThread):
         self.is_cancelled = False
 
     def cancel(self):
+        """Cancel."""
         self.is_cancelled = True
 
     def run(self):
+        """Run."""
         try:
             self.log.emit(f"Analyzing Chapter {self.num}: {self.title} via AI...")
             self.progress.emit(0, 100, "Preparing prompt...")
@@ -1488,6 +1505,7 @@ Your output must be a valid JSON array of objects. Do not wrap the JSON in markd
 
 
 class MemePalaceCharacterProfilerWorker(QThread):
+    """Meme palace character profiler worker implementation."""
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current, total, status
     log = pyqtSignal(str)                 # log message
@@ -1502,6 +1520,7 @@ class MemePalaceCharacterProfilerWorker(QThread):
                  plugin_name: Optional[str] = None,
                  composer: Optional[Any] = None,
                  mw=None):
+        """Initialize a new instance."""
         super().__init__()
         self.client = client
         self.ai_provider = ai_provider
@@ -1514,6 +1533,7 @@ class MemePalaceCharacterProfilerWorker(QThread):
         self.is_cancelled = False
 
     def cancel(self):
+        """Cancel."""
         self.is_cancelled = True
         self.log.emit("Character speech profiling cancellation requested...")
 
@@ -1721,6 +1741,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
         return synth_system_prompt, synth_user_prompt
 
     def run(self):
+        """Run."""
         try:
             self.log.emit("Starting AI Character Speech Profiler...")
             self.progress.emit(5, 100, "Retrieving dialogue lines from database...")

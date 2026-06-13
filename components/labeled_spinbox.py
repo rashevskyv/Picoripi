@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QSizePolicy
+﻿from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QSizePolicy
 from PyQt6.QtGui import QFontMetrics
 
 class LabeledSpinBox(QWidget):
+    """Labeled spin box implementation."""
     def __init__(self, label_text: str, min_val: int, max_val: int, initial_val: int, tooltip: str = "", parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         
         layout = QHBoxLayout(self)
@@ -26,7 +28,9 @@ class LabeledSpinBox(QWidget):
         layout.addStretch(1)
 
     def value(self) -> int:
+        """Value."""
         return self.spin_box.value()
 
     def setValue(self, value: int):
+        """Setvalue."""
         self.spin_box.setValue(value)

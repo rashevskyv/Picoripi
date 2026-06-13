@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional, Set, Dict, Any, Tuple, List
 from plugins.common.text_fixer import GenericTextFixer
 from .tag_logic import ANY_TAG_PATTERN_BMG
@@ -10,10 +10,13 @@ CLOSING_COLOR_TAG_BMG = "{COLOR_DEFAULT}"
 PUNCTUATION_PATTERN_ZBMG = re.compile(r"^[,\.!?]$")
 
 class TextFixer(GenericTextFixer):
+    """Text fixer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_analyzer_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_analyzer_ref)
 
     def _is_forced_alias(self, tag: str) -> bool:
+        """Internal helper to check if is forced alias."""
         if tag.lower().startswith("{f:"):
             return True
         mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
@@ -24,6 +27,7 @@ class TextFixer(GenericTextFixer):
         return False
 
     def _fix_empty_odd_sublines_zbmg(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to fix empty odd sublines zbmg."""
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
             return text, False
@@ -55,6 +59,7 @@ class TextFixer(GenericTextFixer):
         return joined_text, joined_text != text
 
     def _fix_short_lines_zbmg(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> Tuple[str, bool]:
+        """Internal helper to fix short lines zbmg."""
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1: return text, False
         original_text = text
@@ -129,6 +134,7 @@ class TextFixer(GenericTextFixer):
         return final_text, final_text != original_text
 
     def _cleanup_spaces_around_tags_zbmg(self, text: str) -> Tuple[str, bool]:
+        """Internal helper to cleanup spaces around tags zbmg."""
         original_text = text
         pattern = re.compile(r"(?P<tag>\{[^}]*\})(?P<space> )(?P<after_space>.)?")
         current_pos = 0
@@ -170,6 +176,7 @@ class TextFixer(GenericTextFixer):
         return final_text, final_text != original_text
 
     def fix_empty_first_line_of_page(self, text: str) -> Tuple[str, bool]:
+        """Fix empty first line of page."""
         lines = text.split('\n')
         problem_indices = self.problem_analyzer.check_for_empty_first_line_of_page(text)
         if not problem_indices:
@@ -284,6 +291,7 @@ class TextFixer(GenericTextFixer):
                              string_idx: Optional[int] = None,
                              page_local: bool = False,
                              disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         if page_local:
             return self.autofix_page_local_wrapper(
                 self.autofix_data_string,
@@ -322,6 +330,7 @@ class TextFixer(GenericTextFixer):
             autofix_config.update(self.mw.autofix_enabled)
 
         def is_allowed(prob_id):
+            """Check if is allowed."""
             if allowed_problems is not None:
                 return prob_id in allowed_problems
             return autofix_config.get(prob_id, False)

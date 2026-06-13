@@ -1,4 +1,4 @@
-"""
+﻿"""
 Yaz0 compression and decompression for Nintendo archive formats.
 
 Yaz0 is a run-length/back-reference compression scheme used extensively
@@ -122,6 +122,7 @@ def compress(data: bytes, max_candidates: int | None = 100) -> bytes:
     group_elements: list[tuple[bool, bytes]] = []
 
     def flush_group() -> None:
+        """Flush group."""
         nonlocal group_elements, out
         if not group_elements:
             return
@@ -136,6 +137,7 @@ def compress(data: bytes, max_candidates: int | None = 100) -> bytes:
         group_elements = []
 
     def find_match(pos: int) -> tuple[int, int]:
+        """Find match."""
         if pos + 3 > n:
             return 0, 0
 
@@ -176,6 +178,7 @@ def compress(data: bytes, max_candidates: int | None = 100) -> bytes:
         return best_len, best_dist
 
     def insert_prefix(pos: int) -> None:
+        """Insert prefix."""
         if pos + 3 <= n:
             prefix = data[pos : pos + 3]
             if prefix not in pos_map:

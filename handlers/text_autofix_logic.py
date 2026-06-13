@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Any, List, Optional, Tuple, Dict, Set
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QTextCursor
@@ -16,12 +16,15 @@ ANY_TAG_RE_PATTERN = r"(\{(?!f:|F:)[^}]*\}|\[[^\]]*\])"
 COLOR_WHITE_TAG_PATTERN = re.compile(r"\{(Color:White|color_default|escape:255:000000)\}", re.IGNORECASE)
 
 class TextAutofixLogic:
+    """Text autofix logic implementation."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         self.mw: Any = main_window
         self.data_processor: Any = data_processor
         self.ui_updater: Any = ui_updater
 
     def _ends_with_sentence_punctuation(self, text_no_tags_stripped: str) -> bool:
+        """Internal helper to ends with sentence punctuation."""
         if not text_no_tags_stripped:
             return False
         
@@ -37,6 +40,7 @@ class TextAutofixLogic:
 
 
     def _extract_first_word_with_tags(self, text: str) -> Tuple[str, str]:
+        """Internal helper to extract first word with tags."""
         if not text.strip():
             return "", text 
 
@@ -72,6 +76,7 @@ class TextAutofixLogic:
         return first_word_text.rstrip(), remaining_text
 
     def _fix_empty_odd_sublines(self, text: str) -> str:
+        """Internal helper to fix empty odd sublines."""
         sub_lines = text.split('\n')
         if len(sub_lines) <= 1:
             return text
@@ -111,6 +116,7 @@ class TextAutofixLogic:
         return joined_text
 
     def _fix_short_lines(self, text: str, width_threshold: int = None, logical_hard_limit: int = None) -> str:
+        """Internal helper to fix short lines."""
         if width_threshold is None:
             width_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
         sub_lines = text.split('\n')
@@ -246,6 +252,7 @@ class TextAutofixLogic:
         return final_text
 
     def _fix_width_exceeded(self, text: str, width_threshold: int = None) -> str:
+        """Internal helper to fix width exceeded."""
         if width_threshold is None:
             width_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
         sub_lines = text.split('\n')
@@ -331,6 +338,7 @@ class TextAutofixLogic:
         return text
 
     def _fix_blue_sublines(self, text: str) -> str:
+        """Internal helper to fix blue sublines."""
         sub_lines = text.split('\n')
         if len(sub_lines) < 2: 
             return text
@@ -373,6 +381,7 @@ class TextAutofixLogic:
         return text
 
     def _fix_leading_spaces_in_sublines(self, text: str) -> str:
+        """Internal helper to fix leading spaces in sublines."""
         sub_lines = text.split('\n')
         fixed_sub_lines = []
         changed = False
@@ -390,6 +399,7 @@ class TextAutofixLogic:
         return text
 
     def _cleanup_spaces_around_tags(self, text: str) -> str:
+        """Internal helper to cleanup spaces around tags."""
         original_text = text
         text_changed_this_function_call = False
         
@@ -449,6 +459,7 @@ class TextAutofixLogic:
 
 
     def auto_fix_current_string(self) -> None:
+        """Auto fix current string."""
         log_debug("TextAutofixLogic.auto_fix_current_string: Called.")
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")

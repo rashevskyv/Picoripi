@@ -1,4 +1,4 @@
-# handlers/text_analysis_handler.py
+﻿# handlers/text_analysis_handler.py
 """Handler for original text width analysis tool."""
 from __future__ import annotations
 
@@ -18,11 +18,13 @@ class TextAnalysisHandler(BaseHandler):
     """Builds data for the top longest lines and shows the dialog."""
 
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any) -> None:
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         self._menu_action: Optional[QAction] = None
         self._dialog: Optional[OriginalTextAnalysisDialog] = None
 
     def ensure_menu_action(self) -> None:
+        """Ensure menu action."""
         tools_menu: Any = getattr(self.mw, 'tools_menu', None)
         if not tools_menu:
             log_debug('TextAnalysisHandler: Tools menu is not available yet.')
@@ -39,6 +41,7 @@ class TextAnalysisHandler(BaseHandler):
         self._menu_action = action
 
     def analyze_original_text(self) -> None:
+        """Analyze original text."""
         data_source: Optional[List[Any]] = getattr(self.mw.data_store, 'data', None) if hasattr(self.mw, 'data_store') else getattr(self.mw, 'data', None)
         if not isinstance(data_source, list) or not data_source:
             QMessageBox.information(
@@ -126,6 +129,7 @@ class TextAnalysisHandler(BaseHandler):
             )
 
     def _activate_entry(self, entry: Dict[str, Any]) -> None:
+        """Internal helper to activate entry."""
         block: Optional[Any] = entry.get('block_idx')
         string: Optional[Any] = entry.get('string_idx')
         line_idx: Optional[Any] = entry.get('line_idx')
@@ -153,6 +157,7 @@ class TextAnalysisHandler(BaseHandler):
             block_widget.select_block_by_index(block_idx)
 
         def select_string_and_scroll():
+            """Select string and scroll."""
             if hasattr(self.mw, 'list_selection_handler'):
                 self.mw.list_selection_handler.select_string_by_absolute_index(string_idx)
             else:
@@ -171,6 +176,7 @@ class TextAnalysisHandler(BaseHandler):
                     original_editor.ensureCursorVisible()
 
             def apply_focus():
+                """Apply focus."""
                 if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
                     self.mw.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
                 elif original_editor:

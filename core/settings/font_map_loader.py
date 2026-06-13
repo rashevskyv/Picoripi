@@ -1,13 +1,16 @@
-import json
+﻿import json
 from pathlib import Path
 from typing import Dict, Optional, Any, List
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 
 class FontMapLoader:
+    """Font map loader implementation."""
     def __init__(self, main_window: Any):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def load_all_font_maps(self) -> None:
+        """Load all font maps."""
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         self.mw.font_map = {}
         self.mw.all_font_maps = {}
@@ -241,6 +244,7 @@ class FontMapLoader:
         return font_map
 
     def _load_font_overrides(self, plugin_name: Optional[str]) -> Dict[str, dict]:
+        """Internal helper to load font overrides."""
         overrides: Dict[str, dict] = {}
         if not plugin_name: return overrides
         override_path = Path('plugins') / plugin_name / 'font_map.json'
@@ -263,6 +267,7 @@ class FontMapLoader:
         return overrides
 
     def _apply_font_overrides(self, overrides: Dict[str, dict]) -> None:
+        """Internal helper to apply font overrides."""
         if not overrides: return
         if not hasattr(self.mw, 'font_map') or self.mw.font_map is None:
             self.mw.font_map = {}
@@ -280,6 +285,7 @@ class FontMapLoader:
         self.refresh_icon_highlighting()
 
     def refresh_icon_highlighting(self) -> None:
+        """Update the icon highlighting."""
         editors = []
         for attr in ('original_text_edit', 'edited_text_edit', 'preview_text_edit'):
             editor = getattr(self.mw, attr, None)
@@ -291,6 +297,7 @@ class FontMapLoader:
             highlighter.rehighlight()
 
     def update_icon_sequences_cache(self) -> None:
+        """Update the icon sequences cache."""
         sequences = set()
         all_maps = getattr(self.mw, 'all_font_maps', {}) or {}
         if isinstance(all_maps, dict):

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 import sqlite3
 import ctypes
@@ -19,6 +19,7 @@ from core.mempalace_worker import (
 from utils.logging_utils import log_info, log_error
 
 def prevent_sleep():
+    """Prevent sleep."""
     if os.name == 'nt':
         try:
             # ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001
@@ -28,6 +29,7 @@ def prevent_sleep():
             log_error(f"Failed to set sleep prevention: {e}")
 
 def restore_sleep():
+    """Restore sleep."""
     if os.name == 'nt':
         try:
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
@@ -36,6 +38,7 @@ def restore_sleep():
             log_error(f"Failed to restore sleep state: {e}")
 
 def put_to_sleep():
+    """Put to sleep."""
     if os.name == 'nt':
         try:
             # SetSuspendState(False, True, False) -> sleep
@@ -46,7 +49,9 @@ def put_to_sleep():
             os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
 
 class MemePalaceBuilderDialog(QDialog):
+    """Dialog class for meme palace builder."""
     def __init__(self, main_window, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent or main_window)
         self.mw = main_window
         self.setWindowTitle("MemePalace Context Builder")
@@ -236,6 +241,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     def _setup_ui(self):
         # Main layout
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
@@ -543,10 +549,12 @@ class MemePalaceBuilderDialog(QDialog):
         layout.addLayout(btn_row)
 
     def _maybe_prevent_sleep(self):
+        """Internal helper to maybe prevent sleep."""
         if self.prevent_sleep_checkbox.isChecked():
             prevent_sleep()
 
     def _finish_and_maybe_sleep(self):
+        """Internal helper to finish and maybe sleep."""
         restore_sleep()
         if self.sleep_after_checkbox.isChecked() and not getattr(self, "user_cancelled", False):
             self.append_log("[System] All tasks completed! Suspending system in 5 seconds...")
@@ -555,6 +563,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
         # Save settings immediately
+        """Internal helper to handle prevent sleep toggled."""
         self.save_builder_settings()
         
         # If execution is currently active (worker is running), apply sleep state change immediately!
@@ -568,6 +577,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     def _handle_sleep_after_toggled(self, checked: bool):
         # Save settings immediately
+        """Internal helper to handle sleep after toggled."""
         self.save_builder_settings()
         if self.worker and self.worker.isRunning():
             if checked:
@@ -610,6 +620,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     @pyqtSlot()
     def _browse_script_file(self):
+        """Internal helper to browse script file."""
         path, _ = QFileDialog.getOpenFileName(
             self, "Select Game Script File", "", "Text Files (*.txt);;All Files (*)"
         )
@@ -618,11 +629,13 @@ class MemePalaceBuilderDialog(QDialog):
             self.append_log(f"Selected script file: {os.path.basename(path)}")
 
     def append_log(self, text: str):
+        """Append log."""
         self.log_text.append(text)
         scrollbar = self.log_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
     def _get_ai_provider_or_warn(self):
+        """Internal helper to get the ai provider or warn."""
         ai_provider = None
         if hasattr(self.mw, "translation_handler") and self.mw.translation_handler:
             try:
@@ -655,6 +668,7 @@ class MemePalaceBuilderDialog(QDialog):
         self._pre_analyze_script_via_ai_core(file_path, ai_provider)
 
     def _pre_analyze_script_via_ai_core(self, file_path, ai_provider):
+        """Internal helper to pre analyze script via ai core."""
         self.append_log("Starting pre-analysis of script characters via AI...")
         self._set_ui_enabled(False)
 
@@ -686,6 +700,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.start()
 
     def _handle_char_mining_finished(self, success, message):
+        """Internal helper to handle char mining finished."""
         self._set_ui_enabled(True)
         self.worker = None
         self.progress_bar.setValue(100 if success else 0)
@@ -737,6 +752,7 @@ class MemePalaceBuilderDialog(QDialog):
         self._profile_characters_speech_via_ai_core(ai_provider)
 
     def _profile_characters_speech_via_ai_core(self, ai_provider):
+        """Internal helper to profile characters speech via ai core."""
         self.append_log("Starting AI character speech profiling...")
         self._set_ui_enabled(False)
 
@@ -768,6 +784,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.start()
 
     def _handle_speech_profiling_finished(self, success, message):
+        """Internal helper to handle speech profiling finished."""
         self._set_ui_enabled(True)
         self.worker = None
         self.progress_bar.setValue(100 if success else 0)
@@ -824,6 +841,7 @@ class MemePalaceBuilderDialog(QDialog):
         self._start_chapters_mapping_core(file_path)
 
     def _start_chapters_mapping_core(self, file_path):
+        """Internal helper to start chapters mapping core."""
         wing_name = self.wing_edit.text().strip()
         self._set_ui_enabled(False)
 
@@ -838,6 +856,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.start()
 
     def _handle_chapters_mapping_finished(self, success, message):
+        """Internal helper to handle chapters mapping finished."""
         self._set_ui_enabled(True)
         self.worker = None
         self.progress_bar.setValue(100 if success else 0)
@@ -884,6 +903,7 @@ class MemePalaceBuilderDialog(QDialog):
         self._process_analysis_queue()
 
     def _handle_chapter_analysis_finished(self, success, message):
+        """Internal helper to handle chapter analysis finished."""
         self.worker = None
 
         if success:
@@ -937,6 +957,7 @@ class MemePalaceBuilderDialog(QDialog):
         self._analyze_all_chapters_core()
 
     def _analyze_all_chapters_core(self):
+        """Internal helper to analyze all chapters core."""
         self.analysis_queue = []
         wing_name = self.composer._get_wing_name()
         chapters = self.client.get_all_chapters(wing_name)
@@ -1025,6 +1046,7 @@ class MemePalaceBuilderDialog(QDialog):
         self._run_pipeline_current_step()
 
     def _run_pipeline_current_step(self):
+        """Internal helper to run pipeline current step."""
         if not self.pipeline_running:
             return
 
@@ -1053,6 +1075,7 @@ class MemePalaceBuilderDialog(QDialog):
             self._profile_characters_speech_via_ai_core(ai_provider)
 
     def _advance_pipeline(self):
+        """Internal helper to advance pipeline."""
         if not getattr(self, "pipeline_running", False):
             return
 
@@ -1077,6 +1100,7 @@ class MemePalaceBuilderDialog(QDialog):
             self._update_pipeline_btn_text()
 
     def _abort_pipeline(self, error_message):
+        """Internal helper to abort pipeline."""
         step = getattr(self, "pipeline_step", 1)
         
         # Save session as interrupted but recoverable
@@ -1163,6 +1187,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.start()
 
     def _handle_worker_progress(self, current, total, text):
+        """Internal helper to handle worker progress."""
         if total > 0:
             if getattr(self, "analysis_total_count", 0) > 0:
                 completed = getattr(self, "analysis_completed_count", 0)
@@ -1175,6 +1200,7 @@ class MemePalaceBuilderDialog(QDialog):
 
 
     def _set_ui_enabled(self, enabled: bool):
+        """Internal helper to set the ui enabled."""
         self.ai_analyze_btn.setEnabled(enabled)
         self.ai_profile_speech_btn.setEnabled(enabled)
         self.map_chapters_btn.setEnabled(enabled)
@@ -1262,6 +1288,7 @@ class MemePalaceBuilderDialog(QDialog):
 
     @pyqtSlot()
     def _handle_close_or_cancel(self):
+        """Internal helper to handle close or cancel."""
         self.should_sleep_after = False
         restore_sleep()
         if self.worker and self.worker.isRunning():

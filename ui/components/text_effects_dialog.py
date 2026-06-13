@@ -1,4 +1,4 @@
-import math
+﻿import math
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QCheckBox, QPushButton, QSlider, QSpinBox, QLabel, QDialogButtonBox,
@@ -13,22 +13,26 @@ class AnglePickerWidget(QWidget):
     angleChanged = pyqtSignal(int)
 
     def __init__(self, parent=None, size=64):
+        """Initialize a new instance."""
         super().__init__(parent)
         self._angle = 0  # 0 to 359 degrees
         self.setFixedSize(size, size)
         self.setCursor(Qt.CursorShape.CrossCursor)
 
     def angle(self) -> int:
+        """Angle."""
         return self._angle
 
     def setAngle(self, angle: int):
         # Normalize to 0-359
+        """Setangle."""
         angle = (int(angle) % 360 + 360) % 360
         if self._angle != angle:
             self._angle = angle
             self.update()
 
     def paintEvent(self, event):
+        """Paintevent."""
         with QPainter(self) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -83,6 +87,7 @@ class AnglePickerWidget(QWidget):
             painter.drawEllipse(target_point, 4.0, 4.0)
 
     def _update_angle_from_mouse(self, pos):
+        """Internal helper to update the angle from mouse."""
         center_x = self.width() / 2.0
         center_y = self.height() / 2.0
         
@@ -96,10 +101,12 @@ class AnglePickerWidget(QWidget):
         self.angleChanged.emit(deg)
 
     def mousePressEvent(self, event):
+        """Mousepressevent."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._update_angle_from_mouse(event.pos())
 
     def mouseMoveEvent(self, event):
+        """Mousemoveevent."""
         if event.buttons() & Qt.MouseButton.LeftButton:
             self._update_angle_from_mouse(event.pos())
 
@@ -231,6 +238,7 @@ class TextEffectsDialog(QDialog):
     # ── Private helpers ───────────────────────────────────────────────────────
 
     def _pick_color(self):
+        """Internal helper to pick color."""
         initial = QColor(self._color_hex)
         color = QColorDialog.getColor(initial, self, "Select Color")
         if color.isValid():
@@ -240,6 +248,7 @@ class TextEffectsDialog(QDialog):
             )
 
     def _on_accept(self):
+        """Internal helper to handle the accept event."""
         self._result["enabled"] = self.chk_enabled.isChecked()
         self._result["color"] = self._color_hex
         self._result["alpha"] = self.spin_alpha.value()

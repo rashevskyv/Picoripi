@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtGui import QTextCursor, QKeyEvent
 from PyQt6.QtCore import Qt
@@ -9,10 +9,13 @@ if TYPE_CHECKING:
     from main import MainWindow
 
 class MainWindowEventHandler:
+    """Handler for main window event operations."""
     def __init__(self, main_window: MainWindow):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def connect_signals(self):
+        """Connect signals."""
         if hasattr(self.mw, 'toggle_preview_action') and self.mw.toggle_preview_action:
             self.mw.toggle_preview_action.triggered.connect(self.mw.ui_updater.update_preview_visibility)
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
@@ -186,9 +189,11 @@ class MainWindowEventHandler:
             self.mw.hide_translation_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translation_tags)
 
     def keyPressEvent(self, event: QKeyEvent):
+        """Keypressevent."""
         super(self.mw.__class__, self.mw).keyPressEvent(event)
         
     def closeEvent(self, event):
+        """Closeevent."""
         log_info("Close event received.")
         if hasattr(self.mw, 'hotkey_manager'):
             self.mw.hotkey_manager.unregister()
@@ -215,6 +220,7 @@ class MainWindowEventHandler:
         
         # Helper to safely disconnect a signal or slot
         def safe_disconnect(obj, signal_name):
+            """Safe disconnect."""
             if hasattr(obj, signal_name):
                 sig = getattr(obj, signal_name)
                 try:
@@ -328,6 +334,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'hide_translation_tags_checkbox'): safe_disconnect(mw.hide_translation_tags_checkbox, 'toggled')
 
     def handle_edited_cursor_position_changed(self):
+        """Handle edited cursor position changed."""
         if self.mw.is_adjusting_cursor or self.mw.is_programmatically_changing_text:
             return
 
@@ -361,6 +368,7 @@ class MainWindowEventHandler:
         self.mw.ui_updater.update_status_bar()
 
     def handle_edited_selection_changed(self):
+        """Handle edited selection changed."""
         if self.mw.is_adjusting_selection or self.mw.is_programmatically_changing_text:
             self.mw.ui_updater.update_status_bar_selection() 
             return

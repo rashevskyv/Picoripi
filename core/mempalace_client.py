@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 import sqlite3
 import urllib.request
@@ -8,7 +8,9 @@ from typing import Dict, List, Any, Optional
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
 class MemePalaceClient:
+    """Meme palace client implementation."""
     def __init__(self, project_dir: Optional[str] = None, server_url: str = "http://127.0.0.1:8000"):
+        """Initialize a new instance."""
         self.server_url = server_url.rstrip('/')
         self.project_dir = project_dir
         self.db_path = None

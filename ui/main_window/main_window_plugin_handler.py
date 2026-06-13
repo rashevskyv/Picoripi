@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from typing import TYPE_CHECKING
 import sys
 import importlib
@@ -13,10 +13,13 @@ if TYPE_CHECKING:
     from main import MainWindow
 
 class MainWindowPluginHandler:
+    """Handler for main window plugin operations."""
     def __init__(self, main_window: MainWindow):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def setup_plugin_ui(self):
+        """Setup plugin ui."""
         if not self.mw.current_game_rules:
             return
             
@@ -48,6 +51,7 @@ class MainWindowPluginHandler:
                     self.mw.main_toolbar.addAction(action)
 
     def load_game_plugin(self):
+        """Load game plugin."""
         if not self.mw.active_game_plugin:
             log_info("No active game plugin specified. Loading base game rules.")
             self._load_fallback_rules()
@@ -100,6 +104,7 @@ class MainWindowPluginHandler:
             self.mw.translation_handler.initialize_glossary_highlighting()
 
     def _load_custom_aliases(self):
+        """Internal helper to load custom aliases."""
         if not self.mw.active_game_plugin:
             return
         from pathlib import Path
@@ -118,6 +123,7 @@ class MainWindowPluginHandler:
                 log_error(f"Failed to load custom aliases from {aliases_path}: {e}")
 
     def _load_fallback_rules(self, error_message: str = None):
+        """Internal helper to load fallback rules."""
         log_info("Loading fallback game rules.")
         
         # Show error to user so they know why settings are missing
@@ -138,5 +144,6 @@ class MainWindowPluginHandler:
             self.mw.current_game_rules = None
 
     def trigger_check_tags_action(self):
+        """Trigger check tags action."""
         if self.mw.tag_checker_handler:
             self.mw.tag_checker_handler.start_or_continue_check()

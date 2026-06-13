@@ -1,4 +1,4 @@
-# core/saved_translations_manager.py
+﻿# core/saved_translations_manager.py
 import json
 import datetime
 from pathlib import Path
@@ -7,10 +7,13 @@ from typing import Optional, Dict, List, Any, Tuple
 from utils.logging_utils import log_info, log_error, log_debug
 
 class SavedTranslationsManager:
+    """Manager class for saved translations."""
     def __init__(self, main_window: Any):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def _get_saved_translations_path(self) -> Optional[Path]:
+        """Internal helper to get the saved translations path."""
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project_dir:
             return Path(self.mw.project_manager.project_dir) / "saved_translations.json"
         elif hasattr(self.mw, 'data_store') and self.mw.data_store.json_path:
@@ -19,6 +22,7 @@ class SavedTranslationsManager:
         return None
 
     def _get_string_unique_key(self, block_idx: int, string_idx: int) -> str:
+        """Internal helper to get the string unique key."""
         block_source_file = "single_file"
         block_internal_key = ""
         if hasattr(self.mw, 'block_to_project_file_map') and self.mw.block_to_project_file_map:
@@ -33,6 +37,7 @@ class SavedTranslationsManager:
         return f"{block_source_file}::{block_internal_key}::{string_idx}"
 
     def load_all_saved_translations(self) -> Dict[str, str]:
+        """Load all saved translations."""
         path = self._get_saved_translations_path()
         if not path or not path.exists():
             return {}
@@ -44,6 +49,7 @@ class SavedTranslationsManager:
             return {}
 
     def save_all_saved_translations(self, data: Dict[str, str]) -> bool:
+        """Save all saved translations."""
         path = self._get_saved_translations_path()
         if not path:
             return False
@@ -57,16 +63,19 @@ class SavedTranslationsManager:
             return False
 
     def has_saved_translation(self, block_idx: int, string_idx: int) -> bool:
+        """Check if has saved translation."""
         key = self._get_string_unique_key(block_idx, string_idx)
         translations = self.load_all_saved_translations()
         return key in translations
 
     def get_saved_translation(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """Get the saved translation."""
         key = self._get_string_unique_key(block_idx, string_idx)
         translations = self.load_all_saved_translations()
         return translations.get(key)
 
     def save_translation(self, block_idx: int, string_idx: int, text: str) -> None:
+        """Save translation."""
         if not text or not text.strip():
             return
         key = self._get_string_unique_key(block_idx, string_idx)
@@ -76,6 +85,7 @@ class SavedTranslationsManager:
         log_info(f"Saved translation for key {key}")
 
     def save_translations_bulk(self, block_idx: int, string_indices_and_texts: List[Tuple[int, str]]) -> None:
+        """Save translations bulk."""
         translations = self.load_all_saved_translations()
         any_saved = False
         for string_idx, text in string_indices_and_texts:

@@ -1,13 +1,16 @@
-# handlers/string_settings_handler.py
+﻿# handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler
 from utils.utils import log_debug, calculate_string_width
 
 class StringSettingsHandler(BaseHandler):
+    """Handler for string settings operations."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
         
     def _apply_and_rescan(self) -> None:
+        """Internal helper to apply and rescan."""
         log_debug("--- Applying string settings and performing full block refresh ---")
         
         current_block_idx: int = self.mw.data_store.current_block_idx
@@ -29,6 +32,7 @@ class StringSettingsHandler(BaseHandler):
                 self.mw.string_settings_updater.update_string_settings_panel()
 
     def on_font_changed(self, index: int) -> None:
+        """Handle the font changed event."""
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
 
@@ -52,6 +56,7 @@ class StringSettingsHandler(BaseHandler):
                 self.mw.apply_width_button.setEnabled(False)
 
     def on_width_changed(self, value: int) -> None:
+        """Handle the width changed event."""
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
 
@@ -81,6 +86,7 @@ class StringSettingsHandler(BaseHandler):
 
 
     def apply_settings_change(self) -> None:
+        """Apply settings change."""
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
 
@@ -121,6 +127,7 @@ class StringSettingsHandler(BaseHandler):
 
 
     def apply_font_to_range(self, start_line: int, end_line: int, font_file: str) -> None:
+        """Apply font to range."""
         block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
@@ -147,6 +154,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_font_to_lines(self, line_indices: List[int], font_file: str) -> None:
+        """Apply font to lines."""
         block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
@@ -173,6 +181,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_font_to_block(self, block_idx: int, font_file: str) -> None:
+        """Apply font to block."""
         if block_idx == -1:
             return
 
@@ -203,6 +212,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_width_to_lines(self, line_indices: List[int], width: int) -> None:
+        """Apply width to lines."""
         block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
@@ -231,6 +241,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_width_to_range(self, start_line: int, end_line: int, width: int) -> None:
+        """Apply width to range."""
         block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return
@@ -259,6 +270,7 @@ class StringSettingsHandler(BaseHandler):
         self._apply_and_rescan()
 
     def apply_auto_width_from_original_to_lines(self, line_indices: List[int]) -> None:
+        """Apply auto width from original to lines."""
         block_idx: int = self.mw.data_store.current_block_idx
         if block_idx == -1:
             return

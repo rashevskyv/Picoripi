@@ -1,4 +1,4 @@
-# components/ai_status_dialog.py ---
+﻿# components/ai_status_dialog.py ---
 import os
 import ctypes
 from typing import Optional
@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QSize, pyqtSignal, QEvent
 from utils.logging_utils import log_info, log_error
 
 def prevent_sleep():
+    """Prevent sleep."""
     if os.name == 'nt':
         try:
             # ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001
@@ -17,6 +18,7 @@ def prevent_sleep():
             log_error(f"Failed to set sleep prevention: {e}")
 
 def restore_sleep():
+    """Restore sleep."""
     if os.name == 'nt':
         try:
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
@@ -25,6 +27,7 @@ def restore_sleep():
             log_error(f"Failed to restore sleep state: {e}")
 
 def put_to_sleep():
+    """Put to sleep."""
     if os.name == 'nt':
         try:
             # SetSuspendState(False, True, False) -> sleep
@@ -35,6 +38,7 @@ def put_to_sleep():
             os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
 
 class AIStatusDialog(QDialog):
+    """Dialog class for a i status."""
     cancelled = pyqtSignal()
     STATUS_PENDING = 0
     STATUS_IN_PROGRESS = 1
@@ -42,6 +46,7 @@ class AIStatusDialog(QDialog):
     STATUS_ERROR = 3
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("AI Operation")
         self.setModal(False)
@@ -148,9 +153,11 @@ class AIStatusDialog(QDialog):
         self.button_box.rejected.connect(self.on_cancel)
 
     def on_cancel(self):
+        """Handle the cancel event."""
         self.reject()
 
     def reject(self):
+        """Reject."""
         if getattr(self, 'is_running', False):
             self.user_cancelled = True
             self.cancelled.emit()
@@ -163,6 +170,7 @@ class AIStatusDialog(QDialog):
             restore_sleep()
 
     def closeEvent(self, event: QEvent):
+        """Closeevent."""
         if getattr(self, 'is_running', False):
             event.ignore()
             self.reject()
@@ -171,27 +179,33 @@ class AIStatusDialog(QDialog):
             restore_sleep()
 
     def setup_progress_bar(self, total_chunks: int, completed_chunks: int = 0):
+        """Setup progress bar."""
         self.progress_bar.setRange(0, total_chunks)
         self.progress_bar.setValue(completed_chunks)
         self.progress_bar.setFormat('%p% (%v/%m chunks)')
         self.progress_bar.setVisible(True)
 
     def update_progress(self, completed_chunks: int):
+        """Update the progress."""
         self.progress_bar.setValue(completed_chunks)
 
     def set_detail_text(self, text: str):
+        """Set the detail text."""
         self.detail_label.setText(text)
         self.detail_label.setVisible(bool(text))
 
     def showEvent(self, event):
+        """Showevent."""
         super().showEvent(event)
         self.movie.start()
 
     def hideEvent(self, event):
+        """Hideevent."""
         self.movie.stop()
         super().hideEvent(event)
 
     def start(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
+        """Start."""
         self.user_cancelled = False
         self.is_running = True
         self.operation_title = title
@@ -220,6 +234,7 @@ class AIStatusDialog(QDialog):
         self.show()
 
     def finish(self, success: bool = True, show_popup: bool = True):
+        """Finish."""
         self.is_running = False
         self.cancel_button.setEnabled(True)
         self._set_model_name(None)
@@ -243,6 +258,7 @@ class AIStatusDialog(QDialog):
             QTimer.singleShot(5000, put_to_sleep)
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
+        """Internal helper to handle prevent sleep toggled."""
         if self.isVisible():
             if checked:
                 prevent_sleep()
@@ -250,9 +266,11 @@ class AIStatusDialog(QDialog):
                 restore_sleep()
 
     def _handle_sleep_after_toggled(self, checked: bool):
+        """Internal helper to handle sleep after toggled."""
         pass
 
     def _set_model_name(self, model_name: Optional[str]) -> None:
+        """Internal helper to set the model name."""
         text = (model_name or '').strip()
         if text:
             if not text.lower().startswith('model:'):
@@ -264,6 +282,7 @@ class AIStatusDialog(QDialog):
             self.subtitle_label.setVisible(False)
 
     def update_step(self, step_index: int, text: str, status: int):
+        """Update the step."""
         if 0 <= step_index < len(self.step_labels):
             for i in range(len(self.step_labels)):
                 current_status = self.STATUS_PENDING
@@ -277,6 +296,7 @@ class AIStatusDialog(QDialog):
                 self._update_label_style(self.step_labels[i], current_status, current_text)
 
     def _update_label_style(self, label: QLabel, status: int, text: str):
+        """Internal helper to update the label style."""
         font = label.font()
         palette = label.palette()
         

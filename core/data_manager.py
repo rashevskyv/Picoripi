@@ -1,9 +1,10 @@
-from typing import Any, Tuple, Optional, Union
+﻿from typing import Any, Tuple, Optional, Union
 import json
 from pathlib import Path
 from utils.logging_utils import log_info, log_warning, log_debug, log_error
 
 def load_json_file(file_path: Union[str, Path]) -> Tuple[Optional[Any], Optional[str]]:
+    """Load json file."""
     log_info(f"Loading JSON file: '{file_path}'")
     data = None
     error_message = None
@@ -27,6 +28,7 @@ def load_json_file(file_path: Union[str, Path]) -> Tuple[Optional[Any], Optional
     return data, error_message
 
 def save_json_file(file_path: Union[str, Path], data_to_save: Any) -> bool:
+    """Save json file."""
     log_info(f"Saving data to JSON file: '{file_path}'.")
     try:
         p = Path(file_path)
@@ -40,6 +42,7 @@ def save_json_file(file_path: Union[str, Path], data_to_save: Any) -> bool:
         return False
 
 def load_text_file(file_path: Union[str, Path]) -> Tuple[Optional[str], Optional[str]]:
+    """Load text file."""
     log_info(f"Loading text file: '{file_path}'")
     content = None
     error_message = None
@@ -68,6 +71,7 @@ def load_text_file(file_path: Union[str, Path]) -> Tuple[Optional[str], Optional
     return content, error_message
 
 def save_text_file(file_path: Union[str, Path], text_content: str) -> bool:
+    """Save text file."""
     log_info(f"Saving text content to file: '{file_path}'.")
     try:
         p = Path(file_path)

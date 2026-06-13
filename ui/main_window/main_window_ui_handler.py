@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QWidget, QApplication, QLabel
 from PyQt6.QtGui import QFont, QPalette, QColor, QTextOption
@@ -14,10 +14,13 @@ if TYPE_CHECKING:
     from main import MainWindow
 
 class MainWindowUIHandler:
+    """Handler for main window u i operations."""
     def __init__(self, main_window: MainWindow):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def update_editor_rules_properties(self):
+        """Update the editor rules properties."""
         for editor in [self.mw.preview_text_edit, self.mw.original_text_edit, self.mw.edited_text_edit]:
             if editor:
                 editor.line_width_warning_threshold_pixels = self.mw.line_width_warning_threshold_pixels
@@ -28,6 +31,7 @@ class MainWindowUIHandler:
                 editor.viewport().update()
 
     def apply_font_size(self, fast=False, target='all'):
+        """Apply font size."""
         if self.mw.current_font_size <= 0:
             return
 
@@ -126,6 +130,7 @@ class MainWindowUIHandler:
         self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
 
     def apply_text_wrap_settings(self):
+        """Apply text wrap settings."""
         if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:
             if self.mw.preview_wrap_lines:
                 self.mw.preview_text_edit.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
@@ -141,6 +146,7 @@ class MainWindowUIHandler:
 
     def reconfigure_all_highlighters(self):
         # Compose CSS for newline; highlighter supports CSS parsing
+        """Reconfigure all highlighters."""
         nl_color = getattr(self.mw, 'newline_color_rgba', "#A020F0")
         nl_css_parts = [f"color: {nl_color}"]
         if getattr(self.mw, 'newline_bold', True): nl_css_parts.append("font-weight: bold")
@@ -169,11 +175,13 @@ class MainWindowUIHandler:
                 editor.highlighter.reconfigure_styles(**common_args)
 
     def force_focus(self):
+        """Force focus."""
         self.mw.activateWindow()
         self.mw.raise_()
         
     @staticmethod
     def apply_theme(app, theme_name: str):
+        """Apply theme."""
         if theme_name == "dark":
             palette = QPalette()
             palette.setColor(QPalette.ColorRole.Window, QColor(46, 46, 46))

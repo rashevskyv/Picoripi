@@ -1,4 +1,4 @@
-# /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
+﻿# /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
 import re
 import time
 import threading
@@ -15,10 +15,12 @@ WORD_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
 SUGGESTION_LIMIT = 7
 
 class SpellcheckWorker(QObject):
+    """Spellcheck worker implementation."""
     finished = pyqtSignal()
     spellcheck_results_ready = pyqtSignal(dict, dict) # word -> is_misspelled, word -> suggestions
 
     def __init__(self, spellchecker_manager):
+        """Initialize a new instance."""
         super().__init__()
         self.sm = spellchecker_manager
         self._queue = []
@@ -28,6 +30,7 @@ class SpellcheckWorker(QObject):
 
     @pyqtSlot()
     def process_queue(self):
+        """Process queue."""
         while self._is_running:
             # Cooperative cancellation: honor QThread.requestInterruption() so
             # that test teardown / app shutdown can stop us without relying on
@@ -86,20 +89,24 @@ class SpellcheckWorker(QObject):
         self.finished.emit()
 
     def stop(self):
+        """Stop."""
         self._is_running = False
         self._queue_event.set()
 
     def enqueue(self, word):
+        """Enqueue."""
         if word not in self._queue_set:
             self._queue.append(word)
             self._queue_set.add(word)
             self._queue_event.set()
 
 class SpellcheckerManager(QObject):
+    """Manager class for spellchecker."""
     suggestions_loaded = pyqtSignal(str, list)
     dictionary_loaded = pyqtSignal(object)  # Safe inter-thread signal for passing loaded dictionary
 
     def __init__(self, main_window, language='uk', custom_dict_path=None):
+        """Initialize a new instance."""
         super().__init__()
         self.mw = main_window
         self.language = language
@@ -124,6 +131,7 @@ class SpellcheckerManager(QObject):
         self._rehighlight_timer.timeout.connect(self._trigger_rehighlight)
 
     def prepare_to_close(self):
+        """Prepare to close."""
         try:
             if hasattr(self, '_rehighlight_timer'):
                 self._rehighlight_timer.stop()
@@ -145,9 +153,11 @@ class SpellcheckerManager(QObject):
             pass
 
     def __del__(self):
+        """Internal helper to  del  ."""
         self.prepare_to_close()
 
     def _setup_prefetch_worker(self):
+        """Internal helper to setup prefetch worker."""
         if not self.hunspell:
             return
         self.worker = SpellcheckWorker(self)
@@ -163,6 +173,7 @@ class SpellcheckerManager(QObject):
         self.worker_thread.start()
 
     def _on_spellcheck_results_ready(self, spell_results: dict, sugg_results: dict):
+        """Internal helper to handle the spellcheck results ready event."""
         cache_updated = False
         for word, is_misspelled in spell_results.items():
             if word not in self._spell_cache:
@@ -182,6 +193,7 @@ class SpellcheckerManager(QObject):
                 self._rehighlight_timer.start()
 
     def _trigger_rehighlight(self):
+        """Internal helper to trigger rehighlight."""
         if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             if hasattr(self.mw.edited_text_edit, 'highlighter') and self.mw.edited_text_edit.highlighter:
                 self.mw.edited_text_edit.highlighter.rehighlight()
@@ -189,6 +201,7 @@ class SpellcheckerManager(QObject):
             self.mw.search_panel_widget.trigger_spellcheck()
 
     def enqueue_word(self, word):
+        """Enqueue word."""
         if not self.enabled or not self.hunspell:
             return
         
@@ -200,6 +213,7 @@ class SpellcheckerManager(QObject):
             self.worker.enqueue(cleaned_word)
 
     def _initialize_spellchecker(self):
+        """Internal helper to initialize spellchecker."""
         import sys
         if 'pytest' in sys.modules:
             self._do_initialize_spellchecker()
@@ -208,6 +222,7 @@ class SpellcheckerManager(QObject):
             threading.Thread(target=self._load_dictionary_async, daemon=True).start()
 
     def _load_dictionary_async(self):
+        """Internal helper to load dictionary async."""
         try:
             dictionary_name = self.language
             search_path = self.custom_dict_path
@@ -230,6 +245,7 @@ class SpellcheckerManager(QObject):
             log_error(f"Failed to initialize spylls asynchronously for '{self.language}': {e}", exc_info=True)
 
     def _on_dictionary_loaded(self, hunspell_dict):
+        """Internal helper to handle the dictionary loaded event."""
         self.hunspell = hunspell_dict
         log_debug(f"spylls Dictionary object loaded successfully for language '{self.language}'.")
         self._spell_cache.clear()
@@ -247,6 +263,7 @@ class SpellcheckerManager(QObject):
                 log_debug("Rehighlighting after dictionary load completion")
 
     def _do_initialize_spellchecker(self):
+        """Internal helper to do initialize spellchecker."""
         log_debug("Attempting to initialize spellchecker...")
         try:
             dictionary_name = self.language
@@ -275,6 +292,7 @@ class SpellcheckerManager(QObject):
             self.hunspell = None
 
     def reload_dictionary(self, language: str, custom_dict_path: Optional[str] = None):
+        """Update the dictionary."""
         self.language = language
         self.custom_dict_path = Path(custom_dict_path) if custom_dict_path else self.custom_dict_path
         self._initialize_spellchecker()
@@ -287,6 +305,7 @@ class SpellcheckerManager(QObject):
                 log_debug("Rehighlighting after dictionary reload")
 
     def set_enabled(self, enabled: bool):
+        """Set the enabled."""
         self.enabled = enabled
         log_debug(f"Spellchecker {'enabled' if enabled else 'disabled'}.")
 
@@ -315,6 +334,7 @@ class SpellcheckerManager(QObject):
         return dictionaries
 
     def _load_user_dictionary(self):
+        """Internal helper to load user dictionary."""
         custom_dict_path = LOCAL_DICT_PATH / CUSTOM_DICT_FILENAME
         if not custom_dict_path.exists():
             custom_dict_path.parent.mkdir(parents=True, exist_ok=True)
@@ -425,6 +445,7 @@ class SpellcheckerManager(QObject):
         log_debug(f"Loaded {glossary_words_count} words from glossary into spellchecker dictionary.")
 
     def add_to_custom_dictionary(self, word: str):
+        """Add to custom dictionary."""
         if not self.hunspell:
             return
         # Strip apostrophes and middle dot (·) before adding to dictionary
@@ -453,6 +474,7 @@ class SpellcheckerManager(QObject):
         self._save_persistent_cache()
 
     def is_misspelled(self, word: str) -> bool:
+        """Check if is misspelled."""
         if not self.enabled:
             return False
         if not self.hunspell:
@@ -497,6 +519,7 @@ class SpellcheckerManager(QObject):
 
 
     def get_suggestions(self, word: str) -> List[str]:
+        """Get the suggestions."""
         if not self.enabled or not self.hunspell:
             return []
 

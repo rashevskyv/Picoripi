@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Optional, Set, Dict, Any, List
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
@@ -7,10 +7,13 @@ SENTENCE_END_PUNCTUATION_CHARS_ZBMG = ['.', '!', '?']
 OPTIONAL_TRAILING_CHARS_ZBMG = ['"', "'"]
 
 class ProblemAnalyzer(GenericProblemAnalyzer):
+    """Problem analyzer implementation."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
+        """Initialize a new instance."""
         super().__init__(main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref)
 
     def _ends_with_sentence_punctuation_zbmg(self, text_no_tags_stripped: str) -> bool:
+        """Internal helper to ends with sentence punctuation zbmg."""
         if not text_no_tags_stripped:
             return False
         last_char = text_no_tags_stripped[-1]
@@ -22,6 +25,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return last_char in SENTENCE_END_PUNCTUATION_CHARS_ZBMG
 
     def _calculate_width(self, text: str, font_map: dict) -> int:
+        """Internal helper to calculate width."""
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
         
@@ -40,6 +44,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         )
 
     def _check_short_line_zbmg(self, current_subline_text: str, next_subline_text: str, font_map: dict, threshold: int) -> bool:
+        """Internal helper to check short line zbmg."""
         if next_subline_text.lstrip().startswith("{*}") or next_subline_text.lstrip().startswith("{tab}"):
             return False
 
@@ -87,6 +92,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return (threshold - width_current_rstripped) >= (width_first_word_next + space_width)
 
     def check_for_empty_first_line_of_page(self, text: str) -> List[int]:
+        """Check for empty first line of page."""
         text_alias = re.sub(r'\{escape:6:000a\}', '{*}', text, flags=re.IGNORECASE)
         if "{*}" in text_alias:
             return []
@@ -109,6 +115,7 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
 
     def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
         # Convert tags to aliases for rules check
+        """Analyze data string."""
         data_string_alias = re.sub(r'\{escape:6:000a\}', '{*}', data_string, flags=re.IGNORECASE)
         data_string_alias = re.sub(r'\{escape:6:000b\}', '{tab}', data_string_alias, flags=re.IGNORECASE)
         
@@ -185,4 +192,5 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         return problems_per_subline
 
     def analyze_subline(self, *args, **kwargs) -> Set[str]:
+        """Analyze subline."""
         return set()

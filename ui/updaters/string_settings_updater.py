@@ -1,11 +1,13 @@
-from pathlib import Path
+﻿from pathlib import Path
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QColor, QPalette
 from .base_ui_updater import BaseUIUpdater
 from utils.utils import log_debug
 
 class StringSettingsUpdater(BaseUIUpdater):
+    """String settings updater implementation."""
     def __init__(self, main_window, data_processor):
+        """Initialize a new instance."""
         super().__init__(main_window, data_processor)
         self.highlight_style = (
             "QComboBox, QSpinBox { "
@@ -20,6 +22,7 @@ class StringSettingsUpdater(BaseUIUpdater):
         )
 
     def update_font_combobox(self):
+        """Update the font combobox."""
         self.mw.font_combobox.blockSignals(True)
         self.mw.font_combobox.clear()
 
@@ -35,6 +38,7 @@ class StringSettingsUpdater(BaseUIUpdater):
         self.mw.font_combobox.blockSignals(False)
 
     def update_string_settings_panel(self):
+        """Update the string settings panel."""
         default_style_sheet = self.mw.styleSheet() 
 
         block_idx = self.mw.data_store.current_block_idx

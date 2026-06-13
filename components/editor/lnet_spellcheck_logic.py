@@ -1,14 +1,17 @@
-import re
+﻿import re
 from typing import List
 from PyQt6.QtWidgets import QMainWindow, QMessageBox
 from PyQt6.QtCore import QPoint
 from utils.logging_utils import log_debug
 
 class LNETSpellcheckLogic:
+    """L n e t spellcheck logic implementation."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def open_dialog_for_selection(self, position_in_widget_coords: QPoint):
+        """Open dialog for selection."""
         try:
             main_window = self.editor.window()
             if not isinstance(main_window, QMainWindow):
@@ -59,6 +62,7 @@ class LNETSpellcheckLogic:
             log_error(f"LNETSpellcheckLogic: Error: {e}")
 
     def apply_corrected_text(self, corrected_text: str, line_numbers: List[int]):
+        """Apply corrected text."""
         main_window = self.editor.window()
         if not isinstance(main_window, QMainWindow) or not hasattr(main_window, 'edited_text_edit'):
             return

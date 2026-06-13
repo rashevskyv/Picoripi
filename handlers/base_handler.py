@@ -1,4 +1,4 @@
-# handlers/base_handler.py
+﻿# handlers/base_handler.py
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
@@ -10,7 +10,9 @@ if TYPE_CHECKING:
     from core.data_store import AppDataStore
 
 class BaseHandler:
+    """Handler for base operations."""
     def __init__(self, context: ProjectContext, data_processor: DataStateProcessor, ui_updater: UIUpdater):
+        """Initialize a new instance."""
         self.ctx: ProjectContext = context
         self.data_processor: DataStateProcessor = data_processor
         self.ui_updater: UIUpdater = ui_updater
@@ -22,8 +24,10 @@ class BaseHandler:
 
     @property
     def state(self) -> StateManager:
+        """State."""
         return self.ctx.state
 
     @property
     def data_store(self) -> AppDataStore:
+        """Data store."""
         return self.ctx.data_store

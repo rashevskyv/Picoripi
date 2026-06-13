@@ -1,4 +1,4 @@
-
+﻿
 from typing import Dict
 
 def merge_translation_config(base: Dict, custom: Dict) -> Dict:
@@ -19,6 +19,7 @@ def merge_translation_config(base: Dict, custom: Dict) -> Dict:
     return merged
 
 def build_default_translation_config() -> dict:
+    """Create default translation config."""
     return {
         "provider": "disabled",
         "session_mode": "auto",

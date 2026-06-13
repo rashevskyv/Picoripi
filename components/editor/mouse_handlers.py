@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QInputDialog, QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, QLabel, QSpinBox, QStyle
+﻿from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QInputDialog, QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, QLabel, QSpinBox, QStyle
 from PyQt6.QtGui import QTextCursor, QMouseEvent
 from PyQt6.QtCore import Qt, QPoint
 import re
@@ -7,10 +7,13 @@ from typing import Optional, Tuple, List
 from utils.logging_utils import log_debug, log_info, log_error
 
 class LNETMouseHandlers:
+    """L n e t mouse handlers implementation."""
     def __init__(self, editor): # editor - С†Рµ LineNumberedTextEdit
+        """Initialize a new instance."""
         self.editor = editor
 
     def _get_icon_sequences(self) -> List[str]:
+        """Internal helper to get the icon sequences."""
         main_window = self.editor.window()
         if isinstance(main_window, QMainWindow):
             sequences = getattr(main_window, 'icon_sequences', None)
@@ -19,6 +22,7 @@ class LNETMouseHandlers:
         return []
 
     def _find_icon_sequence_hit(self, cursor: QTextCursor, sequences: List[str]):
+        """Internal helper to find icon sequence hit."""
         if not sequences:
             return None
         block = cursor.block()
@@ -36,6 +40,7 @@ class LNETMouseHandlers:
         return None
 
     def _move_cursor_to_icon_sequence_end(self, block, start_in_block: int, end_in_block: int, token: str):
+        """Internal helper to move cursor to icon sequence end."""
         final_cursor = QTextCursor(block)
         final_cursor.setPosition(block.position() + end_in_block)
         self.editor.setTextCursor(final_cursor)
@@ -43,11 +48,13 @@ class LNETMouseHandlers:
             self.editor._momentary_highlight_tag(block, start_in_block, len(token))
 
     def _wrap_selection_with_color(self, color_name: str):
+        """Internal helper to wrap selection with color."""
         prefix_tag = f"{{Color:{color_name.capitalize()}}}"
         suffix_tag = "{Color:White}"
         self.wrap_selection_with_custom_tags(prefix_tag, suffix_tag)
 
     def insert_single_tag(self, tag: str):
+        """Insert single tag."""
         cursor = self.editor.textCursor()
         cursor.beginEditBlock()
         cursor.insertText(tag)
@@ -55,6 +62,7 @@ class LNETMouseHandlers:
         log_debug(f"Inserted single tag: {tag}")
 
     def wrap_selection_with_custom_tags(self, open_tag: str, close_tag: str):
+        """Wrap selection with custom tags."""
         cursor = self.editor.textCursor()
         if not cursor.hasSelection():
             return
@@ -69,6 +77,7 @@ class LNETMouseHandlers:
 
     def copy_tag_to_clipboard(self, tag_text_curly):
          # self.editor С‚СѓС‚ - С†Рµ LineNumberedTextEdit (original_text_edit)
+         """Copy tag to clipboard."""
          actual_main_window = self.editor.window()
          if not isinstance(actual_main_window, QMainWindow): return
 
@@ -81,6 +90,7 @@ class LNETMouseHandlers:
              actual_main_window.statusBar.showMessage(f"Copied to clipboard: {text_to_copy}", 2000)
 
     def get_tag_at_cursor(self, cursor: QTextCursor, pattern: str) -> Tuple[Optional[str], int, int]:
+        """Get the tag at cursor."""
         block = cursor.block()
         if not block.isValid(): return None, -1, -1
         block_text = block.text()
@@ -92,6 +102,7 @@ class LNETMouseHandlers:
         return None, -1, -1
 
     def showContextMenu(self, pos: QPoint): # pos - С†Рµ РєРѕРѕСЂРґРёРЅР°С‚Рё РєР»С–РєСѓ РІС–РґРЅРѕСЃРЅРѕ РІС–РґР¶РµС‚Р° self.editor
+        """Showcontextmenu."""
         log_debug(f"showContextMenu for editor: {self.editor.objectName()} at pos {pos}")
         menu = self.editor.createStandardContextMenu()
         
@@ -133,6 +144,7 @@ class LNETMouseHandlers:
 
 
     def mouseReleaseEvent(self, event: QMouseEvent):
+        """Mousereleaseevent."""
         if self.editor.objectName() == "preview_text_edit":
             if event.button() == Qt.MouseButton.LeftButton:
                 self.editor.drag_start_pos = None
@@ -315,6 +327,7 @@ class LNETMouseHandlers:
         return -1
 
     def mousePressEvent(self, event: QMouseEvent):
+        """Mousepressevent."""
         if self.editor.objectName() == "preview_text_edit":
             cursor = self.editor.cursorForPosition(event.pos())
             block_number = cursor.blockNumber()

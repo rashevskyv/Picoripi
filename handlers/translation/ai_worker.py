@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QObject, pyqtSignal
+﻿from PyQt6.QtCore import QObject, pyqtSignal
 from typing import List, Dict, Optional, Any
 import json
 from core.translation.providers import BaseTranslationProvider, ProviderResponse, TranslationProviderError
@@ -6,6 +6,7 @@ from .ai_prompt_composer import AIPromptComposer
 from utils.logging_utils import log_debug
 
 class AIWorker(QObject):
+    """A i worker implementation."""
     success = pyqtSignal(ProviderResponse, dict)
     error = pyqtSignal(str, dict)
     finished = pyqtSignal()
@@ -19,6 +20,7 @@ class AIWorker(QObject):
     detail_updated = pyqtSignal(str)
 
     def __init__(self, provider: BaseTranslationProvider, prompt_composer: Optional[AIPromptComposer], task_details: Dict[str, Any], mw: Any = None):
+        """Initialize a new instance."""
         super().__init__()
         self.provider = provider
         self.prompt_composer = prompt_composer
@@ -29,6 +31,7 @@ class AIWorker(QObject):
 
     @property
     def mw(self) -> Optional[Any]:
+        """Mw."""
         if self._mw is not None:
             return self._mw
         if self.prompt_composer and hasattr(self.prompt_composer, 'mw'):
@@ -36,16 +39,19 @@ class AIWorker(QObject):
         return None
 
     def _log_ai_traffic(self, messages: List[Dict[str, str]], response_text: Optional[str] = None, error: Optional[str] = None):
+        """Internal helper to log ai traffic."""
         from utils.logging_utils import log_ai_traffic
         task_type = self.task_details.get('type', 'unknown')
         mw = self.mw
         log_ai_traffic(mw, task_type, messages, response_text, error)
 
     def cancel(self):
+        """Cancel."""
         log_debug("AIWorker: Cancellation requested.")
         self.is_cancelled = True
 
     def _remove_trailing_commas(self, json_str: str) -> str:
+        """Internal helper to remove trailing commas."""
         if not json_str:
             return ""
         in_string = False
@@ -79,6 +85,7 @@ class AIWorker(QObject):
         return "".join(chars)
 
     def _clean_json_response(self, text: str) -> str:
+        """Internal helper to clean json response."""
         if not text:
             return ""
         
@@ -115,6 +122,7 @@ class AIWorker(QObject):
         return cleaned
 
     def run(self):
+        """Run."""
         from components.ai_status_dialog import AIStatusDialog
         log_debug(f"AIWorker: Thread started for task type '{self.task_details.get('type')}'.")
         

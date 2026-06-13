@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional, Any, Set
+﻿from typing import List, Tuple, Dict, Optional, Any, Set
 from PyQt6.QtGui import QTextCharFormat
 import json
 import re
@@ -9,9 +9,11 @@ class BaseGameRules:
     Supports the 'Kruptar' format: strings delimited by {END} + empty line.
     """
     def __init__(self, main_window_ref=None):
+        """Initialize a new instance."""
         self.mw = main_window_ref
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
+        """Load data from json obj."""
         if isinstance(json_data, list):
             # If it's an empty list, return it as a single empty block
             if not json_data:
@@ -51,6 +53,7 @@ class BaseGameRules:
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         # If we are dealing with a single block (typical for .txt files)
+        """Save data to json obj."""
         if len(data) == 1 and isinstance(data[0], list):
             # If we suspect Kruptar format (or just want to be safe if we loaded it that way)
             # For now, let's assume if we have {END} in the original or if it's multi-line strings
@@ -60,23 +63,29 @@ class BaseGameRules:
         return data
     
     def get_enter_char(self) -> str:
+        """Get the enter char."""
         return '\n'
         
     def get_shift_enter_char(self) -> str:
+        """Get the shift enter char."""
         return '\n'
 
     def get_ctrl_enter_char(self) -> str:
+        """Get the ctrl enter char."""
         return '\n'
 
     def convert_editor_text_to_data(self, text: str) -> str:
+        """Convert editor text to data."""
         return self.replace_aliases_with_tags(text)
 
     def get_display_name(self) -> str:
+        """Get the display name."""
         if self.mw and hasattr(self.mw, 'display_name'):
             return self.mw.display_name
         return "Base Game (No Plugin)"
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
+        """Get the problem definitions."""
         return {}
 
     def get_color_marker_definitions(self) -> Dict[str, str]:
@@ -118,6 +127,7 @@ class BaseGameRules:
                         full_data_string_text_for_logical_check: str,
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
+        """Analyze subline."""
         return set()
 
     def autofix_data_string(self,
@@ -130,18 +140,22 @@ class BaseGameRules:
                              string_idx: Optional[int] = None,
                              page_local: bool = False,
                              disable_pagination: bool = False) -> Tuple[str, bool]:
+        """Autofix data string."""
         return data_string, False
 
     def process_pasted_segment(self,
                                 segment_to_insert: str,
                                 original_text_for_tags: str,
                                 editor_player_tag_const: str) -> Tuple[str, str, str]:
+        """Process pasted segment."""
         return segment_to_insert, "OK", ""
         
     def get_base_game_rules_class(self):
+        """Get the base game rules class."""
         return BaseGameRules
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
+        """Get the default tag mappings."""
         return {}
 
     def get_dynamic_name_tags(self) -> Dict[str, str]:
@@ -154,19 +168,24 @@ class BaseGameRules:
         return {}
     
     def get_tag_checker_handler(self) -> Optional[Any]:
+        """Get the tag checker handler."""
         return None
         
     def get_short_problem_name(self, problem_id: str) -> str:
+        """Get the short problem name."""
         problem_definitions = self.get_problem_definitions()
         return problem_definitions.get(problem_id, {}).get("name", problem_id)
 
     def get_plugin_actions(self) -> List[Dict[str, Any]]:
+        """Get the plugin actions."""
         return []
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
+        """Get the text representation for editor."""
         return self.replace_tags_with_aliases(data_string_subline)
 
     def replace_tags_with_aliases(self, text: str) -> str:
+        """Replace tags with aliases."""
         if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
             return text
         sorted_mappings = sorted(self.mw.default_tag_mappings.items(), key=lambda item: len(item[1]), reverse=True)
@@ -177,6 +196,7 @@ class BaseGameRules:
         return result
 
     def replace_aliases_with_tags(self, text: str) -> str:
+        """Replace aliases with tags."""
         if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
             return text
         sorted_mappings = sorted(self.mw.default_tag_mappings.items(), key=lambda item: len(item[0]), reverse=True)
@@ -187,6 +207,7 @@ class BaseGameRules:
         return result
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
+        """Get the text representation for preview."""
         newline_symbol = "↵"
         if self.mw and hasattr(self.mw, "newline_display_symbol"):
             val = self.mw.newline_display_symbol
@@ -196,26 +217,33 @@ class BaseGameRules:
         return aliased.replace('\n', newline_symbol)
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
+        """Get the syntax highlighting rules."""
         return []
 
     def get_legitimate_tags(self) -> Set[str]:
+        """Get the legitimate tags."""
         return set()
 
     def get_context_menu_actions(self, editor_widget, selected_text: Optional[str]) -> List[Dict[str, Any]]:
+        """Get the context menu actions."""
         return []
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int) -> Optional[int]:
+        """Calculate string width override."""
         return None
 
     def get_editor_page_size(self) -> int:
+        """Get the editor page size."""
         return 2
 
     def get_custom_context_tags(self) -> Dict[str, List[Dict[str, str]]]:
+        """Get the custom context tags."""
         if self.mw and hasattr(self.mw, 'context_menu_tags'):
             return self.mw.context_menu_tags
         return {"single_tags": [], "wrap_tags": []}
 
     def save_custom_context_tags(self, tags_data: dict) -> None:
+        """Save custom context tags."""
         if self.mw and hasattr(self.mw, 'context_menu_tags'):
             self.mw.context_menu_tags = tags_data
             if hasattr(self.mw, 'settings_manager'):

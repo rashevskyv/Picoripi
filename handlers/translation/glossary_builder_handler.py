@@ -1,4 +1,4 @@
-# D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
+﻿# D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
 import json
 from typing import Dict, List, Optional
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -10,7 +10,9 @@ from components.ai_status_dialog import AIStatusDialog
 from handlers.translation.ai_worker import AIWorker
 
 class GlossaryBuilderHandler:
+    """Handler for glossary builder operations."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self.prompt_data = self._load_prompts()
         self._thread: Optional[QThread] = None
@@ -19,6 +21,7 @@ class GlossaryBuilderHandler:
         self._glossary_manager = None
 
     def _load_prompts(self):
+        """Internal helper to load prompts."""
         try:
             with open('translation_prompts/glossary_builder_prompts.json', 'r', encoding='utf-8') as f:
                 return json.load(f)
@@ -29,12 +32,15 @@ class GlossaryBuilderHandler:
 
     def _split_text_into_chunks(self, text, chunk_size):
         # Simple chunking for now. Can be improved to respect sentence boundaries.
+        """Internal helper to split text into chunks."""
         return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
     def _mask_tags_for_ai(self, text: str) -> str:
+        """Internal helper to mask tags for ai."""
         return ALL_TAGS_PATTERN.sub(' ', text or '')
 
     def _clean_json_response(self, text: str) -> str:
+        """Internal helper to clean json response."""
         stripped_text = (text or '').strip()
         if stripped_text.startswith("```") and stripped_text.endswith("```"):
             lines = stripped_text.splitlines()
@@ -49,6 +55,7 @@ class GlossaryBuilderHandler:
         return stripped_text
 
     def _resolve_translation_credentials(self, provider_name: str) -> dict:
+        """Internal helper to resolve translation credentials."""
         translation_config = getattr(self.mw, 'translation_config', {}) or {}
         providers_cfg = {}
         if isinstance(translation_config, dict):
@@ -87,6 +94,7 @@ class GlossaryBuilderHandler:
         return {}
 
     def build_glossary_for_block(self, block_id, category_name: Optional[str] = None):
+        """Create glossary for block."""
         if not self.prompt_data:
             return
 
@@ -160,6 +168,7 @@ class GlossaryBuilderHandler:
         self._start_async_glossary_task(block_id, provider, glossary_ai_config, chunks)
 
     def _start_async_glossary_task(self, block_id: int, provider, glossary_ai_config: dict, chunks: list[str]) -> None:
+        """Internal helper to start async glossary task."""
         status_bar = getattr(self.mw, 'statusBar', None)
 
         block_names = getattr(self.mw, 'block_names', {}) or {}
@@ -221,6 +230,7 @@ class GlossaryBuilderHandler:
         QApplication.processEvents()
 
     def _on_glossary_success(self, response: ProviderResponse, task_details: dict, status_bar) -> None:
+        """Internal helper to handle the glossary success event."""
         aggregated_terms: List[Dict] = []
         if isinstance(response.raw_payload, list):
             aggregated_terms = response.raw_payload
@@ -304,18 +314,21 @@ class GlossaryBuilderHandler:
         self._cleanup_worker()
 
     def _on_glossary_error(self, message: str, status_bar) -> None:
+        """Internal helper to handle the glossary error event."""
         QMessageBox.warning(self.mw, "AI Error", message)
         if status_bar:
             status_bar.showMessage("Glossary generation failed.", 5000)
         self._cleanup_worker()
 
     def _on_glossary_cancelled(self, status_bar) -> None:
+        """Internal helper to handle the glossary cancelled event."""
         QMessageBox.information(self.mw, "Cancelled", "Glossary generation was cancelled.")
         if status_bar:
             status_bar.showMessage("Glossary generation cancelled.", 5000)
         self._cleanup_worker()
 
     def _cleanup_worker(self) -> None:
+        """Internal helper to cleanup worker."""
         if self._worker:
             try:
                 self._worker.cancel()

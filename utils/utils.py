@@ -1,4 +1,4 @@
-import datetime
+﻿import datetime
 import re
 import difflib # Додано
 from typing import Optional, List, Tuple, Any
@@ -11,6 +11,7 @@ FORCED_ALIAS_PATTERN = re.compile(r'\{[Ff]:([^}]*)\}')
 DEFAULT_CHAR_WIDTH_FALLBACK = 6
 
 def remove_all_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
+    """Remove all tags."""
     if text is None:
         return ""
     if tag_mappings is None:
@@ -24,6 +25,7 @@ def remove_all_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     return ALL_TAGS_PATTERN.sub("", text)
 
 def get_active_font_map() -> dict:
+    """Get the active font map."""
     try:
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
@@ -36,6 +38,7 @@ def get_active_font_map() -> dict:
     return {}
 
 def get_active_icon_sequences() -> list:
+    """Get the active icon sequences."""
     try:
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
@@ -48,6 +51,7 @@ def get_active_icon_sequences() -> list:
     return []
 
 def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional[dict] = None, icon_sequences: Optional[List[str]] = None) -> bool:
+    """Check if is visible tag."""
     if tag is None:
         return False
     if '(' in tag and ')' in tag:
@@ -114,6 +118,7 @@ def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional
 
 
 def find_missing_icon_spacing_spans(text: str, is_visible_tag_func) -> List[Tuple[int, int]]:
+    """Find missing icon spacing spans."""
     if not text:
         return []
     tags = []
@@ -124,6 +129,7 @@ def find_missing_icon_spacing_spans(text: str, is_visible_tag_func) -> List[Tupl
     last_idx = 0
     
     def add_non_tag_tokens(start_idx, end_idx):
+        """Add non tag tokens."""
         i = start_idx
         while i < end_idx:
             ch = text[i]
@@ -183,6 +189,7 @@ def find_missing_icon_spacing_spans(text: str, is_visible_tag_func) -> List[Tupl
 
 
 def fix_missing_icon_spacing(text: str, is_visible_tag_func) -> str:
+    """Fix missing icon spacing."""
     if not text:
         return text
     lines = text.split('\n')
@@ -259,6 +266,7 @@ def fix_missing_icon_spacing(text: str, is_visible_tag_func) -> str:
 
 
 def clean_spaces(text: str) -> str:
+    """Clean spaces."""
     if text is None:
         return ""
     
@@ -365,8 +373,10 @@ def clean_spaces(text: str) -> str:
     return "\n".join(cleaned_lines)
 
 class TrieNode:
+    """Trie node implementation."""
     __slots__ = ('children', 'width', 'length')
     def __init__(self):
+        """Initialize a new instance."""
         self.children: dict = {}
         self.width = None
         self.length: int = 0
@@ -374,6 +384,7 @@ class TrieNode:
 _WIDTH_CACHE = {}
 
 def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequences: Optional[List[str]], strict: bool = False):
+    """Internal helper to get the trie and flat map."""
     cache_key = (id(font_map), default_char_width, tuple(icon_sequences) if icon_sequences else None, strict)
     if cache_key in _WIDTH_CACHE:
         return _WIDTH_CACHE[cache_key]
@@ -422,6 +433,7 @@ def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequenc
 
 
 def get_active_tag_mappings() -> dict:
+    """Get the active tag mappings."""
     try:
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
@@ -434,6 +446,7 @@ def get_active_tag_mappings() -> dict:
     return {}
 
 def get_tag_width(tag: str, default_tag_mappings: Optional[dict], font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, strict: bool = False) -> int:
+    """Get the tag width."""
     if tag.startswith('{') and tag.endswith('}'):
         inner = tag[1:-1]
         if inner.lower().startswith('f:'):
@@ -486,6 +499,7 @@ def get_tag_width(tag: str, default_tag_mappings: Optional[dict], font_map: dict
     return 0
 
 def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, strict: bool = False, default_tag_mappings: Optional[dict] = None) -> Optional[int]:
+    """Internal helper to calculate string width impl."""
     if not text:
         return 0
         
@@ -557,10 +571,12 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
 
 
 def calculate_string_width(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, default_tag_mappings: Optional[dict] = None) -> int:
+    """Calculate string width."""
     return _calculate_string_width_impl(text, font_map, default_char_width, icon_sequences, strict=False, default_tag_mappings=default_tag_mappings)
 
 
 def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Optional[List[str]] = None, default_tag_mappings: Optional[dict] = None) -> Optional[int]:
+    """Calculate strict string width."""
     return _calculate_string_width_impl(text, font_map, 8, icon_sequences, strict=True, default_tag_mappings=default_tag_mappings)
 
 def is_fuzzy_match(word1: str, word2: str, threshold: float = 0.8) -> bool:
@@ -580,7 +596,9 @@ def is_fuzzy_match(word1: str, word2: str, threshold: float = 0.8) -> bool:
 _SPACE_DOT_RE = re.compile(f'[ {re.escape(SPACE_DOT_SYMBOL)}]+')
 
 def _make_replacer(line_len: int):
+    """Internal helper to create replacer."""
     def _replace(match: re.Match) -> str:
+        """Internal helper to replace."""
         cluster = match.group(0)
         if match.start() == 0 or match.end() == line_len or len(cluster) > 1:
             return SPACE_DOT_SYMBOL * len(cluster)
@@ -588,6 +606,7 @@ def _make_replacer(line_len: int):
     return _replace
 
 def convert_spaces_to_dots_for_display(text: str, enable_conversion: bool) -> str:
+    """Convert spaces to dots for display."""
     if not enable_conversion or text is None:
         return text if text is not None else ""
     
@@ -606,11 +625,13 @@ def convert_spaces_to_dots_for_display(text: str, enable_conversion: bool) -> st
 
 
 def convert_dots_to_spaces_from_editor(text: str) -> str:
+    """Convert dots to spaces from editor."""
     if text is None:
         return ""
     return text.replace(SPACE_DOT_SYMBOL, " ")
 
 def remove_curly_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
+    """Remove curly tags."""
     if text is None:
         return ""
     if tag_mappings is None:
@@ -624,6 +645,7 @@ def remove_curly_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     return re.sub(r"\{[^}]*\}", "", text)
 
 def convert_raw_to_display_text(raw_text: str, show_dots: bool, newline_char_for_preview: str = "") -> str:
+    """Convert raw to display text."""
     if raw_text is None:
         return ""
     
@@ -635,6 +657,7 @@ def convert_raw_to_display_text(raw_text: str, show_dots: bool, newline_char_for
     return text_with_dots
 
 def prepare_text_for_tagless_search(text: str, keep_original_case: bool = False) -> str:
+    """Prepare text for tagless search."""
     if text is None:
         return ""
     
@@ -735,6 +758,7 @@ def suggest_smart_translation(current_text: str, old_translation: str, new_trans
 
 
 def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: bool = False) -> Tuple[str, bool]:
+    """Shift split sentences."""
     if not isinstance(lines_per_page, int):
         try:
             lines_per_page = int(lines_per_page)
@@ -915,6 +939,7 @@ def shift_split_sentences(text: str, lines_per_page: int, prevent_empty_lines: b
 
 
 def get_line_words_and_visible_tags(line: str, mw: Optional[Any] = None) -> List[str]:
+    """Get the line words and visible tags."""
     if not line:
         return []
         
@@ -968,6 +993,7 @@ def get_line_words_and_visible_tags(line: str, mw: Optional[Any] = None) -> List
 
 
 def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page: int, prevent_empty_lines: bool = False) -> Tuple[str, bool]:
+    """Shift split sentences aligned."""
     if not isinstance(lines_per_page, int):
         try:
             lines_per_page = int(lines_per_page)
@@ -979,6 +1005,7 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
 
     # Helper function to segment text into sentences (list of lists of lines)
     def segment_into_sentences(txt: str) -> List[List[str]]:
+        """Segment into sentences."""
         sublines = txt.split('\n')
         if not any(sublines):
             return []
@@ -1137,6 +1164,7 @@ def shift_split_sentences_aligned(text: str, original_text: str, lines_per_page:
 
 
 def extract_first_word_with_tags(text: str) -> Tuple[str, str]:
+    """Extract first word with tags."""
     if not text or not text.strip():
         return "", text 
     first_word_text = ""
@@ -1167,6 +1195,7 @@ def extract_first_word_with_tags(text: str) -> Tuple[str, str]:
 
 
 def has_visible_content(text: str, mappings: Optional[dict] = None, font_map: Optional[dict] = None, icon_sequences: Optional[List[str]] = None) -> bool:
+    """Check if has visible content."""
     if not text:
         return False
     text_no_tags = remove_all_tags(text, mappings)
@@ -1184,6 +1213,7 @@ import string
 PUNCTUATION_CHARS = set(string.punctuation + "«»—–“”„")
 
 def clean_and_map_punctuation(text: str) -> Tuple[str, List[int]]:
+    """Clean and map punctuation."""
     if text is None:
         return "", []
     clean_chars = []
@@ -1195,6 +1225,7 @@ def clean_and_map_punctuation(text: str) -> Tuple[str, List[int]]:
     return "".join(clean_chars), mapping
 
 def find_smart_matches(text: str, query: str, case_sensitive: bool = False) -> List[Tuple[int, int]]:
+    """Find smart matches."""
     if not query or not text:
         return []
         
@@ -1249,4 +1280,4 @@ def find_smart_matches(text: str, query: str, case_sensitive: bool = False) -> L
     return matches
 
 
-
+

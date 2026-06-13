@@ -1,4 +1,4 @@
-import json
+﻿import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 import requests
@@ -21,24 +21,30 @@ class ProviderResponse:
     annotations: Optional[List[Dict[str, Any]]] = None
 
 class BaseTranslationProvider:
+    """Base translation provider implementation."""
     supports_sessions = False
     """Abstract base class for all translation providers."""
     def __init__(self, settings: Dict[str, Any]) -> None:
+        """Initialize a new instance."""
         self.settings = settings
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
+        """Translate."""
         raise NotImplementedError
 
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
         # Fallback to non-streaming if not implemented
+        """Translate stream."""
         response = self.translate(messages, session, settings_override)
         if response.text:
             yield response.text
 
 class OpenAIProvider(BaseTranslationProvider):
+    """Open a i provider implementation."""
     supports_sessions = True
     """Provider for OpenAI-compatible chat completion APIs."""
     def __init__(self, settings: Dict[str, Any]) -> None:
+        """Initialize a new instance."""
         super().__init__(settings)
         self.api_key = self.settings.get('api_key') or os.getenv(str(self.settings.get('api_key_env')))
         endpoint_val = self.settings.get('endpoint') or self.settings.get('base_url') or ""
@@ -52,6 +58,7 @@ class OpenAIProvider(BaseTranslationProvider):
             raise TranslationProviderError("OpenAI model is not set.")
 
     def _prepare_body(self, messages: List[Dict[str, str]], current_settings: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal helper to prepare body."""
         body: Dict[str, Any] = {"model": self.model, "messages": messages}
         
         if current_settings.get('web_search_enabled'):
@@ -65,6 +72,7 @@ class OpenAIProvider(BaseTranslationProvider):
         return body
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
+        """Translate."""
         endpoint = f"{self.base_url}/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -171,6 +179,7 @@ class OpenAIProvider(BaseTranslationProvider):
             raise TranslationProviderError(f"Failed to parse provider response: {e}")
     
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
+        """Translate stream."""
         endpoint = f"{self.base_url}/chat/completions"
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -211,9 +220,11 @@ class OpenAIProvider(BaseTranslationProvider):
 
 
 class OllamaChatProvider(BaseTranslationProvider):
+    """Ollama chat provider implementation."""
     supports_sessions = True
     """Provider for Ollama chat APIs."""
     def __init__(self, settings: Dict[str, Any]) -> None:
+        """Initialize a new instance."""
         super().__init__(settings)
         self.base_url = (self.settings.get('base_url') or "http://localhost:11434").rstrip('/')
         self.model = self.settings.get('model')
@@ -221,12 +232,14 @@ class OllamaChatProvider(BaseTranslationProvider):
             raise TranslationProviderError("Ollama model is not set.")
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
+        """Translate."""
         full_text = ""
         for chunk in self.translate_stream(messages, session, settings_override):
             full_text += chunk
         return ProviderResponse(text=full_text)
 
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
+        """Translate stream."""
         endpoint = f"{self.base_url}/api/chat"
         headers = {"Content-Type": "application/json"}
 
@@ -279,11 +292,13 @@ class OllamaChatProvider(BaseTranslationProvider):
 
 
 class GeminiProvider(BaseTranslationProvider):
+    """Gemini provider implementation."""
     supports_sessions = True
     """Provider for Google Gemini API."""
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def __init__(self, settings: Dict[str, Any]) -> None:
+        """Initialize a new instance."""
         super().__init__(settings)
         self.api_key = self.settings.get('api_key') or os.getenv(str(self.settings.get('api_key_env')))
         self.model = self.settings.get('model')
@@ -323,6 +338,7 @@ class GeminiProvider(BaseTranslationProvider):
             log_debug(f"Failed to request a new chat session: {e}")
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
+        """Translate."""
         current_settings = self.settings.copy()
         if settings_override:
             current_settings.update(settings_override)
@@ -351,6 +367,7 @@ class GeminiProvider(BaseTranslationProvider):
             raise TranslationProviderError(f"API request failed: {e}\nDetails: {error_details}")
 
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
+        """Translate stream."""
         current_settings = self.settings.copy()
         if settings_override:
             current_settings.update(settings_override)
@@ -380,6 +397,7 @@ class GeminiProvider(BaseTranslationProvider):
             raise TranslationProviderError(f"API request failed: {e}\nDetails: {error_details}")
 
     def _translate_via_openai_compat(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any], timeout: int) -> ProviderResponse:
+        """Internal helper to translate via openai compat."""
         request_headers = dict(headers)
         auth_token = self.api_key or "dummy"
         request_headers["Authorization"] = f"Bearer {auth_token}"
@@ -421,6 +439,7 @@ class GeminiProvider(BaseTranslationProvider):
         return ProviderResponse(text=text, raw_payload=data, message_id=message_id, conversation_id=conversation_id)
         
     def _translate_via_native_api(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any], timeout: int) -> ProviderResponse:
+        """Internal helper to translate via native api."""
         endpoint = f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
         system_prompt = next((m['content'] for m in messages if m['role'] == 'system'), "")
         user_prompt = next((m['content'] for m in messages if m['role'] == 'user'), "")
@@ -449,6 +468,7 @@ class GeminiProvider(BaseTranslationProvider):
         return ProviderResponse(text=text, raw_payload=data)
 
     def _translate_via_native_stream(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any], timeout: int):
+        """Internal helper to translate via native stream."""
         endpoint = f"{self.base_url}/{self.model}:streamGenerateContent?key={self.api_key}"
         system_prompt = next((m['content'] for m in messages if m['role'] == 'system'), "")
         user_prompt = next((m['content'] for m in messages if m['role'] == 'user'), "")

@@ -1,4 +1,4 @@
-# components/project_dialogs.py
+﻿# components/project_dialogs.py
 """
 Dialog windows for project management:
 - NewProjectDialog: Create a new translation project
@@ -31,6 +31,7 @@ class NewProjectDialog(QDialog):
     """
 
     def __init__(self, parent=None, available_plugins=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Create New Project")
         self.setMinimumWidth(500)
@@ -44,6 +45,7 @@ class NewProjectDialog(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
 
         # Form layout for inputs
@@ -170,6 +172,7 @@ class NewProjectDialog(QDialog):
         return plugins
 
     def _on_mode_changed(self):
+        """Internal helper to handle the mode changed event."""
         is_folders = self.radio_folders.isChecked()
         self.source_edit.clear()
         self.trans_edit.clear()
@@ -181,12 +184,14 @@ class NewProjectDialog(QDialog):
             self.trans_edit.setPlaceholderText("Select translation file...")
             
     def _on_auto_create_toggled(self, checked):
+        """Internal helper to handle the auto create toggled event."""
         self.trans_edit.setEnabled(not checked)
         self.browse_trans_btn.setEnabled(not checked)
         if checked:
             self.trans_edit.clear()
 
     def _get_start_dir(self, current_path_text=None):
+        """Internal helper to get the start dir."""
         if current_path_text and Path(current_path_text).exists():
             return Path(current_path_text).as_posix() if Path(current_path_text).is_dir() else Path(current_path_text).parent.as_posix()
         
@@ -195,6 +200,7 @@ class NewProjectDialog(QDialog):
         return Path.home().as_posix()
 
     def _update_last_dir(self, path):
+        """Internal helper to update the last dir."""
         if not path: return
         p = Path(path)
         last_dir = p.as_posix() if p.is_dir() else p.parent.as_posix()
@@ -217,6 +223,7 @@ class NewProjectDialog(QDialog):
             self._update_last_dir(directory)
 
     def _browse_source(self):
+        """Internal helper to browse source."""
         start_dir = self._get_start_dir(self.source_edit.text())
         if self.radio_folders.isChecked():
             directory = QFileDialog.getExistingDirectory(
@@ -236,6 +243,7 @@ class NewProjectDialog(QDialog):
                 self._update_last_dir(file_path)
 
     def _browse_translation(self):
+        """Internal helper to browse translation."""
         start_dir = self._get_start_dir(self.trans_edit.text())
         if self.radio_folders.isChecked():
             directory = QFileDialog.getExistingDirectory(
@@ -350,6 +358,7 @@ class OpenProjectDialog(QDialog):
     """
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Open Project")
         self.setMinimumWidth(500)
@@ -359,6 +368,7 @@ class OpenProjectDialog(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
 
         # Instructions
@@ -482,6 +492,7 @@ class ImportBlockDialog(QDialog):
     """
 
     def __init__(self, parent=None, project_manager=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Import Block")
         self.setMinimumWidth(500)
@@ -495,6 +506,7 @@ class ImportBlockDialog(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
 
         # Info text
@@ -678,6 +690,7 @@ class ImportBlockDialog(QDialog):
 class MoveToFolderDialog(QDialog):
     """Dialog for moving items to a specific virtual folder using a tree view."""
     def __init__(self, parent=None, project_manager=None, current_folder_id=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.pm = project_manager
         self.current_folder_id = current_folder_id
@@ -690,6 +703,7 @@ class MoveToFolderDialog(QDialog):
         self._populate_tree()
 
     def _setup_ui(self):
+        """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
         
         label = QLabel("Select destination folder:")
@@ -715,6 +729,7 @@ class MoveToFolderDialog(QDialog):
         self.tree.itemDoubleClicked.connect(self._validate_and_accept)
 
     def _populate_tree(self):
+        """Internal helper to populate tree."""
         self.tree.clear()
         
         # Root Item
@@ -729,6 +744,7 @@ class MoveToFolderDialog(QDialog):
         self.tree.setCurrentItem(root_item)
 
     def _add_folders_recursive(self, parent_item, folders):
+        """Internal helper to add folders recursive."""
         for folder in folders:
             item = QTreeWidgetItem(parent_item, [folder.name])
             item.setData(0, Qt.UserRole, folder.id)
@@ -743,6 +759,7 @@ class MoveToFolderDialog(QDialog):
             self._add_folders_recursive(item, folder.children)
 
     def _create_new_folder(self):
+        """Internal helper to create new folder."""
         curr = self.tree.currentItem()
         parent_id = curr.data(0, Qt.UserRole) if curr else None
         
@@ -757,6 +774,7 @@ class MoveToFolderDialog(QDialog):
                 self.new_folder_created = True
 
     def _select_by_id(self, folder_id):
+        """Internal helper to select by id."""
         iterator = QTreeWidgetItemIterator(self.tree)
         while iterator.value():
             item = iterator.value()
@@ -767,10 +785,12 @@ class MoveToFolderDialog(QDialog):
             iterator += 1
 
     def _validate_and_accept(self):
+        """Internal helper to validate and accept."""
         curr = self.tree.currentItem()
         if curr:
             self.selected_folder_id = curr.data(0, Qt.UserRole)
             self.accept()
 
     def get_selected_folder_id(self):
+        """Get the selected folder id."""
         return self.selected_folder_id

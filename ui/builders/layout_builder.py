@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (
+﻿from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox, QMenu, QCheckBox
 )
@@ -8,11 +8,14 @@ from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
 
 class LayoutBuilder:
+    """Layout builder implementation."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self.style = main_window.style()
 
     def build(self):
+        """Create ."""
         central_widget = QWidget()
         self.mw.setCentralWidget(central_widget)
         self.mw.main_vertical_layout = QVBoxLayout(central_widget)
@@ -29,6 +32,7 @@ class LayoutBuilder:
         self.mw.main_vertical_layout.addWidget(self.mw.main_splitter)
 
     def _build_left_panel(self):
+        """Internal helper to create left panel."""
         self.left_panel = QWidget()
         left_layout = QVBoxLayout(self.left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -92,6 +96,7 @@ class LayoutBuilder:
         left_layout.addWidget(self.mw.open_glossary_button)
 
     def _build_right_panel(self):
+        """Internal helper to create right panel."""
         self.mw.right_splitter = QSplitter(Qt.Orientation.Vertical)
 
         # Top Right (Preview)
@@ -154,6 +159,7 @@ class LayoutBuilder:
         self.mw.bottom_right_splitter.setSizes([380, 40, 380])
 
     def _build_original_panel(self):
+        """Internal helper to create original panel."""
         bottom_left_panel = QWidget()
         bottom_left_layout = QVBoxLayout(bottom_left_panel)
 
@@ -185,6 +191,7 @@ class LayoutBuilder:
         self.mw.bottom_right_splitter.addWidget(bottom_left_panel)
 
     def _build_middle_panel(self):
+        """Internal helper to create middle panel."""
         middle_panel = QWidget()
         middle_layout = QVBoxLayout(middle_panel)
         middle_layout.setContentsMargins(0, 0, 0, 0)
@@ -298,6 +305,7 @@ class LayoutBuilder:
         self.mw.bottom_right_splitter.addWidget(middle_panel)
 
     def _build_edited_panel(self):
+        """Internal helper to create edited panel."""
         bottom_right_panel = QWidget()
         bottom_right_layout = QVBoxLayout(bottom_right_panel)
         
@@ -363,6 +371,7 @@ class LayoutBuilder:
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         
         def show_width_context_menu(pos):
+            """Show width context menu."""
             menu = QMenu()
             reset_action = menu.addAction("Reset to Plugin Default")
             set_from_original_action = menu.addAction("Set Width from Original")
@@ -404,7 +413,9 @@ class LayoutBuilder:
         # Sync heights using event filter
         from PyQt6.QtCore import QObject, QEvent
         class HeaderSyncFilter(QObject):
+            """Header sync filter implementation."""
             def __init__(self, source, target):
+                """Initialize a new instance."""
                 super().__init__(source)
                 self.source = source
                 self.target = target
@@ -412,6 +423,7 @@ class LayoutBuilder:
                     self.target.setFixedHeight(self.source.height())
 
             def eventFilter(self, obj, event):
+                """Eventfilter."""
                 if obj is self.source and event.type() == QEvent.Type.Resize:
                     self.target.setFixedHeight(self.source.height())
                 return super().eventFilter(obj, event)
@@ -437,6 +449,7 @@ class LayoutBuilder:
         self.mw.bottom_right_splitter.addWidget(bottom_right_panel)
 
     def _create_header_button(self, icon, tooltip, text=None):
+        """Internal helper to create header button."""
         btn = QPushButton()
         if icon: btn.setIcon(icon)
         elif text: btn.setText(text)
@@ -445,6 +458,7 @@ class LayoutBuilder:
         return btn
 
     def _create_toolbar_button(self, text, tooltip):
+        """Internal helper to create toolbar button."""
         btn = QPushButton(text)
         btn.setToolTip(tooltip)
         btn.setFixedSize(32, 32)

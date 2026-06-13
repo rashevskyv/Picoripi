@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Tuple
 from utils.logging_utils import log_debug
 
@@ -16,6 +16,7 @@ COLOR_TAG_PATTERN_WW = re.compile(r"\[Color:[^\]]+\]", re.IGNORECASE)
 
 def _analyze_tags_for_issues_zww(processed_text: str, original_text: str) -> Tuple[str, str]:
     
+    """Internal helper to analyze tags for issues zww."""
     processed_tags = ANY_TAG_PATTERN_WW.findall(processed_text)
     original_tags = ANY_TAG_PATTERN_WW.findall(original_text)
 
@@ -53,6 +54,7 @@ def process_segment_tags_aggressively_zww(
     original_text_for_tags: str,
     editor_player_tag_const: str
 ) -> Tuple[str, str, str]:
+    """Process segment tags aggressively zww."""
     log_debug(f"ZeldaWW Plugin Logic: Input Segment='{segment_to_insert[:80]}', Original='{original_text_for_tags[:80]}'")
     
     status, msg = _analyze_tags_for_issues_zww(segment_to_insert, original_text_for_tags)

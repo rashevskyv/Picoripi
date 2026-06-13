@@ -1,11 +1,13 @@
-from PyQt6.QtWidgets import QMenu, QStyle, QToolButton, QToolTip
+﻿from PyQt6.QtWidgets import QMenu, QStyle, QToolButton, QToolTip
 from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont
 from PyQt6.QtCore import Qt, QObject, QEvent
 from pathlib import Path
 
 class MenuToolTipEventFilter(QObject):
+    """Menu tool tip event filter implementation."""
     def eventFilter(self, watched, event):
+        """Eventfilter."""
         if isinstance(watched, QMenu):
             if event.type() == QEvent.Type.ToolTip:
                 action = watched.actionAt(event.pos())
@@ -17,12 +19,15 @@ class MenuToolTipEventFilter(QObject):
         return super().eventFilter(watched, event)
 
 class MenuBuilder:
+    """Menu builder implementation."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         self.mw = main_window
         self.style = main_window.style()
         self.tooltip_filter = MenuToolTipEventFilter(main_window)
 
     def build_all(self):
+        """Create all."""
         menubar = self.mw.menuBar()
         self._build_file_menu(menubar)
         self._build_edit_menu(menubar)
@@ -33,6 +38,7 @@ class MenuBuilder:
         self._build_help_menu(menubar)
 
     def _build_file_menu(self, menubar):
+        """Internal helper to create file menu."""
         file_menu = menubar.addMenu('&File')
         file_menu.setToolTipsVisible(True)
         file_menu.installEventFilter(self.tooltip_filter)
@@ -112,12 +118,14 @@ class MenuBuilder:
         file_menu.addAction(self.mw.exit_action)
 
     def _build_edit_menu(self, menubar):
+        """Internal helper to create edit menu."""
         edit_menu = menubar.addMenu('&Edit')
         edit_menu.setObjectName('&Edit')
         edit_menu.setToolTipsVisible(True)
         edit_menu.installEventFilter(self.tooltip_filter)
 
         def _icon_path(file_name: str) -> str:
+            """Internal helper to icon path."""
             project_root = Path(__file__).resolve().parent.parent.parent
             return str(project_root / 'resources' / 'icons' / file_name)
 
@@ -222,6 +230,7 @@ class MenuBuilder:
         edit_menu.addAction(self.mw.recalculate_widths_action)
 
     def _build_view_menu(self, menubar):
+        """Internal helper to create view menu."""
         view_menu = menubar.addMenu('&View')
         view_menu.setToolTipsVisible(True)
         view_menu.installEventFilter(self.tooltip_filter)
@@ -236,6 +245,7 @@ class MenuBuilder:
         view_menu.addAction(self.mw.toggle_preview_action)
 
     def _build_tools_menu(self, menubar):
+        """Internal helper to create tools menu."""
         tools_menu = menubar.addMenu('&Tools')
         tools_menu.setObjectName('&Tools')
         tools_menu.setToolTipsVisible(True)
@@ -364,6 +374,7 @@ class MenuBuilder:
 
 
     def _build_navigation_menu(self, menubar):
+        """Internal helper to create navigation menu."""
         self.mw.navigation_menu = menubar.addMenu('&Navigation')
         self.mw.navigation_menu.setToolTipsVisible(True)
         self.mw.navigation_menu.installEventFilter(self.tooltip_filter)
@@ -389,6 +400,7 @@ class MenuBuilder:
         self.mw.navigation_menu.addAction(self.mw.prev_folder_nav_action)
 
     def _build_bookmarks_menu(self, menubar):
+        """Internal helper to create bookmarks menu."""
         bookmarks_menu = menubar.addMenu('&Bookmarks')
         bookmarks_menu.setToolTipsVisible(True)
         bookmarks_menu.installEventFilter(self.tooltip_filter)
@@ -408,6 +420,7 @@ class MenuBuilder:
         bookmarks_menu.addSeparator()
 
     def _build_help_menu(self, menubar):
+        """Internal helper to create help menu."""
         self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton)), '&Shortcuts Help', self.mw)
         self.mw.help_shortcuts_action.setShortcut('F1')
 

@@ -1,4 +1,4 @@
-# components/custom_tree_widget.py
+﻿# components/custom_tree_widget.py
 """Project file-tree widget — thin orchestrator that composes all behaviour mixins."""
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QApplication, QToolTip,
@@ -35,6 +35,7 @@ class CustomTreeWidget(
     """
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
 
         # ── Basic widget setup ────────────────────────────────────────────────
@@ -92,6 +93,7 @@ class CustomTreeWidget(
 
     def mousePressEvent(self, event):
         # Right-click on an already-selected item: don't let Qt clear the multi-selection.
+        """Mousepressevent."""
         if event.button() == Qt.MouseButton.RightButton:
             item = self.itemAt(event.pos())
             if item and item in self.selectedItems():
@@ -100,6 +102,7 @@ class CustomTreeWidget(
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
+        """Keypressevent."""
         log_debug(f"CustomTreeWidget: keyPressEvent key={event.key()}, mods={int(event.modifiers())}")
         is_ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
         is_alt = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
@@ -125,6 +128,7 @@ class CustomTreeWidget(
         super().keyPressEvent(event)
 
     def wheelEvent(self, event):
+        """Wheelevent."""
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             mw = self.window()
             if hasattr(mw, 'handle_zoom'):
@@ -134,6 +138,7 @@ class CustomTreeWidget(
         super().wheelEvent(event)
 
     def paintEvent(self, event):
+        """Paintevent."""
         super().paintEvent(event)
         target_info = getattr(self, '_custom_drop_target', None)
         if target_info:
@@ -148,11 +153,13 @@ class CustomTreeWidget(
                 painter.end()
 
     def event(self, event):
+        """Event."""
         if event.type() == QEvent.Type.ToolTip:
             log_debug("CustomTreeWidget: event() ToolTip received")
         return super().event(event)
 
     def viewportEvent(self, event):
+        """Viewportevent."""
         if event.type() == QEvent.Type.ToolTip:
             log_debug(f"CustomTreeWidget: viewport ToolTip at {event.pos()}")
         elif event.type() == QEvent.Type.MouseMove:
@@ -174,6 +181,7 @@ class CustomTreeWidget(
     # ─────────────────────────────────────────────────────────────────────────
 
     def _create_color_icon(self, color: QColor, size: int = 12) -> QIcon:
+        """Internal helper to create color icon."""
         pixmap = QPixmap(size, size)
         pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
@@ -187,6 +195,7 @@ class CustomTreeWidget(
         return QIcon(pixmap)
 
     def create_item(self, text: str, block_idx=None, role=Qt.ItemDataRole.UserRole) -> QTreeWidgetItem:
+        """Create item."""
         item = QTreeWidgetItem([text])
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
         if block_idx is not None:
@@ -194,6 +203,7 @@ class CustomTreeWidget(
         return item
 
     def select_block_by_index(self, block_idx: int, category: str = None) -> bool:
+        """Select block by index."""
         iterator = QTreeWidgetItemIterator(self)
         while iterator.value():
             item = iterator.value()
@@ -222,6 +232,7 @@ class CustomTreeWidget(
         existing = set()
 
         def collect(folders):
+            """Collect."""
             for f in folders:
                 existing.add(f.name)
                 collect(f.children)

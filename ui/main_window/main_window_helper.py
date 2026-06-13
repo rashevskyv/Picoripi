@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication
 from PyQt6.QtCore import QRect, QProcess, QPoint
@@ -11,10 +11,13 @@ if TYPE_CHECKING:
     from main import MainWindow
 
 class MainWindowHelper:
+    """Main window helper implementation."""
     def __init__(self, main_window: MainWindow):
+        """Initialize a new instance."""
         self.mw = main_window
 
     def get_font_map_for_string(self, block_idx: int, string_idx: int) -> dict:
+        """Get the font map for string."""
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})
         
@@ -29,11 +32,13 @@ class MainWindowHelper:
         return self.mw.font_map
 
     def restart_application(self):
+        """Restart application."""
         log_info("Restarting application...")
         self.mw.close()
         QProcess.startDetached(sys.executable, sys.argv)
 
     def rebuild_unsaved_block_indices(self):
+        """Rebuild unsaved block indices."""
         self.mw.data_store.unsaved_block_indices.clear()
         for block_idx, _ in self.mw.data_store.edited_data.keys():
             self.mw.data_store.unsaved_block_indices.add(block_idx)
@@ -41,6 +46,7 @@ class MainWindowHelper:
              self.mw.block_list_widget.viewport().update()
 
     def execute_find_next_shortcut(self):
+        """Execute find next shortcut."""
         query_to_use = ""
         case_sensitive_to_use = False
         search_in_original_to_use = False
@@ -66,6 +72,7 @@ class MainWindowHelper:
             QMessageBox.information(self.mw, "Find", f"Not found: \"{query_to_use}\"")
 
     def execute_find_previous_shortcut(self):
+        """Execute find previous shortcut."""
         query_to_use = ""
         case_sensitive_to_use = False
         search_in_original_to_use = False
@@ -91,12 +98,15 @@ class MainWindowHelper:
             QMessageBox.information(self.mw, "Find", f"Not found: \"{query_to_use}\"")
 
     def handle_panel_find_next(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
+        """Handle panel find next."""
         self.mw.search_handler.find_next(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def handle_panel_find_previous(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
+        """Handle panel find previous."""
         self.mw.search_handler.find_previous(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def toggle_search_panel(self):
+        """Toggle search panel."""
         if self.mw.search_panel_widget.isVisible():
             self.mw.search_panel_widget.focus_search_input()
         else:
@@ -114,10 +124,12 @@ class MainWindowHelper:
             self.mw.search_panel_widget.focus_search_input()
 
     def hide_search_panel(self):
+        """Hide search panel."""
         self.mw.search_panel_widget.setVisible(False)
         self.mw.search_handler.clear_all_search_highlights()
 
     def open_advanced_search(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
+        """Open advanced search."""
         try:
             log_debug(f"MainWindowHelper: open_advanced_search called for Q='{query}'")
             
@@ -270,6 +282,7 @@ class MainWindowHelper:
             QMessageBox.critical(self.mw, "Error", f"An error occurred: {e}")
 
     def load_all_data_for_path(self, original_file_path, manually_set_edited_path=None, is_initial_load_from_settings=False):
+        """Load all data for path."""
         self.mw.app_action_handler.load_all_data_for_path(original_file_path, manually_set_edited_path, is_initial_load_from_settings)
         self.rebuild_unsaved_block_indices()
         for editor_widget in [self.mw.preview_text_edit, self.mw.original_text_edit, self.mw.edited_text_edit]:
@@ -282,6 +295,7 @@ class MainWindowHelper:
                     editor_widget.updateLineNumberAreaWidth(0)
 
     def apply_text_wrap_settings(self):
+        """Apply text wrap settings."""
         from PyQt6.QtWidgets import QPlainTextEdit
         preview_wrap_mode = QPlainTextEdit.LineWrapMode.WidgetWidth if self.mw.preview_wrap_lines else QPlainTextEdit.LineWrapMode.NoWrap
         editors_wrap_mode = QPlainTextEdit.LineWrapMode.WidgetWidth if self.mw.editors_wrap_lines else QPlainTextEdit.LineWrapMode.NoWrap
@@ -291,6 +305,7 @@ class MainWindowHelper:
 
     def reconfigure_all_highlighters(self):
         # Compose newline CSS
+        """Reconfigure all highlighters."""
         nl_color = getattr(self.mw, 'newline_color_rgba', "#A020F0")
         nl_css_parts = [f"color: {nl_color}"]
         if getattr(self.mw, 'newline_bold', True): nl_css_parts.append("font-weight: bold")
@@ -313,6 +328,7 @@ class MainWindowHelper:
                 text_edit.highlighter.rehighlight()
 
     def prepare_to_close(self):
+        """Prepare to close."""
         if hasattr(self.mw, 'spellchecker_manager') and self.mw.spellchecker_manager:
             try:
                 self.mw.spellchecker_manager.prepare_to_close()
@@ -403,6 +419,7 @@ class MainWindowHelper:
 
 
     def restore_state_after_settings_load(self):
+        """Restore state after settings load."""
         from utils.logging_utils import log_info
         log_info("Restoring state after settings load.")
         

@@ -1,16 +1,19 @@
-from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton, QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu)
+﻿from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton, QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu)
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QPainter, QPen, QColor
 import collections
 
 class SearchLineEdit(QLineEdit):
+    """Search line edit implementation."""
     def __init__(self, parent=None, main_window=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.mw = main_window
 
     def paintEvent(self, event):
         # Draw standard QLineEdit first
+        """Paintevent."""
         super().paintEvent(event)
         
         # If spellchecker is enabled and active, draw wavy lines under misspelled words
@@ -73,6 +76,7 @@ class SearchLineEdit(QLineEdit):
     def _get_x_for_index(self, idx: int) -> int:
         # To get the X coordinate of a character index, we can do binary search
         # using cursorPositionAt which is a public API.
+        """Internal helper to get the x for index."""
         width = self.width()
         margin = 4
         
@@ -92,6 +96,7 @@ class SearchLineEdit(QLineEdit):
         return best_x
 
     def contextMenuEvent(self, event):
+        """Contextmenuevent."""
         menu = self.createStandardContextMenu()
         
         # Get spellchecker manager
@@ -156,12 +161,14 @@ class SearchLineEdit(QLineEdit):
         menu.exec(event.globalPos())
 
     def _replace_word(self, start, end, new_word):
+        """Internal helper to replace word."""
         text = self.text()
         new_text = text[:start] + new_word + text[end:]
         self.setText(new_text)
         self.setCursorPosition(start + len(new_word))
 
 class SearchPanelWidget(QWidget):
+    """Widget component for search panel."""
     find_next_requested = pyqtSignal(str, bool, bool, bool, bool) # + is_fuzzy
     find_previous_requested = pyqtSignal(str, bool, bool, bool, bool) # + is_fuzzy
     advanced_search_requested = pyqtSignal(str, bool, bool, bool, bool)
@@ -170,6 +177,7 @@ class SearchPanelWidget(QWidget):
     MAX_HISTORY_ITEMS = 20
 
     def __init__(self, parent=None):
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setObjectName("SearchPanel")
         self.mw = parent
@@ -246,9 +254,11 @@ class SearchPanelWidget(QWidget):
         self.close_search_panel_button.clicked.connect(self.close_requested)
 
     def _on_find_next_from_combobox_activation(self, text: str):
+        """Internal helper to handle the find next from combobox activation event."""
         self._on_find_next()
 
     def _add_to_history(self, query: str):
+        """Internal helper to add to history."""
         if not query:
             return
         if query in self.search_history:
@@ -257,6 +267,7 @@ class SearchPanelWidget(QWidget):
         self._update_combobox_items()
 
     def _update_combobox_items(self):
+        """Internal helper to update the combobox items."""
         current_text = self.search_query_edit.lineEdit().text() 
         self.search_query_edit.blockSignals(True)
         self.search_query_edit.clear()
@@ -265,6 +276,7 @@ class SearchPanelWidget(QWidget):
         self.search_query_edit.blockSignals(False)
 
     def load_history(self, history_list: list):
+        """Load history."""
         self.search_history.clear()
         for item in history_list: 
             if item not in self.search_history: 
@@ -276,9 +288,11 @@ class SearchPanelWidget(QWidget):
             self.search_query_edit.setCurrentText(self.search_history[0])
 
     def get_history(self) -> list:
+        """Get the history."""
         return list(self.search_history)
 
     def _on_find_next(self):
+        """Internal helper to handle the find next event."""
         query = self.search_query_edit.currentText()
         case_sensitive = self.case_sensitive_checkbox.isChecked()
         search_in_original = self.search_in_original_checkbox.isChecked()
@@ -296,6 +310,7 @@ class SearchPanelWidget(QWidget):
             self.find_next_requested.emit(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def _on_find_previous(self):
+        """Internal helper to handle the find previous event."""
         query = self.search_query_edit.currentText()
         case_sensitive = self.case_sensitive_checkbox.isChecked()
         search_in_original = self.search_in_original_checkbox.isChecked()
@@ -306,6 +321,7 @@ class SearchPanelWidget(QWidget):
             self.find_previous_requested.emit(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def _on_advanced_clicked(self):
+        """Internal helper to handle the advanced clicked event."""
         query = self.search_query_edit.currentText()
         case_sensitive = self.case_sensitive_checkbox.isChecked()
         search_in_original = self.search_in_original_checkbox.isChecked()
@@ -316,6 +332,7 @@ class SearchPanelWidget(QWidget):
         self.advanced_search_requested.emit(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
 
     def get_search_parameters(self) -> tuple[str, bool, bool, bool, bool]:
+        """Get the search parameters."""
         query = self.search_query_edit.currentText()
         case_sensitive = self.case_sensitive_checkbox.isChecked()
         search_in_original = self.search_in_original_checkbox.isChecked()
@@ -324,12 +341,14 @@ class SearchPanelWidget(QWidget):
         return query, case_sensitive, search_in_original, ignore_tags, is_fuzzy
 
     def set_search_options(self, case_sensitive: bool, search_in_original: bool, ignore_tags: bool, is_fuzzy: bool = False):
+        """Set the search options."""
         self.case_sensitive_checkbox.setChecked(case_sensitive)
         self.search_in_original_checkbox.setChecked(search_in_original)
         self.ignore_tags_newlines_checkbox.setChecked(ignore_tags)
         self.fuzzy_search_checkbox.setChecked(is_fuzzy)
 
     def set_status_message(self, message: str, is_error: bool = False):
+        """Set the status message."""
         self.status_label.setText(message)
         if is_error:
             self.status_label.setStyleSheet("color: red;")
@@ -337,20 +356,25 @@ class SearchPanelWidget(QWidget):
             self.status_label.setStyleSheet("")
             
     def focus_search_input(self):
+        """Focus search input."""
         self.search_query_edit.lineEdit().selectAll()
         self.search_query_edit.setFocus()
 
     def clear_status(self):
+        """Remove status."""
         self.status_label.setText("")
         self.status_label.setStyleSheet("")
 
     def get_query(self) -> str:
+        """Get the query."""
         return self.search_query_edit.currentText()
 
     def set_query(self, query: str):
+        """Set the query."""
         self.search_query_edit.lineEdit().setText(query)
 
     def trigger_spellcheck(self):
+        """Trigger spellcheck."""
         line_edit = self.search_query_edit.lineEdit()
         if line_edit:
             line_edit.update()

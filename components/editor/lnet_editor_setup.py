@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QPushButton, QMenu
+﻿from PyQt6.QtWidgets import QMainWindow, QPushButton, QMenu
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 
@@ -73,6 +73,7 @@ def create_tag_button(editor, parent_widget, display: str, open_tag: str,
         btn.setStyleSheet("padding: 0px; font-size: 14px;")
 
     def on_click():
+        """Handle the click event."""
         if close_tag:
             editor.mouse_handler.wrap_selection_with_custom_tags(open_tag, close_tag)
         else:

@@ -1,4 +1,4 @@
-# components/tree_context_menu_mixin.py
+﻿# components/tree_context_menu_mixin.py
 """Context-menu mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMenu, QStyle, QMessageBox
@@ -11,6 +11,7 @@ class TreeContextMenuMixin:
     """Builds and shows the right-click context menu."""
 
     def show_context_menu(self, pos):
+        """Show context menu."""
         item = self.itemAt(pos)
         if item:
             text = item.text(0)
@@ -404,6 +405,7 @@ class TreeContextMenuMixin:
     # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     def _revert_selected_to_original(self):
+        """Internal helper to revert selected to original."""
         main_window = self.window()
         if not hasattr(main_window, 'data_processor'):
             return
@@ -433,11 +435,13 @@ class TreeContextMenuMixin:
         main_window.data_processor.perform_revert_strings(-2, flat_list, confirm=False)
 
     def _show_block_properties(self, block_idx: int):
+        """Internal helper to show block properties."""
         from .block_properties_dialog import BlockPropertiesDialog
         dialog = BlockPropertiesDialog(self.window(), block_idx)
         dialog.exec()
 
     def _get_selected_strings_by_block(self) -> dict:
+        """Internal helper to get the selected strings by block."""
         main_window = self.window()
         selected_strings = {}
         
@@ -481,6 +485,7 @@ class TreeContextMenuMixin:
         return selected_strings
 
     def _restore_selected_translations(self):
+        """Internal helper to restore selected translations."""
         main_window = self.window()
         if not hasattr(main_window, 'saved_translations_manager'):
             return
@@ -524,6 +529,7 @@ class TreeContextMenuMixin:
                 main_window.undo_manager.end_group("RESTORE_STRINGS")
 
     def _revert_all_blocks_to_original(self):
+        """Internal helper to revert all blocks to original."""
         main_window = self.window()
         if not hasattr(main_window, 'data_processor') or not main_window.data_store.data:
             return

@@ -1,4 +1,4 @@
-# /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
+﻿# /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 from pathlib import Path
 import json
 from PyQt6.QtWidgets import (
@@ -20,14 +20,17 @@ from .settings.settings_widgets import ColorPickerButton, TagDisplayWidget
 from .settings.settings_ui_setup import SettingsDialogUiMixin
 
 class ProviderTestWorker(QThread):
+    """Provider test worker implementation."""
     finished_signal = pyqtSignal(bool, str)
 
     def __init__(self, provider_key: str, provider_settings: dict):
+        """Initialize a new instance."""
         super().__init__()
         self.provider_key = provider_key
         self.provider_settings = provider_settings
 
     def run(self):
+        """Run."""
         try:
             from core.translation.providers import create_translation_provider
             provider = create_translation_provider(self.provider_key, self.provider_settings)
@@ -43,7 +46,9 @@ class ProviderTestWorker(QThread):
             self.finished_signal.emit(False, str(e))
 
 class SettingsDialog(QDialog, SettingsDialogUiMixin):
+    """Dialog class for settings."""
     def __init__(self, main_window):
+        """Initialize a new instance."""
         super().__init__(main_window)
         self.mw = main_window
         self.setWindowTitle("Settings")
@@ -111,6 +116,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.load_initial_settings()
 
     def _get_lang_name(self, code):
+        """Internal helper to get the lang name."""
         try:
             lang_code_part = code.split('_')[0]
             lang = pycountry.languages.get(alpha_2=lang_code_part)
@@ -119,6 +125,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             return code
 
     def _create_script_selector(self, line_edit: QLineEdit):
+        """Internal helper to create script selector."""
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -133,6 +140,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         return widget
 
     def _browse_for_script(self, line_edit: QLineEdit):
+        """Internal helper to browse for script."""
         start_dir = line_edit.text().strip() if line_edit.text() else ""
         if start_dir:
             try:
@@ -146,6 +154,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             line_edit.setText(path)
 
     def _create_path_selector(self, line_edit: QLineEdit):
+        """Internal helper to create path selector."""
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0,0,0,0)
@@ -160,6 +169,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         return widget
 
     def _browse_for_file(self, line_edit: QLineEdit):
+        """Internal helper to browse for file."""
         is_dir_mode = self.dir_mode_checkbox.isChecked()
 
         start_dir = line_edit.text() if line_edit.text() else ""
@@ -179,6 +189,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             line_edit.setText(path)
 
     def _create_dir_selector(self, line_edit: QLineEdit):
+        """Internal helper to create dir selector."""
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0,0,0,0)
@@ -193,21 +204,25 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         return widget
 
     def _browse_for_directory(self, line_edit: QLineEdit):
+        """Internal helper to browse for directory."""
         start_dir = line_edit.text().strip() if line_edit.text() else ""
         path = QFileDialog.getExistingDirectory(self, "Select Fonts Directory", start_dir)
         if path:
             line_edit.setText(path)
 
     def _on_fonts_dir_changed(self):
+        """Internal helper to handle the fonts dir changed event."""
         self.mw.fonts_dir_path = self.fonts_path_edit.text().strip()
         selected_dir_name = self.plugin_combo.currentData()
         if selected_dir_name:
             self._populate_font_list(selected_dir_name)
 
     def _on_orig_fonts_dir_changed(self):
+        """Internal helper to handle the orig fonts dir changed event."""
         self.mw.orig_fonts_dir_path = self.orig_fonts_path_edit.text().strip()
 
     def load_initial_settings(self):
+        """Load initial settings."""
         current_theme = getattr(self.mw, 'theme', 'auto')
         if current_theme == 'dark': self.theme_combo.setCurrentIndex(2)
         elif current_theme == 'light': self.theme_combo.setCurrentIndex(1)
@@ -393,6 +408,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
 
     def get_settings(self) -> dict:
+        """Get the settings."""
         selected_dir_name = self.plugin_combo.currentData()
         
         # Read Tag Aliases from table if table exists
@@ -503,6 +519,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         }
 
     def _get_tags_from_tables(self):
+        """Internal helper to get the tags from tables."""
         single_tags = []
         for r in range(self.single_tags_table.rowCount()):
             widget = self.single_tags_table.cellWidget(r, 0)
@@ -526,6 +543,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         return {"single_tags": single_tags, "wrap_tags": wrap_tags}
 
     def on_edit_prompts_clicked(self):
+        """Handle the edit prompts clicked event."""
         plugin_name = self.plugin_combo.currentData()
         if not plugin_name:
             QMessageBox.warning(self, "Edit Prompts", "Please select a plugin first.")
@@ -563,6 +581,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             QMessageBox.warning(self, "Edit Prompts", "Could not find or create prompts.json file.")
 
     def on_test_provider_clicked(self):
+        """Handle the test provider clicked event."""
         settings = self.get_settings()
         translation_config = settings.get('translation_config', {})
         provider_key = translation_config.get('provider', 'disabled')
@@ -580,6 +599,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.test_worker.start()
 
     def on_test_provider_finished(self, success, result):
+        """Handle the test provider finished event."""
         self.test_provider_btn.setEnabled(True)
         self.test_provider_btn.setText("Test Provider")
 
@@ -589,6 +609,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             QMessageBox.critical(self, "Test Provider Failure", f"Connection failed!\nError:\n\n{result}")
 
     def _apply_translation_config_to_ui(self, config: dict):
+        """Internal helper to apply translation config to ui."""
         self.translation_config_snapshot = merge_translation_config(build_default_translation_config(), config)
         provider_key = self.translation_config_snapshot.get('provider', 'disabled')
         provider_index = self.translation_provider_combo.findData(provider_key)
@@ -658,6 +679,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             self.perplexity_timeout_spin.setValue(60)
 
     def _get_translation_config_from_ui(self) -> dict:
+        """Internal helper to get the translation config from ui."""
         config = merge_translation_config(build_default_translation_config(), self.translation_config_snapshot)
         provider_key = self.translation_provider_combo.currentData() or 'disabled'
         config['provider'] = provider_key
@@ -703,6 +725,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         return config
 
     def on_preset_changed(self, index):
+        """Handle the preset changed event."""
         preset_name = self.translation_preset_combo.itemData(index)
         if not preset_name:
             return
@@ -717,6 +740,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self._apply_translation_config_to_ui(config)
 
     def on_save_preset_clicked(self):
+        """Handle the save preset clicked event."""
         current_name = self.translation_preset_combo.currentText()
         if current_name == "Default":
             current_name = ""
@@ -743,6 +767,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             self.translation_preset_combo.blockSignals(False)
 
     def on_delete_preset_clicked(self):
+        """Handle the delete preset clicked event."""
         current_name = self.translation_preset_combo.currentText()
         current_data = self.translation_preset_combo.currentData()
         if current_data == "default":

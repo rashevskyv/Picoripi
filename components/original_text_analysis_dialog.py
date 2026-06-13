@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Interactive dialog for analysing original text width."""
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ class _BarItem(QGraphicsRectItem):
     """Bar item storing its index for selection syncing."""
 
     def __init__(self, index: int, *rect_args):
+        """Initialize a new instance."""
         super().__init__(*rect_args)
         self.index = index
 
@@ -42,6 +43,7 @@ class _AnalysisBarView(QGraphicsView):
     """Specialised bar chart view with zoom/pan and selection callback."""
 
     def __init__(self, parent=None) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
@@ -55,6 +57,7 @@ class _AnalysisBarView(QGraphicsView):
         self.on_bar_selected: Optional[Callable[[int], None]] = None
 
     def wheelEvent(self, event) -> None:  # noqa: D401 (inherit doc)
+        """Wheelevent."""
         delta = event.angleDelta().y()
         if delta == 0:
             return
@@ -63,6 +66,7 @@ class _AnalysisBarView(QGraphicsView):
         self.scale(factor, factor)
 
     def mousePressEvent(self, event) -> None:  # noqa: D401
+        """Mousepressevent."""
         if event.button() == Qt.MouseButton.MiddleButton:
             self._panning = True
             self._pan_start = event.pos()
@@ -73,6 +77,7 @@ class _AnalysisBarView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:  # noqa: D401
+        """Mousemoveevent."""
         if self._panning:
             delta = event.pos() - self._pan_start
             self._pan_start = event.pos()
@@ -82,6 +87,7 @@ class _AnalysisBarView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:  # noqa: D401
+        """Mousereleaseevent."""
         if event.button() == Qt.MouseButton.MiddleButton and self._panning:
             self._panning = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -97,12 +103,14 @@ class _AnalysisBarView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def _scroll(self, delta) -> None:
+        """Internal helper to scroll."""
         h_bar: QScrollBar = self.horizontalScrollBar()
         v_bar: QScrollBar = self.verticalScrollBar()
         h_bar.setValue(h_bar.value() - delta.x())
         v_bar.setValue(v_bar.value() - delta.y())
 
     def resizeEvent(self, event) -> None:  # noqa: D401
+        """Resizeevent."""
         super().resizeEvent(event)
         if not self._user_scaled:
             self._fit_view_to_scene()
@@ -171,6 +179,7 @@ class _AnalysisBarView(QGraphicsView):
         self._fit_view_to_scene()
 
     def highlight_bar(self, index: int) -> None:
+        """Highlight bar."""
         if not self._bars:
             return
         index = max(0, min(index, len(self._bars) - 1))
@@ -179,6 +188,7 @@ class _AnalysisBarView(QGraphicsView):
         self.centerOn(self._bars[index])
 
     def _fit_view_to_scene(self) -> None:
+        """Internal helper to fit view to scene."""
         if self._scene is None:
             return
         rect = self._scene.itemsBoundingRect()
@@ -201,6 +211,7 @@ class OriginalTextAnalysisDialog(QDialog):
     """Dialog displaying the top 100 wide strings."""
 
     def __init__(self, parent=None) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Original Text Width Analysis")
         self.resize(1100, 750)
@@ -249,6 +260,7 @@ class OriginalTextAnalysisDialog(QDialog):
         self._custom_title: Optional[str] = None
 
     def set_custom_title(self, title: str) -> None:
+        """Set the custom title."""
         self._custom_title = title
         self.setWindowTitle(title)
 
@@ -261,6 +273,7 @@ class OriginalTextAnalysisDialog(QDialog):
         title: Optional[str] = None,
         all_fonts_top_entries: Optional[Dict[str, List[dict]]] = None
     ) -> None:
+        """Show entries."""
         if title:
             self.set_custom_title(title)
         elif not self._custom_title:
@@ -343,6 +356,7 @@ class OriginalTextAnalysisDialog(QDialog):
             self.show(); self.raise_(); self.activateWindow()
 
     def _apply_font(self, font_name: str) -> None:
+        """Internal helper to apply font."""
         self._current_font_name = font_name
         
         # If already rendered for this font, just switch
@@ -413,6 +427,7 @@ class OriginalTextAnalysisDialog(QDialog):
         self.show(); self.raise_(); self.activateWindow()
 
     def _update_summary(self, entries: List[dict]) -> None:
+        """Internal helper to update the summary."""
         if not entries:
             self._summary_label.setText("No entries")
             return
@@ -422,6 +437,7 @@ class OriginalTextAnalysisDialog(QDialog):
         )
 
     def _handle_bar_selected_for_table(self, index: int, table: QTableWidget, chart_view: _AnalysisBarView) -> None:
+        """Internal helper to handle bar selected for table."""
         table.blockSignals(True)
         table.selectRow(index)
         table.blockSignals(False)
@@ -430,15 +446,18 @@ class OriginalTextAnalysisDialog(QDialog):
         if item: table.scrollToItem(item)
 
     def _handle_table_selection_for_chart(self, table: QTableWidget, chart_view: _AnalysisBarView) -> None:
+        """Internal helper to handle table selection for chart."""
         rows = table.selectionModel().selectedRows()
         if rows: chart_view.highlight_bar(rows[0].row())
 
     def _handle_table_double_click_ext(self, item, entries: List[dict]) -> None:
+        """Internal helper to handle table double click ext."""
         row = item.row()
         if 0 <= row < len(entries) and self.on_entry_activated:
             self.on_entry_activated(entries[row])
         self.accept()
 
     def _on_font_changed(self, font_name: str) -> None:
+        """Internal helper to handle the font changed event."""
         if font_name and font_name in self._font_maps:
             self._apply_font(font_name)

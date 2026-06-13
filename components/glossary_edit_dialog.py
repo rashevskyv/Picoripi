@@ -1,4 +1,4 @@
-# components/glossary_edit_dialog.py
+﻿# components/glossary_edit_dialog.py
 """
 Dialog for editing a single glossary entry (term → translation + notes).
 Supports optional AI Fill and AI Notes Variation actions.
@@ -16,10 +16,12 @@ class ReturnToAcceptFilter(QObject):
     """Convert plain Return/Enter key presses into dialog acceptance."""
 
     def __init__(self, dialog: QDialog) -> None:
+        """Initialize a new instance."""
         super().__init__(dialog)
         self._dialog = dialog
 
     def eventFilter(self, obj, event):
+        """Eventfilter."""
         if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             modifiers = event.modifiers()
             if not (modifiers & (Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier)):
@@ -46,6 +48,7 @@ class GlossaryEditDialog(QDialog):
         ai_assist_callback: Optional[Callable[[], None]] = None,
         notes_variation_callback: Optional[Callable[[], None]] = None,
     ) -> None:
+        """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("Edit Glossary Entry")
 
@@ -98,16 +101,19 @@ class GlossaryEditDialog(QDialog):
         layout.addWidget(buttons)
 
     def set_values(self, translation: str, notes: str) -> None:
+        """Set the values."""
         self._translation_edit.setText(translation)
         self._notes_edit.setPlainText(notes)
 
     def get_values(self) -> Tuple[str, str]:
+        """Get the values."""
         return (
             self._translation_edit.text().strip(),
             self._notes_edit.toPlainText().strip(),
         )
 
     def set_ai_busy(self, busy: bool) -> None:
+        """Set the ai busy."""
         self._ai_button.setEnabled(not busy)
         if busy:
             self._ai_button.setText(f"{self._ai_button_default_text} (working...)")

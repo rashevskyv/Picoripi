@@ -1,14 +1,17 @@
-from PyQt6.QtWidgets import QMainWindow, QToolTip, QApplication
+﻿from PyQt6.QtWidgets import QMainWindow, QToolTip, QApplication
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QTextCursor
 from typing import Optional
 
 class LNETTooltipLogic:
+    """L n e t tooltip logic implementation."""
     def __init__(self, editor):
+        """Initialize a new instance."""
         self.editor = editor
 
     def find_warning_tooltip_at(self, pos: QPoint) -> Optional[str]:
         # Get line under mouse
+        """Find warning tooltip at."""
         cursor = self.editor.cursorForPosition(pos)
         block = cursor.block()
         if not block.isValid():
