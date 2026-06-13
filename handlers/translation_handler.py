@@ -241,16 +241,29 @@ class TranslationHandler(BaseHandler):
         user_prompt: str,
         save_section: Optional[str] = None,
         save_field: str = 'system_prompt',
+        force_prompt: bool = False,
     ) -> Optional[Tuple[str, str]]:
         """Internal helper to maybe edit prompt."""
-        modifiers = QApplication.keyboardModifiers()
-        is_ctrl_pressed = False
-        if hasattr(modifiers, 'value'):
-            is_ctrl_pressed = bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
-        elif isinstance(modifiers, int):
-            is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
-        else:
-            is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        is_ctrl_pressed = force_prompt
+        if not is_ctrl_pressed:
+            try:
+                import ctypes
+                # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
+                is_ctrl_pressed = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
+                if not is_ctrl_pressed:
+                    is_ctrl_pressed = bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000)
+            except Exception:
+                pass
+
+        if not is_ctrl_pressed:
+            modifiers = QApplication.keyboardModifiers()
+            if hasattr(modifiers, 'value'):
+                is_ctrl_pressed = bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
+            elif isinstance(modifiers, int):
+                is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
+            else:
+                is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+
         enabled = self.mw.prompt_editor_enabled
         if not is_ctrl_pressed and not enabled:
             return system_prompt, user_prompt
@@ -332,6 +345,7 @@ class TranslationHandler(BaseHandler):
 
     def _run_ai_task(self, provider: BaseTranslationProvider, task_details: Dict[str, Any]) -> None:
         """Internal helper to run ai task."""
+        task_details['provider'] = provider
         self.ai_lifecycle_manager.run_ai_task(provider, task_details)
 
     def _handle_ai_cancel(self, context: Dict[str, Any]) -> None:
@@ -422,8 +436,34 @@ class TranslationHandler(BaseHandler):
         self.translated_chunks_count = completed_chunks
         self.ui_handler.status_dialog.setup_progress_bar(total_chunks, completed_chunks)
 
-    def translate_current_string(self) -> None:
+    def _is_control_pressed(self) -> bool:
+        """Helper to check if Ctrl key is physically pressed."""
+        try:
+            import ctypes
+            # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
+            if bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000):
+                return True
+            if bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000):
+                return True
+        except Exception:
+            pass
+        try:
+            modifiers = QApplication.keyboardModifiers()
+            if hasattr(modifiers, 'value'):
+                return bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
+            elif isinstance(modifiers, int):
+                return bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
+            else:
+                return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        except Exception:
+            return False
+
+    def translate_current_string(self, force_prompt: bool = False) -> None:
         """Translate current string."""
+        if not isinstance(force_prompt, bool):
+            force_prompt = False
+        is_ctrl = force_prompt or self._is_control_pressed()
+        log_debug(f"translate_current_string called: is_ai_running={self.is_ai_running}, block={self.mw.data_store.current_block_idx}, string={self.mw.data_store.current_string_idx}, force_prompt={is_ctrl}")
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -433,11 +473,95 @@ class TranslationHandler(BaseHandler):
             expected_lines=len(str(self.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)).split("\n")),
             mode_description="current row",
             block_idx=self.mw.data_store.current_block_idx,
-            string_idx=self.mw.data_store.current_string_idx
+            string_idx=self.mw.data_store.current_string_idx,
+            force_prompt=is_ctrl
         )
 
-    def translate_preview_selection(self, context_menu_pos: QPoint) -> None:
+    def translate_specific_strings(self, pairs: List[Tuple[int, int]], description: str, force_prompt: bool = False) -> None:
+        """Translate a specific list of (block_idx, string_idx) pairs."""
+        if not isinstance(force_prompt, bool):
+            force_prompt = False
+        force_prompt = force_prompt or self._is_control_pressed()
+
+        if self.is_ai_running:
+            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            return
+
+        if not pairs:
+            return
+
+        source_items = []
+        temp_id_map = {}
+        for idx, (b_idx, s_idx) in enumerate(pairs):
+            text_raw = str(self.glossary_handler._get_original_string(b_idx, s_idx) or "")
+            source_items.append({"id": idx, "text": text_raw})
+            temp_id_map[idx] = (b_idx, s_idx)
+
+        source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map, force_prompt=force_prompt)
+        if not source_items:
+            log_debug("translate_specific_strings: all items filtered by saved translations, returning early")
+            return
+
+        provider = self.ai_lifecycle_manager._prepare_provider()
+        if not provider:
+            return
+
+        operation_title = f"AI Translation ({description})"
+        
+        system_prompt, _ = self.glossary_handler.load_prompts()
+        if not system_prompt:
+            return
+
+        session_state = self._session_manager.get_state()
+        first_block_idx = pairs[0][0] if pairs else self.mw.data_store.current_block_idx
+        composer_args = {
+            'system_prompt': system_prompt,
+            'source_items': source_items,
+            'all_source_items': source_items,
+            'block_idx': first_block_idx,
+            'mode_description': description,
+            'session_state': session_state,
+        }
+        
+        preview_system, preview_user, p_map = self.prompt_composer.compose_batch_request(**composer_args)
+
+        edited = self._maybe_edit_prompt(
+            title=operation_title,
+            system_prompt=preview_system,
+            user_prompt=preview_user,
+            save_section='translation',
+            force_prompt=force_prompt
+        )
+
+        if edited is None:
+            return
+        edited_system, edited_user = edited
+
+        self.ui_handler.start_ai_operation(operation_title, model_name=self.ai_lifecycle_manager._active_model_name)
+
+        task_details = {
+            'type': 'translate_preview',
+            'provider': provider,
+            'source_items': source_items,
+            'attempt': 1,
+            'max_retries': 4,
+            'block_idx': first_block_idx,
+            'mode_description': description,
+            'timeout_seconds': self._resolve_base_timeout(provider),
+            'precomposed_prompt': [
+                {"role": "system", "content": edited_system},
+                {"role": "user", "content": edited_user}
+            ],
+            'placeholder_map': p_map,
+            'temp_id_map': temp_id_map,
+        }
+        self._initiate_batch_translation(task_details)
+
+    def translate_preview_selection(self, context_menu_pos: QPoint, force_prompt: bool = False) -> None:
         """Translate preview selection."""
+        if not isinstance(force_prompt, bool):
+            force_prompt = False
+        force_prompt = force_prompt or self._is_control_pressed()
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -460,80 +584,23 @@ class TranslationHandler(BaseHandler):
         string_indices = list(range(start_line, end_line + 1))
         
         displayed_indices = self.mw.data_store.displayed_string_indices
-        source_items = []
-        temp_id_map = {}
+        pairs = []
         for idx in string_indices:
             if idx < len(displayed_indices):
                 real_idx = displayed_indices[idx]
                 if isinstance(real_idx, tuple):
-                    r_block_idx, r_string_idx = real_idx
+                    pairs.append(real_idx)
                 else:
-                    r_block_idx = block_idx
-                    r_string_idx = real_idx
-                
-                text_raw = str(self.glossary_handler._get_original_string(r_block_idx, r_string_idx) or "")
-                source_items.append({"id": idx, "text": text_raw})
-                temp_id_map[idx] = (r_block_idx, r_string_idx)
+                    pairs.append((block_idx, real_idx))
 
-        source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
-        if not source_items:
-            return
+        description = f"Lines {start_line + 1}-{end_line + 1}" if start_line != end_line else f"Line {start_line + 1}"
+        self.translate_specific_strings(pairs, description, force_prompt=force_prompt)
 
-        provider = self.ai_lifecycle_manager._prepare_provider()
-        if not provider: return
-
-
-        operation_title = f"AI Translation (Lines {start_line + 1}-{end_line + 1})" if start_line != end_line else f"AI Translation (Line {start_line + 1})"
-        
-        system_prompt, _ = self.glossary_handler.load_prompts()
-        if not system_prompt:
-            return
-
-        session_state = self._session_manager.get_state()
-        composer_args = {
-            'system_prompt': system_prompt,
-            'source_items': source_items,
-            'all_source_items': source_items,
-            'block_idx': block_idx,
-            'mode_description': f"lines {start_line + 1}-{end_line + 1}",
-            'session_state': session_state,
-        }
-        
-        preview_system, preview_user, p_map = self.prompt_composer.compose_batch_request(**composer_args)
-
-        edited = self._maybe_edit_prompt(
-            title=operation_title,
-            system_prompt=preview_system,
-            user_prompt=preview_user,
-            save_section='translation'
-        )
-
-        if edited is None:
-            return
-        edited_system, edited_user = edited
-
-        self.ui_handler.start_ai_operation(operation_title, model_name=self.ai_lifecycle_manager._active_model_name)
-
-        task_details = {
-            'type': 'translate_preview',
-            'provider': provider,
-            'source_items': source_items,
-            'attempt': 1,
-            'max_retries': 4,
-            'block_idx': block_idx,
-            'mode_description': f"lines {start_line + 1}-{end_line + 1}",
-            'timeout_seconds': self._resolve_base_timeout(provider),
-            'precomposed_prompt': [
-                {"role": "system", "content": edited_system},
-                {"role": "user", "content": edited_user}
-            ],
-            'placeholder_map': p_map,
-            'temp_id_map': temp_id_map,
-        }
-        self._initiate_batch_translation(task_details)
-
-    def translate_current_block(self, block_idx: Optional[int] = None, category_name: Optional[str] = None, chapter_id: Optional[int] = None) -> None:
+    def translate_current_block(self, block_idx: Optional[int] = None, category_name: Optional[str] = None, chapter_id: Optional[int] = None, force_prompt: bool = False) -> None:
         """Translate current block."""
+        if not isinstance(force_prompt, bool):
+            force_prompt = False
+        force_prompt = force_prompt or self._is_control_pressed()
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
@@ -543,7 +610,7 @@ class TranslationHandler(BaseHandler):
             return
         
         self.start_new_session = True
-        log_debug(f"TranslationHandler.translate_current_block: Block translation initiated. start_new_session set to {self.start_new_session}")
+        log_debug(f"TranslationHandler.translate_current_block: Block translation initiated. start_new_session set to {self.start_new_session}, force_prompt={force_prompt}")
 
         operation_title = f"AI Translation (Block {target_block_idx + 1})"
         if category_name:
@@ -601,12 +668,13 @@ class TranslationHandler(BaseHandler):
                 source_items.append({"id": temp_id, "text": text})
                 temp_id_map[temp_id] = (b_idx, s_idx)
 
-            source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
-            if not source_items:
-                self.ui_handler.finish_ai_operation()
-                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                    self.mw.statusBar.showMessage("All lines in chapter restored from saved translations.", 3000)
-                return
+            if not force_prompt:
+                source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+                if not source_items:
+                    self.ui_handler.finish_ai_operation()
+                    if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                        self.mw.statusBar.showMessage("All lines in chapter restored from saved translations.", 3000)
+                    return
 
 
             provider = self.ai_lifecycle_manager._prepare_provider()
@@ -654,12 +722,13 @@ class TranslationHandler(BaseHandler):
             ]
             temp_id_map = {idx: (target_block_idx, idx) for idx in target_indices if idx < len(block_strings)}
 
-            source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
-            if not source_items:
-                self.ui_handler.finish_ai_operation()
-                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                    self.mw.statusBar.showMessage("All lines in block restored from saved translations.", 3000)
-                return
+            if not force_prompt:
+                source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+                if not source_items:
+                    self.ui_handler.finish_ai_operation()
+                    if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                        self.mw.statusBar.showMessage("All lines in block restored from saved translations.", 3000)
+                    return
 
             provider = self.ai_lifecycle_manager._prepare_provider()
             if not provider:
@@ -687,7 +756,8 @@ class TranslationHandler(BaseHandler):
             ),
             'provider_settings_override': {'timeout': block_timeout},
             'timeout_seconds': block_timeout,
-            'session_reset_attempted': False
+            'session_reset_attempted': False,
+            'force_prompt': force_prompt
         }
         self._initiate_batch_translation(task_details)
     def resume_block_translation(self, block_idx: int) -> None:
@@ -761,7 +831,7 @@ class TranslationHandler(BaseHandler):
         return max(base, 30)
 
     def _filter_already_saved_translations(
-        self, source_items: List[Dict[str, Any]], temp_id_map: Dict[Any, Tuple[int, int]]
+        self, source_items: List[Dict[str, Any]], temp_id_map: Dict[Any, Tuple[int, int]], force_prompt: bool = False
     ) -> Tuple[List[Dict[str, Any]], Dict[Any, Tuple[int, int]]]:
         """
         Filters out items that already have a saved translation in SavedTranslationsManager.
@@ -775,6 +845,68 @@ class TranslationHandler(BaseHandler):
         saved_translations = saved_mgr.load_all_saved_translations()
         if not isinstance(saved_translations, dict) or hasattr(saved_translations, 'assert_called_with') or not saved_translations:
             return source_items, temp_id_map
+
+        # Count cached items
+        cached_count = 0
+        first_cached_text = None
+        first_cached_block_idx = None
+        first_cached_string_idx = None
+        for item in source_items:
+            item_id = item.get("id")
+            if temp_id_map and item_id in temp_id_map:
+                r_block_idx, r_string_idx = temp_id_map[item_id]
+            else:
+                r_block_idx = self.mw.data_store.current_block_idx
+                try:
+                    r_string_idx = int(item_id)
+                except (ValueError, TypeError):
+                    r_string_idx = item_id
+
+            key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
+            saved_text = saved_translations.get(key)
+            if saved_text and isinstance(saved_text, str) and not hasattr(saved_text, 'assert_called_with') and saved_text.strip():
+                cached_count += 1
+                if first_cached_text is None:
+                    first_cached_text = saved_text
+                    first_cached_block_idx = r_block_idx
+                    first_cached_string_idx = r_string_idx
+        if force_prompt:
+            # Ctrl+click: skip cache entirely, translate everything anew
+            return source_items, temp_id_map
+
+        if cached_count > 0:
+            from PyQt6.QtWidgets import QWidget
+            parent = self.mw if isinstance(self.mw, QWidget) else None
+            msg_box = QMessageBox(parent)
+            msg_box.setWindowTitle("Cached Translation Detected" if cached_count == 1 else "Cached Translations Detected")
+            msg_box.setIcon(QMessageBox.Icon.Question)
+            
+            if cached_count == 1:
+                block_name = None
+                if hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
+                    block_name = self.mw.data_store.block_names.get(str(first_cached_block_idx))
+                if not block_name:
+                    block_name = f"Block {first_cached_block_idx + 1}"
+                msg_box.setText(f"A cached translation is available for {block_name}, Line {first_cached_string_idx + 1}. Use cached translation?")
+                msg_box.setInformativeText(f"Cached text:\n\"{first_cached_text}\"")
+            else:
+                msg_box.setText(f"Cached translations are available for {cached_count} of the selected lines. Use cached translations?")
+                msg_box.setInformativeText("For cached lines, the translation will be restored instantly. Other lines will be translated via AI.")
+
+            restore_btn = msg_box.addButton("OK", QMessageBox.ButtonRole.AcceptRole)
+            translate_btn = msg_box.addButton("Translate Anew", QMessageBox.ButtonRole.ActionRole)
+            cancel_btn = msg_box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+            msg_box.setDefaultButton(restore_btn)
+            
+            msg_box.exec()
+            clicked_button = msg_box.clickedButton()
+            
+            if clicked_button == translate_btn:
+                # User wants to translate everything anew
+                return source_items, temp_id_map
+            elif clicked_button != restore_btn:
+                # User cancelled, return empty lists to abort translation task
+                return [], {}
 
         filtered_source_items = []
         filtered_temp_id_map = {}
@@ -835,6 +967,15 @@ class TranslationHandler(BaseHandler):
             if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
                 self.mw.statusBar.showMessage(f"Restored {len(restored_items)} lines from saved translations.", 3000)
 
+            # Refresh SearchReviewDialog if open
+            try:
+                from dialogs.search_review_dialog import SearchReviewDialog
+                for widget in QApplication.topLevelWidgets():
+                    if isinstance(widget, SearchReviewDialog):
+                        widget.refresh_from_project()
+            except Exception as e:
+                log_warning(f"Failed to refresh SearchReviewDialog in _filter_already_saved_translations: {e}")
+
         return filtered_source_items, filtered_temp_id_map
 
 
@@ -854,6 +995,10 @@ class TranslationHandler(BaseHandler):
         
         block_idx = context.get('block_idx')
         task_type = context.get('type')
+
+        if 'precomposed_prompt' in context:
+            self._run_ai_task(provider, context)
+            return
 
         if task_type == 'translate_block_chunked' and block_idx is not None:
             if not context.get('is_resume', False):
@@ -889,7 +1034,24 @@ class TranslationHandler(BaseHandler):
         context['composer_args'] = composer_args
 
         if 'precomposed_prompt' not in context:
-            force_prompt = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+            force_prompt = context.get('force_prompt', False)
+            if not force_prompt:
+                try:
+                    import ctypes
+                    # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
+                    force_prompt = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
+                    if not force_prompt:
+                        force_prompt = bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000)
+                except Exception:
+                    pass
+            if not force_prompt:
+                modifiers = QApplication.keyboardModifiers()
+                if hasattr(modifiers, 'value'):
+                    force_prompt = bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
+                elif isinstance(modifiers, int):
+                    force_prompt = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
+                else:
+                    force_prompt = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
             should_edit_prompt = (
                 task_type == 'translate_block_chunked'
                 and block_idx is not None
@@ -902,6 +1064,7 @@ class TranslationHandler(BaseHandler):
                     system_prompt=preview_system,
                     user_prompt=preview_user,
                     save_section='translation',
+                    force_prompt=force_prompt,
                 )
                 if edited is None:
                     self.ui_handler.finish_ai_operation()
@@ -1087,8 +1250,10 @@ class TranslationHandler(BaseHandler):
 
     def _handle_preview_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         """Internal helper to handle preview translation success."""
+        log_debug(f"_handle_preview_translation_success called: source_items_count={len(context.get('source_items', []))}")
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_text = self.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
+        log_debug(f"_handle_preview_translation_success: cleaned_text length={len(cleaned_text)}")
         
         try:
             parsed_json = json.loads(cleaned_text)
@@ -1195,6 +1360,16 @@ class TranslationHandler(BaseHandler):
             self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
             self.ui_updater.update_text_views()
             self.ui_updater.update_title()
+
+            # Refresh SearchReviewDialog if open
+            try:
+                from dialogs.search_review_dialog import SearchReviewDialog
+                for widget in QApplication.topLevelWidgets():
+                    if isinstance(widget, SearchReviewDialog):
+                        widget.refresh_from_project()
+            except Exception as e:
+                log_warning(f"Failed to refresh SearchReviewDialog in _handle_preview_translation_success: {e}")
+
             if hasattr(self.mw, 'app_action_handler'):
                 for m_block in modified_blocks:
                     if m_block != 999999:
@@ -1209,6 +1384,7 @@ class TranslationHandler(BaseHandler):
 
     def _handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         """Internal helper to handle single translation success."""
+        log_debug(f"_handle_single_translation_success called: block={context.get('block_idx')}, string={context.get('string_idx')}")
         self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
         cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
         
@@ -1216,8 +1392,8 @@ class TranslationHandler(BaseHandler):
         p_map = context.get('placeholder_map', {})
         cleaned_translation = self.prompt_composer.restore_placeholders(cleaned_translation, p_map, key=0)
         
-        block_idx = self.mw.data_store.current_block_idx
-        string_idx = self.mw.data_store.current_string_idx
+        block_idx = context.get('block_idx', self.mw.data_store.current_block_idx)
+        string_idx = context.get('string_idx', self.mw.data_store.current_string_idx)
         final_text = self._format_and_wrap_translation(cleaned_translation, block_idx, string_idx)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
         
@@ -1235,11 +1411,16 @@ class TranslationHandler(BaseHandler):
             saved_mgr.save_translation(block_idx, string_idx, final_text)
 
         self.ui_handler.apply_full_translation(final_text)
+        log_debug("_handle_single_translation_success: applied translation length=%d" % len(final_text))
         self.ui_handler.finish_ai_operation()
         refresh_idx = block_idx
         if self.mw.data_store.current_chapter_id is not None:
             refresh_idx = -2
         self.ui_updater.populate_strings_for_block(refresh_idx, self.mw.data_store.current_category_name, force=True)
+        # If we translated the currently visible string, update the text view
+        if self.mw.data_store.current_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
+            self.ui_updater.update_text_views()
+        self.ui_updater.update_title()
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
         """Internal helper to handle the task finished event."""
@@ -1249,45 +1430,29 @@ class TranslationHandler(BaseHandler):
         """Generate variation for current string."""
         self.variations_handler.generate_variation_for_current_string(force)
 
-    def _translate_and_apply(self, *, source_text: str, expected_lines: int, mode_description: str, block_idx: int, string_idx: int) -> None:
+    def _translate_and_apply(self, *, source_text: str, expected_lines: int, mode_description: str, block_idx: int, string_idx: int, force_prompt: bool = False) -> None:
         """Internal helper to translate and apply."""
+        log_debug(f"_translate_and_apply: block={block_idx}, string={string_idx}, source_text_len={len(source_text)}, force_prompt={force_prompt}")
+        
         saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
-        if saved_mgr and not hasattr(saved_mgr, 'assert_called_with'):
-            saved_text = saved_mgr.get_saved_translation(block_idx, string_idx)
-            if saved_text and isinstance(saved_text, str) and not hasattr(saved_text, 'assert_called_with') and saved_text.strip():
-                has_undo = hasattr(self.mw, 'undo_manager')
-
-                if has_undo:
-                    self.mw.undo_manager.begin_group()
-                try:
-                    final_text = self._format_and_wrap_translation(saved_text, block_idx, string_idx)
-                    self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="RESTORE", skip_ui_refresh=True)
-                    if hasattr(self.mw, 'text_operation_handler') and self.mw.text_operation_handler:
-                        self.mw.text_operation_handler._rescan_issues_for_current_string(block_idx, string_idx, final_text)
-                finally:
-                    if has_undo:
-                        self.mw.undo_manager.end_group("RESTORE_SAVED")
-                
-                self.ui_handler.apply_full_translation(final_text)
-                self.ui_updater.update_block_item_text_with_problem_count(block_idx)
-                
-                refresh_idx = block_idx
-                if self.mw.data_store.current_chapter_id is not None:
-                    refresh_idx = -2
-                self.ui_updater.populate_strings_for_block(refresh_idx, getattr(self.mw.data_store, 'current_category_name', None), force=True)
-                self.ui_updater.update_text_views()
-                self.ui_updater.update_title()
-                
-                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                    self.mw.statusBar.showMessage(f"Restored saved translation for line {string_idx + 1}.", 3000)
+        if not force_prompt and saved_mgr and not hasattr(saved_mgr, 'assert_called_with'):
+            source_items = [{"id": string_idx, "text": source_text}]
+            temp_id_map = {string_idx: (block_idx, string_idx)}
+            filtered_items, filtered_map = self._filter_already_saved_translations(
+                source_items, temp_id_map, force_prompt=force_prompt
+            )
+            if not filtered_items:
+                log_debug("_translate_and_apply: item was filtered by saved translations or translation was cancelled, returning early")
                 return
 
         provider = self.ai_lifecycle_manager._prepare_provider()
-        if not provider: return
-
+        if not provider:
+            log_debug("_translate_and_apply: no provider, returning")
+            return
 
         system_prompt, _ = self.glossary_handler.load_prompts()
         if not system_prompt:
+            log_debug("_translate_and_apply: no system_prompt, returning")
             return        # Apply force-aliases
         from utils.force_alias import prepare_text_for_ai
         tag_mappings = self.mw.default_tag_mappings
@@ -1308,6 +1473,7 @@ class TranslationHandler(BaseHandler):
             system_prompt=combined_system,
             user_prompt=user_prompt,
             save_section='translation',
+            force_prompt=force_prompt
         )
         if edited is None:
             return
@@ -1321,8 +1487,10 @@ class TranslationHandler(BaseHandler):
             'type': 'translate_single',
             'composer_args': composer_args,
             'attempt': 1,
-            'max_retries': 1,
+            'max_retries': 4,
             'placeholder_map': p_map,
+            'block_idx': block_idx,
+            'string_idx': string_idx,
         }
         if not self._attach_session_to_task(
             task_details,
@@ -1332,6 +1500,7 @@ class TranslationHandler(BaseHandler):
             task_type='translate_single',
         ):
             task_details['precomposed_prompt'] = precomposed
+        log_debug(f"_translate_and_apply: starting AI operation, task_type=translate_single, block={block_idx}, string={string_idx}")
         self.ui_handler.start_ai_operation("AI Translation", model_name=self.ai_lifecycle_manager._active_model_name)
         self._run_ai_task(provider, task_details)
         
@@ -1340,18 +1509,21 @@ class TranslationHandler(BaseHandler):
         log_debug(f"Block translation finished for block {context.get('block_idx')}")
         self.ui_handler.finish_ai_operation()
 
-    def translate_selected_lines(self):
+    def translate_selected_lines(self, force_prompt: bool = False):
         """
         Translates the lines currently selected in the preview editor.
         If no lines are selected, translates the current string.
         """
+        if not isinstance(force_prompt, bool):
+            force_prompt = False
+        force_prompt = force_prompt or self._is_control_pressed()
         preview_edit = self.mw.preview_text_edit
         if preview_edit and preview_edit.get_selected_lines():
             # Pass a dummy point; translate_preview_selection prioritizes 
             # explicit selection over the mouse position.
-            self.translate_preview_selection(QPoint(0, 0))
+            self.translate_preview_selection(QPoint(0, 0), force_prompt=force_prompt)
         else:
-            self.translate_current_string()
+            self.translate_current_string(force_prompt=force_prompt)
 
     def translate_all_blocks_chronologically(self) -> None:
         """Translate all blocks chronologically."""
