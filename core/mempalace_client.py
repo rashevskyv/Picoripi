@@ -1,9 +1,10 @@
-﻿import os
+import os
 import json
 import sqlite3
 import urllib.request
 import urllib.error
 import re
+import threading
 from typing import Dict, List, Any, Optional
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
@@ -18,12 +19,27 @@ class MemePalaceClient:
         self._bmg_to_context = {}
         self._text_to_context = {}
         self._db_mtime = 0
+        self._local = threading.local()
         
         if self.project_dir:
             # We store the local database inside the project directory
             self.db_path = os.path.join(self.project_dir, "mempalace_local.db")
             self._init_local_db()
             self.preload_cache()
+
+    def _get_connection(self) -> Optional[sqlite3.Connection]:
+        """Get or create the cached thread-local SQLite connection."""
+        if not self.db_path:
+            return None
+        if not hasattr(self._local, "conn") or self._local.conn is None:
+            try:
+                self._local.conn = sqlite3.connect(self.db_path)
+                cursor = self._local.conn.cursor()
+                cursor.execute("PRAGMA foreign_keys = ON;")
+            except Exception as e:
+                log_error(f"MemePalaceClient: Failed to open thread-local SQLite connection: {e}", exc_info=True)
+                return None
+        return self._local.conn
 
     def preload_cache(self, force: bool = False):
         """Preload all drawers from local DB and build high-performance in-memory indexes."""
@@ -37,13 +53,14 @@ class MemePalaceClient:
             self._bmg_to_context = {}
             self._text_to_context = {}
             
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
+            if not conn:
+                return
             cursor = conn.cursor()
             
             # Verify if table drawers exists first
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='drawers'")
             if not cursor.fetchone():
-                conn.close()
                 return
                 
             cursor.execute("""
@@ -52,7 +69,6 @@ class MemePalaceClient:
                 JOIN rooms r ON d.room_id = r.id
             """)
             rows = cursor.fetchall()
-            conn.close()
             
             for name, content, metadata_str, room_name in rows:
                 try:
@@ -151,11 +167,11 @@ class MemePalaceClient:
 
     def _init_local_db(self):
         """Initialize the local SQLite database for local fallback mode."""
-        if not self.db_path:
+        conn = self._get_connection()
+        if not conn:
             return
         
         try:
-            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
             # Create Wings table
@@ -234,7 +250,6 @@ class MemePalaceClient:
             """)
             
             conn.commit()
-            conn.close()
             log_info(f"Initialized local MemePalace database at: {self.db_path}")
         except Exception as e:
             log_error(f"Failed to initialize local SQLite database: {e}", exc_info=True)
@@ -262,10 +277,9 @@ class MemePalaceClient:
 
     def has_room(self, wing_name: str, room_name: str) -> bool:
         """Check if visual scene context drawer already exists for a room in local database."""
-        if self.db_path:
+        conn = self._get_connection()
+        if conn:
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT 1 FROM drawers d
@@ -274,7 +288,6 @@ class MemePalaceClient:
                     WHERE w.name = ? AND r.name = ? AND d.name = 'visual_scene_context'
                 """, (wing_name, room_name))
                 row = cursor.fetchone()
-                conn.close()
                 return bool(row)
             except Exception as e:
                 log_error(f"Local DB error in has_room: {e}")
@@ -298,9 +311,9 @@ class MemePalaceClient:
                 log_warning(f"Failed to write to external MemPalace server: {e}. Falling back to local database.")
 
         # 2. Write to local SQLite database as fallback or local-first storage
-        if self.db_path:
+        local_conn = conn if conn is not None else self._get_connection()
+        if local_conn:
             try:
-                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
                 cursor = local_conn.cursor()
                 cursor.execute(
                     "INSERT OR IGNORE INTO wings (name, description) VALUES (?, ?)",
@@ -308,7 +321,6 @@ class MemePalaceClient:
                 )
                 if conn is None:
                     local_conn.commit()
-                    local_conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_wing: {e}")
@@ -332,9 +344,9 @@ class MemePalaceClient:
                 log_warning(f"Failed to write Room to external MemPalace: {e}")
 
         # 2. Write to local SQLite
-        if self.db_path:
+        local_conn = conn if conn is not None else self._get_connection()
+        if local_conn:
             try:
-                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
                 cursor = local_conn.cursor()
                 # Find wing ID
                 cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
@@ -352,7 +364,6 @@ class MemePalaceClient:
                 )
                 if conn is None:
                     local_conn.commit()
-                    local_conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_room: {e}")
@@ -382,9 +393,9 @@ class MemePalaceClient:
                 log_warning(f"Failed to write Drawer to external MemPalace: {e}")
 
         # 2. Write to local database
-        if self.db_path:
+        local_conn = conn if conn is not None else self._get_connection()
+        if local_conn:
             try:
-                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
                 cursor = local_conn.cursor()
                 # Get wing ID and room ID
                 cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
@@ -409,7 +420,6 @@ class MemePalaceClient:
                 )
                 if conn is None:
                     local_conn.commit()
-                    local_conn.close()
                 self._cache_loaded = False  # Reset cache to reload new data on next access
                 return True
             except Exception as e:
@@ -438,9 +448,9 @@ class MemePalaceClient:
             except Exception as e:
                 log_warning(f"Failed to add relation to external MemPalace Graph: {e}")
 
-        if self.db_path:
+        local_conn = conn if conn is not None else self._get_connection()
+        if local_conn:
             try:
-                local_conn = conn if conn is not None else sqlite3.connect(self.db_path)
                 cursor = local_conn.cursor()
                 cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
                 w_row = cursor.fetchone()
@@ -451,7 +461,7 @@ class MemePalaceClient:
                     wing_id = w_row[0]
 
                 cursor.execute(
-                    "INSERT INTO knowledge_graph (wing_id, source_entity, target_entity, relation, valid_from) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT OR IGNORE INTO knowledge_graph (wing_id, source_entity, target_entity, relation, valid_from) VALUES (?, ?, ?, ?, ?)",
                     (wing_id, source, target, relation, valid_from)
                 )
                 if conn is None:
@@ -481,9 +491,9 @@ class MemePalaceClient:
                 log_warning(f"Failed to search external MemPalace: {e}. Searching local fallback DB.")
 
         # 2. Local Fallback Database Search
-        if self.db_path:
+        conn = self._get_connection()
+        if conn:
             try:
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 
                 # Fetch all drawers in this wing
@@ -506,8 +516,6 @@ class MemePalaceClient:
                     """)
                     drawers = cursor.fetchall()
                     
-                conn.close()
-
                 # Basic TF-IDF / Substring similarity matching for demonstration/local-first use.
                 # We calculate simple keyword overlap score as robust fallback.
                 query_words = set(query.lower().split())
@@ -548,10 +556,9 @@ class MemePalaceClient:
 
     def get_room_visual_context(self, wing_name: str, room_name: str) -> Optional[str]:
         """Retrieve visual_scene_context Drawer content for a given room in SQLite database."""
-        if self.db_path:
+        conn = self._get_connection()
+        if conn:
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT d.content FROM drawers d
@@ -571,7 +578,6 @@ class MemePalaceClient:
                     """, (room_name,))
                     row = cursor.fetchone()
                     
-                conn.close()
                 if row:
                     return row[0]
             except Exception as e:
@@ -581,10 +587,9 @@ class MemePalaceClient:
     def get_relations(self, wing_name: str) -> List[Dict[str, Any]]:
         """Retrieve all character relations for a given wing from SQLite database."""
         results = []
-        if self.db_path:
+        conn = self._get_connection()
+        if conn:
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT kg.source_entity, kg.relation, kg.target_entity, kg.valid_from 
@@ -603,7 +608,6 @@ class MemePalaceClient:
                     """)
                     rows = cursor.fetchall()
                     
-                conn.close()
                 for row in rows:
                     results.append({
                         "source": row[0],
@@ -631,9 +635,9 @@ class MemePalaceClient:
                 log_warning(f"Failed to clear wing on external MemPalace server: {e}")
 
         # 2. Local SQLite clear
-        if self.db_path:
+        conn = self._get_connection()
+        if conn:
             try:
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 
                 # Find wing ID
@@ -654,7 +658,6 @@ class MemePalaceClient:
                     cursor.execute("DELETE FROM rooms WHERE wing_id = ?", (wing_id,))
                     
                 conn.commit()
-                conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in clear_wing: {e}")
@@ -663,16 +666,15 @@ class MemePalaceClient:
     def clear_all_local_data(self) -> bool:
         """Completely clear all data from all tables in the local SQLite database."""
         log_info("Completely clearing all local SQLite database tables.")
-        if self.db_path:
+        conn = self._get_connection()
+        if conn:
             try:
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM drawers")
                 cursor.execute("DELETE FROM rooms")
                 cursor.execute("DELETE FROM knowledge_graph")
                 cursor.execute("DELETE FROM wings")
                 conn.commit()
-                conn.close()
                 log_info(f"Completely cleared all local database tables at: {self.db_path}")
                 return True
             except Exception as e:
@@ -682,14 +684,12 @@ class MemePalaceClient:
     def get_wings(self) -> List[Dict[str, Any]]:
         """Retrieve all Wings (game projects) from the local SQLite database."""
         results = []
-        if self.db_path and os.path.exists(self.db_path):
+        conn = self._get_connection()
+        if conn:
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 cursor.execute("SELECT id, name, description FROM wings")
                 rows = cursor.fetchall()
-                conn.close()
                 for row in rows:
                     results.append({
                         "id": row[0],
@@ -703,10 +703,9 @@ class MemePalaceClient:
     def get_rooms(self, wing_name: str) -> List[Dict[str, Any]]:
         """Retrieve all Rooms (scenes/timeline locations) for the given wing."""
         results = []
-        if self.db_path and os.path.exists(self.db_path):
+        conn = self._get_connection()
+        if conn:
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 # Check for table rooms and wings
                 cursor.execute("""
@@ -715,7 +714,6 @@ class MemePalaceClient:
                     WHERE w.name = ?
                 """, (wing_name,))
                 rows = cursor.fetchall()
-                conn.close()
                 for row in rows:
                     results.append({
                         "id": row[0],
@@ -726,11 +724,9 @@ class MemePalaceClient:
                 # Sibling fallback: if no rooms found under this exact wing name,
                 # fetch all rooms (similar to search context fallback)
                 try:
-                    conn = sqlite3.connect(self.db_path)
                     cursor = conn.cursor()
                     cursor.execute("SELECT id, name, description FROM rooms")
                     rows = cursor.fetchall()
-                    conn.close()
                     for row in rows:
                         results.append({
                             "id": row[0],
@@ -744,10 +740,9 @@ class MemePalaceClient:
     def get_room_drawers(self, wing_name: str, room_name: str) -> List[Dict[str, Any]]:
         """Retrieve all Drawers (contents/transcripts) for the given room and wing."""
         results = []
-        if self.db_path and os.path.exists(self.db_path):
+        conn = self._get_connection()
+        if conn:
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT d.id, d.name, d.content, d.metadata FROM drawers d
@@ -766,7 +761,6 @@ class MemePalaceClient:
                     """, (room_name,))
                     rows = cursor.fetchall()
                     
-                conn.close()
                 for row in rows:
                     try:
                         meta = json.loads(row[3]) if row[3] else {}
@@ -784,321 +778,330 @@ class MemePalaceClient:
 
     def get_chapter_for_line(self, wing_name: str, line_num: int) -> Optional[Dict[str, Any]]:
         """Find the script chapter containing the given script line number."""
-        if not self.db_path or not os.path.exists(self.db_path):
-            return None
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT sc.id, sc.num, sc.title, sc.start_line, sc.end_line, sc.ai_summary, sc.content
-                FROM script_chapters sc
-                JOIN wings w ON sc.wing_id = w.id
-                WHERE w.name = ? AND ? BETWEEN sc.start_line AND sc.end_line
-            """, (wing_name, line_num))
-            row = cursor.fetchone()
-            conn.close()
-            if row:
-                return {
-                    "id": row[0],
-                    "num": row[1],
-                    "title": row[2],
-                    "start_line": row[3],
-                    "end_line": row[4],
-                    "ai_summary": row[5] or "",
-                    "content": row[6] or ""
-                }
-        except Exception as e:
-            log_error(f"Local DB error in get_chapter_for_line: {e}")
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT sc.id, sc.num, sc.title, sc.start_line, sc.end_line, sc.ai_summary, sc.content
+                    FROM script_chapters sc
+                    JOIN wings w ON sc.wing_id = w.id
+                    WHERE w.name = ? AND ? BETWEEN sc.start_line AND sc.end_line
+                """, (wing_name, line_num))
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row[0],
+                        "num": row[1],
+                        "title": row[2],
+                        "start_line": row[3],
+                        "end_line": row[4],
+                        "ai_summary": row[5] or "",
+                        "content": row[6] or ""
+                    }
+            except Exception as e:
+                log_error(f"Local DB error in get_chapter_for_line: {e}")
         return None
 
     def get_script_mapping(self, wing_name: str, bmg_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve script mapping directly from script_mappings table."""
-        if not self.db_path or not os.path.exists(self.db_path):
-            return None
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT sm.script_line, sm.bmg_text, sc.id, sc.num, sc.title
-                FROM script_mappings sm
-                JOIN wings w ON sm.wing_id = w.id
-                LEFT JOIN script_chapters sc ON sm.chapter_id = sc.id
-                WHERE w.name = ? AND sm.bmg_id = ?
-            """, (wing_name, bmg_id))
-            row = cursor.fetchone()
-            
-            # Try with clean ID if original is bracketed
-            if not row and bmg_id.startswith("[") and bmg_id.endswith("]"):
-                clean_id = bmg_id[1:-1]
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
                 cursor.execute("""
                     SELECT sm.script_line, sm.bmg_text, sc.id, sc.num, sc.title
                     FROM script_mappings sm
                     JOIN wings w ON sm.wing_id = w.id
                     LEFT JOIN script_chapters sc ON sm.chapter_id = sc.id
                     WHERE w.name = ? AND sm.bmg_id = ?
-                """, (wing_name, clean_id))
+                """, (wing_name, bmg_id))
                 row = cursor.fetchone()
                 
-            conn.close()
-            if row:
-                return {
-                    "script_line": row[0],
-                    "bmg_text": row[1],
-                    "chapter_id": row[2],
-                    "chapter_num": row[3],
-                    "chapter_title": row[4]
-                }
-        except Exception as e:
-            log_error(f"Local DB error in get_script_mapping: {e}")
+                # Try with clean ID if original is bracketed
+                if not row and bmg_id.startswith("[") and bmg_id.endswith("]"):
+                    clean_id = bmg_id[1:-1]
+                    cursor.execute("""
+                        SELECT sm.script_line, sm.bmg_text, sc.id, sc.num, sc.title
+                        FROM script_mappings sm
+                        JOIN wings w ON sm.wing_id = w.id
+                        LEFT JOIN script_chapters sc ON sm.chapter_id = sc.id
+                        WHERE w.name = ? AND sm.bmg_id = ?
+                    """, (wing_name, clean_id))
+                    row = cursor.fetchone()
+                    
+                if row:
+                    return {
+                        "script_line": row[0],
+                        "bmg_text": row[1],
+                        "chapter_id": row[2],
+                        "chapter_num": row[3],
+                        "chapter_title": row[4]
+                    }
+            except Exception as e:
+                log_error(f"Local DB error in get_script_mapping: {e}")
         return None
 
     def get_chapter_mappings(self, wing_name: str, chapter_id: int) -> List[Dict[str, Any]]:
         """Retrieve all BMG mappings for a specific chapter."""
         results = []
-        if not self.db_path or not os.path.exists(self.db_path):
-            return results
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT bmg_id, script_line, bmg_text 
-                FROM script_mappings 
-                WHERE chapter_id = ?
-                ORDER BY script_line
-            """, (chapter_id,))
-            rows = cursor.fetchall()
-            conn.close()
-            for row in rows:
-                results.append({
-                    "bmg_id": row[0],
-                    "script_line": row[1],
-                    "bmg_text": row[2]
-                })
-        except Exception as e:
-            log_error(f"Local DB error in get_chapter_mappings: {e}")
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT bmg_id, script_line, bmg_text 
+                    FROM script_mappings 
+                    WHERE chapter_id = ?
+                    ORDER BY script_line
+                """, (chapter_id,))
+                rows = cursor.fetchall()
+                for row in rows:
+                    results.append({
+                        "bmg_id": row[0],
+                        "script_line": row[1],
+                        "bmg_text": row[2]
+                    })
+            except Exception as e:
+                log_error(f"Local DB error in get_chapter_mappings: {e}")
         return results
+
+    def get_all_chapter_mappings(self, wing_name: str) -> Dict[int, List[Dict[str, Any]]]:
+        """Retrieve all BMG mappings for all chapters in a wing, grouped by chapter_id."""
+        results = {}
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT sm.chapter_id, sm.bmg_id, sm.script_line, sm.bmg_text 
+                    FROM script_mappings sm
+                    JOIN wings w ON sm.wing_id = w.id
+                    WHERE w.name = ?
+                    ORDER BY sm.script_line
+                """, (wing_name,))
+                rows = cursor.fetchall()
+                for row in rows:
+                    ch_id = row[0]
+                    if ch_id is not None:
+                        results.setdefault(ch_id, []).append({
+                            "bmg_id": row[1],
+                            "script_line": row[2],
+                            "bmg_text": row[3]
+                        })
+            except Exception as e:
+                log_error(f"Local DB error in get_all_chapter_mappings: {e}")
+        return results
+
 
     def get_all_chapters(self, wing_name: str) -> List[Dict[str, Any]]:
         """Retrieve all chapters and their mapping counts for a wing."""
         results = []
-        if not self.db_path or not os.path.exists(self.db_path):
-            return results
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Check if wings table has entries first
-            cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
-            w_row = cursor.fetchone()
-            if not w_row:
-                conn.close()
-                return results
-            wing_id = w_row[0]
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                
+                # Check if wings table has entries first
+                cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
+                w_row = cursor.fetchone()
+                if not w_row:
+                    return results
+                wing_id = w_row[0]
 
-            cursor.execute("""
-                SELECT sc.id, sc.num, sc.title, sc.start_line, sc.end_line, sc.ai_summary,
-                       (SELECT COUNT(*) FROM script_mappings sm WHERE sm.chapter_id = sc.id) as mapped_count
-                FROM script_chapters sc
-                WHERE sc.wing_id = ?
-                ORDER BY sc.start_line
-            """, (wing_id,))
-            rows = cursor.fetchall()
-            conn.close()
-            for row in rows:
-                results.append({
-                    "id": row[0],
-                    "num": row[1],
-                    "title": row[2],
-                    "start_line": row[3],
-                    "end_line": row[4],
-                    "ai_summary": row[5] or "",
-                    "mapped_count": row[6]
-                })
-        except Exception as e:
-            log_error(f"Local DB error in get_all_chapters: {e}")
+                cursor.execute("""
+                    SELECT sc.id, sc.num, sc.title, sc.start_line, sc.end_line, sc.ai_summary,
+                           (SELECT COUNT(*) FROM script_mappings sm WHERE sm.chapter_id = sc.id) as mapped_count
+                    FROM script_chapters sc
+                    WHERE sc.wing_id = ?
+                    ORDER BY sc.start_line
+                """, (wing_id,))
+                rows = cursor.fetchall()
+                for row in rows:
+                    results.append({
+                        "id": row[0],
+                        "num": row[1],
+                        "title": row[2],
+                        "start_line": row[3],
+                        "end_line": row[4],
+                        "ai_summary": row[5] or "",
+                        "mapped_count": row[6]
+                    })
+            except Exception as e:
+                log_error(f"Local DB error in get_all_chapters: {e}")
         return results
 
     def save_chapter_summary(self, chapter_id: int, summary: str):
         """Update AI summary of a chapter."""
-        if not self.db_path:
-            return
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("UPDATE script_chapters SET ai_summary = ? WHERE id = ?", (summary, chapter_id))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            log_error(f"Local DB error in save_chapter_summary: {e}")
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE script_chapters SET ai_summary = ? WHERE id = ?", (summary, chapter_id))
+                conn.commit()
+            except Exception as e:
+                log_error(f"Local DB error in save_chapter_summary: {e}")
 
     def save_chapters_to_db(self, wing_name: str, chapters: List[Dict[str, Any]]):
         """Save segmented chapters into local SQLite DB, clearing older chapters for the wing."""
-        if not self.db_path:
-            return
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Get wing ID
-            cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
-            w_row = cursor.fetchone()
-            if not w_row:
-                cursor.execute("INSERT INTO wings (name) VALUES (?)", (wing_name,))
-                wing_id = cursor.lastrowid
-            else:
-                wing_id = w_row[0]
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
                 
-            # Clear old chapters and mappings (cascade delete or manual delete)
-            cursor.execute("DELETE FROM script_chapters WHERE wing_id = ?", (wing_id,))
-            cursor.execute("DELETE FROM script_mappings WHERE wing_id = ?", (wing_id,))
-            
-            for ch in chapters:
-                cursor.execute("""
-                    INSERT INTO script_chapters (wing_id, num, title, start_line, end_line, ai_summary, content)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    wing_id,
-                    ch.get("num", ""),
-                    ch.get("title", ""),
-                    ch.get("start_line", 0),
-                    ch.get("end_line", 0),
-                    ch.get("ai_summary", ""),
-                    ch.get("content", "")
-                ))
-            conn.commit()
-            conn.close()
-            log_info(f"Successfully saved {len(chapters)} chapters for wing '{wing_name}' to local DB.")
-        except Exception as e:
-            log_error(f"Local DB error in save_chapters_to_db: {e}", exc_info=True)
+                # Get wing ID
+                cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
+                w_row = cursor.fetchone()
+                if not w_row:
+                    cursor.execute("INSERT INTO wings (name) VALUES (?)", (wing_name,))
+                    wing_id = cursor.lastrowid
+                else:
+                    wing_id = w_row[0]
+                    
+                # Clear old chapters and mappings (cascade delete or manual delete)
+                cursor.execute("DELETE FROM script_chapters WHERE wing_id = ?", (wing_id,))
+                cursor.execute("DELETE FROM script_mappings WHERE wing_id = ?", (wing_id,))
+                
+                for ch in chapters:
+                    cursor.execute("""
+                        INSERT INTO script_chapters (wing_id, num, title, start_line, end_line, ai_summary, content)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        wing_id,
+                        ch.get("num", ""),
+                        ch.get("title", ""),
+                        ch.get("start_line", 0),
+                        ch.get("end_line", 0),
+                        ch.get("ai_summary", ""),
+                        ch.get("content", "")
+                    ))
+                conn.commit()
+                log_info(f"Successfully saved {len(chapters)} chapters for wing '{wing_name}' to local DB.")
+            except Exception as e:
+                log_error(f"Local DB error in save_chapters_to_db: {e}", exc_info=True)
 
     def save_mappings_to_db(self, wing_name: str, mappings: List[Dict[str, Any]]):
         """Save BMG to script mappings into SQLite DB, clearing older mappings first."""
-        if not self.db_path:
-            return
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Get wing ID
-            cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
-            w_row = cursor.fetchone()
-            if not w_row:
-                cursor.execute("INSERT INTO wings (name) VALUES (?)", (wing_name,))
-                wing_id = cursor.lastrowid
-            else:
-                wing_id = w_row[0]
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
                 
-            cursor.execute("DELETE FROM script_mappings WHERE wing_id = ?", (wing_id,))
-            
-            # Retrieve active chapter lookup map: (start, end) -> chapter_id
-            cursor.execute("SELECT id, start_line, end_line FROM script_chapters WHERE wing_id = ?", (wing_id,))
-            ch_rows = cursor.fetchall()
-            
-            for m in mappings:
-                line = m.get("script_line")
-                chapter_id = None
-                for ch_id, s_line, e_line in ch_rows:
-                    if s_line <= line <= e_line:
-                        chapter_id = ch_id
-                        break
-                        
-                cursor.execute("""
-                    INSERT INTO script_mappings (wing_id, chapter_id, bmg_id, script_line, bmg_text)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (
-                    wing_id,
-                    chapter_id,
-                    m.get("bmg_id", ""),
-                    line,
-                    m.get("bmg_text", "")
-                ))
-            conn.commit()
-            conn.close()
-            log_info(f"Successfully saved {len(mappings)} BMG mappings for wing '{wing_name}' to local DB.")
-        except Exception as e:
-            log_error(f"Local DB error in save_mappings_to_db: {e}", exc_info=True)
+                # Get wing ID
+                cursor.execute("SELECT id FROM wings WHERE name = ?", (wing_name,))
+                w_row = cursor.fetchone()
+                if not w_row:
+                    cursor.execute("INSERT INTO wings (name) VALUES (?)", (wing_name,))
+                    wing_id = cursor.lastrowid
+                else:
+                    wing_id = w_row[0]
+                    
+                cursor.execute("DELETE FROM script_mappings WHERE wing_id = ?", (wing_id,))
+                
+                # Retrieve active chapter lookup map: (start, end) -> chapter_id
+                cursor.execute("SELECT id, start_line, end_line FROM script_chapters WHERE wing_id = ?", (wing_id,))
+                ch_rows = cursor.fetchall()
+                
+                for m in mappings:
+                    line = m.get("script_line")
+                    chapter_id = None
+                    for ch_id, s_line, e_line in ch_rows:
+                        if s_line <= line <= e_line:
+                            chapter_id = ch_id
+                            break
+                            
+                    cursor.execute("""
+                        INSERT INTO script_mappings (wing_id, chapter_id, bmg_id, script_line, bmg_text)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (
+                        wing_id,
+                        chapter_id,
+                        m.get("bmg_id", ""),
+                        line,
+                        m.get("bmg_text", "")
+                    ))
+                conn.commit()
+                log_info(f"Successfully saved {len(mappings)} BMG mappings for wing '{wing_name}' to local DB.")
+            except Exception as e:
+                log_error(f"Local DB error in save_mappings_to_db: {e}", exc_info=True)
 
     def get_all_character_lines(self, wing_name: str) -> Dict[str, List[str]]:
-        """Retrieve and group all dialogue lines spoken by each character from mapped drawers."""
+        """Retrieve and group all dialogue dialogue lines spoken by each character from mapped drawers."""
         results: Dict[str, List[str]] = {}
-        if not self.db_path or not os.path.exists(self.db_path):
-            return results
-
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Fetch all dialogue drawers for this wing
-            cursor.execute("""
-                SELECT d.content, d.metadata 
-                FROM drawers d
-                JOIN rooms r ON d.room_id = r.id
-                JOIN wings w ON r.wing_id = w.id
-                WHERE w.name = ? AND d.name IN ('dialogues', 'dialogue_lines')
-            """, (wing_name,))
-            rows = cursor.fetchall()
-            
-            # Fallback if specific wing has no drawers, fetch all dialogue drawers
-            if not rows:
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                
+                # Fetch all dialogue drawers for this wing
                 cursor.execute("""
                     SELECT d.content, d.metadata 
                     FROM drawers d
-                    WHERE d.name IN ('dialogues', 'dialogue_lines')
-                """)
+                    JOIN rooms r ON d.room_id = r.id
+                    JOIN wings w ON r.wing_id = w.id
+                    WHERE w.name = ? AND d.name IN ('dialogues', 'dialogue_lines')
+                """, (wing_name,))
                 rows = cursor.fetchall()
                 
-            conn.close()
-            
-            # Tag cleaning pattern
-            tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
-            
-            for content, metadata_str in rows:
-                if not content:
-                    continue
+                # Fallback if specific wing has no drawers, fetch all dialogue drawers
+                if not rows:
+                    cursor.execute("""
+                        SELECT d.content, d.metadata 
+                        FROM drawers d
+                        WHERE d.name IN ('dialogues', 'dialogue_lines')
+                    """)
+                    rows = cursor.fetchall()
                     
-                try:
-                    meta = json.loads(metadata_str) if metadata_str else {}
-                except Exception:
-                    meta = {}
-                    
-                speaker_map = meta.get("speaker_map") or {}
+                # Tag cleaning pattern
+                tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
                 
-                for line in content.splitlines():
-                    line = line.strip()
-                    if not line:
+                for content, metadata_str in rows:
+                    if not content:
                         continue
                         
-                    line_id = None
-                    line_text = None
-                    
-                    # Format: ID: BMG_Str_12 | Text: Hello...
-                    if "ID:" in line and "| Text:" in line:
-                        parts = line.split("| Text:", 1)
-                        line_id = parts[0].replace("ID:", "").strip()
-                        line_text = parts[1].strip()
-                    # Format: [BMG_Str_12]: Hello...
-                    elif ":" in line:
-                        parts = line.split(":", 1)
-                        line_id = parts[0].strip()
-                        if line_id.startswith("[") and line_id.endswith("]"):
-                            line_id = line_id[1:-1].strip()
-                        line_text = parts[1].strip()
+                    try:
+                        meta = json.loads(metadata_str) if metadata_str else {}
+                    except Exception:
+                        meta = {}
                         
-                    if line_id and line_text:
-                        speaker = speaker_map.get(line_id) or speaker_map.get(f"[{line_id}]")
-                        if speaker:
-                            clean_speaker = str(speaker).strip()
-                            if clean_speaker and clean_speaker.lower() not in ("unknown", "none"):
-                                # Strip tags for clean linguistic analysis
-                                clean_text = tag_pattern.sub('', line_text).strip()
-                                # Clean spaces
-                                clean_text = re.sub(r'\s+', ' ', clean_text)
-                                if clean_text:
-                                    results.setdefault(clean_speaker, []).append(clean_text)
-                                    
-            log_info(f"Retrieved dialogue lines for {len(results)} speakers from local database.")
-        except Exception as e:
-            log_error(f"Local DB error in get_all_character_lines: {e}", exc_info=True)
-            
+                    speaker_map = meta.get("speaker_map") or {}
+                    
+                    for line in content.splitlines():
+                        line = line.strip()
+                        if not line:
+                            continue
+                            
+                        line_id = None
+                        line_text = None
+                        
+                        # Format: ID: BMG_Str_12 | Text: Hello...
+                        if "ID:" in line and "| Text:" in line:
+                            parts = line.split("| Text:", 1)
+                            line_id = parts[0].replace("ID:", "").strip()
+                            line_text = parts[1].strip()
+                        # Format: [BMG_Str_12]: Hello...
+                        elif ":" in line:
+                            parts = line.split(":", 1)
+                            line_id = parts[0].strip()
+                            if line_id.startswith("[") and line_id.endswith("]"):
+                                line_id = line_id[1:-1].strip()
+                            line_text = parts[1].strip()
+                            
+                        if line_id and line_text:
+                            speaker = speaker_map.get(line_id) or speaker_map.get(f"[{line_id}]")
+                            if speaker:
+                                clean_speaker = str(speaker).strip()
+                                if clean_speaker and clean_speaker.lower() not in ("unknown", "none"):
+                                    # Strip tags for clean linguistic analysis
+                                    clean_text = tag_pattern.sub('', line_text).strip()
+                                    # Clean spaces
+                                    clean_text = re.sub(r'\s+', ' ', clean_text)
+                                    if clean_text:
+                                        results.setdefault(clean_speaker, []).append(clean_text)
+                                        
+                log_info(f"Retrieved dialogue lines for {len(results)} speakers from local database.")
+            except Exception as e:
+                log_error(f"Local DB error in get_all_character_lines: {e}", exc_info=True)
+                
         return results
 

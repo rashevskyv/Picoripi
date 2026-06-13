@@ -104,6 +104,10 @@ def test_BlockListUpdater_populate_chapters(updater):
     mock_client.get_chapter_mappings.return_value = [
         {"bmg_id": "main_Str_10", "script_line": 100, "bmg_text": "Hello World"}
     ]
+    mock_client.get_all_chapter_mappings.return_value = {
+        10: [{"bmg_id": "main_Str_10", "script_line": 100, "bmg_text": "Hello World"}],
+        20: []
+    }
     
     # Mock translation_handler and prompt_composer
     composer = MagicMock()
@@ -142,6 +146,7 @@ def test_BlockListUpdater_populate_chapters(updater):
     assert "Chapter 1: Ordon Village" in ch1.text(0)
     assert ch1.data(0, Qt.UserRole) == -2
     assert ch1.data(0, Qt.UserRole + 11) == 10
+    assert ch1.data(0, Qt.ItemDataRole.UserRole + 13) == [(0, 10)]
     
     # Verify that no dialogue child rows are nested under ch1 (redundant to preview panel)
     assert ch1.childCount() == 0
@@ -194,6 +199,85 @@ def test_BlockListUpdater_compacted_folder_problem_count(updater):
     
     assert item.text(0) == "CompactFolder / block0 (1)"
     assert "Width Error" in item.toolTip(0)
+
+
+def test_MemePalaceChaptersLoadWorker():
+    from core.mempalace_worker import MemePalaceChaptersLoadWorker
+    mock_client = MagicMock()
+    mock_client.get_all_chapters.return_value = [{"id": 1, "num": "Act 1, Ch 1"}]
+    mock_client.get_all_chapter_mappings.return_value = {1: []}
+    
+    worker = MemePalaceChaptersLoadWorker(mock_client, "tp")
+    
+    signals_received = []
+    def on_finished(chapters, mappings):
+        signals_received.append((chapters, mappings))
+        
+    worker.finished_signal.connect(on_finished)
+    worker.run() # Run synchronously for testing the run logic
+    
+    assert len(signals_received) == 1
+    assert signals_received[0][0] == [{"id": 1, "num": "Act 1, Ch 1"}]
+    assert signals_received[0][1] == {1: []}
+    assert mock_client.get_all_chapters.called
+    assert mock_client.get_all_chapter_mappings.called
+
+
+def test_BlockListUpdater_async_chapters_loading(updater):
+    # Setup Fake Client to bypass is_test check
+    class FakeMemePalaceClient:
+        def get_all_chapters(self, wing_name):
+            return [{"id": 10, "num": "Act 1, Ch 1", "title": "Ordon Village"}]
+        def get_all_chapter_mappings(self, wing_name):
+            return {10: []}
+            
+    fake_client = FakeMemePalaceClient()
+    
+    # Mock translation_handler and prompt_composer
+    composer = MagicMock()
+    composer.prompt_composer._get_mempalace_client.return_value = fake_client
+    composer.prompt_composer._get_wing_name.return_value = "tp"
+    updater.mw.translation_handler = composer
+    updater.mw._is_test_mode = False
+    
+    # Mock block list widget
+    mock_item = QTreeWidgetItem()
+    updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
+
+    
+    # Run populate_blocks which starts the async load worker
+    with patch('core.mempalace_worker.MemePalaceChaptersLoadWorker.start') as mock_start:
+        updater.populate_blocks()
+        assert mock_start.called # Worker start should be called
+        
+    # Check that tree shows loading placeholder
+    root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
+    chapters_root = next((r for r in root_items if r.text(0) == "Chapters"), None)
+    assert chapters_root is not None
+    assert chapters_root.childCount() == 1
+    assert chapters_root.child(0).text(0) == "Loading..."
+    
+    # Now simulate successful async load completion
+    updater._on_chapters_loaded(
+        [{"id": 10, "num": "Act 1, Ch 1", "title": "Ordon Village"}],
+        {10: []}
+    )
+    
+    # Re-fetch root items after populate_blocks is called again internally by slot
+    root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
+    chapters_root = next((r for r in root_items if r.text(0) == "Chapters"), None)
+    assert chapters_root is not None
+    # Now the layout should have the actual chapter hierarchy populated from the cache
+    assert chapters_root.childCount() == 1 # Act 1
+    assert chapters_root.child(0).text(0) == "Act 1"
+    
+    # Now simulate load failure
+    updater._on_chapters_load_failed("Network Timeout")
+    root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
+    chapters_root = next((r for r in root_items if r.text(0) == "Chapters (Load Error)"), None)
+    assert chapters_root is not None
+    assert chapters_root.child(0).text(0) == "Error: Network Timeout"
+
 
 
 

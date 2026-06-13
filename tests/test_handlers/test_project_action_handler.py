@@ -109,7 +109,7 @@ def test_ProjectActionHandler_import_block_action(mock_dialog_class, mock_msg_bo
     
     # Mock PM
     mock_mw.project_manager.add_block.return_value = True
-    h._populate_blocks_from_project = MagicMock()
+    h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(True) if on_completed else None)
     
     h.import_block_action()
     
@@ -125,7 +125,7 @@ def test_ProjectActionHandler_import_directory_action(mock_getDir, mock_msg_box,
     
     mock_getDir.return_value = "C:/import_dir"
     mock_mw.project_manager.import_directory.return_value = ["block1", "block2"]
-    h._populate_blocks_from_project = MagicMock()
+    h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(True) if on_completed else None)
     
     h.import_directory_action()
     
@@ -257,7 +257,7 @@ def test_ProjectActionHandler_open_recent_project(mock_Path, mock_msg_box, mock_
     mock_pm.project.plugin_name = "test_plug"
     mock_pm.project.name = "MyProj"
     
-    h._populate_blocks_from_project = MagicMock()
+    h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(True) if on_completed else None)
     
     with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda delay, func: func()):
         h._open_recent_project("real_path.uiproj")
@@ -387,7 +387,7 @@ def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mo
     mock_pm.project.name = "MyProj"
     
     # Session state IS restored
-    h._populate_blocks_from_project = MagicMock(return_value=True)
+    h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(True) if on_completed else None)
     
     with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         h._open_recent_project("real_path.uiproj")
@@ -410,7 +410,7 @@ def test_ProjectActionHandler_open_recent_project_no_session_restore_runs_timer(
     mock_pm.project.name = "MyProj"
     
     # Session state is NOT restored
-    h._populate_blocks_from_project = MagicMock(return_value=False)
+    h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(False) if on_completed else None)
     
     with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         h._open_recent_project("real_path.uiproj")
@@ -419,5 +419,42 @@ def test_ProjectActionHandler_open_recent_project_no_session_restore_runs_timer(
         args, _ = mock_timer.call_args
         assert args[0] == 150
         assert callable(args[1])
+
+
+def test_ProjectLoadWorker_run_and_emits(mock_mw):
+    from handlers.project_action_handler import ProjectLoadWorker
+    
+    mock_pm = MagicMock()
+    mock_block = MagicMock(source_file='a.json', translation_file=None, internal_key=None)
+    mock_block.name = "Block A"
+    mock_block.metadata = {}
+    mock_pm.project.blocks = [mock_block]
+    mock_pm.get_absolute_path.return_value = "C:/test/a.json"
+    
+    mock_rules = MagicMock()
+    mock_rules.original_keys = ['key1']
+    mock_rules.load_data_from_json_obj.return_value = (["data"], {"0": "Block A"})
+    
+    worker = ProjectLoadWorker(mock_pm, mock_rules)
+    
+    # Track signal emits
+    emitted_results = []
+    emitted_progress = []
+    worker.finished.connect(emitted_results.append)
+    worker.progress.connect(lambda current, total: emitted_progress.append((current, total)))
+    
+    with patch('handlers.project_action_handler.Path.exists', return_value=True), \
+         patch('handlers.project_action_handler.load_json_file', return_value=("{}", False)):
+        worker.run()
+        
+    assert len(emitted_results) == 1
+    result = emitted_results[0]
+    assert result['data'] == ["data"]
+    assert result['block_names'] == {"0": "Block A"}
+    assert result['plugin_keys_backup'] == ['key1']
+    
+    assert len(emitted_progress) > 0
+    # The progress should show block loading and translation loading stages
+    assert emitted_progress[0] == (0, 2)
 
 

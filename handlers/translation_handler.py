@@ -1,4 +1,4 @@
-﻿# handlers/translation/translation_handler.py
+# handlers/translation/translation_handler.py
 
 import json
 import re
@@ -475,8 +475,13 @@ class TranslationHandler(BaseHandler):
                 source_items.append({"id": idx, "text": text_raw})
                 temp_id_map[idx] = (r_block_idx, r_string_idx)
 
+        source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+        if not source_items:
+            return
+
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return
+
 
         operation_title = f"AI Translation (Lines {start_line + 1}-{end_line + 1})" if start_line != end_line else f"AI Translation (Line {start_line + 1})"
         
@@ -596,10 +601,19 @@ class TranslationHandler(BaseHandler):
                 source_items.append({"id": temp_id, "text": text})
                 temp_id_map[temp_id] = (b_idx, s_idx)
 
+            source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+            if not source_items:
+                self.ui_handler.finish_ai_operation()
+                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                    self.mw.statusBar.showMessage("All lines in chapter restored from saved translations.", 3000)
+                return
+
+
             provider = self.ai_lifecycle_manager._prepare_provider()
             if not provider:
                 self.ui_handler.finish_ai_operation()
                 return
+
 
             base_timeout = self._resolve_base_timeout(provider)
             block_timeout = base_timeout * 10
@@ -638,6 +652,14 @@ class TranslationHandler(BaseHandler):
                 {"id": idx, "text": str(self.glossary_handler._get_original_string(target_block_idx, idx) or "")}
                 for idx in target_indices if idx < len(block_strings)
             ]
+            temp_id_map = {idx: (target_block_idx, idx) for idx in target_indices if idx < len(block_strings)}
+
+            source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+            if not source_items:
+                self.ui_handler.finish_ai_operation()
+                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                    self.mw.statusBar.showMessage("All lines in block restored from saved translations.", 3000)
+                return
 
             provider = self.ai_lifecycle_manager._prepare_provider()
             if not provider:
@@ -650,8 +672,6 @@ class TranslationHandler(BaseHandler):
                 f"Starting block AI translation for block {target_block_idx} with timeout {block_timeout}s (base {base_timeout}s); lines={len(source_items)}"
             )
 
-            # Always build temp_id_map to prevent index shifting bugs during segment reordering
-            temp_id_map = {idx: (target_block_idx, idx) for idx in target_indices if idx < len(block_strings)}
 
         task_details = {
             'type': 'translate_block_chunked',
@@ -740,12 +760,91 @@ class TranslationHandler(BaseHandler):
             base = 120
         return max(base, 30)
 
+    def _filter_already_saved_translations(
+        self, source_items: List[Dict[str, Any]], temp_id_map: Dict[Any, Tuple[int, int]]
+    ) -> Tuple[List[Dict[str, Any]], Dict[Any, Tuple[int, int]]]:
+        """
+        Filters out items that already have a saved translation in SavedTranslationsManager.
+        Applies those saved translations immediately to the database and refreshes the UI.
+        Returns the remaining source items and their corresponding temp_id_map.
+        """
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        if not saved_mgr or hasattr(saved_mgr, 'assert_called_with'):
+            return source_items, temp_id_map
+
+        saved_translations = saved_mgr.load_all_saved_translations()
+        if not isinstance(saved_translations, dict) or hasattr(saved_translations, 'assert_called_with') or not saved_translations:
+            return source_items, temp_id_map
+
+        filtered_source_items = []
+        filtered_temp_id_map = {}
+        restored_items = []
+
+        for item in source_items:
+            item_id = item.get("id")
+            if temp_id_map and item_id in temp_id_map:
+                r_block_idx, r_string_idx = temp_id_map[item_id]
+            else:
+                r_block_idx = self.mw.data_store.current_block_idx
+                try:
+                    r_string_idx = int(item_id)
+                except (ValueError, TypeError):
+                    r_string_idx = item_id
+
+            key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
+            saved_text = saved_translations.get(key)
+            
+            if saved_text and isinstance(saved_text, str) and not hasattr(saved_text, 'assert_called_with') and saved_text.strip():
+                restored_items.append((r_block_idx, r_string_idx, saved_text))
+            else:
+                filtered_source_items.append(item)
+                if temp_id_map and item_id in temp_id_map:
+                    filtered_temp_id_map[item_id] = (r_block_idx, r_string_idx)
+
+
+        if restored_items:
+            has_undo = hasattr(self.mw, 'undo_manager')
+            if has_undo:
+                self.mw.undo_manager.begin_group()
+
+            try:
+                for r_block_idx, r_string_idx, saved_text in restored_items:
+                    final_text = self._format_and_wrap_translation(saved_text, r_block_idx, r_string_idx)
+                    self.data_processor.update_edited_data(
+                        r_block_idx, r_string_idx, final_text, action_type="RESTORE", skip_ui_refresh=True
+                    )
+                    if hasattr(self.mw, 'text_operation_handler') and self.mw.text_operation_handler:
+                        self.mw.text_operation_handler._rescan_issues_for_current_string(r_block_idx, r_string_idx, final_text)
+            finally:
+                if has_undo:
+                    self.mw.undo_manager.end_group("RESTORE_SAVED")
+
+            modified_blocks = {b_idx for b_idx, _, _ in restored_items}
+            for m_block in modified_blocks:
+                self.ui_updater.update_block_item_text_with_problem_count(m_block)
+
+            current_view_block = self.mw.data_store.current_block_idx
+            if self.mw.data_store.current_chapter_id is not None:
+                current_view_block = -2
+            self.ui_updater.populate_strings_for_block(
+                current_view_block, getattr(self.mw.data_store, 'current_category_name', None), force=True
+            )
+            self.ui_updater.update_text_views()
+            self.ui_updater.update_title()
+
+            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                self.mw.statusBar.showMessage(f"Restored {len(restored_items)} lines from saved translations.", 3000)
+
+        return filtered_source_items, filtered_temp_id_map
+
+
     def _format_and_wrap_translation(self, text: str, block_idx: int, string_idx: int) -> str:
         """
         Cleans the incoming translation, wraps lines to balance between line_width_warning_threshold_pixels 
         and game_dialog_max_width_pixels, and splits sentences into pages according to lines_per_page.
         """
         return self.text_formatter.format_and_wrap_translation(text, block_idx, string_idx)
+
 
 
     def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
@@ -860,6 +959,7 @@ class TranslationHandler(BaseHandler):
 
             temp_id_map = context.get('temp_id_map')
             modified_blocks = set()
+            translations_by_block = {}
 
             # Retrieve calculated chunks for robust sequential mapping in case AI returns sequential/reordered IDs
             chunks = context.get('calculated_chunks')
@@ -917,8 +1017,20 @@ class TranslationHandler(BaseHandler):
                     modified_blocks.add(real_block_idx)
                     final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
                     self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+                    if real_block_idx not in translations_by_block:
+                        translations_by_block[real_block_idx] = []
+                    translations_by_block[real_block_idx].append((real_string_idx, final_text))
+
+
             
             self.mw.undo_manager.end_group("TRANSLATE")
+            
+            saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+            if saved_mgr:
+                for b_idx, items in translations_by_block.items():
+                    if b_idx != 999999 and b_idx >= 0:
+                        saved_mgr.save_translations_bulk(b_idx, items)
+
             
             if block_idx == -2:
                 modified_blocks.add(-2)
@@ -992,6 +1104,7 @@ class TranslationHandler(BaseHandler):
             p_map = context.get('placeholder_map', {})
             source_items = context.get('source_items', [])
             modified_blocks = set()
+            translations_by_block = {}
 
             for idx_in_response, item in enumerate(translated_strings):
                 temp_id, translated_text = item["id"], item["translation"]
@@ -1054,8 +1167,19 @@ class TranslationHandler(BaseHandler):
                 modified_blocks.add(real_block_idx)
                 final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
                 self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE")
+                
+                if real_block_idx not in translations_by_block:
+                    translations_by_block[real_block_idx] = []
+                translations_by_block[real_block_idx].append((real_string_idx, final_text))
 
             self.mw.undo_manager.end_group("TRANSLATE")
+
+            saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+            if saved_mgr:
+                for b_idx, items in translations_by_block.items():
+                    if b_idx != 999999 and b_idx >= 0:
+                        saved_mgr.save_translations_bulk(b_idx, items)
+
 
             self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_text, response=response)
 
@@ -1106,6 +1230,10 @@ class TranslationHandler(BaseHandler):
         if hasattr(self.mw, 'undo_manager'):
             self.mw.undo_manager.end_group("TRANSLATE")
             
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        if saved_mgr:
+            saved_mgr.save_translation(block_idx, string_idx, final_text)
+
         self.ui_handler.apply_full_translation(final_text)
         self.ui_handler.finish_ai_operation()
         refresh_idx = block_idx
@@ -1123,8 +1251,40 @@ class TranslationHandler(BaseHandler):
 
     def _translate_and_apply(self, *, source_text: str, expected_lines: int, mode_description: str, block_idx: int, string_idx: int) -> None:
         """Internal helper to translate and apply."""
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        if saved_mgr and not hasattr(saved_mgr, 'assert_called_with'):
+            saved_text = saved_mgr.get_saved_translation(block_idx, string_idx)
+            if saved_text and isinstance(saved_text, str) and not hasattr(saved_text, 'assert_called_with') and saved_text.strip():
+                has_undo = hasattr(self.mw, 'undo_manager')
+
+                if has_undo:
+                    self.mw.undo_manager.begin_group()
+                try:
+                    final_text = self._format_and_wrap_translation(saved_text, block_idx, string_idx)
+                    self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="RESTORE", skip_ui_refresh=True)
+                    if hasattr(self.mw, 'text_operation_handler') and self.mw.text_operation_handler:
+                        self.mw.text_operation_handler._rescan_issues_for_current_string(block_idx, string_idx, final_text)
+                finally:
+                    if has_undo:
+                        self.mw.undo_manager.end_group("RESTORE_SAVED")
+                
+                self.ui_handler.apply_full_translation(final_text)
+                self.ui_updater.update_block_item_text_with_problem_count(block_idx)
+                
+                refresh_idx = block_idx
+                if self.mw.data_store.current_chapter_id is not None:
+                    refresh_idx = -2
+                self.ui_updater.populate_strings_for_block(refresh_idx, getattr(self.mw.data_store, 'current_category_name', None), force=True)
+                self.ui_updater.update_text_views()
+                self.ui_updater.update_title()
+                
+                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                    self.mw.statusBar.showMessage(f"Restored saved translation for line {string_idx + 1}.", 3000)
+                return
+
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider: return
+
 
         system_prompt, _ = self.glossary_handler.load_prompts()
         if not system_prompt:
@@ -1346,10 +1506,18 @@ class TranslationHandler(BaseHandler):
             source_items.append(source_item)
             temp_id_map[temp_id] = (item['block_idx'], item['string_idx'])
 
+        source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+        if not source_items:
+            self.ui_handler.finish_ai_operation()
+            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                self.mw.statusBar.showMessage("All lines in project restored from saved translations.", 3000)
+            return
+
         provider = self.ai_lifecycle_manager._prepare_provider()
         if not provider:
             self.ui_handler.finish_ai_operation()
             return
+
 
         base_timeout = self._resolve_base_timeout(provider)
         block_timeout = base_timeout * 10

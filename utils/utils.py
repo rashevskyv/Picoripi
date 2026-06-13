@@ -1,4 +1,4 @@
-﻿import datetime
+import datetime
 import re
 import difflib # Додано
 from typing import Optional, List, Tuple, Any
@@ -270,6 +270,9 @@ def clean_spaces(text: str) -> str:
     if text is None:
         return ""
     
+    # Normalize non-breaking spaces
+    text = text.replace("\u00a0", " ")
+    
     # Get active tag mappings and build lookahead prefix
     mappings = get_active_tag_mappings()
     font_map = get_active_font_map()
@@ -382,6 +385,14 @@ class TrieNode:
         self.length: int = 0
 
 _WIDTH_CACHE = {}
+_STRING_WIDTH_CACHE = {}
+
+def clear_width_caches():
+    """Clear all width calculation caches."""
+    global _WIDTH_CACHE, _STRING_WIDTH_CACHE
+    _WIDTH_CACHE.clear()
+    _STRING_WIDTH_CACHE.clear()
+
 
 def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequences: Optional[List[str]], strict: bool = False):
     """Internal helper to get the trie and flat map."""
@@ -502,9 +513,22 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
     """Internal helper to calculate string width impl."""
     if not text:
         return 0
-        
-    if SPACE_DOT_SYMBOL in text:
-        text = text.replace(SPACE_DOT_SYMBOL, " ")
+
+    cache_key = (
+        text,
+        id(font_map),
+        default_char_width,
+        tuple(icon_sequences) if icon_sequences else None,
+        strict,
+        id(default_tag_mappings) if default_tag_mappings is not None else None
+    )
+
+    global _STRING_WIDTH_CACHE
+    if cache_key in _STRING_WIDTH_CACHE:
+        return _STRING_WIDTH_CACHE[cache_key]
+
+    if SPACE_DOT_SYMBOL in text or "\u00a0" in text:
+        text = text.replace(SPACE_DOT_SYMBOL, " ").replace("\u00a0", " ")
         
     trie, char_widths = _get_trie_and_flat_map(font_map, default_char_width, icon_sequences, strict=strict)
     
@@ -566,8 +590,12 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
         else:
             total_width += char_widths.get(ch, default_char_width)
         i += 1
-        
+
+    if len(_STRING_WIDTH_CACHE) > 10000:
+        _STRING_WIDTH_CACHE.clear()
+    _STRING_WIDTH_CACHE[cache_key] = total_width
     return total_width
+
 
 
 def calculate_string_width(text: str, font_map: dict, default_char_width: int = 8, icon_sequences: Optional[List[str]] = None, default_tag_mappings: Optional[dict] = None) -> int:
@@ -628,7 +656,7 @@ def convert_dots_to_spaces_from_editor(text: str) -> str:
     """Convert dots to spaces from editor."""
     if text is None:
         return ""
-    return text.replace(SPACE_DOT_SYMBOL, " ")
+    return text.replace(SPACE_DOT_SYMBOL, " ").replace("\u00a0", " ")
 
 def remove_curly_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     """Remove curly tags."""

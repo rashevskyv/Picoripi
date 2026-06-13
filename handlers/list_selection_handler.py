@@ -1,4 +1,4 @@
-﻿# handlers/list_selection_handler.py
+# handlers/list_selection_handler.py
 from typing import Any, Optional, List, Dict, Union, Tuple
 from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
 from PyQt6.QtCore import Qt, QTimer
@@ -30,6 +30,23 @@ class ListSelectionHandler(BaseHandler):
 
     def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
         """Block selected."""
+        try:
+            from PyQt6 import sip
+        except ImportError:
+            import sip
+
+        try:
+            if current_item and sip.isdeleted(current_item):
+                current_item = None
+        except (TypeError, RuntimeError):
+            pass
+
+        try:
+            if previous_item and sip.isdeleted(previous_item):
+                previous_item = None
+        except (TypeError, RuntimeError):
+            pass
+
         if self.mw.is_loading_data or self._restoring_selection:
             return
  
@@ -37,9 +54,12 @@ class ListSelectionHandler(BaseHandler):
             self.mw.editor_operation_handler.stop_and_flush_editor_changes()
  
         if previous_item:
-            previous_block_idx = previous_item.data(0, Qt.UserRole)
-            if previous_block_idx is not None:
-                self.ui_updater.update_block_item_text_with_problem_count(previous_block_idx)
+            try:
+                previous_block_idx = previous_item.data(0, Qt.UserRole)
+                if previous_block_idx is not None:
+                    self.ui_updater.update_block_item_text_with_problem_count(previous_block_idx)
+            except RuntimeError:
+                pass
  
         if not current_item:
             return

@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
+from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
 from PyQt6.QtGui import QPainter, QColor, QPalette, QBrush, QPen, QFontMetrics, QFont, QIcon, QCursor
 from PyQt6.QtCore import QRect, Qt, QPoint, QSize, QModelIndex, QEvent
 from utils.logging_utils import log_debug
@@ -300,22 +300,24 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 elif block_idx_data is not None and not category_name:
                     ch_id_data = index.data(Qt.ItemDataRole.UserRole + 11)
                     if block_idx_data == -2 and ch_id_data is not None:
-                        mappings = []
-                        composer = getattr(main_window, "translation_handler", None)
-                        if composer and hasattr(composer, "prompt_composer"):
-                            client = composer.prompt_composer._get_mempalace_client()
-                            if client:
-                                wing_name = composer.prompt_composer._get_wing_name()
-                                mappings = client.get_chapter_mappings(wing_name, ch_id_data)
-                        
-                        ch_mappings = []
-                        for m in mappings:
-                            bmg_id = m.get("bmg_id")
-                            if hasattr(main_window, 'list_selection_handler'):
-                                indices = main_window.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
-                                if indices:
-                                    ch_mappings.append(indices)
-                                    
+                        ch_mappings = index.data(Qt.ItemDataRole.UserRole + 13)
+                        if ch_mappings is None:
+                            mappings = []
+                            composer = getattr(main_window, "translation_handler", None)
+                            if composer and hasattr(composer, "prompt_composer"):
+                                client = composer.prompt_composer._get_mempalace_client()
+                                if client:
+                                    wing_name = composer.prompt_composer._get_wing_name()
+                                    mappings = client.get_chapter_mappings(wing_name, ch_id_data)
+                            
+                            ch_mappings = []
+                            for m in mappings:
+                                bmg_id = m.get("bmg_id")
+                                if hasattr(main_window, 'list_selection_handler'):
+                                    indices = main_window.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                                    if indices:
+                                        ch_mappings.append(indices)
+                                        
                         if ch_mappings:
                             total_needs = sum(1 for b_idx, s_idx in ch_mappings if main_window.data_processor.string_needs_translation(b_idx, s_idx))
                             if total_needs > 0:
@@ -449,7 +451,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                     painter.drawEllipse(QPoint(cx, cy - 2), 4, 4)
                     
                     # Fill the gap over the bottom border of the top circle
-                    painter.setPen(Qt.NoPen)
+                    painter.setPen(Qt.PenStyle.NoPen)
                     painter.drawRect(cx - 2, cy - 1, 5, 4)
                     painter.restore()
 

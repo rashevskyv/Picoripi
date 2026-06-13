@@ -305,6 +305,7 @@ def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw,
     
     with patch('sys.modules', fake_modules):
         sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=dict_dir)
+        sm._ensure_initialized()
         
         # We wait for the dictionary_loaded signal using a QEventLoop
         loop = QEventLoop()
@@ -327,6 +328,88 @@ def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw,
         
         # Clean up thread
         sm.prepare_to_close()
+
+
+def test_SpellcheckWorker_thread_safety(mock_mw):
+    sm = SpellcheckerManager(mock_mw)
+    sm.enabled = True
+    sm.hunspell = MagicMock()
+    
+    import threading
+    worker = sm.worker
+    
+    def worker_add():
+        for i in range(100):
+            worker.enqueue(f"word{i}")
+            
+    threads = [threading.Thread(target=worker_add) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+        
+    # Queue lock should have prevented race conditions, checking total items in set
+    assert len(worker._queue) == 100
+    assert len(worker._queue_set) == 100
+
+
+def test_SpellcheckerManager_emit_runtime_error_handling(mock_mw):
+    sm = SpellcheckerManager(mock_mw)
+    
+    # Mock signal objects entirely to bypass read-only attribute constraints
+    mock_sugg = MagicMock()
+    mock_sugg.emit.side_effect = RuntimeError("wrapped C/C++ object has been deleted")
+    sm.suggestions_loaded = mock_sugg
+    
+    mock_dict = MagicMock()
+    mock_dict.emit.side_effect = RuntimeError("wrapped C/C++ object has been deleted")
+    sm.dictionary_loaded = mock_dict
+    
+    # Check that calling _on_spellcheck_results_ready does not crash with RuntimeError
+    try:
+        sm._on_spellcheck_results_ready({}, {"apple": ["test1"]})
+    except RuntimeError:
+        pytest.fail("suggestions_loaded.emit RuntimeError was not handled!")
+        
+    # Check that _load_dictionary_async does not crash with RuntimeError
+    sm.custom_dict_path = MagicMock()
+    sm.language = "uk"
+    with patch('core.spellchecker_manager.Dictionary.from_files') as mock_from_files:
+        mock_from_files.return_value = MagicMock()
+        try:
+            sm._load_dictionary_async()
+        except RuntimeError:
+            pytest.fail("dictionary_loaded.emit RuntimeError was not handled!")
+
+
+def test_SpellcheckWorker_emit_runtime_error_handling(mock_mw):
+    sm = SpellcheckerManager(mock_mw)
+    worker = sm.worker
+    
+    # Mock signal object entirely to bypass read-only attribute constraints
+    mock_ready = MagicMock()
+    mock_ready.emit.side_effect = RuntimeError("wrapped C/C++ object has been deleted")
+    worker.spellcheck_results_ready = mock_ready
+    
+    # We enqueue one word
+    worker.enqueue("hello")
+    
+    # We mock hunspell lookup
+    sm.hunspell = MagicMock()
+    sm.hunspell.lookup.return_value = True
+    
+    # We want to run the loop once. We can mock wait() to terminate the loop by setting _is_running = False
+    original_wait = worker._queue_event.wait
+    def mock_wait(*args, **kwargs):
+        worker.stop()
+        return original_wait(*args, **kwargs)
+    worker._queue_event.wait = mock_wait
+    
+    # Run the worker thread logic synchronously
+    try:
+        worker.run()
+    except RuntimeError:
+        pytest.fail("SpellcheckWorker.spellcheck_results_ready.emit RuntimeError was not handled!")
 
 
 

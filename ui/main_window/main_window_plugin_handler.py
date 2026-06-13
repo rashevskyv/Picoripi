@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from typing import TYPE_CHECKING
 import sys
 import importlib
@@ -8,6 +8,8 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QKeySequence
 from utils.logging_utils import log_info, log_error
 from plugins.base_game_rules import BaseGameRules
+from utils.utils import clear_width_caches
+
 
 if TYPE_CHECKING:
     from main import MainWindow
@@ -52,6 +54,7 @@ class MainWindowPluginHandler:
 
     def load_game_plugin(self):
         """Load game plugin."""
+        clear_width_caches()
         if not self.mw.active_game_plugin:
             log_info("No active game plugin specified. Loading base game rules.")
             self._load_fallback_rules()
@@ -118,6 +121,7 @@ class MainWindowPluginHandler:
                     if not hasattr(self.mw, 'default_tag_mappings') or self.mw.default_tag_mappings is None:
                         self.mw.default_tag_mappings = {}
                     self.mw.default_tag_mappings.update(custom_aliases)
+                    clear_width_caches()
                     log_info(f"Loaded {len(custom_aliases)} custom aliases from {aliases_path}")
             except Exception as e:
                 log_error(f"Failed to load custom aliases from {aliases_path}: {e}")

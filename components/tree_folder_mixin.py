@@ -1,4 +1,4 @@
-﻿# components/tree_folder_mixin.py
+# components/tree_folder_mixin.py
 """Virtual folder CRUD, tree↔PM synchronisation, expansion-state mixin for CustomTreeWidget."""
 import re
 from PyQt6.QtCore import Qt, QTimer
@@ -132,6 +132,11 @@ class TreeFolderMixin:
 
     def _delete_folder_by_id(self, item, folder_id):
         """Temporarily swap folder_id so the handler sees the right target folder."""
+        try:
+            from PyQt6 import sip
+        except ImportError:
+            import sip
+
         old_fid = item.data(0, Qt.UserRole + 1)
         item.setData(0, Qt.UserRole + 1, folder_id)
         self.setCurrentItem(item)
@@ -142,8 +147,11 @@ class TreeFolderMixin:
             pah.delete_block_action()
 
         # Restore in case handler didn't remove the item
-        if item is not self.invisibleRootItem():
-            item.setData(0, Qt.UserRole + 1, old_fid)
+        if not sip.isdeleted(item) and item is not self.invisibleRootItem():
+            try:
+                item.setData(0, Qt.UserRole + 1, old_fid)
+            except RuntimeError:
+                pass
 
     # ─────────────────────────────────────────────────────────────────────────
     # Create subfolder

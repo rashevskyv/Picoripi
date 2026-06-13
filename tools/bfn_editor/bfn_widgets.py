@@ -385,7 +385,7 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
         if getattr(self.viewer, 'selected_sim_item', None) == self:
             pen_border = QtGui.QPen(QtGui.QColor('#00b4d8'))
             pen_border.setWidth(1)
-            pen_border.setStyle(QtCore.Qt.DashLine)
+            pen_border.setStyle(QtCore.Qt.PenStyle.DashLine)
             pen_border.setCosmetic(True)
             painter.setPen(pen_border)
             painter.drawRect(0, 0, width, self.viewer.cell_h)

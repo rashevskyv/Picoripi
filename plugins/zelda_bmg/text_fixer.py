@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, Set, Dict, Any, Tuple, List
 from plugins.common.text_fixer import GenericTextFixer
 from .tag_logic import ANY_TAG_PATTERN_BMG
@@ -136,7 +136,7 @@ class TextFixer(GenericTextFixer):
     def _cleanup_spaces_around_tags_zbmg(self, text: str) -> Tuple[str, bool]:
         """Internal helper to cleanup spaces around tags zbmg."""
         original_text = text
-        pattern = re.compile(r"(?P<tag>\{[^}]*\})(?P<space> )(?P<after_space>.)?")
+        pattern = re.compile(r"(?P<tag>\{[^}]*\})(?P<space>[ \u00a0])(?P<after_space>.)?")
         current_pos = 0
         result_parts = []
         last_processed_end = 0

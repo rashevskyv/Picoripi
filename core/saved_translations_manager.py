@@ -1,4 +1,4 @@
-﻿# core/saved_translations_manager.py
+# core/saved_translations_manager.py
 import json
 import datetime
 from pathlib import Path
@@ -11,6 +11,13 @@ class SavedTranslationsManager:
     def __init__(self, main_window: Any):
         """Initialize a new instance."""
         self.mw = main_window
+        self._cache: Optional[Dict[str, str]] = None
+        self._cache_path: Optional[Path] = None
+
+    def clear_cache(self) -> None:
+        """Clear the in-memory cache."""
+        self._cache = None
+        self._cache_path = None
 
     def _get_saved_translations_path(self) -> Optional[Path]:
         """Internal helper to get the saved translations path."""
@@ -39,11 +46,23 @@ class SavedTranslationsManager:
     def load_all_saved_translations(self) -> Dict[str, str]:
         """Load all saved translations."""
         path = self._get_saved_translations_path()
-        if not path or not path.exists():
+        if not path:
             return {}
+            
+        # Return cache if valid and path hasn't changed
+        if self._cache is not None and self._cache_path == path:
+            return self._cache
+            
+        if not path.exists():
+            self._cache = {}
+            self._cache_path = path
+            return self._cache
+            
         try:
             with path.open('r', encoding='utf-8') as f:
-                return json.load(f)
+                self._cache = json.load(f)
+                self._cache_path = path
+                return self._cache
         except Exception as e:
             log_error(f"Failed to load saved translations: {e}")
             return {}
@@ -57,6 +76,9 @@ class SavedTranslationsManager:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open('w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
+            # Update cache
+            self._cache = data
+            self._cache_path = path
             return True
         except Exception as e:
             log_error(f"Failed to save translations to {path}: {e}")

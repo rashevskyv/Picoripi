@@ -209,9 +209,11 @@ def test_th_translate_current_string(mock_box, th):
 def test_th_translate_preview_selection(mock_box, th):
     th.is_ai_running = False
     th.mw.preview_text_edit.get_selected_lines.return_value = [0, 1]
+    th.mw.data_store.displayed_string_indices = [0, 1]
     
     th.ai_lifecycle_manager._prepare_provider.return_value = None
     th.translate_preview_selection(QPoint(0, 0)) # Fails early
+
     
     provider = MagicMock()
     th.ai_lifecycle_manager._prepare_provider.return_value = provider

@@ -1,7 +1,8 @@
-﻿from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 from typing import List, Dict, Optional, Any
 import json
 from core.translation.providers import BaseTranslationProvider, ProviderResponse, TranslationProviderError
+from core.translation.ai_error_handler import handle_ai_error
 from .ai_prompt_composer import AIPromptComposer
 from utils.logging_utils import log_debug
 
@@ -224,11 +225,11 @@ class AIWorker(QObject):
                         else:
                             log_debug(f"AIWorker: Glossary chunk {idx + 1} returned non-list response: {parsed}")
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
-                        log_debug(f"AIWorker: Error while building glossary chunk {idx + 1}: {exc}")
                         self._log_ai_traffic(messages, error=str(exc))
                         if not self.is_cancelled:
-                            self.task_details['raw_response_text'] = response.text if 'response' in locals() else ""
-                            self.error.emit(str(exc), self.task_details)
+                            resp_t = response.text if 'response' in locals() else ""
+                            err_msg, updated_details = handle_ai_error(exc, self.task_details, resp_t, f"Glossary chunk {idx + 1}")
+                            self.error.emit(err_msg, updated_details)
                         return
 
                     if self.is_cancelled:
@@ -427,10 +428,10 @@ class AIWorker(QObject):
                             return
 
                     except (TranslationProviderError, json.JSONDecodeError) as e:
-                        log_debug(f"AIWorker: Error translating chunk {i}: {e}.")
                         self._log_ai_traffic(messages, error=str(e))
-                        self.task_details['raw_response_text'] = response.text if 'response' in locals() else ""
-                        self.error.emit(str(e), self.task_details)
+                        resp_t = response.text if 'response' in locals() else ""
+                        err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {i}")
+                        self.error.emit(err_msg, updated_details)
                         return
 
                     if self.is_cancelled:
@@ -536,10 +537,11 @@ class AIWorker(QObject):
 
 
         except (TranslationProviderError, ValueError, Exception) as e:
-            log_debug(f"AIWorker: Exception caught in worker thread: {e}")
             if not self.is_cancelled:
                 self._log_ai_traffic(getattr(self, '_last_messages', None) or [], error=str(e))
-                self.error.emit(str(e), self.task_details)
+                resp_t = response.text if 'response' in locals() else None
+                err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, "worker thread exception")
+                self.error.emit(err_msg, updated_details)
         finally:
             log_debug("AIWorker: Task finished, emitting 'finished' signal.")
             self.finished.emit()

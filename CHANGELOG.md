@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.015] - 2026-06-13
+
+### 🚀 Added
+- **Asynchronous Chapter Loading**: Integrated an asynchronous chapters loader using a background worker thread (`MemePalaceChaptersLoadWorker`) to dynamically populate virtual chapter nodes in the Block tree panel without freezing the main application GUI. Displays a clean, non-blocking `Loading...` status indicator.
+- **Enhanced DataStore Type Hinting**: Added comprehensive PEP 484 type hints for core state containers in `AppDataStore`, mapping block data collections and diagnostic issues precisely to support static analyzers.
+
+### 🐛 Fixed
+- **Safe QTreeWidgetItem Lifecycle Management (D28, D29)**: Integrated PyQt6 `sip.isdeleted` lifecycle checks and try-except blocks in tree view builders, delayed selection handlers (`_delayed_select`), and virtual category cleanup methods (`_delete_folder_by_id`) to prevent C++ deleted pointer crashes.
+- **Search and Replace AttributeError Fix (D30)**: Corrected a runtime crash in `SearchReviewDialog` when saving replaced strings by replacing the missing `mark_block_unsaved` project manager invocation with `data_store.mark_dirty`.
+- **Background Spellcheck Worker Thread Safety**: Refactored `SpellcheckerManager` to use a robust, subclassed `QThread` (`SpellcheckWorker`) with explicit mutex-protected thread-safe message queues and early exit interrupts, eliminating GUI lockups and PyQt parent-thread warnings.
+- **Thread-Local Database Connections**: Replaced redundant SQLite connection allocations in `MemePalaceClient` with a shared, thread-local connection pool and consolidated multiple BMG mapping writes inside a single SQL transaction block, dramatically improving disk I/O performance.
+
 ## [0.3.014] - 2026-06-13
 
 ### 🔄 Changed

@@ -340,3 +340,31 @@ class TestSuggestSmartTranslation:
         text = "Русла"
         res = suggest_smart_translation(text, "Русл", "Расл")
         assert res == "Расла"
+
+
+class TestWidthCalculationCaching:
+    def test_caching_behavior(self, sample_font_map):
+        from utils.utils import clear_width_caches, calculate_string_width
+        import utils.utils as uu
+        
+        clear_width_caches()
+        # Initial call - populates cache
+        w1 = calculate_string_width("abc", sample_font_map)
+        assert w1 == 17
+        
+        # Second call - should return from cache
+        assert ("abc", id(sample_font_map), 8, None, False, None) in uu._STRING_WIDTH_CACHE
+        w2 = calculate_string_width("abc", sample_font_map)
+        assert w2 == 17
+        
+        # Modify the cache to verify that subsequent call fetches from cache
+        uu._STRING_WIDTH_CACHE[("abc", id(sample_font_map), 8, None, False, None)] = 999
+        w3 = calculate_string_width("abc", sample_font_map)
+        assert w3 == 999
+        
+        # Clear cache and check it goes back to normal calculation
+        clear_width_caches()
+        assert len(uu._STRING_WIDTH_CACHE) == 0
+        w4 = calculate_string_width("abc", sample_font_map)
+        assert w4 == 17
+

@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Interactive dialog for analysing original text width."""
 from __future__ import annotations
 
@@ -140,7 +140,7 @@ class _AnalysisBarView(QGraphicsView):
             value = max_height * idx / ticks
             y = -value
             tick_pen = QPen(QColor(200, 200, 200))
-            tick_pen.setStyle(Qt.DashLine)
+            tick_pen.setStyle(Qt.PenStyle.DashLine)
             tick_pen.setWidthF(0.6)
             self._scene.addLine(0.0, y, total_width, y, tick_pen)
             label = QGraphicsSimpleTextItem(f"{value:.1f} px")
@@ -153,7 +153,7 @@ class _AnalysisBarView(QGraphicsView):
             x = idx * (bar_width + spacing)
             rect = _BarItem(idx, x, -bar_height, bar_width, bar_height)
             rect.setBrush(BASE_BAR_COLOR)
-            rect.setPen(QPen(Qt.NoPen))
+            rect.setPen(QPen(Qt.PenStyle.NoPen))
             tooltip_lines: List[str] = [f"#{idx + 1}: {bar_height:.1f} px"]
             if entry.get('block_idx') is not None:
                 tooltip_lines.append(

@@ -663,8 +663,8 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         if changes_made:
             for b_idx in changed_blocks:
-                if hasattr(main_window, 'project_manager'):
-                    main_window.project_manager.mark_block_unsaved(b_idx)
+                if hasattr(main_window, 'data_store'):
+                    main_window.data_store.mark_dirty(b_idx)
             if hasattr(main_window, 'ui_updater'):
                 main_window.ui_updater.update_text_views()
                 main_window.ui_updater.update_block_list()

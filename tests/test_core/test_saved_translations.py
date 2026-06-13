@@ -85,6 +85,36 @@ def test_load_and_save_translations(manager, temp_project_dir):
     loaded = manager.load_all_saved_translations()
     assert loaded == data
 
+def test_saved_translations_caching(manager, temp_project_dir):
+    data = {"key1": "cached_val"}
+    manager.save_all_saved_translations(data)
+    
+    # Clear cache to force a first disk read
+    manager.clear_cache()
+    
+    path = manager._get_saved_translations_path()
+    
+    # 1. First load: should read from disk
+    with patch.object(Path, 'open', wraps=path.open) as mock_open:
+        loaded1 = manager.load_all_saved_translations()
+        assert loaded1 == data
+        mock_open.assert_called_once()
+        
+        # 2. Second load: should use cache (no additional disk reads)
+        loaded2 = manager.load_all_saved_translations()
+        assert loaded2 == data
+        mock_open.assert_called_once() # still called only once
+        
+    # 3. Path changes: should invalidate cache and read from the new path
+    mock_mw_for_saved_new = manager.mw
+    mock_mw_for_saved_new.project_manager.project_dir = str(temp_project_dir / "new_project_dir")
+    new_path = manager._get_saved_translations_path()
+    
+    with patch.object(Path, 'exists', return_value=False) as mock_exists:
+        loaded3 = manager.load_all_saved_translations()
+        assert loaded3 == {}
+        mock_exists.assert_called_once() # path change detected, checked if exists
+
 def test_save_translation_single(manager, mock_mw_for_saved):
     # Unique key for block 0, string 0 in project mode:
     # "src/block0.json::bk0::0"

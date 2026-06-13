@@ -1,4 +1,4 @@
-﻿# handlers/project_action_handler.py
+# handlers/project_action_handler.py
 import os
 import json
 import uuid
@@ -6,12 +6,239 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem, QDialog
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from core.project_manager import ProjectManager
 from core.data_manager import load_json_file, load_text_file
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 from components.folder_delete_dialog import FolderDeleteDialog
+
+class ProjectLoadWorker(QThread):
+    """Worker thread for loading project files asynchronously."""
+    finished = pyqtSignal(dict)
+    progress = pyqtSignal(int, int)
+
+    def __init__(self, project_manager, current_game_rules):
+        super().__init__()
+        self.project_manager = project_manager
+        self.current_game_rules = current_game_rules
+        self.blocks = list(project_manager.project.blocks) if project_manager and project_manager.project else []
+        self.error_occurred = None
+
+    def run(self):
+        try:
+            self.project_manager.clear_archive_cache()
+            
+            data = []
+            block_names = {}
+            block_to_project_file_map = {}
+            source_parsed_counts = []
+            
+            total_blocks = len(self.blocks)
+            
+            # Load block source data
+            for project_block_idx, block in enumerate(self.blocks):
+                self.progress.emit(project_block_idx, total_blocks * 2)
+                
+                is_archive = block.metadata.get('is_archive_member', False)
+                archive_rel_path = block.metadata.get('archive_rel_path')
+                inner_path = block.metadata.get('archive_file_name')
+
+                # Fallback for old projects where metadata isn't set, but path points to .extracted
+                if not is_archive and '.extracted/sources/' in block.source_file:
+                    parts = block.source_file.split('.extracted/sources/')
+                    if len(parts) > 1:
+                        sub_path = parts[1]
+                        for ext in ['.arc/', '.rarc/', '.ark/']:
+                            if ext in sub_path:
+                                idx = sub_path.find(ext)
+                                archive_rel_path = sub_path[:idx + len(ext) - 1]
+                                inner_path = sub_path[idx + len(ext):]
+                                is_archive = True
+                                block.metadata['is_archive_member'] = True
+                                block.metadata['archive_rel_path'] = archive_rel_path
+                                block.metadata['archive_file_name'] = inner_path
+                                break
+
+                file_content = None
+                error = None
+
+                if is_archive:
+                    try:
+                        container = self.project_manager.get_archive_container(archive_rel_path, is_translation=False)
+                        file_content = container.read_file(inner_path)
+                    except Exception as e:
+                        error = f"Failed to read archive member {archive_rel_path}/{inner_path}: {e}"
+                else:
+                    source_path = self.project_manager.get_absolute_path(block.source_file)
+                    if Path(source_path).exists():
+                        file_extension = Path(source_path).suffix.lower()
+                        if file_extension == '.json':
+                            file_content, error = load_json_file(source_path)
+                        elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
+                            try:
+                                file_content = Path(source_path).read_bytes()
+                                error = None
+                            except Exception as e:
+                                file_content = None
+                                error = f"Failed to read binary file: {e}"
+                        else:
+                            file_content, error = load_text_file(source_path)
+                    else:
+                        error = "File does not exist"
+
+                if not error and file_content is not None:
+                    if not self.current_game_rules:
+                        parsed_data, names = [], {}
+                    else:
+                        parsed_data, names = self.current_game_rules.load_data_from_json_obj(file_content)
+                    
+                    if block.internal_key:
+                        sub_idx = -1
+                        for i, name in names.items():
+                            if name == block.internal_key:
+                                sub_idx = int(i)
+                                break
+                        
+                        if sub_idx != -1 and sub_idx < len(parsed_data):
+                            data_block_idx = len(data)
+                            data.append(parsed_data[sub_idx])
+                            block_to_project_file_map[data_block_idx] = project_block_idx
+                            block_names[str(data_block_idx)] = block.name
+                            source_parsed_counts.append(1)
+                        else:
+                            source_parsed_counts.append(1)
+                            data_block_idx = len(data)
+                            data.append([])
+                            block_to_project_file_map[data_block_idx] = project_block_idx
+                            block_names[str(data_block_idx)] = f"{block.name} (Missing)"
+                    else:
+                        count = len(parsed_data) if parsed_data else 1
+                        source_parsed_counts.append(count)
+                        
+                        for sub_block_idx, block_content in enumerate(parsed_data):
+                            data_block_idx = len(data)
+                            data.append(block_content)
+                            block_to_project_file_map[data_block_idx] = project_block_idx
+                            
+                            if count > 1:
+                                p_name = names.get(str(sub_block_idx), f"{block.name} (Part {sub_block_idx+1})")
+                                block_names[str(data_block_idx)] = p_name
+                            else:
+                                block_names[str(data_block_idx)] = block.name
+                else:
+                    source_parsed_counts.append(1)
+                    data_block_idx = len(data)
+                    data.append([])
+                    block_to_project_file_map[data_block_idx] = project_block_idx
+                    block_names[str(data_block_idx)] = block.name
+
+            # Backup authoritative original keys from source files
+            plugin_keys_backup = None
+            if hasattr(self.current_game_rules, 'original_keys'):
+                plugin_keys_backup = list(self.current_game_rules.original_keys)
+
+            # Load edited_file_data
+            edited_file_data = []
+            for project_block_idx, block in enumerate(self.blocks):
+                self.progress.emit(total_blocks + project_block_idx, total_blocks * 2)
+                
+                is_archive = block.metadata.get('is_archive_member', False)
+                archive_rel_path = block.metadata.get('archive_rel_path')
+                inner_path = block.metadata.get('archive_file_name')
+                
+                expected_count = source_parsed_counts[project_block_idx]
+                file_content = None
+                error = None
+
+                if is_archive:
+                    try:
+                        container = self.project_manager.get_archive_container(archive_rel_path, is_translation=True)
+                        file_content = container.read_file(inner_path)
+                    except Exception as e:
+                        error = f"Failed to read translation archive member {archive_rel_path}/{inner_path}: {e}"
+                else:
+                    translation_path = self.project_manager.get_absolute_path(block.translation_file, is_translation=True)
+                    if Path(translation_path).exists():
+                        file_extension = Path(translation_path).suffix.lower()
+                        if file_extension == '.json':
+                            file_content, error = load_json_file(translation_path)
+                        elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
+                            try:
+                                file_content = Path(translation_path).read_bytes()
+                                error = None
+                            except Exception as e:
+                                file_content = None
+                                error = f"Failed to read binary file: {e}"
+                        else:
+                            file_content, error = load_text_file(translation_path)
+                    else:
+                        error = "Translation file does not exist"
+
+                parsed_edited_data = None
+                if not error and file_content is not None and self.current_game_rules:
+                    try:
+                        parsed_edited_data, _ = self.current_game_rules.load_data_from_json_obj(file_content)
+                    except Exception as parse_err:
+                        log_error(f"CORRUPT BMG: Failed to parse translation for {block.name} (archive {archive_rel_path}/{inner_path}): {parse_err}. Falling back to source.", category="file_ops")
+                        file_content_src = None
+                        try:
+                            if is_archive:
+                                container_src = self.project_manager.get_archive_container(archive_rel_path, is_translation=False)
+                                file_content_src = container_src.read_file(inner_path)
+                            else:
+                                source_path = self.project_manager.get_absolute_path(block.source_file)
+                                if Path(source_path).exists():
+                                    file_content_src = Path(source_path).read_bytes()
+                        except Exception:
+                            pass
+                        
+                        if file_content_src is not None:
+                            try:
+                                parsed_edited_data, _ = self.current_game_rules.load_data_from_json_obj(file_content_src)
+                            except Exception:
+                                parsed_edited_data = None
+
+                if parsed_edited_data is not None:
+                    if block.internal_key:
+                        sub_idx_edit = -1
+                        try:
+                            _, trans_names = self.current_game_rules.load_data_from_json_obj(file_content)
+                        except Exception:
+                            trans_names = {}
+                        for i_n, name_n in trans_names.items():
+                            if name_n == block.internal_key:
+                                sub_idx_edit = int(i_n)
+                                break
+                        if sub_idx_edit != -1 and sub_idx_edit < len(parsed_edited_data):
+                            edited_file_data.append(parsed_edited_data[sub_idx_edit])
+                        elif parsed_edited_data:
+                            edited_file_data.append(parsed_edited_data[0])
+                        else:
+                            edited_file_data.append([])
+                    else:
+                        for i in range(expected_count):
+                            if i < len(parsed_edited_data):
+                                edited_file_data.append(parsed_edited_data[i])
+                            else:
+                                edited_file_data.append([])
+                else:
+                    for _ in range(expected_count):
+                        edited_file_data.append([])
+
+            self.project_manager.clear_archive_cache()
+
+            self.finished.emit({
+                'data': data,
+                'edited_file_data': edited_file_data,
+                'block_names': block_names,
+                'block_to_project_file_map': block_to_project_file_map,
+                'plugin_keys_backup': plugin_keys_backup
+            })
+        except Exception as e:
+            self.error_occurred = e
+            log_error(f"ProjectLoadWorker error: {e}", exc_info=True)
+            self.finished.emit({})
 
 class ProjectActionHandler(BaseHandler):
     """Handler for project action operations."""
@@ -153,13 +380,14 @@ class ProjectActionHandler(BaseHandler):
 
             # Update UI
             self.ui_updater.update_title()
-            self._populate_blocks_from_project()
-
-            QMessageBox.information(
-                self.mw,
-                "Project Created",
-                f"Project '{project.name}' has been created successfully."
-            )
+            
+            def on_created(state_restored):
+                QMessageBox.information(
+                    self.mw,
+                    "Project Created",
+                    f"Project '{project.name}' has been created successfully."
+                )
+            self._populate_blocks_from_project(on_completed=on_created)
         else:
             QMessageBox.critical(self.mw, "Project Creation Failed", "Failed to create project.")
 
@@ -226,11 +454,13 @@ class ProjectActionHandler(BaseHandler):
 
             # Update UI
             self.ui_updater.update_title()
-            self._populate_blocks_from_project()
-            if hasattr(self.mw, 'bookmark_handler'):
-                self.mw.bookmark_handler.update_bookmarks_menu()
-
-            log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
+            
+            def on_opened(state_restored):
+                if hasattr(self.mw, 'bookmark_handler'):
+                    self.mw.bookmark_handler.update_bookmarks_menu()
+                log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
+                
+            self._populate_blocks_from_project(on_completed=on_opened)
         else:
             QMessageBox.critical(
                 self.mw,
@@ -333,8 +563,9 @@ class ProjectActionHandler(BaseHandler):
         if block:
             log_info(f"Block '{info['name']}' imported successfully.")
             # Update UI
-            self._populate_blocks_from_project()
-            QMessageBox.information(self.mw, "Block Imported", f"Block '{info['name']}' has been imported.")
+            def on_imported(state_restored):
+                QMessageBox.information(self.mw, "Block Imported", f"Block '{info['name']}' has been imported.")
+            self._populate_blocks_from_project(on_completed=on_imported)
         else:
             QMessageBox.critical(self.mw, "Import Failed", "Failed to import block.")
 
@@ -363,8 +594,9 @@ class ProjectActionHandler(BaseHandler):
 
         if blocks:
             log_info(f"{len(blocks)} blocks imported successfully from '{directory_path}'.")
-            self._populate_blocks_from_project()
-            QMessageBox.information(self.mw, "Directory Imported", f"{len(blocks)} blocks have been imported.")
+            def on_dir_imported(state_restored):
+                QMessageBox.information(self.mw, "Directory Imported", f"{len(blocks)} blocks have been imported.")
+            self._populate_blocks_from_project(on_completed=on_dir_imported)
         else:
             QMessageBox.information(self.mw, "Import Result", "No supported files found or failed to import.")
 
@@ -446,12 +678,12 @@ class ProjectActionHandler(BaseHandler):
         self.mw.virtual_folder_handler.add_items_to_folder_action()
 
 
-    def _populate_blocks_from_project(self) -> bool:
-        """Populate block list from current project and load data."""
+    def _populate_blocks_from_project(self, on_completed=None) -> None:
+        """Populate block list from current project and load data asynchronously."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
+            if on_completed:
+                on_completed(False)
             return
-
-        self.mw.project_manager.clear_archive_cache()
 
         # Reset block/string selection state to avoid stale index issues
         self.mw.data_store.current_block_idx = -1
@@ -468,248 +700,91 @@ class ProjectActionHandler(BaseHandler):
         if hasattr(self.mw.current_game_rules, 'original_keys'):
             self.mw.current_game_rules.original_keys = []
 
-        # Load each block's data
-        self.mw.block_to_project_file_map = {}
-        source_parsed_counts: List[int] = []
+        # Setup loading thread and progress dialog
+        worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
         
-        for project_block_idx, block in enumerate(self.mw.project_manager.project.blocks):
-            is_archive = block.metadata.get('is_archive_member', False)
-            archive_rel_path = block.metadata.get('archive_rel_path')
-            inner_path = block.metadata.get('archive_file_name')
+        import sys
+        progress_dialog = None
+        if 'pytest' not in sys.modules:
+            from PyQt6.QtWidgets import QProgressDialog
+            from PyQt6.QtCore import Qt
+            total_steps = len(worker.blocks) * 2
+            progress_dialog = QProgressDialog("Loading project blocks...", None, 0, total_steps, self.mw)
+            progress_dialog.setWindowTitle("Loading Project")
+            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            progress_dialog.setMinimumDuration(0) # show immediately
+            progress_dialog.setValue(0)
+            worker.progress.connect(progress_dialog.setValue)
 
-            # Fallback for old projects where metadata isn't set, but path points to .extracted
-            if not is_archive and '.extracted/sources/' in block.source_file:
-                parts = block.source_file.split('.extracted/sources/')
-                if len(parts) > 1:
-                    sub_path = parts[1]
-                    for ext in ['.arc/', '.rarc/', '.ark/']:
-                        if ext in sub_path:
-                            idx = sub_path.find(ext)
-                            archive_rel_path = sub_path[:idx + len(ext) - 1]
-                            inner_path = sub_path[idx + len(ext):]
-                            is_archive = True
-                            block.metadata['is_archive_member'] = True
-                            block.metadata['archive_rel_path'] = archive_rel_path
-                            block.metadata['archive_file_name'] = inner_path
-                            break
+        def on_finished(result):
+            if 'pytest' not in sys.modules and progress_dialog:
+                progress_dialog.close()
 
-            file_content = None
-            error = None
+            if not result:
+                if worker.error_occurred:
+                    QMessageBox.critical(self.mw, "Load Error", f"An error occurred while loading project files:\n{worker.error_occurred}")
+                if on_completed:
+                    on_completed(False)
+                return
 
-            if is_archive:
-                try:
-                    container = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=False)
-                    file_content = container.read_file(inner_path)
-                except Exception as e:
-                    error = f"Failed to read archive member {archive_rel_path}/{inner_path}: {e}"
-            else:
-                source_path = self.mw.project_manager.get_absolute_path(block.source_file)
-                if Path(source_path).exists():
-                    file_extension = Path(source_path).suffix.lower()
-                    if file_extension == '.json':
-                        file_content, error = load_json_file(source_path)
-                    elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
-                        try:
-                            file_content = Path(source_path).read_bytes()
-                            error = None
-                        except Exception as e:
-                            file_content = None
-                            error = f"Failed to read binary file: {e}"
-                    else:
-                        file_content, error = load_text_file(source_path)
-                else:
-                    error = "File does not exist"
+            self.mw.data_store.data = result['data']
+            self.mw.data_store.edited_file_data = result['edited_file_data']
+            self.mw.data_store.block_names = result['block_names']
+            self.mw.block_to_project_file_map = result['block_to_project_file_map']
 
-            if not error and file_content is not None:
-                if not self.mw.current_game_rules:
-                    log_error(f"Cannot load data for block '{block.name}': current_game_rules is None! Using empty data fallback.")
-                    parsed_data, names = [], {}
-                else:
-                    parsed_data, names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-                
-                if block.internal_key:
-                    # Find the specific sub-block
-                    sub_idx = -1
-                    for i, name in names.items():
-                        if name == block.internal_key:
-                            sub_idx = int(i)
-                            break
+            plugin_keys_backup = result['plugin_keys_backup']
+            if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
+                self.mw.current_game_rules.original_keys = plugin_keys_backup
+
+            # Update paths for old-style save/load compatibility
+            if self.mw.project_manager.project.blocks:
+                first_block = self.mw.project_manager.project.blocks[0]
+                self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
+                self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
+
+            self.mw.project_manager.clear_archive_cache()
+
+            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                self.mw.translation_handler.load_progress_from_metadata()
+
+            # Perform initial scan
+            if hasattr(self.mw, 'app_action_handler'):
+                self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+
+            # Pre-cache preview data for all blocks
+            if hasattr(self.ui_updater, 'preview_updater'):
+                self.ui_updater.preview_updater.schedule_pre_cache()
+
+            # Update UI
+            self.ui_updater.populate_blocks()
+            self.ui_updater.update_statusbar_paths()
+
+            state_restored = False
+            # Restore UI Session state for project
+            if self.mw.project_manager and self.mw.project_manager.project_file_path:
+                p_path = str(self.mw.project_manager.project_file_path)
+                state = None
+                if self.mw.project_manager.project:
+                    state = self.mw.project_manager.project.metadata.get("session_state")
+                if not state:
+                    state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
                     
-                    if sub_idx != -1 and sub_idx < len(parsed_data):
-                        data_block_idx = len(self.mw.data_store.data)
-                        self.mw.data_store.data.append(parsed_data[sub_idx])
-                        self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                        self.mw.data_store.block_names[str(data_block_idx)] = block.name
-                        source_parsed_counts.append(1)
-                    else:
-                        # Not found or error loading sub-block
-                        source_parsed_counts.append(1)
-                        data_block_idx = len(self.mw.data_store.data)
-                        self.mw.data_store.data.append([])
-                        self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                        self.mw.data_store.block_names[str(data_block_idx)] = f"{block.name} (Missing)"
-                else:
-                    # Fallback for old projects or non-exploded files: load everything
-                    count = len(parsed_data) if parsed_data else 1
-                    source_parsed_counts.append(count)
-                    
-                    for sub_block_idx, block_content in enumerate(parsed_data):
-                        data_block_idx = len(self.mw.data_store.data)
-                        self.mw.data_store.data.append(block_content)
-                        self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                        
-                        # Handle block names
-                        if count > 1:
-                            p_name = names.get(str(sub_block_idx), f"{block.name} (Part {sub_block_idx+1})")
-                            self.mw.data_store.block_names[str(data_block_idx)] = p_name
-                        else:
-                            self.mw.data_store.block_names[str(data_block_idx)] = block.name
-            else:
-                source_parsed_counts.append(1)
-                data_block_idx = len(self.mw.data_store.data)
-                self.mw.data_store.data.append([])
-                self.mw.block_to_project_file_map[data_block_idx] = project_block_idx
-                self.mw.data_store.block_names[str(data_block_idx)] = block.name
+                if state and (state.get("selected_id") or state.get("expanded_ids")):
+                    log_info(f"Restoring project UI state for {p_path}")
+                    self.ui_updater.apply_tree_state(state)
+                    state_restored = True
 
-        # Backup authoritative original keys from source files
-        plugin_keys_backup = None
-        if hasattr(self.mw.current_game_rules, 'original_keys'):
-            plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
+            if on_completed:
+                on_completed(state_restored)
 
-        # Load edited_file_data
-        self.mw.data_store.edited_file_data = []
-        for project_block_idx, block in enumerate(self.mw.project_manager.project.blocks):
-            is_archive = block.metadata.get('is_archive_member', False)
-            archive_rel_path = block.metadata.get('archive_rel_path')
-            inner_path = block.metadata.get('archive_file_name')
-            
-            # How many blocks did the source file produce?
-            expected_count = source_parsed_counts[project_block_idx]
-            file_content = None
-            error = None
-
-            if is_archive:
-                try:
-                    container = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=True)
-                    file_content = container.read_file(inner_path)
-                except Exception as e:
-                    error = f"Failed to read translation archive member {archive_rel_path}/{inner_path}: {e}"
-            else:
-                translation_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
-                if Path(translation_path).exists():
-                    file_extension = Path(translation_path).suffix.lower()
-                    if file_extension == '.json':
-                        file_content, error = load_json_file(translation_path)
-                    elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
-                        try:
-                            file_content = Path(translation_path).read_bytes()
-                            error = None
-                        except Exception as e:
-                            file_content = None
-                            error = f"Failed to read binary file: {e}"
-                    else:
-                        file_content, error = load_text_file(translation_path)
-                else:
-                    error = "Translation file does not exist"
-
-            parsed_edited_data = None
-            if not error and file_content is not None and self.mw.current_game_rules:
-                try:
-                    parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-                except Exception as parse_err:
-                    log_error(f"CORRUPT BMG: Failed to parse translation for {block.name} (archive {archive_rel_path}/{inner_path}): {parse_err}. Falling back to source.", category="file_ops")
-                    # Fallback: Read source file content instead
-                    file_content_src = None
-                    try:
-                        if is_archive:
-                            container_src = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=False)
-                            file_content_src = container_src.read_file(inner_path)
-                        else:
-                            source_path = self.mw.project_manager.get_absolute_path(block.source_file)
-                            if Path(source_path).exists():
-                                file_content_src = Path(source_path).read_bytes()
-                    except Exception:
-                        pass
-                    
-                    if file_content_src is not None:
-                        try:
-                            parsed_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content_src)
-                        except Exception:
-                            parsed_edited_data = None
-
-            if parsed_edited_data is not None:
-                if block.internal_key:
-                    # Source uses internal_key to find the correct sub-block index.
-                    # edited_file_data must use the same sub-block, not always index 0.
-                    sub_idx_edit = -1
-                    try:
-                        _, trans_names = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-                    except Exception:
-                        trans_names = {}
-                    for i_n, name_n in trans_names.items():
-                        if name_n == block.internal_key:
-                            sub_idx_edit = int(i_n)
-                            break
-                    if sub_idx_edit != -1 and sub_idx_edit < len(parsed_edited_data):
-                        self.mw.data_store.edited_file_data.append(parsed_edited_data[sub_idx_edit])
-                    elif parsed_edited_data:
-                        # Fallback: use first block if key not found
-                        self.mw.data_store.edited_file_data.append(parsed_edited_data[0])
-                    else:
-                        self.mw.data_store.edited_file_data.append([])
-                else:
-                    # No internal key: load all sub-blocks in order
-                    for i in range(expected_count):
-                        if i < len(parsed_edited_data):
-                            self.mw.data_store.edited_file_data.append(parsed_edited_data[i])
-                        else:
-                            self.mw.data_store.edited_file_data.append([])
-
-            else:
-                for _ in range(expected_count):
-                    self.mw.data_store.edited_file_data.append([])
-
-        # Restore authoritative original keys
-        if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-            self.mw.current_game_rules.original_keys = plugin_keys_backup
-
-        # Update paths for old-style save/load compatibility
-        if self.mw.project_manager.project.blocks:
-            first_block = self.mw.project_manager.project.blocks[0]
-            self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
-            self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
-
-        self.mw.project_manager.clear_archive_cache()
-
-        if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
-            self.mw.translation_handler.load_progress_from_metadata()
-
-        # Perform initial scan
-        if hasattr(self.mw, 'app_action_handler'):
-            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
-
-        # Pre-cache preview data for all blocks
-        if hasattr(self.ui_updater, 'preview_updater'):
-            self.ui_updater.preview_updater.schedule_pre_cache()
-
-        # Update UI
-        self.ui_updater.populate_blocks()
-        self.ui_updater.update_statusbar_paths()
-
-        # Restore UI Session state for project
-        if self.mw.project_manager and self.mw.project_manager.project_file_path:
-            p_path = str(self.mw.project_manager.project_file_path)
-            state = None
-            if self.mw.project_manager.project:
-                state = self.mw.project_manager.project.metadata.get("session_state")
-            if not state:
-                state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
-                
-            if state and (state.get("selected_id") or state.get("expanded_ids")):
-                log_info(f"Restoring project UI state for {p_path}")
-                self.ui_updater.apply_tree_state(state)
-                return True
-        return False
+        # Store worker reference to prevent garbage collection
+        self._active_load_worker = worker
+        worker.finished.connect(on_finished)
+        
+        if 'pytest' in sys.modules:
+            worker.run()
+        else:
+            worker.start()
 
     def _update_recent_projects_menu(self) -> None:
         """Update the Recent Projects submenu with current list."""
@@ -820,27 +895,30 @@ class ProjectActionHandler(BaseHandler):
 
             # 6. Populate UI components with the new project data
             self.ui_updater.update_title()
-            state_restored = self._populate_blocks_from_project()
-            if hasattr(self.mw, 'bookmark_handler'):
-                self.mw.bookmark_handler.update_bookmarks_menu()
             
-            log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
+            def on_recent_opened(state_restored):
+                if hasattr(self.mw, 'bookmark_handler'):
+                    self.mw.bookmark_handler.update_bookmarks_menu()
+                
+                log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
 
-            # 6. Final UI polish: select the last block/category after QTreeWidget has settled
-            # Only fallback to default block selection if no session state was restored!
-            if not state_restored:
-                def restore_view():
-                    log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
-                    if hasattr(self.mw, 'block_list_widget'):
-                        self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
-                    
-                    # These calls refresh the string list and editors
-                    self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
-                    self.ui_updater.update_statusbar_paths()
-                    self.ui_updater.update_plugin_status_label() # Ensure label is accurate
+                # 6. Final UI polish: select the last block/category after QTreeWidget has settled
+                # Only fallback to default block selection if no session state was restored!
+                if not state_restored:
+                    def restore_view():
+                        log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
+                        if hasattr(self.mw, 'block_list_widget'):
+                            self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
+                        
+                        # These calls refresh the string list and editors
+                        self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
+                        self.ui_updater.update_statusbar_paths()
+                        self.ui_updater.update_plugin_status_label() # Ensure label is accurate
 
-                from PyQt6.QtCore import QTimer
-                QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
+                    from PyQt6.QtCore import QTimer
+                    QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
+
+            self._populate_blocks_from_project(on_completed=on_recent_opened)
         else:
             QMessageBox.critical(
                 self.mw,

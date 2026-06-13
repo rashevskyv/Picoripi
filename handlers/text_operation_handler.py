@@ -1,5 +1,6 @@
-﻿import re
-from typing import Any, Optional, List, Dict, Tuple, Set, Union
+from __future__ import annotations
+import re
+from typing import Any, Optional, List, Dict, Tuple, Set, Union, TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog, QDialog
 from PyQt6.QtGui import QTextCursor, QTextBlock
 from PyQt6.QtCore import QTimer, Qt
@@ -9,13 +10,19 @@ from utils.logging_utils import log_debug, log_info
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 
+if TYPE_CHECKING:
+    from core.context import ProjectContext
+    from core.data_state_processor import DataStateProcessor
+    from ui.ui_updater import UIUpdater
+
 PREVIEW_UPDATE_DELAY = 250
 
 class TextOperationHandler(BaseHandler):
     """Handler for text operation operations."""
-    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
+    def __init__(self, context: ProjectContext, data_processor: DataStateProcessor, ui_updater: UIUpdater):
         """Initialize a new instance."""
-        super().__init__(main_window, data_processor, ui_updater)
+        super().__init__(context, data_processor, ui_updater)
+
         self.preview_update_timer = QTimer()
         self.preview_update_timer.setSingleShot(True)
         self.preview_update_timer.timeout.connect(self._on_preview_update_timer_timeout)

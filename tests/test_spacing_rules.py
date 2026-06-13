@@ -717,6 +717,30 @@ def test_zelda_mc_autofix_page_local_prevent_empty(mc_rules):
     assert fixed_padded == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
 
 
+def test_non_breaking_spaces_handling(bmg_rules):
+    # Test normalization of non-breaking space (U+00A0) in convert_dots_to_spaces_from_editor
+    from utils.utils import convert_dots_to_spaces_from_editor, clean_spaces, calculate_string_width
+    assert convert_dots_to_spaces_from_editor("Hello\u00a0World") == "Hello World"
+    
+    # Test that clean_spaces normalizes U+00A0
+    assert clean_spaces("Hello\u00a0\u00a0World") == "Hello World"
+
+    # Test that calculate_string_width replaces U+00A0 with standard space
+    w_std = calculate_string_width("Hello World", {})
+    w_nbsp = calculate_string_width("Hello\u00a0World", {})
+    assert w_std == w_nbsp
+
+    # Test bad spacing detection and autofix for Zelda BMG with non-breaking spaces
+    text_with_nbsp = "трапився\u00a0{escape:255:000001}\u00a0переполох{escape:255:000000}."
+    problems = bmg_rules.problem_analyzer.analyze_data_string(text_with_nbsp, {}, 1000)
+    assert ZBMG_BAD_SPACING in problems[0]
+
+    fixed, changed = bmg_rules.autofix_data_string(text_with_nbsp, {}, 1000)
+    assert changed is True
+    assert fixed == "трапився {escape:255:000001}переполох{escape:255:000000}."
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-﻿import math
+import math
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QCheckBox, QPushButton, QSlider, QSpinBox, QLabel, QDialogButtonBox,
@@ -66,7 +66,7 @@ class AnglePickerWidget(QWidget):
 
             # Center dot
             painter.setBrush(QBrush(QColor("#ffffff" if is_dark else "#000000")))
-            painter.setPen(Qt.NoPen)
+            painter.setPen(Qt.PenStyle.NoPen)
             painter.drawEllipse(center, 2.0, 2.0)
 
             # Draw the needle representing the angle

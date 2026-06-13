@@ -14,11 +14,11 @@ class AppDataStore:
     
     # Text Data
     data: List[Any] = field(default_factory=list)  # Original data
-    edited_data: Dict[int, List[str]] = field(default_factory=dict)  # Unsaved changes per block
+    edited_data: Dict[Tuple[int, int], str] = field(default_factory=dict)  # Unsaved changes per (block_idx, string_idx)
     edited_file_data: List[Any] = field(default_factory=list)  # Currently loaded file data
     
     # Metadata
-    block_names: Dict[int, str] = field(default_factory=dict)
+    block_names: Dict[str, str] = field(default_factory=dict)
     unsaved_changes: bool = False
     unsaved_block_indices: Set[int] = field(default_factory=set)
     
@@ -26,7 +26,7 @@ class AppDataStore:
     current_block_idx: int = -1
     current_string_idx: int = -1
     selected_string_indices: List[int] = field(default_factory=list)
-    displayed_string_indices: List[Any] = field(default_factory=list) # Absolute indices/tuples of strings shown in preview
+    displayed_string_indices: List[Tuple[int, int]] = field(default_factory=list) # Absolute indices/tuples of strings shown in preview
     current_category_name: Optional[str] = None
     current_chapter_id: Optional[int] = None
     chapter_mappings: List[Tuple[int, int]] = field(default_factory=list) # List of (block_idx, string_idx) for selected chapter
@@ -41,10 +41,11 @@ class AppDataStore:
     hide_empty_strings: bool = False
     
     # Analysis & Problems
-    problems_per_subline: Dict[int, Set[str]] = field(default_factory=dict)
+    problems_per_subline: Dict[Tuple[int, int, int], Set[str]] = field(default_factory=dict)
     
     # Editor subline modification tracking (QTextBlock numbers that were changed)
     edited_sublines: Set[int] = field(default_factory=set)
+
     
     # Selection Persistence
     last_selected_block_index: int = -1

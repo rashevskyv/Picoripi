@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QWidget, QApplication, QLabel
 from PyQt6.QtGui import QFont, QPalette, QColor, QTextOption
@@ -64,12 +64,15 @@ class MainWindowUIHandler:
                 self.mw.search_panel_widget.search_query_edit.lineEdit(),
                 self.mw.search_panel_widget.find_next_button,
                 self.mw.search_panel_widget.find_previous_button,
+                self.mw.search_panel_widget.advanced_button,
                 self.mw.search_panel_widget.case_sensitive_checkbox,
+                self.mw.search_panel_widget.fuzzy_search_checkbox,
                 self.mw.search_panel_widget.search_in_original_checkbox,
                 self.mw.search_panel_widget.ignore_tags_newlines_checkbox,
                 self.mw.search_panel_widget.status_label,
                 self.mw.search_panel_widget.close_search_panel_button
             ])
+
         
         if self.mw.main_splitter:
             for i in range(self.mw.main_splitter.count()):

@@ -237,6 +237,41 @@ def test_mempalace_client_cache_and_mapping(tmp_path):
     assert ctx["room"] == "Test_Room"
 
 
+def test_mempalace_client_get_all_chapter_mappings(tmp_path):
+    from core.mempalace_client import MemePalaceClient
+    
+    db_file = tmp_path / "mempalace_local.db"
+    client = MemePalaceClient()
+    client.db_path = str(db_file)
+    client._init_local_db()
+    
+    wing_name = "Zelda_MC"
+    
+    # Save some chapters
+    chapters = [
+        {"num": "Act 1, Ch 1", "title": "Intro", "start_line": 1, "end_line": 10},
+        {"num": "Act 1, Ch 2", "title": "Forest", "start_line": 11, "end_line": 20}
+    ]
+    client.save_chapters_to_db(wing_name, chapters)
+    
+    # Save some mappings
+    mappings = [
+        {"bmg_id": "BMG_1", "script_line": 5, "bmg_text": "Hello"},
+        {"bmg_id": "BMG_2", "script_line": 15, "bmg_text": "World"}
+    ]
+    client.save_mappings_to_db(wing_name, mappings)
+    
+    # Retrieve all chapter mappings
+    all_mappings = client.get_all_chapter_mappings(wing_name)
+    
+    assert len(all_mappings) > 0
+    for ch_id, maps in all_mappings.items():
+        assert isinstance(ch_id, int)
+        assert len(maps) == 1
+        assert maps[0]["bmg_id"] in ("BMG_1", "BMG_2")
+
+
+
 def test_mempalace_worker_keyword_overlap_matching():
     from unittest.mock import MagicMock
     client = MagicMock()
