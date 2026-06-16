@@ -1,5 +1,26 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.019] - 2026-06-16
+
+### ⚡ Improved
+- **Typing Responsiveness — Zero-Lag Input**: Eliminated UI lag and dropped keystrokes during text editing by significantly increasing the debounce delay from **250ms to 1500ms**.
+  - All heavy background operations (glossary highlighting, spellcheck, issue scanner, width warning recalculation, preview update) are now deferred until the user pauses typing for 1.5 seconds.
+  - During active typing, the syntax highlighter's `_typing_mode` flag suppresses: synchronous spellcheck passes (including the in-block synchronous path for `comparison_editor_text_edit` and `variations_preview_text_edit`), bad-spacing detection regex passes (double spaces, leading spaces, tag-split spaces, missing icon spacing), and glossary match rebuilding.
+  - Once typing stops and the debounce fires, the `AsyncIssueScanner` runs in a background thread and sets the `_typing_mode` back to `False`, triggering a clean `rehighlight()` that applies all deferred annotations at once.
+
+
+
+### 🚀 Added
+- **Interactive AI Translation Comparison & Revision**: Integrated direct, split-view interactive comparison capabilities into `AITranslationComparisonDialog` (`dialogs/ai_translation_comparison_dialog.py`). Users can revert individual translations by clicking "Old Translation" or apply them by clicking "New Translation".
+- **Inline Table Editing**: Implemented `MultilineItemDelegate` (a subclass of `QStyledItemDelegate` utilizing `QTextEdit` internally) to allow double-click editing of "New Translation" cells with support for `Ctrl+Enter` to save and `Escape` to cancel.
+- **AI Variations Context Menu**: Added a custom context menu (right-click) in the comparison dialog to generate and apply AI variations for specific strings on the fly via `AIVariationsHandler.generate_variation_for_string`.
+- **Expanded Spellcheck Integration & Load Tests (D31)**: Added a set of high-load integration tests to verify `SpellcheckerManager` and its background thread `SpellcheckWorker` under rapid queue flooding (500+ items), dynamic state transitions (`set_enabled` toggling), and fast program shutdown during processing.
+- **Async Dictionary Loading Race Condition Tests (D31)**: Added test coverage simulating slow dictionary file loading and validating concurrent lookup/suggestion safety.
+
+### 🐛 Fixed
+- **Highlight Update Signal Loop**: Fixed a recursion loop in the comparison dialog where updating cell background colors triggered the `itemChanged` signal and reset choices.
+- **Mock Parent Window Compatibility**: Resolved test errors where `MagicMock()` parents caused database operations to fail due to `isinstance(parent, QWidget)` evaluation.
+
 ## [0.3.015] - 2026-06-13
 
 ### 🚀 Added

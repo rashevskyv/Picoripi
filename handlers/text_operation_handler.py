@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from core.data_state_processor import DataStateProcessor
     from ui.ui_updater import UIUpdater
 
-PREVIEW_UPDATE_DELAY = 250
+PREVIEW_UPDATE_DELAY = 1500
 
 class TextOperationHandler(BaseHandler):
     """Handler for text operation operations."""
@@ -138,6 +138,71 @@ class TextOperationHandler(BaseHandler):
         self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
         get_scanner_thread_pool().start(self.current_scanner_thread)
 
+    def launch_async_scanner_immediate(self, block_idx: int = -1, string_idx: int = -1) -> None:
+        """Launch a new AsyncIssueScanner immediately without QTimer debounce."""
+        if block_idx == -1 or string_idx == -1:
+            block_idx = self.mw.data_store.current_block_idx
+            string_idx = self.mw.data_store.current_string_idx
+
+        if block_idx == -1 or string_idx == -1:
+            return
+
+        edited_edit = getattr(self.mw, 'edited_text_edit', None)
+        if not edited_edit or not self.mw.current_game_rules:
+            return
+
+        current_text_raw, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
+        if current_text_raw is None:
+            return
+
+        if self.current_scanner_thread is not None:
+            self.current_scanner_thread.cancel()
+            self.current_scanner_thread = None
+
+        font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+        width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
+        analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules)
+
+        source_text = ""
+        if hasattr(self.mw, 'original_text_edit') and self.mw.original_text_edit:
+            source_text = self.mw.original_text_edit.toPlainText()
+
+        active_word = ""
+        if edited_edit:
+            try:
+                cursor = edited_edit.textCursor()
+                pos = cursor.position()
+                if isinstance(pos, int) and pos > 0:
+                    text = edited_edit.toPlainText()
+                    if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
+                        cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+                        active_word = cursor.selectedText().strip("'·").lower()
+            except BaseException:
+                pass
+
+        editor_text = str(current_text_raw)
+        if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
+            editor_text = str(self.mw.current_game_rules.get_text_representation_for_editor(editor_text))
+
+        self.current_scanner_thread = AsyncIssueScanner(
+            block_idx=block_idx,
+            string_idx=string_idx,
+            text=str(current_text_raw),
+            font_map=dict(font_map_for_string),
+            width_threshold=width_threshold_for_string,
+            analyzer=analyzer,
+            glossary_manager=getattr(getattr(edited_edit, 'highlighter', None), '_glossary_manager', None),
+            spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
+            source_text=source_text,
+            active_word=active_word,
+            warnings_enabled=getattr(self.mw, 'warnings_enabled', True),
+            glossary_enabled=getattr(self.mw, 'glossary_enabled', True),
+            editor_text=editor_text,
+            logical_hard_limit=logical_hard_limit_for_string
+        )
+        self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
+        get_scanner_thread_pool().start(self.current_scanner_thread)
+
     def _log_undo_state(self, editor, context_message):
         """Internal helper to log undo state."""
         pass
@@ -193,13 +258,19 @@ class TextOperationHandler(BaseHandler):
             else:
                 # Fallback to full update (same as before)
                 preview_lines = []
-                for real_idx in target_indices:
-                    if 0 <= real_idx < len(self.mw.data_store.data[block_idx]):
+                preview_updater = getattr(self.ui_updater, 'preview_updater', None)
+                for line_idx, real_idx in enumerate(target_indices):
+                    if real_idx == -1:
+                        preview_line_text = getattr(preview_updater, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]") if preview_updater else "[Empty Lines]"
+                    elif 0 <= real_idx < len(self.mw.data_store.data[block_idx]):
                         text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
                         preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                        preview_lines.append(preview_line_text)
+                    else:
+                        preview_line_text = ""
+                    preview_lines.append(preview_line_text)
 
                 preview_full_text = "\n".join(preview_lines)
+
                 if preview_edit.toPlainText() != preview_full_text:
                     preview_edit.setPlainText(preview_full_text)
                 

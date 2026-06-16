@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
 from PyQt6.QtCore import QRegularExpression, Qt
@@ -590,8 +590,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # Use stored editor widget reference
         if self._editor_widget_ref:
             editor_name = self._editor_widget_ref.objectName() if hasattr(self._editor_widget_ref, 'objectName') else 'unknown'
-            # Only check spelling in edited_text_edit
-            return hasattr(self._editor_widget_ref, 'objectName') and self._editor_widget_ref.objectName() == 'edited_text_edit'
+            return editor_name in ('edited_text_edit', 'variations_preview_text_edit', 'comparison_editor_text_edit')
 
         return False
 
@@ -759,7 +758,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         # 2. Translation Glossary Bridge highlighting
         translation_matches_to_apply = []
         if self._is_translation_mode and block_number != -1:
-            log_debug(f"highlightBlock: translation mode active, block_num={block_number}, text={repr(text)}, async_matches={self._async_translation_matches is not None}, typing={self._typing_mode}")
+            # log_debug(f"highlightBlock: translation mode active, block_num={block_number}, text={repr(text)}, async_matches={self._async_translation_matches is not None}, typing={self._typing_mode}")
             if self._async_translation_matches is not None:
                 for m in self._async_translation_matches:
                     m_start = m['start']
@@ -796,13 +795,42 @@ class JsonTagHighlighter(QSyntaxHighlighter):
         else:
             self.setCurrentBlockUserData(None)
 
-        # 3. Spellchecker highlighting using pre-calculated async matches
-        if self._should_check_spelling() and self._async_spellcheck_matches is not None and block_number != -1:
+        # 3. Spellchecker highlighting
+        spellcheck_matches_to_apply = []
+        if not self._typing_mode and self._should_check_spelling() and block_number != -1:
+            if self._async_spellcheck_matches is not None:
+                spellcheck_matches_to_apply = self._async_spellcheck_matches
+            else:
+                editor_name = self._editor_widget_ref.objectName() if (self._editor_widget_ref and hasattr(self._editor_widget_ref, 'objectName')) else ''
+                if editor_name in ('variations_preview_text_edit', 'comparison_editor_text_edit'):
+                    sm = self.mw.spellchecker_manager if (self.mw and hasattr(self.mw, 'spellchecker_manager')) else None
+                    if sm and sm.enabled and sm.hunspell:
+                        text_with_spaces = text.replace("·", " ")
+                        for match in _WORD_PATTERN.finditer(text_with_spaces):
+                            word = match.group(0)
+                            cleaned_word = word.strip("'·")
+                            if len(cleaned_word) < 3 or cleaned_word.isdigit():
+                                continue
+                            lower_word = cleaned_word.lower()
+                            if lower_word in sm.custom_words:
+                                continue
+                            
+                            if lower_word in sm._spell_cache:
+                                is_misspelled = sm._spell_cache[lower_word]
+                            else:
+                                is_correct = sm.hunspell.lookup(cleaned_word)
+                                is_misspelled = not is_correct
+                                sm._spell_cache[lower_word] = is_misspelled
+                                
+                            if is_misspelled:
+                                spellcheck_matches_to_apply.append((block_pos + match.start(), match.end() - match.start()))
+
+        if spellcheck_matches_to_apply:
             underline_style = self._spellchecker_format.underlineStyle()
             underline_color = self._spellchecker_format.underlineColor()
             has_custom_color = underline_color.isValid()
             
-            for m_start, m_length in self._async_spellcheck_matches:
+            for m_start, m_length in spellcheck_matches_to_apply:
                 m_end = m_start + m_length
                 
                 overlap_start = max(m_start, block_pos)
@@ -871,7 +899,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
 
         # Highlight bad spacing: double spaces, leading spaces, and spaces split by tags
         # (Only in the editor text edits, not in preview_text_edit)
-        if _is_preview_widget is False:
+        if _is_preview_widget is False and not self._typing_mode:
             def apply_bad_spacing_format(start_idx, length):
                 for idx in range(start_idx, start_idx + length):
                     char = text[idx]
