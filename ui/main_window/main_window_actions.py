@@ -1,4 +1,4 @@
-﻿# /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
+# /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Any, List
 if TYPE_CHECKING:
@@ -403,11 +403,15 @@ class MainWindowActions:
             log_info(f"trigger_save_action details: has_app_action_handler={hasattr(self.mw, 'app_action_handler')}, "
                      f"unsaved_changes={getattr(self.mw.data_store, 'unsaved_changes', 'N/A')}, "
                      f"edited_keys_count={len(getattr(self.mw.data_store, 'edited_data', {}))}", category="file_ops")
-            if self.mw.app_action_handler.save_data_action(ask_confirmation=False):
-                 self.helper.rebuild_unsaved_block_indices()
-                 log_info("Save action processed and unsaved block indices rebuilt.", category="file_ops")
-            else:
-                 log_info("Save action was cancelled or returned False.", category="file_ops")
+            
+            def on_save_finished(success: bool):
+                if success:
+                    self.helper.rebuild_unsaved_block_indices()
+                    log_info("Save action processed and unsaved block indices rebuilt.", category="file_ops")
+                else:
+                    log_info("Save action was cancelled or returned False.", category="file_ops")
+
+            self.mw.app_action_handler.save_data_action(ask_confirmation=False, on_finished_callback=on_save_finished)
         except Exception as save_err:
             log_error(f"CRITICAL ERROR in trigger_save_action: {save_err}", exc_info=True, category="file_ops")
 

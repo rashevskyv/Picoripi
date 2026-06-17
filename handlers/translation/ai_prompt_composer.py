@@ -22,6 +22,9 @@ class AIPromptComposer(BaseTranslationHandler):
         self._global_distilled_text_cache = None
         self._char_to_line_map_cache = None
         self._cached_script_path = None
+        self._cached_mtime = None
+        self._cached_size = None
+        self._cached_plugin_name = None
 
     # ------------------------------------------------------------------
     # Public API used by translation handler
@@ -1266,6 +1269,36 @@ class AIPromptComposer(BaseTranslationHandler):
             log_debug("Script Fallback: script file not found.")
             return None
 
+        # Calculate file status and plugin configuration
+        try:
+            stat = os.stat(script_path)
+            mtime = stat.st_mtime
+            size = stat.st_size
+        except Exception as e:
+            log_debug(f"Failed to stat script file {script_path}: {e}")
+            mtime = 0.0
+            size = 0
+
+        plugin_name = "Unknown"
+        if self.mw and getattr(self.mw, 'current_game_rules', None):
+            try:
+                plugin_name = self.mw.current_game_rules.get_display_name()
+            except Exception:
+                pass
+
+        # Invalidate cache if file properties or active plugin changed
+        if (getattr(self, "_cached_script_path", None) != script_path or
+            getattr(self, "_cached_mtime", None) != mtime or
+            getattr(self, "_cached_size", None) != size or
+            getattr(self, "_cached_plugin_name", None) != plugin_name):
+            self._script_lines_cache = None
+            self._global_distilled_text_cache = None
+            self._char_to_line_map_cache = None
+            self._cached_script_path = None
+            self._cached_mtime = None
+            self._cached_size = None
+            self._cached_plugin_name = None
+
         # 1. High-priority Direct DB Script Mapping Check
         client = self._get_mempalace_client()
         db_mapping = None
@@ -1292,7 +1325,7 @@ class AIPromptComposer(BaseTranslationHandler):
             line_num = db_mapping["script_line"]
             # Fast check: load only lines up to line_num if not cached, or load all
             try:
-                if hasattr(self, "_script_lines_cache") and self._script_lines_cache:
+                if hasattr(self, "_script_lines_cache") and self._script_lines_cache is not None:
                     lines = self._script_lines_cache
                 else:
                     try:
@@ -1302,6 +1335,10 @@ class AIPromptComposer(BaseTranslationHandler):
                         with open(script_path, "r", encoding="utf-8", errors="replace") as f:
                             lines = f.readlines()
                     self._script_lines_cache = lines
+                    self._cached_script_path = script_path
+                    self._cached_mtime = mtime
+                    self._cached_size = size
+                    self._cached_plugin_name = plugin_name
                 
                 # Scan backwards from line_num - 2 (0-indexed offset of line_num - 1)
                 speaker = None
@@ -1344,28 +1381,33 @@ class AIPromptComposer(BaseTranslationHandler):
         _DISTILL_CACHE_VERSION = 2
 
         # Try to retrieve from In-Memory Script Cache to ensure instant response
-        if (hasattr(self, "_script_lines_cache") and self._script_lines_cache and 
-            hasattr(self, "_global_distilled_text_cache") and self._global_distilled_text_cache and 
-            hasattr(self, "_char_to_line_map_cache") and self._char_to_line_map_cache and 
+        if (hasattr(self, "_script_lines_cache") and self._script_lines_cache is not None and 
+            hasattr(self, "_global_distilled_text_cache") and self._global_distilled_text_cache is not None and 
+            hasattr(self, "_char_to_line_map_cache") and self._char_to_line_map_cache is not None and 
             getattr(self, "_cached_script_path", None) == script_path and
+            getattr(self, "_cached_mtime", None) == mtime and
+            getattr(self, "_cached_size", None) == size and
+            getattr(self, "_cached_plugin_name", None) == plugin_name and
             getattr(self, "_distill_cache_version", None) == _DISTILL_CACHE_VERSION):
             lines = self._script_lines_cache
             global_distilled_text = self._global_distilled_text_cache
             char_to_line_map = self._char_to_line_map_cache
         else:
-            try:
-                with open(script_path, "r", encoding="cp1252", errors="replace") as f:
-                    lines = f.readlines()
-            except Exception as e:
-                log_debug(f"Script Fallback: failed to load with cp1252, trying utf-8: {e}")
+            if self._script_lines_cache is not None:
+                lines = self._script_lines_cache
+            else:
                 try:
-                    with open(script_path, "r", encoding="utf-8", errors="replace") as f:
+                    with open(script_path, "r", encoding="cp1252", errors="replace") as f:
                         lines = f.readlines()
-                except Exception as e2:
-                    log_debug(f"Script Fallback: failed to load script file: {e2}")
-                    return None
-            # Populate cache and global mapping
-            self._script_lines_cache = lines
+                except Exception as e:
+                    log_debug(f"Script Fallback: failed to load with cp1252, trying utf-8: {e}")
+                    try:
+                        with open(script_path, "r", encoding="utf-8", errors="replace") as f:
+                            lines = f.readlines()
+                    except Exception as e2:
+                        log_debug(f"Script Fallback: failed to load script file: {e2}")
+                        return None
+                self._script_lines_cache = lines
             
             global_distilled = []
             char_to_line_map = []
@@ -1389,6 +1431,9 @@ class AIPromptComposer(BaseTranslationHandler):
             self._global_distilled_text_cache = "".join(global_distilled)
             self._char_to_line_map_cache = char_to_line_map
             self._cached_script_path = script_path
+            self._cached_mtime = mtime
+            self._cached_size = size
+            self._cached_plugin_name = plugin_name
             self._distill_cache_version = _DISTILL_CACHE_VERSION
             global_distilled_text = self._global_distilled_text_cache
             log_debug(f"Successfully cached and mapped script file {script_path} ({len(lines)} lines, {len(global_distilled_text)} distilled characters).")

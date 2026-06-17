@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.030] - 2026-06-17
+
+### 🚀 Added
+- **A07 prompt context cache invalidation**: Tied caching of script lines and distilled mappings in `AIPromptComposer` to script file paths, mtime, size, and active game plugin. This prevents stale prompt contexts from being sent to AI APIs after editing timeline script files on disk.
+- **Glossary Occurrence worker lifecycle**: Added proper parent-child ownership, `deleteLater` registration for automatic memory cleanup, and `prepare_to_close` thread termination hooks.
+
+### 🐛 Fixed
+- **A01 event loops removal**: Replaced nested/blocking event loop execution (`QEventLoop.exec` and `QProgressDialog.exec`) with fully asynchronous, signal-driven workflow transitions for saving files, building glossary indices, and calculating widths.
+- **Save State Corruption**: Resolved a critical issue where the live edit state in `data_store.edited_data` was temporarily overridden during async partial saves, leaving the UI state corrupt until completion. Now copies transaction edits safely without mutating global state.
+- **Stale Imports**: Cleaned up unused `QEventLoop` imports from `app_action_handler.py` and `glossary_handler.py`.
+
 ## [0.3.029] - 2026-06-17
 
 ### 🚀 Added

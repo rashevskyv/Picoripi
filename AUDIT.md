@@ -1,8 +1,8 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.028
+> **Остання версія проекту:** v0.3.029
 > **Дата оновлення:** 2026-06-17
-> **Об'єм проекту:** ~66 586 LOC Python-коду, 219 продуктових Python-файлів; ~22 377 LOC тестів, 117 тестових файлів.
+> **Об'єм проекту:** ~66 586 LOC Python-коду, 219 продуктових Python-файлів; ~22 872 LOC тестів, 145 тестових файлів.
 
 Цей документ є консолідованим звітом щодо архітектури, продуктивності, UX-ризиків і плану рефакторингу Picoripi. Попередній `AUDIT.md` мав пошкоджене кодування, тому звіт переписано у валідному UTF-8 зі збереженням архіву вже виконаних покращень.
 
@@ -35,14 +35,15 @@
 - **D37. Undo/Redo persistence** через `UndoManager` у `AppDataStore`.
 - **D38-D39. Ієрархічні unsaved-маркери та уніфікація світлої теми.**
 - **D40-D44. Стабілізація virtual folders, speaker/character navigation і `physical_block_idx`**, щоб редагування у віртуальних папках не перескакувало на фізичні блоки.
+- **A01. Усунення вкладених event loop з async save/glossary/width flows** (червень 2026). Замінено вкладені `QEventLoop.exec()` та `QProgressDialog.exec()` на сигнал-орієнтовані асинхронні переходи станів за допомогою модальності діалогів та зворотних викликів (`on_finished_callback`). Це ліквідувало ризики reentrancy та RuntimeError при закритті застосунку. Також виправлено супутні проблеми:
+  - *High:* Усунено тимчасове спотворення live edit стану при асинхронному збереженні в `save_specific_edits` шляхом передачі копії транзакційних даних (`edited_data_for_transaction`) у воркер замість глобальної заміни `edited_data`.
+  - *Medium:* Стабілізовано життєвий цикл `GlossaryOccurrenceWorker` — додано батьківський об'єкт, автоматичне видалення через `deleteLater` після завершення, та інтеграцію з `prepare_to_close` для безпечного переривання воркера при закритті.
+  - *Low:* Вилучено невикористовувані імпорти `QEventLoop` з `app_action_handler.py` та `glossary_handler.py`.
+- **A07. Інвалідація кешу контексту AI-скриптів** (червень 2026). Прив'язано кеш script lines та distilled mappings в `AIPromptComposer` до шляху файлу скрипту, часу модифікації (mtime), розміру файлу та поточного активного плагіна гри. Це гарантує актуальність контексту при формуванні AI prompt.
 
 Ці пункти не повертаються в активний TODO. Якщо регресії з'являться повторно, їх слід заводити новими ID з конкретним відтворенням.
 
 ## 3. Активні архітектурні, продуктивні та UX проблеми
-
-### A01. Вкладені event loop та модальні очікування під час фонових задач
-
-У кількох місцях async-робота запускається у worker/thread, але основний метод все одно синхронно чекає через `QEventLoop.exec()` або `QProgressDialog.exec()`: `handlers/app_action_handler.py`, `handlers/translation/glossary_handler.py`, `handlers/app_action_handler.py` для width calculation. Це залишає UI частково живим, але створює ризики reentrancy, зависань при нееміченому finished-сигналі, складного закриття програми і подвійних дій користувача під час операції.
 
 ### A02. `QApplication.processEvents()` у довгих циклах як заміна справжньої асинхронності
 
@@ -64,9 +65,6 @@
 
 `core/data_state_processor.py` серіалізує весь `data_store` у `.picoripi_session`. Це просто і працює, але має ризики: великі файли сесії, затримки disk I/O, нестабільність між версіями класів, потенційне збереження зайвих кешів/станів UI. Для великих проектів потрібен компактний schema-based session snapshot.
 
-### A07. AI prompt/script context має кеші, але не має повної інвалідації за mtime/config
-
-`handlers/translation/ai_prompt_composer.py` кешує script lines і distilled mappings, але інвалідація спирається переважно на path/version. Якщо script file змінено на диску або змінилась частина plugin/context config, можна отримати застарілий контекст у prompt. Це якісний UX-ризик для AI-перекладу.
 
 ### A08. Великі класи змішують відповідальності та ускладнюють тестування
 
@@ -82,7 +80,7 @@
 
 ## 4. Пріоритетний список дій (TODO)
 
-- `[ ]` **A01. Прибрати вкладені event loop з async save/glossary/width flows**
+- `[x]` **A01. Прибрати вкладені event loop з async save/glossary/width flows**
   * *Опис:* Замінити `QEventLoop.exec()` і `QProgressDialog.exec()` на сигнал-орієнтовані state transitions: start -> progress -> finished/cancel/error. Це зменшить ризик reentrancy, зависань і RuntimeError при закритті.
   * *Складність:* Середня
   * *Файли:* `handlers/app_action_handler.py`, `handlers/translation/glossary_handler.py`, `core/data_state_processor.py`, `tests/test_handlers/test_project_action_handler.py`
@@ -112,7 +110,7 @@
   * *Складність:* Середня
   * *Файли:* `core/data_state_processor.py`, `core/settings/session_state_manager.py`, `core/data_store.py`, `tests/test_partial_and_session_save.py`
 
-- `[ ]` **A07. Додати mtime/config invalidation для AI script context cache**
+- `[x]` **A07. Додати mtime/config invalidation для AI script context cache**
   * *Опис:* Прив'язати кеш `_script_lines_cache`, `_global_distilled_text_cache`, `_char_to_line_map_cache` до `script_path`, mtime, size, plugin name і distill version. Це запобігатиме старому контексту в AI prompt після редагування script-файлу.
   * *Складність:* Низька
   * *Файли:* `handlers/translation/ai_prompt_composer.py`, `tests/test_handlers/test_ai_prompt_composer.py`
@@ -137,9 +135,22 @@
   * *Складність:* Середня
   * *Файли:* `components/ai_status_dialog.py`, `dialogs/spellcheck_dialog.py`, `handlers/translation/glossary_handler.py`, `ui/updaters/preview_updater.py`
 
+## 6. Стан графу знань (Graphify)
+
+Проект інтегрує граф знань Graphify для аналізу зв'язків та автоматичного аудиту архітектури. Результати аналізу знаходяться в директорії `graphify-out/`:
+- `graph.json` — сира структура графу знань (7980 вузлів, 15042 ребра, 549 спільнот).
+- `GRAPH_REPORT.md` — детальний звіт про структуру, God Nodes (основні абстракції, такі як `LineNumberedTextEdit`, `BaseGameRules`, `ListSelectionHandler`, `DataStateProcessor`, `MainWindow`), несподівані зв'язки (наприклад, `AliasUpdateWorker` -> `BMGMessage`, `MainWindowActions` -> `BMGMessage`) та імпортні цикли.
+- `graph.html` — інтерактивна візуалізація графу для перегляду в браузері.
+
 ## 5. Настанови для розробки та тестування
 
 - Перед змінами перевіряти робоче дерево: `git status --short`. Не перезаписувати чужі незакомічені зміни.
+- Для codebase/architecture питань спочатку використовувати Graphify, якщо існує `graphify-out/graph.json`. У цьому Codex/PowerShell середовищі `graphify` не доступний як глобальна команда в `PATH`, тому запускати CLI треба через venv:
+  - `.\.venv\Scripts\graphify.exe query "питання про архітектуру або код"`
+  - `.\.venv\Scripts\graphify.exe path "A" "B"`
+  - `.\.venv\Scripts\graphify.exe explain "concept_or_node"`
+  За потреби можна явно вказати граф: `--graph graphify-out/graph.json`. `GRAPH_REPORT.md` читати лише для широкого архітектурного огляду або коли `query`/`path`/`explain` не дали достатнього контексту.
+- Після змін у кодових файлах оновлювати локальний AST-граф без API-витрат: `.\.venv\Scripts\graphify.exe update .`. Для повної перебудови з LLM-кластеризацією див. секцію Graphify у `README.md`; вона потребує API key.
 - Базовий запуск тестів: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest`.
 - Паралельний запуск повного набору: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest -n auto tests/`.
 - Точковий запуск після GUI/handler змін: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest tests/test_handlers tests/test_ui tests/test_core`.

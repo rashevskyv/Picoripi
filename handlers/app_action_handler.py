@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
-from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal, QEventLoop
+from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
@@ -19,18 +19,20 @@ class SaveWorker(QThread):
     progress_updated = pyqtSignal(int, int, str)  # current_step, total_steps, label_text
     finished_with_result = pyqtSignal(bool, list, list)  # success, warnings, errors
 
-    def __init__(self, data_processor: Any, output_data_list: List[Any]):
+    def __init__(self, data_processor: Any, output_data_list: List[Any], edited_data_for_transaction: Optional[Dict[Tuple[int, int], str]] = None):
         """Initialize a new instance."""
         super().__init__()
         self.data_processor = data_processor
         self.output_data_list = output_data_list
+        self.edited_data_for_transaction = edited_data_for_transaction
 
     def run(self):
         """Run."""
         try:
             success, warnings, errors = self.data_processor._perform_save_impl(
                 self.output_data_list, 
-                progress_callback=self.progress_updated.emit
+                progress_callback=self.progress_updated.emit,
+                edited_data_for_transaction=self.edited_data_for_transaction
             )
             self.finished_with_result.emit(success, warnings, errors)
         except Exception as e:
@@ -78,11 +80,19 @@ class AppActionHandler(BaseHandler):
         if self.mw.data_store.unsaved_changes:
             reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
             if reply == QMessageBox.StandardButton.Save:
-                if not self.save_data_action(ask_confirmation=True):
-                    return
+                def on_save_done(success: bool):
+                    if success:
+                        self._show_open_file_dialog()
+                self.save_data_action(ask_confirmation=True, on_finished_callback=on_save_done)
+            elif reply == QMessageBox.StandardButton.Discard:
+                self._show_open_file_dialog()
             elif reply == QMessageBox.StandardButton.Cancel:
                 return
-        
+        else:
+            self._show_open_file_dialog()
+
+    def _show_open_file_dialog(self) -> None:
+        """Internal helper to show open file dialog."""
         start_dir = ""
         if self.mw.data_store.json_path:
             start_dir = str(Path(self.mw.data_store.json_path).parent)
@@ -166,20 +176,22 @@ class AppActionHandler(BaseHandler):
             else:
                  self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
 
-    def save_data_action(self, ask_confirmation: bool = True) -> bool:
+    def save_data_action(self, ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """
         High-level save action that delegates to the data processor.
         """
         log_info(f"AppActionHandler: save_data_action called (confirm={ask_confirmation})", category="file_ops")
         try:
-            res = bool(self.data_processor.save_current_edits(ask_confirmation))
-            log_info(f"AppActionHandler: save_data_action finished successfully with result={res}", category="file_ops")
+            res = bool(self.data_processor.save_current_edits(ask_confirmation, on_finished_callback=on_finished_callback))
+            log_info(f"AppActionHandler: save_data_action finished with start result={res}", category="file_ops")
             return res
         except Exception as err:
             log_error(f"Error in AppActionHandler.save_data_action: {err}", exc_info=True, category="file_ops")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
 
-    def perform_async_save_flow(self, output_data_list: List[Any], ask_confirmation: bool = True) -> bool:
+    def perform_async_save_flow(self, output_data_list: List[Any], ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None, edited_data_for_transaction: Optional[Dict[Tuple[int, int], str]] = None) -> None:
         """Perform async save flow."""
         log_info("Starting async save flow...", category="file_ops")
         
@@ -187,7 +199,7 @@ class AppActionHandler(BaseHandler):
         self.mw.state.set_active(AppState.SAVING_DATA, True)
         
         # Create SaveWorker
-        self.save_worker = SaveWorker(self.data_processor, output_data_list)
+        self.save_worker = SaveWorker(self.data_processor, output_data_list, edited_data_for_transaction=edited_data_for_transaction)
         
         # Prepare QProgressDialog
         progress_dialog = QProgressDialog("Initializing save operation...", None, 0, 100, self.mw)
@@ -196,75 +208,40 @@ class AppActionHandler(BaseHandler):
         progress_dialog.setMinimumDuration(0)
         progress_dialog.setCancelButton(None)  # Disable cancel to prevent corrupted saves
         
-        # Keep track of worker results
-        save_results = {
-            'success': False,
-            'warnings': [],
-            'errors': []
-        }
-        
-        # Setup event loop to wait synchronously in this method but keep GUI responsive
-        loop = QEventLoop()
+        self.save_progress = progress_dialog
         
         def on_progress(current_step, total_steps, label_text):
             """Handle the progress event."""
             if total_steps > 0:
-                # Map progress to 0-100 range
                 val = int((current_step / total_steps) * 100)
                 progress_dialog.setValue(val)
             progress_dialog.setLabelText(label_text)
             
         def on_finished(success, warnings, errors):
             """Handle the finished event."""
-            save_results['success'] = success
-            save_results['warnings'] = warnings
-            save_results['errors'] = errors
             progress_dialog.close()
-            loop.quit()
+            
+            # Release interface state
+            self.mw.state.set_active(AppState.SAVING_DATA, False)
+            
+            self.save_progress = None
+            self.save_worker = None
+            
+            if not success:
+                if errors:
+                    QMessageBox.critical(self.mw, "Save Error", "Failed to save files:\n" + "\n".join(errors))
+                else:
+                    QMessageBox.critical(self.mw, "Save Error", "Failed to save files due to an unknown error.")
+            
+            if on_finished_callback:
+                on_finished_callback(success, warnings, errors)
 
         self.save_worker.progress_updated.connect(on_progress)
         self.save_worker.finished_with_result.connect(on_finished)
         
-        # Run worker thread and wait
+        # Run worker thread
         self.save_worker.start()
         progress_dialog.show()
-        loop.exec()
-        
-        # Release interface state
-        self.mw.state.set_active(AppState.SAVING_DATA, False)
-        
-        success = save_results['success']
-        warnings = save_results['warnings']
-        errors = save_results['errors']
-        
-        if not success:
-            if errors:
-                QMessageBox.critical(self.mw, "Save Error", "Failed to save files:\n" + "\n".join(errors))
-            else:
-                QMessageBox.critical(self.mw, "Save Error", "Failed to save files due to an unknown error.")
-            return False
-            
-        # Post-save state updates
-        self.mw.data_store.unsaved_changes = False
-        self.mw.data_store.edited_data = {}
-        self.mw.data_store.edited_sublines.clear()
-        self.mw.data_store.edited_file_data = output_data_list
-        
-        # Process size warnings
-        for archive_rel_path, new_size, orig_size in warnings:
-            if getattr(self.mw, 'show_archive_size_warnings', True):
-                if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
-                    self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
-                    
-        ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
-            
-        if hasattr(self.mw, 'issue_scan_handler'):
-            self.mw.issue_scan_handler._save_issues_cache()
-
-        if hasattr(self.data_processor, '_autosave_session'):
-            self.data_processor._autosave_session(force=True)
-            
-        return True
 
     def save_as_dialog_action(self) -> None:
         """Save as dialog action."""
@@ -281,14 +258,17 @@ class AppActionHandler(BaseHandler):
         if new_edited_path:
             original_edited_path_backup = self.mw.data_store.edited_json_path
             self.mw.data_store.edited_json_path = new_edited_path
-            save_success = self.save_data_action(ask_confirmation=False)
-            if save_success:
-                QMessageBox.information(self.mw, "Saved As", f"Changes saved to:\n{self.mw.data_store.edited_json_path}")
-                self.ui_updater.update_statusbar_paths()
-            else:
-                QMessageBox.critical(self.mw, "Save As Error", f"Failed to save to:\n{self.mw.data_store.edited_json_path}")
-                self.mw.data_store.edited_json_path = original_edited_path_backup
-                self.ui_updater.update_statusbar_paths()
+            
+            def on_save_finished(success: bool):
+                if success:
+                    QMessageBox.information(self.mw, "Saved As", f"Changes saved to:\n{self.mw.data_store.edited_json_path}")
+                    self.ui_updater.update_statusbar_paths()
+                else:
+                    QMessageBox.critical(self.mw, "Save As Error", f"Failed to save to:\n{self.mw.data_store.edited_json_path}")
+                    self.mw.data_store.edited_json_path = original_edited_path_backup
+                    self.ui_updater.update_statusbar_paths()
+            
+            self.save_data_action(ask_confirmation=False, on_finished_callback=on_save_finished)
 
     def load_all_data_for_path(self, original_file_path: Union[str, Path], manually_set_edited_path: Optional[Union[str, Path]] = None, is_initial_load_from_settings: bool = False) -> None:
         """Load all data for path."""
@@ -512,6 +492,12 @@ class AppActionHandler(BaseHandler):
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         
+        self.width_progress = progress
+        
+        def cleanup():
+            self.width_progress = None
+            self.width_worker = None
+
         def on_finished(result_dict):
             """Handle the finished event."""
             if progress.isVisible():
@@ -520,6 +506,8 @@ class AppActionHandler(BaseHandler):
             report_text = result_dict.get('report_text', '')
             entries = result_dict.get('entries', [])
             all_fonts_top_entries = result_dict.get('all_fonts_top_entries', {})
+
+            cleanup()
 
             if not report_text and not entries:
                 QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {block_name} processed. No lines found.")
@@ -547,6 +535,7 @@ class AppActionHandler(BaseHandler):
             """Handle the cancelled event."""
             log_info("Width calculation worker cancelled.")
             progress.close()
+            cleanup()
 
         self.width_worker.progress_updated.connect(progress.setValue)
         self.width_worker.calculation_finished.connect(on_finished)
@@ -554,7 +543,7 @@ class AppActionHandler(BaseHandler):
         progress.canceled.connect(self.width_worker.cancel)
         
         self.width_worker.start()
-        progress.exec()
+        progress.show()
 
     def _perform_initial_silent_scan_all_issues(self) -> None:
         """Internal helper to perform initial silent scan all issues."""

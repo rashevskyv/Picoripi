@@ -373,6 +373,11 @@ class MainWindowHelper:
                     self.mw.translation_handler.ai_lifecycle_manager.prepare_to_close()
             except Exception:
                 pass
+            try:
+                if hasattr(self.mw.translation_handler, 'glossary_handler') and self.mw.translation_handler.glossary_handler:
+                    self.mw.translation_handler.glossary_handler.prepare_to_close()
+            except Exception:
+                pass
 
         self.mw.data_store.last_selected_block_index = self.mw.data_store.current_block_idx
         self.mw.data_store.last_selected_string_index = self.mw.data_store.current_string_idx

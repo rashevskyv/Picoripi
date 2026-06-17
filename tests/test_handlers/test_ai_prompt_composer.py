@@ -151,3 +151,52 @@ def test_AIPromptComposer_compose_batch_request_chapter(composer):
     assert '"speaker": "RUSL"' in user
 
 
+def test_AIPromptComposer_script_cache_invalidation(composer, tmp_path):
+    import os
+    # Create a dummy script file
+    script_file = tmp_path / "test_script.txt"
+    script_file.write_text("RUSL\nHello, world!\n", encoding="utf-8")
+    
+    # Mock self._find_script_path to return our temp script
+    composer._find_script_path = MagicMock(return_value=str(script_file))
+    
+    # Set display name for game rules
+    composer.mw.current_game_rules = MagicMock()
+    composer.mw.current_game_rules.get_display_name.return_value = "Zelda: MC"
+    composer.mw.data_store = MagicMock()
+    composer.mw.data_store.data = [["Hello, world!"]]
+    
+    # First search should cache files and properties
+    res1 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
+    assert res1 is not None
+    assert res1[0] == "RUSL"
+    
+    cached_path = composer._cached_script_path
+    cached_mtime = composer._cached_mtime
+    cached_size = composer._cached_size
+    cached_plugin = composer._cached_plugin_name
+    
+    assert cached_path == str(script_file)
+    assert cached_mtime > 0
+    assert cached_size > 0
+    assert cached_plugin == "Zelda: MC"
+    assert composer._script_lines_cache is not None
+    
+    # Second search should hit cache directly without reloading (script_lines_cache should be the same object)
+    old_cache = composer._script_lines_cache
+    res2 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
+    assert res2[0] == "RUSL"
+    assert composer._script_lines_cache is old_cache
+    
+    # Case 1: Invalidation by size/content change (modifying size)
+    script_file.write_text("RUSL\nHello, world!\nLine extra to increase size.\n", encoding="utf-8")
+    res3 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
+    assert composer._cached_size != cached_size
+    
+    # Case 2: Invalidation by plugin change
+    composer.mw.current_game_rules.get_display_name.return_value = "Zelda: WW"
+    res4 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
+    assert composer._cached_plugin_name == "Zelda: WW"
+
+
+

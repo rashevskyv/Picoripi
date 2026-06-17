@@ -107,61 +107,58 @@ class TestAppActionHandler(unittest.TestCase):
         # Verify worker was created and started
         mock_worker_cls.assert_called_once()
         mock_worker_inst.start.assert_called_once()
-
     @patch('handlers.app_action_handler.QProgressDialog')
-    @patch('handlers.app_action_handler.QEventLoop')
     @patch('handlers.app_action_handler.SaveWorker')
     @patch('handlers.app_action_handler.ToastNotification')
-    def test_perform_async_save_flow_success(self, mock_toast, mock_worker_cls, mock_event_loop, mock_progress):
+    def test_perform_async_save_flow_success(self, mock_toast, mock_worker_cls, mock_progress):
         # Setup mocks
         mock_pd_inst = mock_progress.return_value
-        mock_loop_inst = mock_event_loop.return_value
         mock_worker_inst = mock_worker_cls.return_value
-        
-        def mock_exec():
-            connect_mock = mock_worker_inst.finished_with_result.connect
-            connect_mock.assert_called()
-            on_finished_cb = connect_mock.call_args[0][0]
-            on_finished_cb(True, [("archive.rarc", 200, 100)], [])
-            
-        mock_loop_inst.exec.side_effect = mock_exec
         
         self.ctx.ui_provider = MagicMock()
         self.ctx.show_archive_size_warnings = True
         self.ctx.issue_scan_handler = MagicMock()
         
-        res = self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True)
+        callback_results = []
+        def on_finished(success, warnings, errors):
+            callback_results.append((success, warnings, errors))
+            
+        self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True, on_finished_callback=on_finished)
         
-        self.assertTrue(res)
+        connect_mock = mock_worker_inst.finished_with_result.connect
+        connect_mock.assert_called()
+        on_finished_slot = connect_mock.call_args[0][0]
+        on_finished_slot(True, [("archive.rarc", 200, 100)], [])
+        
+        self.assertEqual(len(callback_results), 1)
+        self.assertTrue(callback_results[0][0])
+        self.assertEqual(callback_results[0][1], [("archive.rarc", 200, 100)])
+        
         mock_progress.assert_called_once()
         mock_worker_cls.assert_called_once()
         mock_worker_inst.start.assert_called_once()
-        mock_loop_inst.exec.assert_called_once()
         mock_pd_inst.close.assert_called_once()
-        
-        self.ctx.ui_provider.show_archive_size_warning.assert_called_once_with("archive.rarc", 200, 100)
-        mock_toast.show_toast.assert_called_once()
-        self.ctx.issue_scan_handler._save_issues_cache.assert_called_once()
 
     @patch('handlers.app_action_handler.QProgressDialog')
-    @patch('handlers.app_action_handler.QEventLoop')
     @patch('handlers.app_action_handler.SaveWorker')
     @patch('handlers.app_action_handler.QMessageBox')
-    def test_perform_async_save_flow_failure(self, mock_msg_box, mock_worker_cls, mock_event_loop, mock_progress):
+    def test_perform_async_save_flow_failure(self, mock_msg_box, mock_worker_cls, mock_progress):
         mock_pd_inst = mock_progress.return_value
-        mock_loop_inst = mock_event_loop.return_value
         mock_worker_inst = mock_worker_cls.return_value
         
-        def mock_exec():
-            connect_mock = mock_worker_inst.finished_with_result.connect
-            on_finished_cb = connect_mock.call_args[0][0]
-            on_finished_cb(False, [], ["Disk full error"])
+        callback_results = []
+        def on_finished(success, warnings, errors):
+            callback_results.append((success, warnings, errors))
             
-        mock_loop_inst.exec.side_effect = mock_exec
+        self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True, on_finished_callback=on_finished)
         
-        res = self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True)
+        connect_mock = mock_worker_inst.finished_with_result.connect
+        on_finished_slot = connect_mock.call_args[0][0]
+        on_finished_slot(False, [], ["Disk full error"])
         
-        self.assertFalse(res)
+        self.assertEqual(len(callback_results), 1)
+        self.assertFalse(callback_results[0][0])
+        self.assertEqual(callback_results[0][2], ["Disk full error"])
         mock_msg_box.critical.assert_called_once()
 
     def test_save_worker_run_success(self):

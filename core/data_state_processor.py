@@ -480,10 +480,12 @@ class DataStateProcessor:
                 self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
 
 
-    def _perform_save_impl(self, output_data_list: List[Any], progress_callback=None) -> Tuple[bool, List[Tuple[str, int, int]], List[str]]:
+    def _perform_save_impl(self, output_data_list: List[Any], progress_callback=None, edited_data_for_transaction: Optional[Dict[Tuple[int, int], str]] = None) -> Tuple[bool, List[Tuple[str, int, int]], List[str]]:
         """Internal helper to perform save impl."""
         warnings = []
         errors = []
+        
+        edited_data = edited_data_for_transaction if edited_data_for_transaction is not None else self.mw.data_store.edited_data
         
         # Check if we are inside a project mode
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
@@ -521,7 +523,7 @@ class DataStateProcessor:
                     for d_idx in data_indices:
                         if isinstance(output_data_list[d_idx], list):
                             for s_idx in range(len(output_data_list[d_idx])):
-                                if (d_idx, s_idx) in self.mw.data_store.edited_data:
+                                if (d_idx, s_idx) in edited_data:
                                     has_edits = True
                                     break
                         if has_edits: break
@@ -758,31 +760,42 @@ class DataStateProcessor:
             return False, warnings, errors
 
 
-    def save_current_edits(self, ask_confirmation: bool = True) -> bool:
+    def save_current_edits(self, ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """Save current edits."""
         log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}", category="file_ops")
         if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
             self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
         if not self.mw.data_store.edited_json_path:
             self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
         if not self.mw.current_game_rules: 
             self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
         
         if not self.mw.data_store.unsaved_changes:
             log_debug("Save called but no unsaved changes detected. Skipping file write.", category="file_ops")
             if ask_confirmation:
                 self._show_message("Save", "No changes to save.", type="info")
+            if on_finished_callback:
+                on_finished_callback(True)
             return True
 
         if ask_confirmation:
             reply = self._ask_yes_no('Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", default_yes=True)
-            if not reply: return False
+            if not reply:
+                if on_finished_callback:
+                    on_finished_callback(False)
+                return False
         
         try:
             if not self.mw.data_store.data:
                 self._show_message("Save Error", "Original data not loaded. Cannot save.", type="error")
+                if on_finished_callback:
+                    on_finished_callback(False)
                 return False
             
             # Build the merged save snapshot
@@ -818,6 +831,8 @@ class DataStateProcessor:
                 if not success:
                     if errors:
                         self._show_message("Save Error", "\n".join(errors), type="error")
+                    if on_finished_callback:
+                        on_finished_callback(False)
                     return False
                 
                 # Post-save state updates
@@ -834,17 +849,44 @@ class DataStateProcessor:
                 ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                 if hasattr(self.mw, 'issue_scan_handler'):
                     self.mw.issue_scan_handler._save_issues_cache()
+                if on_finished_callback:
+                    on_finished_callback(True)
                 return True
 
             # If running in production mode, delegate the async saving process to AppActionHandler
             if hasattr(self.mw, 'app_action_handler') and self.mw.app_action_handler:
-                return self.mw.app_action_handler.perform_async_save_flow(output_data_list, ask_confirmation)
+                def on_save_done(success: bool, warnings: List[Any], errors: List[Any]):
+                    if success:
+                        self.mw.data_store.unsaved_changes = False
+                        self.mw.data_store.edited_data = {}
+                        self.mw.data_store.edited_sublines.clear()
+                        self.mw.data_store.edited_file_data = output_data_list
+                        
+                        for archive_rel_path, new_size, orig_size in warnings:
+                            if getattr(self.mw, 'show_archive_size_warnings', True):
+                                if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
+                                    self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
+                                    
+                        ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
+                        if hasattr(self.mw, 'issue_scan_handler'):
+                            self.mw.issue_scan_handler._save_issues_cache()
+
+                        if hasattr(self, '_autosave_session'):
+                            self._autosave_session(force=True)
+                            
+                    if on_finished_callback:
+                        on_finished_callback(success)
+
+                self.mw.app_action_handler.perform_async_save_flow(output_data_list, ask_confirmation, on_finished_callback=on_save_done, edited_data_for_transaction=self.mw.data_store.edited_data.copy())
+                return True
             else:
                 # Fallback to sync saving if app_action_handler is not available
                 success, warnings, errors = self._perform_save_impl(output_data_list)
                 if not success:
                     if errors:
                         self._show_message("Save Error", "\n".join(errors), type="error")
+                    if on_finished_callback:
+                        on_finished_callback(False)
                     return False
                 
                 self.mw.data_store.unsaved_changes = False
@@ -860,11 +902,15 @@ class DataStateProcessor:
                 ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                 if hasattr(self.mw, 'issue_scan_handler'):
                     self.mw.issue_scan_handler._save_issues_cache()
+                if on_finished_callback:
+                    on_finished_callback(True)
                 return True
 
         except Exception as e:
             log_error(f"Unexpected error during save: {e}", exc_info=True)
             self._show_message("Save Error", f"Unexpected error during save:\n{e}", type="error")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
 
     def revert_edited_file_to_original(self) -> bool:
@@ -1116,23 +1162,31 @@ class DataStateProcessor:
             except Exception as e:
                 log_warning(f"DSP: Could not delete session file {session_path}: {e}")
 
-    def save_specific_edits(self, strings_to_save: List[Tuple[int, int]], ask_confirmation: bool = True) -> bool:
+    def save_specific_edits(self, strings_to_save: List[Tuple[int, int]], ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """
         Saves only the specified strings to the translation files on disk.
         Other unsaved edits remain in memory as unsaved changes.
         """
         log_info(f"DSP: save_specific_edits called for {len(strings_to_save)} strings", category="file_ops")
         if not strings_to_save:
+            if on_finished_callback:
+                on_finished_callback(True)
             return True
 
         if not self.mw.data_store.edited_json_path:
             self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
         if not self.mw.current_game_rules: 
             self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
         if not self.mw.data_store.data:
             self._show_message("Save Error", "Original data not loaded. Cannot save.", type="error")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False
 
         # Filter the edits to save
@@ -1142,12 +1196,17 @@ class DataStateProcessor:
         if not filtered_edited_data:
             if ask_confirmation:
                 self._show_message("Save", "No changes to save for the selected items.", type="info")
+            if on_finished_callback:
+                on_finished_callback(True)
             return True
 
         if ask_confirmation:
             num = len(filtered_edited_data)
             reply = self._ask_yes_no('Save Changes', f"Save {num} selected change(s) to files?", default_yes=True)
-            if not reply: return False
+            if not reply:
+                if on_finished_callback:
+                    on_finished_callback(False)
+                return False
 
         try:
             # Build the merged save snapshot
@@ -1168,38 +1227,23 @@ class DataStateProcessor:
                             chosen_block[s_idx] = text
                 output_data_list.append(chosen_block)
 
-            # Temporarily replace edited_data with only the filtered edits so that _perform_save_impl
-            # knows which files are actually being modified in this transaction.
-            self.mw.data_store.edited_data = filtered_edited_data
-
             # Check if running under pytest to preserve synchronous path
             import sys
             success = False
             if 'pytest' in sys.modules:
-                success, warnings, errors = self._perform_save_impl(output_data_list)
+                success, warnings, errors = self._perform_save_impl(output_data_list, edited_data_for_transaction=filtered_edited_data)
                 if not success:
-                    self.mw.data_store.edited_data = original_edited_data
                     if errors:
                         self._show_message("Save Error", "\n".join(errors), type="error")
+                    if on_finished_callback:
+                        on_finished_callback(False)
                     return False
-            else:
-                if hasattr(self.mw, 'app_action_handler') and self.mw.app_action_handler:
-                    success = self.mw.app_action_handler.perform_async_save_flow(output_data_list, ask_confirmation=False)
-                else:
-                    success, warnings, errors = self._perform_save_impl(output_data_list)
-                    if not success:
-                        self.mw.data_store.edited_data = original_edited_data
-                        if errors:
-                            self._show_message("Save Error", "\n".join(errors), type="error")
-                        return False
-
-            if success:
+                
                 # Restore remaining unsaved changes to memory
                 remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
                 self.mw.data_store.edited_data = remaining_edits
                 self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
                 
-                # Rebuild unsaved block indices and refresh UI
                 if hasattr(self.mw, 'helper'):
                     self.mw.helper.rebuild_unsaved_block_indices()
                 
@@ -1209,15 +1253,65 @@ class DataStateProcessor:
                         self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                     self.mw.ui_updater.update_title()
                     
-                # Explicitly trigger autosave to persist the remaining edits state
                 self._autosave_session(force=True)
+                if on_finished_callback:
+                    on_finished_callback(True)
                 return True
             else:
-                self.mw.data_store.edited_data = original_edited_data
-                return False
+                if hasattr(self.mw, 'app_action_handler') and self.mw.app_action_handler:
+                    def on_specific_save_done(success: bool, warnings: List[Any], errors: List[Any]):
+                        if success:
+                            remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
+                            self.mw.data_store.edited_data = remaining_edits
+                            self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
+                            
+                            if hasattr(self.mw, 'helper'):
+                                self.mw.helper.rebuild_unsaved_block_indices()
+                            
+                            if hasattr(self.mw, 'ui_updater'):
+                                affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
+                                for b_idx in affected_blocks:
+                                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                                self.mw.ui_updater.update_title()
+                                
+                            self._autosave_session(force=True)
+                        
+                        if on_finished_callback:
+                            on_finished_callback(success)
+
+                    self.mw.app_action_handler.perform_async_save_flow(output_data_list, ask_confirmation=False, on_finished_callback=on_specific_save_done, edited_data_for_transaction=filtered_edited_data)
+                    return True
+                else:
+                    success, warnings, errors = self._perform_save_impl(output_data_list, edited_data_for_transaction=filtered_edited_data)
+                    if not success:
+                        if errors:
+                            self._show_message("Save Error", "\n".join(errors), type="error")
+                        if on_finished_callback:
+                            on_finished_callback(False)
+                        return False
+
+                    remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
+                    self.mw.data_store.edited_data = remaining_edits
+                    self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
+                    
+                    if hasattr(self.mw, 'helper'):
+                        self.mw.helper.rebuild_unsaved_block_indices()
+                    
+                    if hasattr(self.mw, 'ui_updater'):
+                        affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
+                        for b_idx in affected_blocks:
+                            self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                        self.mw.ui_updater.update_title()
+                        
+                    self._autosave_session(force=True)
+                    if on_finished_callback:
+                        on_finished_callback(True)
+                    return True
 
         except Exception as e:
             self.mw.data_store.edited_data = original_edited_data
             log_error(f"Unexpected error during partial save: {e}", exc_info=True)
             self._show_message("Save Error", f"Unexpected error during save:\n{e}", type="error")
+            if on_finished_callback:
+                on_finished_callback(False)
             return False

@@ -5,11 +5,11 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Any
 
 from PyQt6.QtWidgets import (QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, QWidget, QDialogButtonBox, QProgressDialog)
 from PyQt6.QtGui import (QAction)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QEventLoop
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from .base_translation_handler import BaseTranslationHandler
 from .glossary_prompt_manager import GlossaryPromptManager
@@ -77,9 +77,9 @@ class GlossaryOccurrenceWorker(QThread):
     """Glossary occurrence worker implementation."""
     finished_with_result = pyqtSignal(dict)
 
-    def __init__(self, glossary_manager: GlossaryManager, data_source: list):
+    def __init__(self, glossary_manager: GlossaryManager, data_source: list, parent: Optional[Any] = None):
         """Initialize a new instance."""
-        super().__init__()
+        super().__init__(parent)
         self.glossary_manager = glossary_manager
         self.data_source = data_source
 
@@ -240,38 +240,55 @@ class GlossaryHandler(BaseTranslationHandler):
         progress_dialog.setMinimumDuration(0)
         progress_dialog.setCancelButton(None)
 
-        worker_results = {
-            'occurrence_map': {}
-        }
-        loop = QEventLoop()
+        worker = GlossaryOccurrenceWorker(self.glossary_manager, data_source, parent=self.mw)
 
-        worker = GlossaryOccurrenceWorker(self.glossary_manager, data_source)
+        self.glossary_progress = progress_dialog
+        self.glossary_worker = worker
 
         def on_finished(occurrence_map):
             """Handle the finished event."""
-            worker_results['occurrence_map'] = occurrence_map
             progress_dialog.close()
-            loop.quit()
+            
+            self.glossary_progress = None
+            self.glossary_worker = None
+
+            entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+            self.dialog = GlossaryDialog(
+                parent=self.mw, entries=entries, occurrence_map=occurrence_map,
+                jump_callback=self._jump_to_occurrence,
+                update_callback=self._handle_glossary_entry_update,
+                delete_callback=self._handle_glossary_entry_delete,
+                ai_variation_callback=self._handle_notes_variation_from_dialog,
+                ai_classify_callback=self.classify_glossary_via_ai,
+                global_replace_callback=self.global_replace_glossary,
+                initial_term=initial_term,
+            )
+            self.dialog.finished.connect(self._on_glossary_dialog_closed)
+            self.dialog.show()
 
         worker.finished_with_result.connect(on_finished)
+        worker.finished.connect(worker.deleteLater)
         worker.start()
         progress_dialog.show()
-        loop.exec()
 
-        occurrence_map = worker_results['occurrence_map']
-        entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
-        self.dialog = GlossaryDialog(
-            parent=self.mw, entries=entries, occurrence_map=occurrence_map,
-            jump_callback=self._jump_to_occurrence,
-            update_callback=self._handle_glossary_entry_update,
-            delete_callback=self._handle_glossary_entry_delete,
-            ai_variation_callback=self._handle_notes_variation_from_dialog,
-            ai_classify_callback=self.classify_glossary_via_ai,
-            global_replace_callback=self.global_replace_glossary,
-            initial_term=initial_term,
-        )
-        self.dialog.finished.connect(self._on_glossary_dialog_closed)
-        self.dialog.show()
+    def prepare_to_close(self) -> None:
+        """Gracefully shutdown glossary occurrence worker if running."""
+        if hasattr(self, 'glossary_worker') and self.glossary_worker and self.glossary_worker.isRunning():
+            log_debug("GlossaryHandler: Stopping glossary worker during prepare_to_close...")
+            try:
+                self.glossary_worker.finished_with_result.disconnect()
+            except Exception:
+                pass
+            self.glossary_worker.quit()
+            self.glossary_worker.wait(1000)
+            self.glossary_worker = None
+        
+        if hasattr(self, 'glossary_progress') and self.glossary_progress:
+            try:
+                self.glossary_progress.close()
+            except Exception:
+                pass
+            self.glossary_progress = None
 
     # ── Entry CRUD ────────────────────────────────────────────────────────
 
