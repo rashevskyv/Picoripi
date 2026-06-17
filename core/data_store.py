@@ -42,6 +42,9 @@ class AppDataStore:
     hide_empty_strings: bool = False
     show_unsaved_only: bool = False
     show_unsaved_blocks_only: bool = False
+    show_warnings_only: bool = False
+    active_warning_filters: List[str] = field(default_factory=list)
+    current_character_name: Optional[str] = None
     
     # Analysis & Problems
     problems_per_subline: Dict[Tuple[int, int, int], Set[str]] = field(default_factory=dict)
@@ -84,6 +87,9 @@ class AppDataStore:
         self.hide_empty_strings = False
         self.show_unsaved_only = False
         self.show_unsaved_blocks_only = False
+        self.show_warnings_only = False
+        self.active_warning_filters = []
+        self.current_character_name = None
         log_debug("AppDataStore: Data cleared")
 
     def mark_dirty(self, block_idx: int):

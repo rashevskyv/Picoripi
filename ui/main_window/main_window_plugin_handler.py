@@ -105,6 +105,8 @@ class MainWindowPluginHandler:
             
         if hasattr(self.mw, 'translation_handler'):
             self.mw.translation_handler.initialize_glossary_highlighting()
+            
+        self.update_warnings_combobox()
 
     def _load_custom_aliases(self):
         """Internal helper to load custom aliases."""
@@ -146,6 +148,22 @@ class MainWindowPluginHandler:
         except Exception as e:
             log_error(f"CRITICAL ERROR: Could not load fallback game rules: {e}", exc_info=True)
             self.mw.current_game_rules = None
+            
+        self.update_warnings_combobox()
+
+    def update_warnings_combobox(self):
+        """Populate the warnings combobox with problems from the current plugin."""
+        if hasattr(self.mw, 'warnings_combobox') and self.mw.warnings_combobox:
+            self.mw.warnings_combobox.blockSignals(True)
+            self.mw.warnings_combobox.clear()
+            defs = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
+            for pid, info in defs.items():
+                self.mw.warnings_combobox.add_item(info.get("name", pid), pid)
+            # Restore checked state if they are in data_store active filters
+            active_filters = getattr(self.mw.data_store, 'active_warning_filters', [])
+            if active_filters:
+                self.mw.warnings_combobox.set_checked_data(active_filters)
+            self.mw.warnings_combobox.blockSignals(False)
 
     def trigger_check_tags_action(self):
         """Trigger check tags action."""

@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QBrush, QTextCursor, QIcon
 from PyQt6.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
@@ -90,3 +90,29 @@ class UIUpdater:
     def update_preview_visibility(self):
         """Update the preview visibility."""
         self.preview_updater.update_preview_visibility()
+
+    def sync_filter_checkboxes_with_store(self):
+        """Synchronize the states of all filter checkboxes with the AppDataStore values without triggering signals."""
+        store = getattr(self.mw, 'data_store', None)
+        if not store:
+            return
+            
+        checkbox_mappings = [
+            ('hide_translated_checkbox', 'hide_translated'),
+            ('show_unsaved_only_checkbox', 'show_unsaved_only'),
+            ('show_warnings_only_checkbox', 'show_warnings_only'),
+            ('hide_empty_strings_checkbox', 'hide_empty_strings'),
+            ('highlight_categorized_checkbox', 'highlight_categorized'),
+            ('hide_categorized_checkbox', 'hide_categorized'),
+            ('show_overrides_only_checkbox', 'show_overrides_only')
+        ]
+        
+        for chk_name, store_attr in checkbox_mappings:
+            chk = getattr(self.mw, chk_name, None)
+            if chk:
+                val = bool(getattr(store, store_attr, False))
+                old_blocked = chk.blockSignals(True)
+                try:
+                    chk.setChecked(val)
+                finally:
+                    chk.blockSignals(old_blocked)

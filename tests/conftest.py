@@ -122,6 +122,15 @@ def mock_mw(qapp):
     mw.string_metadata = {}
     mw.data_store.current_chapter_id = None
     mw.data_store.current_category_name = None
+    mw.data_store.current_character_name = None
+    mw.data_store.show_warnings_only = False
+    mw.data_store.active_warning_filters = []
+    mw.data_store.hide_empty_strings = False
+    mw.data_store.hide_translated = False
+    mw.data_store.hide_categorized = False
+    mw.data_store.highlight_categorized = False
+    mw.data_store.show_overrides_only = False
+    mw.data_store.show_unsaved_only = False
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 240
     mw.current_game_rules = MagicMock()
@@ -189,4 +198,12 @@ def sample_glossary_md():
 | Hyrule | Хайрул | Королівство |
 | Rupee | Рупія | Валюта гри |
 """
+
+
+@pytest.fixture(autouse=True)
+def clear_caches_before_test():
+    """Clears width caches before each test to prevent dict ID collision bugs in tests."""
+    from utils.utils import clear_width_caches
+    clear_width_caches()
+
 

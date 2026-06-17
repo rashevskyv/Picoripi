@@ -21,6 +21,15 @@ def mock_mw():
     mw.data_store.current_string_idx = -1
     mw.data_store.current_category_name = None
     mw.data_store.current_chapter_id = None
+    mw.data_store.current_character_name = None
+    mw.data_store.show_warnings_only = False
+    mw.data_store.active_warning_filters = []
+    mw.data_store.hide_empty_strings = False
+    mw.data_store.hide_translated = False
+    mw.data_store.hide_categorized = False
+    mw.data_store.highlight_categorized = False
+    mw.data_store.show_overrides_only = False
+    mw.data_store.show_unsaved_only = False
     mw.string_metadata = {}
     mw.show_multiple_spaces_as_dots = False
     mw.newline_display_symbol = "↵"

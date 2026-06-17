@@ -1,5 +1,29 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.025] - 2026-06-17
+
+### 🚀 Added
+- **Virtual Characters Folder Enhancements**:
+  - Implemented a dedicated `"None"` folder at the very top of the list under the virtual `Characters` tree node, grouping all lines that do not have character assignments.
+  - Added support for displaying the real count of dialogue lines inside square brackets next to each speaker's name in the `Characters` folder list (e.g. `ASHEI [12]`).
+  - Added a `"None"` option to the character dropdown selection box to enable clearing character assignments for any string.
+  - Integrated the MemePalace speaker and glossary information directly into the character label and combobox tooltips, hiding the redundant green "Speaker" label to clean up the UI layout.
+- **Robust BMG ID Normalization**: Added folder/extension normalization when matching BMG IDs from MemePalace mapping to physical project blocks, enabling accurate mapping across complex subdirectories.
+
+### 🐛 Fixed
+- **Filter Checkboxes Desynchronization**: Resolved a critical GUI issue where filters inside the preview area (such as `Show Unsaved Only`, `Hide translated`, etc.) became desynchronized with the internal `data_store` configuration on startup, session load, or project load. Implemented `sync_filter_checkboxes_with_store()` to silently restore correct graphical checkbox marks.
+- **TypeError in CustomTreeWidget**: Fixed `TypeError: int() argument must be a string...` when key press events triggered item navigation inside the blocks tree widget.
+
+## [0.3.024] - 2026-06-17
+
+### 🚀 Added
+- **Virtual Characters Navigation**: Group dialogue lines dynamically by Character speakers. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Characters -> Character Name` node structure in the Blocks panel. Adding strings to these folders automatically assigns the corresponding character metadata to them. Supports direct selection and interactive input of character names via a combo box located above the translation editor, instantly updating character assignments and hot-reloading virtual folders.
+- **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a checkable combo box next to the preview layout toggles, enabling users to isolate strings matching a subset of selected warnings (e.g., width violations, tag spacing errors, custom plugin validation errors), or view all warnings if no specific filters are checked.
+
+### 🐛 Fixed
+- **Integration Test Parallel Execution Race Conditions**: Combined ARC/BMG modification, verification, and reverting integration tests into a single unit test to eliminate parallel execution race conditions under `pytest-xdist`.
+- **MagicMock Truthiness in Test Updaters**: Standardized the mock-window fixture initialization by explicitly defining default values for filter variables to prevent `MagicMock` truthiness from triggering unexpected preview filter branches.
+
 ## [0.3.023] - 2026-06-17
 
 ### 🚀 Added

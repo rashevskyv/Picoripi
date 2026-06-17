@@ -1,4 +1,4 @@
-﻿# components/custom_tree_widget.py
+# components/custom_tree_widget.py
 """Project file-tree widget — thin orchestrator that composes all behaviour mixins."""
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QApplication, QToolTip,
@@ -103,7 +103,7 @@ class CustomTreeWidget(
 
     def keyPressEvent(self, event):
         """Keypressevent."""
-        log_debug(f"CustomTreeWidget: keyPressEvent key={event.key()}, mods={int(event.modifiers())}")
+        log_debug(f"CustomTreeWidget: keyPressEvent key={event.key()}, mods={int(event.modifiers().value)}")
         is_ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
         is_alt = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         is_shift = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)

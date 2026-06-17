@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt
 from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
+from components.checkable_combobox import CheckableComboBox
 
 class LayoutBuilder:
     """Layout builder implementation."""
@@ -154,6 +155,17 @@ class LayoutBuilder:
         self.mw.show_unsaved_only_checkbox.setToolTip("Only show strings with unsaved changes.")
         self.mw.show_unsaved_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_unsaved_only_checkbox)
+        
+        preview_header_layout.addSpacing(15)
+        self.mw.show_warnings_only_checkbox = QCheckBox("Show Warnings Only:")
+        self.mw.show_warnings_only_checkbox.setToolTip("Only show strings with selected warnings.")
+        self.mw.show_warnings_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
+        preview_header_layout.addWidget(self.mw.show_warnings_only_checkbox)
+        
+        self.mw.warnings_combobox = CheckableComboBox()
+        self.mw.warnings_combobox.setToolTip("Select warnings to filter by")
+        self.mw.warnings_combobox.setFixedWidth(180)
+        preview_header_layout.addWidget(self.mw.warnings_combobox)
         
         top_right_layout.addLayout(preview_header_layout)
         self.mw.preview_text_edit = LineNumberedTextEdit(self.mw)
@@ -372,7 +384,17 @@ class LayoutBuilder:
         self.mw.speaker_label.setObjectName("speaker_label")
         self.mw.speaker_label.setStyleSheet("QLabel#speaker_label { font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px; }")
         self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
-        string_settings_layout.addWidget(self.mw.speaker_label)
+        self.mw.speaker_label.setVisible(False)
+
+        # Character Assignment ComboBox
+        self.mw.character_label = QLabel("Character:")
+        self.mw.character_label.setStyleSheet("font-weight: bold; color: #1565c0; padding-left: 5px;")
+        string_settings_layout.addWidget(self.mw.character_label)
+        self.mw.character_combobox = QComboBox()
+        self.mw.character_combobox.setEditable(True)
+        self.mw.character_combobox.setToolTip("Select or type character name for this string")
+        self.mw.character_combobox.setFixedWidth(150)
+        string_settings_layout.addWidget(self.mw.character_combobox)
 
         string_settings_layout.addStretch(1)
         string_settings_layout.addWidget(QLabel("Font:"))

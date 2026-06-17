@@ -495,7 +495,10 @@ class CustomListItemDelegate(QStyledItemDelegate):
         count_width = 0
         if not is_virtual_row and main_window and block_idx_data is not None and hasattr(main_window, 'data_store') and hasattr(main_window.data_store, 'data'):
             count = 0
-            if category_name and hasattr(main_window, 'project_manager') and main_window.project_manager.project:
+            ch_mappings = index.data(Qt.ItemDataRole.UserRole + 13)
+            if ch_mappings is not None:
+                count = len(ch_mappings)
+            elif category_name and hasattr(main_window, 'project_manager') and main_window.project_manager.project:
                 pm = main_window.project_manager
                 block_map = getattr(main_window, 'block_to_project_file_map', {})
                 proj_b_idx = block_map.get(block_idx_data, block_idx_data)
@@ -509,7 +512,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 if isinstance(block_data, list):
                     count = len(block_data)
 
-            if count > 0 or not category_name:
+            if count > 0 or (not category_name and block_idx_data not in (-2, -3)):
                 string_count_text = f"[{count}]"
                 metrics = QFontMetrics(current_font)
                 count_width = metrics.horizontalAdvance(string_count_text) + 10

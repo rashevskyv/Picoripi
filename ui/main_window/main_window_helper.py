@@ -434,6 +434,10 @@ class MainWindowHelper:
         if hasattr(self.mw, 'hide_empty_strings_checkbox') and self.mw.hide_empty_strings_checkbox:
             self.mw.hide_empty_strings_checkbox.setChecked(hide_empty_val)
         
+        # Sync other filter checkboxes
+        if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
+            self.mw.ui_updater.sync_filter_checkboxes_with_store()
+        
         # Restore global splitters state
         try:
             import base64

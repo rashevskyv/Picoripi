@@ -268,19 +268,37 @@ class BlockListUpdater(BaseUIUpdater):
             return f"block_{block_idx}"
         return None
 
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None) -> dict:
+    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, character_name: str = None, character_mappings: list = None) -> dict:
         """Internal helper to get the aggregated problems for block."""
         problem_counts = {}
         if not self.mw.current_game_rules:
             return problem_counts
         
         is_chapter = (block_idx == -2)
-        if not is_chapter and not (0 <= block_idx < len(self.mw.data_store.data)):
+        is_character = (block_idx == -3)
+        if not is_chapter and not is_character and not (0 <= block_idx < len(self.mw.data_store.data)):
             return problem_counts
         
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         problem_counts = {pid: 0 for pid in problem_definitions.keys()}
         detection_config = getattr(self.mw, 'detection_enabled', {})
+
+        if is_character:
+            char_mappings = set(character_mappings or [])
+            if not char_mappings and character_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager.project:
+                for b_idx, block in enumerate(self.mw.project_manager.project.blocks):
+                    assignments = block.metadata.get("character_assignments", {})
+                    for s_idx_str, c_name in assignments.items():
+                        if c_name == character_name:
+                            char_mappings.add((b_idx, int(s_idx_str)))
+            
+            for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
+                if (b_idx, s_idx) in char_mappings:
+                    filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
+                    for p_id in filtered_problems:
+                        if p_id in problem_counts:
+                            problem_counts[p_id] += 1
+            return problem_counts
 
         if is_chapter:
             mappings = []
@@ -863,6 +881,167 @@ class BlockListUpdater(BaseUIUpdater):
             except Exception as e:
                 from utils.logging_utils import log_error
                 log_error(f"Error populating Chapters folder: {e}", exc_info=True)
+
+            # 4. Add virtual Characters folder hierarchy
+            try:
+                # Query MemePalace for characters as well
+                client = None
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    client = composer.prompt_composer._get_mempalace_client()
+
+                mempalace_characters = {}  # {char_name: [(b_idx, s_idx), ...]}
+                if client:
+                    wing_name = composer.prompt_composer._get_wing_name() if hasattr(composer, "prompt_composer") else "Zelda_TP"
+                    # Try using _bmg_to_context cache first
+                    if hasattr(client, "_bmg_to_context") and client._bmg_to_context:
+                        for bmg_id_key, ctx_info in client._bmg_to_context.items():
+                            if bmg_id_key.startswith("[") and bmg_id_key.endswith("]"):
+                                continue
+                            speaker = ctx_info.get("speaker")
+                            if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
+                                char_name = str(speaker).strip()
+                                if hasattr(self.mw, 'list_selection_handler'):
+                                    indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
+                                    if indices:
+                                        mempalace_characters.setdefault(char_name, []).append(indices)
+                    
+                    # Fallback to loading script mappings + script file if cache is empty
+                    if not mempalace_characters and hasattr(composer, "prompt_composer"):
+                        import os
+                        script_path = composer.prompt_composer._find_script_path()
+                        if script_path and os.path.exists(script_path):
+                            line_to_speaker = getattr(composer.prompt_composer, "_line_to_speaker_cache", None)
+                            cached_path = getattr(composer.prompt_composer, "_line_to_speaker_path", None)
+                            if not line_to_speaker or cached_path != script_path:
+                                try:
+                                    lines = getattr(composer.prompt_composer, "_script_lines_cache", None)
+                                    if not lines:
+                                        try:
+                                            with open(script_path, "r", encoding="cp1252", errors="replace") as f:
+                                                lines = f.readlines()
+                                        except Exception:
+                                            with open(script_path, "r", encoding="utf-8", errors="replace") as f:
+                                                lines = f.readlines()
+                                        composer.prompt_composer._script_lines_cache = lines
+                                    
+                                    def line_strip_is_speaker(s: str) -> bool:
+                                        return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
+
+                                    line_to_speaker = {}
+                                    current_speaker = None
+                                    for idx, line in enumerate(lines):
+                                        line_strip = line.strip()
+                                        if not line_strip:
+                                            continue
+                                        if line_strip.startswith("[") and line_strip.endswith("]"):
+                                            continue
+                                        if line_strip_is_speaker(line_strip):
+                                            current_speaker = line_strip
+                                        if current_speaker:
+                                            line_to_speaker[idx + 1] = current_speaker
+                                    
+                                    composer.prompt_composer._line_to_speaker_cache = line_to_speaker
+                                    composer.prompt_composer._line_to_speaker_path = script_path
+                                except Exception as e_parse:
+                                    from utils.logging_utils import log_error
+                                    log_error(f"Error building line_to_speaker map in block_list_updater: {e_parse}")
+                                    line_to_speaker = None
+                            
+                            if line_to_speaker:
+                                all_mappings = client.get_all_chapter_mappings(wing_name)
+                                for ch_id, ch_maps in all_mappings.items():
+                                    for mapping in ch_maps:
+                                        bmg_id_key = mapping.get("bmg_id")
+                                        script_line = mapping.get("script_line")
+                                        if bmg_id_key and script_line:
+                                            speaker = line_to_speaker.get(script_line)
+                                            if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
+                                                char_name = str(speaker).strip()
+                                                if hasattr(self.mw, 'list_selection_handler'):
+                                                    indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
+                                                    if indices:
+                                                        mempalace_characters.setdefault(char_name, []).append(indices)
+
+                combined_characters = {}  # {char_name: [(b_idx, s_idx), ...]}
+                assigned_strings = set()  # {(b_idx, s_idx), ...}
+
+                # 1. Project assignments (highest priority)
+                project = getattr(self.mw, 'project_manager', None) and self.mw.project_manager.project
+                if project:
+                    for b_idx, block in enumerate(project.blocks):
+                        assignments = block.metadata.get("character_assignments", {})
+                        for s_idx_str, c_name in assignments.items():
+                            if c_name and str(c_name).strip() and str(c_name).lower() not in ("unknown", "none"):
+                                char_name = str(c_name).strip()
+                                s_idx = int(s_idx_str)
+                                combined_characters.setdefault(char_name, []).append((b_idx, s_idx))
+                                assigned_strings.add((b_idx, s_idx))
+
+                # 2. Add MemePalace characters (only if not already assigned in project metadata)
+                for char_name, strings in mempalace_characters.items():
+                    for string_tuple in strings:
+                        if string_tuple in assigned_strings:
+                            continue
+                        combined_characters.setdefault(char_name, []).append(string_tuple)
+                        assigned_strings.add(string_tuple)
+
+                # 3. Collect all other strings into "None"
+                none_strings = []
+                for b_idx in range(len(self.mw.data_store.data)):
+                    block_data = self.mw.data_store.data[b_idx]
+                    for s_idx in range(len(block_data)):
+                        if (b_idx, s_idx) not in assigned_strings:
+                            none_strings.append((b_idx, s_idx))
+
+                if none_strings:
+                    combined_characters["None"] = none_strings
+
+                unique_characters = sorted([c for c in combined_characters.keys() if c != "None"])
+                if "None" in combined_characters:
+                    unique_characters.insert(0, "None")
+
+                has_named_characters = any(c != "None" for c in combined_characters.keys())
+                if combined_characters and has_named_characters:
+                    characters_root = QTreeWidgetItem(["Characters"])
+                    self._set_item_style_icon(characters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
+                    characters_root.setFlags(characters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+                    for char_name in unique_characters:
+                        char_mappings_list = combined_characters[char_name]
+
+                        if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True:
+                            has_unsaved_in_char = any(mapping in self.mw.data_store.edited_data for mapping in char_mappings_list)
+                            if not has_unsaved_in_char:
+                                continue
+
+                        char_item = QTreeWidgetItem([char_name])
+                        self._set_item_style_icon(char_item, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
+                        char_item.setFlags(char_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        char_item.setData(0, Qt.ItemDataRole.UserRole, -3)
+                        char_item.setData(0, Qt.ItemDataRole.UserRole + 15, char_name)
+                        char_item.setData(0, Qt.ItemDataRole.UserRole + 4, char_name)
+                        char_item.setData(0, Qt.EditRole, char_name)
+                        char_item.setData(0, Qt.ItemDataRole.UserRole + 13, char_mappings_list)
+
+                        self._register_item_in_cache(char_item)
+                        
+                        problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
+                        char_problem_counts = self._get_aggregated_problems_for_block(-3, character_name=char_name, character_mappings=char_mappings_list)
+                        self._apply_issues_and_tooltip(char_item, char_name, char_problem_counts, problem_definitions)
+
+                        characters_root.addChild(char_item)
+
+                        if current_selection_block_idx == -3 and getattr(self.mw.data_store, 'current_character_name', None) == char_name:
+                            self.mw.block_list_widget.setCurrentItem(char_item)
+                            char_item.setSelected(True)
+                            characters_root.setExpanded(True)
+
+                    if characters_root.childCount() > 0:
+                        self.mw.block_list_widget.invisibleRootItem().addChild(characters_root)
+            except Exception as e:
+                from utils.logging_utils import log_error
+                log_error(f"Error populating Characters folder: {e}", exc_info=True)
         finally:
             self.mw.block_list_widget._is_programmatic_expansion = False
             self.mw.block_list_widget.blockSignals(False)

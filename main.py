@@ -359,6 +359,7 @@ class MainWindow(QMainWindow):
 
         log_info("Initializing dynamic UI from plugin...")
         self.plugin_handler.setup_plugin_ui()
+        self.plugin_handler.update_warnings_combobox()
 
         self.search_panel_widget = SearchPanelWidget(self)
         self.main_vertical_layout.insertWidget(0, self.search_panel_widget)

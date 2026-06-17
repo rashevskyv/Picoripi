@@ -353,6 +353,9 @@ class PreviewUpdater(BaseUIUpdater):
             if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
                 block_idx = -2
                 category_name = None
+            elif getattr(self.mw.data_store, 'current_character_name', None) is not None:
+                block_idx = -3
+                category_name = None
             elif category_name is None:
                 category_name = getattr(self.mw.data_store, 'current_category_name', None)
 
@@ -411,7 +414,9 @@ class PreviewUpdater(BaseUIUpdater):
                 data_source = []
 
         is_chapter = (block_idx == -2)
-        if not is_chapter and (block_idx < 0 or not data_source or block_idx >= len(data_source) or not isinstance(data_source[block_idx], list)):
+        is_character = (block_idx == -3)
+        is_virtual = is_chapter or is_character
+        if not is_virtual and (block_idx < 0 or not data_source or block_idx >= len(data_source) or not isinstance(data_source[block_idx], list)):
             self._preview_cache.clear()
             self.mw.data_store.displayed_string_indices = []
             if preview_edit:
@@ -428,7 +433,7 @@ class PreviewUpdater(BaseUIUpdater):
         if preview_edit and self.mw.current_game_rules:
             # Determine which indices to show
             target_indices = []
-            if is_chapter:
+            if is_virtual:
                 target_indices = list(getattr(self.mw.data_store, 'chapter_mappings', []))
             elif category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                 pm = self.mw.project_manager
@@ -440,7 +445,7 @@ class PreviewUpdater(BaseUIUpdater):
                     if category:
                         target_indices = category.line_indices
 
-            if not is_chapter and not target_indices and not category_name:
+            if not is_virtual and not target_indices and not category_name:
                 target_indices = list(range(len(data_source[block_idx])))
                 # Filter out categorized if "Hide moved" is enabled
                 if getattr(self.mw.data_store, 'hide_categorized', False):
@@ -448,7 +453,7 @@ class PreviewUpdater(BaseUIUpdater):
                     target_indices = [idx for idx in target_indices if idx not in categorized_indices]
             
             # Re-verify indices are within bounds
-            if is_chapter:
+            if is_virtual:
                 target_indices = [
                     i for i in target_indices 
                     if isinstance(i, tuple) and len(i) == 2 and 
@@ -461,7 +466,7 @@ class PreviewUpdater(BaseUIUpdater):
             if getattr(self.mw.data_store, 'hide_translated', False) is True:
                 filtered_indices = []
                 for idx in target_indices:
-                    if is_chapter:
+                    if is_virtual:
                         b_idx, s_idx = idx
                     else:
                         b_idx = block_idx
@@ -475,7 +480,7 @@ class PreviewUpdater(BaseUIUpdater):
                 default_font = getattr(self.mw, 'default_font_file', None)
                 max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
                 for idx in target_indices:
-                    if is_chapter:
+                    if is_virtual:
                         b_idx, s_idx = idx
                     else:
                         b_idx = block_idx
@@ -490,12 +495,43 @@ class PreviewUpdater(BaseUIUpdater):
             if getattr(self.mw.data_store, 'show_unsaved_only', False) is True:
                 filtered_indices = []
                 for idx in target_indices:
-                    if is_chapter:
+                    if is_virtual:
                         b_idx, s_idx = idx
                     else:
                         b_idx = block_idx
                         s_idx = idx
                     if (b_idx, s_idx) in self.mw.data_store.edited_data:
+                        filtered_indices.append(idx)
+                target_indices = filtered_indices
+
+            if getattr(self.mw.data_store, 'show_warnings_only', False) is True:
+                active_filters = getattr(self.mw.data_store, 'active_warning_filters', [])
+                filtered_indices = []
+                for idx in target_indices:
+                    if is_virtual:
+                        b_idx, s_idx = idx
+                    else:
+                        b_idx = block_idx
+                        s_idx = idx
+                    
+                    has_matching_problem = False
+                    
+                    if active_filters:
+                        # Check all sublines of this string for the selected warnings
+                        for key, problems in self.mw.data_store.problems_per_subline.items():
+                            if key[0] == b_idx and key[1] == s_idx:
+                                if any(p_id in active_filters for p_id in problems):
+                                    has_matching_problem = True
+                                    break
+                    else:
+                        # If active_warning_filters is empty, show strings with ANY warnings
+                        for key, problems in self.mw.data_store.problems_per_subline.items():
+                            if key[0] == b_idx and key[1] == s_idx:
+                                if problems:
+                                    has_matching_problem = True
+                                    break
+                                    
+                    if has_matching_problem:
                         filtered_indices.append(idx)
                 target_indices = filtered_indices
 
@@ -572,7 +608,7 @@ class PreviewUpdater(BaseUIUpdater):
 
             # Map current_string_idx to preview index if possible
             preview_idx_to_select = -1
-            if is_chapter:
+            if is_virtual:
                 target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
                 if target_tuple in target_indices:
                     preview_idx_to_select = target_indices.index(target_tuple)
@@ -908,7 +944,9 @@ class PreviewUpdater(BaseUIUpdater):
             
             preview_idx_to_select = -1
             is_chapter = (block_idx == -2)
-            if is_chapter:
+            is_character = (block_idx == -3)
+            is_virtual = is_chapter or is_character
+            if is_virtual:
                 target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
                 if target_tuple in target_indices:
                     preview_idx_to_select = target_indices.index(target_tuple)
@@ -962,10 +1000,12 @@ class PreviewUpdater(BaseUIUpdater):
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit:
                 is_chapter = (self.mw.data_store.current_block_idx == -2)
+                is_character = (self.mw.data_store.current_block_idx == -3)
+                is_virtual = is_chapter or is_character
                 displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
                 
                 preview_idx = -1
-                if is_chapter:
+                if is_virtual:
                     target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
                     if target_tuple in displayed_indices:
                         preview_idx = displayed_indices.index(target_tuple)

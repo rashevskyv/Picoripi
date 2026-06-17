@@ -80,6 +80,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_string_idx = s_idx
                 self.mw.data_store.current_chapter_id = ch_id
                 self.mw.data_store.current_category_name = None
+                self.mw.data_store.current_character_name = None
                 
                 # Fetch mappings from MemePalace client
                 chapter_mappings = []
@@ -119,11 +120,42 @@ class ListSelectionHandler(BaseHandler):
             category_name = current_item.data(0, Qt.UserRole + 10)
             chapter_id = current_item.data(0, Qt.UserRole + 11)
             
+            if block_index == -3:
+                # Character item selected
+                self.mw.data_store.current_block_idx = -3
+                self.mw.data_store.current_category_name = None
+                self.mw.data_store.current_chapter_id = None
+                
+                char_name = current_item.data(0, Qt.UserRole + 15)
+                self.mw.data_store.current_character_name = char_name
+                
+                # Retrieve pre-calculated mappings from the tree item
+                char_mappings = current_item.data(0, Qt.UserRole + 13) or []
+                self.mw.data_store.chapter_mappings = char_mappings
+                
+                self.ui_updater.populate_strings_for_block(-3)
+                
+                if char_mappings:
+                    first_mapping = char_mappings[0]
+                    self.mw.data_store.current_block_idx = first_mapping[0]
+                    self.mw.data_store.current_string_idx = first_mapping[1]
+                    if not getattr(self.mw, '_restoring_session_state', False):
+                        QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
+                else:
+                    self.mw.data_store.current_block_idx = -1
+                    self.mw.data_store.current_string_idx = -1
+                    self.ui_updater.update_text_views()
+                    
+                self.ui_updater.update_statusbar_paths()
+                self._update_block_toolbar_button_states(-3)
+                return
+
             if chapter_id is not None:
                 # Chapter item selected
                 self.mw.data_store.current_block_idx = -2
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = chapter_id
+                self.mw.data_store.current_character_name = None
                 
                 # Fetch mappings from MemePalace client
                 chapter_mappings = []
@@ -162,6 +194,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_string_idx = -1
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = None
+                self.mw.data_store.current_character_name = None
                 self.mw.data_store.chapter_mappings = []
                 self.ui_updater.populate_strings_for_block(-1)
                 if hasattr(self.mw, 'string_settings_updater'):
@@ -169,10 +202,11 @@ class ListSelectionHandler(BaseHandler):
                 self._update_block_toolbar_button_states(-1)
                 return
  
-            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or self.mw.data_store.current_chapter_id is not None:
+            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or self.mw.data_store.current_chapter_id is not None or getattr(self.mw.data_store, 'current_character_name', None) is not None:
                 self.mw.data_store.current_block_idx = block_index
                 self.mw.data_store.current_category_name = category_name
                 self.mw.data_store.current_chapter_id = None
+                self.mw.data_store.current_character_name = None
                 self.mw.data_store.chapter_mappings = []
                 
                 # Restore selection logic
@@ -331,24 +365,51 @@ class ListSelectionHandler(BaseHandler):
             block_label, s_idx_str = parts
             s_idx = int(s_idx_str)
             
+            # Helper to normalize labels
+            def normalize_label(lbl: str) -> str:
+                if not lbl:
+                    return ""
+                # replace backslashes, take final path component
+                lbl = lbl.replace("\\", "/").split("/")[-1]
+                # remove typical extensions
+                for ext in ['.bmg', '.json', '.arc', '.rarc', '.ark']:
+                    if lbl.lower().endswith(ext):
+                        lbl = lbl[:-len(ext)]
+                return lbl.strip().lower()
+            
+            clean_blklbl = normalize_label(block_label)
+            
             # Special case for general 'BMG' prefix (e.g. BMG_Str_0 in Zelda TP)
-            if block_label == "BMG":
+            if clean_blklbl == "bmg":
                 for b_idx in range(len(self.mw.data_store.data)):
                     composer = getattr(self.mw, "translation_handler", None)
                     if composer and hasattr(composer, "prompt_composer"):
                         label = composer.prompt_composer._get_block_label(b_idx)
                     else:
                         label = f"Block_{b_idx}"
-                    if label == "BMG" or "zel_00" in label.lower() or b_idx == 0:
+                    clean_lbl = normalize_label(label)
+                    if clean_lbl == "bmg" or "zel_00" in clean_lbl or b_idx == 0:
                         return b_idx, s_idx
             
+            # 1. Exact normalized match
             for b_idx in range(len(self.mw.data_store.data)):
                 composer = getattr(self.mw, "translation_handler", None)
                 if composer and hasattr(composer, "prompt_composer"):
                     label = composer.prompt_composer._get_block_label(b_idx)
                 else:
                     label = f"Block_{b_idx}"
-                if label == block_label:
+                if normalize_label(label) == clean_blklbl:
+                    return b_idx, s_idx
+            
+            # 2. Fuzzy normalized match (substring)
+            for b_idx in range(len(self.mw.data_store.data)):
+                composer = getattr(self.mw, "translation_handler", None)
+                if composer and hasattr(composer, "prompt_composer"):
+                    label = composer.prompt_composer._get_block_label(b_idx)
+                else:
+                    label = f"Block_{b_idx}"
+                clean_lbl = normalize_label(label)
+                if clean_blklbl and clean_lbl and (clean_blklbl in clean_lbl or clean_lbl in clean_blklbl):
                     return b_idx, s_idx
         except Exception as e:
             log_debug(f"Failed to resolve bmg_id {bmg_id}: {e}")
@@ -1120,4 +1181,81 @@ class ListSelectionHandler(BaseHandler):
         if not indices and hasattr(self.mw, 'displayed_string_indices'):
             indices = self.mw.displayed_string_indices
         return indices
+
+    def save_character_for_current_string(self, char_name: str) -> None:
+        """Save character assignment for the current string and refresh UI."""
+        char_name = char_name.strip()
+        block_idx = self.mw.data_store.current_block_idx
+        string_idx = self.mw.data_store.current_string_idx
+        
+        if block_idx == -1 or string_idx == -1 or block_idx in (-2, -3):
+            return
+            
+        pm = getattr(self.mw, 'project_manager', None)
+        if not pm or not pm.project:
+            return
+            
+        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        proj_b_idx = block_map.get(block_idx, block_idx)
+        if proj_b_idx >= len(pm.project.blocks):
+            return
+            
+        block = pm.project.blocks[proj_b_idx]
+        assignments = block.metadata.setdefault("character_assignments", {})
+        
+        old_char = assignments.get(str(string_idx))
+        if old_char == char_name or (not old_char and char_name.lower() == "none"):
+            return
+            
+        if not char_name or char_name.lower() == "none":
+            assignments.pop(str(string_idx), None)
+        else:
+            assignments[str(string_idx)] = char_name
+            
+        pm.save()
+        
+        current_item = self.mw.block_list_widget.currentItem()
+        override_block_idx = None
+        override_folder_id = None
+        if current_item:
+            override_block_idx = current_item.data(0, Qt.ItemDataRole.UserRole)
+            override_folder_id = current_item.data(0, Qt.ItemDataRole.UserRole + 1)
+            
+        current_char_name_in_store = getattr(self.mw.data_store, 'current_character_name', None)
+        if override_block_idx == -3 and current_char_name_in_store:
+            # Rebuild tree so items have updated mappings lists
+            self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
+            
+            # Find the active character item in the block tree to get its updated mappings
+            char_mappings = []
+            iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+            while iterator.value():
+                item = iterator.value()
+                if item.data(0, Qt.UserRole) == -3 and item.data(0, Qt.UserRole + 15) == current_char_name_in_store:
+                    char_mappings = item.data(0, Qt.UserRole + 13) or []
+                    break
+                iterator += 1
+                
+            self.mw.data_store.chapter_mappings = char_mappings
+            self.ui_updater.populate_strings_for_block(-3)
+        else:
+            self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
+            if hasattr(self.mw, 'string_settings_updater'):
+                self.mw.string_settings_updater.update_string_settings_panel()
+                
+        self.data_processor.schedule_autosave()
+
+    def toggle_show_warnings_only(self, checked: bool) -> None:
+        """Toggle showing only strings matching active warning filters."""
+        self.mw.data_store.show_warnings_only = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
+
+    def warnings_filter_changed(self, active_warnings: list) -> None:
+        """Handle change in active warning filters selection."""
+        self.mw.data_store.active_warning_filters = active_warnings
+        if self.mw.data_store.current_block_idx != -1 and getattr(self.mw.data_store, 'show_warnings_only', False):
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
 

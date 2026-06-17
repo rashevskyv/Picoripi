@@ -1,14 +1,8 @@
 import pytest
 import struct
 import hashlib
-from pathlib import Path
 from core.containers import ContainerManager
 from bmg_tool import BMGFile, BMGMessage
-
-@pytest.fixture(scope="module")
-def shared_tmp_dir(tmp_path_factory):
-    """Creates a shared temporary directory for the module to pass archives between tests."""
-    return tmp_path_factory.mktemp("shared_arc_bmg")
 
 @pytest.fixture(scope="module")
 def original_arc_bytes():
@@ -48,16 +42,16 @@ def original_arc_bytes():
     
     return bytes(data)
 
-def test_1_modify_bmg_inside_arc(shared_tmp_dir, original_arc_bytes):
+def test_modify_verify_and_revert_bmg_inside_arc(tmp_path, original_arc_bytes):
     """
-    Test 1: Unpacks ARC in memory, reads BMG, modifies one message,
-    saves the BMG, writes it back to ARC, and saves modified ARC to disk.
+    Combines modification, verification, and reverting of BMG file inside ARC
+    to avoid race conditions when executing tests in parallel using pytest-xdist.
     """
     # Write the original archive to disk for later comparison
-    original_path = shared_tmp_dir / "original.arc"
+    original_path = tmp_path / "original.arc"
     original_path.write_bytes(original_arc_bytes)
     
-    # Unpack ARC in memory
+    # 1. Unpack ARC in memory
     container = ContainerManager.open(original_arc_bytes)
     assert container is not None
     assert "test.bmg" in container.list_files()
@@ -84,18 +78,10 @@ def test_1_modify_bmg_inside_arc(shared_tmp_dir, original_arc_bytes):
     modified_arc_bytes = container.pack()
     assert len(modified_arc_bytes) > 0
     
-    # Save modified ARC to shared directory
-    modified_path = shared_tmp_dir / "modified.arc"
+    # Save modified ARC to temp directory
+    modified_path = tmp_path / "modified.arc"
     modified_path.write_bytes(modified_arc_bytes)
 
-def test_2_verify_and_revert_bmg_inside_arc(shared_tmp_dir):
-    """
-    Test 2: Loads modified ARC, converts both original and modified BMG to JSON/dict.
-    Performs strict dict-level comparison to confirm that EXACTLY ONE string is modified
-    and everything else (headers, other strings, metadata) is untouched.
-    Reverts the string back to "Original Text" via manual editing, packs ARC,
-    and validates byte-perfect SHA-256 checksum identity against the original ARC.
-    """
     # Helper to convert BMGFile to JSON-like dict for deep comparison
     def bmg_to_dict(bmg_obj):
         return {
@@ -115,29 +101,23 @@ def test_2_verify_and_revert_bmg_inside_arc(shared_tmp_dir):
             ]
         }
 
-    # 1. Read both archives from disk
-    original_path = shared_tmp_dir / "original.arc"
-    assert original_path.exists()
-    original_arc_bytes = original_path.read_bytes()
-
-    modified_path = shared_tmp_dir / "modified.arc"
-    assert modified_path.exists()
-    modified_arc_bytes = modified_path.read_bytes()
+    # 2. Verify: Read both archives from disk and compare BMG structures
+    original_arc_bytes_read = original_path.read_bytes()
+    modified_arc_bytes_read = modified_path.read_bytes()
     
-    # 2. Extract and parse BMGs from both archives
-    container_orig = ContainerManager.open(original_arc_bytes)
+    container_orig = ContainerManager.open(original_arc_bytes_read)
     bmg_bytes_orig = container_orig.read_file("test.bmg")
     bmg_orig = BMGFile()
     bmg_orig.load(bmg_bytes_orig)
     orig_dict = bmg_to_dict(bmg_orig)
 
-    container_mod = ContainerManager.open(modified_arc_bytes)
+    container_mod = ContainerManager.open(modified_arc_bytes_read)
     bmg_bytes_mod = container_mod.read_file("test.bmg")
     bmg_mod = BMGFile()
     bmg_mod.load(bmg_bytes_mod)
     mod_dict = bmg_to_dict(bmg_mod)
     
-    # 3. Strict dict-level assertions to verify EXACTLY what was changed:
+    # Strict dict-level assertions to verify EXACTLY what was changed:
     # - Metadata fields must be absolutely identical
     assert mod_dict["endianness"] == orig_dict["endianness"]
     assert mod_dict["encoding"] == orig_dict["encoding"]
@@ -163,14 +143,14 @@ def test_2_verify_and_revert_bmg_inside_arc(shared_tmp_dir):
     assert mod_dict["messages"][1]["parts"] == [{"type": "text", "value": "Modified Text"}]
     assert orig_dict["messages"][1]["parts"] == [{"type": "text", "value": "Original Text"}]
     
-    # 4. Revert the change by MANUAL EDITING in the text (NOT copying files, but setting the value)
+    # 3. Revert the change by MANUAL EDITING in the text
     bmg_mod.messages[1].parts = ["Original Text"]
     
-    # 5. Convert reverted BMG to dict and assert it matches original dict 100%
+    # Convert reverted BMG to dict and assert it matches original dict 100%
     reverted_dict = bmg_to_dict(bmg_mod)
     assert reverted_dict == orig_dict
     
-    # 6. Save reverted BMG to binary
+    # Save reverted BMG to binary
     reverted_bmg_bytes = bmg_mod.save()
     
     # Overlay in archive
@@ -179,12 +159,12 @@ def test_2_verify_and_revert_bmg_inside_arc(shared_tmp_dir):
     # Pack archive back
     reverted_arc_bytes = container_mod.pack()
     
-    # 7. Assert byte-perfect SHA-256 hash checksum identity
+    # Assert byte-perfect SHA-256 hash checksum identity
     def get_sha256(data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
         
-    orig_hash = get_sha256(original_arc_bytes)
+    orig_hash = get_sha256(original_arc_bytes_read)
     reverted_hash = get_sha256(reverted_arc_bytes)
     
     assert reverted_hash == orig_hash
-    assert reverted_arc_bytes == original_arc_bytes
+    assert reverted_arc_bytes == original_arc_bytes_read

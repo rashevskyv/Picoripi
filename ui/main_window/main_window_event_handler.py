@@ -196,6 +196,14 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'hide_translation_tags_checkbox'):
             self.mw.hide_translation_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translation_tags)
 
+        if hasattr(self.mw, 'character_combobox') and self.mw.character_combobox is not None:
+            self.mw.character_combobox.lineEdit().returnPressed.connect(lambda: self.mw.list_selection_handler.save_character_for_current_string(self.mw.character_combobox.currentText()))
+            self.mw.character_combobox.activated.connect(lambda: self.mw.list_selection_handler.save_character_for_current_string(self.mw.character_combobox.currentText()))
+        if hasattr(self.mw, 'show_warnings_only_checkbox') and self.mw.show_warnings_only_checkbox:
+            self.mw.show_warnings_only_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_warnings_only)
+        if hasattr(self.mw, 'warnings_combobox') and self.mw.warnings_combobox:
+            self.mw.warnings_combobox.checkedItemsChanged.connect(self.mw.list_selection_handler.warnings_filter_changed)
+
     def keyPressEvent(self, event: QKeyEvent):
         """Keypressevent."""
         super(self.mw.__class__, self.mw).keyPressEvent(event)
@@ -345,6 +353,15 @@ class MainWindowEventHandler:
         if hasattr(mw, 'show_unsaved_blocks_checkbox'): safe_disconnect(mw.show_unsaved_blocks_checkbox, 'toggled')
         if hasattr(mw, 'hide_original_tags_checkbox'): safe_disconnect(mw.hide_original_tags_checkbox, 'toggled')
         if hasattr(mw, 'hide_translation_tags_checkbox'): safe_disconnect(mw.hide_translation_tags_checkbox, 'toggled')
+
+        if hasattr(mw, 'character_combobox') and mw.character_combobox is not None:
+            if mw.character_combobox.lineEdit():
+                safe_disconnect(mw.character_combobox.lineEdit(), 'returnPressed')
+            safe_disconnect(mw.character_combobox, 'activated')
+        if hasattr(mw, 'show_warnings_only_checkbox'):
+            safe_disconnect(mw.show_warnings_only_checkbox, 'toggled')
+        if hasattr(mw, 'warnings_combobox'):
+            safe_disconnect(mw.warnings_combobox, 'checkedItemsChanged')
 
     def handle_edited_cursor_position_changed(self):
         """Handle edited cursor position changed."""

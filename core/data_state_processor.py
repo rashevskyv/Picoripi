@@ -1072,6 +1072,9 @@ class DataStateProcessor:
                 
                 log_info(f"DSP: Successfully restored entire project state from session file {session_path}")
                 
+                if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
+                    self.mw.ui_updater.sync_filter_checkboxes_with_store()
+                
                 # Rebuild indices and refresh UI
                 if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'rebuild_unsaved_block_indices'):
                     self.mw.helper.rebuild_unsaved_block_indices()
