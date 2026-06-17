@@ -16,6 +16,7 @@ build_gemini_dir.py
 .env
 
 # Audit
+audit.md
 AUDIT.md
 /TestProject
 

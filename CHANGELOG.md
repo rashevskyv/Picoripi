@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.029] - 2026-06-17
+
+### 🚀 Added
+- **Speaker Editor Undo/Redo Routing**: Intercepted Undo/Redo key sequences (Ctrl+Z / Ctrl+Y) within the Speaker input combobox and routed them to the global application `UndoManager`. This prevents text typing loss and allows unified undo/redo histories.
+- **Improved Speaker Folder Selection Retention**: Enhanced `BlockListUpdater` to track and restore selected speaker items during dynamic list rebuilds, avoiding focus and selection resets.
+
+### 🐛 Fixed
+- **Virtual Preview Selection Reference**: Fixed virtual folder preview indexing by mapping selected lines to `physical_block_idx` instead of `current_block_idx`, improving stability during navigation in Speaker/Chapter views.
+- **Git Ignore Custom Audits**: Appended lowercase `audit.md` to `.gitignore` to prevent tracking local temporary audit logs.
+
 ## [0.3.028] - 2026-06-17
 
 ### 🚀 Added
