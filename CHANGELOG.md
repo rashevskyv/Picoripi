@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.026] - 2026-06-17
+
+### 🐛 Fixed
+- **Block Navigation Jump on Character Selection**: Resolved an issue where opening the character dropdown selection or choosing a character while navigating virtual folders (such as Characters or Chapters) would unexpectedly jump/reset the block tree selection to a physical block, causing the user to lose their navigation context. Normalization has also been added to treat `None`, `none`, and empty string `""` as equivalent to prevent false-positive change detections during dropdown focus events.
+
 ## [0.3.025] - 2026-06-17
 
 ### 🚀 Added

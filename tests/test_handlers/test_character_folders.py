@@ -187,3 +187,37 @@ def test_transition_from_character_to_physical_block_clears_state(qapp, mock_mw,
     assert mock_mw.data_store.current_block_idx == 0
     assert mock_mw.data_store.current_character_name is None
     assert mock_mw.data_store.chapter_mappings == []
+
+def test_save_character_preserves_virtual_selection(qapp, mock_mw, mock_project):
+    """Test that saving a character preserves virtual folder selection state even if data_store.current_block_idx is a physical block."""
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = mock_project
+    mock_mw.block_to_project_file_map = {0: 0}
+    
+    # Simulate being in virtual characters mode
+    mock_mw.data_store.current_block_idx = 0  # physical block (from active row selection)
+    mock_mw.data_store.current_string_idx = 0
+    mock_mw.data_store.current_character_name = "Hero"
+    
+    # Create actual QTreeWidget and item
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    tree = QTreeWidget()
+    virtual_item = QTreeWidgetItem(["Hero"])
+    virtual_item.setData(0, int(Qt.ItemDataRole.UserRole), -3)
+    virtual_item.setData(0, int(Qt.ItemDataRole.UserRole + 15), "Hero")
+    virtual_item.setData(0, int(Qt.ItemDataRole.UserRole + 13), [(0, 0)])
+    tree.addTopLevelItem(virtual_item)
+    tree.setCurrentItem(virtual_item)
+    
+    mock_mw.block_list_widget = tree
+    
+    # We mock populate_blocks to ensure it gets called with -3 (virtual block)
+    mock_mw.ui_updater.block_list_updater = MagicMock()
+    
+    handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
+    
+    # Save a new character (e.g. changing from implicit/None/MemePalace to a project metadata assignment)
+    handler.save_character_for_current_string("Villain")
+    
+    # Check that populate_blocks was called with override_block_idx = -3 (NOT physical block 0)
+    mock_mw.ui_updater.block_list_updater.populate_blocks.assert_called_with(override_folder_id=None, override_block_idx=-3)

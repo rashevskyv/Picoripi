@@ -1204,10 +1204,15 @@ class ListSelectionHandler(BaseHandler):
         assignments = block.metadata.setdefault("character_assignments", {})
         
         old_char = assignments.get(str(string_idx))
-        if old_char == char_name or (not old_char and char_name.lower() == "none"):
+        
+        # Normalize none/empty values to avoid false triggers upon dropdown focus/activation
+        is_none_or_empty_new = (not char_name or char_name.lower() == "none")
+        is_none_or_empty_old = (not old_char or old_char.lower() == "none")
+        
+        if old_char == char_name or (is_none_or_empty_new and is_none_or_empty_old):
             return
             
-        if not char_name or char_name.lower() == "none":
+        if is_none_or_empty_new:
             assignments.pop(str(string_idx), None)
         else:
             assignments[str(string_idx)] = char_name
@@ -1221,7 +1226,13 @@ class ListSelectionHandler(BaseHandler):
             override_block_idx = current_item.data(0, Qt.ItemDataRole.UserRole)
             override_folder_id = current_item.data(0, Qt.ItemDataRole.UserRole + 1)
             
+        # Ensure we stay in virtual mode if we are editing inside virtual characters/chapters directories
         current_char_name_in_store = getattr(self.mw.data_store, 'current_character_name', None)
+        current_chapter_id_in_store = getattr(self.mw.data_store, 'current_chapter_id', None)
+        if current_char_name_in_store is not None:
+            override_block_idx = -3
+        elif current_chapter_id_in_store is not None:
+            override_block_idx = -2
         if override_block_idx == -3 and current_char_name_in_store:
             # Rebuild tree so items have updated mappings lists
             self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
