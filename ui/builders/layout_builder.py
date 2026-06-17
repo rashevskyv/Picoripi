@@ -6,7 +6,6 @@ from PyQt6.QtCore import Qt
 from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
-from components.checkable_combobox import CheckableComboBox
 
 class LayoutBuilder:
     """Layout builder implementation."""
@@ -162,10 +161,11 @@ class LayoutBuilder:
         self.mw.show_warnings_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_warnings_only_checkbox)
         
-        self.mw.warnings_combobox = CheckableComboBox()
-        self.mw.warnings_combobox.setToolTip("Select warnings to filter by")
-        self.mw.warnings_combobox.setFixedWidth(180)
-        preview_header_layout.addWidget(self.mw.warnings_combobox)
+        self.mw.warnings_filter_button = QPushButton("Warnings: 0 / 0")
+        self.mw.warnings_filter_button.setToolTip("Select warnings to filter by")
+        self.mw.warnings_filter_button.setFixedWidth(150)
+        self.mw.warnings_filter_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        preview_header_layout.addWidget(self.mw.warnings_filter_button)
         
         top_right_layout.addLayout(preview_header_layout)
         self.mw.preview_text_edit = LineNumberedTextEdit(self.mw)

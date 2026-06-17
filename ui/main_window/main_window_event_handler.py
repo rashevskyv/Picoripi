@@ -201,8 +201,8 @@ class MainWindowEventHandler:
             self.mw.speaker_combobox.activated.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
         if hasattr(self.mw, 'show_warnings_only_checkbox') and self.mw.show_warnings_only_checkbox:
             self.mw.show_warnings_only_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_warnings_only)
-        if hasattr(self.mw, 'warnings_combobox') and self.mw.warnings_combobox:
-            self.mw.warnings_combobox.checkedItemsChanged.connect(self.mw.list_selection_handler.warnings_filter_changed)
+        if hasattr(self.mw, 'warnings_filter_button') and self.mw.warnings_filter_button:
+            self.mw.warnings_filter_button.clicked.connect(self.mw.list_selection_handler.open_warnings_filter_dialog)
 
     def keyPressEvent(self, event: QKeyEvent):
         """Keypressevent."""
@@ -360,8 +360,8 @@ class MainWindowEventHandler:
             safe_disconnect(mw.speaker_combobox, 'activated')
         if hasattr(mw, 'show_warnings_only_checkbox'):
             safe_disconnect(mw.show_warnings_only_checkbox, 'toggled')
-        if hasattr(mw, 'warnings_combobox'):
-            safe_disconnect(mw.warnings_combobox, 'checkedItemsChanged')
+        if hasattr(mw, 'warnings_filter_button'):
+            safe_disconnect(mw.warnings_filter_button, 'clicked')
 
     def handle_edited_cursor_position_changed(self):
         """Handle edited cursor position changed."""

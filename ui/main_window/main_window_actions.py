@@ -395,6 +395,9 @@ class MainWindowActions:
                 self.mw.text_operation_handler._update_preview_content()
                 self.mw.text_operation_handler.text_edited()
 
+            if hasattr(self.mw, 'plugin_handler') and self.mw.plugin_handler:
+                self.mw.plugin_handler.update_warnings_filter_button()
+
 
     def trigger_save_action(self):
         """Trigger save action."""

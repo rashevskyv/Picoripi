@@ -106,7 +106,7 @@ class MainWindowPluginHandler:
         if hasattr(self.mw, 'translation_handler'):
             self.mw.translation_handler.initialize_glossary_highlighting()
             
-        self.update_warnings_combobox()
+        self.update_warnings_filter_button()
 
     def _load_custom_aliases(self):
         """Internal helper to load custom aliases."""
@@ -149,21 +149,24 @@ class MainWindowPluginHandler:
             log_error(f"CRITICAL ERROR: Could not load fallback game rules: {e}", exc_info=True)
             self.mw.current_game_rules = None
             
-        self.update_warnings_combobox()
+        self.update_warnings_filter_button()
 
-    def update_warnings_combobox(self):
-        """Populate the warnings combobox with problems from the current plugin."""
-        if hasattr(self.mw, 'warnings_combobox') and self.mw.warnings_combobox:
-            self.mw.warnings_combobox.blockSignals(True)
-            self.mw.warnings_combobox.clear()
+    def update_warnings_filter_button(self):
+        """Update the warnings filter button text showing selected count / active count."""
+        if hasattr(self.mw, 'warnings_filter_button') and self.mw.warnings_filter_button:
             defs = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
-            for pid, info in defs.items():
-                self.mw.warnings_combobox.add_item(info.get("name", pid), pid)
-            # Restore checked state if they are in data_store active filters
+            detection_enabled = getattr(self.mw, 'detection_enabled', {})
+            
+            # Find all problem IDs that are active in detection settings
+            active_pids = [pid for pid in defs.keys() if detection_enabled.get(pid, True)]
+            total_active = len(active_pids)
+            
+            # Find how many of these active ones are currently checked as warning filters
             active_filters = getattr(self.mw.data_store, 'active_warning_filters', [])
-            if active_filters:
-                self.mw.warnings_combobox.set_checked_data(active_filters)
-            self.mw.warnings_combobox.blockSignals(False)
+            selected_active = [pid for pid in active_filters if pid in active_pids]
+            selected_count = len(selected_active)
+            
+            self.mw.warnings_filter_button.setText(f"Warnings: {selected_count} / {total_active}")
 
     def trigger_check_tags_action(self):
         """Trigger check tags action."""

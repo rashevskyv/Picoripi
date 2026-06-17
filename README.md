@@ -1,6 +1,6 @@
-# Picoripi v0.3.030
+# Picoripi v0.3.031
  
-The **Picoripi** (v0.3.030) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.031) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -27,6 +27,7 @@ The **Picoripi** (v0.3.030) is a visual translation and localization workbench b
 - **Virtual Chapters Navigation**: Integrates a virtual `Chapters -> Act -> Chapter` hierarchical node structure in the Blocks panel. Dialogue lines scattered across physical `.bmg` or `.json` blocks are dynamically grouped chronologically based on story timeline database coordinates. Supports right-click context menu actions (rename, delete, assign font overrides, toggle markers).
 - **Virtual Speakers Navigation**: Group dialogue lines dynamically by Speaker. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Speakers -> Speaker Name` node structure in the Blocks panel, including a dedicated `"None"` folder at the very top of the list for all unassigned strings. Dialogue lines counts are displayed next to names (e.g. `ASHEI [12]`). Adding strings to these folders automatically assigns the corresponding speaker metadata to them. Supports direct selection and interactive input of speaker names via a combo box located above the translation editor (featuring a `"None"` option to clear assignments), instantly updating speaker assignments and hot-reloading virtual folders, while showing the MemePalace speaker mapping and glossary details directly in the speaker label and combobox tooltips to eliminate visual clutter.
 - **Auto-Synchronized Filter Checkboxes**: Automatically synchronizes the graphical states of all filter checkboxes (such as `Show Unsaved Only`, `Hide translated`, etc.) inside the preview panel with the internal `AppDataStore` values upon startup, session restoration, or project settings loading to prevent visual UI state desynchronization.
+- **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a filter button (`Warnings: X / Y`, where X is the number of active warning filters and Y is the number of enabled warnings in Settings -> Detection) next to the preview layout toggles. Clicking the button opens a modal dialog (`WarningsFilterDialog`) with checkboxes and descriptive tooltips for each warning type, allowing users to isolate strings matching a subset of selected warnings or view all warnings if no specific filters are checked. If no warnings are selected, the preview is cleared.
 
 ---
 
@@ -61,7 +62,6 @@ The **Picoripi** (v0.3.030) is a visual translation and localization workbench b
 - **Silent Ctrl+S Saving with Toast Notification**: Refactored the file saving mechanism so that pressing `Ctrl+S` (or using the Save action) instantly saves all changes without displaying blocking confirmation dialogs. A non-blocking, semi-transparent black **Toast Notification** with rounded corners appears in the bottom-left corner of the screen for 2 seconds to confirm the success.
 - **Strict Page-Local AutoFix (Shift+AutoFix)**: Pressing `Shift` while running AutoFix isolates wrapping and fixes to the current page only. It strictly preserves page boundaries by padding each page back to its original length, preventing text from next pages from overflowing into previous ones, even when the empty padding lines prevention is enabled globally.
 - **Unconditional Page Layout Sentence Alignment**: Refactored sentence wrapping to allow matching target text pages directly with the source. When enabled, it strips old layout markers and replicates exact game-specific page break codes (like `[escape:0:0007...]`) from matching source sentences.
-- **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a checkable combo box next to the preview layout toggles, enabling users to isolate strings matching a subset of selected warnings (e.g., width violations, tag spacing errors, custom plugin validation errors), or view all warnings if no specific filters are checked.
 
 ---
 

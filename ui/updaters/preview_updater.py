@@ -530,13 +530,6 @@ class PreviewUpdater(BaseUIUpdater):
                                 if any(p_id in active_filters for p_id in problems):
                                     has_matching_problem = True
                                     break
-                    else:
-                        # If active_warning_filters is empty, show strings with ANY warnings
-                        for key, problems in self.mw.data_store.problems_per_subline.items():
-                            if key[0] == b_idx and key[1] == s_idx:
-                                if problems:
-                                    has_matching_problem = True
-                                    break
                                     
                     if has_matching_problem:
                         filtered_indices.append(idx)

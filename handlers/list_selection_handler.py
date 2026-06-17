@@ -1476,3 +1476,19 @@ class ListSelectionHandler(BaseHandler):
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
         self.data_processor.schedule_autosave()
 
+    def open_warnings_filter_dialog(self) -> None:
+        """Open the WarningsFilterDialog to select warning filters."""
+        from ui.warnings_filter_dialog import WarningsFilterDialog
+        
+        defs = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
+        detection_enabled = getattr(self.mw, 'detection_enabled', {})
+        active_pids = [pid for pid in defs.keys() if detection_enabled.get(pid, True)]
+        selected_pids = getattr(self.mw.data_store, 'active_warning_filters', [])
+        
+        dialog = WarningsFilterDialog(defs, active_pids, selected_pids, self.mw)
+        if dialog.exec():
+            new_selected = dialog.get_selected_pids()
+            self.warnings_filter_changed(new_selected)
+            if hasattr(self.mw, 'plugin_handler') and self.mw.plugin_handler:
+                self.mw.plugin_handler.update_warnings_filter_button()
+

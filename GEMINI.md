@@ -1,10 +1,10 @@
-# The "Picoripi" (v0.3.030)
+# The "Picoripi" (v0.3.031)
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
 ## Project Overview
 
-The "Picoripi" (v0.3.030) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.031) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -14,7 +14,7 @@ The application is designed to be highly versatile, with features tailored to ha
 - **Granular Saving Actions**: Supports partial saving of changes. Users can choose to save translation changes for specifically selected blocks or categories via the project tree's context menu, or save targeted lines (a single string or multiple selected lines) via the editor context menus.
 - **Fault-Tolerant Session Autosaving**: Automatically serializes the complete state container (`AppDataStore`) in a binary `.picoripi_session` file using the `Pickle` protocol. Autosave operations are debounced (2 seconds) and governed by a dirty state flag (`self._session_dirty`) to prevent redundant disk I/O when the workspace is idle. On restart, the program recovers the workspace state instantly from this session file. **Undo/Redo command stacks** are preserved in the session payload, maintaining full edit history across restarts.
 - **Virtual Speakers Navigation**: Group dialogue lines dynamically by Speaker. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Speakers -> Speaker Name` node structure in the Blocks panel. Adding strings to these folders automatically assigns the corresponding speaker metadata to them. Supports direct selection and interactive input of speaker names via a combo box located above the translation editor, instantly updating speaker assignments and hot-reloading virtual folders.
-- **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a checkable combo box next to the preview layout toggles, enabling users to isolate strings matching a subset of selected warnings (e.g., width violations, tag spacing errors, custom plugin validation errors), or view all warnings if no specific filters are checked.
+- **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a filter button (`Warnings: X / Y`, where X is the number of active warning filters and Y is the number of enabled warnings in Settings -> Detection) next to the preview layout toggles. Clicking the button opens a modal dialog (`WarningsFilterDialog`) with checkboxes and descriptive tooltips for each warning type, enabling users to isolate strings matching a subset of selected warnings or view all warnings if no specific filters are checked. If no warnings are selected, the preview is cleared.
 
 - **Visual Feedback System**: Automatic file synchronization, clear problem counts and warning indicators across the project tree with **recursive asterisk propagation for unsaved changes**.
 - **Plugin-Based Architecture**: Game-specific logic is handled by a robust plugin system located in the `plugins/` directory. Each plugin (e.g., `zelda_mc`, `zelda_ww`, `pokemon_fr`, `plain_text`) defines its own rules for text parsing, tag handling, font metrics for width calculation, problem analysis, and autofix behavior. Plugins inherit from `BaseGameRules` (`plugins/base_game_rules.py`).

@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.031] - 2026-06-17
+
+### 🚀 Added
+- **A12 Warning filtering button and dialog**: Replaced the warning filter combobox (`warnings_combobox`) with a custom `Warnings: X / Y` filter button and a modal dialog (`WarningsFilterDialog`). The button displays the number of active warning filters (X) out of the total number of warning rules enabled in the settings (Y).
+- **WarningsFilterDialog component**: A dedicated dialog window allowing users to filter preview results by checking/unchecking active warnings. It shows warning types with custom color tags, descriptions in tooltips, and includes "Select All" and "Select None" options.
+
+### 🐛 Fixed
+- **Preview selection synchronization**: Reconfigured warning filters to immediately reload the preview pane when warning checkboxes are toggled in the dialog. If no warnings are selected, the preview is cleared.
+
+### 🗑️ Removed
+- **CheckableComboBox component**: Removed `CheckableComboBox` class and its test suite as they were completely replaced by the button-dialog workflow.
+
 ## [0.3.030] - 2026-06-17
 
 ### 🚀 Added

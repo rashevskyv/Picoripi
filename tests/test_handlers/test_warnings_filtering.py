@@ -83,4 +83,31 @@ def test_preview_updater_warnings_filtering(qapp, mock_mw):
     # Case 3: active_warning_filters = []
     mock_mw.data_store.active_warning_filters = []
     updater._do_populate_strings_for_block(0)
-    assert mock_mw.data_store.displayed_string_indices == [0, 1]
+    assert mock_mw.data_store.displayed_string_indices == []
+
+def test_open_warnings_filter_dialog(qapp, mock_mw):
+    """Test open_warnings_filter_dialog triggers dialog and updates button."""
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.current_category_name = None
+    mock_mw.ui_updater = MagicMock()
+    
+    mock_mw.current_game_rules = MagicMock()
+    mock_mw.current_game_rules.get_problem_definitions.return_value = {
+        "width_exceeded": {"name": "Width Exceeded"}
+    }
+    mock_mw.detection_enabled = {"width_exceeded": True}
+    mock_mw.data_store.active_warning_filters = []
+    
+    handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
+    
+    with patch("ui.warnings_filter_dialog.WarningsFilterDialog") as MockDialog:
+        dialog_inst = MockDialog.return_value
+        dialog_inst.exec.return_value = True
+        dialog_inst.get_selected_pids.return_value = ["width_exceeded"]
+        
+        handler.open_warnings_filter_dialog()
+        
+        MockDialog.assert_called_once()
+        assert mock_mw.data_store.active_warning_filters == ["width_exceeded"]
+        mock_mw.plugin_handler.update_warnings_filter_button.assert_called_once()
