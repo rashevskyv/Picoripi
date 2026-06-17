@@ -1,4 +1,4 @@
-﻿"""Dialog for choosing among AI translation variations."""
+"""Dialog for choosing among AI translation variations."""
 from __future__ import annotations
 
 import base64
@@ -112,7 +112,7 @@ class TranslationVariationsDialog(QDialog):
         self.splitter.addWidget(self._list)
 
         self._preview = LineNumberedTextEdit(self.mw)
-        self._preview.setReadOnly(True)
+        self._preview.setReadOnly(False)
         self._preview.setObjectName("variations_preview_text_edit")
 
         # Load glossary manager to enable glossary highlighting in preview
@@ -120,6 +120,11 @@ class TranslationVariationsDialog(QDialog):
             gm = getattr(self.mw.translation_handler, '_glossary_manager', None)
             if gm:
                 self._preview.set_glossary_manager(gm)
+        
+        # Load spellchecker if enabled globally
+        if self.mw and getattr(self.mw, 'spellchecker_enabled', True):
+            if hasattr(self._preview, 'highlighter') and self._preview.highlighter:
+                self._preview.highlighter.set_spellchecker_enabled(True)
 
         self.splitter.addWidget(self._preview)
 
@@ -241,11 +246,10 @@ class TranslationVariationsDialog(QDialog):
 
     def _apply_current_selection(self) -> None:
         """Internal helper to apply current selection."""
-        current = self._list.currentItem()
-        if not current:
-            return
-        selected = current.data(Qt.UserRole)
-        if not isinstance(selected, str):
-            return
-        self.selected_translation = selected
+        editor_text = self._preview.toPlainText()
+        if self.mw and getattr(self.mw, 'current_game_rules', None):
+            raw_text = self.mw.current_game_rules.convert_editor_text_to_data(editor_text)
+        else:
+            raw_text = editor_text
+        self.selected_translation = raw_text
         self.accept()

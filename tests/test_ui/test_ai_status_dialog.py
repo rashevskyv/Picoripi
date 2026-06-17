@@ -59,7 +59,7 @@ def test_AIStatusDialog_start_and_finish(qapp):
 
 def test_AIStatusDialog_modeless_and_sleep_checkboxes(qapp):
     dialog = AIStatusDialog()
-    assert dialog.isModal() is False
+    assert dialog.isModal() is True
     assert dialog.prevent_sleep_checkbox is not None
     assert dialog.prevent_sleep_checkbox.isChecked() is True
     assert dialog.sleep_after_checkbox is not None
@@ -114,5 +114,55 @@ def test_AIStatusDialog_cancel_prevents_sleep(qapp):
     with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
         dialog.finish()
         mock_timer.assert_not_called()
+
+def test_AIStatusDialog_finish_triggers_comparison(qapp):
+    from unittest.mock import patch, MagicMock
+    import sys
+    dialog = AIStatusDialog()
+    
+    translation_details = {
+        0: [(0, "new1"), (1, "new2")]
+    }
+    previous_translations = {
+        0: [(0, "old1"), (1, "old2")]
+    }
+    
+    # Backup pytest module
+    pytest_module = sys.modules.get('pytest')
+    
+    try:
+        # 1. More than 1 line re-translated -> AITranslationComparisonDialog
+        if 'pytest' in sys.modules:
+            del sys.modules['pytest']
+            
+        with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog') as mock_comp_dialog, \
+             patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog') as mock_res_dialog:
+            
+            dialog.finish(success=True, show_popup=True, translation_details=translation_details, previous_translations=previous_translations)
+            
+            mock_comp_dialog.assert_called_once_with(dialog.parentWidget() or dialog, translation_details, previous_translations)
+            mock_comp_dialog.return_value.show.assert_called_once()
+            mock_res_dialog.assert_not_called()
+            
+        # 2. Only 1 line re-translated -> AITranslationComparisonDialog
+        single_prev = {
+            0: [(0, "old1")]
+        }
+        
+        if 'pytest' in sys.modules:
+            del sys.modules['pytest']
+            
+        with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog') as mock_comp_dialog, \
+             patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog') as mock_res_dialog:
+            
+            dialog.finish(success=True, show_popup=True, translation_details=translation_details, previous_translations=single_prev)
+            
+            mock_comp_dialog.assert_called_once_with(dialog.parentWidget() or dialog, translation_details, single_prev)
+            mock_comp_dialog.return_value.show.assert_called_once()
+            mock_res_dialog.assert_not_called()
+    finally:
+        if pytest_module:
+            sys.modules['pytest'] = pytest_module
+
 
 

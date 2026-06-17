@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox, QMenu, QCheckBox
 )
@@ -53,6 +53,15 @@ class LayoutBuilder:
         block_header_layout.addWidget(self.mw.collapse_all_button)
 
         left_layout.addLayout(block_header_layout)
+
+        # Block Filter
+        block_filter_layout = QHBoxLayout()
+        self.mw.show_unsaved_blocks_checkbox = QCheckBox("Show Unsaved Only")
+        self.mw.show_unsaved_blocks_checkbox.setToolTip("Only show blocks and folders with unsaved changes.")
+        self.mw.show_unsaved_blocks_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
+        block_filter_layout.addWidget(self.mw.show_unsaved_blocks_checkbox)
+        block_filter_layout.addStretch()
+        left_layout.addLayout(block_filter_layout)
 
         # Block List Container
         block_list_container = QWidget()
@@ -139,6 +148,12 @@ class LayoutBuilder:
         self.mw.show_overrides_only_checkbox.setToolTip("Only show strings that have custom font or width overrides.")
         self.mw.show_overrides_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_overrides_only_checkbox)
+        
+        preview_header_layout.addSpacing(15)
+        self.mw.show_unsaved_only_checkbox = QCheckBox("Show Unsaved Only")
+        self.mw.show_unsaved_only_checkbox.setToolTip("Only show strings with unsaved changes.")
+        self.mw.show_unsaved_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
+        preview_header_layout.addWidget(self.mw.show_unsaved_only_checkbox)
         
         top_right_layout.addLayout(preview_header_layout)
         self.mw.preview_text_edit = LineNumberedTextEdit(self.mw)

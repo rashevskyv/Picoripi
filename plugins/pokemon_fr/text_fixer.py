@@ -1,4 +1,4 @@
-﻿from typing import Tuple, List, Optional, Set
+from typing import Tuple, List, Optional, Set
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.text_fixer import GenericTextFixer
@@ -260,6 +260,6 @@ class TextFixer(GenericTextFixer):
 
         changed_orphans = False
         if has_single_word_allowed:
-            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
+            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text, editor_font_map)
 
         return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_compact or changed_orphans)

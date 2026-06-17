@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, Set, Dict, Any
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
@@ -132,16 +132,25 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
         if not is_only_one_subline:
             if self._check_single_word_subline_generic(text_with_spaces):
                 if not self._is_single_word_ok_generic(text_with_spaces):
-                    if subline_number_in_data_string % lines_per_page == 0:
-                        sublines = full_data_string_text_for_logical_check.split('\n')
-                        start_idx = subline_number_in_data_string
-                        page_lines = sublines[start_idx : start_idx + lines_per_page]
-                        has_content_after = any(line.strip() for line in page_lines[1:])
-                        if has_content_after:
-                            found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                    sublines = full_data_string_text_for_logical_check.split('\n')
+                    is_allowed_orphan = False
+                    if subline_number_in_data_string > 0 and subline_number_in_data_string < len(sublines):
+                        is_allowed_orphan = self._is_single_word_orphan_allowed(
+                            text_with_spaces,
+                            sublines[subline_number_in_data_string - 1],
+                            editor_font_map
+                        )
+                    
+                    if not is_allowed_orphan:
+                        if subline_number_in_data_string % lines_per_page == 0:
+                            start_idx = subline_number_in_data_string
+                            page_lines = sublines[start_idx : start_idx + lines_per_page]
+                            has_content_after = any(line.strip() for line in page_lines[1:])
+                            if has_content_after:
+                                found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                            else:
+                                found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
                         else:
                             found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
-                    else:
-                        found_problems.add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
 
         return found_problems

@@ -1,4 +1,4 @@
-﻿"""Dialog for reviewing translations after a glossary change."""
+"""Dialog for reviewing translations after a glossary change."""
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional, Sequence
@@ -124,6 +124,11 @@ class GlossaryTranslationUpdateDialog(QDialog):
         apply_button = QPushButton("Apply", right_panel)
         apply_button.clicked.connect(lambda: self._apply_current(next_item=True))
         button_row.addWidget(apply_button)
+
+        self._apply_all_button = QPushButton("Apply All", right_panel)
+        self._apply_all_button.setToolTip("Apply suggested translations to all remaining occurrences and mark them all as completed (with checkmarks).")
+        self._apply_all_button.clicked.connect(self._run_apply_all)
+        button_row.addWidget(self._apply_all_button)
 
         skip_button = QPushButton("Skip", right_panel)
         skip_button.clicked.connect(self._skip_current)
@@ -402,6 +407,63 @@ class GlossaryTranslationUpdateDialog(QDialog):
             QMessageBox.warning(self, "AI Update", message)
         self.set_batch_active(False)
         self.set_ai_busy(False)
+
+    def _run_apply_all(self) -> None:
+        """Apply suggested translations to all remaining occurrences and mark them all as completed."""
+        remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
+        if not remaining:
+            QMessageBox.information(self, "Apply All", "All occurrences already applied.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Apply All",
+            f"Are you sure you want to apply suggested translations to all {len(remaining)} remaining occurrences "
+            f"and mark them all as completed (with checkmarks)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        parent_window = self.parent()
+        while parent_window and not hasattr(parent_window, "undo_manager"):
+            parent_window = parent_window.parent()
+            
+        undo_manager = getattr(parent_window, "undo_manager", None)
+        if undo_manager:
+            undo_manager.begin_group()
+
+        applied_count = 0
+        current_occ = self._current_occurrence()
+        
+        for occ in remaining:
+            # If it's the currently selected occurrence, we take the text from the editor.
+            # Otherwise we compute the suggestion based on its current translation.
+            if current_occ and id(occ) == id(current_occ):
+                new_text = self._translation_edit.toPlainText().rstrip('\n')
+            else:
+                current_translation = self._get_current_translation(occ) or ""
+                new_text = self._suggest_translation(current_translation)
+            
+            self._apply_translation_cb(occ, new_text)
+            self._status[id(occ)] = 'applied'
+            self._refresh_occurrence_item(occ)
+            applied_count += 1
+
+        if undo_manager:
+            undo_manager.end_group("GLOSSARY_APPLY_ALL")
+
+        QMessageBox.information(
+            self,
+            "Success",
+            f"Successfully applied suggested translations to all {applied_count} occurrence(s)!"
+        )
+
+        # Refresh currently selected item details to reflect the change
+        curr_row = self._occurrence_list.currentRow()
+        if 0 <= curr_row < len(self._occurrences):
+            self._load_occurrence(curr_row)
 
     def _run_quick_replace_all(self) -> None:
         """Internal helper to run quick replace all."""

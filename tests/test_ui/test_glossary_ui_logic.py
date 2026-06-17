@@ -195,6 +195,55 @@ def test_glossary_translation_quick_replace_all(qapp):
     QApplication.processEvents()
 
 
+def test_glossary_translation_apply_all(qapp):
+    from components.glossary_translation_update_dialog import GlossaryTranslationUpdateDialog
+    from core.glossary_manager import GlossaryOccurrence, GlossaryEntry
+    from PyQt6.QtWidgets import QWidget
+    
+    entry = GlossaryEntry("t", "new")
+    occ1 = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "This is old translation")
+    occ2 = GlossaryOccurrence(entry, 0, 1, 0, 0, 0, "Another old value")
+    
+    applied = {}
+    def mock_apply(occ, text):
+        applied[id(occ)] = text
+        
+    def mock_get_current(occ):
+        if occ.string_idx == 0:
+            return "This is old translation"
+        return "Another old value"
+        
+    dialog = GlossaryTranslationUpdateDialog(
+        parent=None,
+        term="t",
+        old_translation="old",
+        new_translation="new",
+        occurrences=[occ1, occ2],
+        get_original_text=lambda occ: "orig",
+        get_current_translation=mock_get_current,
+        apply_translation=mock_apply,
+        ai_request_single=None,
+        ai_request_all=None
+    )
+    
+    # Verify the button was created
+    assert dialog._apply_all_button is not None
+    
+    # Mock confirmation box to return Yes
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes), \
+         patch('PyQt6.QtWidgets.QMessageBox.information'):
+        dialog._run_apply_all()
+        
+    # Check that both occurrences had suggested translations applied
+    assert applied[id(occ1)] == "This is new translation"
+    assert applied[id(occ2)] == "Another new value"
+    assert dialog._status[id(occ1)] == 'applied'
+    assert dialog._status[id(occ2)] == 'applied'
+    
+    dialog.deleteLater()
+    QApplication.processEvents()
+
+
 def test_glossary_dialog_profiled_checkbox(qapp):
     from components.glossary_dialog import GlossaryDialog
     from core.glossary_manager import GlossaryEntry

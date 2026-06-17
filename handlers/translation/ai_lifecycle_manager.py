@@ -1,4 +1,4 @@
-﻿# handlers/translation/ai_lifecycle_manager.py
+# handlers/translation/ai_lifecycle_manager.py
 from typing import Dict, List, Optional, Tuple, Union, Any, Callable
 from PyQt6.QtCore import QThread, QTimer, Qt
 from PyQt6.QtWidgets import QMessageBox
@@ -102,6 +102,11 @@ class AILifecycleManager(BaseTranslationHandler):
             self.worker.chunk_translated.connect(self._on_chunk_translated)
             self.worker.translation_cancelled.connect(self._on_worker_cancelled)
             self.worker.progress_updated.connect(self.main_handler.ui_handler.status_dialog.update_progress)
+        elif task_type == 'glossary_occurrence_batch_update':
+            self.worker.total_chunks_calculated.connect(self.main_handler._setup_progress_bar)
+            self.worker.progress_updated.connect(self.main_handler.ui_handler.status_dialog.update_progress)
+            self.worker.success.connect(self._on_success)
+            self.worker.translation_cancelled.connect(self._on_worker_cancelled)
         else:
             self.worker.success.connect(self._on_success)
             self.worker.translation_cancelled.connect(self._on_worker_cancelled)
@@ -113,6 +118,12 @@ class AILifecycleManager(BaseTranslationHandler):
     def _on_thread_finished(self):
         """Internal helper to handle the thread finished event."""
         log_debug("AILifecycleManager: Worker thread finished. Cleaning up.")
+        task_type = None
+        if self.worker and hasattr(self.worker, 'task_details'):
+            task_type = self.worker.task_details.get('type')
+        if not task_type and self._retry_context:
+            task_type = self._retry_context.get('type')
+
         if self.worker:
             self.worker.deleteLater()
             self.worker = None
@@ -128,7 +139,9 @@ class AILifecycleManager(BaseTranslationHandler):
             dialog = self.main_handler.ui_handler.status_dialog
             if getattr(dialog, 'is_running', False):
                 success = not getattr(dialog, 'user_cancelled', False)
-                self.main_handler.ui_handler.finish_ai_operation(success=success)
+                is_chunked_translation = (task_type == 'translate_block_chunked')
+                if not (is_chunked_translation and success):
+                    self.main_handler.ui_handler.finish_ai_operation(success=success)
 
         if self._retry_context and not self._is_waiting_retry_delay:
             log_debug("AILifecycleManager: A retry context was found. Initiating immediate retry.")
@@ -242,8 +255,8 @@ class AILifecycleManager(BaseTranslationHandler):
                 if raw_output:
                     msg_box.setDetailedText(f"Raw AI Response:\n\n{raw_output}")
                 
-                retry_btn = msg_box.addButton("Retry (Wait 3s)", QMessageBox.AcceptRole)
-                cancel_btn = msg_box.addButton("Stop/Cancel AI", QMessageBox.RejectRole)
+                retry_btn = msg_box.addButton("Retry (Wait 3s)", QMessageBox.ButtonRole.AcceptRole)
+                cancel_btn = msg_box.addButton("Stop/Cancel AI", QMessageBox.ButtonRole.RejectRole)
                 msg_box.setDefaultButton(retry_btn)
                 
                 # If we have a status dialog, make sure we handle window modality
@@ -353,7 +366,15 @@ class AILifecycleManager(BaseTranslationHandler):
             dialog.subtitle_label.setStyleSheet("") # Reset to default
             dialog.subtitle_label.setVisible(False)
 
-        if task_type in ['translate_preview', 'translate_block_chunked']:
+        if task_type == 'translate_single':
+            provider = retry_context.get('provider')
+            if not provider:
+                provider = self._prepare_provider()
+            if provider:
+                QTimer.singleShot(0, lambda: self.main_handler._run_ai_task(provider, retry_context))
+            else:
+                self.main_handler.ui_handler.finish_ai_operation(success=False)
+        elif task_type in ['translate_preview', 'translate_block_chunked']:
             # We must use 0-delay timer because we are likely in a callback/signal handler context
             QTimer.singleShot(0, lambda: self.main_handler._initiate_batch_translation(retry_context))
         else:

@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QTextCursor
@@ -6,6 +6,7 @@ from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spac
 from core.glossary_manager import GlossaryOccurrence
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor
 from .base_ui_updater import BaseUIUpdater
+from utils.logging_utils import log_debug
 
 class PreviewUpdater(BaseUIUpdater):
     """Preview updater implementation."""
@@ -22,7 +23,8 @@ class PreviewUpdater(BaseUIUpdater):
         hide_trans = getattr(self.mw.data_store, 'hide_translated', False)
         hide_cat = getattr(self.mw.data_store, 'hide_categorized', False)
         hide_empty = getattr(self.mw.data_store, 'hide_empty_strings', False)
-        return (block_idx, category_name, show_overrides, hide_trans, hide_cat, hide_empty)
+        show_unsaved = getattr(self.mw.data_store, 'show_unsaved_only', False)
+        return (block_idx, category_name, show_overrides, hide_trans, hide_cat, hide_empty, show_unsaved)
 
     def update_cached_string(self, block_idx: int, string_idx: int, preview_line_text: str) -> None:
         """Update the preview text of a specific string in all cache entries for the given block."""
@@ -335,7 +337,18 @@ class PreviewUpdater(BaseUIUpdater):
         return categorized_indices
 
     def populate_strings_for_block(self, block_idx, category_name=None, force=False):
-        """Populate strings for block."""
+        """Populate strings for block with reentrancy prevention."""
+        if getattr(self, '_in_populate', False):
+            log_debug("populate_strings_for_block: reentrancy blocked.")
+            return
+        self._in_populate = True
+        try:
+            self._do_populate_strings_for_block(block_idx, category_name, force)
+        finally:
+            self._in_populate = False
+
+    def _do_populate_strings_for_block(self, block_idx, category_name=None, force=False):
+        """Actual populate strings for block logic."""
         if block_idx not in (-1,):
             if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
                 block_idx = -2
@@ -474,6 +487,18 @@ class PreviewUpdater(BaseUIUpdater):
                         filtered_indices.append(idx)
                 target_indices = filtered_indices
 
+            if getattr(self.mw.data_store, 'show_unsaved_only', False) is True:
+                filtered_indices = []
+                for idx in target_indices:
+                    if is_chapter:
+                        b_idx, s_idx = idx
+                    else:
+                        b_idx = block_idx
+                        s_idx = idx
+                    if (b_idx, s_idx) in self.mw.data_store.edited_data:
+                        filtered_indices.append(idx)
+                target_indices = filtered_indices
+
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
             if not old_indices and hasattr(self.mw, 'displayed_string_indices'):
@@ -572,7 +597,7 @@ class PreviewUpdater(BaseUIUpdater):
                     cache = self._preview_cache[cache_key]
                     if cache.get('target_indices') == target_indices:
                         for idx_offset in range(cache['next_index']):
-                            if idx_offset < len(target_indices):
+                            if idx_offset < len(target_indices) and idx_offset < len(cache['lines']):
                                 real_idx = target_indices[idx_offset]
                                 if real_idx == -1:
                                     preview_line_text = getattr(self, '_placeholder_texts', {}).get(idx_offset, "[Empty Lines]")
@@ -585,6 +610,7 @@ class PreviewUpdater(BaseUIUpdater):
                                     preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                                 cache['lines'][idx_offset] = preview_line_text
                 elif force and cache_key in self._preview_cache:
+
                     del self._preview_cache[cache_key]
 
                 approx_visible_lines = 0
@@ -597,6 +623,7 @@ class PreviewUpdater(BaseUIUpdater):
                     initial_chunk_size = len(target_indices)
                 else:
                     initial_chunk_size = max(200, preview_idx_to_select + 50, approx_visible_lines)
+                    initial_chunk_size = min(initial_chunk_size, len(target_indices))
                 
                 use_cache = False
                 if cache_key in self._preview_cache:
@@ -697,58 +724,59 @@ class PreviewUpdater(BaseUIUpdater):
                         is_mock_doc = hasattr(doc, '_mock_self')
                         cursor = None if is_mock_doc else QTextCursor(doc)
                         
-                        chunk_size = 100
-                        for start_offset in range(0, initial_chunk_size, chunk_size):
-                            if progress and progress.wasCanceled():
-                                break
-                                
-                            end_offset = min(start_offset + chunk_size, initial_chunk_size)
-                            chunk_lines = []
-                            
-                            for line_idx in range(start_offset, end_offset):
-                                preview_line_text = None
-                                if line_idx < len(cache['lines']) and line_idx < cache.get('next_index', 0):
-                                    preview_line_text = cache['lines'][line_idx]
+                        try:
+                            chunk_size = 100
+                            for start_offset in range(0, initial_chunk_size, chunk_size):
+                                if progress and progress.wasCanceled():
+                                    break
                                     
-                                if preview_line_text is None or preview_line_text == "":
-                                    real_idx = target_indices[line_idx]
-                                    if real_idx == -1:
-                                        preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
-                                    else:
-                                        b_idx = block_idx
-                                        s_idx = real_idx
-                                        if isinstance(real_idx, tuple):
-                                            b_idx, s_idx = real_idx
-                                        text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
-                                        preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                                        
-                                    if line_idx < len(cache['lines']):
-                                        cache['lines'][line_idx] = preview_line_text
-                                        
-                                chunk_lines.append(preview_line_text)
+                                end_offset = min(start_offset + chunk_size, initial_chunk_size)
+                                chunk_lines = []
                                 
-                            # Insert chunk into document
-                            if cursor:
-                                cursor.beginEditBlock()
-                                for offset, preview_line_text in enumerate(chunk_lines):
-                                    current_line_idx = start_offset + offset
-                                    block = doc.findBlockByNumber(current_line_idx)
-                                    if block.isValid():
-                                        cursor.setPosition(block.position())
-                                        cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
-                                        cursor.insertText(preview_line_text)
-                                cursor.endEditBlock()
-                            
-                            cache['next_index'] = max(cache.get('next_index', 0), end_offset)
-                            
-                            if progress:
-                                progress.setValue(end_offset)
-                                QApplication.processEvents()
+                                for line_idx in range(start_offset, end_offset):
+                                    preview_line_text = None
+                                    if line_idx < len(cache['lines']) and line_idx < cache.get('next_index', 0):
+                                        preview_line_text = cache['lines'][line_idx]
+                                        
+                                    if preview_line_text is None or preview_line_text == "":
+                                        real_idx = target_indices[line_idx]
+                                        if real_idx == -1:
+                                            preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
+                                        else:
+                                            b_idx = block_idx
+                                            s_idx = real_idx
+                                            if isinstance(real_idx, tuple):
+                                                b_idx, s_idx = real_idx
+                                            text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
+                                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                                            
+                                        if line_idx < len(cache['lines']):
+                                            cache['lines'][line_idx] = preview_line_text
+                                            
+                                    chunk_lines.append(preview_line_text)
+                                    
+                                # Insert chunk into document
+                                if cursor:
+                                    cursor.beginEditBlock()
+                                    for offset, preview_line_text in enumerate(chunk_lines):
+                                        current_line_idx = start_offset + offset
+                                        block = doc.findBlockByNumber(current_line_idx)
+                                        if block.isValid():
+                                            cursor.setPosition(block.position())
+                                            cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
+                                            cursor.insertText(preview_line_text)
+                                    cursor.endEditBlock()
                                 
-                        if progress and not getattr(self, '_keep_progress_dialog_open', False):
-                            progress.close()
-                        elif progress:
-                            self._active_progress_dialog = progress
+                                cache['next_index'] = max(cache.get('next_index', 0), end_offset)
+                                
+                                if progress:
+                                    progress.setValue(end_offset)
+                                    QApplication.processEvents()
+                        finally:
+                            if progress and not getattr(self, '_keep_progress_dialog_open', False):
+                                progress.close()
+                            elif progress:
+                                self._active_progress_dialog = progress
                             
                         if initial_chunk_size < len(target_indices):
                             self._lazy_load_timer.start(15)

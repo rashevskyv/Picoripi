@@ -76,7 +76,7 @@ def test_generate_variation_cached(mock_info, vh, mock_main_handler):
     
     vh.generate_variation_for_current_string(force=False)
     
-    mock_main_handler.ui_handler.show_variations_dialog.assert_called_once_with(['cached_variant'], show_refresh=True)
+    mock_main_handler.ui_handler.show_variations_dialog.assert_called_once_with(['cached_variant'], show_refresh=True, parent=None)
     mock_main_handler._format_and_wrap_translation.assert_called_once_with('cached_variant', 0, 0)
 
 
@@ -89,7 +89,7 @@ def test_generate_variation_api_flow(mock_info, vh, mock_main_handler):
     
     vh.generate_variation_for_current_string(force=True)
     
-    mock_main_handler.ui_handler.start_ai_operation.assert_called_once_with("AI Variation", model_name=ANY)
+    mock_main_handler.ui_handler.start_ai_operation.assert_called_once_with("AI Variation", model_name=ANY, parent=None)
     mock_main_handler._run_ai_task.assert_called_once()
     args, kwargs = mock_main_handler._run_ai_task.call_args
     assert args[0] == provider
@@ -107,7 +107,7 @@ def test_handle_variation_success(mock_info, vh, mock_main_handler):
     vh._handle_variation_success(response, context)
     
     assert vh.variations_cache[(0, 0)]['variants'] == ['variant1']
-    mock_main_handler.ui_handler.show_variations_dialog.assert_called_once_with(['variant1'], show_refresh=True)
+    mock_main_handler.ui_handler.show_variations_dialog.assert_called_once_with(['variant1'], show_refresh=True, parent=None)
     
     mock_main_handler.data_processor.update_edited_data.assert_called_once_with(
         0, 0, 'chosen_var', action_type="TRANSLATE", skip_ui_refresh=True
@@ -125,3 +125,91 @@ def test_handle_variation_success_refresh(mock_info, vh, mock_main_handler):
     with patch('handlers.translation.ai_variations_handler.QTimer.singleShot') as mock_timer:
         vh._handle_variation_success(response, context)
         mock_timer.assert_called_once()
+
+
+def test_generate_variation_selected_text(vh, mock_main_handler):
+    # Setup edited_text_edit Mock
+    edited_edit = MagicMock()
+    cursor = MagicMock()
+    cursor.hasSelection.return_value = True
+    cursor.selectedText.return_value = "selected_segment"
+    edited_edit.textCursor.return_value = cursor
+    edited_edit.toPlainText.return_value = "full current translation with selected_segment"
+    
+    mock_main_handler.mw.edited_text_edit = edited_edit
+    
+    # Mock data rules and methods
+    mock_main_handler.mw.current_game_rules = MagicMock()
+    mock_main_handler.mw.current_game_rules.convert_editor_text_to_data.return_value = "converted_data"
+    
+    # 1. Test generate_variation_for_current_string with selected text
+    provider = MagicMock()
+    mock_main_handler.ai_lifecycle_manager._prepare_provider.return_value = provider
+    mock_main_handler._maybe_edit_prompt.return_value = ("edited_sys", "edited_user")
+    mock_main_handler._attach_session_to_task.return_value = False
+    
+    vh.generate_variation_for_current_string(force=True)
+    
+    # Verify selected_text in composer args
+    mock_main_handler.prompt_composer.compose_variation_request.assert_called_once()
+    args, kwargs = mock_main_handler.prompt_composer.compose_variation_request.call_args
+    assert kwargs.get('selected_text') == "selected_segment"
+    
+    # Verify selected_text in task details
+    mock_main_handler._run_ai_task.assert_called_once()
+    args, kwargs = mock_main_handler._run_ai_task.call_args
+    task_kwargs = args[1]
+    assert task_kwargs['selected_text'] == "selected_segment"
+    assert task_kwargs['is_inline'] is True
+
+    # 2. Test success with selected text
+    response = MagicMock()
+    context = {
+        'placeholder_map': {},
+        'selected_text': 'selected_segment',
+        'is_inline': True,
+        'block_idx': 0,
+        'string_idx': 0
+    }
+    
+    mock_main_handler.ui_handler.show_variations_dialog.return_value = 'chosen_var'
+    mock_main_handler.data_processor.update_edited_data.reset_mock()
+    
+    vh._handle_variation_success(response, context)
+    
+    # Verify cached with selected text
+    assert vh.variations_cache[(0, 0, 'selected_segment')]['variants'] == ['variant1']
+    
+    # Verify _apply_chosen_variation flow for inline:
+    # 1. apply_inline_variation is called with the chosen var
+    mock_main_handler.ui_handler.apply_inline_variation.assert_called_once_with('chosen_var')
+    # 2. update_edited_data is called with converted database representation
+    mock_main_handler.data_processor.update_edited_data.assert_called_once_with(
+        0, 0, 'converted_data', action_type="TRANSLATE", skip_ui_refresh=True
+    )
+
+
+def test_generate_variation_explicit_selected_text(vh, mock_main_handler):
+    # Setup mock methods without setting edited_text_edit
+    mock_main_handler.mw.edited_text_edit = None
+    
+    provider = MagicMock()
+    mock_main_handler.ai_lifecycle_manager._prepare_provider.return_value = provider
+    mock_main_handler._maybe_edit_prompt.return_value = ("edited_sys", "edited_user")
+    mock_main_handler._attach_session_to_task.return_value = False
+    
+    vh.generate_variation_for_current_string(force=True, selected_text="explicit_segment")
+    
+    # Verify selected_text in composer args
+    mock_main_handler.prompt_composer.compose_variation_request.assert_called_once()
+    args, kwargs = mock_main_handler.prompt_composer.compose_variation_request.call_args
+    assert kwargs.get('selected_text') == "explicit_segment"
+    
+    # Verify selected_text in task details
+    mock_main_handler._run_ai_task.assert_called_once()
+    args, kwargs = mock_main_handler._run_ai_task.call_args
+    task_kwargs = args[1]
+    assert task_kwargs['selected_text'] == "explicit_segment"
+    assert task_kwargs['is_inline'] is True
+
+

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtGui import QTextCursor, QKeyEvent
 from PyQt6.QtCore import Qt
@@ -18,6 +18,8 @@ class MainWindowEventHandler:
         """Connect signals."""
         if hasattr(self.mw, 'toggle_preview_action') and self.mw.toggle_preview_action:
             self.mw.toggle_preview_action.triggered.connect(self.mw.ui_updater.update_preview_visibility)
+        if hasattr(self.mw, 'toggle_hide_tags_action') and self.mw.toggle_hide_tags_action:
+            self.mw.toggle_hide_tags_action.triggered.connect(self.mw.list_selection_handler.toggle_hide_tags_global)
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
         if hasattr(self.mw, 'run_external_script_action') and self.mw.run_external_script_action:
             self.mw.run_external_script_action.triggered.connect(self.mw.actions.run_external_script)
@@ -121,6 +123,8 @@ class MainWindowEventHandler:
             self.mw.reload_tag_mappings_action.triggered.connect(self.mw.actions.trigger_reload_tag_mappings)
         if hasattr(self.mw, 'find_action'):
             self.mw.find_action.triggered.connect(self.mw.helper.toggle_search_panel)
+        if hasattr(self.mw, 'advanced_search_action') and self.mw.advanced_search_action:
+            self.mw.advanced_search_action.triggered.connect(self.mw.helper.trigger_advanced_search)
         if hasattr(self.mw, 'add_bookmark_action') and self.mw.add_bookmark_action:
             self.mw.add_bookmark_action.triggered.connect(self.mw.bookmark_handler.add_bookmark)
         if hasattr(self.mw, 'clear_bookmarks_action') and self.mw.clear_bookmarks_action:
@@ -183,6 +187,10 @@ class MainWindowEventHandler:
             self.mw.hide_translated_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translated)
         if hasattr(self.mw, 'show_overrides_only_checkbox'):
             self.mw.show_overrides_only_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_overrides_only)
+        if hasattr(self.mw, 'show_unsaved_only_checkbox'):
+            self.mw.show_unsaved_only_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_unsaved_only)
+        if hasattr(self.mw, 'show_unsaved_blocks_checkbox'):
+            self.mw.show_unsaved_blocks_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_unsaved_blocks_only)
         if hasattr(self.mw, 'hide_original_tags_checkbox'):
             self.mw.hide_original_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_original_tags)
         if hasattr(self.mw, 'hide_translation_tags_checkbox'):
@@ -232,6 +240,8 @@ class MainWindowEventHandler:
         # Actions and Buttons
         safe_disconnect(mw, 'toggle_preview_action')
         if hasattr(mw, 'toggle_preview_action'): safe_disconnect(mw.toggle_preview_action, 'triggered')
+        safe_disconnect(mw, 'toggle_hide_tags_action')
+        if hasattr(mw, 'toggle_hide_tags_action'): safe_disconnect(mw.toggle_hide_tags_action, 'triggered')
         if hasattr(mw, 'open_settings_action'): safe_disconnect(mw.open_settings_action, 'triggered')
         if hasattr(mw, 'run_external_script_action'): safe_disconnect(mw.run_external_script_action, 'triggered')
         if hasattr(mw, 'bfn_editor_action'): safe_disconnect(mw.bfn_editor_action, 'triggered')
@@ -294,6 +304,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'recalculate_widths_action'): safe_disconnect(mw.recalculate_widths_action, 'triggered')
         if hasattr(mw, 'reload_tag_mappings_action'): safe_disconnect(mw.reload_tag_mappings_action, 'triggered')
         if hasattr(mw, 'find_action'): safe_disconnect(mw.find_action, 'triggered')
+        if hasattr(mw, 'advanced_search_action'): safe_disconnect(mw.advanced_search_action, 'triggered')
         if hasattr(mw, 'add_bookmark_action'): safe_disconnect(mw.add_bookmark_action, 'triggered')
         if hasattr(mw, 'clear_bookmarks_action'): safe_disconnect(mw.clear_bookmarks_action, 'triggered')
         if hasattr(mw, 'open_ai_chat_action'): safe_disconnect(mw.open_ai_chat_action, 'triggered')
@@ -330,6 +341,8 @@ class MainWindowEventHandler:
         if hasattr(mw, 'hide_empty_strings_checkbox'): safe_disconnect(mw.hide_empty_strings_checkbox, 'toggled')
         if hasattr(mw, 'hide_translated_checkbox'): safe_disconnect(mw.hide_translated_checkbox, 'toggled')
         if hasattr(mw, 'show_overrides_only_checkbox'): safe_disconnect(mw.show_overrides_only_checkbox, 'toggled')
+        if hasattr(mw, 'show_unsaved_only_checkbox'): safe_disconnect(mw.show_unsaved_only_checkbox, 'toggled')
+        if hasattr(mw, 'show_unsaved_blocks_checkbox'): safe_disconnect(mw.show_unsaved_blocks_checkbox, 'toggled')
         if hasattr(mw, 'hide_original_tags_checkbox'): safe_disconnect(mw.hide_original_tags_checkbox, 'toggled')
         if hasattr(mw, 'hide_translation_tags_checkbox'): safe_disconnect(mw.hide_translation_tags_checkbox, 'toggled')
 

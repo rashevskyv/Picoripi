@@ -1,7 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication
-from PyQt6.QtCore import QRect, QProcess, QPoint
+from PyQt6.QtCore import QRect, QProcess, QPoint, Qt
 from utils.logging_utils import log_debug, log_info, log_error
 import copy
 from pathlib import Path
@@ -128,11 +128,67 @@ class MainWindowHelper:
         self.mw.search_panel_widget.setVisible(False)
         self.mw.search_handler.clear_all_search_highlights()
 
+    def trigger_advanced_search(self) -> None:
+        """Trigger advanced search with current parameters or defaults."""
+        query = ""
+        case_sensitive = False
+        search_in_original = False
+        ignore_tags = True
+        is_fuzzy = False
+
+        if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget:
+            _, case_sensitive, search_in_original, ignore_tags, is_fuzzy = self.mw.search_panel_widget.get_search_parameters()
+
+        # 1. Try to get selection from active or any text editor
+        focus_widget = QApplication.focusWidget()
+        from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+        if isinstance(focus_widget, LineNumberedTextEdit) and focus_widget.textCursor().hasSelection():
+            query = focus_widget.textCursor().selectedText()
+        else:
+            for edit in [self.mw.edited_text_edit, self.mw.original_text_edit, self.mw.preview_text_edit]:
+                if edit and isinstance(edit, LineNumberedTextEdit) and edit.textCursor().hasSelection():
+                    query = edit.textCursor().selectedText()
+                    break
+
+        if query:
+            if isinstance(query, str):
+                query = query.replace('\u2029', '\n').replace('\u2028', '\n')
+            else:
+                query = ""
+        else:
+            # 2. Fallback to last advanced search query
+            last_query = getattr(self.mw, 'last_advanced_search_query', None)
+            if isinstance(last_query, str) and last_query:
+                query = last_query
+            else:
+                panel_widget = getattr(self.mw, 'search_panel_widget', None)
+                if panel_widget:
+                    try:
+                        params = panel_widget.get_search_parameters()
+                        if isinstance(params, (list, tuple)) and len(params) > 0:
+                            panel_query = params[0]
+                            if isinstance(panel_query, str) and panel_query:
+                                query = panel_query
+                    except Exception:
+                        pass
+                
+                if not query:
+                    handler = getattr(self.mw, 'search_handler', None)
+                    if handler:
+                        handler_query = getattr(handler, 'current_query', None)
+                        if isinstance(handler_query, str) and handler_query:
+                            query = handler_query
+
+        self.open_advanced_search(query, case_sensitive, search_in_original, ignore_tags, is_fuzzy)
+
     def open_advanced_search(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
         """Open advanced search."""
         try:
             log_debug(f"MainWindowHelper: open_advanced_search called for Q='{query}'")
             
+            if query:
+                self.mw.last_advanced_search_query = query
+                
             if not self.mw.data_store.data:
                 QMessageBox.warning(self.mw, "Advanced Search", "No project data loaded.")
                 return
@@ -205,8 +261,12 @@ class MainWindowHelper:
                 # The dialog will open instantly, and the user can write a query and click Find.
                 pass
 
-            if query and not text_parts:
-                QMessageBox.information(self.mw, "Advanced Search", f"No matches found for \"{query}\" in all blocks.")
+            # Check if search dialog is already active
+            if getattr(self.mw, 'active_search_dialog', None) is not None:
+                self.mw.active_search_dialog.find_input.setText(query)
+                self.mw.active_search_dialog.perform_search()
+                self.mw.active_search_dialog.raise_()
+                self.mw.active_search_dialog.activateWindow()
                 return
 
             text_to_check = '\n'.join(text_parts)
@@ -218,65 +278,10 @@ class MainWindowHelper:
                                        search_in_original=search_in_original, ignore_tags=ignore_tags,
                                        block_idx=self.mw.data_store.current_block_idx, block_indices=block_indices)
 
-            if dialog.exec():
-                corrected_text = dialog.get_corrected_text()
-                corrected_lines = corrected_text.split('\n')
-
-                # Reconstruct multi-line strings using our ZIP logic with block indices
-                grouped_lines = {}
-                for line_text, s_idx, b_idx in zip(corrected_lines, dialog.line_numbers, dialog.block_indices):
-                    if s_idx is not None and b_idx is not None:
-                        key = (b_idx, s_idx)
-                        if key not in grouped_lines:
-                            grouped_lines[key] = []
-                        grouped_lines[key].append(line_text)
-
-                changes_made = False
-                changed_blocks = set()
-
-                undo_manager = getattr(self.mw, "undo_manager", None)
-                if undo_manager:
-                    undo_manager.begin_group()
-
-                for (b_idx, string_idx), lines_list in grouped_lines.items():
-                    new_text = '\n'.join(lines_list)
-                    old_text, _ = self.mw.data_processor.get_current_string_text(b_idx, string_idx)
-                    if new_text != old_text:
-                        key = (b_idx, string_idx)
-                        edited_data[key] = new_text
-                        changes_made = True
-                        changed_blocks.add(b_idx)
-                        
-                        # Restore subline asterisks if this is the currently edited string
-                        if b_idx == self.mw.data_store.current_block_idx and string_idx == self.mw.data_store.current_string_idx:
-                            if hasattr(self.mw, 'text_operation_handler'):
-                                self.mw.text_operation_handler.sync_subline_asterisks(
-                                    b_idx, string_idx, new_text
-                                )
-
-                if undo_manager:
-                    undo_manager.end_group("ADVANCED_SEARCH_REPLACE")
-
-                if changes_made:
-                    self.mw.data_store.unsaved_changes = True
-                    for b_idx in changed_blocks:
-                        self.mw.data_store.unsaved_block_indices.add(b_idx)
-                    
-                    for b_idx in changed_blocks:
-                        if hasattr(self.mw, 'ui_updater'):
-                            self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
-                            
-                    current_block_idx = self.mw.data_store.current_block_idx
-                    if current_block_idx in changed_blocks:
-                        if hasattr(self.mw, 'ui_updater'):
-                            self.mw.ui_updater.populate_strings_for_block(current_block_idx)
-                            self.mw.ui_updater.update_text_views()
-                        
-                    if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
-                        if hasattr(self.mw.edited_text_edit, 'lineNumberArea'):
-                            self.mw.edited_text_edit.lineNumberArea.update()
-                            
-                    QMessageBox.information(self.mw, "Advanced Search", "Replacements applied successfully!")
+            self.mw.active_search_dialog = dialog
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.destroyed.connect(lambda: setattr(self.mw, 'active_search_dialog', None))
+            dialog.show()
         except Exception as e:
             log_error(f"MainWindowHelper: Error in open_advanced_search: {e}", exc_info=True)
             QMessageBox.critical(self.mw, "Error", f"An error occurred: {e}")

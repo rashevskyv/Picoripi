@@ -270,10 +270,92 @@ def test_SearchReviewDialog_custom_line_numbers_structure(qapp):
     
     dialog = SearchReviewDialog(None, text, "Hello", line_numbers=line_numbers)
     
-    assert dialog.text_edit.custom_line_numbers[0] == 10
-    assert dialog.text_edit.custom_line_numbers[1] == 11
-    assert dialog.text_edit.custom_line_numbers[2] == 12
+    assert dialog.text_edit.custom_line_numbers[0] == 11
+    assert dialog.text_edit.custom_line_numbers[1] == 12
+    assert dialog.text_edit.custom_line_numbers[2] == 13
 
     assert dialog.text_edit.custom_subline_numbers[0] == 1
     assert dialog.text_edit.custom_subline_numbers[1] == 1
     assert dialog.text_edit.custom_subline_numbers[2] == 1
+
+def test_SearchReviewDialog_undo_redo_sync(qapp):
+    from unittest.mock import MagicMock
+    from core.undo_manager import UndoManager, UndoAction
+    from PyQt6.QtWidgets import QMainWindow
+    
+    class MockMainWindow(QMainWindow):
+        def __init__(self):
+            super().__init__()
+            self.data_store = MagicMock()
+            self.data_processor = MagicMock()
+            self.undo_manager = None
+            self.project_manager = None
+            self.ui_updater = MagicMock()
+            self.is_programmatically_changing_text = False
+            self.current_game_rules = MagicMock()
+            
+    mw = MockMainWindow()
+    undo_mgr = UndoManager(mw)
+    mw.undo_manager = undo_mgr
+    
+    dialog = SearchReviewDialog(mw, "hello world", "hello", line_numbers=[0])
+    dialog.refresh_from_project = MagicMock()
+    
+    action = UndoAction("TEXT_EDIT", 0, 0, "old text", "new text", 123.45)
+    undo_mgr.undo_stack.append(action)
+    
+    undo_mgr.undo()
+    assert dialog.refresh_from_project.called
+    
+    dialog.refresh_from_project.reset_mock()
+    undo_mgr.redo()
+    assert dialog.refresh_from_project.called
+
+    dialog.close()
+
+def test_lnet_keyboard_handler_dialog_fallback(qapp):
+    from unittest.mock import MagicMock
+    from components.editor.lnet_keyboard_handler import LNETKeyboardHandler
+    from PyQt6.QtGui import QKeyEvent
+    from PyQt6.QtCore import QEvent
+    from PyQt6.QtWidgets import QMainWindow, QDialog
+    
+    class MockMainWindow(QMainWindow):
+        def __init__(self):
+            super().__init__()
+            self.undo_typing_action = MagicMock()
+            self.redo_typing_action = MagicMock()
+            self.current_game_rules = None
+            
+    mw = MockMainWindow()
+    dialog = QDialog(mw)
+    
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    editor = LineNumberedTextEdit(dialog)
+    handler = LNETKeyboardHandler(editor)
+    
+    event_undo = QKeyEvent(
+        QEvent.Type.KeyPress,
+        Qt.Key.Key_Z,
+        Qt.KeyboardModifier.ControlModifier,
+        "z"
+    )
+    
+    consumed = handler.handle_key_press(event_undo)
+    assert consumed is True
+    assert mw.undo_typing_action.trigger.called
+    
+    event_redo = QKeyEvent(
+        QEvent.Type.KeyPress,
+        Qt.Key.Key_Y,
+        Qt.KeyboardModifier.ControlModifier,
+        "y"
+    )
+    
+    consumed_redo = handler.handle_key_press(event_redo)
+    assert consumed_redo is True
+    assert mw.redo_typing_action.trigger.called
+
+    dialog.close()
+    mw.close()
+

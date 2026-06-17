@@ -1,4 +1,4 @@
-﻿from typing import Tuple, List, Optional, Set
+from typing import Tuple, List, Optional, Set
 import re
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
 
@@ -67,9 +67,9 @@ class GenericTextFixer:
 
             while self._calculate_width(line, font_map) > threshold:
                 made_change = True
-                line_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
+                line_parts = re.findall(r'((?:\{[^}]*\}|\[[^\]]*\])-\S+|\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
                 best_split_point = -1
-                punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'"}
+                punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'", '—', '–'}
                 for j in range(len(line_parts) - 1, 0, -1):
                     line_part_one = "".join(line_parts[:j]).rstrip()
                     if self._calculate_width(line_part_one, font_map) <= threshold:
@@ -96,7 +96,7 @@ class GenericTextFixer:
         final_text = "\n".join(final_lines)
         return final_text, final_text != original_text
 
-    def _fix_single_word_orphans_generic(self, text: str) -> Tuple[str, bool]:
+    def _fix_single_word_orphans_generic(self, text: str, font_map: Optional[dict] = None) -> Tuple[str, bool]:
         """Internal helper to fix single word orphans generic."""
         if not text:
             return text, False
@@ -138,6 +138,12 @@ class GenericTextFixer:
             last_word = prev_words[-1]
             if last_word and last_word[-1] in ['.', '!', '?', '…']:
                 continue
+
+            # Check if moving this word makes the last line wider than the previous one
+            active_font_map = font_map if font_map is not None else (getattr(self.mw, 'font_map', {}) if self.mw else {})
+            if self.problem_analyzer and hasattr(self.problem_analyzer, '_is_single_word_orphan_allowed'):
+                if self.problem_analyzer._is_single_word_orphan_allowed(current_line, prev_line, active_font_map):
+                    continue
                 
             # 6. Спробуємо перенести останнє слово з попереднього рядка
             prev_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', prev_line)
@@ -152,15 +158,15 @@ class GenericTextFixer:
                     from utils.utils import is_visible_tag, FORCED_ALIAS_PATTERN
                     if self.mw is not None:
                         mappings = getattr(self.mw, "default_tag_mappings", {})
-                        font_map = getattr(self.mw, "font_map", {})
+                        font_map_local = active_font_map
                         icon_sequences = getattr(self.mw, "icon_sequences", [])
                     else:
                         from utils.utils import get_active_tag_mappings, get_active_font_map, get_active_icon_sequences
                         mappings = get_active_tag_mappings()
-                        font_map = get_active_font_map()
+                        font_map_local = get_active_font_map()
                         icon_sequences = get_active_icon_sequences()
                     
-                    is_visible = is_visible_tag(part, mappings, font_map, icon_sequences)
+                    is_visible = is_visible_tag(part, mappings, font_map_local, icon_sequences)
                     is_forced = bool(FORCED_ALIAS_PATTERN.match(part))
                     if is_visible or is_forced:
                         is_tag = False

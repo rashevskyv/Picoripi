@@ -280,5 +280,59 @@ def test_AIWorker_retry_adds_reminder(worker_deps):
     assert "IMPORTANT REMINDER FOR RETRY" in system_content_single
 
 
+def test_AIWorker_run_glossary_occurrence_batch_update_chunking(worker_deps):
+    provider, prompt_composer = worker_deps
+    
+    # Mock compose_glossary_occurrence_batch_request to return (system, user)
+    prompt_composer.compose_glossary_occurrence_batch_request.return_value = ("sys", "user")
+    
+    # We want to test chunking, so let's provide 15 items (which should split into 2 chunks: 12 and 3)
+    batch_items = [{"id": str(i), "text": f"text{i}"} for i in range(15)]
+    
+    task_details = {
+        'type': 'glossary_occurrence_batch_update',
+        'composer_args': {
+            'system_prompt': 'sys',
+            'term': 'sword',
+            'old_translation': 'меч',
+            'new_translation': 'меч2',
+            'batch_items': batch_items
+        }
+    }
+    
+    worker = AIWorker(provider, prompt_composer, task_details)
+    
+    # Mock provider translate to return different chunks.
+    # Chunk 1 (12 items): 0-11
+    # Chunk 2 (3 items): 12-14
+    mock_responses = [
+        ProviderResponse(text=json.dumps({"occurrences": [{"id": str(i), "translation": f"trans{i}"} for i in range(12)]})),
+        ProviderResponse(text=json.dumps({"occurrences": [{"id": str(i), "translation": f"trans{i}"} for i in range(12, 15)]}))
+    ]
+    provider.translate.side_effect = mock_responses
+    
+    mock_success = MagicMock()
+    mock_error = MagicMock()
+    worker.success.connect(mock_success)
+    worker.error.connect(mock_error)
+    
+    worker.run()
+    
+    if mock_error.called:
+        pytest.fail(f"Worker emitted error: {mock_error.call_args}")
+        
+    assert provider.translate.call_count == 2
+    mock_success.assert_called_once()
+    
+    # Verify aggregated payload has all 15 elements
+    success_arg = mock_success.call_args[0][0]
+    payload = json.loads(success_arg.text)
+    occurrences = payload.get("occurrences")
+    assert len(occurrences) == 15
+    for i in range(15):
+        assert occurrences[i]["id"] == str(i)
+        assert occurrences[i]["translation"] == f"trans{i}"
+
+
 
 

@@ -1,4 +1,4 @@
-﻿# handlers/translation/ai_variations_handler.py
+# handlers/translation/ai_variations_handler.py
 
 from typing import Any, Dict, List, Optional
 from PyQt6.QtCore import QTimer, Qt
@@ -41,65 +41,96 @@ class AIVariationsHandler(BaseTranslationHandler):
             restored_v = self.main_handler.prompt_composer.restore_placeholders(v, p_map, key=0)
             restored_variants.append(restored_v)
             
-        # Cache the variations for the current string
-        block_idx = self.mw.data_store.current_block_idx
-        string_idx = self.mw.data_store.current_string_idx
+        # Get target indices from context
+        block_idx = context.get('block_idx', self.mw.data_store.current_block_idx)
+        string_idx = context.get('string_idx', self.mw.data_store.current_string_idx)
+        on_success_callback = context.get('on_success_callback')
+        parent_widget = context.get('parent')
+        selected_text = context.get('selected_text')
+        
+        # Cache the variations for the target string
         current_translation, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
-        self.variations_cache[(block_idx, string_idx)] = {
+        cache_key = (block_idx, string_idx, selected_text) if selected_text else (block_idx, string_idx)
+        self.variations_cache[cache_key] = {
             'variants': restored_variants,
             'translation': str(current_translation)
         }
 
-        chosen = self.main_handler.ui_handler.show_variations_dialog(restored_variants, show_refresh=True)
+        chosen = self.main_handler.ui_handler.show_variations_dialog(restored_variants, show_refresh=True, parent=parent_widget)
         if chosen == "__REFRESH__":
-            QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
+            QTimer.singleShot(100, lambda: self.generate_variation_for_string(block_idx, string_idx, force=True, on_success_callback=on_success_callback, parent=parent_widget, selected_text=selected_text))
             return
         if chosen:
-            self._apply_chosen_variation(chosen, context.get('is_inline', False), target_block_idx=block_idx, target_string_idx=string_idx)
+            if on_success_callback:
+                on_success_callback(chosen)
+            else:
+                self._apply_chosen_variation(chosen, bool(selected_text) or context.get('is_inline', False), target_block_idx=block_idx, target_string_idx=string_idx)
 
     def _apply_chosen_variation(self, chosen: str, is_inline: bool, target_block_idx: int, target_string_idx: int) -> None:
         """Internal helper to apply chosen variation."""
-        final_text = self.main_handler._format_and_wrap_translation(chosen, target_block_idx, target_string_idx)
-        
-        # Write chosen variation directly to the database to prevent timer desync and immediate UI overwrites
-        self.mw.undo_manager.begin_group()
-        self.data_processor.update_edited_data(target_block_idx, target_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
-        self.mw.undo_manager.end_group("TRANSLATE")
-            
-        if target_block_idx == self.mw.data_store.current_block_idx and target_string_idx == self.mw.data_store.current_string_idx:
-            if is_inline:
-                self.main_handler.ui_handler.apply_inline_variation(final_text)
-            else:
-                self.main_handler.ui_handler.apply_full_translation(final_text)
+        if is_inline:
+            final_text = chosen
         else:
-            self.ui_updater.populate_strings_for_block(target_block_idx, self.mw.data_store.current_category_name, force=True)
+            final_text = self.main_handler._format_and_wrap_translation(chosen, target_block_idx, target_string_idx)
+        
+        self.mw.undo_manager.begin_group()
+        try:
+            if is_inline and target_block_idx == self.mw.data_store.current_block_idx and target_string_idx == self.mw.data_store.current_string_idx:
+                # 1. Replace the selection in the editor first
+                self.main_handler.ui_handler.apply_inline_variation(final_text)
+                
+                # 2. Get the new complete text from the editor and convert to data format
+                edited_edit = getattr(self.mw, 'edited_text_edit', None)
+                if edited_edit and self.mw.current_game_rules:
+                    editor_text = edited_edit.toPlainText()
+                    actual_text = self.mw.current_game_rules.convert_editor_text_to_data(editor_text)
+                    from utils.utils import convert_dots_to_spaces_from_editor
+                    actual_text_with_spaces = convert_dots_to_spaces_from_editor(actual_text)
+                    
+                    # 3. Write this complete text to database
+                    self.data_processor.update_edited_data(target_block_idx, target_string_idx, actual_text_with_spaces, action_type="TRANSLATE", skip_ui_refresh=True)
+                    
+                    # 4. Trigger rescan of issues for the entire string
+                    if hasattr(self.mw, 'editor_operation_handler') and self.mw.editor_operation_handler:
+                        self.mw.editor_operation_handler._rescan_issues_for_current_string(target_block_idx, target_string_idx, actual_text_with_spaces)
+            else:
+                # Full line replacement (is_inline is False, or not currently active string)
+                self.data_processor.update_edited_data(target_block_idx, target_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+                if target_block_idx == self.mw.data_store.current_block_idx and target_string_idx == self.mw.data_store.current_string_idx:
+                    self.main_handler.ui_handler.apply_full_translation(final_text)
+                else:
+                    self.ui_updater.populate_strings_for_block(target_block_idx, self.mw.data_store.current_category_name, force=True)
+        finally:
+            self.mw.undo_manager.end_group("TRANSLATE")
 
-    def generate_variation_for_current_string(self, force: bool = False) -> None:
-        """Generate variation for current string."""
+
+    def generate_variation_for_string(self, block_idx: int, string_idx: int, force: bool = False, on_success_callback: Optional[callable] = None, parent: Optional[Any] = None, selected_text: Optional[str] = None) -> None:
+        """Generate variation for a specific string."""
         if self.main_handler.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1: 
+        if block_idx == -1 or string_idx == -1: 
             return
             
-        original_text = str(self.main_handler.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx))
-        current_translation, _ = self.data_processor.get_current_string_text(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+        original_text = str(self.main_handler.glossary_handler._get_original_string(block_idx, string_idx))
+        current_translation, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         if not current_translation:
             QMessageBox.information(self.mw, "AI Variation", "There is no current translation to vary.")
             return
 
         # Check cache if not forced
-        block_idx = self.mw.data_store.current_block_idx
-        string_idx = self.mw.data_store.current_string_idx
-        cache_key = (block_idx, string_idx)
+        cache_key = (block_idx, string_idx, selected_text) if selected_text else (block_idx, string_idx)
         if not force and cache_key in self.variations_cache:
             cached = self.variations_cache[cache_key]
             restored_variants = cached.get('variants', [])
-            chosen = self.main_handler.ui_handler.show_variations_dialog(restored_variants, show_refresh=True)
+            chosen = self.main_handler.ui_handler.show_variations_dialog(restored_variants, show_refresh=True, parent=parent)
             if chosen == "__REFRESH__":
-                QTimer.singleShot(100, lambda: self.generate_variation_for_current_string(force=True))
+                QTimer.singleShot(100, lambda: self.generate_variation_for_string(block_idx, string_idx, force=True, on_success_callback=on_success_callback, parent=parent, selected_text=selected_text))
             elif chosen:
-                self._apply_chosen_variation(chosen, is_inline=False, target_block_idx=block_idx, target_string_idx=string_idx)
+                if on_success_callback:
+                    on_success_callback(chosen)
+                else:
+                    self._apply_chosen_variation(chosen, is_inline=bool(selected_text), target_block_idx=block_idx, target_string_idx=string_idx)
             return
         
         provider = self.main_handler.ai_lifecycle_manager._prepare_provider()
@@ -118,15 +149,20 @@ class AIVariationsHandler(BaseTranslationHandler):
         p_map = {0: force_maps} if force_maps else {}
 
         session_state = self.main_handler._session_manager.get_state()
+        
+        # If we have selected text, expected lines should be based on selected text, otherwise full string.
+        expected_lines = len(selected_text.split('\n')) if selected_text else len(original_text.split('\n'))
+        
         composer_args = {
             'system_prompt': system_prompt,
             'source_text': original_text_for_ai,
-            'block_idx': self.mw.data_store.current_block_idx, 
-            'string_idx': self.mw.data_store.current_string_idx,
-            'expected_lines': len(original_text.split('\n')), 
+            'block_idx': block_idx, 
+            'string_idx': string_idx,
+            'expected_lines': expected_lines, 
             'current_translation': str(current_translation),
             'request_type': 'variation_list',
             'session_state': session_state,
+            'selected_text': selected_text,
         }
         combined_system, user_prompt = self.main_handler.prompt_composer.compose_variation_request(**composer_args)
         edited = self.main_handler._maybe_edit_prompt(
@@ -134,12 +170,17 @@ class AIVariationsHandler(BaseTranslationHandler):
             system_prompt=combined_system,
             user_prompt=user_prompt,
             save_section='translation',
+            force_prompt=self.main_handler._is_control_pressed(),
         )
         if edited is None:
             return
         edited_system, edited_user = edited
 
-        self.main_handler.ui_handler.start_ai_operation("AI Variation", model_name=self.main_handler.ai_lifecycle_manager._active_model_name)
+        self.main_handler.ui_handler.start_ai_operation(
+            "AI Variation", 
+            model_name=self.main_handler.ai_lifecycle_manager._active_model_name,
+            parent=parent
+        )
 
         precomposed = [
             {"role": "system", "content": edited_system},
@@ -147,12 +188,17 @@ class AIVariationsHandler(BaseTranslationHandler):
         ]
         task_details = {
             'type': 'generate_variation',
-            'is_inline': False,
+            'is_inline': bool(selected_text),
             'composer_args': composer_args,
             'provider_settings_override': {'temperature': 0.7},
             'attempt': 1,
             'max_retries': 1,
             'placeholder_map': p_map,
+            'block_idx': block_idx,
+            'string_idx': string_idx,
+            'on_success_callback': on_success_callback,
+            'parent': parent,
+            'selected_text': selected_text,
         }
         if not self.main_handler._attach_session_to_task(
             task_details,
@@ -164,3 +210,29 @@ class AIVariationsHandler(BaseTranslationHandler):
             task_details['precomposed_prompt'] = precomposed
         
         self.main_handler._run_ai_task(provider, task_details)
+
+    def generate_variation_for_current_string(self, force: bool = False, selected_text: Optional[str] = None) -> None:
+        """Generate variation for current string."""
+        if not selected_text:
+            edited_edit = getattr(self.mw, 'edited_text_edit', None)
+            has_selection = False
+            if edited_edit:
+                try:
+                    from unittest.mock import Mock
+                    if isinstance(edited_edit, Mock):
+                        has_selection = (edited_edit.textCursor().hasSelection() is True)
+                    else:
+                        has_selection = bool(edited_edit.textCursor().hasSelection())
+                except Exception:
+                    pass
+            
+            if has_selection:
+                selected_text = edited_edit.textCursor().selectedText().replace('\u2029', '\n')
+            
+        self.generate_variation_for_string(
+            self.mw.data_store.current_block_idx,
+            self.mw.data_store.current_string_idx,
+            force=force,
+            selected_text=selected_text
+        )
+

@@ -191,10 +191,15 @@ Here is how to resolve typical warnings highlighted in the gutter:
 *   **Cause**: Words from the next line can fit onto the current line.
 *   **Fix**: Run **Auto-Fix** to pull words up and balance the line layout.
 
-### Yellow Gutter: Malformed Tag (`ZWW_TAG_WARNING`)
-*   **Cause**: A control tag is missing a closing brace (e.g. `{Color:Red` or `[PLAYER`).
-*   **Fix**: Inspect the tag and close the bracket. You can also run **Auto-Fix** to clean up tag syntaxes automatically.
+### Light Gray Gutter: Malformed or Mismatched Tag (`ZWW_TAG_WARNING`)
+*   **Cause**: A control tag is missing a closing brace (e.g. `{Color:Red` or `[PLAYER`), or the translated text has a mismatch in tag count or tag names compared to the original (excluding exceptions like `Link` and `Epona` case-insensitively).
+*   **Fix**: Inspect the tags and ensure they match the original text. You can also run **Auto-Fix** to clean up tag syntaxes automatically.
 
-### Light Blue Gutter: Missing Icon Spacing (`ZWW_MISSING_ICON_SPACING`)
-*   **Cause**: A button icon tag (e.g., `[(A)]`) is directly merged with text characters (e.g., `Press[(A)]to`).
-*   **Fix**: Auto-Fix automatically inserts spaces around the tag (e.g., `Press [(A)] to`). The parser ignores adjacent punctuation like periods or commas.
+### Light Blue Gutter: Missing Tag Spacing (`ZWW_MISSING_ICON_SPACING`)
+*   **Cause**: A button icon tag (e.g., `[(A)]`) is directly merged with text characters (e.g., `Press[(A)]to`), or two words are separated by zero-width tags (e.g., `word1{color:red}word2`) without any space.
+*   **Fix**: Auto-Fix automatically inserts spaces (e.g., `Press [(A)] to` or `word1 {color:red}word2`). The parser ignores adjacent punctuation like periods or commas, and treats hyphens immediately after the icon (e.g. `{(L)}-наведення`) as an exception where no space is required. Spacing before the hyphen in such constructs is treated as an error and automatically stripped. For zero-width tags, a space is required if they are situated directly between two alphanumeric characters of adjacent words.
+
+### Purple Gutter: Broken Icon-Hyphen Wrap (`ZWW_BROKEN_ICON_HYPHEN`)
+*   **Cause**: A tag-hyphen-word construct (e.g., `{(L)}-наведення`) is broken across a line break.
+*   **Fix**: The word wrap engine treats these constructs as single entities to prevent automatic splitting. If split manually, rephrase or adjust line breaks to keep the construct on the same line.
+

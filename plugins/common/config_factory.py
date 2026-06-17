@@ -12,6 +12,7 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
     prob_single_word_non_start = f"{prefix}_SINGLE_WORD_SUBLINE_NON_START"
     prob_bad_spacing = f"{prefix}_BAD_SPACING"
     prob_missing_icon_spacing = f"{prefix}_MISSING_ICON_SPACING"
+    prob_broken_icon_hyphen = f"{prefix}_BROKEN_ICON_HYPHEN"
     
     # Default Priorities
     priorities = {
@@ -23,13 +24,14 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
         "SHORT_LINE": 7,
         "BAD_SPACING": 2,
         "MISSING_ICON_SPACING": 8,
+        "BROKEN_ICON_HYPHEN": 8,
     }
     if overrides and "priorities" in overrides:
         priorities.update(overrides["priorities"])
         
     # Default Colors
     colors = {
-        "TAG_WARNING": QColor(255, 255, 0, 80),
+        "TAG_WARNING": QColor(200, 200, 200, 150),
         "WIDTH_EXCEEDED": QColor(255, 0, 0, 100),
         "EMPTY_ODD_SUBLINE_DISPLAY": QColor(255, 165, 0, 180),
         "SHORT_LINE": QColor(0, 200, 0, 100),
@@ -37,6 +39,7 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
         "SINGLE_WORD_SUBLINE_NON_START": QColor(139, 69, 19, 120),
         "BAD_SPACING": QColor(255, 255, 0, 80),
         "MISSING_ICON_SPACING": QColor(173, 216, 230, 150),
+        "BROKEN_ICON_HYPHEN": QColor(221, 160, 221, 150),  # Plum/Purple-like
     }
     if overrides and "colors" in overrides:
         colors.update(overrides["colors"])
@@ -86,10 +89,16 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
             "description": "Double spaces or line starting with a space (ignoring tags)."
         },
         prob_missing_icon_spacing: {
-            "name": "Missing Icon Spacing",
+            "name": "Missing Tag Spacing",
             "color": colors["MISSING_ICON_SPACING"],
             "priority": priorities["MISSING_ICON_SPACING"],
-            "description": "Missing space before or after a visible tag (button or width-having tag)."
+            "description": "Missing space around visible tags, or between words separated by zero-width tags."
+        },
+        prob_broken_icon_hyphen: {
+            "name": "Broken Icon-Hyphen Wrap",
+            "color": colors["BROKEN_ICON_HYPHEN"],
+            "priority": priorities["BROKEN_ICON_HYPHEN"],
+            "description": "A tag-hyphen-word construct is broken across a line break."
         }
     }
 

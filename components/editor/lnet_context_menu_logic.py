@@ -1,6 +1,6 @@
-﻿import re
+import re
 from typing import Optional
-from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
+from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle, QApplication
 from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import Qt, QPoint
 from ui.ui_utils import prettify_standard_context_menu
@@ -236,8 +236,11 @@ class LNETContextMenuLogic:
                         )
 
                 if has_selection:
+                    selected_text = cursor.selectedText().replace('\u2029', '\n')
                     variation_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI Variations for Selected")
-                    variation_action.triggered.connect(translator.generate_variation_for_current_string)
+                    variation_action.triggered.connect(
+                        lambda checked=False, sel=selected_text: translator.generate_variation_for_current_string(selected_text=sel)
+                    )
 
             # Dynamic Tags Section
             if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
@@ -282,6 +285,11 @@ class LNETContextMenuLogic:
             # Revert to Original option for edited_text_edit
             if main_window.data_store.current_block_idx != -1 and main_window.data_store.current_string_idx != -1:
                 menu.addSeparator()
+                curr_key = (main_window.data_store.current_block_idx, main_window.data_store.current_string_idx)
+                if curr_key in main_window.data_store.edited_data:
+                    save_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "Save String")
+                    save_action.triggered.connect(lambda checked=False, key=curr_key: main_window.data_processor.save_specific_edits([key]))
+                
                 revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "Revert String to Original")
                 revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [main_window.data_store.current_string_idx]))
                 
@@ -304,11 +312,44 @@ class LNETContextMenuLogic:
                     line_num = cursor.blockNumber()
                     action_text = f"AI Translate Line {line_num + 1} (UA)"
 
+                is_ctrl_at_populate = False
+                try:
+                    import ctypes
+                    is_ctrl_at_populate = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
+                except Exception:
+                    pass
+                if not is_ctrl_at_populate:
+                    is_ctrl_at_populate = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+
+                def check_ctrl_now():
+                    is_ctrl = False
+                    try:
+                        import ctypes
+                        is_ctrl = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
+                        if not is_ctrl:
+                            is_ctrl = bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000)
+                    except Exception:
+                        pass
+                    if not is_ctrl:
+                        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+                    return is_ctrl
+
+                def make_translate_trigger(pos):
+                    return lambda checked=False: translator.translate_preview_selection(
+                        pos,
+                        force_prompt=is_ctrl_at_populate or check_ctrl_now()
+                    )
+
+                def make_translate_block_trigger():
+                    return lambda checked=False: translator.translate_current_block(
+                        force_prompt=is_ctrl_at_populate or check_ctrl_now()
+                    )
+
                 translate_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), action_text)
-                translate_action.triggered.connect(lambda: translator.translate_preview_selection(position_in_widget_coords))
+                translate_action.triggered.connect(make_translate_trigger(position_in_widget_coords))
 
                 translate_block_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI Translate Entire Block (UA)")
-                translate_block_action.triggered.connect(lambda: translator.translate_current_block())
+                translate_block_action.triggered.connect(make_translate_block_trigger())
 
             spellchecker_manager = getattr(main_window, 'spellchecker_manager', None)
             if spellchecker_manager and spellchecker_manager.enabled:
@@ -347,6 +388,16 @@ class LNETContextMenuLogic:
                         [(main_window.data_store.current_block_idx, idx) for idx in real_indices]
                     ))
 
+                    # Save selected lines
+                    unsaved_lines = []
+                    for idx in real_indices:
+                        k = (main_window.data_store.current_block_idx, idx)
+                        if k in main_window.data_store.edited_data:
+                            unsaved_lines.append(k)
+                    if unsaved_lines:
+                        save_lines_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), f"Save {len(unsaved_lines)} Line(s)")
+                        save_lines_action.triggered.connect(lambda checked=False, items=unsaved_lines: main_window.data_processor.save_specific_edits(items))
+
                     # Revert to Original
                     menu.addSeparator()
                     revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), f"Revert {len(real_indices)} Line(s) to Original")
@@ -368,6 +419,11 @@ class LNETContextMenuLogic:
                     autofix_action.triggered.connect(lambda checked=False, r_idx=real_idx: main_window.editor_operation_handler.fix_all_strings(
                          [(main_window.data_store.current_block_idx, r_idx)]
                     ))
+
+                    cursor_key = (main_window.data_store.current_block_idx, real_idx)
+                    if cursor_key in main_window.data_store.edited_data:
+                        save_line_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), f"Save Line {line_val + 1}")
+                        save_line_action.triggered.connect(lambda checked=False, key=cursor_key: main_window.data_processor.save_specific_edits([key]))
 
                     revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), f"Revert Line {line_val + 1} to Original")
                     revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [real_idx]))

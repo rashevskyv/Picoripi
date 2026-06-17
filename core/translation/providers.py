@@ -1,11 +1,11 @@
-﻿import json
+import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 import requests
 from requests import Timeout
 import os
 
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_info
 
 class TranslationProviderError(Exception):
     """Custom exception for provider-related errors."""
@@ -95,7 +95,9 @@ class OpenAIProvider(BaseTranslationProvider):
             timeout = current_settings['timeout']
 
         try:
+            log_info(f"OpenAIProvider: Sending request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
             response = requests.post(endpoint, headers=headers, json=body, timeout=timeout)
+            log_info(f"OpenAIProvider: Response received. Status code: {response.status_code}", category="ai")
             response.raise_for_status()
         except Timeout:
             raise TranslationProviderError(f"Request timed out after {timeout} seconds.")
@@ -196,7 +198,9 @@ class OpenAIProvider(BaseTranslationProvider):
             timeout = current_settings['timeout']
         
         try:
+            log_info(f"OpenAIProvider: Sending stream request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
             with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
+                log_info(f"OpenAIProvider: Stream response received. Status code: {response.status_code}", category="ai")
                 response.raise_for_status()
                 for line in response.iter_lines():
                     if line:

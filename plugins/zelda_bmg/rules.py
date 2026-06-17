@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
@@ -298,7 +298,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
         if problem_id == PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: return "Empty1st"
         if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
-        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "IconSpacing"
+        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "TagSpacing"
         if problem_id == PROBLEM_STAR_TAG_RULES: return "StarTag"
         return super().get_short_problem_name(problem_id)
 

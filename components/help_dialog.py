@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout, QAbstractItemView
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout, QAbstractItemView
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
 
@@ -45,6 +45,7 @@ class HelpShortcutsDialog(QDialog):
             ("Undo", "Ctrl + Z"),
             ("Redo", "Ctrl + Y / Ctrl + Shift + Z"),
             ("Find Text", "Ctrl + F"),
+            ("Advanced Search", "Ctrl + H"),
             ("Find Next", "F3"),
             ("Find Previous", "Shift + F3"),
             ("Paste Block Text", "Ctrl + Shift + V"),

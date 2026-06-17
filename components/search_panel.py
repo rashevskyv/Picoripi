@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton, QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu)
+from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QComboBox, QPushButton, QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit, QMenu)
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QPainter, QPen, QColor
@@ -10,6 +10,9 @@ class SearchLineEdit(QLineEdit):
         """Initialize a new instance."""
         super().__init__(parent)
         self.mw = main_window
+        self.setStyleSheet("padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;")
+        fm = self.fontMetrics()
+        self.setMinimumHeight(fm.height() + 10)
 
     def paintEvent(self, event):
         # Draw standard QLineEdit first

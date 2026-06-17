@@ -53,3 +53,44 @@ def test_variations_list_delegate_paint(mock_parent):
     # Test for unselected state
     option.state = QStyle.StateFlag.State_None
     delegate.paint(painter, option, index)
+
+def test_variations_dialog_editing(qapp):
+    from PyQt6.QtWidgets import QWidget
+    parent = QWidget()
+    parent.variations_window_geometry = None
+    parent.variations_splitter_state = None
+    parent.settings_manager = None
+    parent.translation_handler = None
+    parent.current_game_rules = None
+    parent.spellchecker_enabled = True
+    
+    variations = ["var1", "var2"]
+    dialog = TranslationVariationsDialog(parent, variations=variations, show_refresh=False)
+    
+    # Editor is not read-only
+    assert dialog._preview.isReadOnly() is False
+    assert dialog._preview.highlighter._spellchecker_enabled is True
+
+def test_variations_dialog_apply_edited(qapp):
+    from PyQt6.QtWidgets import QWidget
+    parent = QWidget()
+    parent.variations_window_geometry = None
+    parent.variations_splitter_state = None
+    parent.settings_manager = None
+    parent.translation_handler = None
+    
+    parent.current_game_rules = MagicMock()
+    parent.current_game_rules.convert_editor_text_to_data.side_effect = lambda x: f"data_{x}"
+    parent.current_game_rules.get_text_representation_for_editor.side_effect = lambda x: f"editor_{x}"
+    
+    variations = ["var1"]
+    dialog = TranslationVariationsDialog(parent, variations=variations, show_refresh=False)
+    
+    # Manually change the text in the preview editor
+    dialog._preview.setPlainText("user_edited_value")
+    
+    # Trigger apply
+    dialog._apply_current_selection()
+    
+    # Check that convert_editor_text_to_data was called and the value is applied
+    assert dialog.selected_translation == "data_user_edited_value"

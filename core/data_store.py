@@ -21,6 +21,7 @@ class AppDataStore:
     block_names: Dict[str, str] = field(default_factory=dict)
     unsaved_changes: bool = False
     unsaved_block_indices: Set[int] = field(default_factory=set)
+    block_to_project_file_map: Dict[int, int] = field(default_factory=dict)
     
     # Selection State
     current_block_idx: int = -1
@@ -39,12 +40,18 @@ class AppDataStore:
     hide_translation_tags: bool = False
     show_overrides_only: bool = False
     hide_empty_strings: bool = False
+    show_unsaved_only: bool = False
+    show_unsaved_blocks_only: bool = False
     
     # Analysis & Problems
     problems_per_subline: Dict[Tuple[int, int, int], Set[str]] = field(default_factory=dict)
     
     # Editor subline modification tracking (QTextBlock numbers that were changed)
     edited_sublines: Set[int] = field(default_factory=set)
+
+    # Undo / Redo stacks for session persistence
+    undo_stack: List[Any] = field(default_factory=list)
+    redo_stack: List[Any] = field(default_factory=list)
 
     
     # Selection Persistence
@@ -61,17 +68,22 @@ class AppDataStore:
         self.block_names = {}
         self.unsaved_changes = False
         self.unsaved_block_indices = set()
+        self.block_to_project_file_map = {}
         self.current_block_idx = -1
         self.current_string_idx = -1
         self.current_chapter_id = None
         self.chapter_mappings = []
         self.problems_per_subline = {}
         self.edited_sublines = set()
+        self.undo_stack.clear()
+        self.redo_stack.clear()
         self.hide_translated = False
         self.hide_original_tags = False
         self.hide_translation_tags = False
         self.show_overrides_only = False
         self.hide_empty_strings = False
+        self.show_unsaved_only = False
+        self.show_unsaved_blocks_only = False
         log_debug("AppDataStore: Data cleared")
 
     def mark_dirty(self, block_idx: int):

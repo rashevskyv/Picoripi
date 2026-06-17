@@ -1,4 +1,4 @@
-﻿# Refactored: GlossaryHandler is now a thin facade delegating to:
+# Refactored: GlossaryHandler is now a thin facade delegating to:
 #   - GlossaryPromptManager      (prompt I/O and caching)
 #   - GlossaryOccurrenceUpdater  (AI retranslation of occurrences)
 #   - components/GlossaryEditDialog (entry edit UI)
@@ -393,6 +393,7 @@ class GlossaryHandler(BaseTranslationHandler):
             user_prompt=user_content,
             save_section="glossary",
             save_field="prompt_template",
+            force_prompt=self.main_handler._is_control_pressed(),
         )
         if edited is None:
             return
@@ -414,7 +415,7 @@ class GlossaryHandler(BaseTranslationHandler):
             task_details["precomposed_prompt"] = precomposed
 
         dialog.set_ai_busy(True)
-        self.main_handler.ui_handler.start_ai_operation("AI Glossary Fill", model_name=self.main_handler._active_model_name)
+        self.main_handler.ui_handler.start_ai_operation("AI Glossary Fill", model_name=self.main_handler.ai_lifecycle_manager._active_model_name)
         self.main_handler._run_ai_task(provider, task_details)
 
     def _handle_ai_fill_success(self, response, context: dict) -> None:

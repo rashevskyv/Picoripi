@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QWidget, QHBoxLayout, QWidgetAction, QToolTip)
+from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QWidget, QHBoxLayout, QWidgetAction, QToolTip)
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtGui import (QFont, QPaintEvent, QKeyEvent, QMouseEvent, QTextCursor, QDrag)
 from PyQt6.QtCore import Qt, QRect, QRectF, pyqtSignal, QPoint, QMimeData, QByteArray
@@ -543,8 +543,13 @@ class LineNumberedTextEdit(QPlainTextEdit):
                 return
             else:
                 # Default zoom for non-main windows (e.g. Review Dialog)
-                super().wheelEvent(event)
+                delta = event.angleDelta().y()
+                if delta > 0:
+                    self.zoomIn(1)
+                elif delta < 0:
+                    self.zoomOut(1)
                 self.updateLineNumberAreaWidth(0)
+                event.accept()
                 return
 
         super().wheelEvent(event)

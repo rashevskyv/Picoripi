@@ -412,6 +412,165 @@ def test_SpellcheckWorker_emit_runtime_error_handling(mock_mw):
         pytest.fail("SpellcheckWorker.spellcheck_results_ready.emit RuntimeError was not handled!")
 
 
+def test_SpellcheckerManager_extreme_load_processing(mock_mw):
+    import sys
+    from PyQt6.QtCore import QEventLoop, QTimer
+    
+    sm = SpellcheckerManager(mock_mw)
+    sm.enabled = True
+    sm.hunspell = MagicMock()
+    # Mock lookup to return alternating spellings
+    sm.hunspell.lookup.side_effect = lambda word: hash(word) % 2 == 0
+    sm.hunspell.suggest.return_value = ["suggest1", "suggest2"]
+    
+    # Manually setup and start the worker thread since we are in pytest
+    sm.worker.spellcheck_results_ready.connect(sm._on_spellcheck_results_ready)
+    sm.worker.start()
+    
+    # Flood the queue with 500 words
+    for i in range(500):
+        sm.enqueue_word(f"word{i}")
+        
+    # Wait for the worker to finish processing the queue
+    loop = QEventLoop()
+    
+    def check_queue():
+        with sm.worker._queue_lock:
+            if not sm.worker._queue:
+                loop.quit()
+                return
+        QTimer.singleShot(50, check_queue)
+        
+    QTimer.singleShot(50, check_queue)
+    
+    # Safety timeout of 5 seconds
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+    timeout.timeout.connect(loop.quit)
+    timeout.start(5000)
+    
+    loop.exec()
+    timeout.stop()
+    
+    # Stop worker
+    sm.prepare_to_close()
+    
+    # Verify that cache is populated with results
+    assert len(sm._spell_cache) > 0
+    for i in range(10):
+        word = f"word{i}"
+        if word in sm._spell_cache:
+            assert sm._spell_cache[word] == (hash(word) % 2 != 0)
 
 
+def test_SpellcheckerManager_state_transitions_during_processing(mock_mw):
+    from PyQt6.QtCore import QEventLoop, QTimer
+    
+    sm = SpellcheckerManager(mock_mw)
+    sm.enabled = True
+    sm.hunspell = MagicMock()
+    sm.hunspell.lookup.return_value = False
+    
+    sm.worker.spellcheck_results_ready.connect(sm._on_spellcheck_results_ready)
+    sm.worker.start()
+    
+    # Enqueue some words
+    sm.enqueue_word("activeone")
+    sm.enqueue_word("activetwo")
+    
+    # Disable spellchecker
+    sm.set_enabled(False)
+    
+    # Enqueue more words - these should be ignored because enabled=False
+    sm.enqueue_word("ignoredword")
+    
+    # Re-enable
+    sm.set_enabled(True)
+    sm.enqueue_word("activethree")
+    
+    # Wait for queue to clear
+    loop = QEventLoop()
+    def check_queue():
+        with sm.worker._queue_lock:
+            if not sm.worker._queue:
+                loop.quit()
+                return
+        QTimer.singleShot(20, check_queue)
+    QTimer.singleShot(20, check_queue)
+    
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+    timeout.timeout.connect(loop.quit)
+    timeout.start(2000)
+    loop.exec()
+    timeout.stop()
+    
+    sm.prepare_to_close()
+    
+    # activeone, activetwo, activethree should be checked/cached
+    # ignoredword should NOT be checked/cached
+    assert "ignoredword" not in sm._spell_cache
+    assert "activeone" in sm._spell_cache
+    assert "activethree" in sm._spell_cache
 
+
+def test_SpellcheckerManager_shutdown_mid_flight(mock_mw):
+    sm = SpellcheckerManager(mock_mw)
+    sm.enabled = True
+    sm.hunspell = MagicMock()
+    sm.hunspell.lookup.return_value = False
+    
+    sm.worker.spellcheck_results_ready.connect(sm._on_spellcheck_results_ready)
+    sm.worker.start()
+    
+    # Flood queue
+    for i in range(1000):
+        sm.enqueue_word(f"flood{i}")
+        
+    # Immediately shutdown mid-flight
+    sm.prepare_to_close()
+    
+    # Verify worker is stopped and not running
+    assert not sm.worker.isRunning()
+
+
+def test_SpellcheckerManager_async_initialization_race_conditions(mock_mw):
+    import sys
+    import time
+    from PyQt6.QtCore import QEventLoop, QTimer
+    
+    # Simulating async initialization by calling it in a separate thread
+    # but we must make sure 'pytest' is temporarily removed from sys.modules
+    fake_modules = {k: v for k, v in sys.modules.items() if k != 'pytest'}
+    
+    with patch('sys.modules', fake_modules), \
+         patch('core.spellchecker_manager.Dictionary.from_files') as mock_from_files:
+         
+        # Make Dictionary.from_files sleep a bit to simulate slow loading
+        def slow_load(*args, **kwargs):
+            time.sleep(0.5)
+            return MagicMock()
+        mock_from_files.side_effect = slow_load
+        
+        sm = SpellcheckerManager(mock_mw, language='uk')
+        sm.set_enabled(True)
+        
+        # While loading, hunspell is None. Let's call methods
+        assert sm.is_misspelled("testword") is False
+        assert sm.get_suggestions("testword") == []
+        
+        # Wait for load to finish
+        loop = QEventLoop()
+        sm.dictionary_loaded.connect(loop.quit)
+        
+        timeout = QTimer()
+        timeout.setSingleShot(True)
+        timeout.timeout.connect(loop.quit)
+        timeout.start(3000)
+        loop.exec()
+        timeout.stop()
+        
+        # Clean up thread
+        sm.prepare_to_close()
+        
+        assert sm.hunspell is not None

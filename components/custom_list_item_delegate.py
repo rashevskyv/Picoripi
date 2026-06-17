@@ -213,14 +213,21 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 # Show star ONLY if this specific category has edited lines
                 if project and block_idx_data is not None:
                     block_map = getattr(main_window, 'block_to_project_file_map', {})
-                    proj_b_idx = block_map.get(block_idx_data, block_idx_data)
+                    if isinstance(block_map, dict):
+                        data_indices = [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx_data]
+                    else:
+                        data_indices = []
+                    if not data_indices:
+                        data_indices = [block_idx_data]
+                    proj_b_idx = block_idx_data
                     if 0 <= proj_b_idx < len(project.blocks):
                         block = project.blocks[proj_b_idx]
                         category = next((c for c in block.categories if c.name == category_name), None)
                         if category:
                             # Check if any line index belonging to this category is in edited_data
                             has_unsaved_changes_in_item = any(
-                                (block_idx_data, l_idx) in edited_keys 
+                                (d_idx, l_idx) in edited_keys 
+                                for d_idx in data_indices
                                 for l_idx in category.line_indices
                             )
             elif merged_folder_ids:
@@ -234,13 +241,26 @@ class CustomListItemDelegate(QStyledItemDelegate):
                     
                     # If any edited data block maps to one of these project blocks, show star
                     block_map = getattr(main_window, 'block_to_project_file_map', {})
-                    has_unsaved_changes_in_item = any(
-                        block_map.get(data_idx) in all_p_indices 
-                        for data_idx in unsaved_blocks
-                    )
+                    if isinstance(block_map, dict) and block_map:
+                        has_unsaved_changes_in_item = any(
+                            block_map.get(data_idx) in all_p_indices 
+                            for data_idx in unsaved_blocks
+                        )
+                    else:
+                        has_unsaved_changes_in_item = any(
+                            data_idx in all_p_indices 
+                            for data_idx in unsaved_blocks
+                        )
             elif block_idx_data is not None:
                 # ITEM is a regular Block (Physical)
-                has_unsaved_changes_in_item = block_idx_data in unsaved_blocks
+                block_map = getattr(main_window, 'block_to_project_file_map', {})
+                if isinstance(block_map, dict) and block_map:
+                    has_unsaved_changes_in_item = any(
+                        block_map.get(data_idx) == block_idx_data 
+                        for data_idx in unsaved_blocks
+                    )
+                else:
+                    has_unsaved_changes_in_item = block_idx_data in unsaved_blocks
 
             # 2. Other indicators
             if block_idx_data is not None:

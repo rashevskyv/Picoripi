@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, Set, Dict, Any, Tuple
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN
@@ -330,6 +330,6 @@ class TextFixer(GenericTextFixer):
 
         changed_orphans = False
         if has_single_word_allowed:
-            cleaned_text, changed_orphans = self._fix_single_word_orphans_generic(cleaned_text)
+            cleaned_text, changed_orphans = self._fix_single_word_orphans_generic(cleaned_text, editor_font_map)
 
         return cleaned_text, (changed1 or changed2 or changed3 or changed4 or changed5 or changed6 or changed_missing_spacing or changed_orphans or changed_shift or changed_compact)

@@ -1,4 +1,4 @@
-﻿from typing import Optional, Set, List, Tuple
+from typing import Optional, Set, List, Tuple
 import re
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
@@ -127,15 +127,20 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             if len(sublines_with_tags) > 1:
                 if self._check_single_word_subline_generic(text_part):
                     if not self._is_single_word_ok_generic(text_part):
-                        if i % lines_per_page == 0:
-                            page_lines = [part for part, _ in sublines_with_tags[i : i + lines_per_page]]
-                            has_content_after = any(line.strip() for line in page_lines[1:])
-                            if has_content_after:
-                                problems_per_subline_idx[i].add(self.problem_ids['SINGLE'])
+                        is_allowed_orphan = False
+                        if i > 0:
+                            is_allowed_orphan = self._is_single_word_orphan_allowed(text_part, sublines_with_tags[i - 1][0], font_map)
+                        
+                        if not is_allowed_orphan:
+                            if i % lines_per_page == 0:
+                                page_lines = [part for part, _ in sublines_with_tags[i : i + lines_per_page]]
+                                has_content_after = any(line.strip() for line in page_lines[1:])
+                                if has_content_after:
+                                    problems_per_subline_idx[i].add(self.problem_ids['SINGLE'])
+                                else:
+                                    problems_per_subline_idx[i].add(self.problem_ids['SINGLE_NON_START'])
                             else:
                                 problems_per_subline_idx[i].add(self.problem_ids['SINGLE_NON_START'])
-                        else:
-                            problems_per_subline_idx[i].add(self.problem_ids['SINGLE_NON_START'])
         return problems_per_subline_idx
 
     def analyze_subline(self, text: str, **kwargs) -> Set[str]:

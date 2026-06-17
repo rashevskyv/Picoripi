@@ -224,6 +224,9 @@ class ListSelectionHandler(BaseHandler):
             self._update_block_toolbar_button_states(block_index)
         finally:
             self.mw.is_programmatically_changing_text = False
+        
+        if not getattr(self.mw, 'is_loading_data', False) and not self._restoring_selection:
+            self.data_processor.schedule_autosave()
 
     def _restore_block_selection(self) -> None:
         """Internal helper to restore block selection."""
@@ -517,6 +520,12 @@ class ListSelectionHandler(BaseHandler):
             cursor = self.mw.edited_text_edit.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
             self.mw.edited_text_edit.setTextCursor(cursor)
+
+        if self.mw.data_store.current_string_idx != -1 and hasattr(self.mw, 'editor_operation_handler') and self.mw.editor_operation_handler:
+            self.mw.editor_operation_handler.launch_async_scanner_immediate()
+
+        if not getattr(self.mw, 'is_loading_data', False) and not original_programmatic_state:
+            self.data_processor.schedule_autosave()
 
 
     def rename_block(self, item: QTreeWidgetItem) -> None:
@@ -944,24 +953,28 @@ class ListSelectionHandler(BaseHandler):
         self.mw.data_store.highlight_categorized = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
 
     def toggle_hide_categorized(self, checked: bool) -> None:
         """Toggle hiding of categorized strings in parent block."""
         self.mw.data_store.hide_categorized = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
 
     def toggle_hide_empty_strings(self, checked: bool) -> None:
         """Toggle hiding of empty strings in preview list."""
         self.mw.data_store.hide_empty_strings = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
 
     def toggle_hide_translated(self, checked: bool) -> None:
         """Toggle hiding of translated strings in preview list."""
         self.mw.data_store.hide_translated = checked
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
 
     def toggle_show_overrides_only(self, checked: bool) -> None:
         """Toggle showing only strings with layout overrides in preview list."""
@@ -1018,6 +1031,7 @@ class ListSelectionHandler(BaseHandler):
             if hasattr(preview_updater, '_active_progress_dialog') and preview_updater._active_progress_dialog:
                 preview_updater._active_progress_dialog.close()
                 preview_updater._active_progress_dialog = None
+        self.data_processor.schedule_autosave()
 
 
     def toggle_hide_original_tags(self, checked: bool) -> None:
@@ -1025,6 +1039,7 @@ class ListSelectionHandler(BaseHandler):
         self.mw.data_store.hide_original_tags = checked
         if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
             self.mw.helper.reconfigure_all_highlighters()
+        self.data_processor.schedule_autosave()
 
     def toggle_hide_translation_tags(self, checked: bool) -> None:
         """Toggle hiding of tags in the translation and preview text edits."""
@@ -1033,6 +1048,48 @@ class ListSelectionHandler(BaseHandler):
             self.mw.helper.reconfigure_all_highlighters()
         if self.mw.data_store.current_block_idx != -1:
             self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
+
+    def toggle_hide_tags_global(self) -> None:
+        """Toggle hiding of tags globally for both original and translation."""
+        orig_checked = self.mw.hide_original_tags_checkbox.isChecked() if getattr(self.mw, 'hide_original_tags_checkbox', None) else self.mw.data_store.hide_original_tags
+        trans_checked = self.mw.hide_translation_tags_checkbox.isChecked() if getattr(self.mw, 'hide_translation_tags_checkbox', None) else self.mw.data_store.hide_translation_tags
+
+        target_state = not (orig_checked or trans_checked)
+
+        checkbox_triggered = False
+        if getattr(self.mw, 'hide_original_tags_checkbox', None):
+            self.mw.hide_original_tags_checkbox.setChecked(target_state)
+            checkbox_triggered = True
+        else:
+            self.mw.data_store.hide_original_tags = target_state
+
+        if getattr(self.mw, 'hide_translation_tags_checkbox', None):
+            self.mw.hide_translation_tags_checkbox.setChecked(target_state)
+            checkbox_triggered = True
+        else:
+            self.mw.data_store.hide_translation_tags = target_state
+
+        if not checkbox_triggered:
+            if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
+                self.mw.helper.reconfigure_all_highlighters()
+            if self.mw.data_store.current_block_idx != -1:
+                self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
+
+
+    def toggle_show_unsaved_only(self, checked: bool) -> None:
+        """Toggle showing only unsaved strings in preview list."""
+        self.mw.data_store.show_unsaved_only = checked
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.data_processor.schedule_autosave()
+
+    def toggle_show_unsaved_blocks_only(self, checked: bool) -> None:
+        """Toggle showing only unsaved blocks in the tree."""
+        self.mw.data_store.show_unsaved_blocks_only = checked
+        self.ui_updater.block_list_updater.populate_blocks()
+        self.data_processor.schedule_autosave()
 
     def scroll_to_current_string_in_preview(self) -> None:
         """Scroll and focus the preview text edit to the currently selected string."""

@@ -472,20 +472,9 @@ class ProjectActionHandler(BaseHandler):
         """Close project action."""
         log_info("Close Project action triggered.")
 
-        if self.mw.data_store.unsaved_changes:
-            reply = QMessageBox.question(
-                self.mw,
-                'Unsaved Changes',
-                "Save changes before closing project?",
-                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Cancel
-            )
-            if reply == QMessageBox.StandardButton.Save:
-                if hasattr(self.mw, 'app_action_handler'):
-                    if not self.mw.app_action_handler.save_data_action(ask_confirmation=False):
-                        return
-            elif reply == QMessageBox.StandardButton.Cancel:
-                return
+        # Force save session before closing so current edits are saved in .picoripi_session
+        if hasattr(self.data_processor, '_autosave_session'):
+            self.data_processor._autosave_session(force=True)
 
         # Clear project
         if self.mw.project_manager:
@@ -685,6 +674,27 @@ class ProjectActionHandler(BaseHandler):
                 on_completed(False)
             return
 
+        # Check if we can restore from local session file instead of parsing raw files
+        if hasattr(self.data_processor, 'load_session_file') and self.data_processor.load_session_file() is True:
+            log_info("Project state successfully restored from session file.")
+            
+            if hasattr(self.mw.data_store, 'block_to_project_file_map'):
+                self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
+                
+            if self.mw.project_manager.project.blocks:
+                first_block = self.mw.project_manager.project.blocks[0]
+                self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
+                self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
+                
+            self.mw.project_manager.clear_archive_cache()
+            
+            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                self.mw.translation_handler.load_progress_from_metadata()
+                
+            if on_completed:
+                on_completed(True)
+            return
+
         # Reset block/string selection state to avoid stale index issues
         self.mw.data_store.current_block_idx = -1
         self.mw.data_store.current_string_idx = -1
@@ -731,6 +741,7 @@ class ProjectActionHandler(BaseHandler):
             self.mw.data_store.edited_file_data = result['edited_file_data']
             self.mw.data_store.block_names = result['block_names']
             self.mw.block_to_project_file_map = result['block_to_project_file_map']
+            self.mw.data_store.block_to_project_file_map = result['block_to_project_file_map']
 
             plugin_keys_backup = result['plugin_keys_backup']
             if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):

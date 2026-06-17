@@ -1,4 +1,4 @@
-﻿# components/tree_context_menu_mixin.py
+# components/tree_context_menu_mixin.py
 """Context-menu mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMenu, QStyle, QMessageBox
@@ -325,9 +325,33 @@ class TreeContextMenuMixin:
                     lambda checked=False, idx=block_idx, cname=category_name: main_window.build_glossary_with_ai(idx, cname)
                 )
 
-            # Revert to original
+            # Save selected specific changes
             menu.addSeparator()
             selected_strings = self._get_selected_strings_by_block()
+            unsaved_strings_in_selection = []
+            for b_idx, s_indices in selected_strings.items():
+                for s_idx in s_indices:
+                    if (b_idx, s_idx) in main_window.data_store.edited_data:
+                        unsaved_strings_in_selection.append((b_idx, s_idx))
+            
+            if len(unsaved_strings_in_selection) > 0:
+                if len(selected_strings) > 1:
+                    save_label = f"Save changes for selected blocks ({len(unsaved_strings_in_selection)} strings)"
+                elif category_name:
+                    save_label = f"Save changes for Virtual Block '{category_name}' ({len(unsaved_strings_in_selection)} strings)"
+                elif block_idx == -2:
+                    save_label = f"Save changes for Chapter '{block_name}' ({len(unsaved_strings_in_selection)} strings)"
+                else:
+                    save_label = f"Save changes for '{block_name}' ({len(unsaved_strings_in_selection)} strings)"
+                    
+                sv = menu.addAction(
+                    self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
+                    save_label,
+                )
+                sv.triggered.connect(lambda checked=False, items=unsaved_strings_in_selection: main_window.data_processor.save_specific_edits(items))
+
+            # Revert to original
+            menu.addSeparator()
             total_strings = sum(len(s) for s in selected_strings.values())
             
             if total_strings > 0:

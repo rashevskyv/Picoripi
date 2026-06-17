@@ -44,7 +44,7 @@ overrides = {
     },
     "colors": {
         "WIDTH_EXCEEDED": QColor(255, 0, 0, 100),
-        "TAG_WARNING": QColor(255, 255, 0, 80),
+        "TAG_WARNING": QColor(200, 200, 200, 150),
         "SHORT_LINE": QColor(0, 200, 0, 100),
         "SINGLE_WORD_SUBLINE": QColor(0, 0, 255, 120),
         "SINGLE_WORD_SUBLINE_NON_START": QColor(139, 69, 19, 120),

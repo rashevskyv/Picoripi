@@ -201,3 +201,51 @@ def test_UndoManager_undo_navigation(um, mock_mw):
         
         um.redo()
         mock_nav.assert_called_with(1, 2, None)
+
+
+def test_UndoManager_session_persistence():
+    import pickle
+    from core.data_store import AppDataStore
+    from core.undo_manager import UndoManager
+    
+    # Create a real data store
+    ds = AppDataStore()
+    ds.data = [["Original Line 1", "Original Line 2"]]
+    
+    # Mock main window
+    mw = MagicMock()
+    mw.data_store = ds
+    
+    # Initialize UndoManager
+    um = UndoManager(mw)
+    
+    # Record some actions
+    um.record_action("TEXT_EDIT", 0, 0, "Original Line 1", "Edited Line 1")
+    um.record_action("TEXT_EDIT", 0, 1, "Original Line 2", "Edited Line 2")
+    
+    assert len(um.undo_stack) == 2
+    assert um.undo_stack[0].old_text == "Original Line 1"
+    assert um.undo_stack[1].old_text == "Original Line 2"
+    
+    # Pickle AppDataStore (as done in load_session_file/autosave)
+    serialized = pickle.dumps(ds)
+    
+    # Recreate store from pickle
+    restored_ds = pickle.loads(serialized)
+    
+    # Setup new main window simulating application restart
+    new_mw = MagicMock()
+    # In load_session_file:
+    # 1. new_mw.data_store is initialized
+    new_mw.data_store = AppDataStore()
+    # 2. properties are copied to new_mw.data_store
+    for key, val in restored_ds.__dict__.items():
+        setattr(new_mw.data_store, key, val)
+        
+    # Reinitialize UndoManager in new session
+    new_um = UndoManager(new_mw)
+    
+    # Verify stacks are restored
+    assert len(new_um.undo_stack) == 2
+    assert new_um.undo_stack[0].old_text == "Original Line 1"
+    assert new_um.undo_stack[1].old_text == "Original Line 2"

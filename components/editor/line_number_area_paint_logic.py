@@ -1,4 +1,4 @@
-﻿from PyQt6.QtGui import QPainter, QColor, QPen, QFont
+from PyQt6.QtGui import QPainter, QColor, QPen, QFont
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QMainWindow, QTextEdit
 from utils.logging_utils import log_debug
@@ -19,6 +19,7 @@ class LNETLineNumberAreaPaintLogic:
         """Execute paint event."""
         painter = QPainter(painter_device)
         try:
+            separator_lines = []
             if not self.mw:
                 main_window_ref = self.editor.window()
             else:
@@ -346,12 +347,7 @@ class LNETLineNumberAreaPaintLogic:
                             line = layout.lineAt(layout.lineCount() - 1)
                             if line.isValid():
                                 line_bottom_y = block_rect.top() + line.rect().bottom()
-
-                        pen_lines = QPen(PAIR_SEPARATOR_LINE_COLOR)
-                        pen_lines.setStyle(PAIR_SEPARATOR_LINE_STYLE)
-                        pen_lines.setWidth(PAIR_SEPARATOR_LINE_THICKNESS)
-                        painter.setPen(pen_lines)
-                        painter.drawLine(0, int(line_bottom_y), total_area_width, int(line_bottom_y))
+                        separator_lines.append(line_bottom_y)
 
                 current_q_block = current_q_block.next()
                 if current_q_block.isValid():
@@ -359,6 +355,14 @@ class LNETLineNumberAreaPaintLogic:
                     top = int(block_rect.top())
                     bottom = int(block_rect.bottom())
                 current_q_block_number_in_editor_doc += 1
+
+            if separator_lines:
+                pen_lines = QPen(PAIR_SEPARATOR_LINE_COLOR)
+                pen_lines.setStyle(PAIR_SEPARATOR_LINE_STYLE)
+                pen_lines.setWidth(PAIR_SEPARATOR_LINE_THICKNESS)
+                painter.setPen(pen_lines)
+                for y in separator_lines:
+                    painter.drawLine(0, int(y), total_area_width, int(y))
         except Exception as e:
             from utils.logging_utils import log_error
             log_error(f"Error in LineNumberAreaPaintLogic: {e}", exc_info=True)

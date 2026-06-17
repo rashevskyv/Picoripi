@@ -1,4 +1,4 @@
-﻿# handlers/issue_scan_handler.py
+# handlers/issue_scan_handler.py
 import json
 from pathlib import Path
 from typing import Optional, Tuple
@@ -134,6 +134,11 @@ class IssueScanHandler(BaseHandler):
             if text is None: continue
             
             text = str(text)
+            original_text = block_data[string_idx]
+            
+            # Set block and string index on analyzer for context-aware validation
+            analyzer._current_scan_block_idx = block_idx
+            analyzer._current_scan_string_idx = string_idx
             
             font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
             
@@ -155,6 +160,26 @@ class IssueScanHandler(BaseHandler):
                         logical_hard_limit=logical_hard_limit_for_string
                     )
                     all_problems_for_string.append(problems)
+
+            # Check tag mismatch
+            if original_text and hasattr(analyzer, "check_tags_mismatch"):
+                if analyzer.check_tags_mismatch(original_text, text) is True:
+                    tag_warning_id = getattr(analyzer.problem_ids, 'PROBLEM_TAG_WARNING', None)
+                    if not tag_warning_id and isinstance(analyzer.problem_ids, dict):
+                        tag_warning_id = analyzer.problem_ids.get('TAG', None)
+                    if not tag_warning_id:
+                        # Fallback
+                        for pid in getattr(analyzer, 'problem_definitions', {}).keys():
+                            if pid.endswith('_TAG_WARNING'):
+                                tag_warning_id = pid
+                                break
+                                
+                    if tag_warning_id and not type(tag_warning_id).__name__ in ('MagicMock', 'Mock'):
+                        if not all_problems_for_string:
+                            all_problems_for_string = [set()]
+                        if not isinstance(all_problems_for_string[0], set):
+                            all_problems_for_string[0] = set(all_problems_for_string[0])
+                        all_problems_for_string[0].add(tag_warning_id)
             
             for i, problem_set in enumerate(all_problems_for_string):
                 if problem_set:

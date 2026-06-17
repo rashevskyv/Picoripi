@@ -10,10 +10,11 @@ from dialogs.base_text_review_dialog import BaseTextReviewDialog
 class SpellcheckDialog(BaseTextReviewDialog):
     """Interactive dialog for spellchecking text with suggestions."""
 
-    def __init__(self, parent, text: str, spellchecker_manager, starting_line_number: int = 0, line_numbers: List[int] = None, block_idx: int = -1):
+    def __init__(self, parent, text: str, spellchecker_manager, starting_line_number: int = 0, line_numbers: List[int] = None, block_idx: int = -1, block_indices: List[int] = None):
         log_debug("SpellcheckDialog: __init__ started")
         self.spellchecker_manager = spellchecker_manager
         self.starting_line_number = starting_line_number # Deprecated, kept for compatibility
+        self.block_indices = block_indices if block_indices is not None else ([block_idx] * len(line_numbers) if line_numbers else [])
         
         super().__init__(parent, "Spellcheck", text, line_numbers, block_idx)
         
@@ -24,6 +25,14 @@ class SpellcheckDialog(BaseTextReviewDialog):
         log_debug("SpellcheckDialog: Starting content loading")
         # Load content after a small delay to let dialog appear
         QTimer.singleShot(50, self._load_content)
+
+    def _get_block_name(self, block_idx: int) -> str:
+        if block_idx is None:
+            return "Unknown Block"
+        main_window = self._find_main_window()
+        if main_window and hasattr(main_window, 'data_store') and getattr(main_window.data_store, 'block_names', None):
+            return main_window.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
+        return f"Block {block_idx}"
 
     def setup_left_panel(self, layout: QVBoxLayout):
         layout.addWidget(QLabel("Misspelled Words:"))
@@ -130,12 +139,17 @@ class SpellcheckDialog(BaseTextReviewDialog):
         self.misspelled_list.clear()
         for start, end, word, line_idx in self.items_to_review:
             if self.line_numbers and line_idx < len(self.line_numbers):
-                display_line_num = self.line_numbers[line_idx]
+                display_line_num = self.line_numbers[line_idx] + 1
             else:
                 display_line_num = self.starting_line_number + line_idx + 1
-            self.misspelled_list.addItem(f"[{self.block_name}] String {display_line_num}: {word}")
+            
+            if self.block_indices and line_idx < len(self.block_indices):
+                b_name = self._get_block_name(self.block_indices[line_idx])
+            else:
+                b_name = self.block_name
+            self.misspelled_list.addItem(f"[{b_name}] String {display_line_num}: {word}")
 
-    def show_current_item(self):
+    def show_current_item(self, from_click=False):
         """Display current misspelled word and its suggestions."""
         if self.current_item_index >= len(self.items_to_review):
             self.status_label.setText("Spellcheck complete!")
@@ -150,12 +164,18 @@ class SpellcheckDialog(BaseTextReviewDialog):
         current = self.current_item_index + 1
 
         if self.line_numbers and line_idx < len(self.line_numbers):
-            display_line_num = self.line_numbers[line_idx]
+            display_line_num = self.line_numbers[line_idx] + 1
         else:
             display_line_num = self.starting_line_number + line_idx + 1
             
-        self.status_label.setText(f"Word {current} of {total} | Block: {self.block_name} | String: {display_line_num}")
-        self.word_label.setText(f"[{self.block_name}] String {display_line_num}: \"{word}\"")
+            
+        if self.block_indices and line_idx < len(self.block_indices):
+            b_name = self._get_block_name(self.block_indices[line_idx])
+        else:
+            b_name = self.block_name
+            
+        self.status_label.setText(f"Word {current} of {total} | Block: {b_name} | String: {display_line_num}")
+        self.word_label.setText(f"[{b_name}] String {display_line_num}: \"{word}\"")
 
         cursor = self.text_edit.textCursor()
         cursor.setPosition(start)
@@ -169,7 +189,8 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
         self.text_edit.setTextCursor(cursor)
         self.text_edit.ensureCursorVisible()
-        self.misspelled_list.setCurrentRow(self.current_item_index)
+        if not from_click:
+            self.misspelled_list.setCurrentRow(self.current_item_index)
 
         self.suggestions_list.clear()
         suggestions = self.spellchecker_manager.get_suggestions(word)
@@ -195,15 +216,21 @@ class SpellcheckDialog(BaseTextReviewDialog):
             cursor.mergeCharFormat(fmt)
 
     def jump_to_item_from_list(self, item):
+        modifiers = QApplication.keyboardModifiers()
+        if bool(modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)):
+            return
+            
         clicked_index = self.misspelled_list.row(item)
         if clicked_index != self.current_item_index:
             self.clear_current_item_highlight()
             self.current_item_index = clicked_index
-            self.show_current_item()
+            self.show_current_item(from_click=True)
+            
             if clicked_index < len(self.items_to_review):
                 _, _, _, line_idx = self.items_to_review[clicked_index]
                 if self.line_numbers and line_idx < len(self.line_numbers):
-                    self._navigate_to_string_in_main_window(self.line_numbers[line_idx])
+                    b_idx = self.block_indices[line_idx] if (self.block_indices and line_idx < len(self.block_indices)) else self.block_idx
+                    self._navigate_to_block_and_string(b_idx, self.line_numbers[line_idx])
 
     def ignore_word(self):
         self.go_to_next_item()
@@ -250,4 +277,80 @@ class SpellcheckDialog(BaseTextReviewDialog):
         if index < len(self.items_to_review):
             _, _, _, line_idx = self.items_to_review[index]
             if self.line_numbers and line_idx < len(self.line_numbers):
-                self._navigate_to_string_in_main_window(self.line_numbers[line_idx])
+                b_idx = self.block_indices[line_idx] if (self.block_indices and line_idx < len(self.block_indices)) else self.block_idx
+                self._navigate_to_block_and_string(b_idx, self.line_numbers[line_idx])
+
+    def save_changes_to_project(self):
+        parent = self.parentWidget()
+        from dialogs.search_review_dialog import SearchReviewDialog
+        search_dialog = None
+        p = parent
+        while p:
+            if isinstance(p, SearchReviewDialog):
+                search_dialog = p
+                break
+            p = p.parentWidget() if hasattr(p, 'parentWidget') else None
+
+        corrected_text = self.get_corrected_text()
+        
+        if search_dialog:
+            search_dialog.current_text = corrected_text
+            search_dialog.text_edit.setPlainText(corrected_text)
+            search_dialog._apply_zebra_striping()
+            search_dialog.save_changes_to_project()
+        else:
+            if not self.mw or not hasattr(self.mw, 'data_processor'):
+                return
+            
+            corrected_lines = corrected_text.split('\n')
+            changes_made = False
+            changed_blocks = set()
+            
+            undo_manager = getattr(self.mw, 'undo_manager', None)
+            if undo_manager:
+                undo_manager.begin_group()
+                
+            try:
+                for i, line_num in enumerate(self.line_numbers):
+                    if line_num is not None and i < len(corrected_lines):
+                        b_idx = self.block_idx
+                        if hasattr(self, 'block_indices') and self.block_indices and i < len(self.block_indices):
+                            b_idx = self.block_indices[i]
+                            if b_idx is None:
+                                b_idx = self.block_idx
+                                
+                        old_text, _ = self.mw.data_processor.get_current_string_text(b_idx, line_num)
+                        new_line_text = corrected_lines[i]
+                        
+                        if new_line_text != old_text:
+                            self.mw.data_processor.update_edited_data(b_idx, line_num, new_line_text, action_type="SPELLCHECK", skip_ui_refresh=True)
+                            changes_made = True
+                            changed_blocks.add(b_idx)
+                            
+                            if b_idx == self.mw.data_store.current_block_idx and line_num == self.mw.data_store.current_string_idx:
+                                if hasattr(self.mw, 'text_operation_handler'):
+                                    self.mw.text_operation_handler.sync_subline_asterisks(
+                                        b_idx, line_num, new_line_text
+                                    )
+            finally:
+                if undo_manager:
+                    undo_manager.end_group("SPELLCHECK")
+                    
+            if changes_made:
+                for b_idx in changed_blocks:
+                    if hasattr(self.mw, 'data_store'):
+                        self.mw.data_store.mark_dirty(b_idx)
+                    if hasattr(self.mw, 'ui_updater'):
+                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                
+                current_block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
+                if hasattr(self.mw, 'ui_updater') and current_block_idx in changed_blocks:
+                    self.mw.ui_updater.populate_strings_for_block(current_block_idx, force=True)
+                    self.mw.ui_updater.update_text_views()
+                    
+                if hasattr(self.mw, 'editor_operation_handler') and self.mw.editor_operation_handler:
+                    self.mw.editor_operation_handler.text_edited()
+
+    def done(self, r):
+        self.save_changes_to_project()
+        super().done(r)

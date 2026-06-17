@@ -248,6 +248,26 @@ def test_find_missing_icon_spacing_spans():
     assert len(find_missing_icon_spacing_spans("Hello-{(A)} World", check_visible)) == 0
     assert len(find_missing_icon_spacing_spans("Hello {(A)}! World", check_visible)) == 0
 
+    # Hyphen exception cases
+    assert len(find_missing_icon_spacing_spans("Hello {(A)}-world", check_visible)) == 0
+    assert len(find_missing_icon_spacing_spans("Hello {(A)} -world", check_visible)) == 1
+    assert len(find_missing_icon_spacing_spans("Hello {(A)} - world", check_visible)) == 0
+
+    # Zero-width tag validation cases
+    # No space around it - ERROR
+    spans = find_missing_icon_spacing_spans("Hello{color:red}World", check_visible)
+    assert len(spans) == 1
+    assert spans[0] == (5, 16)
+    # Spaced left - OK
+    assert len(find_missing_icon_spacing_spans("Hello {color:red}World", check_visible)) == 0
+    # Spaced right - OK
+    assert len(find_missing_icon_spacing_spans("Hello{color:red} World", check_visible)) == 0
+    # Multiple zero-width tags in a row, no space - ERROR
+    spans = find_missing_icon_spacing_spans("Hello{color:red}{font:large}World", check_visible)
+    assert len(spans) == 1
+    assert spans[0] == (5, 28)
+
+
 
 def test_fix_missing_icon_spacing():
     from utils.utils import fix_missing_icon_spacing
@@ -266,6 +286,15 @@ def test_fix_missing_icon_spacing():
     assert fix_missing_icon_spacing("Hello {(A)}. World", check_visible) == "Hello {(A)}. World"
     assert fix_missing_icon_spacing("Hello-{(A)} World", check_visible) == "Hello-{(A)} World"
     assert fix_missing_icon_spacing("Hello {(A)}! World", check_visible) == "Hello {(A)}! World"
+
+    # Hyphen exception fixes
+    assert fix_missing_icon_spacing("Hello {(A)} -world", check_visible) == "Hello {(A)}-world"
+    assert fix_missing_icon_spacing("Hello {(A)} - world", check_visible) == "Hello {(A)} - world"
+
+    # Zero-width tag fix cases
+    assert fix_missing_icon_spacing("Hello{color:red}World", check_visible) == "Hello {color:red}World"
+    assert fix_missing_icon_spacing("Hello{color:red}{font:large}World", check_visible) == "Hello {color:red}{font:large}World"
+
 
 
 def test_plugin_missing_icon_spacing_detection_and_fix(mc_rules, ww_rules, plain_rules, bmg_rules, pokemon_rules):
@@ -372,20 +401,20 @@ def test_autofix_single_word_orphan_with_punctuation(mc_rules):
         PROBLEM_SHORT_LINE: False
     }
     
-    # 1. With punctuation (lowercase): SHOULD fix
-    text_with_punc = "Це дуже гарна\nідея."
+    # 1. With punctuation (lowercase): SHOULD fix (since previous line is long enough)
+    text_with_punc = "Це дуже довге та красиве речення\nідея."
     fixed, changed = mc_rules.autofix_data_string(text_with_punc, {}, 1000, allowed_problems=None)
-    assert fixed == "Це дуже\nгарна ідея."
+    assert fixed == "Це дуже довге та красиве\nречення ідея."
     assert changed is True
 
-    # 2. Without punctuation: should fix
-    text_no_punc = "Це дуже гарна\nідея"
+    # 2. Without punctuation: should fix (since previous line is long enough)
+    text_no_punc = "Це дуже довге та красиве речення\nідея"
     fixed, changed = mc_rules.autofix_data_string(text_no_punc, {}, 1000, allowed_problems=None)
-    assert fixed == "Це дуже\nгарна ідея"
+    assert fixed == "Це дуже довге та красиве\nречення ідея"
     assert changed is True
 
     # 3. Previous line ends with sentence punctuation: should NOT fix
-    text_prev_ends_punc = "Це дуже гарна.\nідея"
+    text_prev_ends_punc = "Це дуже довге та красиве речення.\nідея"
     fixed, changed = mc_rules.autofix_data_string(text_prev_ends_punc, {}, 1000, allowed_problems=None)
     assert fixed == text_prev_ends_punc
     assert changed is False
@@ -415,9 +444,6 @@ def test_autofix_page_isolation(bmg_rules):
         "Line 7c is a very very very very long line yesabc"
     )
     fixed, changed = bmg_rules.autofix_data_string(text, {}, 300)
-    # The compactor merges short single-line sentences on page 1.
-    # Lines 1-4 each fit a threshold of 300px (they are short), so compactor merges them.
-    # Page 2 lines are very long (>300px) so they stay separate.
     # We only verify that page 2/3 content is not mixed across the page boundary.
     lines = fixed.split('\n')
     # All page-2 content (5b/5c/5d) should come before page-3 content (7b/7c)
@@ -431,8 +457,8 @@ def test_single_word_orphan_detection_any_line(bmg_rules):
     from plugins.zelda_bmg.config import PROBLEM_SINGLE_WORD_SUBLINE_NON_START
     bmg_rules.mw.lines_per_page = 4
     
-    # "рейках." is at line index 1 (not first line of page), should trigger brown warning
-    text = "настінних\nрейках."
+    # "rails." is at line index 1 (not first line of page), should trigger brown warning (since previous line is long enough)
+    text = "this is a very long sentence that ends on\nrails."
     problems = bmg_rules.problem_analyzer.analyze_data_string(text, {}, 1000)
     assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START in problems[1]
 
@@ -448,27 +474,38 @@ def test_autofix_cross_page_orphan_merge_and_shift(mc_rules):
     
     # CASE A: A lowercase single word on page 2 (line index 4, which is the 5th line) fits on page 1 (line index 3, which is the 4th line)
     # The warning limit is 1000 pixels (very large).
-    # Since it fits, they should be merged: "Line 4" and "місця" -> "Line 4 місця".
-    # The compactor also merges same-page short sentences (e.g. "Line 1." + "Line 2." on same line).
-    text_fit = "Line 1.\nLine 2.\nLine 3.\nLine 4\nмісця"
+    # Since it fits, they should be merged: "Line 4" and "places" -> "Line 4 places".
+    text_fit = "Line 1.\nLine 2.\nLine 3.\nLine 4\nplaces"
     fixed_fit, changed_fit = mc_rules.autofix_data_string(text_fit, {}, 1000)
     assert changed_fit is True
-    # Verify that "місця" ended up on page 1 (merged into it), not on page 2
-    assert "місця" in fixed_fit
-    assert "Line 4 місця" in fixed_fit or "4 місця" in fixed_fit
+    # Verify that "places" ended up on page 1 (merged into it), not on page 2
+    assert "places" in fixed_fit
+    assert "Line 4 places" in fixed_fit or "4 places" in fixed_fit
 
     # CASE B: A lowercase single word on page 2 (line index 4) does NOT fit on page 1 (line index 3)
-    # Combined "Line 4 місця" is 12 chars = 96 pixels if default char width is 8.
-    # If we pass logical_hard_limit = 80, the combined line would exceed 80, so it cannot merge.
-    # In this case, "місця" cannot fit on line 4, so the last word of line 4 ("4") should be shifted down to line 5.
-    # Result should be: "Line 1.\nLine 2.\nLine 3.\nLine\n4 місця"
-    text_nofit = "Line 1.\nLine 2.\nLine 3.\nLine 4\nмісця"
-    fixed_nofit, changed_nofit = mc_rules.autofix_data_string(text_nofit, {}, 1000, logical_hard_limit=80)
+    # If we make the previous line longer, moving "long" down will result in "long places" (11 chars = 88px)
+    # which is shorter than "Line 4 is very very very" (24 chars = 192px).
+    # Using logical_hard_limit = 250, "Line 4 is very very very long places" (36 chars = 288px) exceeds limit, so it cannot merge up.
+    # But shifting "long" down is allowed by width check.
+    text_nofit = "Line 1.\nLine 2.\nLine 3.\nLine 4 is very very very long\nplaces"
+    fixed_nofit, changed_nofit = mc_rules.autofix_data_string(text_nofit, {}, 1000, logical_hard_limit=250)
     assert changed_nofit is True
-    # The sentence-shifting logic will shift the split sentence "Line\n4 місця" to start on page 2.
-    # The compact step also applies: "Line 1." and "Line 2." and "Line 3." are short sentences that
-    # may be merged by the compactor since they fit on page 1 together.
-    assert "Line\n4 місця" in fixed_nofit or "4 місця" in fixed_nofit
+    # The sentence-shifting logic will shift the split sentence to start on page 2.
+    assert "Line 4 is very very very\nlong places" in fixed_nofit or "long places" in fixed_nofit
+
+    # CASE C: Shifting is blocked if width constraints are violated.
+    # Shifting "4" down to "places" (result "4 places" = 64px) is wider than "Line" (32px).
+    # Since 64 > 32, this is blocked by width check.
+    text_blocked = "Line 1.\nLine 2.\nLine 3.\nLine 4\nplaces"
+    fixed_blocked, changed_blocked = mc_rules.autofix_data_string(
+        text_blocked, {}, 1000, 
+        logical_hard_limit=80,
+        allowed_problems={PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START},
+        disable_pagination=True
+    )
+    assert changed_blocked is False
+    assert fixed_blocked == text_blocked
+
 
 
 def test_autofix_sentence_page_boundary_shifting(mc_rules):
@@ -553,7 +590,7 @@ def test_get_line_words_and_visible_tags_width_tags(bmg_rules):
     bmg_rules.mw.default_tag_mappings = {"[L-Stick]": "{escape:0:0008}"}
     bmg_rules.mw.lines_per_page = 4
     
-    text = "настінних\n{escape:0:0008}"
+    text = "this is a very long sentence that ends on\n{escape:0:0008}"
     problems = bmg_rules.problem_analyzer.analyze_data_string(text, {}, 1000)
     assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START in problems[1]
 
@@ -574,6 +611,18 @@ def test_punctuation_wrap_prevention(plain_rules):
     fixed, changed = plain_rules.text_fixer._fix_width_exceeded_generic(text, {}, 100)
     assert changed is True
     assert fixed == "aaaaa\nbbbbbb, cccc"
+
+    # Test em-dash (—) wrap prevention
+    text_em = "aaaaa — cccc"
+    fixed_em, changed_em = plain_rules.text_fixer._fix_width_exceeded_generic(text_em, {}, 80)
+    assert changed_em is True
+    assert fixed_em == "aaaaa —\ncccc"
+
+    # Test en-dash (–) wrap prevention
+    text_en = "aaaaa – cccc"
+    fixed_en, changed_en = plain_rules.text_fixer._fix_width_exceeded_generic(text_en, {}, 80)
+    assert changed_en is True
+    assert fixed_en == "aaaaa –\ncccc"
 
 
 def test_single_letter_word_wrap_prevention(bmg_rules, plain_rules):
@@ -738,6 +787,71 @@ def test_non_breaking_spaces_handling(bmg_rules):
     fixed, changed = bmg_rules.autofix_data_string(text_with_nbsp, {}, 1000)
     assert changed is True
     assert fixed == "трапився {escape:255:000001}переполох{escape:255:000000}."
+
+
+def test_check_broken_icon_hyphen_boundary():
+    from utils.utils import check_broken_icon_hyphen_boundary
+    visible_tags = {"{(L)}", "{icon}"}
+    check_visible = lambda t: t in visible_tags
+    
+    # Correct (broken) cases that should trigger warning
+    assert check_broken_icon_hyphen_boundary("Hello {(L)}", "-world", check_visible) is True
+    assert check_broken_icon_hyphen_boundary("Hello {(L)}-", "world", check_visible) is True
+    
+    # Non-broken or non-hyphenated cases
+    assert check_broken_icon_hyphen_boundary("Hello {(L)}", "world", check_visible) is False
+    assert check_broken_icon_hyphen_boundary("Hello {(L)}", "- world", check_visible) is False  # Dash, not hyphen-word
+    assert check_broken_icon_hyphen_boundary("Hello {(L)}- ", "world", check_visible) is False  # Dash, not hyphen-word
+
+
+def test_fix_width_exceeded_tag_hyphen_wrap(plain_rules):
+    # If we have "Hello {(L)}-world" and the threshold is small,
+    # the entire construct "{(L)}-world" should wrap together and not split.
+    text = "Hello {(L)}-world"
+    fixed, changed = plain_rules.text_fixer._fix_width_exceeded_generic(text, {"{(L)}": 50}, 100)
+    assert changed is True
+    # The construct shouldn't be split across lines
+    lines = fixed.split('\n')
+    assert len(lines) >= 2
+    assert "{(L)}-world" in lines[1] or "{(L)}-world" in lines[0]
+    assert not (any(l.endswith("{(L)}") for l in lines) and any(l.startswith("-world") for l in lines))
+
+
+def test_single_word_orphan_allowed_width_checks(plain_rules):
+    from plugins.plain_text.config import PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+
+    # Case 1: moving "word2" would make the last line "word2 word3" (88px) wider than the first line "word1" (40px)
+    # The orphan is allowed. No warning should trigger, no autofix should happen.
+    text_allowed = "word1 word2\nword3"
+    problems_allowed = plain_rules.problem_analyzer.analyze_data_string(text_allowed, {}, 1000)
+    # plain_rules returns a list of dictionaries per line
+    assert len(problems_allowed) == 2
+    assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START not in problems_allowed[1]
+
+    fixed_allowed, changed_allowed = plain_rules.autofix_data_string(
+        text_allowed, {}, 1000, 
+        allowed_problems={PROBLEM_SINGLE_WORD_SUBLINE_NON_START},
+        disable_pagination=True
+    )
+    assert changed_allowed is False
+    assert fixed_allowed == "word1 word2\\nword3"
+
+    # Case 2: moving "word" would make the last line "word i" (48px) shorter than the first line "very long" (72px)
+    # The orphan is NOT allowed. Warning should trigger, and autofix should fix it.
+    text_not_allowed = "very long word\ni"
+    problems_not_allowed = plain_rules.problem_analyzer.analyze_data_string(text_not_allowed, {}, 1000)
+    assert len(problems_not_allowed) == 2
+    assert PROBLEM_SINGLE_WORD_SUBLINE_NON_START in problems_not_allowed[1]
+
+    fixed_not_allowed, changed_not_allowed = plain_rules.autofix_data_string(
+        text_not_allowed, {}, 1000,
+        allowed_problems={PROBLEM_SINGLE_WORD_SUBLINE_NON_START},
+        disable_pagination=True
+    )
+    assert changed_not_allowed is True
+    assert fixed_not_allowed == "very long\\nword i"
+
+
 
 
 

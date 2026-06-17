@@ -194,3 +194,20 @@ def test_ailm_perform_retry(ailm):
     with patch('handlers.translation.ai_lifecycle_manager.QMessageBox') as mock_box:
         ailm._perform_retry()
         mock_box.critical.assert_called_once()
+
+def test_ailm_perform_retry_translate_single(ailm):
+    mock_provider = MagicMock()
+    ailm._retry_context = {'type': 'translate_single', 'provider': mock_provider}
+    
+    with patch('handlers.translation.ai_lifecycle_manager.QTimer') as mock_timer:
+        ailm._perform_retry()
+        assert ailm._retry_context is None
+        mock_timer.singleShot.assert_called_once()
+        
+        # Test callback logic
+        args, kwargs = mock_timer.singleShot.call_args
+        callback = args[1]
+        
+        # Execute the lambda callback
+        callback()
+        ailm.main_handler._run_ai_task.assert_called_once_with(mock_provider, {'type': 'translate_single', 'provider': mock_provider})

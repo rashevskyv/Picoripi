@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
-from PyQt6.QtCore import Qt, QSize, QEvent, QTimer, QRect, QPoint, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, QEvent, QTimer, QRect, QPoint, pyqtSignal, qInstallMessageHandler
 # Monkeypatch Qt item roles for backwards compatibility
 Qt.EditRole = Qt.ItemDataRole.EditRole
 Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
@@ -315,6 +315,7 @@ class MainWindow(QMainWindow):
         self.rescan_all_tags_action = None
         self.recalculate_widths_action = None
         self.find_action = None
+        self.advanced_search_action = None
         self.auto_fix_action = None
         self.open_ai_chat_action = None
         self.restore_translation_button = None
@@ -387,9 +388,10 @@ class MainWindow(QMainWindow):
                 if hasattr(editor_widget, 'updateLineNumberAreaWidth'):
                     editor_widget.updateLineNumberAreaWidth(0)
 
-        self.helper.restore_state_after_settings_load()
         self.ui_handler.apply_font_size()
+        self.helper.restore_state_after_settings_load()
         self.helper.apply_text_wrap_settings()
+
         self.string_settings_updater.update_font_combobox()
         self.string_settings_updater.update_string_settings_panel()
 
@@ -480,6 +482,7 @@ class MainWindow(QMainWindow):
     editors_font_size = SettingsProperty('editors_font_size', lambda inst: inst.current_font_size)
     tooltip_font_size = SettingsProperty('tooltip_font_size', 11)
     external_script_path = SettingsProperty('external_script_path', "")
+    last_advanced_search_query = SettingsProperty('last_advanced_search_query', "")
 
     @property
     def main_splitter_state(self) -> Optional[str]:
@@ -644,6 +647,13 @@ class MainWindow(QMainWindow):
         return UIProgressTracker(self, title, message, max_val)
 
 
+def qt_message_handler(mode, context, message):
+    """Filter out known annoying warnings from Qt's message logging."""
+    if "GetDesignGlyphMetrics failed" in message:
+        return
+    sys.stderr.write(f"{message}\n")
+    sys.stderr.flush()
+
 def global_exception_handler(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -651,6 +661,7 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
     log_error(f"Uncaught exception: {exc_type.__name__}: {exc_value}", exc_info=(exc_type, exc_value, exc_traceback), category="general")
 
 if __name__ == '__main__':
+    qInstallMessageHandler(qt_message_handler)
     if sys.platform == 'win32':
         import ctypes
         # Set AppUserModelID to ensure the taskbar icon is displayed correctly on Windows

@@ -299,6 +299,7 @@ def test_th_resume_block_translation(mock_box, th):
 def test_th_handle_chunk_translated(th):
     ctx = {'block_idx': 1}
     th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
+    th.data_processor.is_string_translated.return_value = False
     
     # Valid chunk
     chunk_text = '{"translated_strings": [{"id": 0, "translation": "t"}]}'
@@ -316,6 +317,7 @@ def test_th_handle_chunk_translated_chapter(th):
     th.translation_progress = {-2: {'completed_chunks': set(), 'total_chunks': 1}}
     th.mw.data_store.current_chapter_id = 12
     th.mw.data_store.current_block_idx = 0
+    th.data_processor.is_string_translated.return_value = False
     
     chunk_text = '{"translated_strings": [{"id": 0, "translation": "t"}]}'
     th.ai_lifecycle_manager._trim_trailing_whitespace_from_lines.return_value = "t"
@@ -330,6 +332,7 @@ def test_th_handle_preview_translation_success(th):
     ctx = {'block_idx': 1, 'source_items': [1, 2]}
     th.ai_lifecycle_manager._clean_model_output.return_value = '{"translated_strings": [{"id": 0, "translation": "t1"}, {"id": 1, "translation": "t2"}]}'
     th.ai_lifecycle_manager._trim_trailing_whitespace_from_lines.side_effect = lambda x: x
+    th.data_processor.is_string_translated.return_value = False
     
     th._handle_preview_translation_success(ProviderResponse(), ctx)
     th.data_processor.update_edited_data.assert_any_call(1, 0, "t1", action_type="TRANSLATE")
@@ -478,6 +481,7 @@ def test_th_handle_chunk_translated_updates_title(th):
     chunk_text = json.dumps({
         'translated_strings': [{'id': 0, 'translation': 'trans'}]
     })
+    th.data_processor.is_string_translated.return_value = False
     
     th._handle_chunk_translated(0, chunk_text, context)
     
@@ -496,6 +500,7 @@ def test_th_handle_preview_translation_success_updates_title(th):
         })
     )
     th.ai_lifecycle_manager._clean_model_output.return_value = response.text
+    th.data_processor.is_string_translated.return_value = False
     
     th._handle_preview_translation_success(response, context)
     
@@ -663,7 +668,92 @@ def test_th_apply_chosen_variation_focus_changed(th):
     th.ui_updater.populate_strings_for_block.assert_called_with(0, ANY, force=True)
 
 
+def test_translate_specific_strings_force_prompt(th):
+    th.is_ai_running = False
+    pairs = [(0, 0), (0, 1)]
+    th.glossary_handler._get_original_string.side_effect = lambda b, s: f"text_{b}_{s}"
+    
+    provider = MagicMock()
+    th.ai_lifecycle_manager._prepare_provider.return_value = provider
+    th.glossary_handler.load_prompts.return_value = ("sys", None)
+    th.prompt_composer.compose_batch_request.return_value = ("sys_p", "user_p", {})
+    
+    with patch.object(th, '_filter_already_saved_translations', wraps=th._filter_already_saved_translations) as mock_filter, \
+         patch.object(th, '_maybe_edit_prompt') as mock_edit, \
+         patch.object(th, '_initiate_batch_translation') as mock_init:
+        
+        mock_edit.return_value = ("e_sys", "e_user")
+        
+        # Act
+        th.translate_specific_strings(pairs, "Test Desc", force_prompt=True)
+        
+        # Assert
+        mock_filter.assert_called_once_with(ANY, ANY, force_prompt=True)
+        mock_edit.assert_called_once_with(
+            title="AI Translation (Test Desc)",
+            system_prompt="sys_p",
+            user_prompt="user_p",
+            save_section="translation",
+            force_prompt=True
+        )
+        mock_init.assert_called_once()
+
+def test_th_handle_chunk_translated_retranslated(th):
+    ctx = {'block_idx': 1}
+    th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
+    
+    th.data_processor.is_string_translated.return_value = True
+    th.data_processor.get_current_string_text.return_value = ("old_val", "edited_data")
+    
+    chunk_text = '{"translated_strings": [{"id": 0, "translation": "new_val"}]}'
+    th._handle_chunk_translated(0, chunk_text, ctx)
+    
+    assert th.current_session_previous_translations == {1: [(0, "old_val")]}
+    th.ui_handler.finish_ai_operation.assert_called_once_with(
+        translation_details={1: [(0, "new_val")]},
+        previous_translations={1: [(0, "old_val")]}
+    )
+
+def test_th_handle_preview_translation_success_retranslated(th):
+    ctx = {'block_idx': 1, 'source_items': [1, 2]}
+    th.ai_lifecycle_manager._clean_model_output.return_value = '{"translated_strings": [{"id": 0, "translation": "new_t1"}, {"id": 1, "translation": "new_t2"}]}'
+    
+    th.data_processor.is_string_translated.side_effect = lambda b, s: True
+    th.data_processor.get_current_string_text.side_effect = lambda b, s: (f"old_{b}_{s}", "edited")
+    
+    th._handle_preview_translation_success(ProviderResponse(), ctx)
+    
+    assert th.current_session_previous_translations == {1: [(0, "old_1_0"), (1, "old_1_1")]}
+    th.ui_handler.finish_ai_operation.assert_called_once_with(
+        translation_details={1: [(0, "new_t1"), (1, "new_t2")]},
+        previous_translations={1: [(0, "old_1_0"), (1, "old_1_1")]}
+    )
 
 
+def test_translate_specific_strings_chunking(th):
+    th.is_ai_running = False
+    # Create 13 pairs (> 12)
+    pairs = [(0, i) for i in range(13)]
+    th.glossary_handler._get_original_string.side_effect = lambda b, s: f"text_{b}_{s}"
+    
+    provider = MagicMock()
+    th.ai_lifecycle_manager._prepare_provider.return_value = provider
+    th.glossary_handler.load_prompts.return_value = ("sys", None)
+    
+    with patch.object(th, '_initiate_batch_translation') as mock_init:
+        # Act
+        th.translate_specific_strings(pairs, "Test Long Selection", force_prompt=False)
+        
+        # Assert
+        th.ui_handler.start_ai_operation.assert_called_once_with(
+            "AI Translation (Test Long Selection)",
+            is_chunked=True,
+            model_name=ANY
+        )
+        mock_init.assert_called_once()
+        task_details = mock_init.call_args[0][0]
+        assert task_details['type'] == 'translate_block_chunked'
+        assert len(task_details['source_items']) == 13
+        assert 'precomposed_prompt' not in task_details
 
 

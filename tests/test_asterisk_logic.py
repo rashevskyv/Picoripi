@@ -233,5 +233,160 @@ def test_line_number_area_paint_logic_data_store_access():
     assert 3 in edited_sublines
     assert 2 not in edited_sublines
 
+def test_asterisk_propagation_hierarchy():
+    from components.custom_list_item_delegate import CustomListItemDelegate
+    from PyQt6.QtCore import QModelIndex, Qt
+    
+    # Setup mock project and main window
+    class RealDataStore:
+        def __init__(self):
+            self.unsaved_block_indices = {2}  # data block 2 is unsaved
+            self.edited_data = {(2, 5): "New Text"}
+            self.block_names = {"2": "Test Block"}
+            self.data = [[]]
+
+    class RealMainWindow:
+        def __init__(self):
+            self.data_store = RealDataStore()
+            self.project_manager = MagicMock()
+            self.project_manager.project = MagicMock()
+            
+            # project block 0
+            block_mock = MagicMock()
+            category_mock = MagicMock()
+            category_mock.name = "CatA"
+            category_mock.line_indices = [5, 10]
+            block_mock.categories = [category_mock]
+            
+            self.project_manager.project.blocks = [block_mock]
+            
+            # Map data block 2 to project block 0
+            self.block_to_project_file_map = {2: 0}
+            self.theme = 'light'
+
+    mw = RealMainWindow()
+    delegate = CustomListItemDelegate(None)
+    delegate.list_widget = MagicMock()
+    delegate.list_widget.window.return_value = mw
+
+    # Case 1: Category item QModelIndex (block_idx_data=0, category_name="CatA")
+    index_cat = QModelIndex()
+    def mock_cat_data(role):
+        if role == Qt.ItemDataRole.UserRole:
+            return 0  # project block index
+        if role == Qt.ItemDataRole.UserRole + 10:
+            return "CatA"  # category name
+        if role == Qt.ItemDataRole.UserRole + 12:
+            return None  # not virtual row
+        if role == Qt.ItemDataRole.UserRole + 2:
+            return None
+        return None
+    index_cat.data = mock_cat_data
+
+    # Check category changes propagation
+    project = mw.project_manager.project
+    edited_keys = mw.data_store.edited_data
+    block_idx_data = index_cat.data(Qt.ItemDataRole.UserRole)
+    category_name = index_cat.data(Qt.ItemDataRole.UserRole + 10)
+    
+    block_map = getattr(mw, 'block_to_project_file_map', {})
+    data_indices = [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx_data]
+    if not data_indices:
+        data_indices = [block_idx_data]
+    
+    proj_b_idx = block_idx_data
+    assert proj_b_idx == 0
+    block = project.blocks[proj_b_idx]
+    category = next((c for c in block.categories if c.name == category_name), None)
+    assert category is not None
+    
+    has_unsaved_changes_in_item = any(
+        (d_idx, l_idx) in edited_keys 
+        for d_idx in data_indices
+        for l_idx in category.line_indices
+    )
+    assert has_unsaved_changes_in_item is True, "Category should have unsaved changes since data block 2 line 5 is edited"
+
+    # Case 2: Block item QModelIndex (representing project block index 0)
+    index_block = QModelIndex()
+    def mock_block_data(role):
+        if role == Qt.ItemDataRole.UserRole:
+            return 0  # project block index
+        if role == Qt.ItemDataRole.UserRole + 10:
+            return None
+        if role == Qt.ItemDataRole.UserRole + 12:
+            return None
+        if role == Qt.ItemDataRole.UserRole + 2:
+            return None
+        return None
+    index_block.data = mock_block_data
+
+    block_idx_data = index_block.data(Qt.ItemDataRole.UserRole)
+    unsaved_blocks = mw.data_store.unsaved_block_indices
+    
+    # Check block changes propagation
+    block_map = getattr(mw, 'block_to_project_file_map', {})
+    has_unsaved_changes_in_block = any(
+        block_map.get(data_idx) == block_idx_data 
+        for data_idx in unsaved_blocks
+    )
+    assert has_unsaved_changes_in_block is True, "Block should have unsaved changes since mapping data block 2 is unsaved"
+
+    # Case 3: Folder item QModelIndex (representing folder id containing project block 0)
+    index_folder = QModelIndex()
+    def mock_folder_data(role):
+        if role == Qt.ItemDataRole.UserRole:
+            return None
+        if role == Qt.ItemDataRole.UserRole + 10:
+            return None
+        if role == Qt.ItemDataRole.UserRole + 12:
+            return None
+        if role == Qt.ItemDataRole.UserRole + 2:
+            return [101]  # folder ID 101
+        return None
+    index_folder.data = mock_folder_data
+
+    merged_folder_ids = index_folder.data(Qt.ItemDataRole.UserRole + 2)
+    mw.project_manager.get_all_block_indices_under_folder.return_value = {0} # project block 0 is under folder 101
+    
+    all_p_indices = set()
+    for folder_id in merged_folder_ids:
+         all_p_indices.update(mw.project_manager.get_all_block_indices_under_folder(folder_id))
+    
+    block_map = getattr(mw, 'block_to_project_file_map', {})
+    has_unsaved_changes_in_folder = any(
+        block_map.get(data_idx) in all_p_indices 
+        for data_idx in unsaved_blocks
+    )
+    assert has_unsaved_changes_in_folder is True, "Folder should have unsaved changes since child project block 0 has unsaved data block 2"
+
+
+def test_block_list_updater_unsaved_checks():
+    from ui.updaters.block_list_updater import BlockListUpdater
+    
+    mw = MagicMock()
+    mw.data_store.unsaved_block_indices = {2}  # data block 2 is unsaved
+    mw.block_to_project_file_map = {2: 0}       # data block 2 -> project block 0
+    
+    updater = BlockListUpdater(mw, MagicMock())
+    
+    # Test _is_project_block_unsaved
+    assert updater._is_project_block_unsaved(0) is True
+    assert updater._is_project_block_unsaved(1) is False
+    
+    # Test _folder_has_unsaved_blocks
+    folder = MagicMock()
+    folder.block_ids = [99] # project block ID
+    folder.children = []
+    
+    project = MagicMock()
+    project.blocks = [MagicMock()] # index 0 has ID 99
+    project.blocks[0].id = 99
+    
+    id_to_idx = {99: 0}
+    
+    # folder contains project block 0 (which maps to data block 2, which is unsaved)
+    assert updater._folder_has_unsaved_blocks(folder, project, id_to_idx) is True
+
 if __name__ == "__main__":
     pytest.main([__file__])

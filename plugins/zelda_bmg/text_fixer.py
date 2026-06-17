@@ -453,7 +453,7 @@ class TextFixer(GenericTextFixer):
 
             changed_orphans = False
             if has_single_word_allowed:
-                final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
+                final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text, editor_font_map)
 
             # Convert aliases back (in case any were present in the original but no {*} triggered star mode)
             final_text = self._from_aliases(final_text)

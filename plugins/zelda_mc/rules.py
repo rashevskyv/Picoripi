@@ -1,4 +1,4 @@
-﻿from PyQt6.QtGui import QColor, QTextCharFormat, QFont
+from PyQt6.QtGui import QColor, QTextCharFormat, QFont
 from PyQt6.QtCore import Qt
 from typing import Optional, Set, Dict, Any, Tuple, List
 import re
@@ -110,7 +110,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
         if problem_id == PROBLEM_TAG_WARNING: return "Tag"
         if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
-        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "IconSpacing"
+        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "TagSpacing"
         return super().get_short_problem_name(problem_id)
 
     def get_plugin_actions(self) -> List[Dict[str, Any]]:

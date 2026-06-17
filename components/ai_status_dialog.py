@@ -1,4 +1,4 @@
-﻿# components/ai_status_dialog.py ---
+# components/ai_status_dialog.py ---
 import os
 import ctypes
 from typing import Optional
@@ -49,7 +49,7 @@ class AIStatusDialog(QDialog):
         """Initialize a new instance."""
         super().__init__(parent)
         self.setWindowTitle("AI Operation")
-        self.setModal(False)
+        self.setModal(True)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
         self.setMinimumWidth(450)
         self.setSizeGripEnabled(False)
@@ -233,7 +233,7 @@ class AIStatusDialog(QDialog):
 
         self.show()
 
-    def finish(self, success: bool = True, show_popup: bool = True):
+    def finish(self, success: bool = True, show_popup: bool = True, translation_details: Optional[dict] = None, previous_translations: Optional[dict] = None):
         """Finish."""
         self.is_running = False
         self.cancel_button.setEnabled(True)
@@ -247,11 +247,63 @@ class AIStatusDialog(QDialog):
         # Show structured popup notification to the user (suppressed during unit tests)
         import sys
         if 'pytest' not in sys.modules and show_popup:
-            from PyQt6.QtWidgets import QMessageBox
+            from PyQt6.QtWidgets import QMessageBox, QMainWindow, QApplication
             if getattr(self, 'user_cancelled', False):
                 QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} was cancelled.")
             elif success:
-                QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} finished.")
+                total_retranslated = 0
+                if previous_translations:
+                    for b_idx, items in previous_translations.items():
+                        total_retranslated += len(items)
+                
+                # Find MainWindow to store active dialog references
+                mw = None
+                p = self.parentWidget()
+                while p:
+                    if isinstance(p, QMainWindow):
+                        mw = p
+                        break
+                    p = p.parentWidget() if hasattr(p, 'parentWidget') else None
+                if not mw:
+                    for widget in QApplication.topLevelWidgets():
+                        if isinstance(widget, QMainWindow):
+                            mw = widget
+                            break
+
+                if previous_translations and total_retranslated >= 1 and translation_details:
+                    # Close previous comparison dialog if it is open
+                    if mw and getattr(mw, 'active_comparison_dialog', None) is not None:
+                        try:
+                            mw.active_comparison_dialog.close()
+                        except Exception:
+                            pass
+                    
+                    from dialogs.ai_translation_comparison_dialog import AITranslationComparisonDialog
+                    dialog = AITranslationComparisonDialog(self.parentWidget() or self, translation_details, previous_translations)
+                    if mw:
+                        mw.active_comparison_dialog = dialog
+                    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                    if mw:
+                        dialog.destroyed.connect(lambda: setattr(mw, 'active_comparison_dialog', None) if mw else None)
+                    dialog.show()
+                elif translation_details:
+                    # Close previous result dialog if it is open
+                    if mw and getattr(mw, 'active_result_dialog', None) is not None:
+                        try:
+                            mw.active_result_dialog.close()
+                        except Exception:
+                            pass
+
+                    from dialogs.ai_translation_result_dialog import AITranslationResultDialog
+                    dialog = AITranslationResultDialog(self.parentWidget() or self, translation_details)
+                    if mw:
+                        mw.active_result_dialog = dialog
+                    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                    if mw:
+                        dialog.destroyed.connect(lambda: setattr(mw, 'active_result_dialog', None) if mw else None)
+                    dialog.show()
+                else:
+                    QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} finished.")
 
         if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False) and success:
             from PyQt6.QtCore import QTimer

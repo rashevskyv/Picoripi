@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer
 from .tag_logic import ANY_TAG_PATTERN_WW
@@ -295,6 +295,6 @@ class TextFixer(GenericTextFixer):
 
         changed_orphans = False
         if has_single_word_allowed:
-            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
+            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text, editor_font_map)
 
         return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_compact or changed_orphans)

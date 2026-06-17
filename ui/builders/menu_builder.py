@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QMenu, QStyle, QToolButton, QToolTip
+from PyQt6.QtWidgets import QMenu, QStyle, QToolButton, QToolTip
 from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont
 from PyQt6.QtCore import Qt, QObject, QEvent
@@ -212,6 +212,10 @@ class MenuBuilder:
         self.mw.find_action = QAction(find_icon, '&Find...', self.mw)
         self.mw.find_action.setShortcut('Ctrl+F')
         edit_menu.addAction(self.mw.find_action)
+
+        self.mw.advanced_search_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), '&Advanced Search...', self.mw)
+        self.mw.advanced_search_action.setShortcut('Ctrl+H')
+        edit_menu.addAction(self.mw.advanced_search_action)
         edit_menu.addSeparator()
         
         self.mw.auto_fix_action = QAction(QIcon.fromTheme("document-edit"), "Auto-&fix Current String", self.mw)
@@ -243,6 +247,13 @@ class MenuBuilder:
         self.mw.toggle_preview_action.setShortcut('Ctrl+Shift+P')
         self.mw.toggle_preview_action.setToolTip("Toggle the visibility of the visual text preview")
         view_menu.addAction(self.mw.toggle_preview_action)
+
+        view_menu.addSeparator()
+        self.mw.toggle_hide_tags_action = QAction('&Hide Tags', self.mw)
+        self.mw.toggle_hide_tags_action.setShortcut('Ctrl+Q')
+        self.mw.toggle_hide_tags_action.setToolTip("Toggle hiding tags in both original and translation texts (Ctrl+Q)")
+        view_menu.addAction(self.mw.toggle_hide_tags_action)
+
 
     def _build_tools_menu(self, menubar):
         """Internal helper to create tools menu."""

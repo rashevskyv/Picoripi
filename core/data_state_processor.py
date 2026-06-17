@@ -1,4 +1,4 @@
-﻿from typing import List, Dict, Tuple, Optional, Any, Union
+from typing import List, Dict, Tuple, Optional, Any, Union
 import json
 import re
 import datetime
@@ -7,11 +7,25 @@ from .data_manager import load_json_file, save_json_file, save_text_file
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from components.toast import ToastNotification
 
+import pickle
+from PyQt6.QtCore import QTimer
+
 class DataStateProcessor:
     """Data state processor implementation."""
     def __init__(self, main_window: Any):
         """Initialize a new instance."""
         self.mw = main_window
+        
+        # Autosave session timer to prevent data loss on crashes
+        self._session_dirty = False
+        try:
+            self.autosave_timer = QTimer()
+            self.autosave_timer.setSingleShot(True)
+            self.autosave_timer.setInterval(2000)  # 2 seconds debounce
+            self.autosave_timer.timeout.connect(self._autosave_session)
+        except Exception as e:
+            log_warning(f"DSP: Failed to initialize QTimer (probably running in non-GUI test environment): {e}")
+            self.autosave_timer = None
 
     def _show_message(self, title: str, text: str, type: str = "info"):
         """Internal helper to show message."""
@@ -113,6 +127,10 @@ class DataStateProcessor:
 
     def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT", skip_ui_refresh: bool = False) -> bool:
         """Update the edited data."""
+        if action_type != "TEXT_EDIT":
+            if hasattr(self.mw, 'editor_operation_handler') and self.mw.editor_operation_handler:
+                self.mw.editor_operation_handler.stop_and_flush_editor_changes()
+
         edit_key = (block_idx, string_idx)
         
         # Get old text for undo
@@ -180,6 +198,9 @@ class DataStateProcessor:
         # Explicitly trigger tree item refresh to show/hide asterisk
         if not skip_ui_refresh and hasattr(self.mw, 'ui_updater'):
             self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+
+        # Trigger session autosave timer
+        self.schedule_autosave()
 
         return unsaved_status_actually_changed
 
@@ -255,16 +276,22 @@ class DataStateProcessor:
                     
                     # Generate all preview lines (this is very fast)
                     preview_lines = []
-                    for real_idx in target_indices:
+                    preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
+                    for line_idx, real_idx in enumerate(target_indices):
                         if isinstance(real_idx, tuple) and len(real_idx) == 2:
                             b, s = real_idx
                         else:
                             b, s = block_idx, real_idx
                             
-                        if 0 <= b < len(self.mw.data_store.data) and 0 <= s < len(self.mw.data_store.data[b]):
+                        if real_idx == -1:
+                            preview_line_text = getattr(preview_updater, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]") if preview_updater else "[Empty Lines]"
+                        elif 0 <= b < len(self.mw.data_store.data) and 0 <= s < len(self.mw.data_store.data[b]):
                             text_for_preview_raw, _ = self.get_current_string_text(b, s)
                             preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                            preview_lines.append(preview_line_text)
+                        else:
+                            preview_line_text = ""
+                        preview_lines.append(preview_line_text)
+
 
                     preview_full_text = "\n".join(preview_lines)
                     
@@ -984,3 +1011,210 @@ class DataStateProcessor:
                 log_error(f"Unexpected error during project revert: {e}", exc_info=True)
                 self._show_message("Revert Error", f"Unexpected error during project revert:\n{e}", type="error")
                 return False
+
+    def get_session_file_path(self) -> Optional[Path]:
+        """Get the file path for saving/loading session data."""
+        if hasattr(self.mw, 'project_manager') and self.mw.project_manager:
+            p_dir = getattr(self.mw.project_manager, 'project_dir', None)
+            if p_dir and isinstance(p_dir, (str, Path)):
+                return Path(p_dir) / ".picoripi_session"
+        if hasattr(self.mw, 'data_store') and self.mw.data_store:
+            ed_path = getattr(self.mw.data_store, 'edited_json_path', None)
+            if ed_path and isinstance(ed_path, (str, Path)):
+                return Path(ed_path).parent / ".picoripi_session"
+        return None
+
+    def schedule_autosave(self) -> None:
+        """Schedule session autosave after a short delay (debounce)."""
+        self._session_dirty = True
+        if getattr(self, 'autosave_timer', None) is not None:
+            self.autosave_timer.start()
+
+    def _autosave_session(self, force: bool = False) -> None:
+        """Autosave entire data_store into a pickle file if dirty or forced."""
+        if not force and not getattr(self, '_session_dirty', False):
+            # No changes were made since last save, skip file writing
+            return
+
+        session_path = self.get_session_file_path()
+        if not session_path:
+            return
+
+        try:
+            data_store = getattr(self.mw, 'data_store', None)
+            if data_store:
+                # Create parent directories if they don't exist
+                session_path.parent.mkdir(parents=True, exist_ok=True)
+                with session_path.open('wb') as f:
+                    pickle.dump(data_store, f)
+                self._session_dirty = False
+                log_debug(f"DSP: Session autosaved to {session_path}")
+        except Exception as e:
+            log_error(f"DSP: Failed to autosave session: {e}", exc_info=True)
+
+    def load_session_file(self) -> bool:
+        """Load entire project state from a pickle file."""
+        session_path = self.get_session_file_path()
+        if not session_path or not session_path.exists():
+            return False
+
+        try:
+            with session_path.open('rb') as f:
+                restored_store = pickle.load(f)
+            
+            if restored_store and hasattr(self.mw, 'data_store') and self.mw.data_store:
+                # Copy properties to the existing data_store to preserve object references
+                for key, val in restored_store.__dict__.items():
+                    setattr(self.mw.data_store, key, val)
+                
+                if hasattr(self.mw.data_store, 'block_to_project_file_map'):
+                    self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
+                
+                log_info(f"DSP: Successfully restored entire project state from session file {session_path}")
+                
+                # Rebuild indices and refresh UI
+                if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'rebuild_unsaved_block_indices'):
+                    self.mw.helper.rebuild_unsaved_block_indices()
+                
+                if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
+                    self.mw.ui_updater.update_title()
+                    self.mw.ui_updater.populate_blocks()
+                    
+                    block_idx = self.mw.data_store.current_block_idx
+                    category_name = self.mw.data_store.current_category_name
+                    string_idx = self.mw.data_store.current_string_idx
+                    
+                    if block_idx != -1:
+                        tree_widget = getattr(self.mw, 'block_list_widget', None)
+                        if tree_widget and hasattr(tree_widget, 'select_block_by_index'):
+                            tree_widget.select_block_by_index(block_idx, category_name)
+                        
+                        self.mw.ui_updater.populate_strings_for_block(block_idx, category_name, force=True)
+                        
+                        if string_idx != -1:
+                            self.mw.ui_updater.update_text_views()
+                
+                # Reset dirty flag and stop timer since loading shouldn't count as a new user change
+                self._session_dirty = False
+                if getattr(self, 'autosave_timer', None) is not None:
+                    self.autosave_timer.stop()
+                return True
+        except Exception as e:
+            log_error(f"DSP: Failed to load session from {session_path}: {e}", exc_info=True)
+        return False
+
+    def clear_session_file(self) -> None:
+        """Delete the temporary session file if it exists."""
+        session_path = self.get_session_file_path()
+        if session_path and session_path.exists():
+            try:
+                session_path.unlink()
+                log_info(f"DSP: Cleaned up session file {session_path}")
+            except Exception as e:
+                log_warning(f"DSP: Could not delete session file {session_path}: {e}")
+
+    def save_specific_edits(self, strings_to_save: List[Tuple[int, int]], ask_confirmation: bool = True) -> bool:
+        """
+        Saves only the specified strings to the translation files on disk.
+        Other unsaved edits remain in memory as unsaved changes.
+        """
+        log_info(f"DSP: save_specific_edits called for {len(strings_to_save)} strings", category="file_ops")
+        if not strings_to_save:
+            return True
+
+        if not self.mw.data_store.edited_json_path:
+            self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
+            return False
+        if not self.mw.current_game_rules: 
+            self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
+            return False
+        if not self.mw.data_store.data:
+            self._show_message("Save Error", "Original data not loaded. Cannot save.", type="error")
+            return False
+
+        # Filter the edits to save
+        original_edited_data = self.mw.data_store.edited_data.copy()
+        filtered_edited_data = {k: v for k, v in original_edited_data.items() if k in strings_to_save}
+        
+        if not filtered_edited_data:
+            if ask_confirmation:
+                self._show_message("Save", "No changes to save for the selected items.", type="info")
+            return True
+
+        if ask_confirmation:
+            num = len(filtered_edited_data)
+            reply = self._ask_yes_no('Save Changes', f"Save {num} selected change(s) to files?", default_yes=True)
+            if not reply: return False
+
+        try:
+            # Build the merged save snapshot
+            source_data = self.mw.data_store.data
+            edited_file_data = self.mw.data_store.edited_file_data or []
+
+            output_data_list = []
+            for i in range(len(source_data)):
+                if i < len(edited_file_data) and edited_file_data[i]:
+                    chosen_block = list(edited_file_data[i])
+                else:
+                    chosen_block = list(source_data[i])
+
+                # Apply only the filtered changes that we want to save in this transaction
+                for (b_idx, s_idx), text in filtered_edited_data.items():
+                    if b_idx == i:
+                        if 0 <= s_idx < len(chosen_block):
+                            chosen_block[s_idx] = text
+                output_data_list.append(chosen_block)
+
+            # Temporarily replace edited_data with only the filtered edits so that _perform_save_impl
+            # knows which files are actually being modified in this transaction.
+            self.mw.data_store.edited_data = filtered_edited_data
+
+            # Check if running under pytest to preserve synchronous path
+            import sys
+            success = False
+            if 'pytest' in sys.modules:
+                success, warnings, errors = self._perform_save_impl(output_data_list)
+                if not success:
+                    self.mw.data_store.edited_data = original_edited_data
+                    if errors:
+                        self._show_message("Save Error", "\n".join(errors), type="error")
+                    return False
+            else:
+                if hasattr(self.mw, 'app_action_handler') and self.mw.app_action_handler:
+                    success = self.mw.app_action_handler.perform_async_save_flow(output_data_list, ask_confirmation=False)
+                else:
+                    success, warnings, errors = self._perform_save_impl(output_data_list)
+                    if not success:
+                        self.mw.data_store.edited_data = original_edited_data
+                        if errors:
+                            self._show_message("Save Error", "\n".join(errors), type="error")
+                        return False
+
+            if success:
+                # Restore remaining unsaved changes to memory
+                remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
+                self.mw.data_store.edited_data = remaining_edits
+                self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
+                
+                # Rebuild unsaved block indices and refresh UI
+                if hasattr(self.mw, 'helper'):
+                    self.mw.helper.rebuild_unsaved_block_indices()
+                
+                if hasattr(self.mw, 'ui_updater'):
+                    affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
+                    for b_idx in affected_blocks:
+                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                    self.mw.ui_updater.update_title()
+                    
+                # Explicitly trigger autosave to persist the remaining edits state
+                self._autosave_session(force=True)
+                return True
+            else:
+                self.mw.data_store.edited_data = original_edited_data
+                return False
+
+        except Exception as e:
+            self.mw.data_store.edited_data = original_edited_data
+            log_error(f"Unexpected error during partial save: {e}", exc_info=True)
+            self._show_message("Save Error", f"Unexpected error during save:\n{e}", type="error")
+            return False

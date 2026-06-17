@@ -1,4 +1,4 @@
-﻿import json
+import json
 import base64
 from pathlib import Path
 from typing import Dict, Any, Union, Optional
@@ -96,7 +96,8 @@ class GlobalSettings:
             "show_force_alias_warning": True,
             "variations_window_geometry": None,
             "variations_splitter_state": None,
-            "hide_empty_strings": False
+            "hide_empty_strings": False,
+            "last_advanced_search_query": ""
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -248,7 +249,8 @@ class GlobalSettings:
             "show_force_alias_warning": bool(getattr(self.mw, 'show_force_alias_warning', True)) if isinstance(getattr(self.mw, 'show_force_alias_warning', True), bool) else True,
             "variations_window_geometry": getattr(self.mw, 'variations_window_geometry', None) if isinstance(getattr(self.mw, 'variations_window_geometry', None), dict) else None,
             "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None,
-            "hide_empty_strings": bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)) if isinstance(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False), bool) else False
+            "hide_empty_strings": bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)) if isinstance(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False), bool) else False,
+            "last_advanced_search_query": getattr(self.mw, 'last_advanced_search_query', "") if isinstance(getattr(self.mw, 'last_advanced_search_query', None), str) else ""
         })
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:

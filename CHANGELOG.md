@@ -1,5 +1,39 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.023] - 2026-06-17
+
+### 🚀 Added
+- **Undo/Redo Command History Serialization**: Integrated the complete undo and redo stacks (`undo_stack` and `redo_stack`) from `UndoManager` directly into `AppDataStore`. These stacks are now persisted inside the `.picoripi_session` binary file via `pickle` serialization and successfully restored upon restart, enabling seamless undo/redo actions across application closures.
+- **Hierarchical Unsaved Asterisk Propagation**: Implemented recursive scanning of virtual categories and project subtrees for unsaved blocks. Unsaved changes are now propagated dynamically as asterisks (`*`) all the way from modified subline blocks up to their parent category folders in the project block tree.
+- **Light Theme Controls Standardization**: Standardized the visual borders, padding, and height dimensions of both the **Font** ComboBox and the **Width** SpinBox widgets inside the light theme stylesheet, ensuring perfect visual scaling and alignment.
+
+### 🐛 Fixed
+- **UndoManager Mock Compatibility**: Added direct `__dict__` checks in `UndoManager` to prevent test mock structures from dynamically spawning mock attributes and causing unexpected failures during unit testing.
+- **App Exit Save Confirmation Removal**: Removed the blocking "Save changes before closing?" popups from `handle_close_event()` and `close_project_action()`, replacing them with an automatic, silent session autosave execution (`_autosave_session(force=True)`).
+
+## [0.3.022] - 2026-06-16
+
+### 🚀 Added
+- **Granular Saving for Selected Elements**: Integrated context menu actions in the project tree to save only selected blocks and categories, leaving other modified blocks intact. Similarly, added context menus in both the translation editor and the read-only preview to save a single string or multiple selected lines.
+- **Fault-Tolerant Session Autosaving**: Implemented localized workspace state saving into a `.picoripi_session` binary file using `pickle` serialization.
+- **Dirty State Control**: The autosave mechanism now monitors state changes and only writes to disk if actual changes (text editing, selection navigation, filter switches) have occurred, using a 2-second debounce timer. This completely eliminates redundant I/O operations when the user is idle.
+- **Instant Recovery**: If a session file is present at startup, it loads the complete workspace state immediately, bypassing standard BMG/JSON file parsing.
+
+### 🐛 Fixed
+- **MagicMock Test Crash Prevention**: Added strict type checks in `get_session_file_path()` to skip path resolution when mock structures are encountered during unit testing.
+- **Strict load_session_file Verification**: Resolved a test-mock crash by using strict `is True` validation for `load_session_file()`, preventing `MagicMock` truthy evaluations from bypassing raw file parsing.
+- **Safe Selection State Access**: Replaced direct references to `is_loading_data` in `list_selection_handler.py` with safe `getattr` accesses to prevent crashes in mocked test environments.
+
+## [0.3.021] - 2026-06-16
+
+### 🐛 Fixed
+- **Dash Wrap Prevention**: Added em-dash (`—`) and en-dash (`–`) to the list of punctuation characters that cannot begin a line after width-exceeded generic text wrapping. This prevents dashes from being wrapped to the start of a new line alone.
+
+## [0.3.020] - 2026-06-16
+
+### 🐛 Fixed
+- **Selected Text in AI Variations**: Fixed a bug where requesting AI variations for a selected text segment in `edited_text_edit` would send the entire string to the AI translation provider instead of only the selected text. The selected text is now captured immediately in the context menu logic and explicitly passed as a parameter down to `AIVariationsHandler`.
+
 ## [0.3.019] - 2026-06-16
 
 ### ⚡ Improved

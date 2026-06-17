@@ -60,7 +60,7 @@ def test_single_word_subline_detection(rules):
     # and it starts with a small letter (e.g., "saving?" or "button")
     # Should trigger brown warning: PROBLEM_SINGLE_WORD_SUBLINE_NON_START
     for word in ["saving?", "button"]:
-        text = f"L1\nL2\nL3\nL4\n{word}"
+        text = f"L1\nL2\nL3\nvery long previous line indeed\n{word}"
         problems = rules.problem_analyzer.analyze_data_string(text, {}, 200)
         assert len(problems) == 5
         assert rules.problem_analyzer.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE not in problems[4]

@@ -253,4 +253,29 @@ QMenu::item:selected {
 QMenu::item:disabled {
     color: #888888;
 }
+QComboBox, QSpinBox {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #CCCCCC;
+    padding: 3px;
+    border-radius: 3px;
+}
+QComboBox:disabled, QSpinBox:disabled {
+    background-color: #E1E1E1;
+    color: #808080;
+    border: 1px solid #C0C0C0;
+}
+QComboBox::drop-down {
+    border: none;
+    background-color: #E0E0E0;
+}
+QComboBox::drop-down:disabled {
+    background-color: #D3D3D3;
+}
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    color: #000000;
+    selection-background-color: #E0E0E0;
+    border: 1px solid #CCCCCC;
+}
 """

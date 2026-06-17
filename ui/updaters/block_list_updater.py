@@ -406,10 +406,36 @@ class BlockListUpdater(BaseUIUpdater):
             
         return item
 
+    def _is_project_block_unsaved(self, project_block_idx: int) -> bool:
+        """Check if project block index is unsaved."""
+        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+        if isinstance(block_map, dict) and block_map:
+            return any(
+                block_map.get(data_idx) == project_block_idx 
+                for data_idx in self.mw.data_store.unsaved_block_indices
+            )
+        return project_block_idx in self.mw.data_store.unsaved_block_indices
+
+    def _folder_has_unsaved_blocks(self, folder, project, id_to_idx: dict) -> bool:
+        """Helper to recursively check if folder or its children have unsaved blocks."""
+        for b_id in folder.block_ids:
+            idx = id_to_idx.get(b_id)
+            if idx is not None and self._is_project_block_unsaved(idx):
+                return True
+        for child in folder.children:
+            if self._folder_has_unsaved_blocks(child, project, id_to_idx):
+                return True
+        return False
+
     def _add_virtual_folder_to_tree(self, parent_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts: dict = None, folder_id_to_select=None):
         """Recursively add virtual folders and their blocks to the tree with folder compaction (GitHub style)."""
         project = self.mw.project_manager.project
         if not project: return
+
+        id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
+        if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True:
+            if not self._folder_has_unsaved_blocks(folder, project, id_to_idx):
+                return
 
         is_expanded = folder.is_expanded
         display_name = folder.name or "Unnamed Folder"
@@ -512,13 +538,15 @@ class BlockListUpdater(BaseUIUpdater):
             for b_id in curr_for_children.block_ids:
                 idx = id_to_idx.get(b_id)
                 if idx is not None:
-                    block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
-                    folder_item.addChild(block_item)
-                    if idx == current_selection_block_idx:
-                        self.mw.block_list_widget.setCurrentItem(block_item)
-                        block_item.setSelected(True)
-                        if block_item.childCount() > 0:
-                            block_item.setExpanded(True)
+                    if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or 
+                            self._is_project_block_unsaved(idx)):
+                        block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
+                        folder_item.addChild(block_item)
+                        if idx == current_selection_block_idx:
+                            self.mw.block_list_widget.setCurrentItem(block_item)
+                            block_item.setSelected(True)
+                            if block_item.childCount() > 0:
+                                block_item.setExpanded(True)
         else:
             # For compaction Type 2 (Folder/Block), the folder_item itself represents the block.
             if block_idx_for_icon is not None and block_idx_for_icon == current_selection_block_idx:
@@ -613,18 +641,23 @@ class BlockListUpdater(BaseUIUpdater):
                 for b_id in root_block_ids:
                     idx = id_to_idx.get(b_id)
                     if idx is not None:
-                        block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
-                        root_item.addChild(block_item)
-                        if idx == current_selection_block_idx:
-                            self.mw.block_list_widget.setCurrentItem(block_item)
-                            block_item.setSelected(True)
-                            if block_item.childCount() > 0:
-                                block_item.setExpanded(True)
+                        if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or 
+                                self._is_project_block_unsaved(idx)):
+                            block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
+                            root_item.addChild(block_item)
+                            if idx == current_selection_block_idx:
+                                self.mw.block_list_widget.setCurrentItem(block_item)
+                                block_item.setSelected(True)
+                                if block_item.childCount() > 0:
+                                    block_item.setExpanded(True)
             else:
                 # Legacy / Physical structure fallback
                 dir_nodes = {"": self.mw.block_list_widget.invisibleRootItem()}
 
                 for i in range(len(self.mw.data_store.data)):
+                    if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True and 
+                            i not in self.mw.data_store.unsaved_block_indices):
+                        continue
                     block_item = self._create_block_tree_item(i, problem_definitions, pre_aggregated_counts)
                     
                     if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project and i < len(self.mw.project_manager.project.blocks):
@@ -730,9 +763,26 @@ class BlockListUpdater(BaseUIUpdater):
                             
                             act_nodes = {}
                             for ch in self._chapters_cache:
+                                ch_id = ch.get("id")
+                                
+                                # Pre-calculate ch_mappings and store it on the item to avoid DB query in paint delegate
+                                ch_mappings_list = []
+                                if self._chapter_mappings_cache and ch_id in self._chapter_mappings_cache:
+                                    for m in self._chapter_mappings_cache[ch_id]:
+                                        bmg_id = m.get("bmg_id")
+                                        if hasattr(self.mw, 'list_selection_handler'):
+                                            indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
+                                            if indices:
+                                                ch_mappings_list.append(indices)
+                                                
+                                # Filter chapters by unsaved strings if requested
+                                if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True:
+                                    has_unsaved_in_chapter = any(mapping in self.mw.data_store.edited_data for mapping in ch_mappings_list)
+                                    if not has_unsaved_in_chapter:
+                                        continue
+                                        
                                 num = ch.get("num", "")
                                 title = ch.get("title", "")
-                                ch_id = ch.get("id")
                                 
                                 # Parse Act and Chapter
                                 m = re.search(r'Act\s+([^,]+),\s*Ch\s+(.+)', num, re.IGNORECASE)
@@ -765,16 +815,6 @@ class BlockListUpdater(BaseUIUpdater):
                                 ch_item.setData(0, Qt.ItemDataRole.UserRole + 11, ch_id) # Store chapter ID
                                 ch_item.setData(0, Qt.ItemDataRole.UserRole + 4, ch_name)
                                 ch_item.setData(0, Qt.EditRole, ch_name)
-                                
-                                # Pre-calculate ch_mappings and store it on the item to avoid DB query in paint delegate
-                                ch_mappings_list = []
-                                if self._chapter_mappings_cache and ch_id in self._chapter_mappings_cache:
-                                    for m in self._chapter_mappings_cache[ch_id]:
-                                        bmg_id = m.get("bmg_id")
-                                        if hasattr(self.mw, 'list_selection_handler'):
-                                            indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
-                                            if indices:
-                                                ch_mappings_list.append(indices)
                                 ch_item.setData(0, Qt.ItemDataRole.UserRole + 13, ch_mappings_list)
                                 
                                 self._register_item_in_cache(ch_item)
@@ -791,7 +831,13 @@ class BlockListUpdater(BaseUIUpdater):
                                     act_nodes[act_name].setExpanded(True)
                                     chapters_root.setExpanded(True)
                                     
-                            self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
+                            # Remove empty Acts if any
+                            for act_name, act_item in list(act_nodes.items()):
+                                if act_item.childCount() == 0:
+                                    chapters_root.removeChild(act_item)
+                                    
+                            if chapters_root.childCount() > 0:
+                                self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
                         else:
                             # Cache is empty, and we are not currently loading. Start async load.
                             self._is_loading_chapters = True

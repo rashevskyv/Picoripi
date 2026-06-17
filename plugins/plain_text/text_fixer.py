@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, Set, Dict, Any, Tuple
 from plugins.common.text_fixer import GenericTextFixer
 from .config import PROBLEM_WIDTH_EXCEEDED, PROBLEM_SHORT_LINE, PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY, PROBLEM_EMPTY_FIRST_LINE_OF_PAGE, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING, PROBLEM_SINGLE_WORD_SUBLINE, PROBLEM_SINGLE_WORD_SUBLINE_NON_START
@@ -278,6 +278,6 @@ class TextFixer(GenericTextFixer):
 
         changed_orphans = False
         if has_single_word_allowed:
-            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text)
+            final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text, editor_font_map)
 
         return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_compact or changed_orphans)

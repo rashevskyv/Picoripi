@@ -1,4 +1,4 @@
-﻿# handlers/translation/glossary_occurrence_updater.py
+# handlers/translation/glossary_occurrence_updater.py
 """
 Manages AI-driven retranslation of glossary term occurrences.
 
@@ -205,6 +205,7 @@ class GlossaryOccurrenceUpdater:
                 system_prompt=combined_system,
                 user_prompt=user_prompt,
                 save_section="glossary_occurrence_update",
+                force_prompt=self._main_handler._is_control_pressed(),
             )
             if edited is None:
                 if from_batch and hasattr(dialog, "set_ai_busy"):
@@ -325,6 +326,7 @@ class GlossaryOccurrenceUpdater:
             title="AI Glossary Batch Update Prompt",
             system_prompt=combined_system, user_prompt=user_prompt,
             save_section="glossary_occurrence_update",
+            force_prompt=self._main_handler._is_control_pressed(),
         )
         if edited is None:
             return False
@@ -336,13 +338,29 @@ class GlossaryOccurrenceUpdater:
         ]
         task_details = {
             "type": "glossary_occurrence_batch_update",
-            "composer_args": {"system_prompt": edited_system, "user_prompt": edited_user, "batch_items": batch_items},
+            "composer_args": {
+                "system_prompt": edited_system,
+                "user_prompt": edited_user,
+                "batch_items": batch_items,
+                "term": term,
+                "old_translation": old_term_translation,
+                "new_translation": new_term_translation,
+            },
             "attempt": 1, "max_retries": 1, "dialog": dialog,
             "occurrence_metadata": occurrence_metadata,
             "occurrence_lookup": occurrence_lookup,
             "expected_lines": expected_lines_by_id,
             "from_batch": True,
         }
+
+        header, sep, json_section = edited_user.partition('JSON DATA TO UPDATE:')
+        if sep:
+            task_details['custom_user_header'] = header
+            task_details['custom_user_label'] = sep
+        else:
+            task_details['custom_user_header'] = edited_user
+            task_details['custom_user_label'] = 'JSON DATA TO UPDATE:'
+
         if not self._main_handler._attach_session_to_task(
             task_details,
             base_system_prompt=system_prompt, full_system_prompt=edited_system,
@@ -560,6 +578,7 @@ class GlossaryOccurrenceUpdater:
         edited = self._main_handler._maybe_edit_prompt(
             title="AI Glossary Notes Prompt",
             system_prompt=combined_system, user_prompt=user_prompt,
+            force_prompt=self._main_handler._is_control_pressed(),
         )
         if edited is None:
             return False

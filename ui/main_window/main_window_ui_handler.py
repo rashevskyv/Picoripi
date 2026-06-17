@@ -128,6 +128,17 @@ class MainWindowUIHandler:
             self.mw.block_list_widget.setItemDelegate(new_delegate)
             self.mw.block_list_widget.viewport().update()
 
+        if self.mw.search_panel_widget:
+            try:
+                line_edit = self.mw.search_panel_widget.search_query_edit.lineEdit()
+                if line_edit:
+                    fm = line_edit.fontMetrics()
+                    needed_height = fm.height() + 10
+                    line_edit.setMinimumHeight(needed_height)
+                    self.mw.search_panel_widget.search_query_edit.setMinimumHeight(needed_height + 2)
+            except Exception:
+                pass
+
         self.mw.ui_updater.update_text_views()
         self.mw.ui_updater.populate_blocks()
         self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)

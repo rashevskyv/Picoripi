@@ -279,5 +279,78 @@ def test_BlockListUpdater_async_chapters_loading(updater):
     assert chapters_root.child(0).text(0) == "Error: Network Timeout"
 
 
+def test_BlockListUpdater_populate_blocks_show_unsaved_only(updater):
+    # Setup mock item creator on main window's block list widget
+    mock_item = QTreeWidgetItem()
+    updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
+    
+    # 1. Enable show_unsaved_blocks_only filter
+    updater.mw.data_store.show_unsaved_blocks_only = True
+    # Mark block 0 as unsaved, block 1 remains clean
+    updater.mw.data_store.unsaved_block_indices = {0}
+    updater.mw.data_store.edited_data = {(0, 0): "Edited string"}
+    
+    # Run in Legacy mode (project_manager is None)
+    updater.mw.project_manager = None
+    updater.mw.translation_handler = None
+    
+    updater.populate_blocks()
+    
+    # create_item should be called only 1 time (for block 0) because block 1 is clean and filtered out
+    assert updater.mw.block_list_widget.create_item.call_count == 1
+    
+    # Reset mock and widget state
+    updater.mw.block_list_widget.create_item.reset_mock()
+    updater.mw.block_list_widget.clear()
+    
+    # 2. Run in Virtual structure mode
+    pm = MagicMock()
+    pm.project.blocks = []
+    
+    block0 = MagicMock()
+    block0.id = "b0"
+    block0.source_file = "src/block0.txt"
+    pm.project.blocks.append(block0)
+    
+    block1 = MagicMock()
+    block1.id = "b1"
+    block1.source_file = "src/block1.txt"
+    pm.project.blocks.append(block1)
+    
+    # Clean folder (should be filtered out because it only has clean block 1)
+    folder1 = MagicMock()
+    folder1.id = "folder_1"
+    folder1.name = "CleanFolder"
+    folder1.is_expanded = True
+    folder1.children = []
+    folder1.block_ids = ["b1"]
+    
+    # Dirty folder (should be shown because it contains dirty block 0)
+    folder0 = MagicMock()
+    folder0.id = "folder_0"
+    folder0.name = "DirtyFolder"
+    folder0.is_expanded = True
+    folder0.children = []
+    folder0.block_ids = ["b0"]
+    
+    pm.project.virtual_folders = [folder1, folder0]
+    pm.project.metadata = {}
+    pm.SOURCES_DIR = "src"
+    updater.mw.project_manager = pm
+    
+    # Mock create_item to return a fresh item each time so it can be added to tree
+    updater.mw.block_list_widget.create_item = MagicMock(side_effect=lambda name, idx, role: QTreeWidgetItem([name]))
+    
+    updater.populate_blocks()
+    
+    # Let's verify topLevelItems
+    root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
+    # CleanFolder should be omitted completely, DirtyFolder (which compacts with block0) should be present
+    folder_names = [r.text(0) for r in root_items]
+    assert any("DirtyFolder" in f for f in folder_names)
+    assert not any("CleanFolder" in f for f in folder_names)
+
+
+
 
 

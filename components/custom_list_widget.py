@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
+from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt, QPoint, QSize, QEvent
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
@@ -249,39 +249,22 @@ class CustomListWidget(QListWidget):
 
             # Import and open dialog
             from dialogs.spellcheck_dialog import SpellcheckDialog
+            
+            # Check if spellcheck dialog is already active
+            if getattr(main_window, 'active_spellcheck_dialog', None) is not None:
+                main_window.active_spellcheck_dialog.raise_()
+                main_window.active_spellcheck_dialog.activateWindow()
+                return
+
             dialog = SpellcheckDialog(self, text_to_check, spellchecker_manager,
                                      starting_line_number=0, line_numbers=line_numbers,
                                      block_idx=block_idx)
-            log_debug("CustomListWidget: SpellcheckDialog created, calling exec()")
+            log_debug("CustomListWidget: SpellcheckDialog created, calling show()")
 
-            if dialog.exec():
-                log_debug("CustomListWidget: Dialog accepted, applying corrections")
-                corrected_text = dialog.get_corrected_text()
-                corrected_lines = corrected_text.split('\n')
-
-                # Apply corrections back to edited_data
-                log_debug("CustomListWidget: Applying corrections to edited_data")
-                for i, corrected_line in enumerate(corrected_lines):
-                    if i < len(line_numbers):
-                        string_idx = line_numbers[i]
-                        key = (block_idx, string_idx)  # Use tuple key!
-                        if corrected_line != text_parts[i]:
-                            edited_data[key] = corrected_line
-                            main_window.data_store.unsaved_changes = True
-                            main_window.data_store.unsaved_block_indices.add(block_idx)
-                            log_debug(f"CustomListWidget: Updated line {string_idx} in edited_data")
-
-                # Refresh UI if this is the current block
-                current_block_idx = getattr(main_window, 'current_block_index', -1)
-                if current_block_idx == block_idx and hasattr(main_window, 'ui_updater'):
-                    log_debug("CustomListWidget: Refreshing UI for current block")
-                    main_window.ui_updater.populate_strings_for_block(block_idx)
-                    main_window.ui_updater.update_text_views()
-                    main_window.ui_updater.update_block_item_text_with_problem_count(block_idx)
-
-                log_debug("CustomListWidget: Corrections applied successfully")
-            else:
-                log_debug("CustomListWidget: Dialog cancelled")
+            main_window.active_spellcheck_dialog = dialog
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.destroyed.connect(lambda: setattr(main_window, 'active_spellcheck_dialog', None))
+            dialog.show()
 
         except Exception as e:
             log_error(f"CustomListWidget: Error in _open_spellcheck_for_block: {e}", exc_info=True)

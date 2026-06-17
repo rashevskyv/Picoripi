@@ -39,14 +39,14 @@ def test_search_panel_spellcheck_trigger(qapp):
     # Configure spellchecker mock
     mw.spellchecker_manager.is_misspelled.side_effect = lambda word: word == "wrongword"
     
-    # Check that styleSheet remains empty
+    # Check that styleSheet remains correct
     line_edit.setText("correct")
     panel.trigger_spellcheck()
-    assert line_edit.styleSheet() == ""
+    assert line_edit.styleSheet() == "padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"
     
     line_edit.setText("wrongword")
     panel.trigger_spellcheck()
-    assert line_edit.styleSheet() == ""
+    assert line_edit.styleSheet() == "padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"
     
     # Test paintEvent
     from PyQt6.QtGui import QPaintEvent

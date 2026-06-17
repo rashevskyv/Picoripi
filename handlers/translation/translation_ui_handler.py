@@ -1,7 +1,7 @@
-﻿# handlers/translation/translation_ui_handler.py ---
+# handlers/translation/translation_ui_handler.py ---
 import json
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 from PyQt6.QtWidgets import QDialog, QMessageBox, QApplication
 from PyQt6.QtCore import Qt, QTimer
@@ -37,18 +37,15 @@ class TranslationUIHandler(BaseTranslationHandler):
             self._status_dialog = AIStatusDialog(self.mw)
         return self._status_dialog
 
-    def show_variations_dialog(self, variations: List[str], show_refresh: bool = False) -> Optional[str]:
+    def show_variations_dialog(self, variations: List[str], show_refresh: bool = False, parent: Optional[Any] = None) -> Optional[str]:
         """Show variations dialog."""
         self.update_status_message("AI: choose one of the suggested options", persistent=False)
-        dialog = TranslationVariationsDialog(self.mw, variations, show_refresh=show_refresh)
-        dialog.setModal(False)
+        parent_widget = parent if parent is not None else self.mw
+        dialog = TranslationVariationsDialog(parent_widget, variations, show_refresh=show_refresh)
+        dialog.setModal(True)
         self._set_ai_controls_enabled(False)
 
-        from PyQt6.QtCore import QEventLoop
-        loop = QEventLoop()
-        dialog.finished.connect(lambda _: loop.quit())
-        dialog.show()
-        loop.exec()
+        dialog.exec()
 
         self._set_ai_controls_enabled(True)
 
@@ -222,15 +219,26 @@ class TranslationUIHandler(BaseTranslationHandler):
         """Remove status message."""
         if self.mw.statusBar: self.mw.statusBar.clearMessage()
     
-    def start_ai_operation(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
+    def start_ai_operation(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None, parent: Optional[Any] = None):
         """Start ai operation."""
+        self.main_handler.current_session_translations = {}
+        self.main_handler.current_session_previous_translations = {}
         self._set_ai_controls_enabled(False)
-        self.status_dialog.start(title, is_chunked, model_name=model_name)
+        
+        parent_widget = parent if parent is not None else self.mw
+        if self._status_dialog is not None and self._status_dialog.parentWidget() != parent_widget:
+            self._status_dialog.deleteLater()
+            self._status_dialog = None
+            
+        if self._status_dialog is None:
+            self._status_dialog = AIStatusDialog(parent_widget)
+            
+        self._status_dialog.start(title, is_chunked, model_name=model_name)
         try:
-            self.status_dialog.cancelled.disconnect(self._handle_dialog_rejection)
+            self._status_dialog.cancelled.disconnect(self._handle_dialog_rejection)
         except TypeError:
             pass # Signal was not connected yet
-        self.status_dialog.cancelled.connect(self._handle_dialog_rejection)
+        self._status_dialog.cancelled.connect(self._handle_dialog_rejection)
 
     def _handle_dialog_rejection(self):
         """Internal helper to handle dialog rejection."""
@@ -242,9 +250,9 @@ class TranslationUIHandler(BaseTranslationHandler):
         """Update the ai operation step."""
         self.status_dialog.update_step(step_index, text, status)
 
-    def finish_ai_operation(self, success: bool = True, show_popup: bool = True):
+    def finish_ai_operation(self, success: bool = True, show_popup: bool = True, translation_details: Optional[Dict[int, List[Tuple[int, str]]]] = None, previous_translations: Optional[Dict[int, List[Tuple[int, str]]]] = None):
         """Finish ai operation."""
-        self.status_dialog.finish(success, show_popup=show_popup)
+        self.status_dialog.finish(success, show_popup=show_popup, translation_details=translation_details, previous_translations=previous_translations)
         self._set_ai_controls_enabled(True)
 
     def merge_session_instructions(self, instructions: str, message: str) -> str:
@@ -291,9 +299,9 @@ class TranslationUIHandler(BaseTranslationHandler):
             def apply_focus():
                 """Apply focus."""
                 if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
-                    self.mw.edited_text_edit.setFocus(Qt.OtherFocusReason)
+                    self.mw.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
                 elif editor:
-                    editor.setFocus(Qt.OtherFocusReason)
+                    editor.setFocus(Qt.FocusReason.OtherFocusReason)
                 self.mw.raise_()
                 self.mw.activateWindow()
 

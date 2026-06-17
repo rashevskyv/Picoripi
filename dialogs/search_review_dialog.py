@@ -153,9 +153,18 @@ class SearchReviewDialog(BaseTextReviewDialog):
         self.matches_list.itemClicked.connect(self.jump_to_item_from_list)
         self.matches_list.itemDoubleClicked.connect(self._on_item_double_click)
         layout.addWidget(self.matches_list)
+        
+        self.selection_status_label = QLabel("Selected: 0")
+        layout.addWidget(self.selection_status_label)
+        self.matches_list.itemSelectionChanged.connect(self.update_selection_status)
+        
         # Track Ctrl state at the moment of right-click for context menu
         self._ctrl_was_pressed_at_right_click = False
         self.matches_list.viewport().installEventFilter(self)
+
+    def update_selection_status(self):
+        count = len(self.matches_list.selectedItems())
+        self.selection_status_label.setText(f"Selected: {count}")
 
     def setup_right_panel(self, layout: QVBoxLayout):
         from PyQt6.QtWidgets import QCheckBox, QHBoxLayout
@@ -436,6 +445,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
         QTimer.singleShot(120, apply_focus)
 
     def jump_to_item_from_list(self, item):
+        modifiers = QApplication.keyboardModifiers()
+        if bool(modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)):
+            return
+            
         clicked_index = self.matches_list.row(item)
         if clicked_index != self.current_item_index:
             self.clear_current_item_highlight()
@@ -532,6 +545,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         # Update search parameters from checkboxes
         self.query = self.find_input.text()
+        main_window = self._find_main_window()
+        if main_window and self.query:
+            main_window.last_advanced_search_query = self.query
+            
         self.case_sensitive = self.case_sensitive_checkbox.isChecked()
         self.is_fuzzy = self.fuzzy_checkbox.isChecked()
         self.search_in_original = self.original_checkbox.isChecked()
@@ -662,7 +679,8 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         for (b_idx, string_idx), lines_list in grouped_lines.items():
             new_text = '\n'.join(lines_list)
-            old_text, _ = main_window.data_processor.get_current_string_text(b_idx, string_idx)
+            res = main_window.data_processor.get_current_string_text(b_idx, string_idx)
+            old_text = res[0] if (isinstance(res, tuple) and len(res) == 2) else ""
             if new_text != old_text:
                 key = (b_idx, string_idx)
                 edited_data[key] = new_text
@@ -684,7 +702,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
                     main_window.data_store.mark_dirty(b_idx)
             if hasattr(main_window, 'ui_updater'):
                 main_window.ui_updater.update_text_views()
-                main_window.ui_updater.update_block_list()
+                main_window.ui_updater.populate_blocks()
 
     def rebuild_text_from_project(self):
         main_window = self._find_main_window()
@@ -1131,3 +1149,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
                 main_window.undo_manager.end_group("RESTORE_STRINGS")
 
         self.refresh_from_project()
+
+    def done(self, r):
+        self.save_changes_to_project()
+        super().done(r)

@@ -181,10 +181,48 @@ def find_missing_icon_spacing_spans(text: str, is_visible_tag_func) -> List[Tupl
                 next_text = tokens[next_idx]['text']
                 if next_text and next_text[0].isalnum():
                     need_space_after = True
+
+        # Check if there is a space followed by a hyphen-word after the tag
+        # e.g., "{(L)} -наведення" -> This is an error because there shouldn't be a space before the hyphen.
+        has_space_before_hyphen = False
+        next_idx = i + 1
+        while next_idx < len(tokens) and tokens[next_idx]['type'] == 'zero_width_tag':
+            next_idx += 1
+        if next_idx < len(tokens) and tokens[next_idx]['type'] == 'space':
+            after_space_idx = next_idx + 1
+            while after_space_idx < len(tokens) and tokens[after_space_idx]['type'] == 'zero_width_tag':
+                after_space_idx += 1
+            if after_space_idx < len(tokens) and tokens[after_space_idx]['type'] == 'text':
+                after_text = tokens[after_space_idx]['text']
+                if after_text and after_text.startswith('-') and len(after_text) > 1 and after_text[1].isalnum():
+                    has_space_before_hyphen = True
                 
-        if need_space_before or need_space_after:
+        if need_space_before or need_space_after or has_space_before_hyphen:
             warning_spans.append((token['start'], token['end']))
             
+    # Check zero-width tag sequences for missing space
+    idx = 0
+    while idx < len(tokens):
+        if tokens[idx]['type'] == 'zero_width_tag':
+            start_seq_idx = idx
+            while idx < len(tokens) and tokens[idx]['type'] == 'zero_width_tag':
+                idx += 1
+            end_seq_idx = idx - 1
+            
+            # Check left and right neighbors of the sequence
+            left_idx = start_seq_idx - 1
+            right_idx = end_seq_idx + 1
+            if left_idx >= 0 and right_idx < len(tokens):
+                left_token = tokens[left_idx]
+                right_token = tokens[right_idx]
+                if left_token['type'] == 'text' and right_token['type'] == 'text':
+                    prev_text = left_token['text']
+                    next_text = right_token['text']
+                    if prev_text and prev_text[-1].isalnum() and next_text and next_text[0].isalnum():
+                        warning_spans.append((tokens[start_seq_idx]['start'], tokens[end_seq_idx]['end']))
+        else:
+            idx += 1
+
     return warning_spans
 
 
@@ -229,8 +267,51 @@ def fix_missing_icon_spacing(text: str, is_visible_tag_func) -> str:
         if last_idx < len(line):
             add_non_tag_tokens(last_idx, len(line))
             
+        # We can build a set of indices of space tokens to skip (e.g. before a hyphen-word)
+        spaces_to_skip = set()
+        for i, token in enumerate(tokens):
+            if token['type'] == 'visible_tag':
+                next_idx = i + 1
+                while next_idx < len(tokens) and tokens[next_idx]['type'] == 'zero_width_tag':
+                    next_idx += 1
+                if next_idx < len(tokens) and tokens[next_idx]['type'] == 'space':
+                    after_space_idx = next_idx + 1
+                    while after_space_idx < len(tokens) and tokens[after_space_idx]['type'] == 'zero_width_tag':
+                        after_space_idx += 1
+                    if after_space_idx < len(tokens) and tokens[after_space_idx]['type'] == 'text':
+                        after_text = tokens[after_space_idx]['text']
+                        if after_text and after_text.startswith('-') and len(after_text) > 1 and after_text[1].isalnum():
+                            spaces_to_skip.add(next_idx)
+
+        # Identify zero-width tag sequences that need a space before them
+        zero_width_starts_needing_space = set()
+        idx = 0
+        while idx < len(tokens):
+            if tokens[idx]['type'] == 'zero_width_tag':
+                start_seq_idx = idx
+                while idx < len(tokens) and tokens[idx]['type'] == 'zero_width_tag':
+                    idx += 1
+                end_seq_idx = idx - 1
+                
+                left_idx = start_seq_idx - 1
+                right_idx = end_seq_idx + 1
+                if left_idx >= 0 and right_idx < len(tokens):
+                    left_token = tokens[left_idx]
+                    right_token = tokens[right_idx]
+                    if left_token['type'] == 'text' and right_token['type'] == 'text':
+                        prev_text = left_token['text']
+                        next_text = right_token['text']
+                        if prev_text and prev_text[-1].isalnum() and next_text and next_text[0].isalnum():
+                            zero_width_starts_needing_space.add(start_seq_idx)
+            else:
+                idx += 1
+
         new_tokens = []
         for i, token in enumerate(tokens):
+            if i in spaces_to_skip:
+                continue
+            if i in zero_width_starts_needing_space:
+                new_tokens.append({'type': 'space', 'text': ' '})
             if token['type'] == 'visible_tag':
                 need_space_before = False
                 prev_idx = i - 1
@@ -263,6 +344,110 @@ def fix_missing_icon_spacing(text: str, is_visible_tag_func) -> str:
         fixed_lines.append("".join(t['text'] for t in new_tokens))
         
     return "\n".join(fixed_lines)
+
+
+def tokenize_string_for_spacing(s: str, is_visible_tag_func) -> list:
+    """Tokenize a string for spacing checks, identifying visible tags, zero-width tags, spaces, and text."""
+    if not s:
+        return []
+    tags = []
+    for match in ALL_TAGS_PATTERN.finditer(s):
+        tags.append((match.start(), match.end(), match.group(0)))
+        
+    tokens = []
+    last_idx = 0
+    
+    def add_non_tag_tokens(start_idx, end_idx):
+        i = start_idx
+        while i < end_idx:
+            ch = s[i]
+            if ch == ' ' or ch == '·' or ch.isspace():
+                start_sp = i
+                while i < end_idx and (s[i] == ' ' or s[i] == '·' or s[i].isspace()):
+                    i += 1
+                tokens.append({'type': 'space', 'text': s[start_sp:i]})
+            else:
+                start_txt = i
+                while i < end_idx and not (s[i] == ' ' or s[i] == '·' or s[i].isspace()):
+                    i += 1
+                tokens.append({'type': 'text', 'text': s[start_txt:i]})
+                
+    for start, end, tag_str in tags:
+        if start > last_idx:
+            add_non_tag_tokens(last_idx, start)
+        if is_visible_tag_func(tag_str):
+            tokens.append({'type': 'visible_tag', 'text': tag_str})
+        else:
+            tokens.append({'type': 'zero_width_tag', 'text': tag_str})
+        last_idx = end
+        
+    if last_idx < len(s):
+        add_non_tag_tokens(last_idx, len(s))
+        
+    return tokens
+
+
+def check_broken_icon_hyphen_boundary(text: str, next_text: str, is_visible_tag_func) -> bool:
+    """Check if a tag-hyphen-word construct is broken across a line boundary."""
+    if not text or not next_text:
+        return False
+        
+    raw_text_tokens = tokenize_string_for_spacing(text, is_visible_tag_func)
+    raw_next_tokens = tokenize_string_for_spacing(next_text, is_visible_tag_func)
+    
+    text_tokens = [t for t in raw_text_tokens if t['type'] not in ('zero_width_tag', 'space')]
+    next_tokens = [t for t in raw_next_tokens if t['type'] not in ('zero_width_tag', 'space')]
+    
+    if not text_tokens or not next_tokens:
+        return False
+        
+    # Case 1: Ends with visible tag, next starts with hyphen-word
+    # e.g., "{(L)}" and "-наведення"
+    if text_tokens[-1]['type'] == 'visible_tag':
+        first_non_zw = None
+        for t in raw_next_tokens:
+            if t['type'] != 'zero_width_tag':
+                first_non_zw = t
+                break
+        if first_non_zw and first_non_zw['type'] == 'text':
+            next_t = first_non_zw['text']
+            if next_t and next_t.startswith('-') and len(next_t) > 1 and next_t[1].isalnum():
+                return True
+                
+    # Case 2: Ends with visible tag followed by hyphen, next starts with alphanumeric
+    # e.g., "{(L)}-" and "наведення"
+    if len(text_tokens) >= 2 and text_tokens[-1]['type'] == 'text' and text_tokens[-1]['text'] == '-':
+        if text_tokens[-2]['type'] == 'visible_tag':
+            # Ensure no space after hyphen in text
+            hyphen_idx = -1
+            for idx in range(len(raw_text_tokens) - 1, -1, -1):
+                if raw_text_tokens[idx]['type'] == 'text' and raw_text_tokens[idx]['text'] == '-':
+                    hyphen_idx = idx
+                    break
+            
+            has_space_after_hyphen = False
+            if hyphen_idx != -1:
+                chk_idx = hyphen_idx + 1
+                while chk_idx < len(raw_text_tokens):
+                    if raw_text_tokens[chk_idx]['type'] == 'space':
+                        has_space_after_hyphen = True
+                        break
+                    if raw_text_tokens[chk_idx]['type'] != 'zero_width_tag':
+                        break
+                    chk_idx += 1
+            
+            if not has_space_after_hyphen:
+                first_non_zw = None
+                for t in raw_next_tokens:
+                    if t['type'] != 'zero_width_tag':
+                        first_non_zw = t
+                        break
+                if first_non_zw and first_non_zw['type'] == 'text':
+                    next_t = first_non_zw['text']
+                    if next_t and next_t[0].isalnum():
+                        return True
+                    
+    return False
 
 
 def clean_spaces(text: str) -> str:

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -405,7 +405,9 @@ class AIPromptComposer(BaseTranslationHandler):
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object in the returned array must have the original "id" (integer) and a "translation" (string) field.',
                 'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
-                'Use "scene_context" (if present), "speaker", and "glossary" (if present) to maintain consistency and tone.',
+                'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match Ukrainian grammar. Glossary overrides everything.',
+                'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (ти/ви). Apply this information to the entire translation.',
+                'Use "scene_context" (if present) and "speaker" to determine the correct tone, formality, and speech mannerisms.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -419,7 +421,8 @@ class AIPromptComposer(BaseTranslationHandler):
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object must have the original "id" and a "translation" field.',
                 'The number of objects must match the input.',
-                'Use "scene_context" (if present), "speaker", and "glossary" (if present) to maintain consistency and tone.',
+                'GLOSSARY IS MANDATORY: Every term in the "glossary" MUST be translated exactly as specified. No synonyms or alternatives allowed.',
+                'Use "scene_context" (if present) and "speaker" to determine tone, gender agreement, and form of address.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -467,6 +470,7 @@ class AIPromptComposer(BaseTranslationHandler):
         request_type: str,
         session_state: Optional[TranslationSessionState] = None,
         mode_description: str = 'translation variations',
+        selected_text: Optional[str] = None,
     ) -> Tuple[str, str]:
         """Compose variation request."""
         combined_system, user_content = self.compose_messages(
@@ -479,6 +483,7 @@ class AIPromptComposer(BaseTranslationHandler):
             request_type=request_type,
             current_translation=current_translation,
             session_state=session_state,
+            selected_text=selected_text,
         )
         return combined_system, user_content
 
@@ -494,6 +499,7 @@ class AIPromptComposer(BaseTranslationHandler):
         session_state: Optional[TranslationSessionState] = None,
         request_type: str = 'translation',
         current_translation: Optional[str] = None,
+        selected_text: Optional[str] = None,
     ) -> Tuple[str, str]:
         # Fetch relevant glossary terms for this single string or variation
         """Compose messages."""
@@ -538,7 +544,8 @@ class AIPromptComposer(BaseTranslationHandler):
                 speaker_candidates.add(part.strip())
 
         if glossary_manager and source_text:
-            relevant_glossary_entries = list(glossary_manager.get_relevant_terms(source_text))
+            text_for_glossary = f"{source_text} {selected_text}" if selected_text else source_text
+            relevant_glossary_entries = list(glossary_manager.get_relevant_terms(text_for_glossary))
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
             if relevant_glossary_entries:
                 glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
@@ -594,14 +601,24 @@ class AIPromptComposer(BaseTranslationHandler):
                 log_debug(f"AIPromptComposer: Error fetching surrounding dialogue context: {e}")
 
         if request_type == 'variation_list':
-            instructions = [
-                'Generate 10 different Ukrainian translation alternatives for the provided text.',
-                f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
-                'Follow the glossary and preserve all tags exactly as they appear.',
-                'Follow the tone of the original text.',
-                'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
-                'Do NOT wrap the array in an object (e.g. do not use {"variations": [...]}). Return only valid JSON without any markdown or extra commentary.',
-            ]
+            if selected_text:
+                instructions = [
+                    'Generate 10 different Ukrainian translation alternatives specifically for the selected text segment, keeping the context of the full string in mind.',
+                    f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
+                    'Follow the glossary and preserve all tags exactly as they appear.',
+                    'Follow the tone of the original text and the surrounding translation.',
+                    'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
+                    'Do NOT wrap the array in an object. Return only valid JSON without any markdown or extra commentary.',
+                ]
+            else:
+                instructions = [
+                    'Generate 10 different Ukrainian translation alternatives for the provided text.',
+                    f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
+                    'Follow the glossary and preserve all tags exactly as they appear.',
+                    'Follow the tone of the original text.',
+                    'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
+                    'Do NOT wrap the array in an object (e.g. do not use {"variations": [...]}). Return only valid JSON without any markdown or extra commentary.',
+                ]
         elif request_type == 'glossary_notes_variation':
             instructions = [
                 'Generate 5 alternative Ukrainian glossary descriptions for the provided term.',
@@ -615,8 +632,9 @@ class AIPromptComposer(BaseTranslationHandler):
             instructions = [
                 'Translate the text into Ukrainian without altering the meaning.',
                 f'Keep exactly {expected_lines} lines (including empty ones) and preserve their order.',
-                'Use the provided glossary to translate terms. All other tags must be preserved exactly as they appear.',
-                'The glossary has absolute priority.',
+                'GLOSSARY IS MANDATORY: Every term found in the glossary MUST be translated exactly as specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect word endings to match Ukrainian grammar.',
+                'Read the "Notes" column in the glossary carefully for character gender, age, personality, speech style, and form of address (ти/ви). Apply this to the full translation.',
+                'All tags must be preserved exactly as they appear.',
                 'Do not add explanations or meta text; return only the translation.',
             ]
 
@@ -625,14 +643,25 @@ class AIPromptComposer(BaseTranslationHandler):
             user_sections.append(f"GLOSSARY (use with absolute priority):\n{glossary_text}")
 
         if request_type == 'variation_list' and current_translation:
-            user_sections.append('Current translation:')
-            user_sections.append(str(current_translation))
-        elif request_type == 'glossary_notes_variation' and current_translation is not None:
-            user_sections.append('Current description:')
-            user_sections.append(str(current_translation or '(empty)'))
+            if selected_text:
+                user_sections.append('Full original text (for context):')
+                user_sections.append(source_text)
+                user_sections.append('Full current translation (for context):')
+                user_sections.append(str(current_translation))
+                user_sections.append('Selected segment to vary/translate (Input text):')
+                user_sections.append(selected_text)
+            else:
+                user_sections.append('Current translation:')
+                user_sections.append(str(current_translation))
+                user_sections.append('Input text:')
+                user_sections.append(source_text)
+        else:
+            if request_type == 'glossary_notes_variation' and current_translation is not None:
+                user_sections.append('Current description:')
+                user_sections.append(str(current_translation or '(empty)'))
 
-        user_sections.append('Input text:')
-        user_sections.append(source_text)
+            user_sections.append('Input text:')
+            user_sections.append(source_text)
 
         user_content = '\n\n'.join([section for section in user_sections if section])
         log_debug(

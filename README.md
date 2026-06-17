@@ -1,6 +1,6 @@
-# Picoripi v0.3.015
+# Picoripi v0.3.023
  
-The **Picoripi** (v0.3.015) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.023) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -10,11 +10,20 @@ The **Picoripi** (v0.3.015) is a visual translation and localization workbench b
 - **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
 - **Virtual Folder Structure**: Organizes text blocks into nested virtual folders (categories) for logical narrative layout. Supports drag-and-drop file organization.
 - **Granular Status & Propagation**: Unsaved changes propagate dynamically as asterisks (`*`) up the folder tree, with specialized error/warning counts on parent nodes.
+- **Partial Changes Saving**:
+  - **Selected Blocks Saving**: Allows saving only specifically selected blocks/categories containing translation modifications via the project tree context menu, keeping other changes in-memory.
+  - **Targeted String Saving**: Context menus in both translation editors and read-only previews allow saving either a single selected string or a targeted set of lines to files, leaving the remaining edits untouched.
+- **Fault-Tolerant Session Autosaving**:
+  - Automatically saves the complete workspace state (the `AppDataStore` object) into a localized `.picoripi_session` binary file via `pickle` serialization.
+  - **Dirty State Control**: Autosave only triggers when actual changes occur (text editing, selection navigation, filter switches) utilizing a 2-second debounce timer, preventing redundant disk writes when the user is idle.
+  - **Undo/Redo History Persistence**: The complete Undo/Redo operations stack is preserved within the session file, enabling users to seamlessly undo (`Ctrl+Z`) and redo (`Ctrl+Y`) edits across application restarts.
+  - **Instant Recovery**: If a crash occurs or the app is closed, it recovers immediately on startup from the session file, bypassing time-consuming translation file parsing.
 - **Soft Shading & Progress Bars**:
   - **Translated Lines Shading**: Renders a soft, pastel-green background (`QColor(46, 139, 87, 40)`) under line numbers in translation editors and preview screens for translated strings, facilitating rapid document navigation.
   - **File Progress Bars**: Tree items render smooth, semi-transparent green progress bars (`QColor(46, 139, 87, 25)`) left-to-right beneath file names, proportional to the translation completion rate.
   - **Translatable String Detection**: Intelligently ignores empty, whitespace-only, or tag-only original strings when calculating progress ratios, preventing false progress inflation.
   - **Unified Font & Width Override Highlights**: Renders an identical soft-purple background (`rgba(186, 85, 211, 40)`) and a bold, 2px bright-purple border (`rgb(186, 85, 211)`) around both the **Font** ComboBox and the **Width** SpinBox widgets when custom line overrides are active, providing visual consistency.
+  - **Unified Light Theme Controls Height**: Standardized styling of `QComboBox` (Font selector) and `QSpinBox` (Width selector) in the light theme, matching their borders, padding, and heights perfectly for visual symmetry.
 - **Virtual Chapters Navigation**: Integrates a virtual `Chapters -> Act -> Chapter` hierarchical node structure in the Blocks panel. Dialogue lines scattered across physical `.bmg` or `.json` blocks are dynamically grouped chronologically based on story timeline database coordinates. Supports right-click context menu actions (rename, delete, assign font overrides, toggle markers).
 
 ---
@@ -42,14 +51,15 @@ The **Picoripi** (v0.3.015) is a visual translation and localization workbench b
   - Preserves sentence structure: entire sentences are kept together on a single page. If adding the next sentence would overrun the page limit, the sentence is automatically pushed to the next page.
 - **Dynamic Guidelines & Coloring**: Guideline tickers dynamically recolor to red upon width violation and green/blue otherwise. Strips incomplete tag syntaxes (e.g. `{escape:0:...`) during character slices to prevent tag characters from bloating text width measurements.
 - **Smart Empty Lines Hiding**: Condenses consecutive empty lines (3 or more) in the read-only preview panel into a single placeholder line: `[start-end] X empty line(s)`, styled with a dark gray color (`#888888`) that bypasses spellchecking and tag parsing to keep views clean. Double-clicking the line number immediately scrolls the editor to the active string.
-- **Missing Icon Spacing Detection & Auto-fix**:
-  - Introduces a light-blue warning (`QColor(173, 216, 230, 150)`) for missing spacing around physical icon/button tags (e.g., `{(A)}`, `[(A)]`, or tags with positive widths).
-  - Intelligently ignores adjacent punctuation (`.`, `,`, `!`, `?`, `-`, `:`, `;`) so warnings only trigger when tags directly merge with alphanumeric characters.
+- **Missing Tag Spacing Detection & Auto-fix**:
+  - Introduces a light-blue warning (`QColor(173, 216, 230, 150)`) for missing spacing around physical icon/button tags (e.g., `{(A)}`, `[(A)]`, or tags with positive widths), as well as between words separated by zero-width tags (e.g., `{color:red}`).
+  - Intelligently ignores adjacent punctuation (`.`, `,`, `!`, `?`, `-`, `:`, `;`) so warnings only trigger when tags directly merge with alphanumeric characters. For zero-width tags, a space is required if they are situated directly between two alphanumeric characters of adjacent words.
   - Includes full, project-wide Auto-fix capabilities and configurable toggles in Global Settings.
 - **Prevent Empty Padding Lines in Auto-Fix**: Added a configurable option in Global Settings and the Ctrl+AutoFix dialog to completely omit trailing blank lines on page boundaries when wrapping or paginating, preventing unwanted empty padding lines from being generated.
 - **Silent Ctrl+S Saving with Toast Notification**: Refactored the file saving mechanism so that pressing `Ctrl+S` (or using the Save action) instantly saves all changes without displaying blocking confirmation dialogs. A non-blocking, semi-transparent black **Toast Notification** with rounded corners appears in the bottom-left corner of the screen for 2 seconds to confirm the success.
 - **Strict Page-Local AutoFix (Shift+AutoFix)**: Pressing `Shift` while running AutoFix isolates wrapping and fixes to the current page only. It strictly preserves page boundaries by padding each page back to its original length, preventing text from next pages from overflowing into previous ones, even when the empty padding lines prevention is enabled globally.
 - **Unconditional Page Layout Sentence Alignment**: Refactored sentence wrapping to allow matching target text pages directly with the source. When enabled, it strips old layout markers and replicates exact game-specific page break codes (like `[escape:0:0007...]`) from matching source sentences.
+- **Toggle Hide Tags (Ctrl+Q)**: Pressing `Ctrl+Q` instantly toggles the "Hide tags" state for both original and translation panels, hiding or showing formatting codes concurrently.
 
 ---
 
@@ -117,6 +127,9 @@ The **Picoripi** (v0.3.015) is a visual translation and localization workbench b
 - **Punctuation-Insensitive Match**: If the search query contains punctuation marks (like commas, periods, exclamation points, etc.), the match is strictly mapped to the exact punctuation layout. If no punctuation is typed in the search query, the engine ignores any punctuation present in the target strings, seamlessly matching across commas, quotes, and hyphens.
 - **Word-Level Case Sensitivity**: Case sensitivity is evaluated on a per-word basis. Typing a word with a capital letter (e.g. `Link`) makes that specific word's match case-sensitive, while words typed in lowercase (e.g. `sword`) remain case-insensitive.
 - **Search Focus Preservation**: Pressing the Enter key while the search input panel is active cycles to the next result, updating the text editor and highlighting the text, but keeps keyboard focus active on the search input itself. This allows for fluid, continuous "Next" traversal without manual mouse focus restoration.
+- **Advanced Search Shortcut**: Pressing `Ctrl + H` opens the Advanced Search & Replace dialog instantly, auto-populating it with parameters from the active inline search panel.
+- **Search & Replace Undo/Redo Integration**: The Advanced Search & Replace dialog is fully synchronized with the application's global undo stack. Reverting changes (Undo/Redo) in the main window instantly updates the active search results view. Additionally, pressing `Ctrl + Z` or `Ctrl + Y` while focused inside search dialog text editors seamlessly routes actions to the main window's undo manager and updates the dialog dynamically.
+- **Non-Modal Dialogs Workflow**: The Advanced Search & Replace, Spellcheck, AI Translation Comparison, and AI Translation Result dialogs operate in a non-modal mode. This allows seamless switching, text copying, and interaction with the main window while they remain open. Previously opened instances are automatically focused, reused, or refreshed when re-triggered, maintaining a highly fluid UI.
 
 ---
 
@@ -141,6 +154,7 @@ You can configure the active translation engine in the **AI Translation** tab wi
 - **Smart Glossary Filtering**: Only the glossary terms detected in the active lines are sent to the AI prompt, protecting system context limits and preventing model confusion.
 - **Tag Preservation (Force-Alias)**: Game control codes and tags (like `{Color:Red}`, `[L-Stick]`, `[PLAYER]`) are translated into plain-text equivalents (e.g., `{F:Link}`) before calling the API. They are translated contextually as real words and automatically restored post-translation, avoiding tag corruption or deletion.
 - **AI Translation Variations**: Generates up to 10 different translation variants for any selected string. Features a non-blocking modeless variations dialog, client-side variations caching to prevent duplicate token costs, and a manual "Refresh" trigger.
+- **AI Translation Comparison & Revision**: When re-translating lines that already have translations, a split "Old/New Translation" comparison dialog is displayed. Allows interactive revision: click "Old Translation" to revert to the previous text, click "New Translation" to apply the new text, double-click "New Translation" to edit the text on the fly (with Ctrl+Enter to save), or right-click to generate AI variations for that specific line.
 - **Glossary Occurrence Batch Update**: When a term's translation in the glossary is updated, the AI can scan, locate, and automatically retranslate all of its occurrences in the project, adjusting grammar declensions contextually.
 - **AI Glossary Fill**: Generates translation suggestions and notes for new glossary entries automatically based on the term and the active game context.
 - **AI Chat Dialog**: A modeless chat window ("Discuss with AI") accessible from the editor context menu. It auto-fills with selected original/translated text, allowing real-time prompt conversations.
@@ -168,6 +182,7 @@ Picoripi includes several advanced shortcuts and modifier combinations that simp
 ### 3. Navigation & Zoom Shortcuts
 - **Ctrl + Mouse Wheel**: Adjusts zoom (font size scaling) dynamically. Works on the original and translation editor panes, the preview list panel, and the project file-tree widget.
 - **Ctrl + PageUp / PageDown**: Navigates to the previous or next block in the project block tree view without requiring mouse focus.
+- **Ctrl + H**: Launches the Advanced Search & Replace dialog instantly, passing active parameters from the inline search panel.
 
 ---
 
@@ -249,7 +264,7 @@ Fill in the API keys:
 - **Other Platforms**: Run `python main.py` directly.
 
 ### 5. Running Tests
-The suite consists of over 900 test cases using `pytest`:
+The suite consists of over 1000 test cases using `pytest`:
 ```bash
 # Windows PowerShell
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
@@ -261,8 +276,8 @@ Picoripi includes a comprehensive, real-time Text Analysis and Auto-Fix engine. 
 
 ### 1. Warning Classifications & Visual Gutter Highlights
 
-1. **Tag Validation Warning (`ZWW_TAG_WARNING`) — Yellow Marker (`rgba(255, 255, 0, 80)`)**
-   - *Rule*: Triggers when control codes or bracket tags have invalid format structures, unclosed brackets (e.g., `[Color:Red` instead of `[Color:Red]`), or non-matching tag pairs.
+1. **Tag Validation Warning (`ZWW_TAG_WARNING`) — Light Gray Marker (`rgba(200, 200, 200, 150)`)**
+   - *Rule*: Triggers when control codes or bracket tags have invalid format structures, unclosed brackets (e.g., `[Color:Red` instead of `[Color:Red]`), or non-matching tag pairs. Also checks for tag count and name mismatch between original and translation (with exceptions like Link and Epona).
    - *Auto-Fix*: Automatically attempts to close brackets or strip corrupted tag fragments.
 
 2. **Pixel Width Exceeded (`ZWW_WIDTH_EXCEEDED`) — Red Marker (`rgba(255, 0, 0, 100)`)**
@@ -284,8 +299,8 @@ Picoripi includes a comprehensive, real-time Text Analysis and Auto-Fix engine. 
    - *Auto-Fix*: Pulls words from subsequent lines or shifts layout blocks to keep text balanced.
 
 6. **Single Word Orphan (`ZWW_SINGLE_WORD_SUBLINE_NON_START`) — Brown Marker (`rgba(139, 69, 19, 120)`)**
-   - *Rule*: Triggers when a subline (other than the first line of a page) contains only a single word (an "orphan"), usually caused by aggressive wrapping.
-   - *Auto-Fix*: Pulls the last word from the preceding subline down to pair it with the orphaned word.
+   - *Rule*: Triggers when a subline (other than the first line of a page) contains only a single word (an "orphan"), usually caused by aggressive wrapping. **Note**: It is ignored if shifting the last word from the preceding line down would make the new last line wider in pixels than the new preceding line (to maintain a balanced block shape).
+   - *Auto-Fix*: Pulls the last word from the preceding subline down to pair it with the orphaned word, unless it violates the line width balance constraint.
 
 7. **Empty First Line of Page (`ZWW_EMPTY_FIRST_LINE_OF_PAGE`) — Pink Marker (`rgba(255, 105, 180, 100)`)**
    - *Rule*: Triggers when the very first line of a multi-line page is empty, but subsequent lines on the same page contain text (causing text to start awkwardly shifted down).
@@ -297,8 +312,12 @@ Picoripi includes a comprehensive, real-time Text Analysis and Auto-Fix engine. 
    - *Auto-Fix*: Cleans double spaces and removes spaces before punctuation marks.
 
 9. **Missing Icon Spacing (`ZWW_MISSING_ICON_SPACING`) — Light Blue Marker (`rgba(173, 216, 230, 150)`)**
-   - *Rule*: Triggers when a visible button tag or graphic icon (e.g., `{(btn)}` or `[(A)]`) is merged directly with adjacent letters or numbers without a space (e.g., `press{(btn)}to` instead of `press {(btn)} to`). Ignored if the tag is adjacent to punctuation marks.
-   - *Auto-Fix*: Automatically inserts standard single spaces before and/or after the tag to guarantee clean visual separation.
+   - *Rule*: Triggers when a visible button tag or graphic icon (e.g., `{(btn)}` or `[(A)]`) is merged directly with adjacent letters or numbers without a space (e.g., `press{(btn)}to` instead of `press {(btn)} to`). Ignored if the tag is adjacent to punctuation marks. Hyphens immediately after the icon (e.g. `{(L)}-наведення`) are treated as an exception and do not trigger warnings. Spacing before the hyphen in such constructs is considered an error.
+   - *Auto-Fix*: Automatically inserts standard single spaces before and/or after the tag to guarantee clean visual separation, and strips any spaces before the hyphen in hyphen-word constructs.
+
+10. **Broken Icon-Hyphen Wrap (`ZWW_BROKEN_ICON_HYPHEN`) — Plum/Purple Marker (`rgba(221, 160, 221, 150)`)**
+    - *Rule*: Triggers when a tag-hyphen-word construct (e.g. `{(L)}-наведення`) is broken across a line break.
+    - *Word Wrap Integration*: The word wrap engine treats these constructs as single entities to prevent automatic splitting.
 
 ### 2. Page Break Optimization (Page Lookahead)
 

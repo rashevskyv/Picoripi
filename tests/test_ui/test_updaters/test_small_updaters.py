@@ -374,6 +374,33 @@ class TestPreviewUpdater:
 
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_show_unsaved_only(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 2
+        updater.mw.preview_text_edit = preview_edit
+        
+        updater.mw.data_store.data = [["line0", "line1", "line2"]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.data_store.show_unsaved_only = True
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+        
+        # Setup edited_data for line 1 (unsaved change)
+        updater.mw.data_store.edited_data = {
+            (0, 1): "edited_line1"
+        }
+
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
+
+        updater.populate_strings_for_block(0, force=True)
+
+        # Only line 1 should be displayed since it is the only one in edited_data
+        assert updater.mw.data_store.displayed_string_indices == [1]
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
     def test_populate_strings_show_overrides_only_checkbox_visibility(self, mock_hl, mock_ut, updater, mock_dp):
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = ""

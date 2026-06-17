@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QKeyEvent, QKeySequence
 from PyQt6.QtCore import Qt
 
@@ -16,6 +16,23 @@ class LNETKeyboardHandler:
         """Process key press event. Returns True if the event was consumed."""
         editor = self.editor
         main_window = editor.window()
+        from PyQt6.QtWidgets import QMainWindow
+        if not isinstance(main_window, QMainWindow) or not hasattr(main_window, 'undo_typing_action'):
+            curr = editor.parent()
+            found = False
+            while curr:
+                if hasattr(curr, 'undo_typing_action'):
+                    main_window = curr
+                    found = True
+                    break
+                curr = curr.parent()
+            
+            if not found:
+                from PyQt6.QtWidgets import QApplication
+                for widget in QApplication.topLevelWidgets():
+                    if isinstance(widget, QMainWindow):
+                        main_window = widget
+                        break
 
         # --- Allow Ctrl+S to propagate to parent window actions ---
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_S:

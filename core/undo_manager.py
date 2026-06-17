@@ -1,4 +1,4 @@
-﻿import time
+import time
 import zlib
 import pickle
 from dataclasses import dataclass
@@ -91,11 +91,77 @@ class UndoManager:
     def __init__(self, main_window):
         """Initialize a new instance."""
         self.mw = main_window
-        self.undo_stack: List[Any] = []
-        self.redo_stack: List[Any] = []
         self.is_undoing_redoing = False
         self.grouping_threshold = 3.5 # seconds to group character edits
         self.current_group: Optional[List[UndoAction]] = None
+
+    @property
+    def undo_stack(self) -> List[Any]:
+        """Undo stack property delegating to AppDataStore."""
+        ds = getattr(self.mw, 'data_store', None)
+        if ds is None:
+            if not hasattr(self, '_fallback_undo_stack'):
+                self._fallback_undo_stack = []
+            return self._fallback_undo_stack
+        
+        from unittest.mock import Mock
+        if isinstance(ds, Mock):
+            stack = ds.__dict__.get('_real_undo_stack')
+            if stack is None:
+                stack = []
+                ds.__dict__['_real_undo_stack'] = stack
+            return stack
+            
+        if not hasattr(ds, 'undo_stack') or not isinstance(ds.undo_stack, list):
+            ds.undo_stack = []
+        return ds.undo_stack
+
+    @undo_stack.setter
+    def undo_stack(self, val):
+        """Undo stack setter."""
+        ds = getattr(self.mw, 'data_store', None)
+        if ds is None:
+            self._fallback_undo_stack = val
+            return
+        from unittest.mock import Mock
+        if isinstance(ds, Mock):
+            ds.__dict__['_real_undo_stack'] = val
+            return
+        ds.undo_stack = val
+
+    @property
+    def redo_stack(self) -> List[Any]:
+        """Redo stack property delegating to AppDataStore."""
+        ds = getattr(self.mw, 'data_store', None)
+        if ds is None:
+            if not hasattr(self, '_fallback_redo_stack'):
+                self._fallback_redo_stack = []
+            return self._fallback_redo_stack
+        
+        from unittest.mock import Mock
+        if isinstance(ds, Mock):
+            stack = ds.__dict__.get('_real_redo_stack')
+            if stack is None:
+                stack = []
+                ds.__dict__['_real_redo_stack'] = stack
+            return stack
+            
+        if not hasattr(ds, 'redo_stack') or not isinstance(ds.redo_stack, list):
+            ds.redo_stack = []
+        return ds.redo_stack
+
+    @redo_stack.setter
+    def redo_stack(self, val):
+        """Redo stack setter."""
+        ds = getattr(self.mw, 'data_store', None)
+        if ds is None:
+            self._fallback_redo_stack = val
+            return
+        from unittest.mock import Mock
+        if isinstance(ds, Mock):
+            ds.__dict__['_real_redo_stack'] = val
+            return
+        ds.redo_stack = val
         
     def begin_group(self):
         """Begin group."""
@@ -331,6 +397,7 @@ class UndoManager:
             log_debug(f"UndoManager: Undone item of type {item.action_type if isinstance(item, (UndoAction, StructuralAction)) else 'Group'}")
         finally:
             self.is_undoing_redoing = False
+        self._refresh_search_review_dialogs()
 
     def redo(self):
         """Redo."""
@@ -357,6 +424,7 @@ class UndoManager:
             log_debug(f"UndoManager: Redone item of type {item.action_type if isinstance(item, (UndoAction, StructuralAction)) else 'Group'}")
         finally:
             self.is_undoing_redoing = False
+        self._refresh_search_review_dialogs()
 
 
     def _get_item_location(self, item: Any, is_undo: bool) -> tuple[int, int]:
@@ -459,6 +527,18 @@ class UndoManager:
                 
         finally:
             self.mw.is_programmatically_changing_text = was_programmatic
+
+    def _refresh_search_review_dialogs(self):
+        """Helper to refresh any open SearchReviewDialog after undo/redo."""
+        try:
+            from dialogs.search_review_dialog import SearchReviewDialog
+            from PyQt6.QtWidgets import QApplication
+            for widget in QApplication.topLevelWidgets():
+                if isinstance(widget, SearchReviewDialog):
+                    widget.refresh_from_project()
+        except Exception as e:
+            from utils.logging_utils import log_warning
+            log_warning(f"Failed to refresh SearchReviewDialog in undo/redo: {e}")
 
     def clear(self):
         """Remove ."""

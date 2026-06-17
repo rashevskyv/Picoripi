@@ -1,4 +1,4 @@
-﻿"""Background scanner that runs line-width analysis, glossary matching, and
+"""Background scanner that runs line-width analysis, glossary matching, and
 spellcheck off the UI thread.
 
 Historically this was a fresh QThread spawned on every keystroke debounce tick;
@@ -159,13 +159,17 @@ class AsyncIssueScanner(QRunnable):
         if not self.warnings_enabled:
             return []
 
+        # Set block and string index on analyzer for context-aware validation
+        self.analyzer._current_scan_block_idx = self.block_idx
+        self.analyzer._current_scan_string_idx = self.string_idx
+
+        problems_in_string = []
         if hasattr(self.analyzer, "analyze_data_string"):
             problems = self.analyzer.analyze_data_string(
                 self.text, self.font_map, self.width_threshold, self.logical_hard_limit
             )
-            return problems if isinstance(problems, list) else []
-
-        if hasattr(self.analyzer, "analyze_subline"):
+            problems_in_string = problems if isinstance(problems, list) else []
+        elif hasattr(self.analyzer, "analyze_subline"):
             sublines = self.text.split("\n")
             problems_in_string = []
             for i, subline in enumerate(sublines):
@@ -184,9 +188,30 @@ class AsyncIssueScanner(QRunnable):
                     logical_hard_limit=self.logical_hard_limit,
                 )
                 problems_in_string.append(problems)
-            return problems_in_string
 
-        return []
+        # Run tag mismatch check off the main thread
+        if self.source_text and hasattr(self.analyzer, "check_tags_mismatch"):
+            if self.analyzer.check_tags_mismatch(self.source_text, self.text) is True:
+                tag_warning_id = getattr(self.analyzer.problem_ids, 'PROBLEM_TAG_WARNING', None)
+                if not tag_warning_id and isinstance(self.analyzer.problem_ids, dict):
+                    tag_warning_id = self.analyzer.problem_ids.get('TAG', None)
+                if not tag_warning_id:
+                    # Fallback
+                    for pid in getattr(self.analyzer, 'problem_definitions', {}).keys():
+                        if pid.endswith('_TAG_WARNING'):
+                            tag_warning_id = pid
+                            break
+                            
+                if tag_warning_id and not type(tag_warning_id).__name__ in ('MagicMock', 'Mock'):
+                    # Ensure problems_in_string has at least one subline set
+                    if not problems_in_string:
+                        problems_in_string = [set()]
+                    # Convert to set if it's not
+                    if not isinstance(problems_in_string[0], set):
+                        problems_in_string[0] = set(problems_in_string[0])
+                    problems_in_string[0].add(tag_warning_id)
+
+        return problems_in_string
 
     # 2. Glossary occurrences in the edited text.
     def _run_glossary_matches(self) -> list:

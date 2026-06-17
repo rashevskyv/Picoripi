@@ -1,4 +1,4 @@
-﻿"""
+"""
 Plain Text plugin for text translation workbench.
 
 This plugin provides text editing functionality with problem detection and autofix:
@@ -144,7 +144,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
         if problem_id == PROBLEM_TAG_WARNING: return "Tag"
         if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
-        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "IconSpacing"
+        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "TagSpacing"
         return super().get_short_problem_name(problem_id)
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:

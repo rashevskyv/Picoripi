@@ -1,4 +1,4 @@
-﻿# handlers/app_action_handler.py
+# handlers/app_action_handler.py
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
@@ -58,23 +58,12 @@ class AppActionHandler(BaseHandler):
                 self.mw.project_manager.cleanup_temp_dir()
             return
 
-        if self.mw.data_store.unsaved_changes:
-            reply = QMessageBox.question(
-                self.mw, 'Unsaved Changes',
-                "Save changes before closing?",
-                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Cancel
-            )
-            if reply == QMessageBox.StandardButton.Save:
-                if not self.save_data_action(ask_confirmation=False):
-                    event.ignore()
-                    return
-            elif reply == QMessageBox.StandardButton.Cancel:
-                event.ignore()
-                return
         event.accept()
-        if event.isAccepted() and self.mw.project_manager:
-            self.mw.project_manager.cleanup_temp_dir()
+        if event.isAccepted():
+            if hasattr(self.data_processor, '_autosave_session'):
+                self.data_processor._autosave_session(force=True)
+            if self.mw.project_manager:
+                self.mw.project_manager.cleanup_temp_dir()
             
     def _derive_edited_path(self, original_path: Union[str, Path]) -> Optional[str]:
         """Internal helper to derive edited path."""
@@ -271,6 +260,9 @@ class AppActionHandler(BaseHandler):
             
         if hasattr(self.mw, 'issue_scan_handler'):
             self.mw.issue_scan_handler._save_issues_cache()
+
+        if hasattr(self.data_processor, '_autosave_session'):
+            self.data_processor._autosave_session(force=True)
             
         return True
 
@@ -302,6 +294,20 @@ class AppActionHandler(BaseHandler):
         """Load all data for path."""
         log_info(f"Loading all data for path: '{original_file_path}'")
         
+        # Set paths beforehand so get_session_file_path can locate the session file
+        self.mw.data_store.json_path = str(original_file_path)
+        self.mw.data_store.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(str(original_file_path))
+        
+        # Check if we can restore from local session file instead of parsing raw files
+        if hasattr(self.data_processor, 'load_session_file') and self.data_processor.load_session_file() is True:
+            if hasattr(self.mw, 'close_project_action') and self.mw.close_project_action:
+                self.mw.close_project_action.setEnabled(True)
+            for act_name in ['save_translated_action', 'restore_translated_action', 'export_translations_action', 'import_translations_action']:
+                act = getattr(self.mw, act_name, None)
+                if act:
+                    act.setEnabled(True)
+            return
+
         with self.mw.state.enter(AppState.LOADING_DATA), self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
             if not self.mw.current_game_rules:
                 QMessageBox.critical(self.mw, "Load Error", "Cannot load file: No game plugin is active.")

@@ -1,10 +1,11 @@
-﻿# components/tree_spellcheck_mixin.py
+# components/tree_spellcheck_mixin.py
 """Spellcheck and Reveal-in-Explorer mixin for CustomTreeWidget."""
 import platform
 import re
 import subprocess
 from pathlib import Path
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 
 from utils.logging_utils import log_debug, log_error
@@ -131,30 +132,20 @@ class TreeSpellcheckMixin:
                 return
 
             from dialogs.spellcheck_dialog import SpellcheckDialog
+            
+            # Check if spellcheck dialog is already active
+            if getattr(main_window, 'active_spellcheck_dialog', None) is not None:
+                main_window.active_spellcheck_dialog.raise_()
+                main_window.active_spellcheck_dialog.activateWindow()
+                return
+
             dialog = SpellcheckDialog(
                 self, text_to_check, scm, starting_line_number=0, line_numbers=line_numbers, block_idx=block_idx
             )
-            if not dialog.exec():
-                return
-
-            corrected_text = dialog.get_corrected_text()
-            corrected_lines = corrected_text.split('\n')
-            edited_data = getattr(main_window, 'edited_data', {})
-
-            for i, corrected_line in enumerate(corrected_lines):
-                if i < len(line_numbers) and corrected_line != text_parts[i]:
-                    string_idx = line_numbers[i]
-                    edited_data[(block_idx, string_idx)] = corrected_line
-                    ds.unsaved_changes = True
-                    ds.unsaved_block_indices.add(block_idx)
-
-            current_block_idx = getattr(main_window.data_store, 'current_block_idx', -1)
-            if current_block_idx == block_idx:
-                ui = getattr(main_window, 'ui_updater', None)
-                if ui:
-                    ui.populate_strings_for_block(block_idx)
-                    ui.update_text_views()
-                    ui.update_block_item_text_with_problem_count(block_idx)
+            main_window.active_spellcheck_dialog = dialog
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.destroyed.connect(lambda: setattr(main_window, 'active_spellcheck_dialog', None))
+            dialog.show()
 
         except Exception as e:
             log_error(f"CustomTreeWidget: _open_spellcheck_for_block error: {e}", exc_info=True)

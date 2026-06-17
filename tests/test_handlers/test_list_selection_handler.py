@@ -187,6 +187,8 @@ def test_ListSelectionHandler_toggles(handler):
     assert handler.mw.data_store.hide_categorized is False
     handler.toggle_hide_translated(True)
     assert handler.mw.data_store.hide_translated is True
+    handler.toggle_show_unsaved_only(True)
+    assert handler.mw.data_store.show_unsaved_only is True
 
 # --- New missing coverage tests ---
 
@@ -349,5 +351,53 @@ def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_different_str
     handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
     handler.scroll_to_current_string_in_preview.assert_called_once()
     assert handler._saved_approx_visible_lines == 0
+
+
+def test_ListSelectionHandler_toggle_hide_tags_global(handler):
+    # Setup checkbox mocks
+    mock_orig_checkbox = MagicMock()
+    mock_trans_checkbox = MagicMock()
+    handler.mw.hide_original_tags_checkbox = mock_orig_checkbox
+    handler.mw.hide_translation_tags_checkbox = mock_trans_checkbox
+
+    # Scenario 1: Both unchecked -> should turn BOTH checked (True)
+    mock_orig_checkbox.isChecked.return_value = False
+    mock_trans_checkbox.isChecked.return_value = False
+    
+    handler.toggle_hide_tags_global()
+    
+    mock_orig_checkbox.setChecked.assert_called_with(True)
+    mock_trans_checkbox.setChecked.assert_called_with(True)
+
+    # Reset mocks
+    mock_orig_checkbox.setChecked.reset_mock()
+    mock_trans_checkbox.setChecked.reset_mock()
+
+    # Scenario 2: At least one checked (original checked) -> should turn BOTH unchecked (False)
+    mock_orig_checkbox.isChecked.return_value = True
+    mock_trans_checkbox.isChecked.return_value = False
+    
+    handler.toggle_hide_tags_global()
+    
+    mock_orig_checkbox.setChecked.assert_called_with(False)
+    mock_trans_checkbox.setChecked.assert_called_with(False)
+
+    # Scenario 3: Checkboxes are not present (tests direct datastore updates)
+    del handler.mw.hide_original_tags_checkbox
+    del handler.mw.hide_translation_tags_checkbox
+    handler.mw.data_store.hide_original_tags = False
+    handler.mw.data_store.hide_translation_tags = False
+    
+    handler.mw.helper = MagicMock()
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.current_category_name = "test_cat"
+
+    handler.toggle_hide_tags_global()
+    
+    assert handler.mw.data_store.hide_original_tags is True
+    assert handler.mw.data_store.hide_translation_tags is True
+    handler.mw.helper.reconfigure_all_highlighters.assert_called_once()
+    handler.ui_updater.populate_strings_for_block.assert_called_with(0, "test_cat")
+
 
 

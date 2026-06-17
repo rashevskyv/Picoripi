@@ -66,18 +66,19 @@ def test_ProjectActionHandler_open_project_action(mock_getOpen, mock_msg_box, mo
     mock_pm.load.assert_called_with("C:/test.uiproj")
     mock_mw.ui_updater.update_title.assert_called_once()
 
-@patch('handlers.project_action_handler.QMessageBox')
-def test_ProjectActionHandler_close_project_action(mock_msg_box, mock_mw):
-    mock_msg_box.StandardButton = QMessageBox.StandardButton
+def test_ProjectActionHandler_close_project_action(mock_mw):
     mock_mw.settings_manager = MagicMock()
-    h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    mock_data_processor = MagicMock()
+    h = ProjectActionHandler(mock_mw, mock_data_processor, mock_mw.ui_updater)
     mock_mw.unsaved_changes = True
-    mock_msg_box.question.return_value = QMessageBox.StandardButton.Discard
     
     mock_mw.data = ["something"]
     mock_mw.active_game_plugin = "pokemon_fr"
     
     h.close_project_action()
+    
+    # Verify autosave session was triggered
+    mock_data_processor._autosave_session.assert_called_once_with(force=True)
     
     assert mock_mw.data == []
     assert mock_mw.edited_data == {}
@@ -456,5 +457,44 @@ def test_ProjectLoadWorker_run_and_emits(mock_mw):
     assert len(emitted_progress) > 0
     # The progress should show block loading and translation loading stages
     assert emitted_progress[0] == (0, 2)
+
+
+def test_ProjectActionHandler_populate_blocks_from_project_session_restore(mock_mw):
+    mock_mw.project_manager = MagicMock()
+    mock_block = MagicMock(source_file='a.json', translation_file='t_a.json', name="Block A")
+    mock_mw.project_manager.project.blocks = [mock_block]
+    mock_mw.project_manager.get_absolute_path.side_effect = lambda path, **kwargs: "abs_" + path
+    
+    mock_mw.current_game_rules = MagicMock()
+    
+    mock_data_processor = MagicMock()
+    mock_data_processor.load_session_file.return_value = True
+    
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.block_to_project_file_map = {0: 10}
+    
+    h = ProjectActionHandler(mock_mw, mock_data_processor, mock_mw.ui_updater)
+    
+    on_completed_mock = MagicMock()
+    
+    # We patch ProjectLoadWorker so we can assert it was NOT instantiated
+    with patch('handlers.project_action_handler.ProjectLoadWorker') as mock_worker_class:
+        h._populate_blocks_from_project(on_completed=on_completed_mock)
+        
+        # Verify load_session_file was called
+        mock_data_processor.load_session_file.assert_called_once()
+        
+        # Verify block_to_project_file_map was copied
+        assert mock_mw.block_to_project_file_map == {0: 10}
+        
+        # Verify paths were updated
+        assert mock_mw.data_store.json_path == "abs_a.json"
+        assert mock_mw.data_store.edited_json_path == "abs_t_a.json"
+        
+        # Verify ProjectLoadWorker was NOT instantiated
+        mock_worker_class.assert_not_called()
+        
+        # Verify callback was called with True
+        on_completed_mock.assert_called_once_with(True)
 
 

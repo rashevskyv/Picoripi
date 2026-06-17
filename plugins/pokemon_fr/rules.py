@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any, Tuple, Set, Optional, List
+from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 from plugins.base_game_rules import BaseGameRules
@@ -145,7 +145,7 @@ class GameRules(BaseGameRules):
         if problem_id == PROBLEM_BAD_SPACING:
             return "Spacing"
         if problem_id == PROBLEM_MISSING_ICON_SPACING:
-            return "IconSpacing"
+            return "TagSpacing"
         return super().get_short_problem_name(problem_id)
 
     def analyze_subline(self,

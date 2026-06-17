@@ -133,7 +133,7 @@ class BaseTextReviewDialog(QDialog):
 
                 if current_line_num != prev_line_num:
                     # Show number only on first subline of string
-                    display_line_numbers.append(current_line_num)
+                    display_line_numbers.append(current_line_num + 1 if current_line_num is not None else None)
                     prev_line_num = current_line_num
                     current_sub_idx = 1
                 else:
@@ -243,6 +243,42 @@ class BaseTextReviewDialog(QDialog):
 
             QTimer.singleShot(100, apply_focus)
 
+    def _navigate_to_block_and_string(self, block_idx: int, string_idx: int):
+        if block_idx is None or string_idx is None:
+            return
+
+        main_window = self._find_main_window()
+        if not main_window:
+            return
+
+        if main_window.data_store.current_block_idx != block_idx:
+            from PyQt6.QtWidgets import QTreeWidgetItemIterator
+            iterator = QTreeWidgetItemIterator(main_window.block_list_widget)
+            found_item = None
+            while iterator.value():
+                item = iterator.value()
+                if item.data(0, Qt.ItemDataRole.UserRole) == block_idx and item.data(0, Qt.ItemDataRole.UserRole + 10) is None:
+                    found_item = item
+                    break
+                iterator += 1
+
+            if found_item:
+                main_window.block_list_widget.setCurrentItem(found_item)
+                QTimer.singleShot(80, lambda: main_window.list_selection_handler.select_string_by_absolute_index(string_idx))
+        else:
+            main_window.list_selection_handler.select_string_by_absolute_index(string_idx)
+
+        def apply_focus():
+            if hasattr(main_window, 'edited_text_edit') and main_window.edited_text_edit:
+                main_window.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
+            elif hasattr(main_window, 'original_text_edit') and main_window.original_text_edit:
+                main_window.original_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
+            main_window.raise_()
+            main_window.activateWindow()
+
+        QTimer.singleShot(120, apply_focus)
+
+
     def _on_text_double_click(self, event):
         """Handle double-click on text to navigate to string in main window."""
         cursor = self.text_edit.cursorForPosition(event.pos())
@@ -258,7 +294,7 @@ class BaseTextReviewDialog(QDialog):
                                 string_number = self.text_edit.custom_line_numbers[i]
                                 break
                 if string_number is not None:
-                    self._navigate_to_string_in_main_window(string_number)
+                    self._navigate_to_string_in_main_window(string_number - 1)
 
         from PyQt6.QtWidgets import QPlainTextEdit
         QPlainTextEdit.mouseDoubleClickEvent(self.text_edit, event)

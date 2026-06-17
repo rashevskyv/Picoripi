@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, Set, Dict, Any, List
 from utils.utils import calculate_string_width, remove_all_tags
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
@@ -133,15 +133,20 @@ class ProblemAnalyzer(GenericProblemAnalyzer):
             if len(sublines) > 1:
                 if self._check_single_word_subline_generic(subline):
                     if not self._is_single_word_ok_generic(subline):
-                        if i % lines_per_page == 0:
-                            page_lines = sublines[i : i + lines_per_page]
-                            has_content_after = any(line.strip() for line in page_lines[1:])
-                            if has_content_after:
-                                problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                        is_allowed_orphan = False
+                        if i > 0:
+                            is_allowed_orphan = self._is_single_word_orphan_allowed(subline, sublines[i - 1], font_map)
+                        
+                        if not is_allowed_orphan:
+                            if i % lines_per_page == 0:
+                                page_lines = sublines[i : i + lines_per_page]
+                                has_content_after = any(line.strip() for line in page_lines[1:])
+                                if has_content_after:
+                                    problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE)
+                                else:
+                                    problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
                             else:
                                 problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
-                        else:
-                            problems_per_subline[i].add(self.problem_ids.PROBLEM_SINGLE_WORD_SUBLINE_NON_START)
         return problems_per_subline
 
     def analyze_subline(self, *args, **kwargs) -> Set[str]:

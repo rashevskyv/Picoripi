@@ -440,10 +440,113 @@ class AIWorker(QObject):
 
                 return
 
+            if task_type == 'glossary_occurrence_batch_update':
+                composer = self.task_details.get('composer_args', {})
+                system_prompt = composer.get('system_prompt', '')
+                term = composer.get('term', '')
+                old_translation = composer.get('old_translation', '')
+                new_translation = composer.get('new_translation', '')
+                batch_items = composer.get('batch_items', [])
+
+                # Split batch_items into chunks of max 12 items
+                chunks = [batch_items[k:k+12] for k in range(0, len(batch_items), 12)]
+                total_chunks = len(chunks)
+
+                self.total_chunks_calculated.emit(total_chunks, 0)
+                aggregated_occurrences = []
+
+                provider_settings_override = self.task_details.get('provider_settings_override', {})
+                provider_settings_override.update(settings_override)
+
+                for i, chunk in enumerate(chunks):
+                    if self.is_cancelled:
+                        log_debug("AIWorker: Glossary occurrence batch update cancelled before processing chunk.")
+                        self.translation_cancelled.emit()
+                        return
+
+                    self.progress_updated.emit(i)
+                    attempt = self.task_details.get('attempt', 1)
+                    step_text = f"Updating chunk {i + 1}/{total_chunks} (Attempt {attempt})"
+                    self.step_updated.emit(1, step_text, AIStatusDialog.STATUS_IN_PROGRESS)
+
+                    # Compose the prompt for this specific chunk
+                    system, user = self.prompt_composer.compose_glossary_occurrence_batch_request(
+                        system_prompt=system_prompt,
+                        term=term,
+                        old_translation=old_translation,
+                        new_translation=new_translation,
+                        batch_items=chunk,
+                        session_state=self.task_details.get('session_state')
+                    )
+
+                    custom_header = self.task_details.get('custom_user_header')
+                    if custom_header:
+                        label = (self.task_details.get('custom_user_label') or 'JSON DATA TO UPDATE:').strip()
+                        _, sep_marker, json_section = user.partition('JSON DATA TO UPDATE:')
+                        if sep_marker:
+                            rebuilt = custom_header.rstrip()
+                            if rebuilt:
+                                rebuilt += '\n\n' + label
+                            else:
+                                rebuilt = label
+                            if not json_section.startswith('\n'):
+                                rebuilt += '\n'
+                            rebuilt += json_section
+                            user = rebuilt
+
+                    session_payload = None
+                    session_state = self.task_details.get('session_state')
+                    if session_state:
+                        user_message = {"role": "user", "content": user}
+                        messages, session_payload = session_state.prepare_request(user_message)
+                    else:
+                        messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+                    if attempt > 1 and isinstance(messages, list):
+                        for msg in messages:
+                            if isinstance(msg, dict) and msg.get('role') == 'system':
+                                reminder = (
+                                    "\n\nIMPORTANT REMINDER FOR RETRY:\n"
+                                    "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
+                                    "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
+                                )
+                                msg['content'] = msg.get('content', '') + reminder
+                                break
+
+                    self._last_messages = messages
+                    self._log_ai_traffic(messages)
+                    response = self.provider.translate(messages, session=session_payload, settings_override=provider_settings_override)
+
+                    if self.is_cancelled:
+                        log_debug("AIWorker: Glossary occurrence batch update cancelled during network request.")
+                        self.translation_cancelled.emit()
+                        return
+
+                    self._log_ai_traffic(messages, response_text=response.text)
+                    cleaned_text = self._clean_json_response(response.text)
+                    payload = json.loads(cleaned_text)
+
+                    updates = None
+                    if isinstance(payload, dict):
+                        updates = payload.get("occurrences") or payload.get("translations") or payload.get("updated_translations")
+
+                    if not isinstance(updates, list):
+                        raise ValueError(f"AI response missing 'occurrences' array in chunk {i + 1}.")
+
+                    aggregated_occurrences.extend(updates)
+
+                # Done with all chunks! Emit success.
+                self.progress_updated.emit(total_chunks)
+                aggregated_payload = ProviderResponse(
+                    text=json.dumps({"occurrences": aggregated_occurrences}, ensure_ascii=False),
+                    raw_payload={"occurrences": aggregated_occurrences}
+                )
+                self.success.emit(aggregated_payload, self.task_details)
                 return
 
             dialog_steps = self.task_details['dialog_steps']
             self.step_updated.emit(0, dialog_steps[0], AIStatusDialog.STATUS_IN_PROGRESS)
+            log_debug("AIWorker: Starting non-chunked task type='%s', block=%s, string=%s" % (task_type, self.task_details.get('block_idx'), self.task_details.get('string_idx')))
             
             precomposed = self.task_details.get('precomposed_prompt')
             session_info = self.task_details.get('session') if isinstance(self.task_details.get('session'), dict) else None
@@ -533,6 +636,7 @@ class AIWorker(QObject):
                 return
             
             self._log_ai_traffic(messages, response_text=response.text)
+            log_debug("AIWorker: Request successful, emitting success signal for task_type='%s'" % task_type)
             self.success.emit(response, self.task_details)
 
 
