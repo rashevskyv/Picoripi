@@ -1,5 +1,19 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.033] - 2026-06-17
+
+### 🚀 Added
+- **Show Unsaved Only Automatic Updates**:
+  - Configured the strings preview list to automatically hide newly saved lines if the "Show Unsaved Only" filter is active.
+  - Configured the block tree to update immediately if "Show Unsaved Blocks Only" is enabled and blocks become fully saved.
+
+### 🐛 Fixed
+- **Zebra Parity and Color Alignment**:
+  - Aligned background colors and line parity calculation between the Line Number Area and the Text Edit viewport, resolving visual zebra-striping misalignments.
+  - Fixed a bug where warning overlays would interfere with zebra backgrounds in the text field; warning states are kept strictly in the Line Number Area.
+- **Saved String Asterisk Re-emergence**:
+  - Correctly updated `edited_file_data` inside the memory data store after granular saving, ensuring saved strings do not regain the modified asterisk state when focused.
+
 ## [0.3.032] - 2026-06-17
 
 ### 🚀 Added

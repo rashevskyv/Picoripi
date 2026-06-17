@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QMainWindow, QPushButton, QMenu
+from PyQt6.QtWidgets import QMainWindow, QPushButton, QMenu
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 
@@ -27,8 +27,8 @@ def set_theme_colors(editor, main_window_ref):
         editor.previously_selected_line_color = DT_PREVIOUSLY_SELECTED_LINE_COLOR
         editor.zebra_even_color = DT_ZEBRA_EVEN_COLOR
         editor.zebra_odd_color = DT_ZEBRA_ODD_COLOR
-        editor.lineNumberArea.odd_line_background = QColor("#303030")
-        editor.lineNumberArea.even_line_background = QColor("#383838")
+        editor.lineNumberArea.odd_line_background = DT_ZEBRA_ODD_COLOR
+        editor.lineNumberArea.even_line_background = DT_ZEBRA_EVEN_COLOR
         editor.lineNumberArea.number_color = QColor("#B0B0B0")
     else:
         editor.current_line_color = LT_CURRENT_LINE_COLOR
@@ -37,8 +37,8 @@ def set_theme_colors(editor, main_window_ref):
         editor.previously_selected_line_color = LT_PREVIOUSLY_SELECTED_LINE_COLOR
         editor.zebra_even_color = LT_ZEBRA_EVEN_COLOR
         editor.zebra_odd_color = LT_ZEBRA_ODD_COLOR
-        editor.lineNumberArea.odd_line_background = QColor(Qt.GlobalColor.lightGray).lighter(115)
-        editor.lineNumberArea.even_line_background = QColor(Qt.GlobalColor.white)
+        editor.lineNumberArea.odd_line_background = LT_ZEBRA_ODD_COLOR
+        editor.lineNumberArea.even_line_background = LT_ZEBRA_EVEN_COLOR
         editor.lineNumberArea.number_color = QColor(Qt.GlobalColor.darkGray)
 
     editor.linked_cursor_pos_color = LINKED_CURSOR_POS_COLOR

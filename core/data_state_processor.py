@@ -1243,6 +1243,7 @@ class DataStateProcessor:
                 remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
                 self.mw.data_store.edited_data = remaining_edits
                 self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
+                self.mw.data_store.edited_file_data = output_data_list
                 
                 if hasattr(self.mw, 'helper'):
                     self.mw.helper.rebuild_unsaved_block_indices()
@@ -1252,6 +1253,11 @@ class DataStateProcessor:
                     for b_idx in affected_blocks:
                         self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                     self.mw.ui_updater.update_title()
+                    
+                    if self.mw.data_store.current_block_idx in affected_blocks:
+                        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                    if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
+                        self.mw.ui_updater.block_list_updater.populate_blocks()
                     
                 self._autosave_session(force=True)
                 if on_finished_callback:
@@ -1264,6 +1270,7 @@ class DataStateProcessor:
                             remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
                             self.mw.data_store.edited_data = remaining_edits
                             self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
+                            self.mw.data_store.edited_file_data = output_data_list
                             
                             if hasattr(self.mw, 'helper'):
                                 self.mw.helper.rebuild_unsaved_block_indices()
@@ -1273,6 +1280,11 @@ class DataStateProcessor:
                                 for b_idx in affected_blocks:
                                     self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                                 self.mw.ui_updater.update_title()
+                                
+                                if self.mw.data_store.current_block_idx in affected_blocks:
+                                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                                if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
+                                    self.mw.ui_updater.block_list_updater.populate_blocks()
                                 
                             self._autosave_session(force=True)
                         
@@ -1293,6 +1305,7 @@ class DataStateProcessor:
                     remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
                     self.mw.data_store.edited_data = remaining_edits
                     self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
+                    self.mw.data_store.edited_file_data = output_data_list
                     
                     if hasattr(self.mw, 'helper'):
                         self.mw.helper.rebuild_unsaved_block_indices()
@@ -1302,6 +1315,11 @@ class DataStateProcessor:
                         for b_idx in affected_blocks:
                             self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                         self.mw.ui_updater.update_title()
+                        
+                        if self.mw.data_store.current_block_idx in affected_blocks:
+                            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                        if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
+                            self.mw.ui_updater.block_list_updater.populate_blocks()
                         
                     self._autosave_session(force=True)
                     if on_finished_callback:

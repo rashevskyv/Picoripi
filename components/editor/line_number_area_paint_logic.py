@@ -94,9 +94,8 @@ class LNETLineNumberAreaPaintLogic:
 
                     # 1. Determine background colors
                     # Subline-level zebra (right column)
-                    bg_color_subline_zebra = even_bg_color_const
-                    if (current_q_block_number_in_editor_doc + 1) % 2 != 0:
-                        bg_color_subline_zebra = odd_bg_color_const
+                    is_odd = current_q_block_number_in_editor_doc % 2 != 0
+                    bg_color_subline_zebra = odd_bg_color_const if is_odd else even_bg_color_const
                     
                     # String-level zebra (left column in review mode)
                     bg_color_string_zebra = bg_color_subline_zebra
