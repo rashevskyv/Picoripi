@@ -1,10 +1,10 @@
-# The "Picoripi" (v0.3.031)
+# The "Picoripi" (v0.3.032)
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
 ## Project Overview
 
-The "Picoripi" (v0.3.031) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.032) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -25,7 +25,7 @@ The application is designed to be highly versatile, with features tailored to ha
 - **Specialized UI Components**: Custom widgets like `LineNumberedTextEdit` that calculates pixel-perfect character widths using game-specific font maps, provides line numbers, shows visual warnings (colored markers) for text exceeding display limits, and provides contextual tooltips for glossary and issues.
 - **Tag Management**: Recognizes and provides syntax highlighting for special in-game control codes (e.g., `{Color:Red}`, `[PLAYER]`, `[L-Stick]`).
 - **Integrated Spellchecker**: Uses `spylls` (Hunspell implementation) for spellchecking with an **asynchronous background worker** for non-blocking suggestions and **persistent disk-based caching** for optimized performance. Supports custom dictionaries and glossary integration.
-- **Analysis & Safety**: Built-in Analysis Tool for visualizing text sizes and problem counts with **multi-font support** and **instant font switching** using a stacked-view architecture. Features background processing via `WidthCalculationWorker` to prevent UI freezes. Project-wide Issue Scan for width violations and tag errors. Text Autofix engine for automatic correction of common problems.
+- **Analysis & Safety**: Built-in Analysis Tool for visualizing text sizes and problem counts with **multi-font support** and **instant font switching** using a stacked-view architecture. Features background processing via `WidthCalculationWorker` to prevent UI freezes. Project-wide Issue Scan for width violations and tag errors. Text Autofix engine for automatic correction of common problems. Supports relocation of control codes `{tab}` to the start of the next line and cleaning space after them to ensure they are never merged back during wrapping or sentence compaction.
 - **Comprehensive Undo/Redo**: Multi-level undo system (`UndoManager`) that covers text edits, folder structure changes, block reverts, paste operations, and navigation history.
 - **Global Search**: Project-wide search panel with **fuzzy matching**, case-sensitive/insensitive modes, and tagless search support. Features **precision highlighting** for fuzzy matches, even when the matched word form deviates from the query.
 - **Advanced Navigation**: Efficient result cycling with ergonomic "Prev/Next" controls and automatic selection jumping.

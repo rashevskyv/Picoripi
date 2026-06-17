@@ -331,6 +331,7 @@ class IssueScanHandler(BaseHandler):
                 self._progress_dialog = None
             log_debug("Initial issue scan complete.")
             self._save_issues_cache()
+            self.data_processor.schedule_autosave()
 
     def rescan_issues_for_single_block(self, block_idx: int = -1, show_message_on_completion: bool = True, use_default_mappings: bool = True):
         """Rescan issues for single block."""
@@ -377,6 +378,7 @@ class IssueScanHandler(BaseHandler):
         
         # Save the updated issues cache
         self._save_issues_cache()
+        self.data_processor.schedule_autosave()
 
     def rescan_all_tags(self):
         # Invalidate cache to force a full scan

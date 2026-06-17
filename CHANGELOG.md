@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.032] - 2026-06-17
+
+### 🚀 Added
+- **Tab Relocation and Clean Spacing**:
+  - Relocates `{tab}` (and escape code `{escape:6:000b}`) control codes to the start of the next line during AutoFix, preventing them from being merged back during sentence compaction.
+  - Automatically cleans unwanted spaces immediately following `{tab}`.
+  - Prepend `{*}` list markers if `{tab}` is present but `{*}` is missing (if star rules are enabled).
+- **Session Warnings and Issues Persistence**:
+  - Scheduled autosave events after issue scans and text operations to ensure that detected warnings and issues are persisted to the `.picoripi_session` file and correctly restored upon next launch.
+
+### 🐛 Fixed
+- **Missing Tag Spacing false positive**: Fixed potential false positive spacing checks on tab control characters.
+
 ## [0.3.031] - 2026-06-17
 
 ### 🚀 Added

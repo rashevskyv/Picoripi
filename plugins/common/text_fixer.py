@@ -118,6 +118,12 @@ class GenericTextFixer:
             current_line = parts[idx]
             prev_line = parts[idx - 2]
             
+            # Don't wrap orphans if current line or prev line contains {tab} or {escape:6:000b}
+            if '{tab}' in current_line.lower() or '{escape:6:000b}' in current_line.lower():
+                continue
+            if '{tab}' in prev_line.lower() or '{escape:6:000b}' in prev_line.lower():
+                continue
+
             # 1. Перевіряємо, чи на поточному рядку рівно одне слово (враховуючи видимі теги)
             from utils.utils import get_line_words_and_visible_tags
             current_words = get_line_words_and_visible_tags(current_line, self.mw)
@@ -356,6 +362,14 @@ class GenericTextFixer:
                 re.IGNORECASE,
             ))
 
+        def _contains_tab_or_page_break(line: str) -> bool:
+            """Check if line contains page break or tab."""
+            if _starts_with_page_break(line):
+                return True
+            if "{tab}" in line.lower() or "{escape:6:000b}" in line.lower():
+                return True
+            return False
+
         lines = list(text.split("\n"))
         original_lines = list(lines)
         changed = False
@@ -366,6 +380,11 @@ class GenericTextFixer:
 
             # Only act on sentence-ending non-empty lines
             if not line.strip() or not _is_sentence_end(line):
+                i += 1
+                continue
+
+            # Don't merge if current line contains tab or page-break
+            if _contains_tab_or_page_break(line):
                 i += 1
                 continue
 
@@ -395,8 +414,8 @@ class GenericTextFixer:
             if next_start >= len(lines):
                 break
 
-            # Don't merge if next sentence starts with a page-break code
-            if _starts_with_page_break(lines[next_start]):
+            # Don't merge if next sentence starts with a page-break or contains tab
+            if _contains_tab_or_page_break(lines[next_start]):
                 i += 1
                 continue
 
@@ -424,6 +443,11 @@ class GenericTextFixer:
 
             # next sentence is lines[next_start .. next_end] inclusive
             next_sent_lines = lines[next_start:next_end + 1]
+
+            # Don't merge if any line of the next sentence contains tab or page-break
+            if any(_contains_tab_or_page_break(l) for l in next_sent_lines):
+                i += 1
+                continue
 
             # Merge: append all of next sentence after line i on the same line
             next_text = " ".join(l.strip() for l in next_sent_lines)

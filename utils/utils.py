@@ -54,6 +54,9 @@ def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional
     """Check if is visible tag."""
     if tag is None:
         return False
+    tag_lower = tag.lower()
+    if tag_lower in ('{*}', '{tab}', '{escape:6:000a}', '{escape:6:000b}'):
+        return False
     if '(' in tag and ')' in tag:
         return True
     

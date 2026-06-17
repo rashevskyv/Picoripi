@@ -1,6 +1,6 @@
-# Picoripi v0.3.031
+# Picoripi v0.3.032
  
-The **Picoripi** (v0.3.031) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.032) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -62,6 +62,10 @@ The **Picoripi** (v0.3.031) is a visual translation and localization workbench b
 - **Silent Ctrl+S Saving with Toast Notification**: Refactored the file saving mechanism so that pressing `Ctrl+S` (or using the Save action) instantly saves all changes without displaying blocking confirmation dialogs. A non-blocking, semi-transparent black **Toast Notification** with rounded corners appears in the bottom-left corner of the screen for 2 seconds to confirm the success.
 - **Strict Page-Local AutoFix (Shift+AutoFix)**: Pressing `Shift` while running AutoFix isolates wrapping and fixes to the current page only. It strictly preserves page boundaries by padding each page back to its original length, preventing text from next pages from overflowing into previous ones, even when the empty padding lines prevention is enabled globally.
 - **Unconditional Page Layout Sentence Alignment**: Refactored sentence wrapping to allow matching target text pages directly with the source. When enabled, it strips old layout markers and replicates exact game-specific page break codes (like `[escape:0:0007...]`) from matching source sentences.
+- **Tab Relocation and Clean Spacing**:
+  - Automatically relocates control codes `{tab}` to the start of the next line during Auto-fix operations.
+  - Ensures `{tab}` never remains inside text blocks (even when general star tag rules are disabled) and prevents sentence compaction or word wrapping from merging them back.
+  - Cleans any unwanted spaces immediately following `{tab}` (e.g. converting `{tab}  text` to `{tab}text`).
 
 ---
 

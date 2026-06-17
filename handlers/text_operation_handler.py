@@ -488,6 +488,8 @@ class TextOperationHandler(BaseHandler):
                 edited_edit.highlighter.rehighlight()
             if hasattr(edited_edit, 'lineNumberArea'):
                 edited_edit.lineNumberArea.update()
+        
+        self.data_processor.schedule_autosave()
 
     def sync_subline_asterisks(self, block_idx: int, string_idx: int, current_text: str) -> None:
         """

@@ -1,4 +1,5 @@
 import pytest
+import re
 from plugins.zelda_bmg.rules import GameRules
 from bmg_tool import BMGFile, BMGMessage
 
@@ -377,6 +378,72 @@ def test_star_tag_rules_with_escapes():
 
     # Total: 3 lines (1 plain + 2 star sections)
     assert len(lines) == 3
+
+
+def test_autofix_tab_relocation_disabled_rules():
+    rules = GameRules()
+    setup_test_mappings(rules)
+
+    # Text containing {tab} inside lines.
+    # We want to check that even if STAR_TAG_RULES is disabled,
+    # the tabs are relocated to the start of the next lines and not merged back.
+    text = (
+        "Line 1 text.\n"
+        "Line 2 {tab} text inside.\n"
+        "Line 3 more text."
+    )
+
+    # Disable ZBMG_STAR_TAG_RULES, enable ZBMG_SHORT_LINE and ZBMG_WIDTH_EXCEEDED
+    allowed = {"ZBMG_SHORT_LINE", "ZBMG_WIDTH_EXCEEDED"}
+
+    fixed, changed = rules.autofix_data_string(text, {}, 400, allowed_problems=allowed)
+    assert changed is True
+
+    lines = fixed.split('\n')
+    # Check that tab is relocated to the start of a line and is not inside any line
+    has_tab_start = False
+    for line in lines:
+        assert not re.search(r'.+\{escape:6:000b\}', line)  # tab must not be inside
+        if line.startswith('{escape:6:000b}'):
+            has_tab_start = True
+
+    assert has_tab_start is True
+
+
+def test_autofix_tab_without_star_rules():
+    rules = GameRules()
+    setup_test_mappings(rules)
+
+    # Text containing {tab} inside, but no {*} prefix at start
+    text = (
+        "Вона побіжить і вибухне, {tab} коли у\n"
+        "щось вдарить або через певний час."
+    )
+
+    # 1. With ZBMG_STAR_TAG_RULES enabled, {*} should be prepended and formatted into star section
+    allowed_enabled = {"ZBMG_SHORT_LINE", "ZBMG_WIDTH_EXCEEDED", "ZBMG_STAR_TAG_RULES"}
+    fixed_enabled, changed_enabled = rules.autofix_data_string(text, {}, 10000, allowed_problems=allowed_enabled)
+    assert changed_enabled is True
+    # Under high threshold, it should merge into a single line with star prefix
+    assert fixed_enabled.startswith("{escape:6:000a}")
+    assert "{escape:6:000b}" not in fixed_enabled
+
+    # Under low threshold (e.g. 400), it should split and use tab prefix for next lines
+    fixed_split, changed_split = rules.autofix_data_string(text, {}, 400, allowed_problems=allowed_enabled)
+    assert changed_split is True
+    lines_split = fixed_split.split('\n')
+    assert lines_split[0].startswith("{escape:6:000a}")
+    assert lines_split[1].startswith("{escape:6:000b}")
+
+    # 2. With ZBMG_STAR_TAG_RULES disabled, star is not prepended, but tab is still relocated to start of line
+    allowed_disabled = {"ZBMG_SHORT_LINE", "ZBMG_WIDTH_EXCEEDED"}
+    fixed_disabled, changed_disabled = rules.autofix_data_string(text, {}, 400, allowed_problems=allowed_disabled)
+    assert changed_disabled is True
+    lines_disabled = fixed_disabled.split('\n')
+    assert not lines_disabled[0].startswith("{escape:6:000a}")
+    assert any(line.startswith("{escape:6:000b}") for line in lines_disabled)
+
+
 
 
 

@@ -382,6 +382,8 @@ class GameRules(BaseGameRules):
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
         """Calculate string width override."""
+        if not font_map:
+            default_char_width = 10
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
         from utils.utils import calculate_string_width
         return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)

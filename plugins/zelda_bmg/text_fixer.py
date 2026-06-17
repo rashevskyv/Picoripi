@@ -73,6 +73,14 @@ class TextFixer(GenericTextFixer):
                 current_line = new_sub_lines[i]
                 next_line = new_sub_lines[i+1]
                 
+                # Don't merge if current_line or next_line contains {tab} or its escape representation
+                if '{tab}' in current_line.lower() or '{escape:6:000b}' in current_line.lower():
+                    i -= 1
+                    continue
+                if '{tab}' in next_line.lower() or '{escape:6:000b}' in next_line.lower():
+                    i -= 1
+                    continue
+
                 # Don't merge if next_line starts with page break or pause control code
                 if re.search(r'^\s*[\{\[](?:escape:0:(?:0007|7000)[0-9a-fA-F]*|pause[0-9]*)[\}\]]', next_line, re.IGNORECASE):
                     i -= 1
@@ -254,15 +262,17 @@ class TextFixer(GenericTextFixer):
         # Re-split by width (no lines_per_page limit)
         output_lines: List[str] = []
         remaining = merged
+        is_first_line = True
         while remaining:
-            if self._calculate_width(remaining, editor_font_map) <= threshold:
+            prefix = '{*}' if is_first_line else '{tab}'
+            if self._calculate_width(prefix + remaining, editor_font_map) <= threshold:
                 output_lines.append(remaining)
                 break
             parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', remaining)
             best_split = -1
             for j in range(len(parts) - 1, 0, -1):
                 candidate = ''.join(parts[:j]).rstrip()
-                if self._calculate_width(candidate, editor_font_map) <= threshold:
+                if self._calculate_width(prefix + candidate, editor_font_map) <= threshold:
                     best_split = j
                     break
             if best_split == -1:
@@ -271,6 +281,7 @@ class TextFixer(GenericTextFixer):
             line2 = ''.join(parts[best_split:]).lstrip()
             output_lines.append(line1)
             remaining = line2
+            is_first_line = False
 
         # Add prefixes: {*} for first, {tab} for rest
         result: List[str] = []
@@ -280,6 +291,184 @@ class TextFixer(GenericTextFixer):
             else:
                 result.append('{tab}' + line)
         return result
+
+    def _move_tabs_to_stline_start(self, text: str) -> Tuple[str, bool]:
+        """
+        If a line contains {tab} inside (not at the very start), 
+        move {tab} to the start of this line (after any leading spaces).
+        However, if the line starts with {*}, split the line so that {*} remains
+        on the first line and {tab} starts the next line.
+        Also removes any spaces immediately following {tab} at its original location.
+        If {tab} is at the end of a line (without content after it), it is postponed
+        and placed at the start of the next line with text.
+        """
+        lines = text.split('\n')
+        new_lines = []
+        changed = False
+        pending_tab = False
+        
+        for i, line in enumerate(lines):
+            # If we have a pending tab from the previous line, prepend it to the current line
+            if pending_tab:
+                stripped_line = line.lstrip()
+                if stripped_line and not stripped_line.startswith('{*}') and not stripped_line.startswith('{tab}'):
+                    leading_spaces = line[:len(line) - len(stripped_line)]
+                    line = leading_spaces + '{tab}' + stripped_line
+                    changed = True
+                pending_tab = False
+
+            if '{tab}' in line:
+                stripped = line.lstrip()
+                if stripped.startswith('{*}'):
+                    # The line starts with {*} and contains {tab} inside.
+                    # We must split the line at the first {tab} so that the first part starts with {*}
+                    # and the second part starts with {tab}.
+                    idx = line.find('{tab}')
+                    first_part = line[:idx].rstrip()
+                    second_part = line[idx:].strip()
+                    
+                    second_part_clean = second_part.replace('{tab}', '').strip()
+                    if not second_part_clean:
+                        # Tab is at the end of the line, no text after it.
+                        # We just keep first_part and schedule tab for the next line
+                        new_lines.append(first_part)
+                        pending_tab = True
+                        changed = True
+                    else:
+                        new_lines.append(first_part)
+                        if '{tab}' in second_part[5:]:
+                            parts = second_part.split('{tab}')
+                            fixed_parts = []
+                            for s_idx, part in enumerate(parts):
+                                fixed_parts.append('{tab}' + part.strip())
+                            new_lines.extend([p for p in fixed_parts if p])
+                        else:
+                            new_lines.append(second_part)
+                        changed = True
+                elif stripped.startswith('{tab}'):
+                    # Already starts with {tab} (possibly with leading space before it)
+                    # Clean the space after the first {tab}
+                    prefix_space = line[:line.find('{tab}')]
+                    content_after = line[line.find('{tab}') + 5:]
+                    
+                    content_after_clean = content_after.replace('{tab}', '').strip()
+                    if not content_after_clean:
+                        # Line is just {tab} and spaces.
+                        # Schedule tab for next line and don't add this empty line
+                        pending_tab = True
+                        changed = True
+                    else:
+                        if '{tab}' in content_after:
+                            content_clean = content_after.replace('{tab}', ' ')
+                            content_normalized = re.sub(r'\s+', ' ', content_clean).strip()
+                            cleaned_line = prefix_space + '{tab}' + content_normalized
+                            new_lines.append(cleaned_line)
+                            changed = True
+                        else:
+                            cleaned_line = prefix_space + '{tab}' + content_after.strip()
+                            if cleaned_line != line:
+                                new_lines.append(cleaned_line)
+                                changed = True
+                            else:
+                                new_lines.append(line)
+                else:
+                    # {tab} is inside the line (not at the start) and the line does not start with {*}
+                    # Move all tabs to the beginning of this line (after leading spaces)
+                    idx = line.find('{tab}')
+                    content_after = line[idx + 5:].strip()
+                    if not content_after:
+                        # Tab is at the end of the line
+                        cleaned_line = line[:idx].rstrip()
+                        new_lines.append(cleaned_line)
+                        pending_tab = True
+                        changed = True
+                    else:
+                        leading_spaces = line[:len(line) - len(stripped)]
+                        content_without_tabs = stripped.replace('{tab}', ' ')
+                        content_normalized = re.sub(r'\s+', ' ', content_without_tabs).strip()
+                        new_line = leading_spaces + '{tab}' + content_normalized
+                        new_lines.append(new_line)
+                        changed = True
+            else:
+                new_lines.append(line)
+                
+        if pending_tab:
+            if new_lines and not new_lines[-1].strip():
+                new_lines[-1] = '{tab}'
+            else:
+                new_lines.append('{tab}')
+                
+        return '\n'.join(new_lines), changed
+
+    def _fix_width_exceeded_generic(self, text: str, font_map: dict, threshold: int) -> Tuple[str, bool]:
+        """Custom width exceeded fixer for Zelda BMG that respects star/tab rules."""
+        original_text = text
+        sub_lines = text.split('\n')
+        made_change = False
+        final_lines = []
+        
+        under_star = False
+        
+        for line in sub_lines:
+            stripped = line.lstrip()
+            # If the line starts with {*} or we already saw {*} in previous lines
+            if stripped.startswith('{*}'):
+                under_star = True
+                
+            # If we are under star, but this line does NOT start with {*} and does NOT start with {tab},
+            # we should add {tab} to the start of this line (after leading spaces).
+            if under_star and not stripped.startswith('{*}') and not stripped.startswith('{tab}'):
+                leading_spaces = line[:len(line) - len(stripped)]
+                line = leading_spaces + '{tab}' + stripped
+                stripped = line.lstrip()
+                made_change = True
+                
+            if self._calculate_width(line, font_map) <= threshold:
+                final_lines.append(line)
+                continue
+
+            # If the line exceeds width, we need to split it
+            while self._calculate_width(line, font_map) > threshold:
+                made_change = True
+                line_parts = re.findall(r'((?:\{[^}]*\}|\[[^\]]*\])-\S+|\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
+                best_split_point = -1
+                punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'", '—', '–'}
+                for j in range(len(line_parts) - 1, 0, -1):
+                    line_part_one = "".join(line_parts[:j]).rstrip()
+                    if self._calculate_width(line_part_one, font_map) <= threshold:
+                        line_part_two = "".join(line_parts[j:]).lstrip()
+                        if line_part_two and line_part_two[0] in punctuation_chars:
+                            continue
+                        best_split_point = j
+                        break
+                if best_split_point == -1 and len(line_parts) > 1:
+                    best_split_point = 1
+
+                if best_split_point != -1:
+                    line1 = "".join(line_parts[:best_split_point]).rstrip()
+                    line2 = "".join(line_parts[best_split_point:]).lstrip()
+                    
+                    final_lines.append(line1)
+                    
+                    # Since we split the line, if we are under star, the second line (line2) MUST start with {tab}.
+                    if under_star:
+                        line2_stripped = line2.lstrip()
+                        if not line2_stripped.startswith('{tab}'):
+                            leading_spaces = line2[:len(line2) - len(line2_stripped)]
+                            line2 = leading_spaces + '{tab}' + line2_stripped
+                            
+                    line = line2 
+                else:
+                    final_lines.append(line)
+                    line = ""
+                    break
+            if line:
+                final_lines.append(line)
+
+        final_text = "\n".join(final_lines)
+        return final_text, final_text != original_text
+
+
 
     def autofix_data_string(self,
                              data_string: str,
@@ -337,9 +526,19 @@ class TextFixer(GenericTextFixer):
 
         # Convert escape codes to aliases for processing
         working_text = self._to_aliases(original_text)
+
+        # If there is a tab but no star, and we are allowed to fix star tag rules,
+        # prepend {*} to the very beginning of the text to activate star-section mode.
+        if '{tab}' in working_text and '{*}' not in working_text:
+            if is_allowed(PROBLEM_STAR_TAG_RULES):
+                working_text = '{*}' + working_text.lstrip()
+
+        # Always relocate internal tabs to line starts
+        working_text, changed_tabs = self._move_tabs_to_stline_start(working_text)
+
         has_star = '{*}' in working_text
 
-        if has_star and is_allowed(PROBLEM_STAR_TAG_RULES):
+        if has_star:
             # --- Star-section mode ---
             # Fix bad spacing and missing icon spacing first if enabled
             if is_allowed(PROBLEM_BAD_SPACING):
@@ -380,9 +579,11 @@ class TextFixer(GenericTextFixer):
                     result_lines.extend(plain_text.split('\n'))
 
             final_text = '\n'.join(result_lines)
+            # Move tabs to line starts again at the very end to guarantee they are never left inside lines
+            final_text, changed_tabs_end = self._move_tabs_to_stline_start(final_text)
             # Convert aliases back to escape codes
             final_text = self._from_aliases(final_text)
-            return final_text, final_text != original_text
+            return final_text, (final_text != original_text or changed_tabs or changed_tabs_end)
 
         else:
             # --- Standard mode (no {*} tags) ---
@@ -455,6 +656,9 @@ class TextFixer(GenericTextFixer):
             if has_single_word_allowed:
                 final_text, changed_orphans = self._fix_single_word_orphans_generic(final_text, editor_font_map)
 
+            # Move tabs to line starts again at the very end to guarantee they are never left inside lines
+            final_text, changed_tabs_end = self._move_tabs_to_stline_start(final_text)
+
             # Convert aliases back (in case any were present in the original but no {*} triggered star mode)
             final_text = self._from_aliases(final_text)
-            return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_compact or changed_orphans)
+            return final_text, (final_text != original_text or changed_missing_spacing or changed_shift or changed_compact or changed_orphans or changed_tabs or changed_tabs_end)
