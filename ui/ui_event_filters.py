@@ -1,4 +1,5 @@
 ﻿from PyQt6.QtCore import QObject, QEvent, Qt
+from PyQt6.QtGui import QKeySequence
 from PyQt6.QtWidgets import QApplication, QWidget
 from utils.logging_utils import log_debug
 
@@ -149,9 +150,79 @@ class MainWindowEventFilter(QObject):
         super().__init__(main_window)
         self.mw = main_window
 
+    def _is_speaker_combobox_event_source(self, obj) -> bool:
+        """Return True when a key event came from the speaker combobox or its popup."""
+        combo = getattr(self.mw, 'speaker_combobox', None)
+        if combo is None:
+            return False
+
+        if obj is combo:
+            return True
+
+        try:
+            line_edit = combo.lineEdit()
+        except (AttributeError, RuntimeError):
+            line_edit = None
+        if line_edit is not None and obj is line_edit:
+            return True
+
+        try:
+            view = combo.view()
+        except (AttributeError, RuntimeError):
+            view = None
+        if view is not None:
+            if obj is view:
+                return True
+            try:
+                if obj is view.viewport():
+                    return True
+            except RuntimeError:
+                pass
+
+        if isinstance(obj, QWidget):
+            parent = obj.parentWidget()
+            while parent:
+                if parent is combo or parent is line_edit or parent is view:
+                    return True
+                parent = parent.parentWidget()
+
+        return False
+
+    def _handle_speaker_combobox_undo_shortcut(self, event) -> bool:
+        """Route Ctrl+Z/Y from the speaker editor to the app undo stack."""
+        is_undo = event.matches(QKeySequence.StandardKey.Undo) or (
+            event.modifiers() == Qt.KeyboardModifier.ControlModifier
+            and event.key() == Qt.Key.Key_Z
+        )
+        if is_undo:
+            if hasattr(self.mw, 'undo_typing_action') and self.mw.undo_typing_action:
+                self.mw.undo_typing_action.trigger()
+            elif hasattr(self.mw, 'undo_manager') and self.mw.undo_manager:
+                self.mw.undo_manager.undo()
+            return True
+
+        is_redo = event.matches(QKeySequence.StandardKey.Redo) or (
+            event.modifiers() == Qt.KeyboardModifier.ControlModifier
+            and event.key() == Qt.Key.Key_Y
+        ) or (
+            event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+            and event.key() == Qt.Key.Key_Z
+        )
+        if is_redo:
+            if hasattr(self.mw, 'redo_typing_action') and self.mw.redo_typing_action:
+                self.mw.redo_typing_action.trigger()
+            elif hasattr(self.mw, 'undo_manager') and self.mw.undo_manager:
+                self.mw.undo_manager.redo()
+            return True
+
+        return False
+
     def eventFilter(self, obj, event):
         """Eventfilter."""
         if event.type() == QEvent.Type.KeyPress:
+            if self._is_speaker_combobox_event_source(obj) and self._handle_speaker_combobox_undo_shortcut(event):
+                return True
+
             if event.modifiers() & Qt.KeyboardModifier.AltModifier and event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
                 if event.key() == Qt.Key.Key_Up:
                     log_debug("AppFilter: Alt+Shift+Up -> navigate_between_blocks(False)")

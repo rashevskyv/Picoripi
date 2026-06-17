@@ -2,7 +2,8 @@ import pytest
 from unittest.mock import MagicMock
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent
-from ui.ui_event_filters import TextEditEventFilter
+from PyQt6.QtWidgets import QComboBox, QWidget
+from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
 
 def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     # Setup mock data: 5 strings, indices 0-4
@@ -56,3 +57,33 @@ def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     
     assert res_up is True
     handler_mock.string_selected_from_preview.assert_called_once_with(0)
+
+def test_MainWindowEventFilter_routes_speaker_line_edit_undo_to_app_action(qapp):
+    mw = QWidget()
+    mw.speaker_combobox = QComboBox(mw)
+    mw.speaker_combobox.setEditable(True)
+    mw.undo_typing_action = MagicMock()
+    mw.redo_typing_action = MagicMock()
+
+    filter_obj = MainWindowEventFilter(mw)
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
+
+    assert filter_obj.eventFilter(mw.speaker_combobox.lineEdit(), event) is True
+    mw.undo_typing_action.trigger.assert_called_once()
+    mw.redo_typing_action.trigger.assert_not_called()
+
+def test_MainWindowEventFilter_routes_speaker_popup_redo_to_app_action(qapp):
+    mw = QWidget()
+    mw.speaker_combobox = QComboBox(mw)
+    mw.speaker_combobox.setEditable(True)
+    mw.speaker_combobox.addItems(["Hero", "Villain"])
+    mw.undo_typing_action = MagicMock()
+    mw.redo_typing_action = MagicMock()
+
+    filter_obj = MainWindowEventFilter(mw)
+    modifiers = Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Z, modifiers)
+
+    assert filter_obj.eventFilter(mw.speaker_combobox.view().viewport(), event) is True
+    mw.redo_typing_action.trigger.assert_called_once()
+    mw.undo_typing_action.trigger.assert_not_called()

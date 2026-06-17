@@ -202,6 +202,28 @@ def test_UndoManager_undo_navigation(um, mock_mw):
         um.redo()
         mock_nav.assert_called_with(1, 2, None)
 
+def test_UndoManager_navigate_to_virtual_folder_target_uses_preview_relative_index(um, mock_mw):
+    mock_mw.data_store.current_block_idx = -3
+    mock_mw.data_store.displayed_string_indices = [(5, 1), (7, 2)]
+    mock_mw.list_selection_handler = MagicMock()
+    mock_mw.block_list_widget = MagicMock()
+
+    um._navigate_to(7, 2)
+
+    mock_mw.block_list_widget.select_block_by_index.assert_not_called()
+    mock_mw.list_selection_handler.string_selected_from_preview.assert_called_once_with(1)
+
+def test_UndoManager_navigate_to_virtual_folder_missing_target_does_not_select_physical_block(um, mock_mw):
+    mock_mw.data_store.current_block_idx = -2
+    mock_mw.data_store.displayed_string_indices = [(5, 1)]
+    mock_mw.list_selection_handler = MagicMock()
+    mock_mw.block_list_widget = MagicMock()
+
+    um._navigate_to(7, 2)
+
+    mock_mw.block_list_widget.select_block_by_index.assert_not_called()
+    mock_mw.list_selection_handler.string_selected_from_preview.assert_called_once_with(2)
+
 
 def test_UndoManager_session_persistence():
     import pickle

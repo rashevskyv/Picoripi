@@ -257,6 +257,44 @@ class TestPreviewUpdater:
 
         assert not updater._lazy_load_timer.isActive()
 
+    @patch('ui.updaters.preview_updater.QTextCursor')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_lazy_chunk_selects_physical_tuple_in_virtual_speaker_folder(self, mock_hl, mock_cursor, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.document().blockCount.return_value = 3
+        doc = preview_edit.document.return_value
+        block = MagicMock()
+        block.isValid.return_value = True
+        block.position.return_value = 0
+        block.text.return_value = ""
+        doc.findBlockByNumber.return_value = block
+        updater.mw.preview_text_edit = preview_edit
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.data_store.current_block_idx = -3
+        updater.mw.data_store.physical_block_idx = 5
+        updater.mw.data_store.current_string_idx = 10
+        updater.mw.data_store.current_category_name = None
+        updater.mw.is_programmatically_changing_text = False
+        mock_dp.get_current_string_text.side_effect = lambda b, s: (f"{b}:{s}", None)
+
+        target_indices = [(5, 10), (7, 2), (8, 3)]
+        updater._lazy_load_block_idx = -3
+        updater._lazy_load_target_indices = target_indices
+        updater._lazy_load_next_index = 1
+        updater._lazy_load_timer = MagicMock()
+        updater._preview_cache = {
+            updater.get_cache_key(-3, None): {
+                'lines': ["", "", ""],
+                'next_index': 1,
+                'target_indices': target_indices,
+            }
+        }
+
+        updater._load_next_preview_chunk()
+
+        preview_edit.set_selected_lines.assert_called_once_with([0])
+
     def test_populate_strings_syncs_subline_asterisks(self, updater):
         edited_edit = MagicMock()
         edited_edit.toPlainText.return_value = "new text"

@@ -616,7 +616,7 @@ class PreviewUpdater(BaseUIUpdater):
             # Map current_string_idx to preview index if possible
             preview_idx_to_select = -1
             if is_virtual:
-                target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
                 if target_tuple in target_indices:
                     preview_idx_to_select = target_indices.index(target_tuple)
             else:
@@ -954,7 +954,7 @@ class PreviewUpdater(BaseUIUpdater):
             is_speaker = (block_idx == -3)
             is_virtual = is_chapter or is_speaker
             if is_virtual:
-                target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+                target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
                 if target_tuple in target_indices:
                     preview_idx_to_select = target_indices.index(target_tuple)
             else:

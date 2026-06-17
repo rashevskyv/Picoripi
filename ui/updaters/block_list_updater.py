@@ -1003,6 +1003,17 @@ class BlockListUpdater(BaseUIUpdater):
                 if none_strings:
                     combined_speakers["None"] = none_strings
 
+                pending_retention = None
+                if hasattr(self.mw, 'list_selection_handler'):
+                    pending_retention = getattr(self.mw.list_selection_handler, '_pending_speaker_retention', None)
+                if isinstance(pending_retention, tuple) and len(pending_retention) == 3:
+                    retained_speaker, retained_tuple, retained_index = pending_retention
+                    speaker_mappings = list(combined_speakers.get(retained_speaker, []))
+                    if retained_tuple not in speaker_mappings:
+                        insert_at = min(max(retained_index, 0), len(speaker_mappings))
+                        speaker_mappings.insert(insert_at, retained_tuple)
+                        combined_speakers[retained_speaker] = speaker_mappings
+
                 unique_speakers = sorted([c for c in combined_speakers.keys() if c != "None"])
                 if "None" in combined_speakers:
                     unique_speakers.insert(0, "None")
@@ -1012,6 +1023,7 @@ class BlockListUpdater(BaseUIUpdater):
                     speakers_root = QTreeWidgetItem(["Speakers"])
                     self._set_item_style_icon(speakers_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                     speakers_root.setFlags(speakers_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    selected_speaker_item = None
 
                     for speaker_name in unique_speakers:
                         speaker_mappings_list = combined_speakers[speaker_name]
@@ -1039,12 +1051,14 @@ class BlockListUpdater(BaseUIUpdater):
                         speakers_root.addChild(speaker_item)
 
                         if current_selection_block_idx == -3 and getattr(self.mw.data_store, 'current_speaker_name', None) == speaker_name:
-                            self.mw.block_list_widget.setCurrentItem(speaker_item)
-                            speaker_item.setSelected(True)
-                            speakers_root.setExpanded(True)
+                            selected_speaker_item = speaker_item
 
                     if speakers_root.childCount() > 0:
                         self.mw.block_list_widget.invisibleRootItem().addChild(speakers_root)
+                        if selected_speaker_item:
+                            speakers_root.setExpanded(True)
+                            self.mw.block_list_widget.setCurrentItem(selected_speaker_item)
+                            selected_speaker_item.setSelected(True)
             except Exception as e:
                 from utils.logging_utils import log_error
                 log_error(f"Error populating Speakers folder: {e}", exc_info=True)

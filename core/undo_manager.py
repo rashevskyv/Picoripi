@@ -456,8 +456,8 @@ class UndoManager:
                 if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
                     self.mw.list_selection_handler.string_selected_from_preview(rel_idx)
             else:
-                if hasattr(self.mw, 'block_list_widget'):
-                    self.mw.block_list_widget.select_block_by_index(block_idx, category)
+                # Stay in the current virtual folder; don't jump to physical block.
+                # Just try to navigate to the closest available string using the absolute string_idx.
                 if hasattr(self.mw, 'list_selection_handler'):
                     self.mw.list_selection_handler.string_selected_from_preview(string_idx)
         else:

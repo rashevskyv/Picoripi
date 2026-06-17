@@ -149,10 +149,55 @@ def test_ListSelectionHandler_handle_preview_selection_changed(handler):
     mock_preview.hasFocus.return_value = True
     mock_cursor = mock_preview.textCursor.return_value
     mock_cursor.hasSelection.return_value = False
+    handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.current_string_idx = 1
     handler.mw.data_store.displayed_string_indices = [0, 1]
     handler.handle_preview_selection_changed(None)
     mock_preview.set_selected_lines.assert_called_with([1])
+
+@pytest.mark.parametrize("virtual_block_idx", [-3, -2])
+def test_ListSelectionHandler_preview_selection_keeps_virtual_folder(handler, virtual_block_idx):
+    handler.mw.data_store.current_block_idx = virtual_block_idx
+    handler.mw.data_store.physical_block_idx = 5
+    handler.mw.data_store.current_string_idx = 0
+    handler.mw.data_store.displayed_string_indices = [(5, 0), (7, 2)]
+    handler.mw.data_store.data = [[], [], [], [], [], ["S0"], [], ["S0", "S1", "S2"]]
+
+    handler.handle_preview_selection_changed([1])
+
+    assert handler.mw.data_store.current_block_idx == virtual_block_idx
+    assert handler.mw.data_store.physical_block_idx == 7
+    assert handler.mw.data_store.current_string_idx == 2
+    assert handler.mw.data_store.selected_string_indices == [(7, 2)]
+
+def test_ListSelectionHandler_preview_selection_updates_block_in_normal_mode(handler):
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.physical_block_idx = 0
+    handler.mw.data_store.current_string_idx = 0
+    handler.mw.data_store.displayed_string_indices = [(1, 3)]
+    handler.mw.data_store.data = [["S0"], ["S0", "S1", "S2", "S3"]]
+
+    handler.handle_preview_selection_changed([0])
+
+    assert handler.mw.data_store.current_block_idx == 1
+    assert handler.mw.data_store.physical_block_idx == 1
+    assert handler.mw.data_store.current_string_idx == 3
+
+@pytest.mark.parametrize("virtual_block_idx", [-3, -2])
+def test_ListSelectionHandler_string_selected_from_preview_uses_physical_tuple_in_virtual_folder(handler, virtual_block_idx):
+    handler.mw.data_store.current_block_idx = virtual_block_idx
+    handler.mw.data_store.physical_block_idx = 5
+    handler.mw.data_store.current_string_idx = 0
+    handler.mw.data_store.displayed_string_indices = [(5, 0), (7, 2)]
+    handler.mw.data_store.data = [[], [], [], [], [], ["S0"], [], ["S0", "S1", "S2"]]
+
+    with patch('handlers.list_selection_handler.QTextCursor'):
+        handler.string_selected_from_preview(1)
+
+    assert handler.mw.data_store.current_block_idx == virtual_block_idx
+    assert handler.mw.data_store.physical_block_idx == 7
+    assert handler.mw.data_store.current_string_idx == 2
+    handler.mw.preview_text_edit.set_selected_lines.assert_called_with([1])
 
 @patch('PyQt6.QtWidgets.QInputDialog.getText')
 def test_ListSelectionHandler_move_selection_to_category(mock_get_text, handler):
