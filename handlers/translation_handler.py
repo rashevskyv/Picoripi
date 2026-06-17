@@ -193,7 +193,7 @@ class TranslationHandler(BaseHandler):
         start_line = min(selected_lines)
         end_line = max(selected_lines)
         
-        block_idx = self.mw.data_store.current_block_idx
+        block_idx = self.mw.data_store.physical_block_idx
         if block_idx == -1:
             return
 
@@ -468,16 +468,16 @@ class TranslationHandler(BaseHandler):
         if not isinstance(force_prompt, bool):
             force_prompt = False
         is_ctrl = force_prompt or self._is_control_pressed()
-        log_debug(f"translate_current_string called: is_ai_running={self.is_ai_running}, block={self.mw.data_store.current_block_idx}, string={self.mw.data_store.current_string_idx}, force_prompt={is_ctrl}")
+        log_debug(f"translate_current_string called: is_ai_running={self.is_ai_running}, block={self.mw.data_store.physical_block_idx}, string={self.mw.data_store.current_string_idx}, force_prompt={is_ctrl}")
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1: return
+        if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1: return
         self._translate_and_apply(
-            source_text=str(self.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)),
-            expected_lines=len(str(self.glossary_handler._get_original_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)).split("\n")),
+            source_text=str(self.glossary_handler._get_original_string(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)),
+            expected_lines=len(str(self.glossary_handler._get_original_string(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)).split("\n")),
             mode_description="current row",
-            block_idx=self.mw.data_store.current_block_idx,
+            block_idx=self.mw.data_store.physical_block_idx,
             string_idx=self.mw.data_store.current_string_idx,
             force_prompt=is_ctrl
         )
@@ -512,7 +512,7 @@ class TranslationHandler(BaseHandler):
             return
 
         operation_title = f"AI Translation ({description})"
-        first_block_idx = pairs[0][0] if pairs else self.mw.data_store.current_block_idx
+        first_block_idx = pairs[0][0] if pairs else self.mw.data_store.physical_block_idx
         
         system_prompt, _ = self.glossary_handler.load_prompts()
         if not system_prompt:
@@ -596,7 +596,7 @@ class TranslationHandler(BaseHandler):
         if self.is_ai_running:
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
-        block_idx = self.mw.data_store.current_block_idx
+        block_idx = self.mw.data_store.physical_block_idx
         if block_idx == -1: return
 
         preview_edit = self.mw.preview_text_edit
@@ -881,7 +881,7 @@ class TranslationHandler(BaseHandler):
             if temp_id_map and item_id in temp_id_map:
                 r_block_idx, r_string_idx = temp_id_map[item_id]
             else:
-                r_block_idx = self.mw.data_store.current_block_idx
+                r_block_idx = self.mw.data_store.physical_block_idx
                 try:
                     r_string_idx = int(item_id)
                 except (ValueError, TypeError):
@@ -926,7 +926,7 @@ class TranslationHandler(BaseHandler):
             if temp_id_map and item_id in temp_id_map:
                 r_block_idx, r_string_idx = temp_id_map[item_id]
             else:
-                r_block_idx = self.mw.data_store.current_block_idx
+                r_block_idx = self.mw.data_store.physical_block_idx
                 try:
                     r_string_idx = int(item_id)
                 except (ValueError, TypeError):
@@ -1455,7 +1455,7 @@ class TranslationHandler(BaseHandler):
         p_map = context.get('placeholder_map', {})
         cleaned_translation = self.prompt_composer.restore_placeholders(cleaned_translation, p_map, key=0)
         
-        block_idx = context.get('block_idx', self.mw.data_store.current_block_idx)
+        block_idx = context.get('block_idx', self.mw.data_store.physical_block_idx)
         string_idx = context.get('string_idx', self.mw.data_store.current_string_idx)
         final_text = self._format_and_wrap_translation(cleaned_translation, block_idx, string_idx)
         self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
@@ -1480,9 +1480,11 @@ class TranslationHandler(BaseHandler):
         refresh_idx = block_idx
         if self.mw.data_store.current_chapter_id is not None:
             refresh_idx = -2
+        elif self.mw.data_store.current_block_idx == -3:
+            refresh_idx = -3
         self.ui_updater.populate_strings_for_block(refresh_idx, self.mw.data_store.current_category_name, force=True)
         # If we translated the currently visible string, update the text view
-        if self.mw.data_store.current_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
+        if self.mw.data_store.physical_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
             self.ui_updater.update_text_views()
         self.ui_updater.update_title()
 

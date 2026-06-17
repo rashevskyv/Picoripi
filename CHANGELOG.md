@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.028] - 2026-06-17
+
+### 🚀 Added
+- **Physical Block Index State**: Introduced `physical_block_idx` in `AppDataStore` to keep track of the real physical block index independently from `current_block_idx` (which can be `-2` or `-3` for Chapters and Speakers modes respectively).
+- **Virtual Folders Operations Support**: Integrated `physical_block_idx` in text operations, string settings, undo manager, and autofix logic to ensure editing text or changing settings while in virtual modes correctly modifies the physical block data without triggering navigation jumps.
+
+### 🐛 Fixed
+- **Virtual Folder Jumps**: Fixed a system-wide bug where editing text or changing font/width settings inside virtual folders (Speakers or Chapters) caused the active tree selection to jump back to a physical block, preserving complete user navigation context.
+- **Unit Tests Compatibility**: Fixed MagicMock type-errors and attribute errors in the test suite by monkeypatching `Mock` and `NonCallableMagicMock` classes in `conftest.py` to support `physical_block_idx`.
+
 ## [0.3.027] - 2026-06-17
 
 ### 🚀 Added

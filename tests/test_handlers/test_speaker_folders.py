@@ -109,8 +109,8 @@ def test_select_speaker_folder(qapp, mock_mw, mock_project):
     mock_mw.block_list_widget.currentItem.return_value = item
     
     handler.block_selected(item, 0)
-    
-    assert mock_mw.current_block_idx == 0
+    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.physical_block_idx == 0
     assert mock_mw.current_speaker_name == "Hero"
     assert mock_mw.chapter_mappings == [(0, 0)]
     mock_mw.ui_updater.populate_strings_for_block.assert_called_with(-3)

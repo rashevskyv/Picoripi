@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Any, List, Optional, Tuple, Dict, Set
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QTextCursor
@@ -461,11 +461,11 @@ class TextAutofixLogic:
     def auto_fix_current_string(self) -> None:
         """Auto fix current string."""
         log_debug("TextAutofixLogic.auto_fix_current_string: Called.")
-        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
+        if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
             return
 
-        block_idx = self.mw.data_store.current_block_idx
+        block_idx = self.mw.data_store.physical_block_idx
         string_idx = self.mw.data_store.current_string_idx
         
         current_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
@@ -550,7 +550,7 @@ class TextAutofixLogic:
                     self.mw.original_text_edit.setPlainText(original_text_for_display)
 
             self.mw.issue_scan_handler._perform_issues_scan_for_block(block_idx, is_single_block_scan=True, use_default_mappings_in_scan=False)
-            self.ui_updater.populate_strings_for_block(block_idx) 
+            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx) 
             
             self.ui_updater.update_status_bar()
             self.ui_updater.synchronize_original_cursor()

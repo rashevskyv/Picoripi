@@ -1,4 +1,4 @@
-﻿# handlers/string_settings_handler.py
+# handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler
 from utils.utils import log_debug, calculate_string_width
@@ -14,16 +14,16 @@ class StringSettingsHandler(BaseHandler):
         log_debug("--- Applying string settings and performing full block refresh ---")
         
         current_block_idx: int = self.mw.data_store.current_block_idx
-
-        if current_block_idx != -1:
-            log_debug(f"Refreshing UI for block {current_block_idx}")
+        physical_block_idx: int = self.mw.data_store.physical_block_idx
+ 
+        if physical_block_idx != -1:
+            log_debug(f"Refreshing UI for block {physical_block_idx}")
             if hasattr(self.mw, 'issue_scan_handler'):
-                self.mw.issue_scan_handler.rescan_issues_for_single_block(current_block_idx, show_message_on_completion=False)
-            self.mw.ui_updater.update_block_item_text_with_problem_count(current_block_idx)
+                self.mw.issue_scan_handler.rescan_issues_for_single_block(physical_block_idx, show_message_on_completion=False)
+            if current_block_idx != -1:
+                self.mw.ui_updater.update_block_item_text_with_problem_count(current_block_idx)
+            self.mw.ui_updater.update_block_item_text_with_problem_count(physical_block_idx)
             self.mw.ui_updater.update_text_views()
-            if hasattr(self.mw, 'string_settings_updater'):
-                self.mw.string_settings_updater.update_string_settings_panel()
-            
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_string_settings_panel()
         else:
@@ -33,10 +33,11 @@ class StringSettingsHandler(BaseHandler):
 
     def on_font_changed(self, index: int) -> None:
         """Handle the font changed event."""
-        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
+        block_idx = self.mw.data_store.physical_block_idx
+        if block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
-
-        key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+ 
+        key: Tuple[int, int] = (block_idx, self.mw.data_store.current_string_idx)
         current_meta: Dict[str, Any] = self.mw.string_metadata.get(key, {})
         current_font: Optional[str] = current_meta.get("font_file")
 
@@ -57,10 +58,11 @@ class StringSettingsHandler(BaseHandler):
 
     def on_width_changed(self, value: int) -> None:
         """Handle the width changed event."""
-        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
+        block_idx = self.mw.data_store.physical_block_idx
+        if block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
-
-        key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+ 
+        key: Tuple[int, int] = (block_idx, self.mw.data_store.current_string_idx)
         current_meta: Dict[str, Any] = self.mw.string_metadata.get(key, {})
         current_width: Optional[int] = current_meta.get("width")
 
@@ -87,10 +89,11 @@ class StringSettingsHandler(BaseHandler):
 
     def apply_settings_change(self) -> None:
         """Apply settings change."""
-        if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
+        block_idx = self.mw.data_store.physical_block_idx
+        if block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
-
-        key: Tuple[int, int] = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
+ 
+        key: Tuple[int, int] = (block_idx, self.mw.data_store.current_string_idx)
         
         # Apply font
         selected_font_data: Any = self.mw.font_combobox.currentData()
@@ -128,7 +131,7 @@ class StringSettingsHandler(BaseHandler):
 
     def apply_font_to_range(self, start_line: int, end_line: int, font_file: str) -> None:
         """Apply font to range."""
-        block_idx: int = self.mw.data_store.current_block_idx
+        block_idx: int = self.mw.data_store.physical_block_idx
         if block_idx == -1:
             return
             
@@ -155,7 +158,7 @@ class StringSettingsHandler(BaseHandler):
 
     def apply_font_to_lines(self, line_indices: List[int], font_file: str) -> None:
         """Apply font to lines."""
-        block_idx: int = self.mw.data_store.current_block_idx
+        block_idx: int = self.mw.data_store.physical_block_idx
         if block_idx == -1:
             return
             
@@ -213,7 +216,7 @@ class StringSettingsHandler(BaseHandler):
 
     def apply_width_to_lines(self, line_indices: List[int], width: int) -> None:
         """Apply width to lines."""
-        block_idx: int = self.mw.data_store.current_block_idx
+        block_idx: int = self.mw.data_store.physical_block_idx
         if block_idx == -1:
             return
 
@@ -242,7 +245,7 @@ class StringSettingsHandler(BaseHandler):
 
     def apply_width_to_range(self, start_line: int, end_line: int, width: int) -> None:
         """Apply width to range."""
-        block_idx: int = self.mw.data_store.current_block_idx
+        block_idx: int = self.mw.data_store.physical_block_idx
         if block_idx == -1:
             return
 
@@ -271,7 +274,7 @@ class StringSettingsHandler(BaseHandler):
 
     def apply_auto_width_from_original_to_lines(self, line_indices: List[int]) -> None:
         """Apply auto width from original to lines."""
-        block_idx: int = self.mw.data_store.current_block_idx
+        block_idx: int = self.mw.data_store.physical_block_idx
         if block_idx == -1:
             return
 

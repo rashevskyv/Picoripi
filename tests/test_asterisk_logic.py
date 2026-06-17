@@ -7,6 +7,18 @@ from handlers.list_selection_handler import ListSelectionHandler
 from handlers.text_operation_handler import TextOperationHandler
 
 class MockMainWindow(QMainWindow):
+    @property
+    def physical_block_idx(self) -> int:
+        if hasattr(self, '_physical_block_idx') and self._physical_block_idx >= 0:
+            return self._physical_block_idx
+        if self.current_block_idx >= 0:
+            return self.current_block_idx
+        return -1
+
+    @physical_block_idx.setter
+    def physical_block_idx(self, val: int) -> None:
+        self._physical_block_idx = val
+
     def __init__(self):
         super().__init__()
         self.data_store = self

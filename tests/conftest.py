@@ -12,8 +12,27 @@ Qt.CheckStateRole = Qt.ItemDataRole.CheckStateRole
 Qt.FontRole = Qt.ItemDataRole.FontRole
 Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, NonCallableMagicMock
 from PyQt6.QtWidgets import QApplication, QWidget
+
+# Monkeypatch Mock and NonCallableMagicMock to support physical_block_idx property
+def _get_physical_block_idx_mock(self):
+    if hasattr(self, '_physical_block_idx'):
+        val = self._physical_block_idx
+        if not isinstance(val, Mock):
+            return val
+    if hasattr(self, 'current_block_idx'):
+        c_idx = self.current_block_idx
+        if not isinstance(c_idx, Mock):
+            return c_idx
+    return -1
+
+def _set_physical_block_idx_mock(self, val):
+    self._physical_block_idx = val
+
+NonCallableMagicMock.physical_block_idx = property(_get_physical_block_idx_mock, _set_physical_block_idx_mock)
+Mock.physical_block_idx = property(_get_physical_block_idx_mock, _set_physical_block_idx_mock)
+
 
 @pytest.fixture(autouse=True)
 def silent_logging(mocker):

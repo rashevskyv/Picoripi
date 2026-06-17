@@ -144,7 +144,7 @@ class ListSelectionHandler(BaseHandler):
                             
                     if target_idx != -1:
                         first_mapping = char_mappings[target_idx]
-                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.physical_block_idx = first_mapping[0]
                         self.mw.data_store.current_string_idx = first_mapping[1]
                         self._target_block_idx = None
                         self._target_string_idx = None
@@ -152,12 +152,12 @@ class ListSelectionHandler(BaseHandler):
                             QTimer.singleShot(0, lambda ridx=target_idx: self.string_selected_from_preview(ridx))
                     else:
                         first_mapping = char_mappings[0]
-                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.physical_block_idx = first_mapping[0]
                         self.mw.data_store.current_string_idx = first_mapping[1]
                         if not getattr(self.mw, '_restoring_session_state', False):
                             QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
                 else:
-                    self.mw.data_store.current_block_idx = -1
+                    self.mw.data_store.physical_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
                     self.ui_updater.update_text_views()
                     
@@ -198,7 +198,7 @@ class ListSelectionHandler(BaseHandler):
                             
                     if target_idx != -1:
                         first_mapping = chapter_mappings[target_idx]
-                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.physical_block_idx = first_mapping[0]
                         self.mw.data_store.current_string_idx = first_mapping[1]
                         self._target_block_idx = None
                         self._target_string_idx = None
@@ -206,12 +206,12 @@ class ListSelectionHandler(BaseHandler):
                             QTimer.singleShot(0, lambda ridx=target_idx: self.string_selected_from_preview(ridx))
                     else:
                         first_mapping = chapter_mappings[0]
-                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.physical_block_idx = first_mapping[0]
                         self.mw.data_store.current_string_idx = first_mapping[1]
                         if not getattr(self.mw, '_restoring_session_state', False):
                             QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
                 else:
-                    self.mw.data_store.current_block_idx = -1
+                    self.mw.data_store.physical_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
                     self.ui_updater.update_text_views()
                     
@@ -221,6 +221,7 @@ class ListSelectionHandler(BaseHandler):
  
             if block_index is None:
                 self.mw.data_store.current_block_idx = -1
+                self.mw.data_store.physical_block_idx = -1
                 self.mw.data_store.current_string_idx = -1
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = None
@@ -234,6 +235,7 @@ class ListSelectionHandler(BaseHandler):
  
             if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
                 self.mw.data_store.current_block_idx = block_index
+                self.mw.data_store.physical_block_idx = block_index
                 self.mw.data_store.current_category_name = category_name
                 self.mw.data_store.current_chapter_id = None
                 self.mw.data_store.current_speaker_name = None
@@ -523,8 +525,11 @@ class ListSelectionHandler(BaseHandler):
             if preview_edit and hasattr(preview_edit, 'highlightManager'):
                 preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
         else:
-            # Update current_block_idx if we switched to a different block inside the chapter view
-            if self.mw.data_store.current_block_idx != curr_b_idx:
+            # Update physical_block_idx
+            self.mw.data_store.physical_block_idx = curr_b_idx
+            
+            # Update current_block_idx if we switched to a different block inside the normal view (not in virtual speaker/chapter folders)
+            if self.mw.data_store.current_block_idx >= 0 and self.mw.data_store.current_block_idx != curr_b_idx:
                 self.mw.data_store.current_block_idx = curr_b_idx
 
             self.mw.data_store.current_string_idx = curr_s_idx
@@ -1227,10 +1232,10 @@ class ListSelectionHandler(BaseHandler):
             if last_displayed is not None and char_name == last_displayed:
                 return
                 
-        block_idx = self.mw.data_store.current_block_idx
+        block_idx = self.mw.data_store.physical_block_idx
         string_idx = self.mw.data_store.current_string_idx
         
-        if block_idx == -1 or string_idx == -1 or block_idx in (-2, -3):
+        if block_idx == -1 or string_idx == -1:
             return
             
         pm = getattr(self.mw, 'project_manager', None)

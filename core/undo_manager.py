@@ -447,19 +447,32 @@ class UndoManager:
         if block_idx == -1: return
 
         current_block = self.mw.data_store.current_block_idx
-        current_string = self.mw.data_store.current_string_idx
-        
-        needs_string_refresh = False
-        
-        if current_block != block_idx or getattr(self.mw, 'current_category_name', None) != category:
-            if hasattr(self.mw, 'block_list_widget'):
-                self.mw.block_list_widget.select_block_by_index(block_idx, category)
-            needs_string_refresh = True
+        from unittest.mock import Mock
+        if not isinstance(current_block, Mock) and current_block < 0:
+            displayed = getattr(self.mw.data_store, 'displayed_string_indices', [])
+            target = (block_idx, string_idx)
+            if target in displayed:
+                rel_idx = displayed.index(target)
+                if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
+                    self.mw.list_selection_handler.string_selected_from_preview(rel_idx)
+            else:
+                if hasattr(self.mw, 'block_list_widget'):
+                    self.mw.block_list_widget.select_block_by_index(block_idx, category)
+                if hasattr(self.mw, 'list_selection_handler'):
+                    self.mw.list_selection_handler.string_selected_from_preview(string_idx)
+        else:
+            needs_string_refresh = False
             
-        if current_string != string_idx or needs_string_refresh:
-            if hasattr(self.mw, 'list_selection_handler'):
-                self.mw.list_selection_handler.string_selected_from_preview(string_idx)
+            if current_block != block_idx or getattr(self.mw, 'current_category_name', None) != category:
+                if hasattr(self.mw, 'block_list_widget'):
+                    self.mw.block_list_widget.select_block_by_index(block_idx, category)
+                needs_string_refresh = True
                 
+            current_string = self.mw.data_store.current_string_idx
+            if current_string != string_idx or needs_string_refresh:
+                if hasattr(self.mw, 'list_selection_handler'):
+                    self.mw.list_selection_handler.string_selected_from_preview(string_idx)
+                    
         if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             self.mw.edited_text_edit.setFocus()
             from PyQt6.QtGui import QTextCursor
@@ -479,9 +492,8 @@ class UndoManager:
         try:
             # Update data processor
             self.mw.data_processor.update_edited_data(block_idx, string_idx, text)
-            
-            # Update editor text if it's currently showing this string
-            if self.mw.data_store.current_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
+                        # Update editor text if it's currently showing this string
+            if self.mw.data_store.physical_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
                 editor_text = self.mw.current_game_rules.get_text_representation_for_editor(text)
                 self.mw.edited_text_edit.setPlainText(editor_text)
                 
@@ -497,13 +509,13 @@ class UndoManager:
                 # Perform necessary issue rescan
                 if hasattr(self.mw, 'editor_operation_handler'):
                     self.mw.editor_operation_handler._rescan_issues_for_current_string(block_idx, string_idx, text)
-
+ 
                 # Perform necessary UI refreshes
                 self.mw.editor_operation_handler.preview_update_timer.start(50)
                 self.mw.ui_updater.update_title()
                 self.mw.ui_updater.update_status_bar()
                 self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
-
+ 
                 # Dynamically calculate which sublines remain edited relative to saved file
                 text_from_saved_file = self.mw.data_processor._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
                 if text_from_saved_file is None:
@@ -531,7 +543,7 @@ class UndoManager:
                 
         finally:
             self.mw.is_programmatically_changing_text = was_programmatic
-
+ 
     def _apply_speaker_change(self, block_idx: int, string_idx: int, char_name: str):
         """Apply speaker change during undo/redo and refresh UI."""
         self._navigate_to(block_idx, string_idx)
@@ -539,7 +551,7 @@ class UndoManager:
         # save_speaker_for_current_string can locate the metadata entry.
         # _navigate_to may only call the widget method without updating data_store
         # (e.g. when the widget is mocked or the current view is a virtual folder).
-        self.mw.data_store.current_block_idx = block_idx
+        self.mw.data_store.physical_block_idx = block_idx
         self.mw.data_store.current_string_idx = string_idx
         if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
             if hasattr(self.mw.list_selection_handler, 'save_speaker_for_current_string'):

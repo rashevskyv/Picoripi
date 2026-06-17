@@ -43,7 +43,7 @@ class StringSettingsUpdater(BaseUIUpdater):
         """Update the string settings panel."""
         default_style_sheet = self.mw.styleSheet() 
 
-        block_idx = self.mw.data_store.current_block_idx
+        block_idx = self.mw.data_store.physical_block_idx
         string_idx = self.mw.data_store.current_string_idx
 
         if block_idx == -1 or string_idx == -1:

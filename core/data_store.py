@@ -25,6 +25,7 @@ class AppDataStore:
     
     # Selection State
     current_block_idx: int = -1
+    _physical_block_idx: int = -1
     current_string_idx: int = -1
     selected_string_indices: List[int] = field(default_factory=list)
     displayed_string_indices: List[Tuple[int, int]] = field(default_factory=list) # Absolute indices/tuples of strings shown in preview
@@ -62,6 +63,23 @@ class AppDataStore:
     last_selected_string_index: int = -1
     
     @property
+    def physical_block_idx(self) -> int:
+        """
+        Returns the actual index of the physical block currently being viewed/edited.
+        Fallback to current_block_idx if current_block_idx >= 0.
+        """
+        if self._physical_block_idx >= 0:
+            return self._physical_block_idx
+        if self.current_block_idx >= 0:
+            return self.current_block_idx
+        return -1
+
+    @physical_block_idx.setter
+    def physical_block_idx(self, value: int) -> None:
+        if value >= 0:
+            self._physical_block_idx = value
+
+    @property
     def current_speaker_name(self) -> Optional[str]:
         """Alias for current_character_name for Speaker terminology."""
         return self.current_character_name
@@ -83,6 +101,7 @@ class AppDataStore:
         self.unsaved_block_indices = set()
         self.block_to_project_file_map = {}
         self.current_block_idx = -1
+        self._physical_block_idx = -1
         self.current_string_idx = -1
         self.current_chapter_id = None
         self.chapter_mappings = []
