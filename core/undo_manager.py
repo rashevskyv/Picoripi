@@ -384,6 +384,8 @@ class UndoManager:
                     prev_s = item.metadata.get('prev_string', -1)
                     prev_cat = item.metadata.get('prev_category')
                     self._navigate_to(prev_b, prev_s, prev_cat)
+                elif item.action_type in ('CHANGE_CHARACTER', 'CHANGE_SPEAKER'):
+                    self._apply_speaker_change(item.block_idx, item.string_idx, item.old_text)
                 else:
                     # For non-navigate actions, we might need to navigate to THEIR location first if not there
                     # But the requirement was "movements are separate steps".
@@ -414,6 +416,8 @@ class UndoManager:
                 if item.action_type == 'NAVIGATE':
                     cat = item.metadata.get('category')
                     self._navigate_to(item.block_idx, item.string_idx, cat)
+                elif item.action_type in ('CHANGE_CHARACTER', 'CHANGE_SPEAKER'):
+                    self._apply_speaker_change(item.block_idx, item.string_idx, item.new_text)
                 else:
                     self._apply_data(item.block_idx, item.string_idx, item.new_text, item.cursor_pos)
             elif isinstance(item, GroupAction):
@@ -527,6 +531,21 @@ class UndoManager:
                 
         finally:
             self.mw.is_programmatically_changing_text = was_programmatic
+
+    def _apply_speaker_change(self, block_idx: int, string_idx: int, char_name: str):
+        """Apply speaker change during undo/redo and refresh UI."""
+        self._navigate_to(block_idx, string_idx)
+        # Ensure data_store points to the real physical block so that
+        # save_speaker_for_current_string can locate the metadata entry.
+        # _navigate_to may only call the widget method without updating data_store
+        # (e.g. when the widget is mocked or the current view is a virtual folder).
+        self.mw.data_store.current_block_idx = block_idx
+        self.mw.data_store.current_string_idx = string_idx
+        if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
+            if hasattr(self.mw.list_selection_handler, 'save_speaker_for_current_string'):
+                self.mw.list_selection_handler.save_speaker_for_current_string(char_name)
+            else:
+                self.mw.list_selection_handler.save_character_for_current_string(char_name)
 
     def _refresh_search_review_dialogs(self):
         """Helper to refresh any open SearchReviewDialog after undo/redo."""

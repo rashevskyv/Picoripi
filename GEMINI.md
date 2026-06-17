@@ -1,10 +1,10 @@
-# The "Picoripi" (v0.3.026)
+# The "Picoripi" (v0.3.027)
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
 ## Project Overview
 
-The "Picoripi" (v0.3.026) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.027) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -13,7 +13,7 @@ The application is designed to be highly versatile, with features tailored to ha
 - **Project Management**: A fully project-based workflow. A "project" (`.uiproj` file) encapsulates all files and settings for a specific translation effort. Supports virtual "categories" (folders) for logical grouping, **robust inline renaming**, and persistent selection state.
 - **Granular Saving Actions**: Supports partial saving of changes. Users can choose to save translation changes for specifically selected blocks or categories via the project tree's context menu, or save targeted lines (a single string or multiple selected lines) via the editor context menus.
 - **Fault-Tolerant Session Autosaving**: Automatically serializes the complete state container (`AppDataStore`) in a binary `.picoripi_session` file using the `Pickle` protocol. Autosave operations are debounced (2 seconds) and governed by a dirty state flag (`self._session_dirty`) to prevent redundant disk I/O when the workspace is idle. On restart, the program recovers the workspace state instantly from this session file. **Undo/Redo command stacks** are preserved in the session payload, maintaining full edit history across restarts.
-- **Virtual Characters Navigation**: Group dialogue lines dynamically by Character speakers. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Characters -> Character Name` node structure in the Blocks panel. Adding strings to these folders automatically assigns the corresponding character metadata to them. Supports direct selection and interactive input of character names via a combo box located above the translation editor, instantly updating character assignments and hot-reloading virtual folders.
+- **Virtual Speakers Navigation**: Group dialogue lines dynamically by Speaker. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Speakers -> Speaker Name` node structure in the Blocks panel. Adding strings to these folders automatically assigns the corresponding speaker metadata to them. Supports direct selection and interactive input of speaker names via a combo box located above the translation editor, instantly updating speaker assignments and hot-reloading virtual folders.
 - **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a checkable combo box next to the preview layout toggles, enabling users to isolate strings matching a subset of selected warnings (e.g., width violations, tag spacing errors, custom plugin validation errors), or view all warnings if no specific filters are checked.
 
 - **Visual Feedback System**: Automatic file synchronization, clear problem counts and warning indicators across the project tree with **recursive asterisk propagation for unsaved changes**.

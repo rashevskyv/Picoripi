@@ -170,7 +170,7 @@ class PreviewUpdater(BaseUIUpdater):
     def _apply_highlights_for_block(self, block_idx: int):
         """Internal helper to apply highlights for block."""
         if block_idx not in (-1,):
-            if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+            if type(getattr(self.mw.data_store, 'current_chapter_id', None)) is int:
                 block_idx = -2
 
         data_source = getattr(self.mw.data_store, 'data', None)
@@ -350,10 +350,10 @@ class PreviewUpdater(BaseUIUpdater):
     def _do_populate_strings_for_block(self, block_idx, category_name=None, force=False):
         """Actual populate strings for block logic."""
         if block_idx not in (-1,):
-            if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
+            if type(getattr(self.mw.data_store, 'current_chapter_id', None)) is int:
                 block_idx = -2
                 category_name = None
-            elif getattr(self.mw.data_store, 'current_character_name', None) is not None:
+            elif isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
                 block_idx = -3
                 category_name = None
             elif category_name is None:
@@ -414,8 +414,8 @@ class PreviewUpdater(BaseUIUpdater):
                 data_source = []
 
         is_chapter = (block_idx == -2)
-        is_character = (block_idx == -3)
-        is_virtual = is_chapter or is_character
+        is_speaker = (block_idx == -3)
+        is_virtual = is_chapter or is_speaker
         if not is_virtual and (block_idx < 0 or not data_source or block_idx >= len(data_source) or not isinstance(data_source[block_idx], list)):
             self._preview_cache.clear()
             self.mw.data_store.displayed_string_indices = []
@@ -944,8 +944,8 @@ class PreviewUpdater(BaseUIUpdater):
             
             preview_idx_to_select = -1
             is_chapter = (block_idx == -2)
-            is_character = (block_idx == -3)
-            is_virtual = is_chapter or is_character
+            is_speaker = (block_idx == -3)
+            is_virtual = is_chapter or is_speaker
             if is_virtual:
                 target_tuple = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
                 if target_tuple in target_indices:
@@ -1000,8 +1000,8 @@ class PreviewUpdater(BaseUIUpdater):
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit:
                 is_chapter = (self.mw.data_store.current_block_idx == -2)
-                is_character = (self.mw.data_store.current_block_idx == -3)
-                is_virtual = is_chapter or is_character
+                is_speaker = (self.mw.data_store.current_block_idx == -3)
+                is_virtual = is_chapter or is_speaker
                 displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
                 
                 preview_idx = -1

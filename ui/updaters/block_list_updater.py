@@ -268,32 +268,32 @@ class BlockListUpdater(BaseUIUpdater):
             return f"block_{block_idx}"
         return None
 
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, character_name: str = None, character_mappings: list = None) -> dict:
+    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, speaker_name: str = None, speaker_mappings: list = None) -> dict:
         """Internal helper to get the aggregated problems for block."""
         problem_counts = {}
         if not self.mw.current_game_rules:
             return problem_counts
         
         is_chapter = (block_idx == -2)
-        is_character = (block_idx == -3)
-        if not is_chapter and not is_character and not (0 <= block_idx < len(self.mw.data_store.data)):
+        is_speaker = (block_idx == -3)
+        if not is_chapter and not is_speaker and not (0 <= block_idx < len(self.mw.data_store.data)):
             return problem_counts
         
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         problem_counts = {pid: 0 for pid in problem_definitions.keys()}
         detection_config = getattr(self.mw, 'detection_enabled', {})
 
-        if is_character:
-            char_mappings = set(character_mappings or [])
-            if not char_mappings and character_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager.project:
+        if is_speaker:
+            spk_mappings = set(speaker_mappings or [])
+            if not spk_mappings and speaker_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager.project:
                 for b_idx, block in enumerate(self.mw.project_manager.project.blocks):
                     assignments = block.metadata.get("character_assignments", {})
                     for s_idx_str, c_name in assignments.items():
-                        if c_name == character_name:
-                            char_mappings.add((b_idx, int(s_idx_str)))
+                        if c_name == speaker_name:
+                            spk_mappings.add((b_idx, int(s_idx_str)))
             
             for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
-                if (b_idx, s_idx) in char_mappings:
+                if (b_idx, s_idx) in spk_mappings:
                     filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
                     for p_id in filtered_problems:
                         if p_id in problem_counts:
@@ -882,15 +882,15 @@ class BlockListUpdater(BaseUIUpdater):
                 from utils.logging_utils import log_error
                 log_error(f"Error populating Chapters folder: {e}", exc_info=True)
 
-            # 4. Add virtual Characters folder hierarchy
+            # 4. Add virtual Speakers folder hierarchy
             try:
-                # Query MemePalace for characters as well
+                # Query MemePalace for speakers as well
                 client = None
                 composer = getattr(self.mw, "translation_handler", None)
                 if composer and hasattr(composer, "prompt_composer"):
                     client = composer.prompt_composer._get_mempalace_client()
 
-                mempalace_characters = {}  # {char_name: [(b_idx, s_idx), ...]}
+                mempalace_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
                 if client:
                     wing_name = composer.prompt_composer._get_wing_name() if hasattr(composer, "prompt_composer") else "Zelda_TP"
                     # Try using _bmg_to_context cache first
@@ -900,14 +900,14 @@ class BlockListUpdater(BaseUIUpdater):
                                 continue
                             speaker = ctx_info.get("speaker")
                             if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
-                                char_name = str(speaker).strip()
+                                speaker_name = str(speaker).strip()
                                 if hasattr(self.mw, 'list_selection_handler'):
                                     indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
                                     if indices:
-                                        mempalace_characters.setdefault(char_name, []).append(indices)
+                                        mempalace_speakers.setdefault(speaker_name, []).append(indices)
                     
                     # Fallback to loading script mappings + script file if cache is empty
-                    if not mempalace_characters and hasattr(composer, "prompt_composer"):
+                    if not mempalace_speakers and hasattr(composer, "prompt_composer"):
                         import os
                         script_path = composer.prompt_composer._find_script_path()
                         if script_path and os.path.exists(script_path):
@@ -957,33 +957,39 @@ class BlockListUpdater(BaseUIUpdater):
                                         if bmg_id_key and script_line:
                                             speaker = line_to_speaker.get(script_line)
                                             if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
-                                                char_name = str(speaker).strip()
+                                                speaker_name = str(speaker).strip()
                                                 if hasattr(self.mw, 'list_selection_handler'):
                                                     indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
                                                     if indices:
-                                                        mempalace_characters.setdefault(char_name, []).append(indices)
+                                                        mempalace_speakers.setdefault(speaker_name, []).append(indices)
 
-                combined_characters = {}  # {char_name: [(b_idx, s_idx), ...]}
+                combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
                 assigned_strings = set()  # {(b_idx, s_idx), ...}
 
                 # 1. Project assignments (highest priority)
                 project = getattr(self.mw, 'project_manager', None) and self.mw.project_manager.project
                 if project:
-                    for b_idx, block in enumerate(project.blocks):
+                    block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                    project_to_block_map = {}
+                    if block_map:
+                        project_to_block_map = {proj_idx: data_idx for data_idx, proj_idx in block_map.items()}
+                        
+                    for proj_b_idx, block in enumerate(project.blocks):
                         assignments = block.metadata.get("character_assignments", {})
                         for s_idx_str, c_name in assignments.items():
                             if c_name and str(c_name).strip() and str(c_name).lower() not in ("unknown", "none"):
-                                char_name = str(c_name).strip()
+                                speaker_name = str(c_name).strip()
                                 s_idx = int(s_idx_str)
-                                combined_characters.setdefault(char_name, []).append((b_idx, s_idx))
-                                assigned_strings.add((b_idx, s_idx))
+                                data_idx = project_to_block_map.get(proj_b_idx, proj_b_idx)
+                                combined_speakers.setdefault(speaker_name, []).append((data_idx, s_idx))
+                                assigned_strings.add((data_idx, s_idx))
 
-                # 2. Add MemePalace characters (only if not already assigned in project metadata)
-                for char_name, strings in mempalace_characters.items():
+                # 2. Add MemePalace speakers (only if not already assigned in project metadata)
+                for speaker_name, strings in mempalace_speakers.items():
                     for string_tuple in strings:
                         if string_tuple in assigned_strings:
                             continue
-                        combined_characters.setdefault(char_name, []).append(string_tuple)
+                        combined_speakers.setdefault(speaker_name, []).append(string_tuple)
                         assigned_strings.add(string_tuple)
 
                 # 3. Collect all other strings into "None"
@@ -995,53 +1001,53 @@ class BlockListUpdater(BaseUIUpdater):
                             none_strings.append((b_idx, s_idx))
 
                 if none_strings:
-                    combined_characters["None"] = none_strings
+                    combined_speakers["None"] = none_strings
 
-                unique_characters = sorted([c for c in combined_characters.keys() if c != "None"])
-                if "None" in combined_characters:
-                    unique_characters.insert(0, "None")
+                unique_speakers = sorted([c for c in combined_speakers.keys() if c != "None"])
+                if "None" in combined_speakers:
+                    unique_speakers.insert(0, "None")
 
-                has_named_characters = any(c != "None" for c in combined_characters.keys())
-                if combined_characters and has_named_characters:
-                    characters_root = QTreeWidgetItem(["Characters"])
-                    self._set_item_style_icon(characters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
-                    characters_root.setFlags(characters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                has_named_speakers = any(c != "None" for c in combined_speakers.keys())
+                if combined_speakers and has_named_speakers:
+                    speakers_root = QTreeWidgetItem(["Speakers"])
+                    self._set_item_style_icon(speakers_root, 0, QStyle.StandardPixmap.SP_DirIcon)
+                    speakers_root.setFlags(speakers_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
-                    for char_name in unique_characters:
-                        char_mappings_list = combined_characters[char_name]
+                    for speaker_name in unique_speakers:
+                        speaker_mappings_list = combined_speakers[speaker_name]
 
                         if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True:
-                            has_unsaved_in_char = any(mapping in self.mw.data_store.edited_data for mapping in char_mappings_list)
-                            if not has_unsaved_in_char:
+                            has_unsaved_in_speaker = any(mapping in self.mw.data_store.edited_data for mapping in speaker_mappings_list)
+                            if not has_unsaved_in_speaker:
                                 continue
 
-                        char_item = QTreeWidgetItem([char_name])
-                        self._set_item_style_icon(char_item, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
-                        char_item.setFlags(char_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                        char_item.setData(0, Qt.ItemDataRole.UserRole, -3)
-                        char_item.setData(0, Qt.ItemDataRole.UserRole + 15, char_name)
-                        char_item.setData(0, Qt.ItemDataRole.UserRole + 4, char_name)
-                        char_item.setData(0, Qt.EditRole, char_name)
-                        char_item.setData(0, Qt.ItemDataRole.UserRole + 13, char_mappings_list)
+                        speaker_item = QTreeWidgetItem([speaker_name])
+                        self._set_item_style_icon(speaker_item, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
+                        speaker_item.setFlags(speaker_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        speaker_item.setData(0, Qt.ItemDataRole.UserRole, -3)
+                        speaker_item.setData(0, Qt.ItemDataRole.UserRole + 15, speaker_name)
+                        speaker_item.setData(0, Qt.ItemDataRole.UserRole + 4, speaker_name)
+                        speaker_item.setData(0, Qt.EditRole, speaker_name)
+                        speaker_item.setData(0, Qt.ItemDataRole.UserRole + 13, speaker_mappings_list)
 
-                        self._register_item_in_cache(char_item)
+                        self._register_item_in_cache(speaker_item)
                         
                         problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
-                        char_problem_counts = self._get_aggregated_problems_for_block(-3, character_name=char_name, character_mappings=char_mappings_list)
-                        self._apply_issues_and_tooltip(char_item, char_name, char_problem_counts, problem_definitions)
+                        speaker_problem_counts = self._get_aggregated_problems_for_block(-3, speaker_name=speaker_name, speaker_mappings=speaker_mappings_list)
+                        self._apply_issues_and_tooltip(speaker_item, speaker_name, speaker_problem_counts, problem_definitions)
 
-                        characters_root.addChild(char_item)
+                        speakers_root.addChild(speaker_item)
 
-                        if current_selection_block_idx == -3 and getattr(self.mw.data_store, 'current_character_name', None) == char_name:
-                            self.mw.block_list_widget.setCurrentItem(char_item)
-                            char_item.setSelected(True)
-                            characters_root.setExpanded(True)
+                        if current_selection_block_idx == -3 and getattr(self.mw.data_store, 'current_speaker_name', None) == speaker_name:
+                            self.mw.block_list_widget.setCurrentItem(speaker_item)
+                            speaker_item.setSelected(True)
+                            speakers_root.setExpanded(True)
 
-                    if characters_root.childCount() > 0:
-                        self.mw.block_list_widget.invisibleRootItem().addChild(characters_root)
+                    if speakers_root.childCount() > 0:
+                        self.mw.block_list_widget.invisibleRootItem().addChild(speakers_root)
             except Exception as e:
                 from utils.logging_utils import log_error
-                log_error(f"Error populating Characters folder: {e}", exc_info=True)
+                log_error(f"Error populating Speakers folder: {e}", exc_info=True)
         finally:
             self.mw.block_list_widget._is_programmatic_expansion = False
             self.mw.block_list_widget.blockSignals(False)

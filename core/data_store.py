@@ -61,6 +61,16 @@ class AppDataStore:
     last_selected_block_index: int = -1
     last_selected_string_index: int = -1
     
+    @property
+    def current_speaker_name(self) -> Optional[str]:
+        """Alias for current_character_name for Speaker terminology."""
+        return self.current_character_name
+
+    @current_speaker_name.setter
+    def current_speaker_name(self, value: Optional[str]) -> None:
+        """Alias setter for current_character_name for Speaker terminology."""
+        self.current_character_name = value
+
     def clear(self):
         """Reset all data to default state."""
         self.json_path = None

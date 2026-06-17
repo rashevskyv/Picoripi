@@ -38,3 +38,5 @@ resources/spellchecker/spell_cache.json
 /plugins/test_plugin/
 /image.png
 
+# Graphify output
+graphify-out/

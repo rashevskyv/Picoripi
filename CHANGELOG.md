@@ -1,5 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.027] - 2026-06-17
+
+### 🚀 Added
+- **Speaker Terminology Rename**: Renamed Character/Characters terminology to Speaker/Speakers throughout the application UI, database components, tooltips, configuration files, and test suites to provide cleaner domain mapping.
+
+### 🐛 Fixed
+- **Navigation Context Preservation**: Fixed a major UI navigation issue where changing a speaker assignment while in a virtual Speakers directory caused the program to auto-jump back to the physical source block, causing the user to lose their navigation state.
+
 ## [0.3.026] - 2026-06-17
 
 ### 🐛 Fixed

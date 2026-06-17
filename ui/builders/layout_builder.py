@@ -386,15 +386,15 @@ class LayoutBuilder:
         self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
         self.mw.speaker_label.setVisible(False)
 
-        # Character Assignment ComboBox
-        self.mw.character_label = QLabel("Character:")
-        self.mw.character_label.setStyleSheet("font-weight: bold; color: #1565c0; padding-left: 5px;")
-        string_settings_layout.addWidget(self.mw.character_label)
-        self.mw.character_combobox = QComboBox()
-        self.mw.character_combobox.setEditable(True)
-        self.mw.character_combobox.setToolTip("Select or type character name for this string")
-        self.mw.character_combobox.setFixedWidth(150)
-        string_settings_layout.addWidget(self.mw.character_combobox)
+        # Speaker Assignment ComboBox
+        self.mw.speaker_select_label = QLabel("Speaker:")
+        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; padding-left: 5px;")
+        string_settings_layout.addWidget(self.mw.speaker_select_label)
+        self.mw.speaker_combobox = QComboBox()
+        self.mw.speaker_combobox.setEditable(True)
+        self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
+        self.mw.speaker_combobox.setFixedWidth(150)
+        string_settings_layout.addWidget(self.mw.speaker_combobox)
 
         string_settings_layout.addStretch(1)
         string_settings_layout.addWidget(QLabel("Font:"))

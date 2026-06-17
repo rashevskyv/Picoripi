@@ -45,7 +45,7 @@ def test_preview_updater_warnings_filtering(qapp, mock_mw):
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_string_idx = -1
     mock_mw.data_store.current_chapter_id = None
-    mock_mw.data_store.current_character_name = None
+    mock_mw.data_store.current_speaker_name = None
     mock_mw.data_store.current_category_name = None
     mock_mw.data_store.hide_translated = False
     mock_mw.data_store.hide_categorized = False

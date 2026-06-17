@@ -1,6 +1,6 @@
-# Picoripi v0.3.026
+# Picoripi v0.3.027
  
-The **Picoripi** (v0.3.026) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.027) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -25,7 +25,7 @@ The **Picoripi** (v0.3.026) is a visual translation and localization workbench b
   - **Unified Font & Width Override Highlights**: Renders an identical soft-purple background (`rgba(186, 85, 211, 40)`) and a bold, 2px bright-purple border (`rgb(186, 85, 211)`) around both the **Font** ComboBox and the **Width** SpinBox widgets when custom line overrides are active, providing visual consistency.
   - **Unified Light Theme Controls Height**: Standardized styling of `QComboBox` (Font selector) and `QSpinBox` (Width selector) in the light theme, matching their borders, padding, and heights perfectly for visual symmetry.
 - **Virtual Chapters Navigation**: Integrates a virtual `Chapters -> Act -> Chapter` hierarchical node structure in the Blocks panel. Dialogue lines scattered across physical `.bmg` or `.json` blocks are dynamically grouped chronologically based on story timeline database coordinates. Supports right-click context menu actions (rename, delete, assign font overrides, toggle markers).
-- **Virtual Characters Navigation**: Group dialogue lines dynamically by Character speakers. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Characters -> Character Name` node structure in the Blocks panel, including a dedicated `"None"` folder at the very top of the list for all unassigned strings. Dialogue lines counts are displayed next to names (e.g. `ASHEI [12]`). Adding strings to these folders automatically assigns the corresponding character metadata to them. Supports direct selection and interactive input of character names via a combo box located above the translation editor (featuring a `"None"` option to clear assignments), instantly updating character assignments and hot-reloading virtual folders, while showing the MemePalace speaker mapping and glossary details directly in the character label and combobox tooltips to eliminate visual clutter.
+- **Virtual Speakers Navigation**: Group dialogue lines dynamically by Speaker. Dialogue lines from any physical `.bmg` or `.json` blocks are gathered into a virtual `Speakers -> Speaker Name` node structure in the Blocks panel, including a dedicated `"None"` folder at the very top of the list for all unassigned strings. Dialogue lines counts are displayed next to names (e.g. `ASHEI [12]`). Adding strings to these folders automatically assigns the corresponding speaker metadata to them. Supports direct selection and interactive input of speaker names via a combo box located above the translation editor (featuring a `"None"` option to clear assignments), instantly updating speaker assignments and hot-reloading virtual folders, while showing the MemePalace speaker mapping and glossary details directly in the speaker label and combobox tooltips to eliminate visual clutter.
 - **Auto-Synchronized Filter Checkboxes**: Automatically synchronizes the graphical states of all filter checkboxes (such as `Show Unsaved Only`, `Hide translated`, etc.) inside the preview panel with the internal `AppDataStore` values upon startup, session restoration, or project settings loading to prevent visual UI state desynchronization.
 
 ---
@@ -271,6 +271,31 @@ The suite consists of over 1000 test cases using `pytest`:
 # Windows PowerShell
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
 ```
+
+### 6. Codebase Knowledge Graph (Graphify)
+Picoripi supports **Graphify** (`graphifyy`), an AST-based semantic knowledge graph builder. This generates an interactive structural graph and analysis of the codebase, which AI coding assistants can query to understand relationships, modules, and workflows without reading raw files.
+
+To generate/update the knowledge graph:
+1. Ensure dependencies are installed:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Initialize the platform skill (e.g. for Claude Code, Gemini CLI, etc.):
+   ```bash
+   .\.venv\Scripts\graphify.exe install
+   ```
+3. Run the extraction and clustering process from `.venv`:
+   ```bash
+   # Extract AST and build semantic graph (requires OpenAI/Gemini API key)
+   $env:OPENAI_API_KEY="your-api-key"; .\.venv\Scripts\graphify.exe extract . --backend openai
+
+   # Perform clustering and generate interactive visualization & markdown reports
+   $env:OPENAI_API_KEY="your-api-key"; $env:GRAPHIFY_VIZ_NODE_LIMIT=10000; .\.venv\Scripts\graphify.exe cluster-only . --backend openai
+   ```
+4. Zipped output and files are written to `graphify-out/`:
+   - `graph.html`: Interactive, searchable 2D network diagram.
+   - `GRAPH_REPORT.md`: Architectural summary, structural anomalies, and recommended walkthrough questions.
+   - `graph.json`: Serialized knowledge graph dataset.
 
 ## Text Validation Rules & Auto-Fix Engine (Standard Plugin)
 

@@ -56,31 +56,32 @@ class StringSettingsUpdater(BaseUIUpdater):
             self.mw.font_combobox.setStyleSheet("")
             if hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
                 self.mw.speaker_label.setText("")
-            if hasattr(self.mw, 'character_combobox') and self.mw.character_combobox:
-                self.mw.character_combobox.blockSignals(True)
-                self.mw.character_combobox.clear()
-                self.mw.character_combobox.setEnabled(False)
-                self.mw.character_combobox.setToolTip("Select or type character name for this string")
-                self.mw.character_combobox.blockSignals(False)
-            if hasattr(self.mw, 'character_label') and self.mw.character_label:
-                self.mw.character_label.setToolTip("Select or type character name for this string")
+            if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox:
+                self.mw.speaker_combobox.blockSignals(True)
+                self.mw.speaker_combobox.clear()
+                self.mw.speaker_combobox.setEnabled(False)
+                self.mw.speaker_combobox._last_displayed_char = None
+                self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
+                self.mw.speaker_combobox.blockSignals(False)
+            if hasattr(self.mw, 'speaker_select_label') and self.mw.speaker_select_label:
+                self.mw.speaker_select_label.setToolTip("Select or type speaker name for this string")
             return
 
         self.mw.font_combobox.setEnabled(True)
         self.mw.width_spinbox.setEnabled(True)
 
-        # Update character assignments
-        if hasattr(self.mw, 'character_combobox') and self.mw.character_combobox is not None:
-            self.mw.character_combobox.blockSignals(True)
-            self.mw.character_combobox.clear()
-            self.mw.character_combobox.setEnabled(True)
+        # Update speaker assignments
+        if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox is not None:
+            self.mw.speaker_combobox.blockSignals(True)
+            self.mw.speaker_combobox.clear()
+            self.mw.speaker_combobox.setEnabled(True)
             
-            unique_characters = set()
+            unique_speakers = set()
             project = getattr(self.mw, 'project_manager', None) and self.mw.project_manager.project
             if project:
                 for block in project.blocks:
                     assignments = block.metadata.get("character_assignments", {})
-                    unique_characters.update(assignments.values())
+                    unique_speakers.update(assignments.values())
             
             # Query MemePalace for characters as well
             client = None
@@ -88,7 +89,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             if composer and hasattr(composer, "prompt_composer"):
                 client = composer.prompt_composer._get_mempalace_client()
 
-            mempalace_characters = set()
+            mempalace_speakers = set()
             if client:
                 wing_name = composer.prompt_composer._get_wing_name() if hasattr(composer, "prompt_composer") else "Zelda_TP"
                 if hasattr(client, "_bmg_to_context") and client._bmg_to_context:
@@ -97,14 +98,14 @@ class StringSettingsUpdater(BaseUIUpdater):
                             continue
                         speaker = ctx_info.get("speaker")
                         if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
-                            char_name = str(speaker).strip()
+                            speaker_name = str(speaker).strip()
                             if hasattr(self.mw, 'list_selection_handler'):
                                 indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
                                 if indices:
-                                    mempalace_characters.add(char_name)
+                                    mempalace_speakers.add(speaker_name)
                 
                 # Fallback to loading script mappings + script file if cache is empty
-                if not mempalace_characters and hasattr(composer, "prompt_composer"):
+                if not mempalace_speakers and hasattr(composer, "prompt_composer"):
                     script_path = composer.prompt_composer._find_script_path()
                     if script_path and os.path.exists(script_path):
                         line_to_speaker = getattr(composer.prompt_composer, "_line_to_speaker_cache", None)
@@ -153,22 +154,22 @@ class StringSettingsUpdater(BaseUIUpdater):
                                     if bmg_id_key and script_line:
                                         speaker = line_to_speaker.get(script_line)
                                         if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
-                                            char_name = str(speaker).strip()
+                                            speaker_name = str(speaker).strip()
                                             if hasattr(self.mw, 'list_selection_handler'):
                                                 indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
                                                 if indices:
-                                                    mempalace_characters.add(char_name)
+                                                    mempalace_speakers.add(speaker_name)
 
-            unique_characters.update(mempalace_characters)
-            unique_characters = {c for c in unique_characters if c and str(c).strip()}
+            unique_speakers.update(mempalace_speakers)
+            unique_speakers = {c for c in unique_speakers if c and str(c).strip()}
             
-            self.mw.character_combobox.addItem("")
-            self.mw.character_combobox.addItem("None")
-            for c in sorted(unique_characters):
+            self.mw.speaker_combobox.addItem("")
+            self.mw.speaker_combobox.addItem("None")
+            for c in sorted(unique_speakers):
                 if c != "None":
-                    self.mw.character_combobox.addItem(c)
+                    self.mw.speaker_combobox.addItem(c)
                 
-            curr_char = ""
+            curr_speaker = ""
             if block_idx != -1 and string_idx != -1 and block_idx not in (-2, -3) and project:
                 block_map = getattr(self.mw, 'block_to_project_file_map', {})
                 proj_b_idx = block_map.get(block_idx, block_idx)
@@ -178,10 +179,10 @@ class StringSettingsUpdater(BaseUIUpdater):
                 except Exception:
                     blocks_len = 1
                 if proj_b_idx < blocks_len:
-                    curr_char = project.blocks[proj_b_idx].metadata.get("character_assignments", {}).get(str(string_idx), "")
+                    curr_speaker = project.blocks[proj_b_idx].metadata.get("character_assignments", {}).get(str(string_idx), "")
                 
                 # Fallback to MemePalace speaker if not assigned in project metadata
-                if not curr_char and client:
+                if not curr_speaker and client:
                     # Resolve block label
                     block_label = ""
                     if proj_b_idx < blocks_len:
@@ -201,9 +202,9 @@ class StringSettingsUpdater(BaseUIUpdater):
                     if ctx and ctx.get("speaker"):
                         spk = str(ctx["speaker"]).strip()
                         if spk and spk.lower() not in ("unknown", "none"):
-                            curr_char = spk
+                            curr_speaker = spk
                             
-                if not curr_char and composer and hasattr(composer, "prompt_composer"):
+                if not curr_speaker and composer and hasattr(composer, "prompt_composer"):
                     raw_text = ""
                     try:
                         if hasattr(self.mw, 'data_store') and self.mw.data_store.data:
@@ -217,12 +218,13 @@ class StringSettingsUpdater(BaseUIUpdater):
                     if result and isinstance(result, (tuple, list)) and len(result) == 2:
                         raw_spk, _ = result
                         if raw_spk and raw_spk != "NONE" and raw_spk.lower() not in ("unknown", "none"):
-                            curr_char = raw_spk
+                            curr_speaker = raw_spk
 
-            if not curr_char:
-                curr_char = "None"
-            self.mw.character_combobox.setCurrentText(curr_char)
-            self.mw.character_combobox.blockSignals(False)
+            if not curr_speaker:
+                curr_speaker = "None"
+            self.mw.speaker_combobox.setCurrentText(curr_speaker)
+            self.mw.speaker_combobox._last_displayed_char = curr_speaker
+            self.mw.speaker_combobox.blockSignals(False)
 
         # Update Speaker Label instantly from MemePalace cache
         if hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
@@ -332,10 +334,10 @@ class StringSettingsUpdater(BaseUIUpdater):
             if hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
                 self.mw.speaker_label.setToolTip(tooltip_text)
                 self.mw.speaker_label.setText(speaker_text)
-            if hasattr(self.mw, 'character_combobox') and self.mw.character_combobox:
-                self.mw.character_combobox.setToolTip(tooltip_text)
-            if hasattr(self.mw, 'character_label') and self.mw.character_label:
-                self.mw.character_label.setToolTip(tooltip_text)
+            if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox:
+                self.mw.speaker_combobox.setToolTip(tooltip_text)
+            if hasattr(self.mw, 'speaker_select_label') and self.mw.speaker_select_label:
+                self.mw.speaker_select_label.setToolTip(tooltip_text)
 
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})

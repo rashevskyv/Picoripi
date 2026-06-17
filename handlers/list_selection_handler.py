@@ -80,7 +80,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_string_idx = s_idx
                 self.mw.data_store.current_chapter_id = ch_id
                 self.mw.data_store.current_category_name = None
-                self.mw.data_store.current_character_name = None
+                self.mw.data_store.current_speaker_name = None
                 
                 # Fetch mappings from MemePalace client
                 chapter_mappings = []
@@ -121,13 +121,13 @@ class ListSelectionHandler(BaseHandler):
             chapter_id = current_item.data(0, Qt.UserRole + 11)
             
             if block_index == -3:
-                # Character item selected
+                # Speaker item selected
                 self.mw.data_store.current_block_idx = -3
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = None
                 
                 char_name = current_item.data(0, Qt.UserRole + 15)
-                self.mw.data_store.current_character_name = char_name
+                self.mw.data_store.current_speaker_name = char_name
                 
                 # Retrieve pre-calculated mappings from the tree item
                 char_mappings = current_item.data(0, Qt.UserRole + 13) or []
@@ -136,11 +136,26 @@ class ListSelectionHandler(BaseHandler):
                 self.ui_updater.populate_strings_for_block(-3)
                 
                 if char_mappings:
-                    first_mapping = char_mappings[0]
-                    self.mw.data_store.current_block_idx = first_mapping[0]
-                    self.mw.data_store.current_string_idx = first_mapping[1]
-                    if not getattr(self.mw, '_restoring_session_state', False):
-                        QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
+                    target_idx = -1
+                    if self._target_string_idx is not None and self._target_block_idx is not None:
+                        target_tuple = (self._target_block_idx, self._target_string_idx)
+                        if target_tuple in char_mappings:
+                            target_idx = char_mappings.index(target_tuple)
+                            
+                    if target_idx != -1:
+                        first_mapping = char_mappings[target_idx]
+                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.current_string_idx = first_mapping[1]
+                        self._target_block_idx = None
+                        self._target_string_idx = None
+                        if not getattr(self.mw, '_restoring_session_state', False):
+                            QTimer.singleShot(0, lambda ridx=target_idx: self.string_selected_from_preview(ridx))
+                    else:
+                        first_mapping = char_mappings[0]
+                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.current_string_idx = first_mapping[1]
+                        if not getattr(self.mw, '_restoring_session_state', False):
+                            QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
                 else:
                     self.mw.data_store.current_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
@@ -155,7 +170,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_block_idx = -2
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = chapter_id
-                self.mw.data_store.current_character_name = None
+                self.mw.data_store.current_speaker_name = None
                 
                 # Fetch mappings from MemePalace client
                 chapter_mappings = []
@@ -175,11 +190,26 @@ class ListSelectionHandler(BaseHandler):
                 self.ui_updater.populate_strings_for_block(-2)
                 
                 if chapter_mappings:
-                    first_mapping = chapter_mappings[0]
-                    self.mw.data_store.current_block_idx = first_mapping[0]
-                    self.mw.data_store.current_string_idx = first_mapping[1]
-                    if not getattr(self.mw, '_restoring_session_state', False):
-                        QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
+                    target_idx = -1
+                    if self._target_string_idx is not None and self._target_block_idx is not None:
+                        target_tuple = (self._target_block_idx, self._target_string_idx)
+                        if target_tuple in chapter_mappings:
+                            target_idx = chapter_mappings.index(target_tuple)
+                            
+                    if target_idx != -1:
+                        first_mapping = chapter_mappings[target_idx]
+                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.current_string_idx = first_mapping[1]
+                        self._target_block_idx = None
+                        self._target_string_idx = None
+                        if not getattr(self.mw, '_restoring_session_state', False):
+                            QTimer.singleShot(0, lambda ridx=target_idx: self.string_selected_from_preview(ridx))
+                    else:
+                        first_mapping = chapter_mappings[0]
+                        self.mw.data_store.current_block_idx = first_mapping[0]
+                        self.mw.data_store.current_string_idx = first_mapping[1]
+                        if not getattr(self.mw, '_restoring_session_state', False):
+                            QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
                 else:
                     self.mw.data_store.current_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
@@ -194,7 +224,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_string_idx = -1
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = None
-                self.mw.data_store.current_character_name = None
+                self.mw.data_store.current_speaker_name = None
                 self.mw.data_store.chapter_mappings = []
                 self.ui_updater.populate_strings_for_block(-1)
                 if hasattr(self.mw, 'string_settings_updater'):
@@ -202,11 +232,11 @@ class ListSelectionHandler(BaseHandler):
                 self._update_block_toolbar_button_states(-1)
                 return
  
-            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or self.mw.data_store.current_chapter_id is not None or getattr(self.mw.data_store, 'current_character_name', None) is not None:
+            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
                 self.mw.data_store.current_block_idx = block_index
                 self.mw.data_store.current_category_name = category_name
                 self.mw.data_store.current_chapter_id = None
-                self.mw.data_store.current_character_name = None
+                self.mw.data_store.current_speaker_name = None
                 self.mw.data_store.chapter_mappings = []
                 
                 # Restore selection logic
@@ -1182,9 +1212,21 @@ class ListSelectionHandler(BaseHandler):
             indices = self.mw.displayed_string_indices
         return indices
 
-    def save_character_for_current_string(self, char_name: str) -> None:
-        """Save character assignment for the current string and refresh UI."""
+    def save_speaker_for_current_string(self, char_name: str) -> None:
+        """Save speaker assignment for the current string and refresh UI."""
         char_name = char_name.strip()
+        
+        # Prevent redundant saves and selection changes when the user clicks/opens the combobox
+        cb = getattr(self.mw, 'speaker_combobox', None)
+        is_undoing_redoing = False
+        if hasattr(self.mw, 'undo_manager') and self.mw.undo_manager:
+            is_undoing_redoing = self.mw.undo_manager.is_undoing_redoing
+            
+        if cb is not None and not is_undoing_redoing:
+            last_displayed = getattr(cb, '_last_displayed_char', None)
+            if last_displayed is not None and char_name == last_displayed:
+                return
+                
         block_idx = self.mw.data_store.current_block_idx
         string_idx = self.mw.data_store.current_string_idx
         
@@ -1212,6 +1254,16 @@ class ListSelectionHandler(BaseHandler):
         if old_char == char_name or (is_none_or_empty_new and is_none_or_empty_old):
             return
             
+        # Record undo action
+        if hasattr(self.mw, 'undo_manager') and self.mw.undo_manager and not is_undoing_redoing:
+            self.mw.undo_manager.record_action(
+                action_type='CHANGE_SPEAKER',
+                block_idx=block_idx,
+                string_idx=string_idx,
+                old_text=old_char or "",
+                new_text=char_name or ""
+            )
+
         if is_none_or_empty_new:
             assignments.pop(str(string_idx), None)
         else:
@@ -1226,35 +1278,84 @@ class ListSelectionHandler(BaseHandler):
             override_block_idx = current_item.data(0, Qt.ItemDataRole.UserRole)
             override_folder_id = current_item.data(0, Qt.ItemDataRole.UserRole + 1)
             
-        # Ensure we stay in virtual mode if we are editing inside virtual characters/chapters directories
-        current_char_name_in_store = getattr(self.mw.data_store, 'current_character_name', None)
+        # Ensure we stay in virtual mode if we are editing inside virtual speakers/chapters directories
+        current_speaker_name_in_store = getattr(self.mw.data_store, 'current_speaker_name', None)
         current_chapter_id_in_store = getattr(self.mw.data_store, 'current_chapter_id', None)
-        if current_char_name_in_store is not None:
+        if current_speaker_name_in_store is not None:
             override_block_idx = -3
+            override_folder_id = current_speaker_name_in_store
+            
+            # Find next/prev sibling in the current speaker mappings to keep focus in this folder
+            current_speaker_mappings = getattr(self.mw.data_store, 'chapter_mappings', [])
+            target_sibling = None
+            if current_speaker_mappings and (block_idx, string_idx) in current_speaker_mappings:
+                idx = current_speaker_mappings.index((block_idx, string_idx))
+                if idx + 1 < len(current_speaker_mappings):
+                    target_sibling = current_speaker_mappings[idx + 1]
+                elif idx - 1 >= 0:
+                    target_sibling = current_speaker_mappings[idx - 1]
+            
+            if target_sibling:
+                self._target_block_idx = target_sibling[0]
+                self._target_string_idx = target_sibling[1]
+            else:
+                self._target_block_idx = None
+                self._target_string_idx = None
         elif current_chapter_id_in_store is not None:
             override_block_idx = -2
-        if override_block_idx == -3 and current_char_name_in_store:
+            self._target_block_idx = block_idx
+            self._target_string_idx = string_idx
+        else:
+            self._target_block_idx = block_idx
+            self._target_string_idx = string_idx
+            
+        if override_block_idx == -3 and current_speaker_name_in_store:
             # Rebuild tree so items have updated mappings lists
             self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
             
-            # Find the active character item in the block tree to get its updated mappings
-            char_mappings = []
+            # Find the active speaker item in the block tree to get its updated mappings
+            active_item = None
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
                 item = iterator.value()
-                if item.data(0, Qt.UserRole) == -3 and item.data(0, Qt.UserRole + 15) == current_char_name_in_store:
-                    char_mappings = item.data(0, Qt.UserRole + 13) or []
+                if item.data(0, Qt.UserRole) == -3 and item.data(0, Qt.UserRole + 15) == current_speaker_name_in_store:
+                    active_item = item
                     break
                 iterator += 1
-                
-            self.mw.data_store.chapter_mappings = char_mappings
-            self.ui_updater.populate_strings_for_block(-3)
+
+            if active_item:
+                # Update chapter_mappings from the freshly-rebuilt item, then refresh
+                # the preview WITHOUT calling block_selected, which would navigate away
+                # from the virtual speaker folder to the underlying physical block.
+                new_mappings = active_item.data(0, Qt.UserRole + 13) or []
+                self.mw.data_store.chapter_mappings = new_mappings
+                self.mw.data_store.current_block_idx = -3
+                self.mw.data_store.current_speaker_name = current_speaker_name_in_store
+                self.ui_updater.populate_strings_for_block(-3)
+                # Restore selection to the string that was just edited (or its sibling)
+                if new_mappings:
+                    target_b = self._target_block_idx if self._target_block_idx is not None else block_idx
+                    target_s = self._target_string_idx if self._target_string_idx is not None else string_idx
+                    target_tuple = (target_b, target_s)
+                    rel_idx = new_mappings.index(target_tuple) if target_tuple in new_mappings else 0
+                    self._target_block_idx = None
+                    self._target_string_idx = None
+                    if not getattr(self.mw, '_restoring_session_state', False):
+                        QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
+                self.ui_updater.update_statusbar_paths()
+            else:
+                self.mw.data_store.chapter_mappings = []
+                self.ui_updater.populate_strings_for_block(-3)
         else:
             self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_string_settings_panel()
                 
         self.data_processor.schedule_autosave()
+
+    def save_character_for_current_string(self, char_name: str) -> None:
+        """Alias for save_speaker_for_current_string to maintain compatibility."""
+        self.save_speaker_for_current_string(char_name)
 
     def toggle_show_warnings_only(self, checked: bool) -> None:
         """Toggle showing only strings matching active warning filters."""
