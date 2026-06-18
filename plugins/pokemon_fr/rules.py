@@ -2,14 +2,39 @@ from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 from plugins.base_game_rules import BaseGameRules
-from .config import (PROBLEM_DEFINITIONS, DEFAULT_AUTOFIX_SETTINGS, DEFAULT_DETECTION_SETTINGS, DEFAULT_TAG_MAPPINGS_POKEMON_FR, 
-                     P_NEWLINE_MARKER, L_NEWLINE_MARKER, P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER, CONTROL_CODES, PROBLEM_BAD_SPACING, PROBLEM_MISSING_ICON_SPACING)
+from .config import (
+    PROBLEM_DEFINITIONS,
+    PROBLEM_WIDTH_EXCEEDED,
+    PROBLEM_SHORT_LINE,
+    PROBLEM_EMPTY_SUBLINE,
+    PROBLEM_SINGLE_WORD_SUBLINE,
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
+    PROBLEM_TAG_WARNING,
+    PROBLEM_BAD_SPACING,
+    PROBLEM_MISSING_ICON_SPACING,
+    DEFAULT_TAG_MAPPINGS_POKEMON_FR,
+    P_NEWLINE_MARKER,
+    L_NEWLINE_MARKER,
+    P_VISUAL_EDITOR_MARKER,
+    L_VISUAL_EDITOR_MARKER,
+    CONTROL_CODES
+)
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display
 import re
+
+class ProblemIDs:
+    PROBLEM_WIDTH_EXCEEDED = PROBLEM_WIDTH_EXCEEDED
+    PROBLEM_SHORT_LINE = PROBLEM_SHORT_LINE
+    PROBLEM_EMPTY_SUBLINE = PROBLEM_EMPTY_SUBLINE
+    PROBLEM_SINGLE_WORD_SUBLINE = PROBLEM_SINGLE_WORD_SUBLINE
+    PROBLEM_SINGLE_WORD_SUBLINE_NON_START = PROBLEM_SINGLE_WORD_SUBLINE_NON_START
+    PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
+    PROBLEM_BAD_SPACING = PROBLEM_BAD_SPACING
+    PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
 
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
@@ -19,8 +44,10 @@ class GameRules(BaseGameRules):
         self.original_keys = []
         
         self.tag_manager = TagManager(main_window_ref)
-        self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager, PROBLEM_DEFINITIONS, {})
+        self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager, PROBLEM_DEFINITIONS, ProblemIDs)
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
+        self.problem_analyzer.game_rules = self
+        self.text_fixer.game_rules = self
         self.PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
         self.problem_ids = self.problem_analyzer.problem_ids
 

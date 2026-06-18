@@ -1,10 +1,10 @@
-# The "Picoripi" (v0.3.034)
+# The "Picoripi" (v0.3.035)
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
 ## Project Overview
 
-The "Picoripi" (v0.3.034) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.035) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -18,6 +18,7 @@ The application is designed to be highly versatile, with features tailored to ha
 
 - **Visual Feedback System**: Automatic file synchronization, clear problem counts and warning indicators across the project tree with **recursive asterisk propagation for unsaved changes**.
 - **Plugin-Based Architecture**: Game-specific logic is handled by a robust plugin system located in the `plugins/` directory. Each plugin (e.g., `zelda_mc`, `zelda_ww`, `pokemon_fr`, `plain_text`) defines its own rules for text parsing, tag handling, font metrics for width calculation, problem analysis, and autofix behavior. Plugins inherit from `BaseGameRules` (`plugins/base_game_rules.py`).
+- **Centralized Rule Engine**: Built on the `ProblemRule` interface and `ProblemRuleRegistry` registry located in `plugins/common/problem_rules/`. It provides a unified source of truth for both detecting and auto-correcting layout warnings. High-level adapters `GenericProblemAnalyzer` and `GenericTextFixer` delegate verification tasks to this common engine.
 - **Archive Support**: Fully native, in-memory archive management. Automatically detects, parses, edits, and packs RARC and U8 archive containers (including Yaz0 compressed formats) directly in RAM. Eliminates the need for external executables like `ArcExtract.exe` or `ArcPack.exe` and prevents any disk space pollution.
 - **AI-Assisted Translation**: Integrates with external AI services (OpenAI, Gemini, DeepL) for translation. Features include: batch translation, translation variations for long sentences, AI-powered glossary fill, glossary occurrence batch-update, a dedicated AI Chat window, and a split-view interactive translation comparison dialog with inline editing, version switching, and AI variation selection. The system uses configurable prompts (`AIPromptComposer`) and a full lifecycle manager (`AILifecycleManager`) for reliable async operations.
 - **MemePalace Context Integration**: Fully chronological walkthrough timeline mapping utilizing an SQLite database. Maps flat game dialogue lines to dynamic walkthrough transcripts (such as parsed YouTube captions) and dynamically enriches translation models with visual action environment details and character relations. Features a non-blocking modeless Context Builder and an interactive Database Viewer.
@@ -132,6 +133,7 @@ The project follows a well-organized, modular structure with clear separation of
 -   `plugins/`: Game-specific plugin modules:
     -   `base_game_rules.py`: Abstract base class for all plugins.
     -   `common/`: Shared markers and utilities (`markers.py`).
+    -   `common/problem_rules/`: Shared Rule Engine logic (`base.py`, `registry.py`, `common_rules.py`).
     -   `zelda_mc/`, `zelda_ww/`, `pokemon_fr/`, `plain_text/`: Individual game plugins.
 -   `tools/`: Helper utilities and embedded tools, including `bfn_editor/` (Nintendo Binary Font visual editor and compiler).
 -   `utils/`: Utility functions (`utils.py`), constants (`constants.py`), syntax highlighter (`syntax_highlighter.py`), and logging (`logging_utils.py`).

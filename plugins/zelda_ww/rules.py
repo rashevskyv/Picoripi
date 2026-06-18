@@ -4,7 +4,8 @@ from typing import Any, Tuple, Dict, List, Set, Optional
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_info, log_warning
-from utils.utils import calculate_string_width, convert_spaces_to_dots_for_display
+import utils.utils as uu
+from utils.utils import convert_spaces_to_dots_for_display
 
 from .config import (
     PROBLEM_DEFINITIONS,
@@ -47,6 +48,8 @@ class GameRules(BaseGameRules):
         self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager,
                                                 self.problem_definitions_cache, ProblemIDs)
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
+        self.problem_analyzer.game_rules = self
+        self.text_fixer.game_rules = self
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Optional[Dict[str, str]]]:
         # Use base class implementation for Kruptar format support
@@ -126,7 +129,7 @@ class GameRules(BaseGameRules):
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
         """Calculate string width override."""
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
-        return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
+        return uu.calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
         
     def get_short_problem_name(self, problem_id: str) -> str:
         """Get the short problem name."""

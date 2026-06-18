@@ -35,7 +35,7 @@ def test_ZeldaWW_tag_legitimacy(rules):
 
 def test_ZeldaWW_analyze_data_string_width(rules):
     # Mocking calculate_string_width - providing enough values
-    with patch('plugins.zelda_ww.problem_analyzer.calculate_string_width', side_effect=[250, 100, 100, 100, 100]):
+    with patch('utils.utils.calculate_string_width', side_effect=[250, 100, 100, 100, 100]):
         problems = rules.problem_analyzer.analyze_data_string("Long line\nShort", {}, 200)
         assert rules.problem_ids.PROBLEM_WIDTH_EXCEEDED in problems[0]
         assert rules.problem_ids.PROBLEM_WIDTH_EXCEEDED not in problems[1]
@@ -80,9 +80,8 @@ def test_ZeldaWW_cleanup_spaces_closing_color_tag(rules):
     # For closing tag, if NOT punctuation, it goes through line 113 "if not should_remove_space: result_parts.append(space_content)"
     assert fixed == "[/C] word"
 
-@patch('plugins.common.text_fixer.calculate_string_width', return_value=10)
-@patch('plugins.zelda_ww.problem_analyzer.calculate_string_width', return_value=10)
-def test_ZeldaWW_autofix_integration(mock_calc_pa, mock_calc_tf, rules):
+@patch('utils.utils.calculate_string_width', return_value=10)
+def test_ZeldaWW_autofix_integration(mock_calc, rules):
     # Empty first line of page (index 0) + some text
     text = "\n[Tag]  word"
     # 1. page fix -> removes index 0 -> "[Tag]  word"
@@ -94,12 +93,12 @@ def test_ZeldaWW_autofix_integration(mock_calc_pa, mock_calc_tf, rules):
 
 def test_ZeldaWW_analyze_data_string_width_with_logical_limit(rules):
     # Width (250) exceeds editor threshold (200), but is less than logical limit (300)
-    with patch('plugins.zelda_ww.problem_analyzer.calculate_string_width', return_value=250):
+    with patch('utils.utils.calculate_string_width', return_value=250):
         problems = rules.problem_analyzer.analyze_data_string("Long line", {}, 200, logical_hard_limit=300)
         assert rules.problem_ids.PROBLEM_WIDTH_EXCEEDED not in problems[0]
 
 def test_ZeldaWW_analyze_data_string_width_exceeds_logical_limit(rules):
     # Width (250) exceeds both editor threshold (200) and logical limit (240)
-    with patch('plugins.zelda_ww.problem_analyzer.calculate_string_width', return_value=250):
+    with patch('utils.utils.calculate_string_width', return_value=250):
         problems = rules.problem_analyzer.analyze_data_string("Long line", {}, 200, logical_hard_limit=240)
         assert rules.problem_ids.PROBLEM_WIDTH_EXCEEDED in problems[0]

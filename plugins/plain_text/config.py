@@ -29,19 +29,11 @@ COLOR_EMPTY_ODD = QColor(255, 165, 0, 180)
 COLOR_SHORT_LINE = QColor(0, 200, 0, 100)
 COLOR_SINGLE_WORD_SUBLINE = QColor(0, 0, 255, 120)
 COLOR_SINGLE_WORD_SUBLINE_NON_START = QColor(139, 69, 19, 120)
-COLOR_EMPTY_FIRST_LINE = QColor(255, 105, 180, 100)
 
 # Default number of lines per page
 DEFAULT_LINES_PER_PAGE = 4
 
-custom_problems = {
-    "EMPTY_FIRST_LINE_OF_PAGE": {
-        "name": "Empty First Line of Page",
-        "color": COLOR_EMPTY_FIRST_LINE,
-        "priority": PRIORITY_EMPTY_FIRST_LINE,
-        "description": "The first line of a 4-line page is empty, but subsequent lines on the page are not."
-    }
-}
+custom_problems = {}
 
 overrides = {
     "priorities": {

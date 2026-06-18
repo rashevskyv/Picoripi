@@ -1,6 +1,6 @@
-# Picoripi v0.3.034
- 
-The **Picoripi** (v0.3.034) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+# Picoripi v0.3.035
+
+The **Picoripi** (v0.3.035) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 ---
 
@@ -70,7 +70,11 @@ The **Picoripi** (v0.3.034) is a visual translation and localization workbench b
 
 ---
 
-### 4. Developer-Friendly Plugin Architecture
+### 4. Developer-Friendly Plugin Architecture & Rule Engine
+- **Centralized Rule Engine**:
+  - Integrates a robust system of rules (`ProblemRule`) and rule registry (`ProblemRuleRegistry`) located in `plugins/common/problem_rules/` that serves as a single source of truth for both detection and auto-fixing capabilities.
+  - Eliminates duplicated parsing logic between analyzers and fixers. All rules (e.g., `WidthRule`, `BadSpacingRule`, `ShortLineRule`, `MissingIconSpacingRule`) encapsulate their specific validation parameters and correction procedures.
+  - Features high-level adapters `GenericProblemAnalyzer` and `GenericTextFixer` acting as wrappers to maintain backwards compatibility while executing clean rule pipelines.
 - **Abstract Base Rules (`BaseGameRules`)**: Extensible class in `plugins/base_game_rules.py` defining hooks for load/save logic, entering/shift-entering carriage controls, custom tag syntax checking, text auto-fixes, and spellcheck patterns.
 - **Custom Fonts Directory**: Specify a custom folder path (`fonts_dir_path`) to dynamically load external `.json` font maps or `.bfn` Nintendo Binary Font files.
 - **Background Archive Font Extractor**: Automatically scans `.arc` or `.u8` containers inside the fonts directory, extracts nested fonts in memory, and registers them under `{archive}/{font_name}` for real-time width warning metrics.

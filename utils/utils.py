@@ -24,8 +24,14 @@ def remove_all_tags(text: str, tag_mappings: Optional[dict] = None) -> str:
     text = FORCED_ALIAS_PATTERN.sub(r"\1", text)
     return ALL_TAGS_PATTERN.sub("", text)
 
+_ACTIVE_FONT_MAP = None
+_ACTIVE_TAG_MAPPINGS = None
+_ACTIVE_ICON_SEQUENCES = None
+
 def get_active_font_map() -> dict:
     """Get the active font map."""
+    if _ACTIVE_FONT_MAP is not None:
+        return _ACTIVE_FONT_MAP
     try:
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
@@ -39,6 +45,8 @@ def get_active_font_map() -> dict:
 
 def get_active_icon_sequences() -> list:
     """Get the active icon sequences."""
+    if _ACTIVE_ICON_SEQUENCES is not None:
+        return _ACTIVE_ICON_SEQUENCES
     try:
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
@@ -500,7 +508,7 @@ def clean_spaces(text: str) -> str:
     cleaned_lines = []
 
     # Регулярний вираз для порожніх початкових/кінцевих тегів (фігурні теги або колірні квадратні теги)
-    empty_tags_subpattern = rf"(?:\{{(?!(?:{curly_lookahead}))[^}}]*\}}|\[(?!(?:{bracket_lookahead}))(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|/C)\])*"
+    empty_tags_subpattern = rf"(?:\{{(?!(?:{curly_lookahead}))[^}}]*\}}|\[(?!(?:{bracket_lookahead}))(?:Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White)\])*"
     leading_space_pat = re.compile(rf"^{empty_tags_subpattern}[ ·]")
     trailing_space_pat = re.compile(rf"[ ·]{empty_tags_subpattern}$")
 
@@ -634,6 +642,8 @@ def _get_trie_and_flat_map(font_map: dict, default_char_width: int, icon_sequenc
 
 def get_active_tag_mappings() -> dict:
     """Get the active tag mappings."""
+    if _ACTIVE_TAG_MAPPINGS is not None:
+        return _ACTIVE_TAG_MAPPINGS
     try:
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()

@@ -39,12 +39,6 @@ COLOR_EMPTY_FIRST_LINE = QColor(255, 105, 180, 100)
 COLOR_STAR_TAG_RULES = QColor(147, 112, 219, 100)
 
 custom_problems = {
-    "EMPTY_FIRST_LINE_OF_PAGE": {
-        "name": "Empty First Line of Page",
-        "color": COLOR_EMPTY_FIRST_LINE,
-        "priority": PRIORITY_EMPTY_FIRST_LINE,
-        "description": "The first line of a 4-line page is empty, but subsequent lines on the page are not."
-    },
     "STAR_TAG_RULES": {
         "name": "Star Tag Rules ({*} & {tab})",
         "color": COLOR_STAR_TAG_RULES,

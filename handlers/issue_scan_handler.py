@@ -80,11 +80,15 @@ class IssueScanHandler(BaseHandler):
                 "project_id": self.mw.project_manager.project.id if self.mw.project_manager.project else None,
                 "settings": {
                     "cache_format_version": 2,
+                    "rule_engine_version": 1,
+                    "plugin_id": self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else None,
                     "game_dialog_max_width_pixels": getattr(self.mw, 'game_dialog_max_width_pixels', 300),
                     "line_width_warning_threshold_pixels": getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
                     "default_font_file": getattr(self.mw, 'default_font_file', None),
                     "fonts_dir_path": getattr(self.mw, 'fonts_dir_path', None),
-                    "detection_enabled": getattr(self.mw, 'detection_enabled', {})
+                    "detection_enabled": getattr(self.mw, 'detection_enabled', {}),
+                    "default_tag_mappings": getattr(self.mw, 'default_tag_mappings', {}),
+                    "icon_sequences": getattr(self.mw, 'icon_sequences', [])
                 },
                 "blocks_mtimes": blocks_mtimes,
                 "problems": problems_by_block
@@ -239,11 +243,15 @@ class IssueScanHandler(BaseHandler):
             cache_valid = (
                 cache.get("app_version") == APP_VERSION
                 and settings.get("cache_format_version") == 2
+                and settings.get("rule_engine_version") == 1
+                and settings.get("plugin_id") == (self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else None)
                 and settings.get("game_dialog_max_width_pixels") == getattr(self.mw, 'game_dialog_max_width_pixels', 300)
                 and settings.get("line_width_warning_threshold_pixels") == getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
                 and settings.get("default_font_file") == getattr(self.mw, 'default_font_file', None)
                 and settings.get("fonts_dir_path") == getattr(self.mw, 'fonts_dir_path', None)
                 and settings.get("detection_enabled") == getattr(self.mw, 'detection_enabled', {})
+                and settings.get("default_tag_mappings") == getattr(self.mw, 'default_tag_mappings', {})
+                and settings.get("icon_sequences") == getattr(self.mw, 'icon_sequences', [])
             )
             
         pending_scan_indices = []

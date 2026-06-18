@@ -12,7 +12,8 @@ import re
 from typing import List, Tuple, Dict, Optional, Any, Set
 from plugins.base_game_rules import BaseGameRules
 from PyQt6.QtGui import QTextCharFormat
-from utils.utils import calculate_string_width, convert_spaces_to_dots_for_display
+import utils.utils as uu
+from utils.utils import convert_spaces_to_dots_for_display
 
 from .config import (
     PROBLEM_DEFINITIONS,
@@ -54,6 +55,8 @@ class GameRules(BaseGameRules):
         self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager,
                                                 self.problem_definitions_cache, ProblemIDs)
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
+        self.problem_analyzer.game_rules = self
+        self.text_fixer.game_rules = self
 
     def get_display_name(self) -> str:
         """Return the display name for this plugin."""
@@ -149,7 +152,7 @@ class GameRules(BaseGameRules):
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
         """Calculate string width override."""
-        return calculate_string_width(text, font_map, default_char_width, icon_sequences=[])
+        return uu.calculate_string_width(text, font_map, default_char_width, icon_sequences=[])
 
     def analyze_subline(
         self,

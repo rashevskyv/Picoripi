@@ -34,9 +34,9 @@ def test_TextAutofixLogicfix_short_lines(mock_calc, mock_autofix, mock_mw):
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.string_metadata = {}
     mock_mw.line_width_warning_threshold_pixels = 200
-    
+
     mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
-    
+
     text = "This is a very long line that should be wrapped.\nAnd another line."
     fixed = mock_autofix._fix_short_lines(text)
     assert isinstance(fixed, str)
@@ -48,9 +48,9 @@ def test_TextAutofixLogicfix_width_exceeded(mock_calc, mock_autofix, mock_mw):
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.string_metadata = {}
     mock_mw.line_width_warning_threshold_pixels = 100
-    
+
     mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
-    
+
     text = "Very long line that exceeds the 100 limit.\nShort."
     fixed = mock_autofix._fix_width_exceeded(text)
     assert "\n" in fixed
@@ -77,11 +77,11 @@ def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix
     mock_mw.current_block_idx = -1
     mock_mw.current_string_idx = -1
     mock_autofix.auto_fix_current_string()
-    
+
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
     mock_autofix.data_processor.get_current_string_text.return_value = ("Original", False)
-    
+
     mock_mw.edited_text_edit = MagicMock()
     mock_mw.edited_text_edit.toPlainText.return_value = " Translated  text\n with issues. "
     mock_mw.edited_text_edit.textCursor().position.return_value = 0
@@ -89,7 +89,7 @@ def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix
     mock_mw.edited_text_edit.verticalScrollBar().value.return_value = 0
     mock_mw.edited_text_edit.horizontalScrollBar().value.return_value = 0
     mock_mw.edited_text_edit.document().isUndoAvailable.return_value = False
-    
+
     # Mock all fix methods to just return the passed string to trace execution
     mock_autofix._fix_empty_odd_sublines = MagicMock(return_value="1")
     mock_autofix._fix_short_lines = MagicMock(return_value="2")
@@ -97,9 +97,9 @@ def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix
     mock_autofix._fix_blue_sublines = MagicMock(return_value="4")
     mock_autofix._fix_leading_spaces_in_sublines = MagicMock(return_value="5")
     mock_autofix._cleanup_spaces_around_tags = MagicMock(return_value="Fixed Text")
-    
+
     mock_autofix.auto_fix_current_string()
-    
+
     mock_autofix.ui_updater.populate_strings_for_block.assert_called_once()
 
 
@@ -119,16 +119,16 @@ def test_TextAutofixLogic_coverage_corner_cases(mock_autofix, mock_mw):
     assert mock_autofix._fix_empty_odd_sublines("\n") == ""
     assert mock_autofix._fix_empty_odd_sublines("1\n\n\n\n") == "1\n"
 
-@patch('handlers.text_autofix_logic.calculate_string_width')
+@patch('utils.utils.calculate_string_width')
 def test_TextAutofixLogic_fix_short_lines_merge(mock_calc, mock_autofix, mock_mw):
-    mock_calc.return_value = 1 
+    mock_calc.return_value = 1
     mock_mw.line_width_warning_threshold_pixels = 2000
     mock_mw.font_map = {}
-    
+
     # Simple word + word
     text = "Short\nline."
     assert mock_autofix._fix_short_lines(text) == "Short line."
-    
+
     # Tag + Word
     text = "{Color:Red}\nline."
     assert mock_autofix._fix_short_lines(text) == "{Color:Red}\nline."
@@ -138,12 +138,12 @@ def test_TextAutofixLogic_fix_short_lines_merge(mock_calc, mock_autofix, mock_mw
     # Current implementation might skip empty lines or handle them differently
     assert mock_autofix._fix_short_lines(text) == "Short\n\nline."
 
-@patch('handlers.text_autofix_logic.calculate_string_width')
+@patch('utils.utils.calculate_string_width')
 def test_TextAutofixLogic_fix_width_exceeded_corner(mock_calc, mock_autofix, mock_mw):
     mock_calc.return_value = 200
     mock_mw.game_dialog_max_width_pixels = 100
     mock_mw.font_map = {}
-    
+
     # word exceeds initially
     text = "Long Word"
     assert "\n" in mock_autofix._fix_width_exceeded(text)
@@ -154,9 +154,18 @@ def test_TextAutofixLogic_fix_blue_sublines_corner(mock_autofix, mock_mw):
     assert "line1" in mock_autofix._fix_blue_sublines("line1.\nline2")
 
 def test_TextAutofixLogic_cleanup_spaces_corner(mock_autofix, mock_mw):
+    mock_mw.default_tag_mappings = {
+        "{Color:White}": "{Color:White}",
+        "{color:white}": "{color:white}",
+        "{escape:255:000000}": "{escape:255:000000}",
+        "{color_default}": "{color_default}"
+    }
+    mock_mw.icon_sequences = ["{Color:White}", "{color:white}", "{escape:255:000000}", "{color_default}"]
+    mock_mw.font_map = {"w": {"width": 10}, "o": {"width": 10}, "r": {"width": 10}, "d": {"width": 10}}
+
     assert mock_autofix._cleanup_spaces_around_tags("{Color:White} ,") == "{Color:White},"
     assert mock_autofix._cleanup_spaces_around_tags("no spaces here") == "no spaces here"
-    
+
     # Spaces before words for white/closing tags should be preserved
     assert mock_autofix._cleanup_spaces_around_tags("{Color:White} word") == "{Color:White} word"
     assert mock_autofix._cleanup_spaces_around_tags("{color:white} word") == "{color:white} word"
@@ -176,21 +185,21 @@ def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
     mock_autofix.data_processor.get_current_string_text.return_value = ("Original", False)
-    
+
     # Mock edited_text_edit methods to avoid TypeError in auto_fix_current_string
     mock_mw.edited_text_edit.document().characterCount.return_value = 10
     mock_mw.edited_text_edit.textCursor().position.return_value = 0
     mock_mw.edited_text_edit.document().isUndoAvailable.return_value = False
     mock_mw.edited_text_edit.verticalScrollBar().value.return_value = 0
     mock_mw.edited_text_edit.horizontalScrollBar().value.return_value = 0
-    
+
     mock_autofix._fix_empty_odd_sublines = MagicMock(side_effect=lambda x, *args: x)
     mock_autofix._fix_short_lines = MagicMock(side_effect=lambda x, *args: x)
     mock_autofix._fix_width_exceeded = MagicMock(side_effect=lambda x, *args: x)
     mock_autofix._fix_blue_sublines = MagicMock(side_effect=lambda x, *args: x)
     mock_autofix._fix_leading_spaces_in_sublines = MagicMock(side_effect=lambda x, *args: x)
     mock_autofix._cleanup_spaces_around_tags = MagicMock(side_effect=lambda x, *args: x)
-    
+
     # No changes branch
     mock_autofix.auto_fix_current_string()
     if hasattr(mock_mw, 'statusBar'):
@@ -207,12 +216,12 @@ def test_TextAutofixLogic_fix_short_lines_boundary_cross(mock_calc, mock_autofix
     mock_mw.lines_per_page = 4
     mock_mw.font_map = {}
     mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
-    
+
     # Mock analyzer's check_single_word_subline_generic and _is_single_word_ok_generic
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.problem_analyzer._check_single_word_subline_generic.return_value = True
     mock_mw.current_game_rules.problem_analyzer._is_single_word_ok_generic.return_value = False
-    
+
     # CASE A: fits (threshold is large)
     # line 4 (index 3) is boundary. next_line is line index 4 ("місця").
     # It should merge line index 3 ("Line 4") and index 4 ("місця") -> "Line 4 місця"
@@ -246,7 +255,7 @@ def test_shift_split_sentences():
 
 def test_shift_split_sentences_aligned():
     from utils.utils import shift_split_sentences_aligned
-    
+
     # Scenario 1: Same number of sentences, page break code in original must be copied to translation
     orig = "Line 1.\n[escape:0:0007000a]Line 2."
     trans = "Trans 1.\nTrans 2."
@@ -267,11 +276,11 @@ def test_shift_split_sentences_prevent_empty_lines():
 
     # Test shift_split_sentences with prevent_empty_lines
     text = "Line 1.\n{escape:0:0007000a}Line 2."
-    
+
     # Without prevent_empty_lines (default: pad with empty lines to 4 lines per page)
     res_pad, _ = shift_split_sentences(text, 4, prevent_empty_lines=False)
     assert res_pad == "Line 1.\n\n\n\n{escape:0:0007000a}Line 2."
-    
+
     # With prevent_empty_lines: next sentence starts with page break, so we do NOT pad!
     res_no_pad, _ = shift_split_sentences(text, 4, prevent_empty_lines=True)
     assert res_no_pad == "Line 1.\n{escape:0:0007000a}Line 2."
@@ -374,6 +383,59 @@ def test_TextAutofixLogic_fix_short_lines_two_words_limit(mock_autofix, mock_mw)
     text = "aaaaa\nbb bbb"
     res2 = mock_autofix._fix_short_lines(text)
     assert res2 == "aaaaa\nbb bbb"
+
+def test_text_autofix_logic_uses_real_game_rules_path(qapp):
+    """
+    Verify that TextAutofixLogic.auto_fix_current_string using a real GameRules
+    instance (e.g. PlainTextRules) executes autofix successfully, updates
+    the editor widget, and refreshes the UI.
+    """
+    from handlers.text_autofix_logic import TextAutofixLogic
+    from plugins.plain_text.rules import GameRules as PlainTextRules
+    from PyQt6.QtWidgets import QTextEdit
+
+    mw = MagicMock()
+    # Mock MainWindow attributes to avoid QColor instantiation errors in TagManager
+    mw.tag_color_rgba = "#FF8C00"
+    mw.newline_color_rgba = "#A020F0"
+    mw.tag_bold = True
+    mw.tag_italic = False
+    mw.tag_underline = False
+    mw.newline_bold = True
+    mw.newline_italic = False
+    mw.newline_underline = False
+    mw.newline_display_symbol = ""
+    mw.default_tag_mappings = {}
+    mw.tag_warning_color = "#FF8C00"
+    mw.tag_normal_color = "#FF8C00"
+    mw.issue_warning_color = "#FF8C00"
+    mw.issue_error_color = "#FF8C00"
+
+    mw.data_store = mw
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.line_width_warning_threshold_pixels = 100
+    mw.game_dialog_max_width_pixels = 120
+    mw.show_multiple_spaces_as_dots = False
+
+    mw.current_game_rules = PlainTextRules(mw)
+
+    data_processor = MagicMock()
+    data_processor.get_current_string_text.return_value = ("Hello  World", False)
+
+    ui_updater = MagicMock()
+
+    editor = QTextEdit()
+    editor.setText("Hello  World")
+    mw.edited_text_edit = editor
+    mw.string_metadata = {}
+    mw.is_programmatically_changing_text = False
+
+    handler = TextAutofixLogic(mw, data_processor, ui_updater)
+    handler.auto_fix_current_string()
+
+    assert editor.toPlainText() == "Hello World"
+    ui_updater.populate_strings_for_block.assert_called_once()
 
 
 

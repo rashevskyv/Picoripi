@@ -53,6 +53,8 @@ class GameRules(BaseGameRules):
         self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager,
                                                 self.problem_definitions_cache, ProblemIDs)
         self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
+        self.problem_analyzer.game_rules = self
+        self.text_fixer.game_rules = self
         self.last_loaded_bmg = None
         self.translation_map = {}
         self.reverse_translation_map = {}

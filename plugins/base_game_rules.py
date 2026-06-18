@@ -1,4 +1,4 @@
-﻿from typing import List, Tuple, Dict, Optional, Any, Set
+from typing import List, Tuple, Dict, Optional, Any, Set
 from PyQt6.QtGui import QTextCharFormat
 import json
 import re
@@ -228,7 +228,7 @@ class BaseGameRules:
         """Get the context menu actions."""
         return []
 
-    def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int) -> Optional[int]:
+    def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
         """Calculate string width override."""
         return None
 

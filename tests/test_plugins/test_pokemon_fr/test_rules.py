@@ -98,3 +98,31 @@ def test_GameRules_convert_editor_text_to_data(rules):
 
 def test_GameRules_get_editor_page_size(rules):
     assert rules.get_editor_page_size() == 2
+
+def test_pokemon_fr_width_fix_preserves_original_page_break_tags(rules):
+    # Width limit is small, so it forces wrapping
+    # Input is: "long long long\pNext page"
+    # We want to verify that \p stays after "long" (the original subline word sequence),
+    # while the artificial wraps are \n.
+    dirty = "long long long\\pNext page"
+    fixed, changed = rules.autofix_data_string(
+        data_string=dirty,
+        editor_font_map={},
+        editor_line_width_threshold=60, # Small threshold to force wrap
+        logical_hard_limit=60
+    )
+    assert changed is True
+    assert fixed == "long long\\nlong\\pNext page"
+
+def test_pokemon_fr_autofix_preserves_original_page_break_tags_full(rules):
+    # This checks the case with multiple separators \n and \p, where short lines might be merged.
+    dirty = "a b c\\nD e f\\pG h i"
+    fixed, changed = rules.autofix_data_string(
+        data_string=dirty,
+        editor_font_map={},
+        editor_line_width_threshold=60,
+        logical_hard_limit=60,
+        allowed_problems=None # Full autofix
+    )
+    assert changed is True
+    assert fixed == "a b c D\\ne f\\pG h i"

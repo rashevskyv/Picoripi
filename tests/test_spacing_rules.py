@@ -646,16 +646,15 @@ def test_single_letter_word_wrap_prevention(bmg_rules, plain_rules):
     # "abc y def" (72px) fits. We can merge.
     assert plain_rules.problem_analyzer._check_short_line_zww("abc", "y def", {}, 80) is True
 
-    # 3. For BMG rules (default char width 6)
-    # "abc" (18px)
-    # "y def" -> first "y" (6px), second "def" (18px)
-    # space 6px
-    # "abc y" -> 30px
-    # "abc y def" -> 54px
+    # "abc" (30px with 10px char width override)
+    # "y def" -> first "y" (10px), second "def" (30px)
+    # space 10px
+    # "abc y" -> 50px
+    # "abc y def" -> 90px
     # If threshold is 40px: BMG should not merge
     assert bmg_rules.problem_analyzer._check_short_line_zbmg("abc", "y def", {}, 40) is False
-    # If threshold is 60px: BMG should merge
-    assert bmg_rules.problem_analyzer._check_short_line_zbmg("abc", "y def", {}, 60) is True
+    # If threshold is 90px: BMG should merge
+    assert bmg_rules.problem_analyzer._check_short_line_zbmg("abc", "y def", {}, 90) is True
 
 
 def test_short_line_merge_across_padding(bmg_rules, ww_rules, mc_rules, pokemon_rules):
@@ -663,7 +662,7 @@ def test_short_line_merge_across_padding(bmg_rules, ww_rules, mc_rules, pokemon_
     
     # 1. Zelda BMG
     text_bmg = "{escape:0:0001}Ти отримав {color:red}Карту{color:white}.\n\n\n\nПризначай її на\nпотрібну кнопку\nта користуйся."
-    fixed_bmg, changed_bmg = bmg_rules.text_fixer._fix_short_lines_zbmg(text_bmg, {}, 414)
+    fixed_bmg, changed_bmg = bmg_rules.text_fixer._fix_short_lines_zbmg(text_bmg, {}, 500)
     expected_bmg = "{escape:0:0001}Ти отримав {color:red}Карту{color:white}.\n\n\n\nПризначай її на потрібну кнопку та користуйся."
     assert fixed_bmg == expected_bmg
     assert changed_bmg is True
@@ -684,9 +683,10 @@ def test_short_line_merge_across_padding(bmg_rules, ww_rules, mc_rules, pokemon_
 
     # 4. Pokemon FR
     text_pk = "Ти отримав Карту.\\n\\n\\n\\nПризначай її на\\nпотрібну кнопку."
-    fixed_pk = pokemon_rules.text_fixer._fix_short_lines(text_pk, {}, 414)
+    fixed_pk, changed_pk = pokemon_rules.text_fixer._fix_short_lines(text_pk, {}, 414)
     expected_pk = "Ти отримав Карту.\\n\\n\\n\\nПризначай її на потрібну кнопку."
     assert fixed_pk == expected_pk
+    assert changed_pk is True
 
 
 def test_autofix_page_local(mc_rules):

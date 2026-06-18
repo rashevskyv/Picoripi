@@ -1,9 +1,15 @@
-from typing import Optional, Set, List
+from typing import Optional, Set, List, Dict, Any
 import re
-from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor, get_tag_width, ALL_TAGS_PATTERN
+from utils.utils import calculate_string_width
+from plugins.common.problem_rules import (
+    create_default_registry,
+    GameProblemProfile,
+    RuleContext,
+    ProblemRuleRegistry
+)
 
 class GenericProblemAnalyzer:
-    """Generic problem analyzer implementation."""
+    """Generic problem analyzer implementation acting as an adapter to Rule Engine."""
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
         """Initialize a new instance."""
         self.mw = main_window_ref
@@ -12,131 +18,154 @@ class GenericProblemAnalyzer:
         self.problem_ids = problem_ids_ref
         self.tag_exceptions = {"Link", "Epona"}
 
-    def _check_bad_spacing(self, text: str) -> bool:
-        """Internal helper to check bad spacing."""
-        if not text:
-            return False
-        clean_text = convert_dots_to_spaces_from_editor(text)
-        
-        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
+        # Build GameProblemProfile
+        pids_dict = {}
+        if isinstance(problem_ids_ref, dict):
+            pids_dict = problem_ids_ref
+        else:
+            for attr in dir(problem_ids_ref):
+                if not attr.startswith('__'):
+                    val = getattr(problem_ids_ref, attr)
+                    if isinstance(val, str):
+                        pids_dict[attr] = val
+
+        logical_map = {}
+        for k, v in pids_dict.items():
+            logical_key = k.replace("PROBLEM_", "")
+            logical_map[logical_key] = v
+
+        for log_key in ["WIDTH_EXCEEDED", "BAD_SPACING", "MISSING_ICON_SPACING", "SHORT_LINE", "SINGLE_WORD_SUBLINE", "SINGLE_WORD_SUBLINE_NON_START", "EMPTY_FIRST_LINE_OF_PAGE", "EMPTY_ODD_SUBLINE_DISPLAY", "BROKEN_ICON_HYPHEN", "TAG_WARNING", "STAR_TAG_RULES"]:
+            if log_key not in logical_map:
+                for k, v in pids_dict.items():
+                    if log_key in k:
+                        logical_map[log_key] = v
+                        break
+                else:
+                    logical_map[log_key] = log_key
+
+        module_name = self.__class__.__module__.lower()
+
+        tag_style = "curly"
+        if "ww" in module_name or "plain_text" in module_name:
+            tag_style = "square"
+        elif main_window_ref and hasattr(main_window_ref, 'current_game_rules') and main_window_ref.current_game_rules:
+            # Detect tag style based on plugin type
+            rules_name = main_window_ref.current_game_rules.__class__.__name__
+            if "WW" in rules_name or "PlainText" in rules_name:
+                tag_style = "square"
+
+        star_section_mode = False
+        if "bmg" in module_name or "bmg" in str(problem_ids_ref).lower():
+            star_section_mode = True
+        elif main_window_ref and hasattr(main_window_ref, 'current_game_rules') and main_window_ref.current_game_rules:
+            if "BMG" in main_window_ref.current_game_rules.__class__.__name__:
+                star_section_mode = True
+
+        closing_color_tags = []
+        if star_section_mode:
+            closing_color_tags = ["{COLOR_DEFAULT}", "{color:white}", "{escape:255:000000}"]
+        else:
+            closing_color_tags = ["[/C]", "{COLOR_WHITE}"]
+
+        def custom_width_calc(t, fm):
+            default_w = 8 if tag_style == "square" else 6
+            if hasattr(self, 'game_rules') and self.game_rules:
+                if hasattr(self.game_rules, 'calculate_string_width_override'):
+                    return self.game_rules.calculate_string_width_override(t, fm, default_w)
+            if main_window_ref and hasattr(main_window_ref, 'current_game_rules') and main_window_ref.current_game_rules:
+                if hasattr(main_window_ref.current_game_rules, 'calculate_string_width_override'):
+                    return main_window_ref.current_game_rules.calculate_string_width_override(t, fm, default_w)
+            return None
+
+        self.profile = GameProblemProfile(
+            problem_ids=logical_map,
+            tag_style=tag_style,
+            closing_color_tags=closing_color_tags,
+            star_section_mode=star_section_mode,
+            width_calculator=custom_width_calc,
+            main_window=main_window_ref,
+            problem_definitions=self.problem_definitions
+        )
+        self.registry = create_default_registry(self.profile)
+
+    def build_context(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None, original_text: Optional[str] = None) -> RuleContext:
+        def _is_mock(obj) -> bool:
+            typename = type(obj).__name__
+            return "Mock" in typename or "mock" in typename
+
+        limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
+        if _is_mock(limit) or not isinstance(limit, (int, float)):
+            limit = threshold
+
+        lines_per_page = 4
+        if self.mw and hasattr(self.mw, 'lines_per_page'):
+            val = getattr(self.mw, 'lines_per_page', 4)
+            if _is_mock(val):
+                lines_per_page = 4
+            else:
+                try:
+                    lines_per_page = int(val)
+                except (TypeError, ValueError):
+                    lines_per_page = 4
+
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
+        if _is_mock(default_tag_mappings):
+            default_tag_mappings = {}
+
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-        
-        from utils.utils import is_visible_tag
-        def repl(match):
-            """Repl."""
-            tag = match.group(0)
-            if tag.lower().startswith("{f:") or tag.lower().startswith("[f:"):
-                return "X"
-            if is_visible_tag(tag, default_tag_mappings, font_map, icon_sequences):
-                return "X"
-            return ""
-            
-        clean_text = ALL_TAGS_PATTERN.sub(repl, clean_text)
-        
-        if clean_text.startswith(" "):
-            return True
-        if "  " in clean_text:
-            return True
-        return False
+        if _is_mock(icon_sequences):
+            icon_sequences = []
 
-    def _check_missing_icon_spacing(self, text: str) -> bool:
-        """Internal helper to check missing icon spacing."""
-        missing_spacing_id = getattr(self.problem_ids, 'PROBLEM_MISSING_ICON_SPACING', None)
-        if not missing_spacing_id and isinstance(self.problem_ids, dict):
-            missing_spacing_id = self.problem_ids.get('MISSING_ICON_SPACING', None)
-            
-        if not missing_spacing_id:
-            return False
-            
-        # Check if enabled in detection_enabled
-        enabled = True
-        if self.mw and hasattr(self.mw, 'detection_enabled'):
-            enabled = self.mw.detection_enabled.get(missing_spacing_id, True)
-            
-        if not enabled:
-            return False
-            
-        from utils.utils import find_missing_icon_spacing_spans, is_visible_tag
-        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
-        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
-        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-        
-        def check_visible(t):
-            """Check visible."""
-            return is_visible_tag(t, default_tag_mappings, font_map, icon_sequences)
-            
-        spans = find_missing_icon_spacing_spans(text, check_visible, font_map, default_tag_mappings, icon_sequences)
-        return len(spans) > 0
+        # Support context block and string idx
+        block_idx = getattr(self, '_current_scan_block_idx', None)
+        string_idx = getattr(self, '_current_scan_string_idx', None)
 
-    def _check_broken_icon_hyphen(self, text: str, next_text: Optional[str]) -> bool:
-        """Internal helper to check broken icon hyphen wrap."""
-        if not next_text:
-            return False
-            
-        broken_hyphen_id = getattr(self.problem_ids, 'PROBLEM_BROKEN_ICON_HYPHEN', None)
-        if not broken_hyphen_id and isinstance(self.problem_ids, dict):
-            broken_hyphen_id = self.problem_ids.get('BROKEN_ICON_HYPHEN', None)
-            
-        if not broken_hyphen_id:
-            # Dynamic fallback: find ID in problem definitions
-            defs = self.problem_definitions
-            for pid in defs.keys():
-                if pid.endswith('_BROKEN_ICON_HYPHEN'):
-                    broken_hyphen_id = pid
-                    break
-                    
-        if not broken_hyphen_id:
-            return False
-            
-        # Check if enabled in detection_enabled
-        enabled = True
-        if self.mw and hasattr(self.mw, 'detection_enabled'):
-            enabled = self.mw.detection_enabled.get(broken_hyphen_id, True)
-            
-        if not enabled:
-            return False
-            
-        from utils.utils import check_broken_icon_hyphen_boundary, is_visible_tag
-        font_map = getattr(self.mw, 'font_map', {}) if self.mw else {}
-        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
-        icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-        
-        def check_visible(t):
-            """Check visible."""
-            return is_visible_tag(t, default_tag_mappings, font_map, icon_sequences)
-            
-        return check_broken_icon_hyphen_boundary(text, next_text, check_visible)
+        return RuleContext(
+            text=text,
+            font_map=font_map,
+            width_threshold=threshold,
+            logical_hard_limit=limit,
+            lines_per_page=lines_per_page,
+            default_tag_mappings=default_tag_mappings,
+            icon_sequences=icon_sequences,
+            original_text=original_text,
+            block_idx=block_idx,
+            string_idx=string_idx,
+            game_profile=self.profile
+        )
 
-    def _check_single_word_subline_generic(self, subline_text: str) -> bool:
-        """Internal helper to check single word subline generic."""
-        from utils.utils import get_line_words_and_visible_tags
-        words = get_line_words_and_visible_tags(subline_text, self.mw)
-        if len(words) != 1:
-            return False
-        word = words[0]
-        word_content_pattern = re.compile(r'[\wа-яА-ЯіїІїЄєґҐ]+') 
-        return bool(word_content_pattern.search(word))
+    def analyze_data_string(self, data_string: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None) -> List[Set[str]]:
+        """Analyze data string using Rule Engine."""
+        # Check original text for tag warnings (we fetch it if we have context indexes)
+        original_text = None
+        block_idx = getattr(self, '_current_scan_block_idx', None)
+        string_idx = getattr(self, '_current_scan_string_idx', None)
+        if self.mw and block_idx is not None and string_idx is not None:
+            if (self.mw.data_store.data and
+                0 <= block_idx < len(self.mw.data_store.data) and
+                0 <= string_idx < len(self.mw.data_store.data[block_idx])):
+                original_text = str(self.mw.data_store.data[block_idx][string_idx])
 
-    def _is_single_word_ok_generic(self, subline_text: str) -> bool:
-        """Internal helper to check if is single word ok generic."""
-        from utils.utils import get_line_words_and_visible_tags
-        words = get_line_words_and_visible_tags(subline_text, self.mw)
-        if len(words) != 1:
-            return True
-        word = words[0]
-        
-        first_letter_match = re.search(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ]', word)
-        if not first_letter_match:
-            return True
-            
-        is_capital = first_letter_match.group(0).isupper()
-        
-        # Word starting with a capital letter is ALWAYS ok (no warning)
-        if is_capital:
-            return True
-            
-        return False
+        working_text = data_string
+        if self.profile.star_section_mode:
+            working_text = re.sub(r'\{escape:6:000a\}', '{*}', working_text, flags=re.IGNORECASE)
+            working_text = re.sub(r'\{escape:6:000b\}', '{tab}', working_text, flags=re.IGNORECASE)
+
+        context = self.build_context(working_text, font_map, threshold, logical_hard_limit, original_text=original_text)
+
+        import utils.utils as uu
+        old_fm = uu._ACTIVE_FONT_MAP
+        old_mappings = uu._ACTIVE_TAG_MAPPINGS
+        old_seqs = uu._ACTIVE_ICON_SEQUENCES
+        uu._ACTIVE_FONT_MAP = font_map
+        uu._ACTIVE_TAG_MAPPINGS = context.default_tag_mappings
+        uu._ACTIVE_ICON_SEQUENCES = context.icon_sequences
+        try:
+            return self.registry.detect_all(context)
+        finally:
+            uu._ACTIVE_FONT_MAP = old_fm
+            uu._ACTIVE_TAG_MAPPINGS = old_mappings
+            uu._ACTIVE_ICON_SEQUENCES = old_seqs
 
     def analyze_subline(self,
                         text: str,
@@ -149,163 +178,86 @@ class GenericProblemAnalyzer:
                         full_data_string_text_for_logical_check: str,
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
-        """Analyze subline."""
-        found_problems = set()
-        
-        # Common width check
-        limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', editor_line_width_threshold)
-        if not isinstance(limit, (int, float)):
-            limit = editor_line_width_threshold
-        pixel_width = calculate_string_width(text.rstrip(), editor_font_map)
-        if pixel_width > limit:
-            if hasattr(self.problem_ids, 'PROBLEM_WIDTH_EXCEEDED'):
-                found_problems.add(self.problem_ids.PROBLEM_WIDTH_EXCEEDED)
-            elif 'WIDTH' in self.problem_ids:
-                 found_problems.add(self.problem_ids['WIDTH'])
+        """Analyze subline by slicing analyze_data_string output."""
+        # For single subline analysis, construct context with full text if available
+        full_text = full_data_string_text_for_logical_check or text
+        problems_list = self.analyze_data_string(full_text, editor_font_map, editor_line_width_threshold, logical_hard_limit)
 
-        # Spacing check
-        if self._check_bad_spacing(text):
-            if isinstance(self.problem_ids, dict):
-                if 'BAD_SPACING' in self.problem_ids:
-                    found_problems.add(self.problem_ids['BAD_SPACING'])
-            else:
-                if hasattr(self.problem_ids, 'PROBLEM_BAD_SPACING'):
-                    found_problems.add(self.problem_ids.PROBLEM_BAD_SPACING)
-
-        # Missing icon spacing check
-        if self._check_missing_icon_spacing(text):
-            missing_spacing_id = getattr(self.problem_ids, 'PROBLEM_MISSING_ICON_SPACING', None)
-            if not missing_spacing_id and isinstance(self.problem_ids, dict):
-                missing_spacing_id = self.problem_ids.get('MISSING_ICON_SPACING', None)
-            if missing_spacing_id:
-                found_problems.add(missing_spacing_id)
-
-        # Broken icon hyphen check
-        if self._check_broken_icon_hyphen(text, next_text):
-            broken_hyphen_id = getattr(self.problem_ids, 'PROBLEM_BROKEN_ICON_HYPHEN', None)
-            if not broken_hyphen_id and isinstance(self.problem_ids, dict):
-                broken_hyphen_id = self.problem_ids.get('BROKEN_ICON_HYPHEN', None)
-            if not broken_hyphen_id:
-                defs = self.problem_definitions
-                for pid in defs.keys():
-                    if pid.endswith('_BROKEN_ICON_HYPHEN'):
-                        broken_hyphen_id = pid
-                        break
-            if broken_hyphen_id:
-                found_problems.add(broken_hyphen_id)
-
-        return found_problems
+        if subline_number_in_data_string < len(problems_list):
+            return problems_list[subline_number_in_data_string]
+        return set()
 
     def check_tags_mismatch(self, original_text: str, translated_text: str) -> bool:
-        """
-        Check if the translated text has tag count mismatch compared to the original,
-        or if tags from the original are missing in the translation (respecting exceptions).
-        """
-        if original_text is None or translated_text is None:
-            return False
-            
-        from utils.utils import ALL_TAGS_PATTERN
-        
-        orig_tags = ALL_TAGS_PATTERN.findall(str(original_text))
-        trans_tags = ALL_TAGS_PATTERN.findall(str(translated_text))
-        
-        # Determine tag exceptions
-        exceptions = self.tag_exceptions
-        if self.mw and hasattr(self.mw, 'current_game_rules'):
-            rules = self.mw.current_game_rules
-            if hasattr(rules, 'tag_exceptions'):
-                if isinstance(rules.tag_exceptions, (list, set)):
-                    exceptions = set(rules.tag_exceptions)
-                elif isinstance(rules.tag_exceptions, str):
-                    exceptions = {rules.tag_exceptions}
-                    
-        exceptions_lower = {e.lower() for e in exceptions}
-        
-        def clean_tags(tags_list):
-            cleaned = []
-            for tag in tags_list:
-                # Strip curly/square brackets to check the tag body
-                inner = tag[1:-1] if (tag.startswith('{') and tag.endswith('}')) or (tag.startswith('[') and tag.endswith(']')) else tag
-                if inner.lower() in exceptions_lower or tag.lower() in exceptions_lower:
-                    continue
-                cleaned.append(tag)
-            return cleaned
-            
-        orig_cleaned = clean_tags(orig_tags)
-        trans_cleaned = clean_tags(trans_tags)
-        
-        # 1. Total count check
-        if len(orig_cleaned) != len(trans_cleaned):
-            return True
-            
-        # 2. Tag match and count presence check
-        from collections import Counter
-        orig_counter = Counter(orig_cleaned)
-        trans_counter = Counter(trans_cleaned)
-        
-        for tag, count in orig_counter.items():
-            if trans_counter[tag] < count:
-                return True
-                
+        """Compatibility wrapper for tag warning detection."""
+        context = self.build_context(translated_text, {}, 1000, 1000, original_text=original_text)
+        rule = self.registry.get_rule("TAG_WARNING")
+        if rule:
+            matches = rule.detect(context)
+            return len(matches) > 0
         return False
 
     def _is_single_word_orphan_allowed(self, current_line: str, prev_line: str, font_map: dict) -> bool:
-        """
-        Check if a single word orphan on the current line is allowed (should not trigger warning or autofix)
-        because moving the last word from the previous line would make the current line wider than the previous one.
-        """
-        from utils.utils import get_line_words_and_visible_tags
-        prev_words = get_line_words_and_visible_tags(prev_line, self.mw)
-        if not prev_words:
-            return True # No words to move anyway
-            
-        last_word = prev_words[-1]
-        if last_word and last_word[-1] in ['.', '!', '?', '…']:
-            return True # Ends sentence, don't move
-            
-        prev_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', prev_line)
-        last_word_idx = -1
-        for k in range(len(prev_parts) - 1, -1, -1):
-            part = prev_parts[k]
-            if not part.strip():
-                continue
-            is_tag = (part.startswith('{') and part.endswith('}')) or (part.startswith('[') and part.endswith(']'))
-            if is_tag:
-                from utils.utils import is_visible_tag, FORCED_ALIAS_PATTERN
-                mappings = getattr(self.mw, "default_tag_mappings", {}) if self.mw else {}
-                icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else {}
-                is_visible = is_visible_tag(part, mappings, font_map, icon_sequences)
-                is_forced = bool(FORCED_ALIAS_PATTERN.match(part))
-                if is_visible or is_forced:
-                    is_tag = False
-            if not is_tag:
-                last_word_idx = k
-                break
-                
-        if last_word_idx == -1:
-            return True
-            
-        prev_part_fixed = "".join(prev_parts[:last_word_idx]).rstrip()
-        moved_part = "".join(prev_parts[last_word_idx:])
-        spacer = " "
-        if moved_part.endswith(" ") or current_line.startswith(" "):
-            spacer = ""
-            
-        new_current_line = (moved_part + spacer + current_line).rstrip()
-        
-        # Calculate widths
-        def get_w(t):
-            if self.mw and getattr(self.mw, 'current_game_rules', None):
-                if not hasattr(self.mw.current_game_rules, '_mock_self') and hasattr(self.mw.current_game_rules, 'calculate_string_width_override'):
-                    val = self.mw.current_game_rules.calculate_string_width_override(t, font_map)
-                    if val is not None:
-                        return val
-            icon_seqs = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-            def_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
-            return calculate_string_width(t, font_map, icon_sequences=icon_seqs, default_tag_mappings=def_mappings)
-            
-        width_prev_after_move = get_w(prev_part_fixed)
-        width_current_after_move = get_w(new_current_line)
-        
-        return width_current_after_move > width_prev_after_move
+        """Orphan helper delegation."""
+        context = self.build_context(current_line, font_map, 1000, 1000)
+        rule = self.registry.get_rule("SINGLE_WORD_SUBLINE")
+        if rule and hasattr(rule, '_is_single_word_orphan_allowed'):
+            return rule._is_single_word_orphan_allowed(current_line, prev_line, context)
+        return True
 
+    def _check_short_line_zww(self, current: str, next_line: str, font_map: dict, threshold: int) -> bool:
+        context = self.build_context(current + "\n" + next_line, font_map, threshold, threshold)
+        rule = self.registry.get_rule("SHORT_LINE")
+        if rule and hasattr(rule, '_check_short_line'):
+            return rule._check_short_line(current, next_line, context)
+        return False
+
+    def _check_short_line_zbmg(self, current: str, next_line: str, font_map: dict, threshold: int) -> bool:
+        working_curr = current
+        working_next = next_line
+        if self.profile.star_section_mode:
+            working_curr = re.sub(r'\{escape:6:000a\}', '{*}', working_curr, flags=re.IGNORECASE)
+            working_curr = re.sub(r'\{escape:6:000b\}', '{tab}', working_curr, flags=re.IGNORECASE)
+            working_next = re.sub(r'\{escape:6:000a\}', '{*}', working_next, flags=re.IGNORECASE)
+            working_next = re.sub(r'\{escape:6:000b\}', '{tab}', working_next, flags=re.IGNORECASE)
+        context = self.build_context(working_curr + "\n" + working_next, font_map, threshold, threshold)
+        rule = self.registry.get_rule("SHORT_LINE")
+        if rule and hasattr(rule, '_check_short_line'):
+            return rule._check_short_line(working_curr, working_next, context)
+        return False
+
+    def check_for_empty_first_line_of_page(self, text: str) -> List[int]:
+        context = self.build_context(text, {}, 1000, 1000)
+        rule = self.registry.get_rule("EMPTY_FIRST_LINE_OF_PAGE")
+        if rule:
+            matches = rule.detect(context)
+            return [m.line_index for m in matches]
+        return []
+
+    def _check_bad_spacing(self, text: str) -> bool:
+        context = self.build_context(text, {}, 1000, 1000)
+        rule = self.registry.get_rule("BAD_SPACING")
+        if rule and hasattr(rule, '_check_bad_spacing'):
+            return rule._check_bad_spacing(text, context)
+        return False
+
+    def _check_missing_icon_spacing(self, text: str) -> bool:
+        context = self.build_context(text, {}, 1000, 1000)
+        rule = self.registry.get_rule("MISSING_ICON_SPACING")
+        if rule:
+            matches = rule.detect(context)
+            return len(matches) > 0
+        return False
+
+    def _check_single_word_subline_generic(self, text: str) -> bool:
+        context = self.build_context(text, {}, 1000, 1000)
+        rule = self.registry.get_rule("SINGLE_WORD_SUBLINE")
+        if rule and hasattr(rule, '_check_single_word_subline'):
+            return rule._check_single_word_subline(text, context)
+        return False
+
+    def _is_single_word_ok_generic(self, text: str) -> bool:
+        context = self.build_context(text, {}, 1000, 1000)
+        rule = self.registry.get_rule("SINGLE_WORD_SUBLINE")
+        if rule and hasattr(rule, '_is_single_word_ok'):
+            return rule._is_single_word_ok(text, context)
+        return True

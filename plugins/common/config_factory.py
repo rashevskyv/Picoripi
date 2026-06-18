@@ -13,12 +13,15 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
     prob_bad_spacing = f"{prefix}_BAD_SPACING"
     prob_missing_icon_spacing = f"{prefix}_MISSING_ICON_SPACING"
     prob_broken_icon_hyphen = f"{prefix}_BROKEN_ICON_HYPHEN"
-    
+
+    prob_empty_first_line = f"{prefix}_EMPTY_FIRST_LINE_OF_PAGE"
+
     # Default Priorities
     priorities = {
         "TAG_WARNING": 2,
         "WIDTH_EXCEEDED": 3,
         "EMPTY_ODD_SUBLINE_DISPLAY": 4,
+        "EMPTY_FIRST_LINE_OF_PAGE": 5,
         "SINGLE_WORD_SUBLINE": 6,
         "SINGLE_WORD_SUBLINE_NON_START": 5,
         "SHORT_LINE": 7,
@@ -28,12 +31,13 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
     }
     if overrides and "priorities" in overrides:
         priorities.update(overrides["priorities"])
-        
+
     # Default Colors
     colors = {
         "TAG_WARNING": QColor(200, 200, 200, 150),
         "WIDTH_EXCEEDED": QColor(255, 0, 0, 100),
         "EMPTY_ODD_SUBLINE_DISPLAY": QColor(255, 165, 0, 180),
+        "EMPTY_FIRST_LINE_OF_PAGE": QColor(255, 105, 180, 100),
         "SHORT_LINE": QColor(0, 200, 0, 100),
         "SINGLE_WORD_SUBLINE": QColor(0, 0, 255, 120),
         "SINGLE_WORD_SUBLINE_NON_START": QColor(139, 69, 19, 120),
@@ -63,6 +67,12 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
             "color": colors["EMPTY_ODD_SUBLINE_DISPLAY"],
             "priority": priorities["EMPTY_ODD_SUBLINE_DISPLAY"],
             "description": "A displayed odd-numbered subline (QTextBlock) is empty or contains '0' (if not the only subline)."
+        },
+        prob_empty_first_line: {
+            "name": "Empty First Line of Page",
+            "color": colors["EMPTY_FIRST_LINE_OF_PAGE"],
+            "priority": priorities["EMPTY_FIRST_LINE_OF_PAGE"],
+            "description": "The first line of a page is empty, but subsequent lines on the page are not."
         },
         prob_short_line: {
             "name": "Short Subline",
@@ -130,7 +140,7 @@ def generate_base_config(prefix: str, overrides: dict = None, custom_problems: d
     default_autofix[prob_tag_warning] = False
     default_autofix[prob_single_word_subline] = False
     default_autofix[prob_single_word_non_start] = False
-    
+
     if overrides and "autofix_settings" in overrides:
         for k, v in overrides["autofix_settings"].items():
             mapped_k = f"{prefix}_{k}" if not k.startswith(prefix) else k
