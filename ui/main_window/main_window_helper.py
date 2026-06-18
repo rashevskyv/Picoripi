@@ -367,6 +367,12 @@ class MainWindowHelper:
             except Exception:
                 pass
 
+        if hasattr(self.mw, 'glossary_builder_handler') and self.mw.glossary_builder_handler:
+            try:
+                self.mw.glossary_builder_handler.prepare_to_close()
+            except Exception:
+                pass
+
         if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
             try:
                 if hasattr(self.mw.translation_handler, 'ai_lifecycle_manager') and self.mw.translation_handler.ai_lifecycle_manager:

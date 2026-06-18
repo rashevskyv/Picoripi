@@ -1,4 +1,4 @@
-﻿from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QThread
 from PyQt6.QtGui import QTextCursor
@@ -314,18 +314,14 @@ class AIChatHandler(BaseHandler):
         if self.dialog and tab_index is not None:
             self.dialog.set_input_enabled(tab_index, True)
             
-        if self._thread:
-            if self._thread.isRunning():
-                self._thread.quit()
-                self._thread.wait(1000)
-            self._thread.deleteLater()
-            self._thread = None
-        if self._worker:
-            self._worker.deleteLater()
-            self._worker = None
+        from utils.thread_utils import safe_shutdown_thread
+        safe_shutdown_thread(self._thread, self._worker)
+        self._thread = None
+        self._worker = None
 
     def prepare_to_close(self) -> None:
         """Prepare to close."""
-        if self._thread and self._thread.isRunning():
-            self._thread.quit()
-            self._thread.wait(1000)
+        from utils.thread_utils import safe_shutdown_thread
+        safe_shutdown_thread(self._thread, self._worker)
+        self._thread = None
+        self._worker = None

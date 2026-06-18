@@ -94,6 +94,16 @@ class GenericTextFixer:
 
     def _shift_split_sentences(self, text: str, lines_per_page: int, original_text: Optional[str] = None, block_idx: Optional[int] = None, string_idx: Optional[int] = None) -> Tuple[str, bool]:
         original_input = text
+        if self.problem_analyzer.profile.star_section_mode:
+            lowered = text.lower()
+            if (
+                "{*}" in text
+                or "{tab}" in lowered
+                or "{escape:6:000a}" in lowered
+                or "{escape:6:000b}" in lowered
+            ):
+                return text, False
+
         align_enabled = getattr(self.mw, 'align_sentences_to_original_pages', False) if self.mw else False
         prevent_empty_lines = getattr(self.mw, 'prevent_empty_lines_in_autofix', False) if self.mw else False
 

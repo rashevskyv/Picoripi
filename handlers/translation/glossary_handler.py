@@ -279,18 +279,9 @@ class GlossaryHandler(BaseTranslationHandler):
 
     def prepare_to_close(self) -> None:
         """Gracefully shutdown glossary occurrence worker if running."""
-        if hasattr(self, 'glossary_worker') and self.glossary_worker and self.glossary_worker.isRunning():
-            log_debug("GlossaryHandler: Stopping glossary worker during prepare_to_close...")
-            try:
-                self.glossary_worker.finished_with_result.disconnect()
-            except Exception:
-                pass
-            self.glossary_worker.requestInterruption()
-            self.glossary_worker.quit()
-            if not self.glossary_worker.wait(2000):
-                log_warning("GlossaryHandler: Glossary worker wait timed out, terminating forcefully...")
-                self.glossary_worker.terminate()
-                self.glossary_worker.wait()
+        from utils.thread_utils import safe_shutdown_thread
+        if hasattr(self, 'glossary_worker') and self.glossary_worker:
+            safe_shutdown_thread(self.glossary_worker, timeout_ms=2000)
             self.glossary_worker = None
         
         if hasattr(self, 'glossary_progress') and self.glossary_progress:

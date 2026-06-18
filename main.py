@@ -177,6 +177,7 @@ class MainWindow(QMainWindow):
         self.tag_checker_handler = None
         self.plugin_actions: Dict[str, Any] = {}
         self.is_testing = 'pytest' in sys.modules
+        self.glossary_builder_handler = None
 
     def _init_visual_settings(self) -> None:
         # Style Settings
@@ -584,8 +585,8 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Build Glossary", "Please select a block first.")
             return
         
-        handler = GlossaryBuilderHandler(self)
-        handler.build_glossary_for_block(target_block_idx, category_name)
+        self.glossary_builder_handler = GlossaryBuilderHandler(self)
+        self.glossary_builder_handler.build_glossary_for_block(target_block_idx, category_name)
 
     def show_message(self, title: str, text: str, type: str = "info") -> None:
         from PyQt6.QtWidgets import QMessageBox

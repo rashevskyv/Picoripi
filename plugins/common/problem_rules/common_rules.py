@@ -795,44 +795,40 @@ class StarTagRule(ProblemRule):
         if not clean_parts:
             return []
 
-        merged = ' '.join(clean_parts)
-        output_lines: List[str] = []
-        remaining = merged
         threshold = context.logical_hard_limit
-        
-        while remaining:
-            prefix = '{*}' if is_first_line else '{tab}'
-            test_line = prefix + remaining
-            test_line_orig = re.sub(r'\{\*\}', '{escape:6:000a}', test_line)
-            test_line_orig = re.sub(r'\{tab\}', '{escape:6:000b}', test_line_orig)
-            
-            if _get_string_width(test_line_orig, context) <= threshold:
-                output_lines.append(remaining)
-                break
-            parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', remaining)
-            best_split = -1
-            for j in range(len(parts) - 1, 0, -1):
-                candidate = ''.join(parts[:j]).rstrip()
-                candidate_line = prefix + candidate
-                candidate_line_orig = re.sub(r'\{\*\}', '{escape:6:000a}', candidate_line)
-                candidate_line_orig = re.sub(r'\{tab\}', '{escape:6:000b}', candidate_line_orig)
-                if _get_string_width(candidate_line_orig, context) <= threshold:
-                    best_split = j
-                    break
-            if best_split == -1:
-                best_split = 1 if len(parts) > 1 else len(parts)
-            line1 = ''.join(parts[:best_split]).rstrip()
-            line2 = ''.join(parts[best_split:]).lstrip()
-            output_lines.append(line1)
-            remaining = line2
-            is_first_line = False
 
         result: List[str] = []
-        for i, line in enumerate(output_lines):
-            if i == 0 and starts_with_star:
-                result.append('{*}' + line)
-            else:
-                result.append('{tab}' + line)
+        for part_idx, clean_part in enumerate(clean_parts):
+            remaining = clean_part
+            use_star_prefix = is_first_line and part_idx == 0
+            while remaining:
+                prefix = '{*}' if use_star_prefix else '{tab}'
+                test_line = prefix + remaining
+                test_line_orig = re.sub(r'\{\*\}', '{escape:6:000a}', test_line)
+                test_line_orig = re.sub(r'\{tab\}', '{escape:6:000b}', test_line_orig)
+
+                if _get_string_width(test_line_orig, context) <= threshold:
+                    result.append(prefix + remaining)
+                    break
+
+                parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', remaining)
+                best_split = -1
+                for j in range(len(parts) - 1, 0, -1):
+                    candidate = ''.join(parts[:j]).rstrip()
+                    candidate_line = prefix + candidate
+                    candidate_line_orig = re.sub(r'\{\*\}', '{escape:6:000a}', candidate_line)
+                    candidate_line_orig = re.sub(r'\{tab\}', '{escape:6:000b}', candidate_line_orig)
+                    if _get_string_width(candidate_line_orig, context) <= threshold:
+                        best_split = j
+                        break
+                if best_split == -1:
+                    best_split = 1 if len(parts) > 1 else len(parts)
+
+                line1 = ''.join(parts[:best_split]).rstrip()
+                line2 = ''.join(parts[best_split:]).lstrip()
+                result.append(prefix + line1)
+                remaining = line2
+                use_star_prefix = False
         return result
 
     def _fix_star_section(self, section_lines: List[str], context: RuleContext) -> List[str]:

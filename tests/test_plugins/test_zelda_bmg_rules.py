@@ -17,6 +17,15 @@ def setup_test_mappings(rules):
     # Prevent load_translation_map from overwriting our test mapping
     rules.load_translation_map = lambda: None
 
+
+def assert_star_sections_have_tab_continuations(lines):
+    in_star_section = False
+    for line in lines:
+        if line.startswith("{escape:6:000a}"):
+            in_star_section = True
+        elif in_star_section and line:
+            assert line.startswith("{escape:6:000b}")
+
 def test_ukrainian_character_mapping():
     rules = GameRules()
     setup_test_mappings(rules)
@@ -227,16 +236,14 @@ def test_autofix_star_tag_rules():
     lines = fixed.split('\n')
 
     assert changed is True
-    assert len(lines) == 3
+    assert len(lines) >= 5
 
     # 1. First line remains unchanged (before {*})
     assert lines[0] == "{escape:3:000000000c80}На гачок вудки насаджена личинка."
 
-    # 2. Second and third lines merged into one star section
-    assert lines[1] == "{escape:6:000a}Признач її на {(Y)} або {(X)} і закидай, стоячи обличчям до води."
-
-    # 3. Fourth and fifth lines merged into one star section
-    assert lines[2] == "{escape:6:000a}Коли поплавець пірне, риба клює — підсікай, нахиливши й утримуючи {(C-Stick)}{(▼)}."
+    # 2. Star sections keep the list layout: first line uses {*}, continuations use {tab}.
+    assert lines[1].startswith("{escape:6:000a}")
+    assert_star_sections_have_tab_continuations(lines)
 
 
 def test_problem_analyzer_star_tag_rules():
@@ -311,9 +318,11 @@ def test_lines_per_page_ignored_with_star_tag():
     problems_short = rules.problem_analyzer.analyze_data_string(short_line_text, {}, 1000)
     assert "ZBMG_SHORT_LINE" not in problems_short[0]
 
-    # 4. Test autofix merges star-section lines (they fit in one width since threshold is huge)
+    # 4. Test autofix preserves the star-section list layout
     fixed, changed = rules.autofix_data_string(short_line_text, {}, 1000)
-    assert "{escape:6:000a}Признач її стоячи" in fixed
+    fixed_lines = fixed.split('\n')
+    assert fixed_lines[0].startswith("{escape:6:000a}")
+    assert fixed_lines[1].startswith("{escape:6:000b}")
 
 
 def test_star_tag_definitions_and_metadata():
@@ -353,31 +362,17 @@ def test_star_tag_rules_with_escapes():
     assert "ZBMG_STAR_TAG_RULES" in problems[2]  # missing {tab}
     assert "ZBMG_STAR_TAG_RULES" in problems[4]  # {tab} not at start (preceded by ' - ')
 
-    # 2. Test Autofix merges star sections and converts back to escape codes.
-    # New behavior: each star section is merged into one line (re-split by width if needed).
-    # Section 1: {*} Признач... \n    стоячи... -> {escape:6:000a}Признач... стоячи...
-    # Section 2: {*}Коли... \n - {tab} підсікай... -> {escape:6:000a}Коли... - підсікай...
+    # 2. Test Autofix preserves star-section list layout and converts back to escape codes.
     fixed, changed = rules.autofix_data_string(text, {}, 10000)
     assert changed is True
     lines = fixed.split('\n')
 
     # Plain section is unchanged
-    assert lines[0] == "{escape:3:000000000c80}На гачок вудки насаджена личинка."
+    assert lines[0].startswith("{escape:3:000000000c80}")
 
-    # First star section: two source lines merged into one, prefix = escape:6:000a
     assert lines[1].startswith("{escape:6:000a}")
-    assert "Признач її на" in lines[1]
-    assert "стоячи обличчям до води." in lines[1]
-    assert "{escape:6:000b}" not in lines[1]  # no stray {tab} escape inside
-
-    # Second star section: two source lines merged into one, prefix = escape:6:000a
-    assert lines[2].startswith("{escape:6:000a}")
-    assert "Коли поплавець пірне" in lines[2]
-    assert "підсікай" in lines[2]
-    assert "{escape:6:000b}" not in lines[2]  # no stray {tab} escape inside
-
-    # Total: 3 lines (1 plain + 2 star sections)
-    assert len(lines) == 3
+    assert_star_sections_have_tab_continuations(lines)
+    assert len(lines) >= 5
 
 
 def test_autofix_tab_relocation_disabled_rules():
@@ -424,9 +419,11 @@ def test_autofix_tab_without_star_rules():
     allowed_enabled = {"ZBMG_SHORT_LINE", "ZBMG_WIDTH_EXCEEDED", "ZBMG_STAR_TAG_RULES"}
     fixed_enabled, changed_enabled = rules.autofix_data_string(text, {}, 10000, allowed_problems=allowed_enabled)
     assert changed_enabled is True
-    # Under high threshold, it should merge into a single line with star prefix
+    # Under high threshold, it should preserve the explicit tab/list break
     assert fixed_enabled.startswith("{escape:6:000a}")
-    assert "{escape:6:000b}" not in fixed_enabled
+    assert "{escape:6:000b}" in fixed_enabled
+    high_lines = fixed_enabled.split('\n')
+    assert all(line.startswith("{escape:6:000b}") for line in high_lines[1:])
 
     # Under low threshold (e.g. 400), it should split and use tab prefix for next lines
     fixed_split, changed_split = rules.autofix_data_string(text, {}, 400, allowed_problems=allowed_enabled)
@@ -471,3 +468,26 @@ def test_autofix_tab_preserves_text_order():
     assert len(lines_double) == 2
     assert lines_double[0] == "A"
     assert lines_double[1] == "{escape:6:000b}B"
+
+
+def test_star_tag_autofix_moves_trailing_tab_to_next_star_line():
+    rules = GameRules()
+    setup_test_mappings(rules)
+
+    text = (
+        "{escape:6:000a}Green zones are places you already {escape:6:000b}\n"
+        "visited. Yellow arrow is you."
+    )
+
+    fixed, changed = rules.autofix_data_string(
+        text,
+        {},
+        446,
+        allowed_problems={"ZBMG_STAR_TAG_RULES"},
+    )
+
+    assert changed is True
+    lines = fixed.split('\n')
+    assert len(lines) == 2
+    assert lines[0] == "{escape:6:000a}Green zones are places you already"
+    assert lines[1] == "{escape:6:000b}visited. Yellow arrow is you."

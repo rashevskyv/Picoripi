@@ -45,6 +45,7 @@
 - **A14. Синхронізація кольорів зебри та покращення часткового збереження** (червень 2026). Синхронізовано кольори фону та парність рядків у лівій колонці (`LineNumberArea`) та правому текстовому полі (`LineNumberedTextEdit`), виключивши накладання кольорів варнінгів на текстове поле. Виправлено баг із поверненням зірочки (`*`) після часткового збереження рядків через авто-синхронізацію `edited_file_data` у пам'яті. Також реалізовано автоматичне оновлення Strings preview та дерева блоків при активних фільтрах ("Show Unsaved Only" / "Show Unsaved Blocks Only") після часткового збереження.
 - **A15. Нова логіка Missing Tag Spacing та гаряча клавіша Ctrl+Q** (червень 2026). Повністю переписано функції `find_missing_icon_spacing_spans` та `fix_missing_icon_spacing` на основі аналізу очищеного тексту (Clean Text Analysis). Це дозволило точно виявляти та виправляти пропущені пробіли, виключаючи хибні спрацьовування. Також додано гарячу клавішу `Ctrl+Q` для глобального приховування/показу тегів, оновлено тултипи чекбоксів та довідку по гарячих клавішах.
 - **A16. Впровадження централізованого двигуна правил (Rule Engine)** (червень 2026). Уніфіковано аналіз та автовиправлення проблем за допомогою єдиної системи `ProblemRule` та `ProblemRuleRegistry`. Усунено дублювання логіки у плагінах, створено спільний контрактний тест `tests/test_rule_engine_contract.py` та адаптовано `TextAutofixLogic` і кешування варнінгів.
+- **A02. Уніфікувати shutdown/cancel contract для QThread workers** (червень 2026). Створено допоміжну функцію `safe_shutdown_thread`, яка безпечно зупиняє потоки QThread та їхні воркери, відключаючи сигнальні з'єднання та запобігаючи помилкам Qt при закритті вікна.
 
 Ці пункти не повертаються в активний TODO. Якщо регресії з'являться повторно, їх слід заводити новими ID з конкретним відтворенням.
 
@@ -89,7 +90,7 @@
   * *Складність:* Середня
   * *Файли:* `handlers/app_action_handler.py`, `handlers/translation/glossary_handler.py`, `core/data_state_processor.py`, `tests/test_handlers/test_project_action_handler.py`
 
-- `[ ]` **A02. Уніфікувати shutdown/cancel contract для QThread workers**
+- `[x]` **A02. Уніфікувати shutdown/cancel contract для QThread workers**
   * *Опис:* Додати єдиний helper або mixin для worker ownership: request cancel, disconnect, quit, bounded wait, fallback logging. Зберігати довгоживучі handler references для glossary AI flow.
   * *Складність:* Середня
   * *Файли:* `handlers/translation/ai_lifecycle_manager.py`, `handlers/translation/glossary_builder_handler.py`, `handlers/ai_chat_handler.py`, `main.py`, `ui/main_window/main_window_helper.py`

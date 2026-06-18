@@ -211,3 +211,14 @@ def test_ailm_perform_retry_translate_single(ailm):
         # Execute the lambda callback
         callback()
         ailm.main_handler._run_ai_task.assert_called_once_with(mock_provider, {'type': 'translate_single', 'provider': mock_provider})
+
+@patch('utils.thread_utils.safe_shutdown_thread')
+def test_ailm_prepare_to_close(mock_safe_shutdown, ailm):
+    mock_thread = MagicMock()
+    mock_worker = MagicMock()
+    ailm.thread = mock_thread
+    ailm.worker = mock_worker
+    ailm.prepare_to_close()
+    mock_safe_shutdown.assert_called_once_with(mock_thread, mock_worker)
+    assert ailm.thread is None
+    assert ailm.worker is None

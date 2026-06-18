@@ -89,6 +89,56 @@ def test_TextOperationHandler_auto_fix_current_string(mock_cursor_cls, mock_conv
     
     mock_mw.data_processor.update_edited_data.assert_any_call(0, 0, "fixed")
 
+
+@patch('handlers.text_operation_handler.convert_dots_to_spaces_from_editor', side_effect=lambda x: x)
+def test_text_operation_autofix_zbmg_star_tag_only_from_editor(mock_conv, handler, mock_mw):
+    from plugins.zelda_bmg.rules import GameRules as ZeldaBMGRules
+    from PyQt6.QtGui import QColor
+
+    mock_mw.tag_color_rgba = "#FF8C00"
+    mock_mw.newline_color_rgba = "#A020F0"
+    mock_mw.tag_bold = True
+    mock_mw.tag_italic = False
+    mock_mw.tag_underline = False
+    mock_mw.newline_bold = True
+    mock_mw.newline_italic = False
+    mock_mw.newline_underline = False
+    mock_mw.default_tag_mappings = {
+        "{*}": "{escape:6:000a}",
+        "{tab}": "{escape:6:000b}",
+    }
+    mock_mw.edited_text_edit.palette.return_value.color.return_value = QColor("black")
+    mock_mw.current_game_rules = ZeldaBMGRules(mock_mw)
+    mock_mw.current_game_rules.load_translation_map = lambda: None
+    mock_mw.autofix_enabled = {"ZBMG_STAR_TAG_RULES": True}
+    mock_mw.line_width_warning_threshold_pixels = 446
+    mock_mw.game_dialog_max_width_pixels = 446
+    mock_mw.helper.get_font_map_for_string.return_value = {}
+    mock_mw.edited_text_edit.toPlainText.return_value = (
+        "{*}Green zones are places you already {tab}\n"
+        "visited. Yellow arrow is you."
+    )
+    mock_mw.data_store.data = [[
+        "{escape:6:000a}Green zones are places you already {escape:6:000b}\n"
+        "visited. Yellow arrow is you."
+    ]]
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+
+    handler._auto_fix_current_string_impl(allowed_problems={"ZBMG_STAR_TAG_RULES"})
+
+    mock_mw.data_processor.update_edited_data.assert_any_call(
+        0,
+        0,
+        "{escape:6:000a}Green zones are places you already\n"
+        "{escape:6:000b}visited. Yellow arrow is you.",
+        action_type="AUTOFIX",
+    )
+    mock_mw.edited_text_edit.textCursor.return_value.insertText.assert_any_call(
+        "{*}Green zones are places you already\n"
+        "{tab}visited. Yellow arrow is you."
+    )
+
 def test_TextOperationHandler_rescan_issues_for_current_string(handler, mock_mw):
     # Mock analyzer to return a problem
     analyzer = MagicMock()

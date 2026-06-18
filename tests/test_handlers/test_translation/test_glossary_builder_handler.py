@@ -179,3 +179,8 @@ def test_gbh_cleanup_worker(gbh):
     assert gbh._worker is None
     assert gbh._status_dialog is None
     assert gbh._thread is None
+
+def test_gbh_prepare_to_close(gbh):
+    gbh._cleanup_worker = MagicMock()
+    gbh.prepare_to_close()
+    gbh._cleanup_worker.assert_called_once()

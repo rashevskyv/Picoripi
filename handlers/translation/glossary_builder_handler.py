@@ -1,4 +1,4 @@
-﻿# D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
+# D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
 import json
 from typing import Dict, List, Optional
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -327,13 +327,15 @@ class GlossaryBuilderHandler:
             status_bar.showMessage("Glossary generation cancelled.", 5000)
         self._cleanup_worker()
 
+    def prepare_to_close(self) -> None:
+        """Prepare to close."""
+        self._cleanup_worker()
+
     def _cleanup_worker(self) -> None:
         """Internal helper to cleanup worker."""
-        if self._worker:
-            try:
-                self._worker.cancel()
-            except Exception:
-                pass
+        from utils.thread_utils import safe_shutdown_thread
+        safe_shutdown_thread(self._thread, self._worker)
+        self._thread = None
         self._worker = None
         
         if self._status_dialog:
@@ -342,10 +344,4 @@ class GlossaryBuilderHandler:
             except Exception:
                 pass
         self._status_dialog = None
-
-        if self._thread:
-            if self._thread.isRunning():
-                self._thread.quit()
-                self._thread.wait(2000)
-            self._thread = None
         self._glossary_manager = None

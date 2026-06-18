@@ -119,6 +119,19 @@ def test_AIChatHandler_cleanup_worker(chat_handler):
     worker_mock.deleteLater.assert_called_once()
     assert chat_handler._thread is None
 
+@patch('utils.thread_utils.safe_shutdown_thread')
+def test_AIChatHandler_prepare_to_close(mock_safe_shutdown, chat_handler):
+    mock_thread = MagicMock()
+    mock_worker = MagicMock()
+    chat_handler._thread = mock_thread
+    chat_handler._worker = mock_worker
+
+    chat_handler.prepare_to_close()
+
+    mock_safe_shutdown.assert_called_once_with(mock_thread, mock_worker)
+    assert chat_handler._thread is None
+    assert chat_handler._worker is None
+
 def test_AIChatHandler_history_limit(chat_handler):
     from core.translation.session_manager import TranslationSessionState
     state = TranslationSessionState(

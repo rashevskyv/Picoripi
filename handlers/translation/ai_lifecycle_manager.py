@@ -384,12 +384,7 @@ class AILifecycleManager(BaseTranslationHandler):
 
     def prepare_to_close(self) -> None:
         """Prepare to close."""
-        if self.thread and self.thread.isRunning():
-            if self.worker:
-                try:
-                    self.worker.deleteLater()
-                except Exception:
-                    pass
-            self.thread.quit()
-            self.thread.wait(1000)
-
+        from utils.thread_utils import safe_shutdown_thread
+        safe_shutdown_thread(self.thread, self.worker)
+        self.thread = None
+        self.worker = None
