@@ -83,6 +83,8 @@ class TextOperationHandler(BaseHandler):
              if problem_set:
                  self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
 
+        self.data_processor.schedule_autosave()
+
 
     def _launch_async_scanner_for_fixed_text(
         self,

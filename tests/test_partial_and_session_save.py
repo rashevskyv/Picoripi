@@ -76,6 +76,24 @@ def test_autosave_and_load_session(dsp, mock_mw, tmp_path):
     dsp.clear_session_file()
     assert not session_file.exists()
 
+def test_autosave_and_load_session_preserves_warnings(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.project_manager.project = MagicMock()
+
+    mock_mw.data_store.problems_per_subline = {
+        (0, 0, 0): {"WIDTH_EXCEEDED"},
+        (1, 2, 1): {"TAG_WARNING", "MISSING_SPACE"},
+    }
+
+    dsp._autosave_session(force=True)
+    mock_mw.data_store = AppDataStore()
+
+    assert dsp.load_session_file() is True
+    assert mock_mw.data_store.problems_per_subline == {
+        (0, 0, 0): {"WIDTH_EXCEEDED"},
+        (1, 2, 1): {"TAG_WARNING", "MISSING_SPACE"},
+    }
+
 def test_save_specific_edits(dsp, mock_mw, tmp_path):
     mock_mw.project_manager.project_dir = str(tmp_path)
     mock_mw.project_manager.project = MagicMock()
@@ -198,4 +216,3 @@ def test_save_specific_edits_forces_autosave(dsp, mock_mw, tmp_path):
          patch.object(dsp, '_autosave_session') as mock_autosave:
         dsp.save_specific_edits([(0, 0)], ask_confirmation=False)
         mock_autosave.assert_called_once_with(force=True)
-

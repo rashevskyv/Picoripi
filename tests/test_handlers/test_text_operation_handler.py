@@ -150,6 +150,7 @@ def test_TextOperationHandler_rescan_issues_for_current_string(handler, mock_mw)
     # Verify problems_per_subline update
     assert (0, 0, 0) in mock_mw.problems_per_subline
     assert mock_mw.problems_per_subline[(0, 0, 0)] == {"PROB"}
+    mock_mw.data_processor.schedule_autosave.assert_called_once()
 
 def test_TextOperationHandler_rescan_issues_subline(handler, mock_mw):
     analyzer = MagicMock()
