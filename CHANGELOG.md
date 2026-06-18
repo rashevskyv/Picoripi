@@ -1,5 +1,12 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.034] - 2026-06-18
+
+### 🐛 Fixed
+- **Missing Tag Spacing Custom Width Tag Mapping**:
+  - Fixed a syntax error and fallback issue in `JsonTagHighlighter` where it incorrectly queried `tag_mappings` instead of `default_tag_mappings` on `MainWindow`. This corrected the width-alias checks for custom control tags (such as `[L-Stick]`) that are mapped to escape codes, ensuring they are correctly treated as width-carrying kept tags rather than zero-width tags in text spacing checks, thereby preventing false positive missing spacing warnings.
+  - Added a dedicated regression test `test_JsonTagHighlighter_missing_tag_spacing_width_alias` in `tests/test_utils/test_syntax_highlighter.py` to verify formatting behaves correctly when custom tag mappings are resolved.
+
 ## [0.3.033] - 2026-06-17
 
 ### 🚀 Added

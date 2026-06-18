@@ -575,3 +575,42 @@ def test_JsonTagHighlighter_hide_tags_selective_visibility(highlighter, mock_mw)
     for tag_str, fmt in set_formats:
         if tag_str in ("{tab}", "{large_tag}", "{icon_tag}", "{*}", "{escape:6:000a}"):
             assert fmt != hl.hide_tag_format, f"{tag_str} should not be hidden"
+
+
+def test_JsonTagHighlighter_missing_tag_spacing_width_alias(highlighter, mock_mw):
+    hl, doc = highlighter
+    hl._editor_widget_ref.objectName.return_value = 'edited_text_edit'
+
+    # Configure mock game rules and widths
+    mock_mw.current_game_rules.PROBLEM_MISSING_ICON_SPACING = "PROBLEM_MISSING_ICON_SPACING"
+    mock_mw.detection_enabled = {"PROBLEM_MISSING_ICON_SPACING": True}
+
+    mock_mw.font_map = {"[L-Stick]": {"width": 10}}
+    mock_mw.default_tag_mappings = {"[L-Stick]": "{escape:0:0008}"}
+    mock_mw.icon_sequences = []
+
+    text = "A[L-Stick]B"
+
+    # Override is_visible_tag to return False so that [L-Stick] behaves as a non-icon width tag
+    hl._is_visible_tag = lambda tag: False
+
+    # Case 1: with default_tag_mappings, [L-Stick] has width 10, so it's a kept tag.
+    # Since it's not a visible icon, it requires no space boundaries (like {tab}).
+    # Therefore, no missing spacing is reported.
+    hl.setFormat.reset_mock()
+    hl.highlightBlock(text)
+
+    missing_spacing_calls = [c[0] for c in hl.setFormat.call_args_list if c[0][2] == hl.missing_icon_spacing_format]
+    assert len(missing_spacing_calls) == 0, "No spacing issue should be reported when mappings resolve [L-Stick] as width tag"
+
+    # Case 2: without default_tag_mappings, [L-Stick] is considered zero-width.
+    # The text behaves like 'AB' separated by tag, which triggers a spacing error.
+    mock_mw.default_tag_mappings = {}
+    hl.setFormat.reset_mock()
+    hl.highlightBlock(text)
+
+    missing_spacing_calls = [c[0] for c in hl.setFormat.call_args_list if c[0][2] == hl.missing_icon_spacing_format]
+    assert len(missing_spacing_calls) == 1, "Spacing issue should be reported when mapping is missing and tag resolves as zero-width"
+    # The span should be the tag region: start=1, length=9 (indices 1..10)
+    assert missing_spacing_calls[0][0] == 1
+    assert missing_spacing_calls[0][1] == 9

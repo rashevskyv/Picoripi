@@ -953,7 +953,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 if enabled:
                     from utils.utils import find_missing_icon_spacing_spans
                     font_map = getattr(self.mw, "font_map", None) if self.mw else None
-                    mappings = getattr(self.mw, "tag_mappings", None) if self.mw else None
+                    mappings = getattr(self.mw, "default_tag_mappings", None) if self.mw else None
                     icons = self._get_icon_sequences()
                     spans = find_missing_icon_spacing_spans(text, self._is_visible_tag, font_map, mappings, icons)
                     for start, end in spans:
