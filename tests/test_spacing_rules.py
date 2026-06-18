@@ -852,10 +852,28 @@ def test_single_word_orphan_allowed_width_checks(plain_rules):
     assert fixed_not_allowed == "very long\\nword i"
 
 
+def test_new_clean_text_spacing_rules():
+    from utils.utils import find_missing_icon_spacing_spans, fix_missing_icon_spacing
+    visible_tags = {"{(A)}", "{icon}"}
+    check_visible = lambda t: t in visible_tags
 
+    # User's case: punctuation + zero-width tags + alphanumeric
+    text = "{tab}побував.{color:green}{color:white}{color:orange}Жовта стрілка{color:white} — це ти."
+    spans = find_missing_icon_spacing_spans(text, check_visible)
+    assert len(spans) == 1
+    # Updated span: covers punctuation mark (index 12), zero-width tags (13..52), and the first letter 'Ж' (index 53)
+    assert spans[0] == (12, 54)
 
+    fixed = fix_missing_icon_spacing(text, check_visible)
+    assert fixed == "{tab}побував. {color:green}{color:white}{color:orange}Жовта стрілка{color:white} — це ти."
 
-
+    # Direct punctuation + alphanumeric without tags (should flag and fix as well)
+    text_direct = "побував.Жовта"
+    spans_direct = find_missing_icon_spacing_spans(text_direct, check_visible)
+    assert len(spans_direct) == 1
+    assert spans_direct[0] == (7, 9) # from '.' to 'Ж' + 1
+    fixed_direct = fix_missing_icon_spacing(text_direct, check_visible)
+    assert fixed_direct == "побував. Жовта"
 
 
 

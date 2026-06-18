@@ -66,7 +66,7 @@ class GenericProblemAnalyzer:
             """Check visible."""
             return is_visible_tag(t, default_tag_mappings, font_map, icon_sequences)
             
-        spans = find_missing_icon_spacing_spans(text, check_visible)
+        spans = find_missing_icon_spacing_spans(text, check_visible, font_map, default_tag_mappings, icon_sequences)
         return len(spans) > 0
 
     def _check_broken_icon_hyphen(self, text: str, next_text: Optional[str]) -> bool:

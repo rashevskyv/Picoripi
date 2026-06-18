@@ -879,7 +879,7 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 is_tag_pattern = fmt in (self.curly_tag_format, self.bracket_tag_format)
                 if is_tag_pattern and hide_tags_enabled:
                     tag = match.group(1)
-                    if not self._is_visible_tag(tag):
+                    if not (self._is_visible_tag(tag) or self._tag_has_length(tag) or tag.lower() in ('{*}', '{tab}', '{escape:6:000a}', '{escape:6:000b}')):
                         self.setFormat(match.start(), match.end() - match.start(), self.hide_tag_format)
                         continue
                 self.setFormat(match.start(), match.end() - match.start(), fmt)
@@ -952,7 +952,10 @@ class JsonTagHighlighter(QSyntaxHighlighter):
                 
                 if enabled:
                     from utils.utils import find_missing_icon_spacing_spans
-                    spans = find_missing_icon_spacing_spans(text, self._is_visible_tag)
+                    font_map = getattr(self.mw, "font_map", None) if self.mw else None
+                    mappings = getattr(self.mw, "tag_mappings", None) if self.mw else None
+                    icons = self._get_icon_sequences()
+                    spans = find_missing_icon_spacing_spans(text, self._is_visible_tag, font_map, mappings, icons)
                     for start, end in spans:
                         self.setFormat(start, end - start, self.missing_icon_spacing_format)
 

@@ -35,6 +35,7 @@ class HelpShortcutsDialog(QDialog):
             # Category: General
             ("--- GENERAL ---", ""),
             ("Save Project/File", "Ctrl + S"),
+            ("Hide/Show Tags in Editor", "Ctrl + Q"),
             ("AI Chat Window", "Ctrl + Shift + C"),
             ("Open Glossary", "Ctrl + G"),
             ("Shortcuts Help", "F1"),

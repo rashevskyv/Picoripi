@@ -17,7 +17,7 @@ from .glossary_occurrence_updater import GlossaryOccurrenceUpdater
 from core.glossary_manager import GlossaryEntry, GlossaryManager, GlossaryOccurrence
 from components.glossary_dialog import GlossaryDialog
 from components.glossary_edit_dialog import GlossaryEditDialog
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_warning
 
 
 class CategorySelectionDialog(QDialog):
@@ -86,12 +86,18 @@ class GlossaryOccurrenceWorker(QThread):
     def run(self):
         """Run."""
         try:
-            occurrence_map = self.glossary_manager.build_occurrence_index(self.data_source)
+            occurrence_map = self.glossary_manager.build_occurrence_index(
+                self.data_source,
+                is_cancelled=self.isInterruptionRequested
+            )
+            if self.isInterruptionRequested():
+                return
             self.finished_with_result.emit(occurrence_map)
         except Exception as e:
             from utils.logging_utils import log_error
             log_error(f"GlossaryOccurrenceWorker failed: {e}", exc_info=True)
-            self.finished_with_result.emit({})
+            if not self.isInterruptionRequested():
+                self.finished_with_result.emit({})
 
 
 class GlossaryHandler(BaseTranslationHandler):
@@ -279,8 +285,12 @@ class GlossaryHandler(BaseTranslationHandler):
                 self.glossary_worker.finished_with_result.disconnect()
             except Exception:
                 pass
+            self.glossary_worker.requestInterruption()
             self.glossary_worker.quit()
-            self.glossary_worker.wait(1000)
+            if not self.glossary_worker.wait(2000):
+                log_warning("GlossaryHandler: Glossary worker wait timed out, terminating forcefully...")
+                self.glossary_worker.terminate()
+                self.glossary_worker.wait()
             self.glossary_worker = None
         
         if hasattr(self, 'glossary_progress') and self.glossary_progress:

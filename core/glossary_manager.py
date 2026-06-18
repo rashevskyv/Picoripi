@@ -1,9 +1,9 @@
-﻿"""Glossary management helpers: loading, caching, and pattern matching."""
+"""Glossary management helpers: loading, caching, and pattern matching."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Callable
 import re
 import unicodedata
 import ahocorasick
@@ -227,7 +227,7 @@ class GlossaryManager:
                 
         return sorted(matches, key=lambda m: m.start)
 
-    def build_occurrence_index(self, dataset: Sequence) -> Dict[str, List[GlossaryOccurrence]]:
+    def build_occurrence_index(self, dataset: Sequence, is_cancelled: Optional[Callable[[], bool]] = None) -> Dict[str, List[GlossaryOccurrence]]:
         """Create occurrence index."""
         occurrences: Dict[str, List[GlossaryOccurrence]] = {entry.original: [] for entry in self._entries}
         if not dataset:
@@ -240,19 +240,28 @@ class GlossaryManager:
             return occurrences
 
         for block_idx, block in enumerate(dataset):
+            if is_cancelled and is_cancelled():
+                return {}
             if not isinstance(block, list):
                 continue
             for string_idx, value in enumerate(block):
+                if is_cancelled and is_cancelled():
+                    return {}
                 text = '' if value is None else str(value)
                 if not text:
                     continue
                 lines = text.split('\n')
                 for line_idx, line in enumerate(lines):
+                    if is_cancelled and is_cancelled():
+                        return {}
                     if not line:
                         continue
                         
                     # Use the AC-optimized find_matches
-                    for match in self.find_matches(line):
+                    matches = self.find_matches(line)
+                    if is_cancelled and is_cancelled():
+                        return {}
+                    for match in matches:
                         occ = GlossaryOccurrence(
                             entry=match.entry,
                             start=match.start,

@@ -179,6 +179,11 @@ class AppActionHandler(BaseHandler):
     def save_data_action(self, ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """
         High-level save action that delegates to the data processor.
+
+        Returns:
+            bool: In async mode, returns True if the saving process was successfully started
+                  (or was not needed/skipped). In sync mode, returns True if saving to disk succeeded.
+                  Returns False if saving failed or couldn't be started.
         """
         log_info(f"AppActionHandler: save_data_action called (confirm={ask_confirmation})", category="file_ops")
         try:

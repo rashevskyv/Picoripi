@@ -33,6 +33,7 @@ def mock_mw():
     mw.undo_manager = MagicMock()
     
     mw.app_action_handler._derive_edited_path.return_value = "edited.json"
+    mw.state = None
     
     return mw
 

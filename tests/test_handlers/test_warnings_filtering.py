@@ -83,7 +83,7 @@ def test_preview_updater_warnings_filtering(qapp, mock_mw):
     # Case 3: active_warning_filters = []
     mock_mw.data_store.active_warning_filters = []
     updater._do_populate_strings_for_block(0)
-    assert mock_mw.data_store.displayed_string_indices == []
+    assert mock_mw.data_store.displayed_string_indices == [0, 1]
 
 def test_open_warnings_filter_dialog(qapp, mock_mw):
     """Test open_warnings_filter_dialog triggers dialog and updates button."""

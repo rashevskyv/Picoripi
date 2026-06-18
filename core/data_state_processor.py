@@ -4,6 +4,7 @@ import re
 import datetime
 from pathlib import Path
 from .data_manager import load_json_file, save_json_file, save_text_file
+from .state_manager import AppState
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from components.toast import ToastNotification
 
@@ -761,7 +762,20 @@ class DataStateProcessor:
 
 
     def save_current_edits(self, ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
-        """Save current edits."""
+        """
+        Save current edits.
+
+        Returns:
+            bool: In async mode, returns True if the saving process was successfully started
+                  (or was not needed/skipped). In sync mode, returns True if saving to disk succeeded.
+                  Returns False if saving failed or couldn't be started.
+        """
+        if hasattr(self.mw, 'state') and self.mw.state and self.mw.state.is_active(AppState.SAVING_DATA):
+            log_debug("Save requested but a save operation is already in progress. Ignoring.", category="file_ops")
+            if on_finished_callback:
+                on_finished_callback(False)
+            return False
+
         log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}", category="file_ops")
         if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
             self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
@@ -1166,7 +1180,18 @@ class DataStateProcessor:
         """
         Saves only the specified strings to the translation files on disk.
         Other unsaved edits remain in memory as unsaved changes.
+
+        Returns:
+            bool: In async mode, returns True if the saving process was successfully started
+                  (or was not needed/skipped). In sync mode, returns True if saving to disk succeeded.
+                  Returns False if saving failed or couldn't be started.
         """
+        if hasattr(self.mw, 'state') and self.mw.state and self.mw.state.is_active(AppState.SAVING_DATA):
+            log_debug("Save specific edits requested but a save operation is already in progress. Ignoring.", category="file_ops")
+            if on_finished_callback:
+                on_finished_callback(False)
+            return False
+
         log_info(f"DSP: save_specific_edits called for {len(strings_to_save)} strings", category="file_ops")
         if not strings_to_save:
             if on_finished_callback:

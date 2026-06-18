@@ -153,6 +153,7 @@ def mock_mw(qapp):
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 240
     mw.current_game_rules = MagicMock()
+    mw.state = None
 
     # Default to "no BFN editor open" so production code doesn't try to call
     # methods on a magic-mock and either blow up or produce nonsensical state.

@@ -295,9 +295,8 @@ class TextFixer(GenericTextFixer):
     def _move_tabs_to_stline_start(self, text: str) -> Tuple[str, bool]:
         """
         If a line contains {tab} inside (not at the very start), 
-        move {tab} to the start of this line (after any leading spaces).
-        However, if the line starts with {*}, split the line so that {*} remains
-        on the first line and {tab} starts the next line.
+        split the line so that the text before {tab} remains on the current line
+        and the rest starts with {tab} on the next line.
         Also removes any spaces immediately following {tab} at its original location.
         If {tab} is at the end of a line (without content after it), it is postponed
         and placed at the start of the next line with text.
@@ -319,33 +318,7 @@ class TextFixer(GenericTextFixer):
 
             if '{tab}' in line:
                 stripped = line.lstrip()
-                if stripped.startswith('{*}'):
-                    # The line starts with {*} and contains {tab} inside.
-                    # We must split the line at the first {tab} so that the first part starts with {*}
-                    # and the second part starts with {tab}.
-                    idx = line.find('{tab}')
-                    first_part = line[:idx].rstrip()
-                    second_part = line[idx:].strip()
-                    
-                    second_part_clean = second_part.replace('{tab}', '').strip()
-                    if not second_part_clean:
-                        # Tab is at the end of the line, no text after it.
-                        # We just keep first_part and schedule tab for the next line
-                        new_lines.append(first_part)
-                        pending_tab = True
-                        changed = True
-                    else:
-                        new_lines.append(first_part)
-                        if '{tab}' in second_part[5:]:
-                            parts = second_part.split('{tab}')
-                            fixed_parts = []
-                            for s_idx, part in enumerate(parts):
-                                fixed_parts.append('{tab}' + part.strip())
-                            new_lines.extend([p for p in fixed_parts if p])
-                        else:
-                            new_lines.append(second_part)
-                        changed = True
-                elif stripped.startswith('{tab}'):
+                if stripped.startswith('{tab}'):
                     # Already starts with {tab} (possibly with leading space before it)
                     # Clean the space after the first {tab}
                     prefix_space = line[:line.find('{tab}')]
@@ -372,22 +345,31 @@ class TextFixer(GenericTextFixer):
                             else:
                                 new_lines.append(line)
                 else:
-                    # {tab} is inside the line (not at the start) and the line does not start with {*}
-                    # Move all tabs to the beginning of this line (after leading spaces)
+                    # {tab} is inside the line (not at the start).
+                    # This covers both cases: starts with {*} and normal text like "Line 2 {tab} text inside."
+                    # We split the line at the first {tab} so that the first part remains before {tab}
+                    # and the second part starts with {tab} on the next line.
                     idx = line.find('{tab}')
-                    content_after = line[idx + 5:].strip()
-                    if not content_after:
-                        # Tab is at the end of the line
-                        cleaned_line = line[:idx].rstrip()
-                        new_lines.append(cleaned_line)
+                    first_part = line[:idx].rstrip()
+                    second_part = line[idx:].strip()
+
+                    second_part_clean = second_part.replace('{tab}', '').strip()
+                    if not second_part_clean:
+                        # Tab is at the end of the line, no text after it.
+                        new_lines.append(first_part)
                         pending_tab = True
                         changed = True
                     else:
-                        leading_spaces = line[:len(line) - len(stripped)]
-                        content_without_tabs = stripped.replace('{tab}', ' ')
-                        content_normalized = re.sub(r'\s+', ' ', content_without_tabs).strip()
-                        new_line = leading_spaces + '{tab}' + content_normalized
-                        new_lines.append(new_line)
+                        new_lines.append(first_part)
+                        content_after_tab = second_part[5:].strip()
+                        if '{tab}' in content_after_tab:
+                            parts = content_after_tab.split('{tab}')
+                            for part in parts:
+                                part_stripped = part.strip()
+                                if part_stripped:
+                                    new_lines.append('{tab}' + part_stripped)
+                        else:
+                            new_lines.append('{tab}' + content_after_tab)
                         changed = True
             else:
                 new_lines.append(line)
@@ -552,7 +534,7 @@ class TextFixer(GenericTextFixer):
                 icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
                 def check_visible_star(t):
                     return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
-                working_text = fix_missing_icon_spacing(working_text, check_visible_star)
+                working_text = fix_missing_icon_spacing(working_text, check_visible_star, editor_font_map, default_tag_mappings, icon_sequences)
 
             lines = working_text.split('\n')
             sections = self._split_into_star_sections(lines)
@@ -629,7 +611,7 @@ class TextFixer(GenericTextFixer):
                 icon_sequences = getattr(self.mw, "icon_sequences", []) if self.mw else []
                 def check_visible(t):
                     return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
-                fixed_spacing_text = fix_missing_icon_spacing(modified_text, check_visible)
+                fixed_spacing_text = fix_missing_icon_spacing(modified_text, check_visible, editor_font_map, default_tag_mappings, icon_sequences)
                 if fixed_spacing_text != modified_text:
                     modified_text = fixed_spacing_text
                     changed_missing_spacing = True

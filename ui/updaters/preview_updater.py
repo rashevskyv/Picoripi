@@ -378,6 +378,7 @@ class PreviewUpdater(BaseUIUpdater):
         _saved_programmatic_flag = self.mw.is_programmatically_changing_text
         self.mw.is_programmatically_changing_text = True
         self.mw.data_store.current_category_name = category_name
+        detection_config = getattr(self.mw, 'detection_enabled', {})
 
         # Show "Highlight moved" / "Hide moved" only when this block has categories
         block_has_categories = False
@@ -528,6 +529,13 @@ class PreviewUpdater(BaseUIUpdater):
                         for key, problems in self.mw.data_store.problems_per_subline.items():
                             if key[0] == b_idx and key[1] == s_idx:
                                 if any(p_id in active_filters for p_id in problems):
+                                    has_matching_problem = True
+                                    break
+                    else:
+                        # If no specific filters are selected, show strings with ANY enabled warning
+                        for key, problems in self.mw.data_store.problems_per_subline.items():
+                            if key[0] == b_idx and key[1] == s_idx:
+                                if any(detection_config.get(p_id, True) for p_id in problems):
                                     has_matching_problem = True
                                     break
                                     

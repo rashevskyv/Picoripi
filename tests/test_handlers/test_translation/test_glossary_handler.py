@@ -160,7 +160,7 @@ def test_glossary_occurrence_worker_run():
     
     worker.run()
     
-    mock_gm.build_occurrence_index.assert_called_once_with(["data"])
+    mock_gm.build_occurrence_index.assert_called_once_with(["data"], is_cancelled=ANY)
     finished_mock.assert_called_once_with({"word": []})
 
 

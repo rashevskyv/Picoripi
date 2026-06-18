@@ -7,6 +7,7 @@ from core.data_state_processor import DataStateProcessor
 def test_save_current_edits_native_packing():
     # 1. Setup mocks mimicking project mode with archive files
     mw = MagicMock()
+    mw.state = None
     mw.data_store = mw
     mw.data_store.data = [
         ["original_0_0", "original_0_1"]
@@ -104,6 +105,7 @@ def test_save_current_edits_native_packing():
 
 def test_save_current_edits_native_packing_exceeds_size():
     mw = MagicMock()
+    mw.state = None
     mw.data_store = mw
     mw.data_store.data = [["original_0_0"]]
     mw.data_store.edited_file_data = []

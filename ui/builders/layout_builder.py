@@ -202,7 +202,7 @@ class LayoutBuilder:
         original_header_layout.addStretch(1)
         
         self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
-        self.mw.hide_original_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in original text.")
+        self.mw.hide_original_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in original text. (Ctrl+Q)")
         self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         original_header_layout.addWidget(self.mw.hide_original_tags_checkbox)
         
@@ -347,7 +347,7 @@ class LayoutBuilder:
         editable_text_header_layout.addSpacing(10)
         
         self.mw.hide_translation_tags_checkbox = QCheckBox("Hide tags")
-        self.mw.hide_translation_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in translation.")
+        self.mw.hide_translation_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in translation. (Ctrl+Q)")
         self.mw.hide_translation_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         editable_text_header_layout.addWidget(self.mw.hide_translation_tags_checkbox)
         

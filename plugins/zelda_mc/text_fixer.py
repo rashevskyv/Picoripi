@@ -298,7 +298,7 @@ class TextFixer(GenericTextFixer):
             def check_visible(t):
                 return is_visible_tag(t, default_tag_mappings, editor_font_map, icon_sequences)
                 
-            fixed_spacing_text = fix_missing_icon_spacing(modified_text, check_visible)
+            fixed_spacing_text = fix_missing_icon_spacing(modified_text, check_visible, editor_font_map, default_tag_mappings, icon_sequences)
             if fixed_spacing_text != modified_text:
                 modified_text = fixed_spacing_text
                 changed_missing_spacing = True
