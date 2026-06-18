@@ -96,17 +96,19 @@ class SpellcheckAnalysisWorker(QThread):
 class SpellcheckDialog(BaseTextReviewDialog):
     """Interactive dialog for spellchecking text with suggestions."""
 
-    def __init__(self, parent, text: str, spellchecker_manager, starting_line_number: int = 0, line_numbers: List[int] = None, block_idx: int = -1, block_indices: List[int] = None):
+    def __init__(self, parent, text: str, spellchecker_manager, starting_line_number: int = 0, line_numbers: List[int] = None, block_idx: int = -1, block_indices: List[int] = None, force_async: bool = False):
         log_debug("SpellcheckDialog: __init__ started")
         self.spellchecker_manager = spellchecker_manager
         self.starting_line_number = starting_line_number # Deprecated, kept for compatibility
         self.block_indices = block_indices if block_indices is not None else ([block_idx] * len(line_numbers) if line_numbers else [])
 
         super().__init__(parent, "Spellcheck", text, line_numbers, block_idx)
+        self.force_async = force_async
 
         # Mapping base class variables to spellcheck specific names for easier logic
         # misspelled_words will be used as items_to_review
         self.misspelled_words = self.items_to_review
+        self._is_closing = False
 
         log_debug("SpellcheckDialog: Starting content loading")
         # Load content after a small delay to let dialog appear
@@ -165,7 +167,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
             import sys
             parent = self.parentWidget()
-            is_test = 'pytest' in sys.modules or parent is None or "Mock" in str(type(parent))
+            is_test = ('pytest' in sys.modules or parent is None or "Mock" in str(type(parent))) and not getattr(self, 'force_async', False)
 
             if is_test:
                 log_debug("SpellcheckDialog: Running in test mode, using synchronous loading")
@@ -207,6 +209,11 @@ class SpellcheckDialog(BaseTextReviewDialog):
     def _on_analysis_finished(self, items_to_review, new_cache_entries):
         try:
             log_debug(f"SpellcheckDialog: analysis finished, found {len(items_to_review)} errors.")
+            if getattr(self, '_is_closing', False):
+                self._shutdown_worker()
+                super().reject()
+                return
+
             if new_cache_entries and self.spellchecker_manager:
                 self.spellchecker_manager._spell_cache.update(new_cache_entries)
 
@@ -229,6 +236,10 @@ class SpellcheckDialog(BaseTextReviewDialog):
     def _on_analysis_cancelled(self):
         try:
             log_debug("SpellcheckDialog: analysis cancelled by user.")
+            if getattr(self, '_is_closing', False):
+                self._shutdown_worker()
+                super().reject()
+                return
             self.status_label.setText("Analysis cancelled.")
             self.show_progress_ui(False)
             self.set_controls_enabled(True)
@@ -237,6 +248,10 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
     def _on_analysis_error(self, err_msg):
         log_error(f"SpellcheckDialog: worker error: {err_msg}")
+        if getattr(self, '_is_closing', False):
+            self._shutdown_worker()
+            super().reject()
+            return
         self.status_label.setText(f"Error: {err_msg}")
         self.show_progress_ui(False)
         self.set_controls_enabled(True)
@@ -512,6 +527,12 @@ class SpellcheckDialog(BaseTextReviewDialog):
                     self.mw.editor_operation_handler.text_edited()
 
     def reject(self):
+        if hasattr(self, 'analysis_worker') and self.analysis_worker and self.analysis_worker.isRunning():
+            self._is_closing = True
+            self.status_label.setText("Cancelling and closing...")
+            self.set_controls_enabled(False)
+            self.analysis_worker.cancel()
+            return
         self._shutdown_worker()
         super().reject()
 

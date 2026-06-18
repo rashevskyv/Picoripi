@@ -1,6 +1,6 @@
-# Picoripi v0.3.037
+# Picoripi v0.3.038
 
-The **Picoripi** (v0.3.037) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.038) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 
 ---
@@ -112,6 +112,8 @@ The **Picoripi** (v0.3.037) is a visual translation and localization workbench b
 ---
 
 ### 7. Asynchronous Spellchecker & Quality Tools
+- **Asynchronous Cancel & Progress Pipeline**: Long local operations (glossary indexing, spellcheck scanning, advanced search) are non-blocking and completely cancellable. The Glossary Indexing progress dialog features a functional "Cancel" button. Spellcheck and Advanced Search dialogs allow closing the window at any time during execution, safely stopping the background worker thread in the background before dialog rejection to prevent memory leaks and UI freezes.
+- **Preview Cache Progress Indicator**: Displays a non-blocking caching progress message (e.g., `Caching previews: X/Y blocks...`) in the main window's status bar during background preview generation.
 - **CPU-Efficient background Worker**: Replaced busy-loops in `SpellcheckWorker` with a high-efficiency `threading.Event()` wait condition, keeping CPU usage at 0% when idle and waking up instantly when a word is enqueued.
 - **Persistent Disk Caching**: Stores spellchecking suggestions in `spell_cache.json` to optimize performance across large files.
 - **Search Panel Spellchecking**: Integrated real-time spellchecking into the search query input box. Incorrectly spelled words are highlighted with a red wavy underline matching standard IDE style formats without affecting standard context menus (`QMenu`) or line edit background colors.

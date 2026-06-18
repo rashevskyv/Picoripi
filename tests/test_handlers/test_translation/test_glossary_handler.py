@@ -107,6 +107,7 @@ def test_gh_show_glossary_dialog(mock_box, mock_dialog, mock_worker_cls, mock_pr
     mock_pd_inst = mock_progress.return_value
     mock_worker_inst = mock_worker_cls.return_value
 
+    mock_worker_inst.isInterruptionRequested.return_value = False
     # Simulate async worker completion immediately when worker.start() is called
     mock_worker_inst.start.side_effect = lambda: mock_worker_inst.finished_with_result.connect.call_args[0][0]({"a": []})
     

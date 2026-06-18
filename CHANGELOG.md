@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.038] - 2026-06-18
+
+### 🚀 Added
+- **A11. Cancellable Asynchronous Operations UX**:
+  - Made Glossary Indexing (`GlossaryOccurrenceWorker`) fully cancellable by enabling the "Cancel" button on the `QProgressDialog` and connecting it to `worker.requestInterruption()`.
+  - Upgraded Spellcheck and Advanced Search & Replace dialogs to allow window closing during long-running background tasks. When closed during analysis, the dialogs safely cancel the worker threads in the background and wait for their termination before rejecting the dialog, preventing memory leaks and Qt runtime thread destruction warnings.
+  - Added a non-blocking preview cache progress indicator in the main window status bar, showing `Caching previews: X/Y blocks...` during idle generation.
+  - Implemented unit tests validating asynchronous cancellation flows for glossary indexing, spellchecking, and search workers in `tests/test_dialogs/test_cancellable_workers.py`.
+
+### 🐛 Fixed
+- **QStatusBar Callability**: Fixed a PyQt6 `TypeError: 'QStatusBar' object is not callable` in `ui/updaters/preview_updater.py` by changing status bar method invocations (`self.mw.statusBar()`) to property lookups (`self.mw.statusBar`), matching the initialization in `statusbar_builder.py`.
+- **Glossary Dialog Test Mocking**: Fixed a test failure in `test_gh_show_glossary_dialog` by mocking `isInterruptionRequested()` on `GlossaryOccurrenceWorker` to return `False` to prevent the mocked worker from skipping dialog construction.
+
 ## [0.3.037] - 2026-06-18
 
 ### 🚀 Added

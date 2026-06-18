@@ -13,11 +13,13 @@ class BaseTextReviewDialog(QDialog):
     def __init__(self, parent, title: str, text: str, line_numbers: List[int] = None, block_idx: int = -1):
         log_debug(f"BaseTextReviewDialog: __init__ started for '{title}'")
         super().__init__(parent)
+        self.mw = self._find_main_window()
         self.original_text = text
         self.current_text = text
         self.line_numbers = line_numbers # Real line numbers from block/document
         self.current_item_index = 0
         self.items_to_review = [] # To be populated by subclasses
+        self.force_async = False
 
         self.block_idx = block_idx
         if self.block_idx == -1:
@@ -346,5 +348,5 @@ class BaseTextReviewDialog(QDialog):
         """Enable or disable interactive widgets during analysis."""
         self.prev_button.setEnabled(enabled)
         self.next_button.setEnabled(enabled)
-        self.button_box.setEnabled(enabled)
+        # We do not disable the button_box (Close button) so the user can abort and close the dialog
         # Subclasses can extend this to disable specific lists/buttons

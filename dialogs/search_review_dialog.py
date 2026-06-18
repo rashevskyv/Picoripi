@@ -367,7 +367,7 @@ def adjust_replacement_case(original: str, replacement: str, match_case: bool) -
 class SearchReviewDialog(BaseTextReviewDialog):
     """Interactive dialog for reviewing search results in a block with a replace option."""
 
-    def __init__(self, parent, text: str, query: str, starting_line_number: int = 0, line_numbers: List[int] = None, case_sensitive: bool = False, is_fuzzy: bool = False, search_in_original: bool = False, ignore_tags: bool = True, block_idx: int = -1, block_indices: List[int] = None):
+    def __init__(self, parent, text: str, query: str, starting_line_number: int = 0, line_numbers: List[int] = None, case_sensitive: bool = False, is_fuzzy: bool = False, search_in_original: bool = False, ignore_tags: bool = True, block_idx: int = -1, block_indices: List[int] = None, force_async: bool = False):
         log_debug("SearchReviewDialog: __init__ started")
         self.query = query
         self.case_sensitive = case_sensitive
@@ -386,16 +386,18 @@ class SearchReviewDialog(BaseTextReviewDialog):
                         self.unique_string_indices.append(pair)
 
         super().__init__(parent, "Advanced Search & Replace", text, line_numbers, block_idx)
+        self.force_async = force_async
 
         # Mapping base class variables
         self.matches = self.items_to_review
+        self._is_closing = False
 
         # Rebuild text if we are searching in the original source
         if self.search_in_original:
             self.rebuild_text_by_options()
 
         log_debug("SearchReviewDialog: Starting content loading")
-        is_test = parent is None or "Mock" in str(type(parent))
+        is_test = (parent is None or "Mock" in str(type(parent))) and not self.force_async
         if not is_test:
             QTimer.singleShot(50, self._load_content)
 
@@ -495,7 +497,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
             import sys
             parent = self.parentWidget()
-            is_test = 'pytest' in sys.modules or parent is None or "Mock" in str(type(parent))
+            is_test = ('pytest' in sys.modules or parent is None or "Mock" in str(type(parent))) and not getattr(self, 'force_async', False)
 
             if is_test:
                 log_debug("SearchReviewDialog: Running in test mode, using synchronous loading")
@@ -545,6 +547,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def _on_search_finished(self, items_to_review, current_text, line_numbers, block_indices, unique_string_indices):
         try:
             log_debug(f"SearchReviewDialog: search finished, found {len(items_to_review)} matches.")
+            if getattr(self, '_is_closing', False):
+                self._shutdown_worker()
+                super().reject()
+                return
 
             self.items_to_review = items_to_review
             self.matches = self.items_to_review
@@ -577,6 +583,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def _on_search_cancelled(self):
         try:
             log_debug("SearchReviewDialog: Search cancelled by user.")
+            if getattr(self, '_is_closing', False):
+                self._shutdown_worker()
+                super().reject()
+                return
             self.status_label.setText("Search cancelled.")
             self.show_progress_ui(False)
             self.set_controls_enabled(True)
@@ -585,6 +595,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
     def _on_search_error(self, err_msg):
         log_error(f"SearchReviewDialog: Search worker error: {err_msg}")
+        if getattr(self, '_is_closing', False):
+            self._shutdown_worker()
+            super().reject()
+            return
         self.status_label.setText(f"Error: {err_msg}")
         self.show_progress_ui(False)
         self.set_controls_enabled(True)
@@ -1532,6 +1546,12 @@ class SearchReviewDialog(BaseTextReviewDialog):
         self.refresh_from_project()
 
     def reject(self):
+        if hasattr(self, 'search_worker') and self.search_worker and self.search_worker.isRunning():
+            self._is_closing = True
+            self.status_label.setText("Cancelling and closing...")
+            self.set_controls_enabled(False)
+            self.search_worker.cancel()
+            return
         self._shutdown_worker()
         super().reject()
 

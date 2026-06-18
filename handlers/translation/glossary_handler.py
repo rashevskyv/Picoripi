@@ -240,19 +240,23 @@ class GlossaryHandler(BaseTranslationHandler):
             return
 
         # Prepare and run GlossaryOccurrenceWorker with QProgressDialog
-        progress_dialog = QProgressDialog("Building glossary occurrence index...", None, 0, 100, self.mw)
+        progress_dialog = QProgressDialog("Building glossary occurrence index...", "Cancel", 0, 100, self.mw)
         progress_dialog.setWindowTitle("Please Wait")
         progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         progress_dialog.setMinimumDuration(0)
-        progress_dialog.setCancelButton(None)
 
         worker = GlossaryOccurrenceWorker(self.glossary_manager, data_source, parent=self.mw)
 
         self.glossary_progress = progress_dialog
         self.glossary_worker = worker
 
+        # Connect Cancel button to worker requestInterruption
+        progress_dialog.canceled.connect(worker.requestInterruption)
+
         def on_finished(occurrence_map):
             """Handle the finished event."""
+            if worker.isInterruptionRequested():
+                return
             progress_dialog.close()
             
             self.glossary_progress = None
@@ -272,7 +276,12 @@ class GlossaryHandler(BaseTranslationHandler):
             self.dialog.finished.connect(self._on_glossary_dialog_closed)
             self.dialog.show()
 
+        def on_worker_finished():
+            self.glossary_progress = None
+            self.glossary_worker = None
+
         worker.finished_with_result.connect(on_finished)
+        worker.finished.connect(on_worker_finished)
         worker.finished.connect(worker.deleteLater)
         worker.start()
         progress_dialog.show()

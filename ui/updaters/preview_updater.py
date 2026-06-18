@@ -163,6 +163,7 @@ class PreviewUpdater(BaseUIUpdater):
                 queue.append(idx)
 
         self._idle_cache_queue = queue
+        self._total_idle_cache_count = len(queue)
 
         if not self._idle_timer:
             from PyQt6.QtCore import QObject
@@ -178,9 +179,18 @@ class PreviewUpdater(BaseUIUpdater):
         if not self._idle_cache_queue:
             if self._idle_timer:
                 self._idle_timer.stop()
+            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                self.mw.statusBar.showMessage("Previews fully cached.", 3000)
             return
 
         block_idx = self._idle_cache_queue.pop(0)
+        
+        # Display progress message
+        total_cache_count = getattr(self, '_total_idle_cache_count', 1)
+        cached_count = total_cache_count - len(self._idle_cache_queue)
+        if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+            self.mw.statusBar.showMessage(f"Caching previews: {cached_count}/{total_cache_count} blocks...", 2000)
+
         if block_idx < 0 or block_idx >= len(self.mw.data_store.data):
             return
 
