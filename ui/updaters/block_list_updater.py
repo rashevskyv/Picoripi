@@ -63,27 +63,27 @@ class BlockListUpdater(BaseUIUpdater):
         """Returns the current expansion and selection state of the block tree."""
         if not self.mw.block_list_widget:
             return {}
-        
+
         expanded_ids = []
         selected_id = None
         selected_type = None # 'block', 'folder', 'category'
-        
+
         current_item = self.mw.block_list_widget.currentItem()
-        
+
         iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
         while iterator.value():
             item = iterator.value()
-            
+
             # Identify the item
             item_id = None
             item_type = None
-            
+
             # Check if it's a block
             block_idx = item.data(0, Qt.ItemDataRole.UserRole)
             category_name = item.data(0, Qt.ItemDataRole.UserRole + 10)
             folder_id = item.data(0, Qt.ItemDataRole.UserRole + 1)
             chapter_id = item.data(0, Qt.ItemDataRole.UserRole + 11)
-            
+
             if chapter_id is not None:
                 item_id = f"chapter_{chapter_id}"
                 item_type = 'chapter'
@@ -99,16 +99,16 @@ class BlockListUpdater(BaseUIUpdater):
             elif block_idx is not None:
                 item_id = f"block_{block_idx}"
                 item_type = 'block'
-                
+
             if item_id:
                 if item.isExpanded():
                     expanded_ids.append(item_id)
                 if item == current_item:
                     selected_id = item_id
                     selected_type = item_type
-                    
+
             iterator += 1
-            
+
         result = {
             "expanded_ids": expanded_ids,
             "selected_id": selected_id,
@@ -123,14 +123,14 @@ class BlockListUpdater(BaseUIUpdater):
         """Restores the tree expansion and selection from state."""
         if not state or not self.mw.block_list_widget:
             return
-            
+
         expanded_ids = set(state.get("expanded_ids", []))
         selected_id = state.get("selected_id")
         selected_string_idx = state.get("selected_string_idx", -1)
-        
+
         # Set a flag indicating that session state is being restored to prevent double loads
         self.mw._restoring_session_state = True
-        
+
         # 1. Restore Expansion (Signals blocked to avoid redundant updates)
         old_blocked = self.mw.block_list_widget.blockSignals(True)
         try:
@@ -143,11 +143,11 @@ class BlockListUpdater(BaseUIUpdater):
                 iterator += 1
         finally:
             self.mw.block_list_widget.blockSignals(old_blocked)
-            
+
         # 2. Restore Selection (Delayed to ensure tree is stable)
         if selected_id:
             from utils.logging_utils import log_info, log_warning
-            
+
             def _delayed_select():
                 try:
                     from PyQt6 import sip
@@ -178,25 +178,25 @@ class BlockListUpdater(BaseUIUpdater):
                             except RuntimeError:
                                 pass
                         iterator += 1
-                    
+
                     if target_item and not safe_isdeleted(target_item):
                         log_info(f"UIUpdater: Restoring selection to {selected_id}")
                         self.mw.block_list_widget.setFocus()
                         self.mw.block_list_widget.setCurrentItem(target_item)
                         # Manually trigger block load
                         self.mw.list_selection_handler.block_selected(target_item, None)
-                        
+
                         if selected_string_idx != -1:
                             log_info(f"UIUpdater: Restoring string selection to absolute index {selected_string_idx}")
                             # Further delay for strings to ensure they are populated and mapped
                             from PyQt6.QtCore import QTimer
-                            
+
                             def _select_string_and_restore_scroll():
                                 try:
                                     if safe_isdeleted(self.mw.block_list_widget):
                                         return
                                     self.mw.list_selection_handler.select_string_by_absolute_index(selected_string_idx)
-                                    
+
                                     # Restore scroll & cursor after string is loaded and text edits are populated!
                                     if self.mw.edited_text_edit and not safe_isdeleted(self.mw.edited_text_edit):
                                         self.mw.edited_text_edit.verticalScrollBar().setValue(state.get("v_scroll", 0))
@@ -206,13 +206,13 @@ class BlockListUpdater(BaseUIUpdater):
                                         if self.mw.original_text_edit and not safe_isdeleted(self.mw.original_text_edit):
                                             self.mw.original_text_edit.verticalScrollBar().setValue(state.get("original_v_scroll", 0))
                                             self.mw.original_text_edit.horizontalScrollBar().setValue(state.get("original_h_scroll", 0))
-                                        
+
                                         cursor_pos = state.get("cursor_pos", 0)
                                         try:
                                             doc_len = self.mw.edited_text_edit.document().characterCount() - 1
                                         except Exception:
                                             doc_len = 0
-                                        
+
                                         try:
                                             c_pos = int(cursor_pos) if not hasattr(cursor_pos, '_mock_name') else 0
                                             d_len = int(doc_len) if not hasattr(doc_len, '_mock_name') else 0
@@ -220,7 +220,7 @@ class BlockListUpdater(BaseUIUpdater):
                                             log_info(f"UIUpdater: Restoring cursor position to {pos_to_set}")
                                         except Exception:
                                             pos_to_set = 0
-                                            
+
                                         cursor = self.mw.edited_text_edit.textCursor()
                                         cursor.setPosition(pos_to_set)
                                         self.mw.edited_text_edit.setTextCursor(cursor)
@@ -230,7 +230,7 @@ class BlockListUpdater(BaseUIUpdater):
                                 finally:
                                     # Ensure we clean up the restoration flag
                                     self.mw._restoring_session_state = False
-                            
+
                             QTimer.singleShot(200, _select_string_and_restore_scroll)
                         else:
                             self.mw._restoring_session_state = False
@@ -240,7 +240,7 @@ class BlockListUpdater(BaseUIUpdater):
                 except Exception as e:
                     log_warning(f"UIUpdater: Error in _delayed_select: {e}")
                     self.mw._restoring_session_state = False
- 
+
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(50, _delayed_select)
         else:
@@ -249,12 +249,12 @@ class BlockListUpdater(BaseUIUpdater):
     def _get_item_id(self, item) -> str:
         """Helper to generate consistent IDs for tree items."""
         if not item: return None
-        
+
         block_idx = item.data(0, Qt.ItemDataRole.UserRole)
         category_name = item.data(0, Qt.ItemDataRole.UserRole + 10)
         folder_id = item.data(0, Qt.ItemDataRole.UserRole + 1)
         chapter_id = item.data(0, Qt.ItemDataRole.UserRole + 11)
-        
+
         if chapter_id is not None:
             return f"chapter_{chapter_id}"
         elif folder_id is not None:
@@ -273,12 +273,12 @@ class BlockListUpdater(BaseUIUpdater):
         problem_counts = {}
         if not self.mw.current_game_rules:
             return problem_counts
-        
+
         is_chapter = (block_idx == -2)
         is_speaker = (block_idx == -3)
         if not is_chapter and not is_speaker and not (0 <= block_idx < len(self.mw.data_store.data)):
             return problem_counts
-        
+
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         problem_counts = {pid: 0 for pid in problem_definitions.keys()}
         detection_config = getattr(self.mw, 'detection_enabled', {})
@@ -291,7 +291,7 @@ class BlockListUpdater(BaseUIUpdater):
                     for s_idx_str, c_name in assignments.items():
                         if c_name == speaker_name:
                             spk_mappings.add((b_idx, int(s_idx_str)))
-            
+
             for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
                 if (b_idx, s_idx) in spk_mappings:
                     filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
@@ -318,7 +318,7 @@ class BlockListUpdater(BaseUIUpdater):
                 indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
                 if indices:
                     ch_mappings.add(indices)
-            
+
             for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
                 if (b_idx, s_idx) in ch_mappings:
                     filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
@@ -326,14 +326,16 @@ class BlockListUpdater(BaseUIUpdater):
                         if p_id in problem_counts:
                             problem_counts[p_id] += 1
             return problem_counts
-        
+
         if pre_aggregated_counts is not None and category_name is None:
             # Fast path: use the pre-calculated problem counts for this block (only for full blocks)
             block_counts = pre_aggregated_counts.get(block_idx, {})
             return {pid: block_counts.get(pid, 0) for pid in problem_definitions.keys()}
-        
-        # Slow path/Category path
-        # Determine which strings to check
+
+        # Fast path/Category path using warning index
+        self.data_processor.ensure_index_warnings(block_idx)
+        warn_dict = self.mw.data_store._index_warnings.get(block_idx, {})
+
         target_indices = None
         if category_name:
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
@@ -346,16 +348,16 @@ class BlockListUpdater(BaseUIUpdater):
                     if category:
                         target_indices = set(category.line_indices)
 
-        for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
-            if b_idx == block_idx:
-                if target_indices is not None and s_idx not in target_indices:
-                    continue
-                    
-                filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
-                for p_id in filtered_problems:
-                    if p_id in problem_counts:
-                        problem_counts[p_id] += 1
-                        
+        for p_id in problem_counts.keys():
+            if not detection_config.get(p_id, True):
+                continue
+            if p_id in warn_dict:
+                if target_indices is not None:
+                    count = sum(1 for s_idx, _ in warn_dict[p_id] if s_idx in target_indices)
+                    problem_counts[p_id] = count
+                else:
+                    problem_counts[p_id] = len(warn_dict[p_id])
+
         return problem_counts
 
     def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
@@ -363,7 +365,7 @@ class BlockListUpdater(BaseUIUpdater):
         display_name_with_issues = base_display_name
         tooltip_lines = []
         total_issues = sum(problem_counts.values())
-        
+
         sorted_problem_ids_for_display = sorted(
             problem_counts.keys(),
             key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)
@@ -376,12 +378,12 @@ class BlockListUpdater(BaseUIUpdater):
                 full_name = prob_def.get("name", problem_id)
                 desc = prob_def.get("description", "")
                 tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
-        
+
         if total_issues > 0:
             display_name_with_issues = f"{base_display_name} ({total_issues})"
-            
+
         item.setText(0, display_name_with_issues)
-        
+
         if tooltip_lines:
             item.setToolTip(0, "<br><br>".join(tooltip_lines))
         else:
@@ -392,14 +394,14 @@ class BlockListUpdater(BaseUIUpdater):
         base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
         display_name_with_ext = self._get_block_display_name_with_ext(block_idx, base_display_name)
         block_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts)
-        
+
         item = self.mw.block_list_widget.create_item(display_name_with_ext, block_idx, Qt.ItemDataRole.UserRole)
         self._register_item_in_cache(item)
         self._apply_issues_and_tooltip(item, display_name_with_ext, block_problem_counts, problem_definitions)
-        
+
         item.setData(0, Qt.ItemDataRole.UserRole + 4, display_name_with_ext)
         item.setData(0, Qt.EditRole, base_display_name)
-        
+
         # Add categories as children
         if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
             pm = self.mw.project_manager
@@ -416,12 +418,12 @@ class BlockListUpdater(BaseUIUpdater):
                     cat_item.setData(0, Qt.ItemDataRole.UserRole + 4, cat.name)
                     cat_item.setData(0, Qt.EditRole, cat.name)
                     self._set_item_style_icon(cat_item, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
-                    
+
                     cat_problem_counts = self._get_aggregated_problems_for_block(block_idx, pre_aggregated_counts=None, category_name=cat.name)
                     self._apply_issues_and_tooltip(cat_item, cat.name, cat_problem_counts, problem_definitions)
-                    
+
                     item.addChild(cat_item)
-            
+
         return item
 
     def _is_project_block_unsaved(self, project_block_idx: int) -> bool:
@@ -429,7 +431,7 @@ class BlockListUpdater(BaseUIUpdater):
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         if isinstance(block_map, dict) and block_map:
             return any(
-                block_map.get(data_idx) == project_block_idx 
+                block_map.get(data_idx) == project_block_idx
                 for data_idx in self.mw.data_store.unsaved_block_indices
             )
         return project_block_idx in self.mw.data_store.unsaved_block_indices
@@ -460,9 +462,9 @@ class BlockListUpdater(BaseUIUpdater):
         merged_folder_ids = [folder.id]
         compaction_type = 0 # 0: None, 1: Folder/Folder, 2: Folder/Block
         block_idx_for_icon = None
-        
+
         curr_for_children = folder
-        
+
         # Whether the folder itself is an archive (never compact archives so children stay visible)
         _fname_lower = folder.name.lower()
         is_archive_root = (
@@ -470,7 +472,7 @@ class BlockListUpdater(BaseUIUpdater):
             _fname_lower.endswith('.rarc') or
             _fname_lower.endswith('.ark')
         )
-        
+
         # 1. Compact consecutive single-child folders (Type 1)
         temp_curr = folder
         while len(temp_curr.children) == 1 and len(temp_curr.block_ids) == 0:
@@ -479,7 +481,7 @@ class BlockListUpdater(BaseUIUpdater):
             merged_folder_ids.append(temp_curr.id)
             compaction_type = 1
             curr_for_children = temp_curr
-        
+
         # 2. Compact with a single block (Type 2)
         if len(curr_for_children.children) == 0 and len(curr_for_children.block_ids) == 1:
             id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
@@ -495,21 +497,21 @@ class BlockListUpdater(BaseUIUpdater):
         # 3. Add [f / b] counter only for non-compacted folders
         # Rule: Hide counter if the folder contains exactly ONE single child (folder or block)
         child_count = len(curr_for_children.children) + len(curr_for_children.block_ids)
-        
+
         # Save name BEFORE adding counters for editing
         clean_display_name = display_name
-        
+
         if compaction_type == 0 and child_count > 1:
             display_name += f" [{len(curr_for_children.children)} | {len(curr_for_children.block_ids)}]"
 
         # Create folder item
         folder_item = QTreeWidgetItem([display_name])
         folder_item.setFlags(folder_item.flags() | Qt.ItemFlag.ItemIsEditable)
-        
+
         is_archive_folder = (
             is_archive_root or
-            clean_display_name.lower().endswith('.arc') or 
-            clean_display_name.lower().endswith('.rarc') or 
+            clean_display_name.lower().endswith('.arc') or
+            clean_display_name.lower().endswith('.rarc') or
             clean_display_name.lower().endswith('.ark') or
             ('/ ' in clean_display_name and (
                 '.arc /' in clean_display_name.lower() or
@@ -521,13 +523,13 @@ class BlockListUpdater(BaseUIUpdater):
             self._set_item_style_icon(folder_item, 0, QStyle.StandardPixmap.SP_DirLinkIcon)
         else:
             self._set_item_style_icon(folder_item, 0, QStyle.StandardPixmap.SP_DirIcon)
-        
+
         folder_item.setData(0, Qt.ItemDataRole.UserRole + 1, curr_for_children.id)
         folder_item.setData(0, Qt.ItemDataRole.UserRole + 2, merged_folder_ids)
         folder_item.setData(0, Qt.ItemDataRole.UserRole + 3, compaction_type)
         folder_item.setData(0, Qt.ItemDataRole.UserRole + 4, display_name)
         folder_item.setData(0, Qt.EditRole, display_name)
-        
+
         # Store RAW folder names for robust synchronization (avoids parsing display_name with counters)
         raw_names = []
         temp_f = folder
@@ -537,26 +539,26 @@ class BlockListUpdater(BaseUIUpdater):
                  temp_f = temp_f.children[0]
                  raw_names.append(temp_f.name)
         folder_item.setData(0, Qt.ItemDataRole.UserRole + 5, raw_names)
-        
+
         if block_idx_for_icon is not None:
             folder_item.setData(0, Qt.ItemDataRole.UserRole, block_idx_for_icon) # For indicator strips
             self._register_item_in_cache(folder_item)
             if compaction_type == 2:
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx_for_icon, pre_aggregated_counts)
                 self._apply_issues_and_tooltip(folder_item, clean_display_name, block_problem_counts, problem_definitions)
-            
+
         parent_item.addChild(folder_item)
-        
+
         if compaction_type != 2:
             # Standard recursive children population (only if NOT compacted with block)
             for child in curr_for_children.children:
                 self._add_virtual_folder_to_tree(folder_item, child, problem_definitions, current_selection_block_idx, pre_aggregated_counts, folder_id_to_select=folder_id_to_select)
-                
+
             id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
             for b_id in curr_for_children.block_ids:
                 idx = id_to_idx.get(b_id)
                 if idx is not None:
-                    if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or 
+                    if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or
                             self._is_project_block_unsaved(idx)):
                         block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
                         folder_item.addChild(block_item)
@@ -587,7 +589,7 @@ class BlockListUpdater(BaseUIUpdater):
 
         current_selection_block_idx = override_block_idx
         current_selection_folder_id = override_folder_id
-        
+
         if current_selection_block_idx is None and current_selection_folder_id is None:
             current_item = self.mw.block_list_widget.currentItem()
             if current_item:
@@ -600,21 +602,21 @@ class BlockListUpdater(BaseUIUpdater):
                         current_selection_block_idx = -2
                     elif getattr(self.mw.data_store, 'current_block_idx', -1) != -1:
                         current_selection_block_idx = self.mw.data_store.current_block_idx
-        
+
         # Save scroll position
         v_scroll = self.mw.block_list_widget.verticalScrollBar().value()
-        
+
         # Don't let signals trigger more refreshes while we are rebuilding
         self.mw.block_list_widget.blockSignals(True)
         self.mw.block_list_widget._is_programmatic_expansion = True
         self.mw.block_list_widget.setUpdatesEnabled(False)
-        
+
         try:
             self.mw.block_list_widget.clear()
             self._block_items_cache.clear()
-            if not self.mw.data_store.data: 
+            if not self.mw.data_store.data:
                 return
-            
+
             problem_definitions = {}
             if self.mw.current_game_rules:
                 problem_definitions = self.mw.current_game_rules.get_problem_definitions()
@@ -625,7 +627,7 @@ class BlockListUpdater(BaseUIUpdater):
                 project = self.mw.project_manager.project
                 if project.virtual_folders or 'root_block_ids' in project.metadata:
                     has_virtual_structure = True
-            
+
             # Hide categorization toggles during tree rebuild; they will be
             # shown by populate_strings_for_block only when the selected block
             # actually has categories.
@@ -647,19 +649,19 @@ class BlockListUpdater(BaseUIUpdater):
             if has_virtual_structure:
                 project = self.mw.project_manager.project
                 root_item = self.mw.block_list_widget.invisibleRootItem()
-                
+
                 # 1. Add virtual folders recursively
                 for folder in project.virtual_folders:
                     self._add_virtual_folder_to_tree(root_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts, folder_id_to_select=current_selection_folder_id)
-                    
+
                 # 2. Add root blocks
                 root_block_ids = project.metadata.get('root_block_ids', [])
                 id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
-                
+
                 for b_id in root_block_ids:
                     idx = id_to_idx.get(b_id)
                     if idx is not None:
-                        if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or 
+                        if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or
                                 self._is_project_block_unsaved(idx)):
                             block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
                             root_item.addChild(block_item)
@@ -673,11 +675,11 @@ class BlockListUpdater(BaseUIUpdater):
                 dir_nodes = {"": self.mw.block_list_widget.invisibleRootItem()}
 
                 for i in range(len(self.mw.data_store.data)):
-                    if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True and 
+                    if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True and
                             i not in self.mw.data_store.unsaved_block_indices):
                         continue
                     block_item = self._create_block_tree_item(i, problem_definitions, pre_aggregated_counts)
-                    
+
                     if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project and i < len(self.mw.project_manager.project.blocks):
                         block = self.mw.project_manager.project.blocks[i]
                         rel_path = block.source_file
@@ -693,7 +695,7 @@ class BlockListUpdater(BaseUIUpdater):
                         if not part: continue
                         parent_path = current_path
                         current_path = current_path + "/" + part if current_path else part
-                        
+
                         if current_path not in dir_nodes:
                             dir_item = QTreeWidgetItem([part])
                             dir_item.setIcon(0, QIcon.fromTheme('folder'))
@@ -717,7 +719,7 @@ class BlockListUpdater(BaseUIUpdater):
                     client = composer.prompt_composer._get_mempalace_client()
                     if client:
                         wing_name = composer.prompt_composer._get_wing_name()
-                        
+
                         # Check if wing changed
                         if getattr(self, '_chapters_cache_wing_name', None) != wing_name:
                             # Clean up old worker and caches
@@ -736,8 +738,8 @@ class BlockListUpdater(BaseUIUpdater):
 
                         # Check if running in tests or with MagicMocks to load synchronously
                         from unittest.mock import MagicMock
-                        is_test = (isinstance(client, MagicMock) or 
-                                   'Mock' in type(client).__name__ or 
+                        is_test = (isinstance(client, MagicMock) or
+                                   'Mock' in type(client).__name__ or
                                    getattr(self.mw, '_is_test_mode', False))
                         if is_test and self._chapters_cache is None:
                             try:
@@ -746,43 +748,43 @@ class BlockListUpdater(BaseUIUpdater):
                                 self._is_loading_chapters = False
                             except Exception as e_test:
                                 self._chapters_load_error = str(e_test)
-                        
+
                         if self._chapters_load_error:
                             # Show load error placeholder
                             chapters_root = QTreeWidgetItem(["Chapters (Load Error)"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                            
+
                             err_item = QTreeWidgetItem([f"Error: {self._chapters_load_error}"])
                             err_item.setFlags(err_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                             self._set_item_style_icon(err_item, 0, QStyle.StandardPixmap.SP_MessageBoxCritical)
                             chapters_root.addChild(err_item)
-                            
+
                             self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
-                            
+
                         elif self._is_loading_chapters:
                             # Show loading placeholder
                             chapters_root = QTreeWidgetItem(["Chapters"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                            
+
                             loading_item = QTreeWidgetItem(["Loading..."])
                             loading_item.setFlags(loading_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                             self._set_item_style_icon(loading_item, 0, QStyle.StandardPixmap.SP_BrowserReload)
                             chapters_root.addChild(loading_item)
-                            
+
                             self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
-                            
+
                         elif self._chapters_cache is not None:
                             # We have cached chapters, build the hierarchy
                             chapters_root = QTreeWidgetItem(["Chapters"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                            
+
                             act_nodes = {}
                             for ch in self._chapters_cache:
                                 ch_id = ch.get("id")
-                                
+
                                 # Pre-calculate ch_mappings and store it on the item to avoid DB query in paint delegate
                                 ch_mappings_list = []
                                 if self._chapter_mappings_cache and ch_id in self._chapter_mappings_cache:
@@ -792,16 +794,16 @@ class BlockListUpdater(BaseUIUpdater):
                                             indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
                                             if indices:
                                                 ch_mappings_list.append(indices)
-                                                
+
                                 # Filter chapters by unsaved strings if requested
                                 if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True:
                                     has_unsaved_in_chapter = any(mapping in self.mw.data_store.edited_data for mapping in ch_mappings_list)
                                     if not has_unsaved_in_chapter:
                                         continue
-                                        
+
                                 num = ch.get("num", "")
                                 title = ch.get("title", "")
-                                
+
                                 # Parse Act and Chapter
                                 m = re.search(r'Act\s+([^,]+),\s*Ch\s+(.+)', num, re.IGNORECASE)
                                 if m:
@@ -818,14 +820,14 @@ class BlockListUpdater(BaseUIUpdater):
                                     else:
                                         act_name = "Act 1"
                                         ch_name = f"Chapter {num}: {title}"
-                                
+
                                 if act_name not in act_nodes:
                                     act_item = QTreeWidgetItem([act_name])
                                     self._set_item_style_icon(act_item, 0, QStyle.StandardPixmap.SP_DirIcon)
                                     act_item.setFlags(act_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                                     chapters_root.addChild(act_item)
                                     act_nodes[act_name] = act_item
-                                
+
                                 ch_item = QTreeWidgetItem([ch_name])
                                 self._set_item_style_icon(ch_item, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
                                 ch_item.setFlags(ch_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -834,49 +836,49 @@ class BlockListUpdater(BaseUIUpdater):
                                 ch_item.setData(0, Qt.ItemDataRole.UserRole + 4, ch_name)
                                 ch_item.setData(0, Qt.EditRole, ch_name)
                                 ch_item.setData(0, Qt.ItemDataRole.UserRole + 13, ch_mappings_list)
-                                
+
                                 self._register_item_in_cache(ch_item)
                                 problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
                                 ch_problem_counts = self._get_aggregated_problems_for_block(-2, chapter_id=ch_id)
                                 self._apply_issues_and_tooltip(ch_item, ch_name, ch_problem_counts, problem_definitions)
-                                
+
                                 act_nodes[act_name].addChild(ch_item)
-                                
+
                                 # Restore chapter selection
                                 if current_selection_block_idx == -2 and getattr(self.mw.data_store, 'current_chapter_id', None) == ch_id:
                                     self.mw.block_list_widget.setCurrentItem(ch_item)
                                     ch_item.setSelected(True)
                                     act_nodes[act_name].setExpanded(True)
                                     chapters_root.setExpanded(True)
-                                    
+
                             # Remove empty Acts if any
                             for act_name, act_item in list(act_nodes.items()):
                                 if act_item.childCount() == 0:
                                     chapters_root.removeChild(act_item)
-                                    
+
                             if chapters_root.childCount() > 0:
                                 self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
                         else:
                             # Cache is empty, and we are not currently loading. Start async load.
                             self._is_loading_chapters = True
                             self._chapters_load_error = None
-                            
+
                             from core.mempalace_worker import MemePalaceChaptersLoadWorker
                             self._chapters_load_worker = MemePalaceChaptersLoadWorker(client, wing_name)
                             self._chapters_load_worker.finished_signal.connect(self._on_chapters_loaded)
                             self._chapters_load_worker.error_signal.connect(self._on_chapters_load_failed)
                             self._chapters_load_worker.start()
-                            
+
                             # Show loading placeholder
                             chapters_root = QTreeWidgetItem(["Chapters"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                            
+
                             loading_item = QTreeWidgetItem(["Loading..."])
                             loading_item.setFlags(loading_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                             self._set_item_style_icon(loading_item, 0, QStyle.StandardPixmap.SP_BrowserReload)
                             chapters_root.addChild(loading_item)
-                            
+
                             self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
             except Exception as e:
                 from utils.logging_utils import log_error
@@ -905,7 +907,7 @@ class BlockListUpdater(BaseUIUpdater):
                                     indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
                                     if indices:
                                         mempalace_speakers.setdefault(speaker_name, []).append(indices)
-                    
+
                     # Fallback to loading script mappings + script file if cache is empty
                     if not mempalace_speakers and hasattr(composer, "prompt_composer"):
                         import os
@@ -924,7 +926,7 @@ class BlockListUpdater(BaseUIUpdater):
                                             with open(script_path, "r", encoding="utf-8", errors="replace") as f:
                                                 lines = f.readlines()
                                         composer.prompt_composer._script_lines_cache = lines
-                                    
+
                                     def line_strip_is_speaker(s: str) -> bool:
                                         return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
 
@@ -940,14 +942,14 @@ class BlockListUpdater(BaseUIUpdater):
                                             current_speaker = line_strip
                                         if current_speaker:
                                             line_to_speaker[idx + 1] = current_speaker
-                                    
+
                                     composer.prompt_composer._line_to_speaker_cache = line_to_speaker
                                     composer.prompt_composer._line_to_speaker_path = script_path
                                 except Exception as e_parse:
                                     from utils.logging_utils import log_error
                                     log_error(f"Error building line_to_speaker map in block_list_updater: {e_parse}")
                                     line_to_speaker = None
-                            
+
                             if line_to_speaker:
                                 all_mappings = client.get_all_chapter_mappings(wing_name)
                                 for ch_id, ch_maps in all_mappings.items():
@@ -973,7 +975,7 @@ class BlockListUpdater(BaseUIUpdater):
                     project_to_block_map = {}
                     if block_map:
                         project_to_block_map = {proj_idx: data_idx for data_idx, proj_idx in block_map.items()}
-                        
+
                     for proj_b_idx, block in enumerate(project.blocks):
                         assignments = block.metadata.get("character_assignments", {})
                         for s_idx_str, c_name in assignments.items():
@@ -1043,7 +1045,7 @@ class BlockListUpdater(BaseUIUpdater):
                         speaker_item.setData(0, Qt.ItemDataRole.UserRole + 13, speaker_mappings_list)
 
                         self._register_item_in_cache(speaker_item)
-                        
+
                         problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
                         speaker_problem_counts = self._get_aggregated_problems_for_block(-3, speaker_name=speaker_name, speaker_mappings=speaker_mappings_list)
                         self._apply_issues_and_tooltip(speaker_item, speaker_name, speaker_problem_counts, problem_definitions)
@@ -1075,7 +1077,7 @@ class BlockListUpdater(BaseUIUpdater):
         """Update the block item text with problem count."""
         if not hasattr(self.mw, 'block_list_widget'):
             return
-        
+
         items_to_update = self._block_items_cache.get(block_idx, [])
         if not items_to_update:
             # Fallback for unit tests where items are added manually without populate_blocks
@@ -1098,29 +1100,29 @@ class BlockListUpdater(BaseUIUpdater):
                     continue
                 category_name = item.data(0, Qt.ItemDataRole.UserRole + 10)
                 ch_id = item.data(0, Qt.ItemDataRole.UserRole + 11)
-                
+
                 # Try to use stored base name to preserve folder path in compacted view
                 base_display_name = item.data(0, Qt.ItemDataRole.UserRole + 4)
                 if base_display_name is None:
                     base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                     base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
-                    
+
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=ch_id)
                 self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         finally:
             self.mw.block_list_widget.blockSignals(False)
-            
+
         # Global update to ensure all delegates are re-run for visible ancestors
         self.mw.block_list_widget.viewport().update()
 
     def highlight_problem_block(self, block_idx: int, highlight: bool, is_critical: bool = True):
         """Highlight problem block."""
-        pass 
+        pass
 
-    def clear_all_problem_block_highlights_and_text(self): 
+    def clear_all_problem_block_highlights_and_text(self):
         """Remove all problem block highlights and text."""
         if not hasattr(self.mw, 'block_list_widget'): return
-        
+
         iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
         while iterator.value():
             item = iterator.value()
@@ -1130,10 +1132,10 @@ class BlockListUpdater(BaseUIUpdater):
                 if base_display_name is None:
                     base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                     base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
-                
-                if item.text(0) != base_display_name: 
-                    item.setText(0, base_display_name) 
-                item.setToolTip(0, "") 
+
+                if item.text(0) != base_display_name:
+                    item.setText(0, base_display_name)
+                item.setToolTip(0, "")
             iterator += 1
 
         if hasattr(self.mw, 'block_list_widget'):
@@ -1153,5 +1155,3 @@ class BlockListUpdater(BaseUIUpdater):
         self._is_loading_chapters = False
         self._chapters_load_worker = None
         self.populate_blocks()
-
-

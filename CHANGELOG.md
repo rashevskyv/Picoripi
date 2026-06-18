@@ -1,6 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.036] - 2026-06-18
+
+### 🚀 Added
+- **A09 Sub-Handlers Decomposition**:
+  - Extracted virtual category, virtual speaker, and folder navigation logic from `ListSelectionHandler` into three dedicated components: `CategoryHandler` (`handlers/category_handler.py`), `SpeakerHandler` (`handlers/speaker_handler.py`), and `VirtualFolderHandler` (`handlers/virtual_folder_handler.py`).
+  - Configured `ListSelectionHandler` to act as a clean facade and delegate, reducing its complexity and enforcing Single Responsibility Principle (SRP).
+  - Resolved initialization order issues in `MainWindow` by instantiating sub-handlers before `ListSelectionHandler`.
+  - Added compatibility checks and fallback instantiation inside `ListSelectionHandler` to maintain mock-testing stability in unit tests.
+
+### 🐛 Fixed
+- **Worker Cancellation Race Condition**:
+  - Fixed a race condition in `SpellcheckWorker` and `SearchReviewDialog` where canceling a worker right after its final check but before completion could result in a silent exit without emitting any signal. Added fallback `self.cancelled.emit()` in worker run loops.
+  - Updated `AUDIT.md` checkboxes to reflect implementation status correctly.
+
 ## [0.3.034] - 2026-06-18
+
 
 ### 🐛 Fixed
 - **Missing Tag Spacing Custom Width Tag Mapping**:
@@ -573,7 +588,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
   - Achieved a highly optimized compression ratio matching official Nintendo tools within a 0.24% file size difference (125 KB vs 124 KB).
   - Added new robust regression testing `test_yaz0_compression_ratio_against_original` in `test_containers.py` to continuously verify compression ratios and lossless roundtrip decompressions on original assets.
 - **Smart Empty Lines Hiding & Gutter Highlight**:
-  - Implemented a smart empty lines collapse threshold inside `populate_strings_for_block` in `ui/updaters/preview_updater.py`. 
+  - Implemented a smart empty lines collapse threshold inside `populate_strings_for_block` in `ui/updaters/preview_updater.py`.
   - Single or double consecutive empty lines are kept fully visible in the read-only preview panel to preserve minor paragraph breaks, whereas sequences of 3 or more empty lines are collapsed into a single placeholder: `[start-end] X empty line(s)`.
   - Added regex-based early matching (`_PLACEHOLDER_PATTERN`) inside `JsonTagHighlighter.highlightBlock` (`utils/syntax_highlighter.py`). When the read-only preview panel encounters a collapsed empty lines placeholder, the entire line is instantly styled with a subtle dark gray color (`#888888`) and bypasses all other syntax formatting rules (such as bracket tags or spellchecking), keeping the preview clean and uncluttered.
   - Added new regression and unit tests: `test_populate_strings_hide_empty_strings` in `test_small_updaters.py` and `test_JsonTagHighlighter_placeholder_highlighting` in `test_syntax_highlighter.py`.
@@ -1414,7 +1429,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [0.2.63] - 2026-05-21
 
 ### Added
-- **Native In-Memory Archive Support**: Replaced external dependency executables `ArcExtract.exe` and `ArcPack.exe` with a native Python-based parser system for Nintendo GC/Wii archives. 
+- **Native In-Memory Archive Support**: Replaced external dependency executables `ArcExtract.exe` and `ArcPack.exe` with a native Python-based parser system for Nintendo GC/Wii archives.
 - **In-Memory Writing & Yaz0 Compression**: Implemented fully virtualized container saving and repacking routines (supporting RARC and U8 formats, including Yaz0-compressed archives) that compile and write final data bytes directly to disk without spawning temp directories or executing sub-processes.
 - **Robust Archive Test Coverage**: Added a comprehensive suite of unit tests in `tests/test_core/test_containers.py` verifying Yaz0 decompression/compression and RARC/U8 read/write/pack round-tripping.
 - **Zero Disk Pollution**: Eliminated `.extracted/` folder generation entirely, keeping files virtualized in RAM during both read and save operations.
@@ -1577,7 +1592,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - **Visual Selection Highlighting**: Improved UI feedback when strings are found via search, ensuring matches are clearly visible and correctly highlighted.
 
 ### 🐛 Fixed
-- **Virtual Block Inline Renaming**: Fixed a critical issue where renaming virtual blocks (categories) within the tree widget would fail with an "editing failed" error or accidentally rename the parent physical block. 
+- **Virtual Block Inline Renaming**: Fixed a critical issue where renaming virtual blocks (categories) within the tree widget would fail with an "editing failed" error or accidentally rename the parent physical block.
 - **Qt Role Synchronization**: Resolved a bug where problem counts and technical metadata were appearing inside the inline editor field during renaming due to native Qt role behavior.
 - **Fuzzy Search Highlighting**: Fixed an issue where fuzzy search matches were not highlighted with the correct length, especially when the matched word form differed from the search query.
 - **Search Navigation Accuracy**: Improved search result navigation and fixed button order (Prev/Next) for a more conventional user experience.
@@ -1610,7 +1625,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [0.2.34] - 2026-03-22
 
 ### ⚡ Improved
-- **Aho-Corasick Glossary Matching**: Integrated `pyahocorasick` for lightning-fast glossary term detection. 
+- **Aho-Corasick Glossary Matching**: Integrated `pyahocorasick` for lightning-fast glossary term detection.
 - **Optimized Project Scan**: Project-wide glossary indexing (occurrence scan) now uses Aho-Corasick, providing a 10-100x speedup for large datasets.
 - **Hybrid Matching Architecture**: Maintained regex fallback for complex cases (terms with inline tags or multiple spaces), ensuring 100% accuracy while gaining maximum performance for exact matches.
 

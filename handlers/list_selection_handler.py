@@ -2,7 +2,7 @@
 from typing import Any, Optional, List, Dict, Union, Tuple
 from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock 
+from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
@@ -15,19 +15,43 @@ class ListSelectionHandler(BaseHandler):
         self._restoring_selection: bool = False
         self._target_string_idx: Optional[int] = None
         self._target_block_idx: Optional[int] = None
-        self._pending_speaker_retention: Optional[Tuple[str, Tuple[int, int], int]] = None
+
+        # Sub-handlers for Single Responsibility Principle
+        # First, import them locally to avoid circular import issues
+        from handlers.category_handler import CategoryHandler
+        from handlers.speaker_handler import SpeakerHandler
+        from handlers.virtual_folder_handler import VirtualFolderHandler
+
+        self.category_handler = getattr(self.mw, 'category_handler', None)
+        if self.category_handler is None or type(self.category_handler).__name__ in ('Mock', 'MagicMock'):
+            self.category_handler = CategoryHandler(self.mw, self.data_processor, self.ui_updater)
+            try:
+                self.mw.category_handler = self.category_handler
+            except AttributeError:
+                pass
+
+        self.speaker_handler = getattr(self.mw, 'speaker_handler', None)
+        if self.speaker_handler is None or type(self.speaker_handler).__name__ in ('Mock', 'MagicMock'):
+            self.speaker_handler = SpeakerHandler(self.mw, self.data_processor, self.ui_updater)
+            try:
+                self.mw.speaker_handler = self.speaker_handler
+            except AttributeError:
+                pass
+
+        self.virtual_folder_handler = getattr(self.mw, 'virtual_folder_handler', None)
+        if self.virtual_folder_handler is None or type(self.virtual_folder_handler).__name__ in ('Mock', 'MagicMock'):
+            self.virtual_folder_handler = VirtualFolderHandler(self.mw, self.data_processor, self.ui_updater)
+            try:
+                self.mw.virtual_folder_handler = self.virtual_folder_handler
+            except AttributeError:
+                pass
     def navigate_between_blocks(self, forward: bool) -> None:
         """Handle global Alt+Shift+Up/Down to jump to next/prev block in the tree."""
-        if not hasattr(self.mw, 'block_list_widget'): return
-        direction: int = 1 if forward else -1
-        self.mw.block_list_widget.navigate_blocks(direction)
+        self.virtual_folder_handler.navigate_between_blocks(forward)
 
     def navigate_between_folders(self, forward: bool) -> None:
         """Handle global Alt+Shift+Left/Right to jump to next/prev folder in the tree."""
-        log_debug(f"ListSelectionHandler: navigate_between_folders forward={forward}")
-        if not hasattr(self.mw, 'block_list_widget'): return
-        direction: int = 1 if forward else -1
-        self.mw.block_list_widget.navigate_folders(direction)
+        self.virtual_folder_handler.navigate_between_folders(forward)
 
     def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
         """Block selected."""
@@ -50,10 +74,10 @@ class ListSelectionHandler(BaseHandler):
 
         if self.mw.is_loading_data or self._restoring_selection:
             return
- 
+
         if hasattr(self.mw, 'editor_operation_handler'):
             self.mw.editor_operation_handler.stop_and_flush_editor_changes()
- 
+
         if previous_item:
             try:
                 previous_block_idx = previous_item.data(0, Qt.UserRole)
@@ -61,14 +85,14 @@ class ListSelectionHandler(BaseHandler):
                     self.ui_updater.update_block_item_text_with_problem_count(previous_block_idx)
             except RuntimeError:
                 pass
- 
+
         if not current_item:
             return
- 
+
         old_block = self.mw.data_store.current_block_idx
         old_string = self.mw.data_store.current_string_idx
         old_category = getattr(self.mw.data_store, 'current_category_name', None)
- 
+
         self.mw.is_programmatically_changing_text = True
         try:
             is_virtual_row = current_item.data(0, Qt.UserRole + 12)
@@ -77,13 +101,13 @@ class ListSelectionHandler(BaseHandler):
                 s_idx = current_item.data(0, Qt.UserRole + 1)
                 ch_id = current_item.data(0, Qt.UserRole + 11)
                 self._clear_pending_speaker_retention((b_idx, s_idx))
-                
+
                 self.mw.data_store.current_block_idx = b_idx
                 self.mw.data_store.current_string_idx = s_idx
                 self.mw.data_store.current_chapter_id = ch_id
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_speaker_name = None
-                
+
                 # Fetch mappings from MemePalace client
                 chapter_mappings = []
                 composer = getattr(self.mw, "translation_handler", None)
@@ -98,30 +122,30 @@ class ListSelectionHandler(BaseHandler):
                             if indices:
                                 chapter_mappings.append(indices)
                 self.mw.data_store.chapter_mappings = chapter_mappings
-                
+
                 self.ui_updater.populate_strings_for_block(-2)
-                
+
                 # Find relative index for preview
                 rel_idx = -1
                 displayed_indices = self._get_displayed_indices()
                 target_tuple = (b_idx, s_idx)
                 if target_tuple in displayed_indices:
                     rel_idx = displayed_indices.index(target_tuple)
-                
+
                 if rel_idx != -1:
                     if not getattr(self.mw, '_restoring_session_state', False):
                         QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
                 else:
                     self.ui_updater.update_text_views()
-                    
+
                 self.ui_updater.update_statusbar_paths()
                 self._update_block_toolbar_button_states(-2)
                 return
- 
+
             block_index = current_item.data(0, Qt.UserRole)
             category_name = current_item.data(0, Qt.UserRole + 10)
             chapter_id = current_item.data(0, Qt.UserRole + 11)
-            
+
             if block_index == -3:
                 # Speaker item selected
                 char_name = current_item.data(0, Qt.UserRole + 15)
@@ -132,22 +156,22 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_block_idx = -3
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = None
-                
+
                 self.mw.data_store.current_speaker_name = char_name
-                
+
                 # Retrieve pre-calculated mappings from the tree item
                 char_mappings = current_item.data(0, Qt.UserRole + 13) or []
                 self.mw.data_store.chapter_mappings = char_mappings
-                
+
                 self.ui_updater.populate_strings_for_block(-3)
-                
+
                 if char_mappings:
                     target_idx = -1
                     if self._target_string_idx is not None and self._target_block_idx is not None:
                         target_tuple = (self._target_block_idx, self._target_string_idx)
                         if target_tuple in char_mappings:
                             target_idx = char_mappings.index(target_tuple)
-                            
+
                     if target_idx != -1:
                         first_mapping = char_mappings[target_idx]
                         self.mw.data_store.physical_block_idx = first_mapping[0]
@@ -166,7 +190,7 @@ class ListSelectionHandler(BaseHandler):
                     self.mw.data_store.physical_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
                     self.ui_updater.update_text_views()
-                    
+
                 self.ui_updater.update_statusbar_paths()
                 self._update_block_toolbar_button_states(-3)
                 return
@@ -178,7 +202,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_category_name = None
                 self.mw.data_store.current_chapter_id = chapter_id
                 self.mw.data_store.current_speaker_name = None
-                
+
                 # Fetch mappings from MemePalace client
                 chapter_mappings = []
                 composer = getattr(self.mw, "translation_handler", None)
@@ -193,16 +217,16 @@ class ListSelectionHandler(BaseHandler):
                             if indices:
                                 chapter_mappings.append(indices)
                 self.mw.data_store.chapter_mappings = chapter_mappings
-                
+
                 self.ui_updater.populate_strings_for_block(-2)
-                
+
                 if chapter_mappings:
                     target_idx = -1
                     if self._target_string_idx is not None and self._target_block_idx is not None:
                         target_tuple = (self._target_block_idx, self._target_string_idx)
                         if target_tuple in chapter_mappings:
                             target_idx = chapter_mappings.index(target_tuple)
-                            
+
                     if target_idx != -1:
                         first_mapping = chapter_mappings[target_idx]
                         self.mw.data_store.physical_block_idx = first_mapping[0]
@@ -221,11 +245,11 @@ class ListSelectionHandler(BaseHandler):
                     self.mw.data_store.physical_block_idx = -1
                     self.mw.data_store.current_string_idx = -1
                     self.ui_updater.update_text_views()
-                    
+
                 self.ui_updater.update_statusbar_paths()
                 self._update_block_toolbar_button_states(-2)
                 return
- 
+
             if block_index is None:
                 self._clear_pending_speaker_retention()
                 self.mw.data_store.current_block_idx = -1
@@ -240,7 +264,7 @@ class ListSelectionHandler(BaseHandler):
                     self.mw.string_settings_updater.update_string_settings_panel()
                 self._update_block_toolbar_button_states(-1)
                 return
- 
+
             if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
                 self._clear_pending_speaker_retention()
                 self.mw.data_store.current_block_idx = block_index
@@ -249,7 +273,7 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.data_store.current_chapter_id = None
                 self.mw.data_store.current_speaker_name = None
                 self.mw.data_store.chapter_mappings = []
-                
+
                 # Restore selection logic
                 target_string_idx = -1
                 if self._target_string_idx is not None and (self._target_block_idx is None or self._target_block_idx == block_index):
@@ -261,25 +285,25 @@ class ListSelectionHandler(BaseHandler):
                              project_block_idx = self.mw.block_to_project_file_map.get(block_index)
                              if project_block_idx is not None and project_block_idx < len(project.blocks):
                                  target_string_idx = project.blocks[project_block_idx].last_selected_string_idx
-                
+
                 self.mw.data_store.current_string_idx = target_string_idx
-                
+
                 if hasattr(self.mw, 'undo_manager'):
                     # Navigation recording
                     self.mw.undo_manager.record_navigation(
-                        block_index, target_string_idx, 
+                        block_index, target_string_idx,
                         old_block, old_string,
                         category_name, old_category
                     )
- 
+
                 self.ui_updater.populate_strings_for_block(block_index, category_name)
-                
+
                 if target_string_idx != -1:
                     rel_idx = -1
                     displayed_indices = self._get_displayed_indices()
                     if target_string_idx in displayed_indices:
                         rel_idx = displayed_indices.index(target_string_idx)
-                    
+
                     if rel_idx != -1:
                         # Schedule selection to avoid recursion issues
                         if not getattr(self.mw, '_restoring_session_state', False):
@@ -288,18 +312,18 @@ class ListSelectionHandler(BaseHandler):
                     self.ui_updater.update_text_views()
                     if hasattr(self.mw, 'string_settings_updater'):
                         self.mw.string_settings_updater.update_string_settings_panel()
-                
+
                 self.ui_updater.update_statusbar_paths()
                 self.ui_updater.update_block_item_text_with_problem_count(block_index)
- 
+
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_font_combobox()
                 self.mw.string_settings_updater.update_string_settings_panel()
- 
+
             self._update_block_toolbar_button_states(block_index)
         finally:
             self.mw.is_programmatically_changing_text = False
-        
+
         if not getattr(self.mw, 'is_loading_data', False) and not self._restoring_selection:
             self.data_processor.schedule_autosave()
 
@@ -317,7 +341,7 @@ class ListSelectionHandler(BaseHandler):
     def _update_block_toolbar_button_states(self, block_idx: int):
         """Update the enabled/disabled state of toolbar buttons based on selection and position."""
         has_project = bool(hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project)
-        
+
         # Enable Add Folder if project exists
         if hasattr(self.mw, 'add_folder_button'):
             self.mw.add_folder_button.setEnabled(has_project)
@@ -365,7 +389,7 @@ class ListSelectionHandler(BaseHandler):
             # Disable selection-dependent buttons
             proj_tip = "only available in Project mode (within a .uiproj project)."
             select_tip = "Select a block or folder to enable this action."
-            
+
             if hasattr(self.mw, 'delete_block_button'):
                 self.mw.delete_block_button.setEnabled(False)
                 self.mw.delete_block_button.setToolTip(
@@ -392,11 +416,11 @@ class ListSelectionHandler(BaseHandler):
         """Resolve a BMG ID like 'main_Str_125' to (block_idx, string_idx)."""
         if not bmg_id:
             return None
-            
+
         # Strip square brackets commonly used in database mappings/transcripts
         if bmg_id.startswith("[") and bmg_id.endswith("]"):
             bmg_id = bmg_id[1:-1]
-            
+
         if "_Str_" not in bmg_id:
             return None
         try:
@@ -405,7 +429,7 @@ class ListSelectionHandler(BaseHandler):
                 return None
             block_label, s_idx_str = parts
             s_idx = int(s_idx_str)
-            
+
             # Helper to normalize labels
             def normalize_label(lbl: str) -> str:
                 if not lbl:
@@ -417,9 +441,9 @@ class ListSelectionHandler(BaseHandler):
                     if lbl.lower().endswith(ext):
                         lbl = lbl[:-len(ext)]
                 return lbl.strip().lower()
-            
+
             clean_blklbl = normalize_label(block_label)
-            
+
             # Special case for general 'BMG' prefix (e.g. BMG_Str_0 in Zelda TP)
             if clean_blklbl == "bmg":
                 for b_idx in range(len(self.mw.data_store.data)):
@@ -431,7 +455,7 @@ class ListSelectionHandler(BaseHandler):
                     clean_lbl = normalize_label(label)
                     if clean_lbl == "bmg" or "zel_00" in clean_lbl or b_idx == 0:
                         return b_idx, s_idx
-            
+
             # 1. Exact normalized match
             for b_idx in range(len(self.mw.data_store.data)):
                 composer = getattr(self.mw, "translation_handler", None)
@@ -441,7 +465,7 @@ class ListSelectionHandler(BaseHandler):
                     label = f"Block_{b_idx}"
                 if normalize_label(label) == clean_blklbl:
                     return b_idx, s_idx
-            
+
             # 2. Fuzzy normalized match (substring)
             for b_idx in range(len(self.mw.data_store.data)):
                 composer = getattr(self.mw, "translation_handler", None)
@@ -462,7 +486,7 @@ class ListSelectionHandler(BaseHandler):
 
         rel_idx: int = -1
         displayed_indices = self._get_displayed_indices()
-        
+
         is_chapter = getattr(self.mw.data_store, 'current_block_idx', -1) == -2
         if is_chapter:
             target_tuple = None
@@ -485,7 +509,7 @@ class ListSelectionHandler(BaseHandler):
     def string_selected_from_preview(self, line_number: int, is_manual_click: bool = False) -> None:
         """String selected from preview."""
         log_debug(f"DIAG_STRING_SELECTED_FROM_PREVIEW: line={line_number}, is_manual={is_manual_click}")
-        
+
         if hasattr(self.mw, 'editor_operation_handler'):
             self.mw.editor_operation_handler.stop_and_flush_editor_changes()
 
@@ -505,7 +529,7 @@ class ListSelectionHandler(BaseHandler):
 
         curr_b_idx = self.mw.data_store.current_block_idx
         curr_s_idx = -1
-        
+
         if isinstance(real_idx, tuple) and len(real_idx) == 2:
             curr_b_idx, curr_s_idx = real_idx
         else:
@@ -528,9 +552,9 @@ class ListSelectionHandler(BaseHandler):
            isinstance(self.mw.data_store.data[curr_b_idx], list) and \
            0 <= curr_s_idx < len(self.mw.data_store.data[curr_b_idx]):
             is_valid_line = True
-        
+
         previous_string_idx = self.mw.data_store.current_string_idx
-        
+
         if not is_valid_line:
             self.mw.data_store.current_string_idx = -1
             if preview_edit and hasattr(preview_edit, 'highlightManager'):
@@ -538,14 +562,14 @@ class ListSelectionHandler(BaseHandler):
         else:
             # Update physical_block_idx
             self.mw.data_store.physical_block_idx = curr_b_idx
-            
+
             # Update current_block_idx if we switched to a different block inside the normal view (not in virtual speaker/chapter folders)
             if self.mw.data_store.current_block_idx >= 0 and self.mw.data_store.current_block_idx != curr_b_idx:
                 self.mw.data_store.current_block_idx = curr_b_idx
 
             self.mw.data_store.current_string_idx = curr_s_idx
             self.mw.data_store.edited_sublines.clear() # Clear editor sublines on line change
-            
+
             # Restore subline asterisks if the selected line has unsaved changes in memory
             if (curr_b_idx, curr_s_idx) in self.mw.data_store.edited_data:
                 current_text = self.mw.data_store.edited_data[(curr_b_idx, curr_s_idx)]
@@ -557,14 +581,14 @@ class ListSelectionHandler(BaseHandler):
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
                 cat = getattr(self.mw.data_store, 'current_category_name', None)
                 self.mw.undo_manager.record_navigation(
-                    curr_b_idx, curr_s_idx, 
+                    curr_b_idx, curr_s_idx,
                     curr_b_idx, previous_string_idx,
                     cat, cat
                 )
 
             if previous_string_idx != self.mw.data_store.current_string_idx and previous_string_idx != -1:
                 self.ui_updater.update_block_item_text_with_problem_count(curr_b_idx)
-            
+
             # Save selection to project
             if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                 project = self.mw.project_manager.project
@@ -586,11 +610,11 @@ class ListSelectionHandler(BaseHandler):
         if preview_edit and self.mw.data_store.current_string_idx != -1 and \
            (_is_virtual_mode or (0 <= _phys_b_idx < len(self.mw.data_store.data) and
             0 <= self.mw.data_store.current_string_idx < len(self.mw.data_store.data[_phys_b_idx]))):
-            
+
             # Find relative index for preview
             rel_idx = -1
             displayed_indices = self._get_displayed_indices()
-            
+
             # Virtual mode (speaker/chapter): displayed_indices contain (b_idx, s_idx) tuples
             # Use physical_block_idx to form the lookup tuple, NOT current_block_idx (-2/-3)
             if _is_virtual_mode or (displayed_indices and isinstance(displayed_indices[0], tuple)):
@@ -601,9 +625,9 @@ class ListSelectionHandler(BaseHandler):
                 if self.mw.data_store.current_string_idx in displayed_indices:
                     rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
 
-            if rel_idx != -1 and hasattr(preview_edit, 'set_selected_lines'): 
+            if rel_idx != -1 and hasattr(preview_edit, 'set_selected_lines'):
                 preview_edit.set_selected_lines([rel_idx])
-            
+
             if rel_idx != -1:
                 block_to_show = preview_edit.document().findBlockByNumber(rel_idx)
                 if block_to_show.isValid():
@@ -612,9 +636,9 @@ class ListSelectionHandler(BaseHandler):
                     # Use a small timer to ensure the widget has finished layout after potential text updates
                     from PyQt6.QtCore import QTimer
                     QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
-        elif preview_edit and hasattr(preview_edit, 'highlightManager'): 
+        elif preview_edit and hasattr(preview_edit, 'highlightManager'):
             preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
-            
+
         if self.mw.data_store.current_string_idx != -1 and hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
             search_has_focus = False
             if hasattr(self.mw, 'search_panel_widget') and self.mw.search_panel_widget and self.mw.search_panel_widget.isVisible():
@@ -626,7 +650,7 @@ class ListSelectionHandler(BaseHandler):
                             search_has_focus = True
                             break
                         parent = parent.parentWidget()
-            
+
             if not search_has_focus:
                 self.mw.edited_text_edit.setFocus()
             cursor = self.mw.edited_text_edit.textCursor()
@@ -649,7 +673,7 @@ class ListSelectionHandler(BaseHandler):
         """Handle inline renaming of block or folder."""
         if self.mw.is_loading_data or self.mw.is_programmatically_changing_text:
             return
-            
+
         new_text = item.text(column).strip()
         if not new_text:
             # Revert if empty
@@ -667,7 +691,7 @@ class ListSelectionHandler(BaseHandler):
         # Check if it's a virtual block (category). Virtual blocks have BOTH block_index AND category_name set.
         # We must check category_name FIRST because virtual block items also have a block_index.
         category_name = item.data(0, Qt.UserRole + 10)
-        
+
         self.mw.is_programmatically_changing_text = True
         try:
             if category_name is not None and block_index_from_data is not None:
@@ -690,20 +714,20 @@ class ListSelectionHandler(BaseHandler):
             elif block_index_from_data is not None:
                 # Rename Block
                 block_index_str = str(block_index_from_data)
-                
+
                 # If there are merged IDs (compact folders), handle multi-part rename
                 if merged_ids and " / " in new_text:
                     parts = new_text.split(" / ")
                     actual_block_name = parts[-1].strip()
                     self.mw.data_store.block_names[block_index_str] = actual_block_name
-                    
+
                     # Also update ProjectManager if applicable
                     if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                         block_map = getattr(self.mw, 'block_to_project_file_map', {})
                         proj_idx = block_map.get(block_index_from_data)
                         if proj_idx is not None and proj_idx < len(self.mw.project_manager.project.blocks):
                             self.mw.project_manager.project.blocks[proj_idx].name = actual_block_name
-                    
+
                     # Rename parent folders in the chain
                     folder_names = parts[:-1]
                     for f_idx, f_id in enumerate(merged_ids):
@@ -722,20 +746,20 @@ class ListSelectionHandler(BaseHandler):
                                     if p: siblings = p.children
                                 else:
                                     siblings = self.mw.project_manager.project.virtual_folders
-                                
+
                                 collision = None
                                 for s in siblings:
                                     if s.id != folder_obj.id and s.name == new_name:
                                         collision = s
                                         break
-                                
+
                                 if collision:
                                     self.mw.project_manager.merge_folders(folder_obj.id, collision.id)
                                 else:
                                     folder_obj.name = new_name
                 else:
                     self.mw.data_store.block_names[block_index_str] = new_text
-                    
+
                     # Also update ProjectManager if applicable
                     if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                         block_map = getattr(self.mw, 'block_to_project_file_map', {})
@@ -743,12 +767,12 @@ class ListSelectionHandler(BaseHandler):
                         if proj_idx is not None and proj_idx < len(self.mw.project_manager.project.blocks):
                             self.mw.project_manager.project.blocks[proj_idx].name = new_text
                             self.mw.project_manager.save()
-                
+
                 item.setData(0, Qt.UserRole + 4, new_text)
                 item.setData(0, Qt.EditRole, new_text)
                 self.mw.settings_manager.save_block_names()
                 log_debug(f"Block {block_index_from_data} renamed to '{new_text}'")
-                
+
                 # Repopulate to fix any visual issues
                 self.ui_updater.update_block_item_text_with_problem_count(block_index_from_data)
             elif folder_id:
@@ -773,7 +797,7 @@ class ListSelectionHandler(BaseHandler):
                                         if p: siblings = p.children
                                     else:
                                         siblings = self.mw.project_manager.project.virtual_folders
-                                    
+
                                     collision = None
                                     for s in siblings:
                                         if s.id != f_obj.id and s.name == new_name:
@@ -794,23 +818,23 @@ class ListSelectionHandler(BaseHandler):
                             if p_obj: siblings = p_obj.children
                         else:
                             siblings = self.mw.project_manager.project.virtual_folders
-                        
+
                         target_collision = None
                         for s in siblings:
                             if s.id != folder.id and s.name == new_name:
                                 target_collision = s
                                 break
-                        
+
                         if target_collision:
                             # MERGE CASE: Rename to existing folder name
                             log_info(f"Renaming '{folder.name}' to existing '{new_name}' -> merging {folder.id} into {target_collision.id}")
                             self.mw.project_manager.merge_folders(folder.id, target_collision.id)
                         else:
                             folder.name = new_name
-                            
+
                     self.mw.project_manager.save()
                     log_debug(f"Folder {folder_id} rename/merge handled.")
-            
+
             # Repopulate to fix any visual issues
             self.ui_updater.populate_blocks()
         finally:
@@ -829,18 +853,18 @@ class ListSelectionHandler(BaseHandler):
         data_string_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         if data_string_text is None:
             return False
-            
+
         num_sublines = str(data_string_text).count('\n') + 1
-        
+
         detection_config = getattr(self.mw, 'detection_enabled', {})
-        
+
         for i in range(num_sublines):
             key = (block_idx, string_idx, i)
             if key in self.mw.data_store.problems_per_subline:
                 problems = self.mw.data_store.problems_per_subline[key]
                 if any(detection_config.get(p_id, True) for p_id in problems):
                     return True
-                    
+
         return False
 
     def navigate_to_problem_string(self, direction_down: bool):
@@ -856,11 +880,11 @@ class ListSelectionHandler(BaseHandler):
         num_strings_in_block = len(current_block_data)
         start_scan_idx = self.mw.data_store.current_string_idx
         log_debug(f"[NAV] Start navigation. Direction down: {direction_down}, current_string_idx: {start_scan_idx}")
-        
+
         current_check_idx = -1
-        if start_scan_idx == -1: 
+        if start_scan_idx == -1:
             current_check_idx = 0 if direction_down else num_strings_in_block - 1
-        else: 
+        else:
              current_check_idx = (start_scan_idx + 1) if direction_down else (start_scan_idx - 1)
 
         original_programmatic_state = self.mw.is_programmatically_changing_text
@@ -872,22 +896,22 @@ class ListSelectionHandler(BaseHandler):
                 if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                     found_target_s_idx = s_idx
                     break
-            if found_target_s_idx == -1: 
-                for s_idx in range(0, current_check_idx if start_scan_idx != -1 else num_strings_in_block): 
+            if found_target_s_idx == -1:
+                for s_idx in range(0, current_check_idx if start_scan_idx != -1 else num_strings_in_block):
                     if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                         found_target_s_idx = s_idx
                         break
-        else: 
+        else:
             for s_idx in range(current_check_idx, -1, -1):
                 if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                     found_target_s_idx = s_idx
                     break
-            if found_target_s_idx == -1: 
-                for s_idx in range(num_strings_in_block - 1, current_check_idx if start_scan_idx != -1 else -1, -1): 
+            if found_target_s_idx == -1:
+                for s_idx in range(num_strings_in_block - 1, current_check_idx if start_scan_idx != -1 else -1, -1):
                     if self._data_string_has_any_problem(self.mw.data_store.current_block_idx, s_idx):
                         found_target_s_idx = s_idx
                         break
-        
+
         if found_target_s_idx != -1:
             log_debug(f"[NAV] Found target string at index: {found_target_s_idx}")
             self.mw.is_programmatically_changing_text = True # Set programmatic state before calling string_selected_from_preview
@@ -908,7 +932,7 @@ class ListSelectionHandler(BaseHandler):
         log_debug(f"DIAG_HANDLE_PREVIEW_SELECTION_CHANGED: selected={selected_lines}, focus={preview_edit.hasFocus() if preview_edit else False}, programmatic={self.mw.is_programmatically_changing_text}")
         if not preview_edit or self.mw.is_programmatically_changing_text:
             return
-            
+
         if selected_lines is None:
             if not preview_edit.hasFocus():
                 return
@@ -933,21 +957,21 @@ class ListSelectionHandler(BaseHandler):
 
             start_pos = cursor.selectionStart()
             end_pos = cursor.selectionEnd()
-            
+
             start_block = self.mw.preview_text_edit.document().findBlock(start_pos)
             end_block = self.mw.preview_text_edit.document().findBlock(end_pos)
-            
+
             start_line = start_block.blockNumber()
             end_line = end_block.blockNumber()
-            
+
             if end_pos > start_pos and end_pos == end_block.position() and start_block.blockNumber() != end_block.blockNumber():
                 end_line -= 1
-                
+
             if end_line < start_line:
                 end_line = start_line
 
             selected_lines = list(range(start_line, end_line + 1))
-        
+
         # Translate rel to abs
         abs_indices = []
         displayed_indices = self._get_displayed_indices()
@@ -957,10 +981,10 @@ class ListSelectionHandler(BaseHandler):
                     abs_indices.append(displayed_indices[rel])
         else:
             abs_indices = selected_lines
-            
+
         # Save to app state
         self.mw.data_store.selected_string_indices = abs_indices
-        
+
         # If only one selected, update current_string_idx
         if len(abs_indices) == 1:
             target_idx = abs_indices[0]
@@ -968,7 +992,7 @@ class ListSelectionHandler(BaseHandler):
             target_s_idx = target_idx
             if isinstance(target_idx, tuple) and len(target_idx) == 2:
                 target_b_idx, target_s_idx = target_idx
-            
+
             if self.mw.data_store.current_string_idx != target_s_idx or self.mw.data_store.current_block_idx != target_b_idx:
                 # In virtual mode (speaker/chapter folder, current_block_idx is -2 or -3),
                 # do NOT overwrite current_block_idx with the physical target_b_idx.
@@ -987,83 +1011,15 @@ class ListSelectionHandler(BaseHandler):
 
     def move_selection_to_category(self) -> None:
         """Move selected strings to a virtual block (Category)."""
-        selected_indices = getattr(self.mw.data_store, 'selected_string_indices', [])
-        if not selected_indices:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(self.mw, "Move to Virtual Block", "No strings selected in preview.")
-            return
-        
-        if self.mw.data_store.current_block_idx == -1:
-            return
-            
-        pm = self.mw.project_manager
-        if not pm or not pm.project:
-             log_debug("No project loaded, cannot create virtual blocks.")
-             return
-             
-        # Find the project block index
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        proj_b_idx = block_map.get(self.mw.data_store.current_block_idx, self.mw.data_store.current_block_idx)
-        if proj_b_idx >= len(pm.project.blocks):
-            return
-            
-        block = pm.project.blocks[proj_b_idx]
-        
-        # Get existing categories names
-        existing_names = [c.name for c in block.categories]
-        
-        # Simple input dialog for now
-        from PyQt6.QtWidgets import QInputDialog
-        name, ok = QInputDialog.getText(self.mw, "Move to Virtual Block", "Enter Category Name:", text="New Category")
-        if not ok or not name.strip():
-            return
-            
-        pm.move_strings_to_category(proj_b_idx, selected_indices, name.strip())
-        
-        # Update UI
-        self.ui_updater.populate_blocks()
-        self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
-        
-        # Re-select the block to show the new category (if we implement category display)
-        # For now, just logging
-        log_debug(f"Moved {len(selected_indices)} strings to Category '{name}' in Block {proj_b_idx}")
+        self.category_handler.move_selection_to_category()
 
     def rename_category(self, block_idx: int, old_name: str) -> None:
         """Rename a virtual block."""
-        from PyQt6.QtWidgets import QInputDialog
-        new_name, ok = QInputDialog.getText(self.mw, "Rename Virtual Block", "Enter new name:", text=old_name)
-        if not ok or not new_name.strip() or new_name == old_name:
-            return
-            
-        pm = self.mw.project_manager
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        proj_b_idx = block_map.get(block_idx, block_idx)
-        
-        if proj_b_idx < len(pm.project.blocks):
-            block = pm.project.blocks[proj_b_idx]
-            for cat in block.categories:
-                if cat.name == old_name:
-                    cat.name = new_name.strip()
-                    break
-            pm.save()
-            self.ui_updater.populate_blocks()
+        self.category_handler.rename_category(block_idx, old_name)
 
     def delete_category(self, block_idx: int, category_name: str) -> None:
         """Remove a virtual block (the strings remain in the block)."""
-        from PyQt6.QtWidgets import QMessageBox
-        reply = QMessageBox.question(self.mw, "Delete Virtual Block", f"Are you sure you want to delete virtual block '{category_name}'?\n\n(Strings will not be deleted from the block itself.)", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-            
-        pm = self.mw.project_manager
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        proj_b_idx = block_map.get(block_idx, block_idx)
-        
-        if proj_b_idx < len(pm.project.blocks):
-            block = pm.project.blocks[proj_b_idx]
-            block.categories = [c for c in block.categories if c.name != category_name]
-            pm.save()
-            self.ui_updater.populate_blocks()
+        self.category_handler.delete_category(block_idx, category_name)
 
 
     def toggle_highlight_categorized(self, checked: bool) -> None:
@@ -1105,23 +1061,23 @@ class ListSelectionHandler(BaseHandler):
             else:
                 self._saved_approx_visible_lines = 0
         self.mw.data_store.show_overrides_only = checked
-        
+
         preview_updater = getattr(self.ui_updater, 'preview_updater', None)
         if preview_updater:
             preview_updater._keep_progress_dialog_open = True
             preview_updater._load_fully_synchronously = True
-            
+
         try:
             if self.mw.data_store.current_block_idx != -1:
                 self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
         finally:
             if preview_updater:
                 preview_updater._load_fully_synchronously = False
- 
+
         if not checked:
             current_idx = self.mw.data_store.current_string_idx
             saved_idx = getattr(self, '_saved_string_idx', -1)
-            
+
             if current_idx == saved_idx:
                 if hasattr(self.mw, 'preview_text_edit') and self.mw.preview_text_edit:
                     rel_idx = -1
@@ -1130,7 +1086,7 @@ class ListSelectionHandler(BaseHandler):
                         rel_idx = displayed_indices.index(current_idx)
                     if rel_idx != -1 and hasattr(self.mw.preview_text_edit, 'set_selected_lines'):
                         self.mw.preview_text_edit.set_selected_lines([rel_idx])
-                    
+
                     saved_val = getattr(self, '_saved_scrollbar_value', 0)
                     self.mw.preview_text_edit.verticalScrollBar().setValue(saved_val)
                     from PyQt6.QtWidgets import QApplication
@@ -1140,7 +1096,7 @@ class ListSelectionHandler(BaseHandler):
                     self.scroll_to_current_string_in_preview()
                     from PyQt6.QtWidgets import QApplication
                     QApplication.processEvents()
-            
+
             self._saved_approx_visible_lines = 0
 
         # Close progress dialog after layout and scrolling are fully completed
@@ -1214,11 +1170,11 @@ class ListSelectionHandler(BaseHandler):
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         if not preview_edit:
             return
-            
+
         current_string_idx = self.mw.data_store.current_string_idx
         if current_string_idx == -1:
             return
-            
+
         displayed_indices = self._get_displayed_indices()
         if current_string_idx in displayed_indices:
             rel_idx = displayed_indices.index(current_string_idx)
@@ -1239,228 +1195,33 @@ class ListSelectionHandler(BaseHandler):
             indices = self.mw.displayed_string_indices
         return indices
 
+    @property
+    def _pending_speaker_retention(self) -> Optional[Tuple[str, Tuple[int, int], int]]:
+        return self.speaker_handler._pending_speaker_retention
+
+    @_pending_speaker_retention.setter
+    def _pending_speaker_retention(self, val: Optional[Tuple[str, Tuple[int, int], int]]) -> None:
+        self.speaker_handler._pending_speaker_retention = val
+
     def _clear_pending_speaker_retention(self, next_tuple: Optional[Tuple[int, int]] = None) -> None:
         """Drop a temporarily retained speaker row once the user navigates away from it."""
-        pending = self._pending_speaker_retention
-        if not pending:
-            return
-
-        speaker_name, retained_tuple, _ = pending
-        if next_tuple == retained_tuple:
-            return
-
-        self._pending_speaker_retention = None
-
-        if getattr(self.mw.data_store, 'current_block_idx', None) != -3:
-            return
-        if getattr(self.mw.data_store, 'current_speaker_name', None) != speaker_name:
-            return
-
-        mappings = list(getattr(self.mw.data_store, 'chapter_mappings', []))
-        if retained_tuple not in mappings:
-            return
-
-        mappings.remove(retained_tuple)
-        self.mw.data_store.chapter_mappings = mappings
-        if hasattr(self.ui_updater, 'populate_strings_for_block'):
-            self.ui_updater.populate_strings_for_block(-3)
+        self.speaker_handler._clear_pending_speaker_retention(next_tuple)
 
     def _restore_editor_focus_after_speaker_save(self) -> None:
         """Return focus from the editable speaker combobox to the main editor."""
-        editor = getattr(self.mw, 'edited_text_edit', None)
-        if not editor or not hasattr(editor, 'setFocus'):
-            return
-
-        def focus_editor() -> None:
-            try:
-                editor.setFocus(Qt.FocusReason.OtherFocusReason)
-            except TypeError:
-                editor.setFocus()
-
-        QTimer.singleShot(0, focus_editor)
+        self.speaker_handler._restore_editor_focus_after_speaker_save()
 
     def _expand_item_ancestors(self, item: QTreeWidgetItem) -> None:
         """Ensure the selected virtual folder remains visible after a tree rebuild."""
-        parent = item.parent()
-        while parent:
-            parent.setExpanded(True)
-            parent = parent.parent()
+        self.speaker_handler._expand_item_ancestors(item)
 
     def save_speaker_for_current_string(self, char_name: str) -> None:
         """Save speaker assignment for the current string and refresh UI."""
-        char_name = char_name.strip()
-        
-        # Prevent redundant saves and selection changes when the user clicks/opens the combobox
-        cb = getattr(self.mw, 'speaker_combobox', None)
-        is_undoing_redoing = False
-        if hasattr(self.mw, 'undo_manager') and self.mw.undo_manager:
-            is_undoing_redoing = self.mw.undo_manager.is_undoing_redoing
-            
-        if cb is not None and not is_undoing_redoing:
-            last_displayed = getattr(cb, '_last_displayed_char', None)
-            if last_displayed is not None and char_name == last_displayed:
-                return
-                
-        block_idx = self.mw.data_store.physical_block_idx
-        string_idx = self.mw.data_store.current_string_idx
-        
-        if block_idx == -1 or string_idx == -1:
-            return
-            
-        pm = getattr(self.mw, 'project_manager', None)
-        if not pm or not pm.project:
-            return
-            
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        proj_b_idx = block_map.get(block_idx, block_idx)
-        if proj_b_idx >= len(pm.project.blocks):
-            return
-            
-        block = pm.project.blocks[proj_b_idx]
-        assignments = block.metadata.setdefault("character_assignments", {})
-        
-        old_char = assignments.get(str(string_idx))
-        
-        # Normalize none/empty values to avoid false triggers upon dropdown focus/activation
-        is_none_or_empty_new = (not char_name or char_name.lower() == "none")
-        is_none_or_empty_old = (not old_char or old_char.lower() == "none")
-        
-        if old_char == char_name or (is_none_or_empty_new and is_none_or_empty_old):
-            return
-            
-        # Record undo action
-        if hasattr(self.mw, 'undo_manager') and self.mw.undo_manager and not is_undoing_redoing:
-            self.mw.undo_manager.record_action(
-                action_type='CHANGE_SPEAKER',
-                block_idx=block_idx,
-                string_idx=string_idx,
-                old_text=old_char or "",
-                new_text=char_name or ""
-            )
-
-        if is_none_or_empty_new:
-            assignments.pop(str(string_idx), None)
-        else:
-            assignments[str(string_idx)] = char_name
-            
-        pm.save()
-        
-        current_item = self.mw.block_list_widget.currentItem()
-        override_block_idx = None
-        override_folder_id = None
-        if current_item:
-            override_block_idx = current_item.data(0, Qt.ItemDataRole.UserRole)
-            override_folder_id = current_item.data(0, Qt.ItemDataRole.UserRole + 1)
-            
-        # Ensure we stay in virtual mode if we are editing inside virtual speakers/chapters directories
-        current_speaker_name_in_store = getattr(self.mw.data_store, 'current_speaker_name', None)
-        current_chapter_id_in_store = getattr(self.mw.data_store, 'current_chapter_id', None)
-        if current_speaker_name_in_store is not None:
-            override_block_idx = -3
-            override_folder_id = current_speaker_name_in_store
-            self._target_block_idx = block_idx
-            self._target_string_idx = string_idx
-            retained_tuple = (block_idx, string_idx)
-            current_mappings = list(getattr(self.mw.data_store, 'chapter_mappings', []))
-            retention_index = current_mappings.index(retained_tuple) if retained_tuple in current_mappings else len(current_mappings)
-            self._pending_speaker_retention = (current_speaker_name_in_store, retained_tuple, retention_index)
-        elif current_chapter_id_in_store is not None:
-            override_block_idx = -2
-            self._target_block_idx = block_idx
-            self._target_string_idx = string_idx
-        else:
-            self._target_block_idx = block_idx
-            self._target_string_idx = string_idx
-            
-        previous_programmatic_state = self.mw.is_programmatically_changing_text
-        self.mw.is_programmatically_changing_text = True
-        try:
-            if override_block_idx == -3 and current_speaker_name_in_store:
-                # Rebuild tree so items have updated mappings lists
-                self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
-                
-                # Find the active speaker item in the block tree to get its updated mappings
-                active_item = None
-                iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-                while iterator.value():
-                    item = iterator.value()
-                    if item.data(0, Qt.UserRole) == -3 and item.data(0, Qt.UserRole + 15) == current_speaker_name_in_store:
-                        active_item = item
-                        break
-                    iterator += 1
-
-                if active_item:
-                    # Update chapter_mappings from the freshly-rebuilt item, then refresh
-                    # the preview WITHOUT treating emitted selection signals as navigation.
-                    new_mappings = active_item.data(0, Qt.UserRole + 13) or []
-                    retained_tuple = (block_idx, string_idx)
-                    pending_retention = self._pending_speaker_retention
-                    retention_index = 0
-                    is_retained_by_pending = (
-                        pending_retention is not None
-                        and pending_retention[0] == current_speaker_name_in_store
-                        and pending_retention[1] == retained_tuple
-                    )
-                    if is_retained_by_pending:
-                        retention_index = pending_retention[2]
-
-                    if retained_tuple not in new_mappings:
-                        new_mappings = list(new_mappings)
-                        new_mappings.insert(min(max(retention_index, 0), len(new_mappings)), retained_tuple)
-                        active_item.setData(0, Qt.UserRole + 13, new_mappings)
-                        self._pending_speaker_retention = (current_speaker_name_in_store, retained_tuple, retention_index)
-                    elif is_retained_by_pending:
-                        self._pending_speaker_retention = (current_speaker_name_in_store, retained_tuple, retention_index)
-                    else:
-                        self._pending_speaker_retention = None
-                    self.mw.data_store.chapter_mappings = new_mappings
-                    self.mw.data_store.current_block_idx = -3
-                    self.mw.data_store.physical_block_idx = block_idx
-                    self.mw.data_store.current_string_idx = string_idx
-                    self.mw.data_store.current_speaker_name = current_speaker_name_in_store
-                    block_list_widget = getattr(self.mw, 'block_list_widget', None)
-                    if block_list_widget:
-                        signals_were_blocked = block_list_widget.blockSignals(True)
-                        try:
-                            self._expand_item_ancestors(active_item)
-                            block_list_widget.setCurrentItem(active_item)
-                            active_item.setSelected(True)
-                        finally:
-                            block_list_widget.blockSignals(signals_were_blocked)
-                    self.ui_updater.populate_strings_for_block(-3)
-                    self.mw.data_store.current_block_idx = -3
-                    self.mw.data_store.physical_block_idx = block_idx
-                    self.mw.data_store.current_string_idx = string_idx
-                    self.mw.data_store.current_speaker_name = current_speaker_name_in_store
-                    self._target_block_idx = None
-                    self._target_string_idx = None
-                    self.ui_updater.update_text_views()
-                    if hasattr(self.mw, 'string_settings_updater'):
-                        self.mw.string_settings_updater.update_string_settings_panel()
-                    self.ui_updater.update_statusbar_paths()
-                else:
-                    self.mw.data_store.chapter_mappings = []
-                    self.mw.data_store.current_block_idx = -3
-                    self.mw.data_store.physical_block_idx = block_idx
-                    self.mw.data_store.current_string_idx = string_idx
-                    self.mw.data_store.current_speaker_name = current_speaker_name_in_store
-                    self.ui_updater.populate_strings_for_block(-3)
-                    self.ui_updater.update_text_views()
-                    if hasattr(self.mw, 'string_settings_updater'):
-                        self.mw.string_settings_updater.update_string_settings_panel()
-            else:
-                self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
-                if hasattr(self.mw, 'string_settings_updater'):
-                    self.mw.string_settings_updater.update_string_settings_panel()
-        finally:
-            self.mw.is_programmatically_changing_text = previous_programmatic_state
-                
-        self._restore_editor_focus_after_speaker_save()
-        self.data_processor.schedule_autosave()
+        self.speaker_handler.save_speaker_for_current_string(char_name)
 
     def save_character_for_current_string(self, char_name: str) -> None:
         """Alias for save_speaker_for_current_string to maintain compatibility."""
-        self.save_speaker_for_current_string(char_name)
+        self.speaker_handler.save_character_for_current_string(char_name)
 
     def toggle_show_warnings_only(self, checked: bool) -> None:
         """Toggle showing only strings matching active warning filters."""
@@ -1479,16 +1240,15 @@ class ListSelectionHandler(BaseHandler):
     def open_warnings_filter_dialog(self) -> None:
         """Open the WarningsFilterDialog to select warning filters."""
         from ui.warnings_filter_dialog import WarningsFilterDialog
-        
+
         defs = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
         detection_enabled = getattr(self.mw, 'detection_enabled', {})
         active_pids = [pid for pid in defs.keys() if detection_enabled.get(pid, True)]
         selected_pids = getattr(self.mw.data_store, 'active_warning_filters', [])
-        
+
         dialog = WarningsFilterDialog(defs, active_pids, selected_pids, self.mw)
         if dialog.exec():
             new_selected = dialog.get_selected_pids()
             self.warnings_filter_changed(new_selected)
             if hasattr(self.mw, 'plugin_handler') and self.mw.plugin_handler:
                 self.mw.plugin_handler.update_warnings_filter_button()
-

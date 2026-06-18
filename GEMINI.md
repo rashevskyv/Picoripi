@@ -1,10 +1,12 @@
-# The "Picoripi" (v0.3.035)
+# The "Picoripi" (v0.3.036)
+
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
 ## Project Overview
 
-The "Picoripi" (v0.3.035) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.036) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
 
@@ -104,10 +106,14 @@ The project follows a well-organized, modular structure with clear separation of
     -   `app_action_handler.py`: Global app actions (file export/import, open, close).
     -   `project_action_handler.py`: Project-level CRUD and block management.
     -   `list_selection_handler.py`: Block/string selection logic and preview updates.
+    -   `virtual_folder_handler.py`: Virtual folders navigation and selection.
+    -   `category_handler.py`: Virtual category CRUD and block operations.
+    -   `speaker_handler.py`: Virtual speakers dialog mapping, combo assignment, and string retention.
     -   `text_operation_handler.py`: Text editing, paste, revert, and modification tracking.
     -   `text_analysis_handler.py`: Width and length analysis.
     -   `text_autofix_logic.py`: Auto-correction engine (short lines, width exceeded, empty sublines, tag spacing).
     -   `search_handler.py`: Global search with fuzzy matching.
+
     -   `issue_scan_handler.py`: Project-wide issue scanning.
     -   `string_settings_handler.py`: Per-string width and display settings.
     -   `ai_chat_handler.py`: AI chat window handler.
@@ -153,6 +159,6 @@ The project follows a well-organized, modular structure with clear separation of
 
 Весь текст в програмі має бути англійською мовою
 
-Середовище виконання - powershell, то ж використовуй відповідні команди 
+Середовище виконання - powershell, то ж використовуй відповідні команди
 
 Коли кажу коммітити - обов'язково піднімай версію. Обов'язково актуалізовуй файли аудиту, джемінай, рідмі та чейнджлог.

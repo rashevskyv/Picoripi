@@ -1,6 +1,7 @@
-# Picoripi v0.3.035
+# Picoripi v0.3.036
 
-The **Picoripi** (v0.3.035) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.036) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+
 
 ---
 
@@ -14,10 +15,11 @@ The **Picoripi** (v0.3.035) is a visual translation and localization workbench b
   - **Selected Blocks Saving**: Allows saving only specifically selected blocks/categories containing translation modifications via the project tree context menu, keeping other changes in-memory.
   - **Targeted String Saving**: Context menus in both translation editors and read-only previews allow saving either a single selected string or a targeted set of lines to files, leaving the remaining edits untouched.
 - **Fault-Tolerant Session Autosaving**:
-  - Automatically saves the complete workspace state (the `AppDataStore` object) into a localized `.picoripi_session` binary file via `pickle` serialization.
+  - Automatically saves a lightweight schema-based snapshot of the workspace state into a localized `.picoripi_session` binary file via `pickle` serialization.
+  - **Compact & Versioned**: Avoids writing heavy original game texts or translation files to disk. Instead, it serializes only UI filters, navigation paths, unsaved changes, and metadata.
   - **Dirty State Control**: Autosave only triggers when actual changes occur (text editing, selection navigation, filter switches) utilizing a 2-second debounce timer, preventing redundant disk writes when the user is idle.
   - **Undo/Redo History Persistence**: The complete Undo/Redo operations stack is preserved within the session file, enabling users to seamlessly undo (`Ctrl+Z`) and redo (`Ctrl+Y`) edits across application restarts.
-  - **Instant Recovery**: If a crash occurs or the app is closed, it recovers immediately on startup from the session file, bypassing time-consuming translation file parsing.
+  - **Instant Recovery**: If a crash occurs or the app is closed, the application automatically loads fresh data from disk asynchronously and recovers the exact session state on startup.
 - **Soft Shading & Progress Bars**:
   - **Translated Lines Shading**: Renders a soft, pastel-green background (`QColor(46, 139, 87, 40)`) under line numbers in translation editors and preview screens for translated strings, facilitating rapid document navigation.
   - **File Progress Bars**: Tree items render smooth, semi-transparent green progress bars (`QColor(46, 139, 87, 25)`) left-to-right beneath file names, proportional to the translation completion rate.

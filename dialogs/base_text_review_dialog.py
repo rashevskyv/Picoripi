@@ -1,6 +1,6 @@
 # Base class for specialized text review dialogs (Spellcheck, Search, Glossary)
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-                             QPushButton, QSplitter, QDialogButtonBox, QWidget, QApplication)
+                             QPushButton, QSplitter, QDialogButtonBox, QWidget, QApplication, QProgressBar)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont, QTextBlockFormat
 from typing import List, Optional
@@ -24,7 +24,7 @@ class BaseTextReviewDialog(QDialog):
             main_window = self._find_main_window()
             if main_window and hasattr(main_window, 'data_store'):
                 self.block_idx = main_window.data_store.current_block_idx
-                
+
         self.block_name = f"Block {self.block_idx}"
         main_window = self._find_main_window()
         if main_window and hasattr(main_window, 'data_store') and getattr(main_window.data_store, 'block_names', None):
@@ -34,7 +34,7 @@ class BaseTextReviewDialog(QDialog):
         self.setMinimumSize(900, 600)
 
         self.setup_base_ui()
-        
+
         # Process spacing and apply zebra striping BEFORE showing
         self._process_text_spacing_and_line_numbers()
         self._apply_zebra_striping()
@@ -51,6 +51,16 @@ class BaseTextReviewDialog(QDialog):
         self.top_nav_layout = QHBoxLayout()
         self.status_label = QLabel("Loading...")
         self.top_nav_layout.addWidget(self.status_label)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setVisible(False)
+        self.top_nav_layout.addWidget(self.progress_bar)
+
+        self.cancel_analysis_button = QPushButton("Cancel")
+        self.cancel_analysis_button.setVisible(False)
+        self.top_nav_layout.addWidget(self.cancel_analysis_button)
+
         self.top_nav_layout.addStretch()
 
         self.prev_button = QPushButton("← Previous")
@@ -77,13 +87,13 @@ class BaseTextReviewDialog(QDialog):
         self.middle_panel = QWidget()
         self.middle_layout = QVBoxLayout(self.middle_panel)
         self.middle_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         self.text_edit = LineNumberedTextEdit(None)
         self.text_edit.setPlainText(self.current_text)
         self.text_edit.setReadOnly(True)
         self.text_edit.setFont(QFont("Courier New", 10))
         self.text_edit.custom_double_click_handler = self._on_text_double_click
-        
+
         self.middle_layout.addWidget(QLabel("Text:"))
         self.middle_layout.addWidget(self.text_edit)
         self.splitter.addWidget(self.middle_panel)
@@ -155,7 +165,7 @@ class BaseTextReviewDialog(QDialog):
             self.text_edit.custom_line_numbers = display_line_numbers
             self.text_edit.custom_subline_numbers = subline_numbers
             self.text_edit.custom_message_numbers = new_line_numbers
-            
+
             # Recalculate margins to accommodate potential two columns
             self.text_edit.updateLineNumberAreaWidth(0)
 
@@ -176,7 +186,7 @@ class BaseTextReviewDialog(QDialog):
             if ln is not None and ln not in seen:
                 unique_strings.append(ln)
                 seen.add(ln)
-        
+
         string_color_map = {snum: i % 2 for i, snum in enumerate(unique_strings)}
 
         # Iterate through blocks and set background
@@ -186,7 +196,7 @@ class BaseTextReviewDialog(QDialog):
 
         while block.isValid() and subline_index < len(string_numbers):
             block_format = block.blockFormat()
-            
+
             # Get string number for this subline
             string_num = string_numbers[subline_index]
 
@@ -211,7 +221,7 @@ class BaseTextReviewDialog(QDialog):
             if isinstance(parent, QMainWindow):
                 return parent
             parent = parent.parent() if hasattr(parent, 'parent') else None
-        
+
         from PyQt6.QtWidgets import QApplication
         for widget in QApplication.topLevelWidgets():
             if isinstance(widget, QMainWindow) and widget.objectName() != '':
@@ -324,3 +334,17 @@ class BaseTextReviewDialog(QDialog):
     def get_corrected_text(self) -> str:
         """Get the corrected text."""
         return self.current_text
+
+    def show_progress_ui(self, visible: bool):
+        """Show or hide the progress bar and cancel button."""
+        self.progress_bar.setVisible(visible)
+        self.cancel_analysis_button.setVisible(visible)
+        if visible:
+            self.progress_bar.setValue(0)
+
+    def set_controls_enabled(self, enabled: bool):
+        """Enable or disable interactive widgets during analysis."""
+        self.prev_button.setEnabled(enabled)
+        self.next_button.setEnabled(enabled)
+        self.button_box.setEnabled(enabled)
+        # Subclasses can extend this to disable specific lists/buttons

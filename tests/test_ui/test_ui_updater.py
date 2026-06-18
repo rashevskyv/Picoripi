@@ -8,7 +8,40 @@ from utils.constants import APP_VERSION
 
 @pytest.fixture
 def updater(mock_mw):
-    return UIUpdater(mock_mw, MagicMock())
+    dp = MagicMock()
+
+    def ensure_index_warnings(block_idx):
+        store = mock_mw.data_store
+        if isinstance(getattr(store, '_index_warnings', None), MagicMock) or not hasattr(store, '_index_warnings'):
+            store._index_warnings = {}
+        if block_idx not in store._index_warnings:
+            warn_dict = {}
+            problems_dict = getattr(store, 'problems_per_subline', {})
+            if isinstance(problems_dict, MagicMock):
+                problems_dict = {}
+            for (b_idx, s_idx, subline_idx), problems in problems_dict.items():
+                if b_idx == block_idx:
+                    for p_id in problems:
+                        if p_id not in warn_dict:
+                            warn_dict[p_id] = set()
+                        warn_dict[p_id].add((s_idx, subline_idx))
+            store._index_warnings[block_idx] = warn_dict
+
+    def get_categorized_set(block_idx):
+        pm = getattr(mock_mw, 'project_manager', None)
+        categorized_set = set()
+        if pm and pm.project:
+            block_map = getattr(mock_mw, 'block_to_project_file_map', {})
+            proj_b_idx = block_map.get(block_idx, block_idx)
+            if proj_b_idx < len(pm.project.blocks):
+                block = pm.project.blocks[proj_b_idx]
+                if hasattr(block, 'get_categorized_line_indices'):
+                    categorized_set.update(block.get_categorized_line_indices())
+        return categorized_set
+
+    dp.ensure_index_warnings.side_effect = ensure_index_warnings
+    dp.get_categorized_set.side_effect = get_categorized_set
+    return UIUpdater(mock_mw, dp)
 
 def test_UIUpdater_init(updater, mock_mw):
     assert updater.mw == mock_mw
@@ -18,7 +51,7 @@ def test_UIUpdater_get_tree_state(updater):
     from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
     from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
-    
+
     item = QTreeWidgetItem(["Block 0"])
     item.setData(0, Qt.UserRole, 0)
     item.addChild(QTreeWidgetItem(["Child"]))
@@ -37,7 +70,7 @@ def test_UIUpdater_apply_tree_state(updater):
     item = QTreeWidgetItem(["Block 0"])
     item.setData(0, Qt.UserRole, 0)
     updater.mw.block_list_widget.addTopLevelItem(item)
-    
+
     state = {
         "expanded_ids": ["block_0"],
         "selected_id": "block_0",
@@ -127,12 +160,12 @@ def test_UIUpdater_update_block_item_text_with_problem_count(updater):
     item.setData(0, Qt.UserRole, 0) # block_idx
     item.setData(0, Qt.UserRole + 4, "Block 0 Base") # base_name
     updater.mw.block_list_widget.addTopLevelItem(item)
-    
+
     updater.mw.current_game_rules = MagicMock()
     updater.mw.current_game_rules.get_problem_definitions.return_value = {"prob1": {"priority": 1}}
     updater.mw.current_game_rules.get_short_problem_name.return_value = "P1"
     updater.block_list_updater._get_aggregated_problems_for_block = MagicMock(return_value={"prob1": 2})
-    
+
     updater.update_block_item_text_with_problem_count(0)
     assert item.text(0) == "Block 0 Base (2)"
     assert "prob1" in item.toolTip(0) or "2 sublines" in item.toolTip(0)
@@ -141,19 +174,19 @@ def test_UIUpdater_synchronize_original_cursor(updater, mock_mw):
     mock_edited_cursor = MagicMock()
     mock_edited_cursor.blockNumber.return_value = 2
     mock_edited_cursor.positionInBlock.return_value = 5
-    
+
     mock_mw.edited_text_edit = MagicMock()
     mock_mw.edited_text_edit.textCursor.return_value = mock_edited_cursor
     mock_mw.edited_text_edit.document.return_value.toPlainText.return_value = "nonempty"
-    
+
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
-    
+
     mock_mw.original_text_edit = MagicMock()
     mock_mw.original_text_edit.highlightManager = MagicMock()
-    
+
     updater.synchronize_original_cursor()
-    
+
     mock_mw.original_text_edit.highlightManager.setLinkedCursorPosition.assert_called_with(2, 5)
 
 def test_UIUpdater_apply_highlights_for_block(updater, mock_mw):
@@ -165,10 +198,10 @@ def test_UIUpdater_apply_highlights_for_block(updater, mock_mw):
     mock_mw.data_store.problems_per_subline = {
         (0, 1, 0): {"P1"}
     }
-    
+
     mock_mw.list_selection_handler._data_string_has_any_problem.side_effect = lambda b, r: r == 1
     updater.preview_updater._apply_highlights_for_block(0)
-    
+
     mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
     mock_mw.preview_text_edit.addProblemLineHighlight.assert_called_once_with(1)
 
@@ -178,7 +211,7 @@ def test_UIUpdater_apply_highlights_to_editor(updater, mock_mw):
     doc = MagicMock()
     doc.blockCount.return_value = 2
     editor.document.return_value = doc
-    
+
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_problem_definitions.return_value = {
         "P1": {"severity": "error"},
@@ -188,9 +221,9 @@ def test_UIUpdater_apply_highlights_to_editor(updater, mock_mw):
         (0, 0, 0): {"P1"},
         (0, 0, 1): {"P2"}
     }
-    
+
     updater.preview_updater._apply_highlights_to_editor(editor, 0, 0)
-    
+
     editor.highlightManager.clearAllProblemHighlights.assert_called_once()
     editor.highlightManager.addCriticalProblemHighlight.assert_called_once_with(0)
     editor.highlightManager.addWarningLineHighlight.assert_called_once_with(1, "warning_color")
@@ -239,12 +272,12 @@ def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw)
     real_store.data = [["s1", "s2"]]
     real_store.problems_per_subline = {}
     mock_mw.data_store = real_store
-    
+
     mock_mw.preview_text_edit = MagicMock()
     mock_mw.preview_text_edit.highlightManager = MagicMock()
     mock_mw.current_game_rules = MagicMock()
     mock_mw.list_selection_handler._data_string_has_any_problem.return_value = False
-    
+
     pm = MagicMock()
     proj = MagicMock()
     block = MagicMock()
@@ -254,7 +287,7 @@ def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw)
     pm.project = proj
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
-    
+
     updater.preview_updater._apply_highlights_for_block(0)
     # MUST call setCategorizedLineHighlights when data_store.highlight_categorized is True
     mock_mw.preview_text_edit.highlightManager.setCategorizedLineHighlights.assert_called_once()
@@ -278,20 +311,20 @@ def test_UIUpdater_apply_highlights_to_editor_with_empty_subline_problem(updater
     doc = MagicMock()
     doc.blockCount.return_value = 1
     editor.document.return_value = doc
-    
+
     problem_ids = MagicMock()
     problem_ids.PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY = "PEOS"
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_problem_definitions.return_value = {}
     mock_mw.current_game_rules.problem_ids = problem_ids
     mock_mw.problems_per_subline = {(0, 0, 0): {"PEOS"}}
-    
+
     updater.preview_updater._apply_highlights_to_editor(editor, 0, 0)
     editor.highlightManager.addEmptyOddSublineHighlight.assert_called_once_with(0)
 
 def test_UIUpdater_get_all_categorized_indices_for_block(updater, mock_mw):
     assert updater.preview_updater._get_all_categorized_indices_for_block(-1) == set()
-    
+
     pm = MagicMock()
     proj = MagicMock()
     block = MagicMock()
@@ -302,7 +335,7 @@ def test_UIUpdater_get_all_categorized_indices_for_block(updater, mock_mw):
     pm.project = proj
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
-    
+
     assert updater.preview_updater._get_all_categorized_indices_for_block(0) == {0, 1, 2}
 
 @patch.object(PreviewUpdater, 'update_text_views')
@@ -319,9 +352,9 @@ def test_UIUpdater_populate_strings_for_block(mock_hl, mock_ut, updater, mock_mw
     updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
     mock_mw.current_string_idx = -1
     mock_mw.displayed_string_indices = []
-    
+
     updater.populate_strings_for_block(0, force=True)
-    
+
     mock_mw.preview_text_edit.setPlainText.assert_called_with("p_t_0\np_t_1\np_t_2")
     mock_hl.assert_called_once_with(0)
     mock_ut.assert_called_once()
@@ -338,9 +371,9 @@ def test_UIUpdater_populate_strings_for_block_invalid(mock_ut, mock_sync, update
     mock_mw.preview_text_edit = MagicMock()
     mock_mw.original_text_edit = MagicMock()
     mock_mw.edited_text_edit = MagicMock()
-    
+
     updater.populate_strings_for_block(-1)
-    
+
     assert mock_mw.displayed_string_indices == []
     mock_mw.preview_text_edit.setPlainText.assert_called_with("")
     mock_ut.assert_called_once()
@@ -352,11 +385,11 @@ def test_UIUpdater_update_text_views(updater, mock_mw):
     mock_mw.data = [["orig"]]
     updater.data_processor._get_string_from_source.return_value = "orig"
     updater.data_processor.get_current_string_text.return_value = ("edit", False)
-    
+
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_editor.side_effect = lambda x: f"E_{x}"
     mock_mw.show_multiple_spaces_as_dots = False
-    
+
     # Create proper mock cursors (position/anchor/hasSelection need int return values)
     def make_cursor():
         c = MagicMock()
@@ -364,7 +397,7 @@ def test_UIUpdater_update_text_views(updater, mock_mw):
         c.anchor.return_value = 0
         c.hasSelection.return_value = False
         return c
-    
+
     mock_mw.original_text_edit = MagicMock()
     mock_mw.edited_text_edit = MagicMock()
     mock_mw.original_text_edit.toPlainText.return_value = ""
@@ -372,9 +405,9 @@ def test_UIUpdater_update_text_views(updater, mock_mw):
     mock_mw.original_text_edit.textCursor.return_value = make_cursor()
     mock_mw.edited_text_edit.textCursor.return_value = make_cursor()
     mock_mw.problems_per_subline = {}
-    
+
     updater.update_text_views()
-    
+
     mock_mw.original_text_edit.setPlainText.assert_called_with("E_orig")
     mock_mw.edited_text_edit.setPlainText.assert_called_with("E_edit")
 
@@ -390,7 +423,7 @@ def test_UIUpdater_update_text_views_no_selection(updater, mock_mw):
     mock_mw.edited_text_edit.toPlainText.return_value = ""
     mock_mw.original_text_edit.textCursor = MagicMock()
     mock_mw.edited_text_edit.textCursor = MagicMock()
-    
+
     updater.update_text_views()
     # With empty string, setPlainText is not called (no diff)
     mock_mw.original_text_edit.setPlainText.assert_not_called()
@@ -404,10 +437,10 @@ def test_UIUpdater_populate_strings_with_project_manager(mock_hl, mock_ut, updat
     block = MagicMock()
     block.categories = []  # no categories
     proj.blocks = [block]
-    pm.project = proj  
+    pm.project = proj
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
-    
+
     mock_mw.data = [["s1", "s2"]]
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
@@ -418,9 +451,9 @@ def test_UIUpdater_populate_strings_with_project_manager(mock_hl, mock_ut, updat
     mock_mw.current_string_idx = -1
     mock_mw.displayed_string_indices = []
     updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
-    
+
     updater.populate_strings_for_block(0, force=True)
-    
+
     # Verify that the full string set is displayed
     assert mock_mw.displayed_string_indices == [0, 1]
 
@@ -440,18 +473,19 @@ def test_UIUpdater_populate_strings_hide_categorized_from_data_store(mock_hl, mo
     real_store.current_block_idx = -1
     real_store.current_string_idx = -1
     mock_mw.data_store = real_store
-    
+
     pm = MagicMock()
     proj = MagicMock()
     block = MagicMock()
     cat = MagicMock(); cat.line_indices = [1]
     block.categories = [cat]
+    block.get_categorized_line_indices.return_value = {1}
     proj.blocks = [block]
     pm.project = proj
     pm.get_all_block_indices_under_folder = MagicMock(return_value=[])
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
-    
+
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
     mock_mw.preview_text_edit = MagicMock()
@@ -459,9 +493,9 @@ def test_UIUpdater_populate_strings_hide_categorized_from_data_store(mock_hl, mo
     mock_mw.preview_text_edit.highlightManager = MagicMock()
     mock_mw.preview_text_edit.document.return_value.blockCount.return_value = 2
     updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
-    
+
     updater.populate_strings_for_block(0, force=True)
-    
+
     # String at index 1 is categorized -> should be filtered out when data_store.hide_categorized is True
     assert 1 not in real_store.displayed_string_indices, (
         "Expected categorized string (idx=1) to be hidden when data_store.hide_categorized=True, "
@@ -482,21 +516,21 @@ def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     mock_mw.edited_text_edit = MagicMock()
     mock_mw.original_text_edit.toPlainText.return_value = ""
     mock_mw.edited_text_edit.toPlainText.return_value = ""
-    
+
     c = MagicMock(); c.position.return_value = 0; c.anchor.return_value = 0; c.hasSelection.return_value = False
     mock_mw.original_text_edit.textCursor.return_value = c
     mock_mw.edited_text_edit.textCursor.return_value = c
     mock_mw.problems_per_subline = {}
-    
+
     # Add original_width_label to cover those lines
     mock_mw.original_width_label = MagicMock()
     mock_mw.helper = MagicMock()
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.icon_sequences = []
-    
+
     with patch('ui.updaters.preview_updater.calculate_strict_string_width', return_value=42):
         updater.update_text_views()
-    
+
     mock_mw.original_width_label.setText.assert_called_with("Width: 42px")
     mock_mw.original_width_label.show.assert_called()
 
@@ -514,7 +548,7 @@ def test_UIUpdater_populate_strings_with_category(mock_hl, mock_ut, updater, moc
     pm.project = proj
     mock_mw.project_manager = pm
     mock_mw.block_to_project_file_map = {0: 0}
-    
+
     mock_mw.data = [["s0", "s1", "s2", "s3"]]
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
@@ -525,9 +559,9 @@ def test_UIUpdater_populate_strings_with_category(mock_hl, mock_ut, updater, moc
     mock_mw.current_string_idx = 2  # within category
     mock_mw.displayed_string_indices = []
     updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
-    
+
     updater.populate_strings_for_block(0, category_name="MyCat", force=True)
-    
+
     assert mock_mw.displayed_string_indices == [2, 3]
     mock_mw.preview_text_edit.set_selected_lines.assert_called_with([0])  # current_string_idx=2 maps to idx 0
 
@@ -549,13 +583,13 @@ def test_UIUpdater_update_status_bar_selection(updater):
     mock_cursor = MagicMock()
     mock_cursor.hasSelection.return_value = True
     mock_cursor.selectedText.return_value = "Selected text"
-    
+
     mock_doc = MagicMock()
     mock_block = MagicMock()
     mock_block.position.return_value = 0
     mock_doc.findBlock.return_value = mock_block
     updater.mw.edited_text_edit.document.return_value = mock_doc
-    
+
     mock_cursor.selectionStart.return_value = 0
     updater.mw.edited_text_edit.textCursor.return_value = mock_cursor
     updater.mw.data_store.current_block_idx = 0
@@ -580,7 +614,7 @@ def test_UIUpdater_synchronize_original_cursor(updater):
     mock_cursor.blockNumber.return_value = 5
     mock_cursor.positionInBlock.return_value = 10
     updater.mw.edited_text_edit.textCursor.return_value = mock_cursor
-    
+
     updater.synchronize_original_cursor()
     updater.mw.original_text_edit.highlightManager.setLinkedCursorPosition.assert_called_with(5, 10)
 
@@ -596,7 +630,7 @@ def test_UIUpdater_clear_all_problem_block_highlights_and_text(updater):
     item.setData(0, Qt.UserRole, 0)
     item.setData(0, Qt.UserRole + 4, "Block 0 Base")
     updater.mw.block_list_widget.addTopLevelItem(item)
-    
+
     updater.mw.data_store.block_names = {"0": "Block 0"}
     updater.clear_all_problem_block_highlights_and_text()
     assert item.text(0) == "Block 0 Base"
@@ -669,7 +703,7 @@ def test_UIUpdater_synchronize_original_cursor_no_text(updater, mock_mw):
     mock_mw.edited_text_edit.document.return_value.toPlainText.return_value = ""
     mock_mw.original_text_edit = MagicMock()
     mock_mw.original_text_edit.highlightManager = MagicMock()
-    
+
     updater.synchronize_original_cursor()
     # When current_block_idx==-1, original cursor sync still tells highlightManager to clear position
     mock_mw.original_text_edit.highlightManager.setLinkedCursorPosition.assert_called_with(-1, -1)
@@ -682,10 +716,10 @@ def test_UIUpdater_populate_strings_preserves_scrollbar(mock_hl, mock_ut, update
     mock_mw.data = [["s1", "s2", "s3"]]
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
-    
+
     mock_scroll = MagicMock()
     mock_scroll.value.return_value = 42
-    
+
     mock_mw.preview_text_edit = MagicMock()
     mock_mw.preview_text_edit.verticalScrollBar.return_value = mock_scroll
     mock_mw.preview_text_edit.highlightManager = MagicMock()
@@ -693,24 +727,23 @@ def test_UIUpdater_populate_strings_preserves_scrollbar(mock_hl, mock_ut, update
     mock_mw.preview_text_edit.toPlainText.return_value = ""
     mock_mw.project_manager = None
     updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{r}", False)
-    
+
     mock_mw.current_string_idx = 1
     mock_mw.displayed_string_indices = [0, 1, 2]
     mock_mw.data_store.displayed_string_indices = [0, 1, 2]
-    
+
     # Pre-set last populated block to make block_changed = False
     updater.preview_updater._last_populated_block_idx = 0
     updater.preview_updater._last_populated_category_name = None
-    
+
     updater.populate_strings_for_block(0, force=True)
 
-    
+
     # Verify scrollbar value was preserved and set back to 42
     mock_scroll.setValue.assert_called_with(42)
 
 
 def test_PreviewUpdater_pre_cache_all_blocks(updater, mock_mw):
-    from unittest.mock import patch
     mock_mw.data_store.data = [["s1", "s2"], ["s3"]]
     mock_mw.data_store.show_overrides_only = False
     mock_mw.data_store.hide_translated = False
@@ -719,29 +752,22 @@ def test_PreviewUpdater_pre_cache_all_blocks(updater, mock_mw):
     mock_mw.data_store.show_unsaved_only = False
     mock_mw.current_game_rules = MagicMock()
     mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: f"p_{x}"
-    
+
     updater.preview_updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{b}_{r}", False)
-    
-    with patch('PyQt6.QtWidgets.QProgressDialog') as mock_dialog:
-        mock_dialog_instance = MagicMock()
-        mock_dialog.return_value = mock_dialog_instance
-        mock_dialog_instance.wasCanceled.return_value = False
-        
-        updater.preview_updater.pre_cache_all_blocks()
-        
-        cache = updater.preview_updater._preview_cache
-        expected_key0 = (0, None, False, False, False, False, False)
-        expected_key1 = (1, None, False, False, False, False, False)
-        
-        assert expected_key0 in cache
-        assert expected_key1 in cache
-        
-        assert cache[expected_key0]['lines'] == ["p_t_0_0", "p_t_0_1"]
-        assert cache[expected_key1]['lines'] == ["p_t_1_0"]
-        assert cache[expected_key0]['next_index'] == 2
-        assert cache[expected_key1]['next_index'] == 1
-        
-        mock_dialog_instance.close.assert_called()
+
+    updater.preview_updater.pre_cache_all_blocks()
+
+    cache = updater.preview_updater._preview_cache
+    expected_key0 = (0, None, False, False, False, False, False)
+    expected_key1 = (1, None, False, False, False, False, False)
+
+    assert expected_key0 in cache
+    assert expected_key1 in cache
+
+    assert cache[expected_key0]['lines'] == ["p_t_0_0", "p_t_0_1"]
+    assert cache[expected_key1]['lines'] == ["p_t_1_0"]
+    assert cache[expected_key0]['next_index'] == 2
+    assert cache[expected_key1]['next_index'] == 1
 
 
 def test_UIUpdater_sync_filter_checkboxes_with_store(updater, mock_mw):
@@ -773,4 +799,27 @@ def test_UIUpdater_sync_filter_checkboxes_with_store(updater, mock_mw):
     assert mock_mw.show_overrides_only_checkbox.isChecked() is True
 
 
+def test_PreviewUpdater_idle_caching(updater, mock_mw):
+    mock_mw.data_store.data = [["s1"], ["s2"], ["s3"]]
+    mock_mw.data_store.current_block_idx = 1
+    updater.preview_updater.data_processor.get_current_string_text.side_effect = lambda b, r: (f"t_{b}", False)
+    mock_mw.current_game_rules = None
 
+    updater.preview_updater._start_idle_caching()
+
+    assert updater.preview_updater._idle_cache_queue == [1, 0, 2]
+    assert updater.preview_updater._idle_timer is not None
+    assert updater.preview_updater._idle_timer.isActive()
+
+    updater.preview_updater._cache_next_idle_block()
+    cache_key1 = updater.preview_updater.get_cache_key(1, None)
+    assert cache_key1 in updater.preview_updater._preview_cache
+    assert updater.preview_updater._idle_cache_queue == [0, 2]
+
+    updater.preview_updater._cache_next_idle_block()
+    updater.preview_updater._cache_next_idle_block()
+
+    assert len(updater.preview_updater._idle_cache_queue) == 0
+
+    updater.preview_updater._cache_next_idle_block()
+    assert not updater.preview_updater._idle_timer.isActive()

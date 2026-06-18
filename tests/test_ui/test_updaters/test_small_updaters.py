@@ -41,9 +41,107 @@ def mock_mw():
 
 
 @pytest.fixture
-def mock_dp():
+def mock_dp(mock_mw):
     dp = MagicMock()
     dp.get_current_string_text.return_value = ("Some text", None)
+
+    def get_empty_set(block_idx):
+        store = mock_mw.data_store
+        empty_set = set()
+        if block_idx < len(store.data):
+            block_data = store.data[block_idx]
+            for s_idx in range(len(block_data)):
+                orig = block_data[s_idx]
+                if dp._get_string_from_source.side_effect:
+                    try:
+                        orig = dp._get_string_from_source.side_effect(block_idx, s_idx, store.data, "readonly")
+                    except Exception:
+                        pass
+                curr = orig
+                if dp.get_current_string_text.side_effect:
+                    try:
+                        curr, _ = dp.get_current_string_text.side_effect(block_idx, s_idx)
+                    except Exception:
+                        pass
+                elif hasattr(dp.get_current_string_text, 'return_value') and dp.get_current_string_text.return_value != MagicMock():
+                    res = dp.get_current_string_text.return_value
+                    curr = res[0] if isinstance(res, tuple) else res
+
+                if (not orig or not orig.strip()) and (not curr or not str(curr).strip()):
+                    empty_set.add(s_idx)
+        return empty_set
+
+    def get_translated_set(block_idx):
+        store = mock_mw.data_store
+        translated_set = set()
+        if block_idx < len(store.data):
+            block_data = store.data[block_idx]
+            for s_idx in range(len(block_data)):
+                if dp.is_string_translated.side_effect:
+                    try:
+                        if dp.is_string_translated.side_effect(block_idx, s_idx):
+                            translated_set.add(s_idx)
+                    except Exception:
+                        pass
+                elif hasattr(dp.is_string_translated, 'return_value') and isinstance(dp.is_string_translated.return_value, bool):
+                    if dp.is_string_translated.return_value:
+                        translated_set.add(s_idx)
+        return translated_set
+
+    def get_unsaved_set(block_idx):
+        store = mock_mw.data_store
+        unsaved_set = set()
+        for (b_idx, s_idx) in getattr(store, 'edited_data', {}).keys():
+            if b_idx == block_idx:
+                unsaved_set.add(s_idx)
+        return unsaved_set
+
+    def get_overrides_set(block_idx):
+        metadata = getattr(mock_mw, 'string_metadata', {})
+        default_font = getattr(mock_mw, 'default_font_file', "default")
+        max_width = getattr(mock_mw, 'game_dialog_max_width_pixels', 0)
+        overrides_set = set()
+        for (b_idx, s_idx), meta in metadata.items():
+            if b_idx == block_idx:
+                has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
+                has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
+                if has_font or has_width:
+                    overrides_set.add(s_idx)
+        return overrides_set
+
+    def get_categorized_set(block_idx):
+        pm = getattr(mock_mw, 'project_manager', None)
+        categorized_set = set()
+        if pm and pm.project:
+            block_map = getattr(mock_mw, 'block_to_project_file_map', {})
+            proj_b_idx = block_map.get(block_idx, block_idx)
+            if proj_b_idx < len(pm.project.blocks):
+                block = pm.project.blocks[proj_b_idx]
+                if hasattr(block, 'get_categorized_line_indices'):
+                    categorized_set.update(block.get_categorized_line_indices())
+        return categorized_set
+
+    def get_warnings_matching_set(block_idx, active_filters, detection_config):
+        store = mock_mw.data_store
+        matching = set()
+        problems_dict = getattr(store, 'problems_per_subline', {})
+        for (b_idx, s_idx, subline_idx), problems in problems_dict.items():
+            if b_idx == block_idx:
+                if active_filters:
+                    if any(p_id in active_filters for p_id in problems):
+                        matching.add(s_idx)
+                else:
+                    if any(detection_config.get(p_id, True) for p_id in problems):
+                        matching.add(s_idx)
+        return matching
+
+    dp.get_empty_set.side_effect = get_empty_set
+    dp.get_translated_set.side_effect = get_translated_set
+    dp.get_unsaved_set.side_effect = get_unsaved_set
+    dp.get_overrides_set.side_effect = get_overrides_set
+    dp.get_categorized_set.side_effect = get_categorized_set
+    dp.get_warnings_matching_set.side_effect = get_warnings_matching_set
+
     return dp
 
 
@@ -159,7 +257,7 @@ class TestPreviewUpdater:
         updater.mw.original_text_edit = MagicMock()
         updater.mw.edited_text_edit = MagicMock()
         updater.mw.current_game_rules = MagicMock()
-        
+
         updater.populate_strings_for_block(-1)
         preview_edit.setPlainText.assert_called_with("")
 
@@ -169,7 +267,7 @@ class TestPreviewUpdater:
         updater.mw.preview_text_edit = preview_edit
         updater.mw.data_store.data = []
         updater.mw.current_game_rules = MagicMock()
-        
+
         updater.populate_strings_for_block(0)
         # Should not crash, and not set any text (already empty)
         preview_edit.setPlainText.assert_not_called()
@@ -191,7 +289,7 @@ class TestPreviewUpdater:
             if r_idx == 0:
                 return ("Hello", None)
             return ("World", None)
-            
+
         mock_dp.get_current_string_text.side_effect = get_text_side_effect
 
         updater.populate_strings_for_block(0, force=True)
@@ -205,7 +303,7 @@ class TestPreviewUpdater:
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 250
-        
+
         # Mock document structure for findBlockByNumber
         mock_blocks = {}
         def mock_find_block(num):
@@ -215,10 +313,10 @@ class TestPreviewUpdater:
             block.text.return_value = ""
             mock_blocks[num] = block
             return block
-        
+
         preview_edit.document().findBlockByNumber.side_effect = mock_find_block
         updater.mw.preview_text_edit = preview_edit
-        
+
         updater.mw.data_store.data = [["line" + str(i) for i in range(300)]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.current_game_rules = MagicMock()
@@ -250,7 +348,7 @@ class TestPreviewUpdater:
         assert cursor_instance.beginEditBlock.called
         assert cursor_instance.endEditBlock.called
         assert cursor_instance.insertText.called
-        
+
         # First insertion in this chunk should be Hello 200
         first_insert_arg = cursor_instance.insertText.call_args_list[0][0][0]
         assert first_insert_arg == "Hello 200"
@@ -299,20 +397,20 @@ class TestPreviewUpdater:
         edited_edit = MagicMock()
         edited_edit.toPlainText.return_value = "new text"
         updater.mw.edited_text_edit = edited_edit
-        
+
         updater.mw.data_store.current_block_idx = 0
         updater.mw.data_store.current_string_idx = 0
-        
+
         # Mock get_current_string_text to return different texts so update triggers
         updater.data_processor.get_current_string_text.return_value = ("different text", None)
-        
+
         # Mock text_operation_handler
         toh = MagicMock()
         updater.mw.text_operation_handler = toh
-        
+
         # Trigger update_text_views
         updater.update_text_views()
-        
+
         # Verify sync_subline_asterisks was called
         toh.sync_subline_asterisks.assert_called_once_with(0, 0, "different text")
 
@@ -338,7 +436,7 @@ class TestPreviewUpdater:
             elif r_idx == 1:
                 return ("World Untranslated", None)
             return ("Another Untranslated", None)
-            
+
         mock_dp.get_current_string_text.side_effect = get_text_side_effect
 
         updater.populate_strings_for_block(0, force=True)
@@ -353,8 +451,8 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 8
         updater.mw.preview_text_edit = preview_edit
-        
-        # 10 lines: 
+
+        # 10 lines:
         # 0: non-empty
         # 1: empty
         # 2: non-empty
@@ -393,7 +491,7 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 3
         updater.mw.preview_text_edit = preview_edit
-        
+
         updater.mw.data_store.data = [["line0", "line1", "line2"]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.data_store.show_overrides_only = True
@@ -404,7 +502,7 @@ class TestPreviewUpdater:
         # Setup string_metadata: line 1 has custom width, line 2 has custom font, line 0 is default
         updater.mw.default_font_file = "default_font.bfn"
         updater.mw.game_dialog_max_width_pixels = 200
-        
+
         # Meta dictionary
         updater.mw.string_metadata = {
             (0, 0): {},                                      # Default
@@ -426,14 +524,14 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 2
         updater.mw.preview_text_edit = preview_edit
-        
+
         updater.mw.data_store.data = [["line0", "line1", "line2"]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.data_store.show_unsaved_only = True
         updater.mw.current_game_rules = MagicMock()
         updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
         updater.mw.project_manager = None
-        
+
         # Setup edited_data for line 1 (unsaved change)
         updater.mw.data_store.edited_data = {
             (0, 1): "edited_line1"
@@ -453,11 +551,11 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 3
         updater.mw.preview_text_edit = preview_edit
-        
+
         # Add checkbox mock
         checkbox = MagicMock()
         updater.mw.show_overrides_only_checkbox = checkbox
-        
+
         updater.mw.data_store.data = [["line0", "line1", "line2"]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.current_game_rules = MagicMock()
@@ -496,7 +594,7 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 2
         updater.mw.preview_text_edit = preview_edit
-        
+
         updater.mw.data_store.data = [["line0", "line1", "line2"]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.data_store.show_overrides_only = True
@@ -524,7 +622,7 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 5
         updater.mw.preview_text_edit = preview_edit
-        
+
         updater.mw.data_store.data = [["line" + str(i) for i in range(7)]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.data_store.hide_empty_strings = True
@@ -552,7 +650,7 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 250
         updater.mw.preview_text_edit = preview_edit
-        
+
         updater.mw.data_store.data = [["line" + str(i) for i in range(250)]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.current_game_rules = MagicMock()
@@ -580,8 +678,9 @@ class TestPreviewUpdater:
         # Setup cache with a block having two different filter configurations
         key1 = (0, None, False, False, False, False)
         key2 = (0, None, True, False, False, False)
-        
-        updater._preview_cache = {
+
+        from collections import OrderedDict
+        updater._preview_cache = OrderedDict({
             key1: {
                 'lines': ["line0", "line1", "line2"],
                 'target_indices': [0, 1, 2],
@@ -592,11 +691,11 @@ class TestPreviewUpdater:
                 'target_indices': [1, 2],
                 'next_index': 2
             }
-        }
-        
+        })
+
         # Update string index 1 with new text
         updater.update_cached_string(0, 1, "new_line1")
-        
+
         # Verify both cache entries are updated
         assert updater._preview_cache[key1]['lines'] == ["line0", "new_line1", "line2"]
         assert updater._preview_cache[key2]['lines'] == ["new_line1", "line2"]
@@ -608,16 +707,16 @@ class TestPreviewUpdater:
         preview_edit.toPlainText.return_value = ""
         preview_edit.document().blockCount.return_value = 250
         updater.mw.preview_text_edit = preview_edit
-        
+
         # Setup data
         updater.mw.data_store.data = [["line" + str(i) for i in range(250)]]
         updater.mw.data_store.current_string_idx = 0
         updater.mw.current_game_rules = MagicMock()
         updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
         updater.mw.project_manager = None
-        
+
         mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
-        
+
         # Pre-populate cache
         key = (0, None, False, False, False, False)
         cached_lines = [f"line{i}" for i in range(250)]
@@ -628,14 +727,14 @@ class TestPreviewUpdater:
                 'next_index': 250
             }
         }
-        
+
         # Mock timer
         timer_mock = MagicMock()
         updater._lazy_load_timer = timer_mock
-        
+
         # Trigger population
         updater.populate_strings_for_block(0)
-        
+
         # Since use_cache is True and len > initial_chunk_size (200), it should start the lazy load timer
         assert timer_mock.start.called
         # The text set in plain text edit should have only first 200 lines and the rest should be empty strings
@@ -646,7 +745,3 @@ class TestPreviewUpdater:
         assert lines_set[199] == "line199"
         assert lines_set[200] == ""
         assert lines_set[249] == ""
-
-
-
-

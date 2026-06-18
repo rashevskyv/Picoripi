@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Optional, Any, Union
+from typing import List, Dict, Tuple, Optional, Any, Union, Set
 import json
 import re
 import datetime
@@ -16,7 +16,7 @@ class DataStateProcessor:
     def __init__(self, main_window: Any):
         """Initialize a new instance."""
         self.mw = main_window
-        
+
         # Autosave session timer to prevent data loss on crashes
         self._session_dirty = False
         try:
@@ -52,14 +52,14 @@ class DataStateProcessor:
             return None
         if not (0 <= block_idx < len(source_data)):
             return None
-        
+
         current_block = source_data[block_idx]
         if not isinstance(current_block, list):
             return None
-        
+
         if not (0 <= string_idx < len(current_block)):
             return None
-            
+
         value = current_block[string_idx]
         return value
 
@@ -68,43 +68,43 @@ class DataStateProcessor:
         edit_key = (block_idx, string_idx)
         if edit_key in self.mw.data_store.edited_data:
             return self.mw.data_store.edited_data[edit_key], "edited_data (in-memory)"
-        
+
         text_from_file = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
-        if text_from_file is not None: 
+        if text_from_file is not None:
             return text_from_file, "edited_file_data"
-            
+
         text_from_original = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data")
         if text_from_original is not None:
             return text_from_original, "original_data"
-            
+
         # Boundary / Loading check: avoid sending error if indices are simply not ready yet
         if block_idx < 0 or string_idx < 0:
             return "", "loading"
-            
+
         log_debug(f"!!! DSP: Index ({block_idx}, {string_idx}) not ready or missing (data length: {len(self.mw.data_store.data) if self.mw.data_store.data else 0}).")
-        return "", "initial_load" 
+        return "", "initial_load"
 
     def get_block_texts(self, block_idx: int) -> List[str]:
         """Get the block texts."""
         if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return []
-        
+
         num_strings = len(self.mw.data_store.data[block_idx])
         return [self.get_current_string_text(block_idx, i)[0] for i in range(num_strings)]
 
     def string_needs_translation(self, block_idx: int, string_idx: int) -> bool:
         """
         Checks whether a string needs manual translation.
-        A string does not need translation if its original source text is empty 
+        A string does not need translation if its original source text is empty
         or contains only tags and whitespace.
         """
         if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return False
-        
+
         block_original = self.mw.data_store.data[block_idx]
         if not isinstance(block_original, list) or not (0 <= string_idx < len(block_original)):
             return False
-            
+
         original_text = str(block_original[string_idx])
         cleaned_original = re.sub(r'\{[^}]*\}|\[[^\]]*\]', '', original_text).strip()
         return bool(cleaned_original)
@@ -117,13 +117,13 @@ class DataStateProcessor:
         """
         if not self.string_needs_translation(block_idx, string_idx):
             return False
-            
+
         original_text = str(self.mw.data_store.data[block_idx][string_idx])
         current_text, source = self.get_current_string_text(block_idx, string_idx)
-        
+
         if not current_text or not current_text.strip():
             return False
-            
+
         return current_text.strip() != original_text.strip()
 
     def update_edited_data(self, block_idx: int, string_idx: int, new_text: str, action_type: str = "TEXT_EDIT", skip_ui_refresh: bool = False) -> bool:
@@ -133,16 +133,16 @@ class DataStateProcessor:
                 self.mw.editor_operation_handler.stop_and_flush_editor_changes()
 
         edit_key = (block_idx, string_idx)
-        
+
         # Get old text for undo
         old_text, _ = self.get_current_string_text(block_idx, string_idx)
 
         original_text = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.data, "original_data_for_update_check")
-        
+
         text_from_saved_file = self._get_string_from_source(block_idx, string_idx, self.mw.data_store.edited_file_data, "edited_file_data")
         if text_from_saved_file is None:
             text_from_saved_file = original_text
-            
+
         old_unsaved_changes = self.mw.data_store.unsaved_changes
 
         if new_text == text_from_saved_file:
@@ -162,13 +162,13 @@ class DataStateProcessor:
                             block.metadata = {}
                         if "translation_status" not in block.metadata:
                             block.metadata["translation_status"] = {}
-                        
+
                         now_str = datetime.datetime.now().isoformat()
-                        
+
                         model_name = "User Edit"
                         if action_type == "TRANSLATE" and hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
                             model_name = getattr(self.mw.translation_handler.ai_lifecycle_manager, '_active_model_name', 'AI Model')
-                            
+
                         block.metadata["translation_status"][str(string_idx)] = {
                             "ai_model": model_name,
                             "timestamp": now_str,
@@ -186,16 +186,38 @@ class DataStateProcessor:
             if not has_other_edits:
                 self.mw.data_store.unsaved_block_indices.discard(block_idx)
 
+        # Incremental index updates (A05)
+        store = self.mw.data_store
+        if hasattr(store, '_index_empty') and block_idx in store._index_empty:
+            orig_text = self._get_string_from_source(block_idx, string_idx, store.data, "readonly")
+            is_empty = (not orig_text or not orig_text.strip()) and (not new_text or not str(new_text).strip())
+            if is_empty:
+                store._index_empty[block_idx].add(string_idx)
+            else:
+                store._index_empty[block_idx].discard(string_idx)
+
+        if hasattr(store, '_index_translated') and block_idx in store._index_translated:
+            if self.is_string_translated(block_idx, string_idx):
+                store._index_translated[block_idx].add(string_idx)
+            else:
+                store._index_translated[block_idx].discard(string_idx)
+
+        if hasattr(store, '_index_unsaved') and block_idx in store._index_unsaved:
+            if edit_key in store.edited_data:
+                store._index_unsaved[block_idx].add(string_idx)
+            else:
+                store._index_unsaved[block_idx].discard(string_idx)
+
         # Record in undo manager if it exists and text actually changed
         if hasattr(self.mw, 'undo_manager') and old_text != new_text:
             self.mw.undo_manager.record_action(action_type, block_idx, string_idx, old_text, new_text)
 
         self.mw.data_store.unsaved_changes = bool(self.mw.data_store.edited_data)
-        
+
         unsaved_status_actually_changed = self.mw.data_store.unsaved_changes != old_unsaved_changes
         if unsaved_status_actually_changed:
             log_debug(f"DSP.update_edited_data: Unsaved changes status changed to {self.mw.data_store.unsaved_changes}")
-        
+
         # Explicitly trigger tree item refresh to show/hide asterisk
         if not skip_ui_refresh and hasattr(self.mw, 'ui_updater'):
             self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
@@ -208,7 +230,7 @@ class DataStateProcessor:
     def revert_strings_to_original(self, block_idx: int, string_indices: List[int], progress_dialog=None, progress_offset: int = 0) -> int:
         """Reverts multiple strings in a block to their original state (from the loaded file)."""
         if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data'): return 0
-        
+
         # Auto-save translation before reverting
         if hasattr(self.mw, 'saved_translations_manager') and self.mw.saved_translations_manager:
             to_save = []
@@ -223,7 +245,7 @@ class DataStateProcessor:
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:
             self.mw.undo_manager.begin_group()
-            
+
         show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater') and progress_dialog is None
         progress = progress_dialog
         if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
@@ -234,14 +256,14 @@ class DataStateProcessor:
             for i, s_idx in enumerate(string_indices):
                 if progress and progress.was_canceled():
                     break
-                
+
                 # We specifically use self.mw.data_store.data here because "Original" refers to the source text (left panel)
                 original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data_store.data, "original_source_data")
-                
+
                 if original_text is not None:
                     # Recording this as a REVERT action
                     self.update_edited_data(block_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
-                
+
                 processed += 1
                 if progress:
                     if progress_dialog is not None:
@@ -253,20 +275,20 @@ class DataStateProcessor:
                 progress.set_value(len(string_indices))
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT")
-            
+
             # Explicitly refresh the tree widget once at the end
             if hasattr(self.mw, 'ui_updater'):
                 self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
-            
+
         if hasattr(self.mw, 'ui_updater') and getattr(self.mw.data_store, 'current_block_idx', -1) == block_idx:
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit and self.mw.current_game_rules:
                 old_scrollbar_value = preview_edit.verticalScrollBar().value()
-                
+
                 # Prevent triggering events during the text updates
                 was_programmatically_changing = self.mw.is_programmatically_changing_text
                 self.mw.is_programmatically_changing_text = True
-                
+
                 try:
                     target_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
                     if not target_indices:
@@ -274,7 +296,7 @@ class DataStateProcessor:
                             target_indices = list(range(len(self.mw.data_store.data[block_idx])))
                         else:
                             target_indices = []
-                    
+
                     # Generate all preview lines (this is very fast)
                     preview_lines = []
                     preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
@@ -283,7 +305,7 @@ class DataStateProcessor:
                             b, s = real_idx
                         else:
                             b, s = block_idx, real_idx
-                            
+
                         if real_idx == -1:
                             preview_line_text = getattr(preview_updater, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]") if preview_updater else "[Empty Lines]"
                         elif 0 <= b < len(self.mw.data_store.data) and 0 <= s < len(self.mw.data_store.data[b]):
@@ -295,11 +317,11 @@ class DataStateProcessor:
 
 
                     preview_full_text = "\n".join(preview_lines)
-                    
+
                     # Update preview editor instantly
                     if preview_edit.toPlainText() != preview_full_text:
                         preview_edit.setPlainText(preview_full_text)
-                    
+
                     # Update local cache to match the new text
                     preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
                     if preview_updater and hasattr(preview_updater, '_preview_cache'):
@@ -316,34 +338,34 @@ class DataStateProcessor:
                             else:
                                 preview_line_text = str(text_for_preview_raw)
                             preview_updater.update_cached_string(block_idx, s_idx, preview_line_text)
-                    
+
                     # Refresh highlights
                     if hasattr(preview_edit, 'highlightManager'):
                         preview_edit.highlightManager.clearAllProblemHighlights()
                         self.mw.ui_updater.preview_updater._apply_highlights_for_block(block_idx)
-                    
+
                     # Restore selection
                     if self.mw.data_store.current_string_idx != -1 and self.mw.data_store.current_string_idx in target_indices:
                         preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
                         if 0 <= preview_idx_to_select < preview_edit.document().blockCount():
                             preview_edit.set_selected_lines([preview_idx_to_select])
-                    
+
                     # Restore scrollbar position perfectly
                     preview_edit.verticalScrollBar().setValue(old_scrollbar_value)
                     if hasattr(preview_edit, 'lineNumberArea'):
                         preview_edit.lineNumberArea.update()
                 finally:
                     self.mw.is_programmatically_changing_text = was_programmatically_changing
-            
+
             # Fast update for original and edited text views
             self.mw.ui_updater.update_text_views()
-            
+
         return processed
 
     def perform_revert_strings(self, block_idx: int, string_indices: List[Any], confirm: bool = True) -> None:
         """Unified revert function with optional confirmation and UI updates."""
         if not string_indices or block_idx == -1: return
-        
+
         is_chapter_revert = False
         if block_idx == -2 or (string_indices and isinstance(string_indices[0], tuple)):
             is_chapter_revert = True
@@ -354,10 +376,10 @@ class DataStateProcessor:
                 msg = f"Revert {num} string(s) in this chapter to original?" if num > 1 else "Revert this string to original?"
             else:
                 msg = f"Revert {num} string(s) in this block to original?" if num > 1 else "Revert this string to original?"
-            
+
             reply = self._ask_yes_no('Revert to Original', msg + "\n\nUnsaved changes for these strings will be lost.", default_yes=False)
             if not reply: return
-            
+
         if is_chapter_revert:
             # Group strings by block_idx
             grouped = {}
@@ -368,12 +390,12 @@ class DataStateProcessor:
                     b_idx = block_idx
                     s_idx = item
                 grouped.setdefault(b_idx, []).append(s_idx)
-            
+
             # Perform revert for each block
             has_undo = hasattr(self.mw, 'undo_manager')
             if has_undo:
                 self.mw.undo_manager.begin_group()
-                
+
             total_strings = len(string_indices)
             show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
             progress = None
@@ -381,7 +403,7 @@ class DataStateProcessor:
                 progress = self.mw.ui_provider.create_progress_tracker(
                     "Revert Strings", "Reverting strings to original...", total_strings
                 )
-                
+
             processed = 0
             try:
                 for b_idx, s_indices in grouped.items():
@@ -394,7 +416,7 @@ class DataStateProcessor:
                     progress.set_value(total_strings)
                 if has_undo:
                     self.mw.undo_manager.end_group("REVERT")
-            
+
             # Refresh tree items and active preview
             if hasattr(self.mw, 'ui_updater'):
                 for b_idx in grouped.keys():
@@ -406,7 +428,7 @@ class DataStateProcessor:
                 self.mw.ui_updater.update_text_views()
         else:
             self.revert_strings_to_original(block_idx, string_indices)
-        
+
         if hasattr(self.mw, 'statusBar'):
             if len(string_indices) == 1:
                 if is_chapter_revert:
@@ -419,7 +441,7 @@ class DataStateProcessor:
     def revert_blocks_to_original(self, block_indices: List[int]) -> None:
         """Reverts entire blocks to their state from the loaded edited file (or original)."""
         if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'data') or not self.mw.data_store.data: return
-        
+
         # Auto-save translation before reverting blocks
         if hasattr(self.mw, 'saved_translations_manager') and self.mw.saved_translations_manager:
             for b_idx in block_indices:
@@ -437,12 +459,12 @@ class DataStateProcessor:
         has_undo = hasattr(self.mw, 'undo_manager')
         if has_undo:
             self.mw.undo_manager.begin_group()
-            
+
         total_strings = 0
         for b_idx in block_indices:
             if 0 <= b_idx < len(self.mw.data_store.data):
                 total_strings += len(self.mw.data_store.data[b_idx])
-                
+
         show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
         progress = None
         if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
@@ -463,7 +485,7 @@ class DataStateProcessor:
                         original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
                         if original_text is not None:
                             self.update_edited_data(b_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
-                        
+
                         processed += 1
                         if progress:
                             progress.set_value(processed)
@@ -472,7 +494,7 @@ class DataStateProcessor:
                 progress.set_value(total_strings)
             if has_undo:
                 self.mw.undo_manager.end_group("REVERT_BLOCKS")
-            
+
         if hasattr(self.mw, 'ui_updater'):
             if self.mw.data_store.current_block_idx in block_indices:
                 self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
@@ -485,18 +507,18 @@ class DataStateProcessor:
         """Internal helper to perform save impl."""
         warnings = []
         errors = []
-        
+
         edited_data = edited_data_for_transaction if edited_data_for_transaction is not None else self.mw.data_store.edited_data
-        
+
         # Check if we are inside a project mode
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
-        
+
         try:
             if is_project_mode:
                 log_debug("Saving in Project Mode: Splitting blocks into their corresponding files", category="file_ops")
                 blocks = self.mw.project_manager.project.blocks
                 success_all = True
-                
+
                 # Group data_block indices by translation file path
                 file_to_data_indices = {}
                 file_to_block_info = {}
@@ -509,7 +531,7 @@ class DataStateProcessor:
                         file_to_data_indices[path] = []
                         file_to_block_info[path] = block
                     file_to_data_indices[path].append(data_b_idx)
-                
+
                 # Backup original keys for pokemon plugin logic
                 global_keys_backup = None
                 if hasattr(self.mw.current_game_rules, 'original_keys'):
@@ -550,7 +572,7 @@ class DataStateProcessor:
                 for trans_file_rel, data_indices in files_to_save.items():
                     block = file_to_block_info[trans_file_rel]
                     trans_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
-                    
+
                     if progress_callback:
                         progress_callback(step_idx, total_steps, f"Saving file: {Path(trans_path).name}")
                     step_idx += 1
@@ -563,7 +585,7 @@ class DataStateProcessor:
                     if global_keys_backup is not None:
                         sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
                         self.mw.current_game_rules.original_keys = sliced_keys
-                    
+
                     # For Zelda BMG plugin, pre-load the actual BMG file structure
                     if hasattr(self.mw.current_game_rules, 'last_loaded_bmg'):
                         from bmg_tool import BMGFile
@@ -625,7 +647,7 @@ class DataStateProcessor:
                             self.mw.current_game_rules.last_loaded_bmg = bmg
 
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
-                    
+
                     file_extension = Path(trans_path).suffix.lower()
                     if file_extension == '.json':
                         save_file_success = save_json_file(trans_path, final_obj_to_save)
@@ -653,7 +675,7 @@ class DataStateProcessor:
                         break
                     else:
                         files_saved_in_this_transaction.add(trans_file_rel)
-                
+
                 if success_all:
                     if modified_archives:
                         from core.containers import ContainerManager
@@ -664,20 +686,20 @@ class DataStateProcessor:
                                 step_idx += 1
 
                                 container = self.mw.project_manager.get_archive_container(archive_rel_path, is_translation=True)
-                                
+
                                 for trans_file_rel, data_indices in file_to_data_indices.items():
                                     if trans_file_rel not in files_saved_in_this_transaction:
                                         continue
-                                    
+
                                     prefix = ".extracted/translation/"
                                     if not trans_file_rel.startswith(prefix):
                                         continue
-                                    
+
                                     sub_path = trans_file_rel[len(prefix):]
                                     if sub_path.startswith(archive_rel_path + "/"):
                                         inner_path = sub_path[len(archive_rel_path) + 1:]
                                         trans_path = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
-                                        
+
                                         if Path(trans_path).exists():
                                             file_bytes = Path(trans_path).read_bytes()
                                             container.write_file(inner_path, file_bytes)
@@ -698,11 +720,11 @@ class DataStateProcessor:
                                 dest_archive_path.parent.mkdir(parents=True, exist_ok=True)
                                 dest_archive_path.write_bytes(packed_bytes)
                                 self.mw.project_manager.clear_archive_cache()
-                                
+
                             except Exception as archive_err:
                                 log_error(f"Native packing failed for {archive_rel_path}: {archive_err}", exc_info=True, category="file_ops")
                                 errors.append(f"{archive_rel_path}: {archive_err}")
-                
+
                 if global_keys_backup is not None:
                     self.mw.current_game_rules.original_keys = global_keys_backup
 
@@ -712,11 +734,11 @@ class DataStateProcessor:
                 # Normal single-file save mode
                 if progress_callback:
                     progress_callback(0, 1, "Saving file...")
-                
+
                 final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(output_data_list, self.mw.data_store.block_names)
                 save_file_success = False
                 file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
-                
+
                 if file_extension == '.json':
                     save_file_success = save_json_file(self.mw.data_store.edited_json_path, final_obj_to_save)
                 elif file_extension == '.txt':
@@ -736,25 +758,25 @@ class DataStateProcessor:
                         log_debug(f"Failed to write BMG: {e}", category="file_ops")
                         errors.append(f"Failed to save BMG file: {e}")
                         save_file_success = False
-                
+
                 if not save_file_success and not errors:
                     errors.append("Failed to write file to disk.")
-                
+
                 if save_file_success:
                     # Backup and restore keys since we are just re-parsing to update UI data
                     plugin_keys_backup = None
                     if hasattr(self.mw.current_game_rules, 'original_keys'):
                         plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-                        
+
                     reloaded_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(final_obj_to_save)
-                    
+
                     if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
                         self.mw.current_game_rules.original_keys = plugin_keys_backup
-                        
+
                     self.mw.data_store.edited_file_data = reloaded_edited_data
 
                 return save_file_success, warnings, errors
-                
+
         except Exception as e:
             log_error(f"Error during save implementation: {e}", exc_info=True)
             errors.append(str(e))
@@ -778,18 +800,18 @@ class DataStateProcessor:
 
         log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}", category="file_ops")
         if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
-            self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path) 
+            self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path)
         if not self.mw.data_store.edited_json_path:
             self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
             if on_finished_callback:
                 on_finished_callback(False)
             return False
-        if not self.mw.current_game_rules: 
+        if not self.mw.current_game_rules:
             self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
             if on_finished_callback:
                 on_finished_callback(False)
             return False
-        
+
         if not self.mw.data_store.unsaved_changes:
             log_debug("Save called but no unsaved changes detected. Skipping file write.", category="file_ops")
             if ask_confirmation:
@@ -804,14 +826,14 @@ class DataStateProcessor:
                 if on_finished_callback:
                     on_finished_callback(False)
                 return False
-        
+
         try:
             if not self.mw.data_store.data:
                 self._show_message("Save Error", "Original data not loaded. Cannot save.", type="error")
                 if on_finished_callback:
                     on_finished_callback(False)
                 return False
-            
+
             # Build the merged save snapshot
             source_data = self.mw.data_store.data
             edited_file_data = self.mw.data_store.edited_file_data or []
@@ -848,18 +870,18 @@ class DataStateProcessor:
                     if on_finished_callback:
                         on_finished_callback(False)
                     return False
-                
+
                 # Post-save state updates
                 self.mw.data_store.unsaved_changes = False
                 self.mw.data_store.edited_data = {}
                 self.mw.data_store.edited_sublines.clear()
                 self.mw.data_store.edited_file_data = output_data_list
-                
+
                 for archive_rel_path, new_size, orig_size in warnings:
                     if getattr(self.mw, 'show_archive_size_warnings', True):
                         if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                             self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
-                            
+
                 ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                 if hasattr(self.mw, 'issue_scan_handler'):
                     self.mw.issue_scan_handler._save_issues_cache()
@@ -875,19 +897,19 @@ class DataStateProcessor:
                         self.mw.data_store.edited_data = {}
                         self.mw.data_store.edited_sublines.clear()
                         self.mw.data_store.edited_file_data = output_data_list
-                        
+
                         for archive_rel_path, new_size, orig_size in warnings:
                             if getattr(self.mw, 'show_archive_size_warnings', True):
                                 if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                                     self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
-                                    
+
                         ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                         if hasattr(self.mw, 'issue_scan_handler'):
                             self.mw.issue_scan_handler._save_issues_cache()
 
                         if hasattr(self, '_autosave_session'):
                             self._autosave_session(force=True)
-                            
+
                     if on_finished_callback:
                         on_finished_callback(success)
 
@@ -902,17 +924,17 @@ class DataStateProcessor:
                     if on_finished_callback:
                         on_finished_callback(False)
                     return False
-                
+
                 self.mw.data_store.unsaved_changes = False
                 self.mw.data_store.edited_data = {}
                 self.mw.data_store.edited_sublines.clear()
                 self.mw.data_store.edited_file_data = output_data_list
-                
+
                 for archive_rel_path, new_size, orig_size in warnings:
                     if getattr(self.mw, 'show_archive_size_warnings', True):
                         if hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
                             self.mw.ui_provider.show_archive_size_warning(archive_rel_path, new_size, orig_size)
-                            
+
                 ToastNotification.show_toast(self.mw, "All project translation files saved successfully.")
                 if hasattr(self.mw, 'issue_scan_handler'):
                     self.mw.issue_scan_handler._save_issues_cache()
@@ -941,15 +963,15 @@ class DataStateProcessor:
             if not self.mw.current_game_rules:
                 self._show_message("Revert Error", "No game plugin active to format the save file.", type="error")
                 return False
-    
+
             reply = self._ask_yes_no('Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", default_yes=False)
             if not reply: return False
             try:
                 output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data_store.data, self.mw.data_store.block_names)
-    
+
                 save_file_success = False
                 file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
-    
+
                 if file_extension == '.json':
                     save_file_success = save_json_file(self.mw.data_store.edited_json_path, output_data)
                 elif file_extension == '.txt':
@@ -967,25 +989,25 @@ class DataStateProcessor:
                     except Exception as e:
                         log_debug(f"Failed to write BMG: {e}")
                         save_file_success = False
-    
+
                 if save_file_success:
-                    self.mw.data_store.unsaved_changes = False; self.mw.data_store.edited_data = {}; self.mw.data_store.edited_sublines.clear(); 
-                    
+                    self.mw.data_store.unsaved_changes = False; self.mw.data_store.edited_data = {}; self.mw.data_store.edited_sublines.clear();
+
                     # Backup and restore keys since we are reading translation data
                     plugin_keys_backup = None
                     if hasattr(self.mw.current_game_rules, 'original_keys'):
                         plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-                        
+
                     reverted_data_list, _ = self.mw.current_game_rules.load_data_from_json_obj(output_data)
-                    
+
                     if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
                         self.mw.current_game_rules.original_keys = plugin_keys_backup
-                        
+
                     self.mw.data_store.edited_file_data = reverted_data_list
-    
+
                     self._show_message("Reverted", f"Changes file '{Path(self.mw.data_store.edited_json_path).name}' has been reverted to match the original.", type="info")
-                    self.mw.ui_updater.update_title(); 
-                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx) 
+                    self.mw.ui_updater.update_title();
+                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
                     return True
                 else: return False
             except Exception as e:
@@ -996,38 +1018,38 @@ class DataStateProcessor:
             # Project mode revert
             reply = self._ask_yes_no('Revert Project Changes', "This will overwrite all active block translation files with original data.\nAll previous edits in the translation files will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", default_yes=False)
             if not reply: return False
-            
+
             try:
                 log_debug("Reverting in Project Mode: Splitting blocks back to their original state")
                 blocks = self.mw.project_manager.project.blocks
                 success_all = True
-                
+
                 project_block_to_data_blocks = {}
                 for data_b_idx, p_b_idx in self.mw.block_to_project_file_map.items():
                     if p_b_idx not in project_block_to_data_blocks:
                         project_block_to_data_blocks[p_b_idx] = []
                     project_block_to_data_blocks[p_b_idx].append(data_b_idx)
-                
+
                 global_keys_backup = None
                 if hasattr(self.mw.current_game_rules, 'original_keys'):
                     global_keys_backup = list(self.mw.current_game_rules.original_keys)
- 
+
                 for p_b_idx, data_indices in project_block_to_data_blocks.items():
                     if p_b_idx >= len(blocks): continue
-                    
+
                     block = blocks[p_b_idx]
                     trans_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
-                    
+
                     # Extract original self.mw.data_store.data
                     file_data_list = [self.mw.data_store.data[d_idx] for d_idx in data_indices]
                     file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
- 
+
                     if global_keys_backup is not None:
                         sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
                         self.mw.current_game_rules.original_keys = sliced_keys
-                    
+
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
-                    
+
                     file_extension = Path(trans_path).suffix.lower()
                     if file_extension == '.json':
                         save_file_success = save_json_file(trans_path, final_obj_to_save)
@@ -1045,28 +1067,28 @@ class DataStateProcessor:
                             save_file_success = False
                     else:
                         save_file_success = save_text_file(trans_path, str(final_obj_to_save))
- 
+
                     if not save_file_success:
                         success_all = False
                         break
-                        
+
                 if success_all:
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
                     if global_keys_backup is not None:
                         self.mw.current_game_rules.original_keys = global_keys_backup
-                        
+
                     # Reload blocks
                     if hasattr(self.mw, 'project_action_handler') and self.mw.project_action_handler:
                         self.mw.project_action_handler._populate_blocks_from_project()
- 
+
                     self._show_message("Project Reverted", "All project translation files reverted successfully.", type="info")
                     return True
-                else: 
+                else:
                     if global_keys_backup is not None:
                         self.mw.current_game_rules.original_keys = global_keys_backup
                     return False
- 
+
             except Exception as e:
                 log_error(f"Unexpected error during project revert: {e}", exc_info=True)
                 self._show_message("Revert Error", f"Unexpected error during project revert:\n{e}", type="error")
@@ -1105,8 +1127,9 @@ class DataStateProcessor:
             if data_store:
                 # Create parent directories if they don't exist
                 session_path.parent.mkdir(parents=True, exist_ok=True)
+                snapshot = data_store.get_session_snapshot()
                 with session_path.open('wb') as f:
-                    pickle.dump(data_store, f)
+                    pickle.dump(snapshot, f)
                 self._session_dirty = False
                 log_debug(f"DSP: Session autosaved to {session_path}")
         except Exception as e:
@@ -1120,43 +1143,79 @@ class DataStateProcessor:
 
         try:
             with session_path.open('rb') as f:
-                restored_store = pickle.load(f)
-            
-            if restored_store and hasattr(self.mw, 'data_store') and self.mw.data_store:
-                # Copy properties to the existing data_store to preserve object references
-                for key, val in restored_store.__dict__.items():
-                    setattr(self.mw.data_store, key, val)
-                
+                snapshot = pickle.load(f)
+
+            # Support legacy session files that dumped the entire AppDataStore object
+            if snapshot and not isinstance(snapshot, dict):
+                restored_store = snapshot
+                snapshot = {
+                    "version": 1,
+                    "json_path": restored_store.__dict__.get("json_path"),
+                    "edited_json_path": restored_store.__dict__.get("edited_json_path"),
+                    "edited_data": dict(restored_store.__dict__.get("edited_data", {})),
+                    "current_block_idx": restored_store.__dict__.get("current_block_idx", -1),
+                    "_physical_block_idx": restored_store.__dict__.get("_physical_block_idx", -1),
+                    "current_string_idx": restored_store.__dict__.get("current_string_idx", -1),
+                    "selected_string_indices": restored_store.__dict__.get("selected_string_indices", []),
+                    "current_category_name": restored_store.__dict__.get("current_category_name"),
+                    "current_character_name": restored_store.__dict__.get("current_character_name"),
+                    "last_selected_block_index": restored_store.__dict__.get("last_selected_block_index", -1),
+                    "last_selected_string_index": restored_store.__dict__.get("last_selected_string_index", -1),
+                    "highlight_categorized": restored_store.__dict__.get("highlight_categorized", False),
+                    "hide_categorized": restored_store.__dict__.get("hide_categorized", False),
+                    "hide_translated": restored_store.__dict__.get("hide_translated", False),
+                    "hide_original_tags": restored_store.__dict__.get("hide_original_tags", False),
+                    "hide_translation_tags": restored_store.__dict__.get("hide_translation_tags", False),
+                    "show_overrides_only": restored_store.__dict__.get("show_overrides_only", False),
+                    "hide_empty_strings": restored_store.__dict__.get("hide_empty_strings", False),
+                    "show_unsaved_only": restored_store.__dict__.get("show_unsaved_only", False),
+                    "show_unsaved_blocks_only": restored_store.__dict__.get("show_unsaved_blocks_only", False),
+                    "show_warnings_only": restored_store.__dict__.get("show_warnings_only", False),
+                    "active_warning_filters": restored_store.__dict__.get("active_warning_filters", []),
+                    "undo_stack": restored_store.__dict__.get("undo_stack", []),
+                    "redo_stack": restored_store.__dict__.get("redo_stack", []),
+                    "block_names": restored_store.__dict__.get("block_names", {}),
+                    "unsaved_changes": restored_store.__dict__.get("unsaved_changes", False),
+                    "unsaved_block_indices": restored_store.__dict__.get("unsaved_block_indices", set()),
+                    "block_to_project_file_map": restored_store.__dict__.get("block_to_project_file_map", {}),
+                    "problems_per_subline": dict(restored_store.__dict__.get("problems_per_subline", {})),
+                }
+
+            if snapshot and hasattr(self.mw, 'data_store') and self.mw.data_store:
+                success = self.mw.data_store.restore_from_snapshot(snapshot)
+                if not success:
+                    return False
+
                 if hasattr(self.mw.data_store, 'block_to_project_file_map'):
                     self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
-                
+
                 log_info(f"DSP: Successfully restored entire project state from session file {session_path}")
-                
+
                 if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
                     self.mw.ui_updater.sync_filter_checkboxes_with_store()
-                
+
                 # Rebuild indices and refresh UI
                 if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'rebuild_unsaved_block_indices'):
                     self.mw.helper.rebuild_unsaved_block_indices()
-                
+
                 if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
                     self.mw.ui_updater.update_title()
                     self.mw.ui_updater.populate_blocks()
-                    
+
                     block_idx = self.mw.data_store.current_block_idx
                     category_name = self.mw.data_store.current_category_name
                     string_idx = self.mw.data_store.current_string_idx
-                    
+
                     if block_idx != -1:
                         tree_widget = getattr(self.mw, 'block_list_widget', None)
                         if tree_widget and hasattr(tree_widget, 'select_block_by_index'):
                             tree_widget.select_block_by_index(block_idx, category_name)
-                        
+
                         self.mw.ui_updater.populate_strings_for_block(block_idx, category_name, force=True)
-                        
+
                         if string_idx != -1:
                             self.mw.ui_updater.update_text_views()
-                
+
                 # Reset dirty flag and stop timer since loading shouldn't count as a new user change
                 self._session_dirty = False
                 if getattr(self, 'autosave_timer', None) is not None:
@@ -1203,7 +1262,7 @@ class DataStateProcessor:
             if on_finished_callback:
                 on_finished_callback(False)
             return False
-        if not self.mw.current_game_rules: 
+        if not self.mw.current_game_rules:
             self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
             if on_finished_callback:
                 on_finished_callback(False)
@@ -1217,7 +1276,7 @@ class DataStateProcessor:
         # Filter the edits to save
         original_edited_data = self.mw.data_store.edited_data.copy()
         filtered_edited_data = {k: v for k, v in original_edited_data.items() if k in strings_to_save}
-        
+
         if not filtered_edited_data:
             if ask_confirmation:
                 self._show_message("Save", "No changes to save for the selected items.", type="info")
@@ -1263,27 +1322,27 @@ class DataStateProcessor:
                     if on_finished_callback:
                         on_finished_callback(False)
                     return False
-                
+
                 # Restore remaining unsaved changes to memory
                 remaining_edits = {k: v for k, v in original_edited_data.items() if k not in filtered_edited_data}
                 self.mw.data_store.edited_data = remaining_edits
                 self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
                 self.mw.data_store.edited_file_data = output_data_list
-                
+
                 if hasattr(self.mw, 'helper'):
                     self.mw.helper.rebuild_unsaved_block_indices()
-                
+
                 if hasattr(self.mw, 'ui_updater'):
                     affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
                     for b_idx in affected_blocks:
                         self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                     self.mw.ui_updater.update_title()
-                    
+
                     if self.mw.data_store.current_block_idx in affected_blocks:
                         self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
                     if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
                         self.mw.ui_updater.block_list_updater.populate_blocks()
-                    
+
                 self._autosave_session(force=True)
                 if on_finished_callback:
                     on_finished_callback(True)
@@ -1296,23 +1355,23 @@ class DataStateProcessor:
                             self.mw.data_store.edited_data = remaining_edits
                             self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
                             self.mw.data_store.edited_file_data = output_data_list
-                            
+
                             if hasattr(self.mw, 'helper'):
                                 self.mw.helper.rebuild_unsaved_block_indices()
-                            
+
                             if hasattr(self.mw, 'ui_updater'):
                                 affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
                                 for b_idx in affected_blocks:
                                     self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                                 self.mw.ui_updater.update_title()
-                                
+
                                 if self.mw.data_store.current_block_idx in affected_blocks:
                                     self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
                                 if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
                                     self.mw.ui_updater.block_list_updater.populate_blocks()
-                                
+
                             self._autosave_session(force=True)
-                        
+
                         if on_finished_callback:
                             on_finished_callback(success)
 
@@ -1331,21 +1390,21 @@ class DataStateProcessor:
                     self.mw.data_store.edited_data = remaining_edits
                     self.mw.data_store.unsaved_changes = len(remaining_edits) > 0
                     self.mw.data_store.edited_file_data = output_data_list
-                    
+
                     if hasattr(self.mw, 'helper'):
                         self.mw.helper.rebuild_unsaved_block_indices()
-                    
+
                     if hasattr(self.mw, 'ui_updater'):
                         affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
                         for b_idx in affected_blocks:
                             self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                         self.mw.ui_updater.update_title()
-                        
+
                         if self.mw.data_store.current_block_idx in affected_blocks:
                             self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
                         if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
                             self.mw.ui_updater.block_list_updater.populate_blocks()
-                        
+
                     self._autosave_session(force=True)
                     if on_finished_callback:
                         on_finished_callback(True)
@@ -1358,3 +1417,128 @@ class DataStateProcessor:
             if on_finished_callback:
                 on_finished_callback(False)
             return False
+
+    # === Fast Filtering Indexes (A05) ===
+
+    def get_empty_set(self, block_idx: int) -> Set[int]:
+        """Get or build the set of empty string indices for the given block."""
+        store = self.mw.data_store
+        if block_idx < 0 or not store.data or block_idx >= len(store.data):
+            return set()
+
+        if block_idx not in store._index_empty:
+            empty_set = set()
+            block_data = store.data[block_idx]
+            if isinstance(block_data, list):
+                for s_idx in range(len(block_data)):
+                    orig_text = self._get_string_from_source(block_idx, s_idx, store.data, "readonly")
+                    edited_text, _ = self.get_current_string_text(block_idx, s_idx)
+                    is_empty = (not orig_text or not orig_text.strip()) and (not edited_text or not str(edited_text).strip())
+                    if is_empty:
+                        empty_set.add(s_idx)
+            store._index_empty[block_idx] = empty_set
+
+        return store._index_empty[block_idx]
+
+    def get_translated_set(self, block_idx: int) -> Set[int]:
+        """Get or build the set of translated string indices for the given block."""
+        store = self.mw.data_store
+        if block_idx < 0 or not store.data or block_idx >= len(store.data):
+            return set()
+
+        if block_idx not in store._index_translated:
+            trans_set = set()
+            block_data = store.data[block_idx]
+            if isinstance(block_data, list):
+                for s_idx in range(len(block_data)):
+                    if self.is_string_translated(block_idx, s_idx):
+                        trans_set.add(s_idx)
+            store._index_translated[block_idx] = trans_set
+
+        return store._index_translated[block_idx]
+
+    def get_unsaved_set(self, block_idx: int) -> Set[int]:
+        """Get or build the set of unsaved string indices for the given block."""
+        store = self.mw.data_store
+        if block_idx not in store._index_unsaved:
+            unsaved_set = set()
+            for b_idx, s_idx in store.edited_data.keys():
+                if b_idx == block_idx:
+                    unsaved_set.add(s_idx)
+            store._index_unsaved[block_idx] = unsaved_set
+
+        return store._index_unsaved[block_idx]
+
+    def get_overrides_set(self, block_idx: int) -> Set[int]:
+        """Get or build the set of override string indices for the given block."""
+        store = self.mw.data_store
+        if block_idx < 0 or not store.data or block_idx >= len(store.data):
+            return set()
+
+        if block_idx not in store._index_overrides:
+            overrides_set = set()
+            default_font = getattr(self.mw, 'default_font_file', None)
+            max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
+            metadata = getattr(self.mw, 'string_metadata', {})
+
+            for (b_idx, s_idx), meta in metadata.items():
+                if b_idx == block_idx:
+                    has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
+                    has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
+                    if has_font or has_width:
+                        overrides_set.add(s_idx)
+            store._index_overrides[block_idx] = overrides_set
+
+        return store._index_overrides[block_idx]
+
+    def get_categorized_set(self, block_idx: int) -> Set[int]:
+        """Get or build the set of categorized string indices for the given block."""
+        store = self.mw.data_store
+        if block_idx < 0:
+            return set()
+
+        if block_idx not in store._index_categorized:
+            categorized_set = set()
+            pm = getattr(self.mw, 'project_manager', None)
+            if pm and pm.project:
+                block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                proj_b_idx = block_map.get(block_idx, block_idx)
+                if isinstance(proj_b_idx, int) and proj_b_idx < len(pm.project.blocks):
+                    block = pm.project.blocks[proj_b_idx]
+                    categorized_set.update(block.get_categorized_line_indices())
+            store._index_categorized[block_idx] = categorized_set
+
+        return store._index_categorized[block_idx]
+
+    def ensure_index_warnings(self, block_idx: int):
+        """Helper to build warnings index if it is missing."""
+        store = self.mw.data_store
+        if block_idx not in store._index_warnings:
+            warn_dict = {}
+            for (b_idx, s_idx, subline_idx), problems in store.problems_per_subline.items():
+                if b_idx == block_idx:
+                    for p_id in problems:
+                        if p_id not in warn_dict:
+                            warn_dict[p_id] = set()
+                        warn_dict[p_id].add((s_idx, subline_idx))
+            store._index_warnings[block_idx] = warn_dict
+
+    def get_warnings_matching_set(self, block_idx: int, active_filters: List[str], detection_config: dict) -> Set[int]:
+        """Get the set of string indices matching active or enabled warnings."""
+        store = self.mw.data_store
+        if block_idx < 0:
+            return set()
+
+        self.ensure_index_warnings(block_idx)
+        warn_dict = store._index_warnings[block_idx]
+
+        matching_strings = set()
+        if active_filters:
+            for p_id in active_filters:
+                if p_id in warn_dict:
+                    matching_strings.update(s_idx for s_idx, _ in warn_dict[p_id])
+        else:
+            for p_id, occurrences in warn_dict.items():
+                if detection_config.get(p_id, True):
+                    matching_strings.update(s_idx for s_idx, _ in occurrences)
+        return matching_strings

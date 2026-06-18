@@ -28,18 +28,18 @@ class ProjectLoadWorker(QThread):
     def run(self):
         try:
             self.project_manager.clear_archive_cache()
-            
+
             data = []
             block_names = {}
             block_to_project_file_map = {}
             source_parsed_counts = []
-            
+
             total_blocks = len(self.blocks)
-            
+
             # Load block source data
             for project_block_idx, block in enumerate(self.blocks):
                 self.progress.emit(project_block_idx, total_blocks * 2)
-                
+
                 is_archive = block.metadata.get('is_archive_member', False)
                 archive_rel_path = block.metadata.get('archive_rel_path')
                 inner_path = block.metadata.get('archive_file_name')
@@ -92,14 +92,14 @@ class ProjectLoadWorker(QThread):
                         parsed_data, names = [], {}
                     else:
                         parsed_data, names = self.current_game_rules.load_data_from_json_obj(file_content)
-                    
+
                     if block.internal_key:
                         sub_idx = -1
                         for i, name in names.items():
                             if name == block.internal_key:
                                 sub_idx = int(i)
                                 break
-                        
+
                         if sub_idx != -1 and sub_idx < len(parsed_data):
                             data_block_idx = len(data)
                             data.append(parsed_data[sub_idx])
@@ -115,12 +115,12 @@ class ProjectLoadWorker(QThread):
                     else:
                         count = len(parsed_data) if parsed_data else 1
                         source_parsed_counts.append(count)
-                        
+
                         for sub_block_idx, block_content in enumerate(parsed_data):
                             data_block_idx = len(data)
                             data.append(block_content)
                             block_to_project_file_map[data_block_idx] = project_block_idx
-                            
+
                             if count > 1:
                                 p_name = names.get(str(sub_block_idx), f"{block.name} (Part {sub_block_idx+1})")
                                 block_names[str(data_block_idx)] = p_name
@@ -142,11 +142,11 @@ class ProjectLoadWorker(QThread):
             edited_file_data = []
             for project_block_idx, block in enumerate(self.blocks):
                 self.progress.emit(total_blocks + project_block_idx, total_blocks * 2)
-                
+
                 is_archive = block.metadata.get('is_archive_member', False)
                 archive_rel_path = block.metadata.get('archive_rel_path')
                 inner_path = block.metadata.get('archive_file_name')
-                
+
                 expected_count = source_parsed_counts[project_block_idx]
                 file_content = None
                 error = None
@@ -192,7 +192,7 @@ class ProjectLoadWorker(QThread):
                                     file_content_src = Path(source_path).read_bytes()
                         except Exception:
                             pass
-                        
+
                         if file_content_src is not None:
                             try:
                                 parsed_edited_data, _ = self.current_game_rules.load_data_from_json_obj(file_content_src)
@@ -380,7 +380,7 @@ class ProjectActionHandler(BaseHandler):
 
             # Update UI
             self.ui_updater.update_title()
-            
+
             def on_created(state_restored):
                 QMessageBox.information(
                     self.mw,
@@ -454,12 +454,12 @@ class ProjectActionHandler(BaseHandler):
 
             # Update UI
             self.ui_updater.update_title()
-            
+
             def on_opened(state_restored):
                 if hasattr(self.mw, 'bookmark_handler'):
                     self.mw.bookmark_handler.update_bookmarks_menu()
                 log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
-                
+
             self._populate_blocks_from_project(on_completed=on_opened)
         else:
             QMessageBox.critical(
@@ -484,7 +484,7 @@ class ProjectActionHandler(BaseHandler):
         self.mw.data_store.json_path = None
         self.mw.data_store.edited_json_path = None
         self.mw.last_opened_path = ""
-        
+
         # Reset plugin
         self.mw.active_game_plugin = ""
         self.mw.load_game_plugin()
@@ -493,7 +493,7 @@ class ProjectActionHandler(BaseHandler):
             self.mw.settings_manager.set("last_opened_path", "")
             self.mw.settings_manager.set("active_game_plugin", "")
             self.mw.settings_manager.save_settings(save_project_settings=False)
-        
+
         if hasattr(self.mw, 'bookmark_handler'):
             self.mw.bookmarks = self.mw.settings_manager.get('bookmarks', [])
             self.mw.bookmark_handler.update_bookmarks_menu()
@@ -603,7 +603,7 @@ class ProjectActionHandler(BaseHandler):
         block_idx = current_item.data(0, Qt.UserRole)
         folder_id = current_item.data(0, Qt.UserRole + 1)
         pm = self.mw.project_manager
-        
+
         # Determine what we are deleting
         if block_idx is not None:
             # IT IS A BLOCK
@@ -641,14 +641,14 @@ class ProjectActionHandler(BaseHandler):
                 if undo_mgr and before is not None:
                     undo_mgr.record_structural_action(before, 'DELETE_BLOCK', f"Delete block '{block_name}'")
                 log_info(f"Block '{block_name}' removed from project.")
-                
+
                 if neighbor:
                     self.mw.block_list_widget.setCurrentItem(neighbor)
-                
+
                 self._populate_blocks_from_project()
             else:
                 QMessageBox.critical(self.mw, "Delete Error", "Failed to remove block.")
-                
+
         elif folder_id is not None:
             self.mw.virtual_folder_handler.delete_folder_action(folder_id, current_item)
 
@@ -674,27 +674,6 @@ class ProjectActionHandler(BaseHandler):
                 on_completed(False)
             return
 
-        # Check if we can restore from local session file instead of parsing raw files
-        if hasattr(self.data_processor, 'load_session_file') and self.data_processor.load_session_file() is True:
-            log_info("Project state successfully restored from session file.")
-            
-            if hasattr(self.mw.data_store, 'block_to_project_file_map'):
-                self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
-                
-            if self.mw.project_manager.project.blocks:
-                first_block = self.mw.project_manager.project.blocks[0]
-                self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
-                self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
-                
-            self.mw.project_manager.clear_archive_cache()
-            
-            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
-                self.mw.translation_handler.load_progress_from_metadata()
-                
-            if on_completed:
-                on_completed(True)
-            return
-
         # Reset block/string selection state to avoid stale index issues
         self.mw.data_store.current_block_idx = -1
         self.mw.data_store.current_string_idx = -1
@@ -705,14 +684,14 @@ class ProjectActionHandler(BaseHandler):
         self.mw.data_store.edited_data = {}
         self.mw.data_store.block_names = {}
         self.mw.block_to_project_file_map = {} # Mapping data_block_idx -> project_block_idx
-        
+
         # Reset plugin state if it tracks keys (like pokemon_fr)
         if hasattr(self.mw.current_game_rules, 'original_keys'):
             self.mw.current_game_rules.original_keys = []
 
         # Setup loading thread and progress dialog
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
-        
+
         import sys
         progress_dialog = None
         if 'pytest' not in sys.modules:
@@ -766,6 +745,17 @@ class ProjectActionHandler(BaseHandler):
             if hasattr(self.ui_updater, 'preview_updater'):
                 self.ui_updater.preview_updater.schedule_pre_cache()
 
+            session_loaded = False
+            if hasattr(self.data_processor, 'load_session_file'):
+                session_loaded = self.data_processor.load_session_file()
+                if session_loaded:
+                    log_info("Project state successfully restored from session file.")
+
+            if session_loaded:
+                if on_completed:
+                    on_completed(True)
+                return
+
             # Update UI
             self.ui_updater.populate_blocks()
             self.ui_updater.update_statusbar_paths()
@@ -779,7 +769,7 @@ class ProjectActionHandler(BaseHandler):
                     state = self.mw.project_manager.project.metadata.get("session_state")
                 if not state:
                     state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
-                    
+
                 if state and (state.get("selected_id") or state.get("expanded_ids")):
                     log_info(f"Restoring project UI state for {p_path}")
                     self.ui_updater.apply_tree_state(state)
@@ -791,7 +781,7 @@ class ProjectActionHandler(BaseHandler):
         # Store worker reference to prevent garbage collection
         self._active_load_worker = worker
         worker.finished.connect(on_finished)
-        
+
         if 'pytest' in sys.modules:
             worker.run()
         else:
@@ -893,7 +883,7 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.settings_manager.load_all_font_maps()
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_font_combobox()
-            
+
             # Fetch restored values for the timer
             restored_block = getattr(self.mw, 'last_block_idx', 0)
             restored_cat = getattr(self.mw, 'last_category_name', None)
@@ -906,11 +896,11 @@ class ProjectActionHandler(BaseHandler):
 
             # 6. Populate UI components with the new project data
             self.ui_updater.update_title()
-            
+
             def on_recent_opened(state_restored):
                 if hasattr(self.mw, 'bookmark_handler'):
                     self.mw.bookmark_handler.update_bookmarks_menu()
-                
+
                 log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
 
                 # 6. Final UI polish: select the last block/category after QTreeWidget has settled
@@ -920,7 +910,7 @@ class ProjectActionHandler(BaseHandler):
                         log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
                         if hasattr(self.mw, 'block_list_widget'):
                             self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
-                        
+
                         # These calls refresh the string list and editors
                         self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
                         self.ui_updater.update_statusbar_paths()

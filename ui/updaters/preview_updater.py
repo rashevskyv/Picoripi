@@ -1,5 +1,6 @@
 from typing import Optional
 import re
+from collections import OrderedDict
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QTextCursor
 from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, remove_all_tags, calculate_strict_string_width
@@ -13,9 +14,25 @@ class PreviewUpdater(BaseUIUpdater):
     def __init__(self, main_window, data_processor):
         """Initialize a new instance."""
         super().__init__(main_window, data_processor)
-        self._preview_cache = {}
+        self._preview_cache_data = OrderedDict()
+        self.MAX_CACHE_SIZE = 15
+        self._idle_cache_queue = []
+        self._idle_timer = None
         self._active_progress_dialog = None
         self._keep_progress_dialog_open = False
+
+    @property
+    def _preview_cache(self) -> OrderedDict:
+        if not hasattr(self, '_preview_cache_data'):
+            self._preview_cache_data = OrderedDict()
+        return self._preview_cache_data
+
+    @_preview_cache.setter
+    def _preview_cache(self, value):
+        if isinstance(value, dict) and not isinstance(value, OrderedDict):
+            self._preview_cache_data = OrderedDict(value)
+        else:
+            self._preview_cache_data = value
 
     def get_cache_key(self, block_idx: int, category_name: Optional[str]) -> tuple:
         """Get the cache key."""
@@ -38,6 +55,8 @@ class PreviewUpdater(BaseUIUpdater):
                         cache_idx = target_indices.index(target_item)
                         if 0 <= cache_idx < len(cache['lines']):
                             cache['lines'][cache_idx] = preview_line_text
+                            if hasattr(self._preview_cache, 'move_to_end'):
+                                self._preview_cache.move_to_end(key)
                     except ValueError:
                         pass
 
@@ -47,7 +66,7 @@ class PreviewUpdater(BaseUIUpdater):
             return False
         default_font = getattr(self.mw, 'default_font_file', None)
         max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
-        
+
         is_chapter = (block_idx == -2)
         if is_chapter:
             target_indices = getattr(self.mw.data_store, 'chapter_mappings', [])
@@ -86,50 +105,116 @@ class PreviewUpdater(BaseUIUpdater):
         if total_blocks == 0:
             return
 
-        from PyQt6.QtWidgets import QProgressDialog, QApplication, QWidget
-        from PyQt6.QtCore import Qt
-
-        parent_widget = self.mw if isinstance(self.mw, QWidget) else None
-        progress = QProgressDialog("Caching block preview data...", "Cancel", 0, total_blocks, parent_widget)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(500)
-        progress.setValue(0)
-
+        from PyQt6.QtWidgets import QApplication
         is_test = hasattr(self.mw, '_mock_self') or not isinstance(QApplication.instance(), QApplication)
-        if not is_test:
-            QApplication.processEvents()
 
-        for block_idx in range(total_blocks):
-            if progress.wasCanceled():
-                break
+        if is_test:
+            # Synchronous caching for testing without QProgressDialog or QApplication.processEvents()
+            for block_idx in range(total_blocks):
+                block_data = self.mw.data_store.data[block_idx]
+                if not isinstance(block_data, list):
+                    continue
 
+                target_indices = list(range(len(block_data)))
+                preview_lines = []
+
+                for real_idx in target_indices:
+                    text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+                    if self.mw.current_game_rules:
+                        preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+                    else:
+                        preview_line_text = str(text_for_preview_raw)
+                    preview_lines.append(preview_line_text)
+
+                cache_key = self.get_cache_key(block_idx, None)
+                self._preview_cache[cache_key] = {
+                    'lines': preview_lines,
+                    'next_index': len(target_indices),
+                    'target_indices': target_indices
+                }
+                self._preview_cache.move_to_end(cache_key)
+                if len(self._preview_cache) > self.MAX_CACHE_SIZE:
+                    self._preview_cache.popitem(last=False)
+        else:
+            self._start_idle_caching()
+
+    def _start_idle_caching(self):
+        """Start background caching of blocks in idle mode using a timer."""
+        if not self.mw.data_store.data:
+            return
+
+        current = getattr(self.mw.data_store, 'current_block_idx', -1)
+        total = len(self.mw.data_store.data)
+
+        # Build list of blocks sorted by distance from current block
+        queue = []
+        if 0 <= current < total:
+            queue.append(current)
+        for i in range(1, total):
+            left = current - i
+            right = current + i
+            if 0 <= left < total and left not in queue:
+                queue.append(left)
+            if 0 <= right < total and right not in queue:
+                queue.append(right)
+
+        for idx in range(total):
+            if idx not in queue:
+                queue.append(idx)
+
+        self._idle_cache_queue = queue
+
+        if not self._idle_timer:
+            from PyQt6.QtCore import QObject
+            timer_parent = self.mw if isinstance(self.mw, QObject) else None
+            self._idle_timer = QTimer(timer_parent)
+            self._idle_timer.setInterval(200)
+            self._idle_timer.timeout.connect(self._cache_next_idle_block)
+
+        self._idle_timer.start()
+
+    def _cache_next_idle_block(self):
+        """Cache next block in background thread scheduler."""
+        if not self._idle_cache_queue:
+            if self._idle_timer:
+                self._idle_timer.stop()
+            return
+
+        block_idx = self._idle_cache_queue.pop(0)
+        if block_idx < 0 or block_idx >= len(self.mw.data_store.data):
+            return
+
+        cache_key = self.get_cache_key(block_idx, None)
+        if cache_key in self._preview_cache:
+            self._preview_cache.move_to_end(cache_key)
+            cache = self._preview_cache[cache_key]
             block_data = self.mw.data_store.data[block_idx]
-            if not isinstance(block_data, list):
-                continue
+            if isinstance(block_data, list) and cache.get('next_index', 0) >= len(block_data):
+                return
 
-            target_indices = list(range(len(block_data)))
-            preview_lines = []
+        block_data = self.mw.data_store.data[block_idx]
+        if not isinstance(block_data, list):
+            return
 
-            for real_idx in target_indices:
-                text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
-                if self.mw.current_game_rules:
-                    preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                else:
-                    preview_line_text = str(text_for_preview_raw)
-                preview_lines.append(preview_line_text)
+        target_indices = list(range(len(block_data)))
+        preview_lines = []
 
-            cache_key = self.get_cache_key(block_idx, None)
-            self._preview_cache[cache_key] = {
-                'lines': preview_lines,
-                'next_index': len(target_indices),
-                'target_indices': target_indices
-            }
+        for real_idx in target_indices:
+            text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
+            if self.mw.current_game_rules:
+                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
+            else:
+                preview_line_text = str(text_for_preview_raw)
+            preview_lines.append(preview_line_text)
 
-            progress.setValue(block_idx + 1)
-            if not is_test:
-                QApplication.processEvents()
-
-        progress.close()
+        self._preview_cache[cache_key] = {
+            'lines': preview_lines,
+            'next_index': len(target_indices),
+            'target_indices': target_indices
+        }
+        self._preview_cache.move_to_end(cache_key)
+        if len(self._preview_cache) > self.MAX_CACHE_SIZE:
+            self._preview_cache.popitem(last=False)
 
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         """Highlights a glossary occurrence in the original_text_edit."""
@@ -141,11 +226,11 @@ class PreviewUpdater(BaseUIUpdater):
             return
 
         editor.highlightManager.clear_search_match_highlights()
-        
+
         block_number = occurrence.line_idx
         start_char = occurrence.start
         length = occurrence.end - occurrence.start
-        
+
         editor.highlightManager.add_search_match_highlight(block_number, start_char, length)
 
     def synchronize_original_cursor(self):
@@ -153,11 +238,11 @@ class PreviewUpdater(BaseUIUpdater):
         if not hasattr(self.mw, 'edited_text_edit') or not hasattr(self.mw, 'original_text_edit') or \
            not self.mw.edited_text_edit or not self.mw.original_text_edit:
             return
-        
+
         if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1 or \
-           not self.mw.edited_text_edit.document().toPlainText(): 
+           not self.mw.edited_text_edit.document().toPlainText():
             if hasattr(self.mw.original_text_edit, 'highlightManager'):
-                self.mw.original_text_edit.highlightManager.setLinkedCursorPosition(-1, -1) 
+                self.mw.original_text_edit.highlightManager.setLinkedCursorPosition(-1, -1)
             return
 
         edited_cursor = self.mw.edited_text_edit.textCursor()
@@ -187,7 +272,7 @@ class PreviewUpdater(BaseUIUpdater):
             return
 
         preview_edit.highlightManager.clearAllProblemHighlights()
-        
+
         is_chapter = (block_idx == -2)
         is_speaker = (block_idx == -3)
         is_virtual = is_chapter or is_speaker
@@ -225,7 +310,7 @@ class PreviewUpdater(BaseUIUpdater):
             else:
                 if real_idx in problem_string_indices:
                     preview_edit.addProblemLineHighlight(preview_idx)
-        
+
         # Highlight categorized strings if enabled
         if not is_chapter and getattr(self.mw.data_store, 'highlight_categorized', False) and not self.mw.data_store.current_category_name:
             categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
@@ -244,12 +329,12 @@ class PreviewUpdater(BaseUIUpdater):
         """Internal helper to apply highlights to editor."""
         if not editor or not hasattr(editor, 'highlightManager'):
             return
-        
+
         editor.highlightManager.clearAllProblemHighlights()
-        
+
         if not getattr(self.mw, 'warnings_enabled', True):
             return
-            
+
         from unittest.mock import Mock
         if isinstance(block_idx, Mock) or isinstance(string_idx, Mock):
             return
@@ -271,12 +356,12 @@ class PreviewUpdater(BaseUIUpdater):
                             break
                         elif "color" in def_:
                              warning_color = def_["color"]
-                    
+
                     if is_critical:
                         editor.highlightManager.addCriticalProblemHighlight(i)
                     else:
                         editor.highlightManager.addWarningLineHighlight(i, warning_color)
-                        
+
             # Also check for specific highlights that have their own methods in HighlightManager
             if problem_key in self.mw.data_store.problems_per_subline:
                  problems = self.mw.data_store.problems_per_subline[problem_key]
@@ -288,20 +373,20 @@ class PreviewUpdater(BaseUIUpdater):
             if editor.objectName() == "edited_text_edit":
                 block = doc.findBlockByNumber(i)
                 q_block_text_raw_dots = block.text()
-                
+
                 string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
                 current_threshold_game_px = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
-                
+
                 line_text_with_spaces_and_tags = convert_dots_to_spaces_from_editor(q_block_text_raw_dots)
                 line_text_no_tags_for_width_calc = remove_all_tags(line_text_with_spaces_and_tags).rstrip()
-                
+
                 if line_text_with_spaces_and_tags.rstrip():
                     font_map_for_line = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
                     visual_line_width_game_px = calculate_string_width(line_text_with_spaces_and_tags.rstrip(), font_map_for_line, default_tag_mappings=getattr(self.mw, 'default_tag_mappings', None))
-                    
+
                     if visual_line_width_game_px > current_threshold_game_px:
                         words_in_no_tag_segment = [{'text': match.group(0), 'start_idx_in_segment': match.start()} for match in re.finditer(r'\S+', line_text_no_tags_for_width_calc)]
-                        
+
                         target_char_index_in_no_tag_segment = 0
                         if words_in_no_tag_segment:
                             found_target_word = False
@@ -314,7 +399,7 @@ class PreviewUpdater(BaseUIUpdater):
                                     break
                             if not found_target_word:
                                 target_char_index_in_no_tag_segment = 0
-                                
+
                         # Use same logic to map back to raw text index
                         if hasattr(editor, 'paint_helpers'):
                             actual_char_index = editor.paint_helpers._map_no_tag_index_to_raw_text_index(
@@ -323,7 +408,7 @@ class PreviewUpdater(BaseUIUpdater):
                                 target_char_index_in_no_tag_segment
                             )
                             # Add highlight
-                            highlight_color = QColor("#90EE90") 
+                            highlight_color = QColor("#90EE90")
                             editor.highlightManager.add_width_exceed_char_highlight(block, actual_char_index, highlight_color)
 
 
@@ -332,11 +417,11 @@ class PreviewUpdater(BaseUIUpdater):
         if block_idx < 0: return set()
         pm = getattr(self.mw, 'project_manager', None)
         if not pm or not pm.project: return set()
-        
+
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         proj_b_idx = block_map.get(block_idx, block_idx)
         if not isinstance(proj_b_idx, int) or proj_b_idx >= len(pm.project.blocks): return set()
-        
+
         block = pm.project.blocks[proj_b_idx]
         categorized_indices = set()
         for cat in block.categories:
@@ -374,7 +459,7 @@ class PreviewUpdater(BaseUIUpdater):
         edited_edit = getattr(self.mw, 'edited_text_edit', None)
 
         old_preview_scrollbar_value = preview_edit.verticalScrollBar().value() if preview_edit else 0
-        
+
         _saved_programmatic_flag = self.mw.is_programmatically_changing_text
         self.mw.is_programmatically_changing_text = True
         self.mw.data_store.current_category_name = category_name
@@ -433,11 +518,11 @@ class PreviewUpdater(BaseUIUpdater):
                 if preview_edit.toPlainText() != "": preview_edit.setPlainText("")
             if original_edit and original_edit.toPlainText() != "": original_edit.setPlainText("")
             if edited_edit and edited_edit.toPlainText() != "": edited_edit.setPlainText("")
-            self.update_text_views(); self.synchronize_original_cursor() 
+            self.update_text_views(); self.synchronize_original_cursor()
             if preview_edit: preview_edit.verticalScrollBar().setValue(old_preview_scrollbar_value)
-            self.mw.is_programmatically_changing_text = False 
+            self.mw.is_programmatically_changing_text = False
             return
-        
+
         if preview_edit and self.mw.current_game_rules:
             # Determine which indices to show
             target_indices = []
@@ -457,91 +542,60 @@ class PreviewUpdater(BaseUIUpdater):
                 target_indices = list(range(len(data_source[block_idx])))
                 # Filter out categorized if "Hide moved" is enabled
                 if getattr(self.mw.data_store, 'hide_categorized', False):
-                    categorized_indices = self._get_all_categorized_indices_for_block(block_idx)
+                    categorized_indices = self.data_processor.get_categorized_set(block_idx)
                     target_indices = [idx for idx in target_indices if idx not in categorized_indices]
-            
+
             # Re-verify indices are within bounds
             if is_virtual:
                 target_indices = [
-                    i for i in target_indices 
-                    if isinstance(i, tuple) and len(i) == 2 and 
-                       0 <= i[0] < len(data_source) and 
+                    i for i in target_indices
+                    if isinstance(i, tuple) and len(i) == 2 and
+                       0 <= i[0] < len(data_source) and
                        0 <= i[1] < len(data_source[i[0]])
                 ]
             else:
                 target_indices = [i for i in target_indices if 0 <= i < len(data_source[block_idx])]
 
             if getattr(self.mw.data_store, 'hide_translated', False) is True:
-                filtered_indices = []
-                for idx in target_indices:
-                    if is_virtual:
-                        b_idx, s_idx = idx
-                    else:
-                        b_idx = block_idx
-                        s_idx = idx
-                    if not self.data_processor.is_string_translated(b_idx, s_idx):
-                        filtered_indices.append(idx)
-                target_indices = filtered_indices
+                if is_virtual:
+                    target_indices = [
+                        idx for idx in target_indices
+                        if idx[1] not in self.data_processor.get_translated_set(idx[0])
+                    ]
+                else:
+                    trans_set = self.data_processor.get_translated_set(block_idx)
+                    target_indices = [idx for idx in target_indices if idx not in trans_set]
 
             if getattr(self.mw.data_store, 'show_overrides_only', False) is True:
-                filtered_indices = []
-                default_font = getattr(self.mw, 'default_font_file', None)
-                max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
-                for idx in target_indices:
-                    if is_virtual:
-                        b_idx, s_idx = idx
-                    else:
-                        b_idx = block_idx
-                        s_idx = idx
-                    meta = self.mw.string_metadata.get((b_idx, s_idx), {})
-                    has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
-                    has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
-                    if has_font or has_width:
-                        filtered_indices.append(idx)
-                target_indices = filtered_indices
+                if is_virtual:
+                    target_indices = [
+                        idx for idx in target_indices
+                        if idx[1] in self.data_processor.get_overrides_set(idx[0])
+                    ]
+                else:
+                    overrides_set = self.data_processor.get_overrides_set(block_idx)
+                    target_indices = [idx for idx in target_indices if idx in overrides_set]
 
             if getattr(self.mw.data_store, 'show_unsaved_only', False) is True:
-                filtered_indices = []
-                for idx in target_indices:
-                    if is_virtual:
-                        b_idx, s_idx = idx
-                    else:
-                        b_idx = block_idx
-                        s_idx = idx
-                    if (b_idx, s_idx) in self.mw.data_store.edited_data:
-                        filtered_indices.append(idx)
-                target_indices = filtered_indices
+                if is_virtual:
+                    target_indices = [
+                        idx for idx in target_indices
+                        if idx[1] in self.data_processor.get_unsaved_set(idx[0])
+                    ]
+                else:
+                    unsaved_set = self.data_processor.get_unsaved_set(block_idx)
+                    target_indices = [idx for idx in target_indices if idx in unsaved_set]
 
             if getattr(self.mw.data_store, 'show_warnings_only', False) is True:
                 active_filters = getattr(self.mw.data_store, 'active_warning_filters', [])
-                filtered_indices = []
-                for idx in target_indices:
-                    if is_virtual:
-                        b_idx, s_idx = idx
-                    else:
-                        b_idx = block_idx
-                        s_idx = idx
-                    
-                    has_matching_problem = False
-                    
-                    if active_filters:
-                        # Check all sublines of this string for the selected warnings
-                        for key, problems in self.mw.data_store.problems_per_subline.items():
-                            if key[0] == b_idx and key[1] == s_idx:
-                                if any(p_id in active_filters for p_id in problems):
-                                    has_matching_problem = True
-                                    break
-                    else:
-                        # If no specific filters are selected, show strings with ANY enabled warning
-                        for key, problems in self.mw.data_store.problems_per_subline.items():
-                            if key[0] == b_idx and key[1] == s_idx:
-                                if any(detection_config.get(p_id, True) for p_id in problems):
-                                    has_matching_problem = True
-                                    break
-                                    
-                    if has_matching_problem:
-                        filtered_indices.append(idx)
-                target_indices = filtered_indices
+                if is_virtual:
+                    target_indices = [
+                        idx for idx in target_indices
+                        if idx[1] in self.data_processor.get_warnings_matching_set(idx[0], active_filters, detection_config)
+                    ]
+                else:
+                    matching_set = self.data_processor.get_warnings_matching_set(block_idx, active_filters, detection_config)
+                    target_indices = [idx for idx in target_indices if idx in matching_set]
 
             # Check if displayed indices actually changed (for "Hide moved" toggle)
             old_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
@@ -557,9 +611,10 @@ class PreviewUpdater(BaseUIUpdater):
                     s_idx = idx
                     if isinstance(idx, tuple):
                         b_idx, s_idx = idx
-                    orig_text = self.data_processor._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "readonly")
-                    edited_text, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
-                    is_empty = (not orig_text or not orig_text.strip()) and (not edited_text or not str(edited_text).strip())
+
+                    empty_set = self.data_processor.get_empty_set(b_idx)
+                    is_empty = s_idx in empty_set
+
                     if is_empty:
                         streak_indices.append(idx)
                     else:
@@ -634,10 +689,11 @@ class PreviewUpdater(BaseUIUpdater):
             # Generate full text if block changed OR if the subset of strings changed (e.g. Hide moved toggled) OR force refresh
             if should_regenerate:
                 cache_key = self.get_cache_key(block_idx, category_name)
-                
-                # If force refresh but the block/category didn't change, preserve the 
+
+                # If force refresh but the block/category didn't change, preserve the
                 # lazy-loaded state (next_index) so the scroll position can be restored accurately.
                 if force and not block_changed and cache_key in self._preview_cache:
+                    self._preview_cache.move_to_end(cache_key)
                     cache = self._preview_cache[cache_key]
                     if cache.get('target_indices') == target_indices:
                         for idx_offset in range(cache['next_index']):
@@ -668,19 +724,20 @@ class PreviewUpdater(BaseUIUpdater):
                 else:
                     initial_chunk_size = max(200, preview_idx_to_select + 50, approx_visible_lines)
                     initial_chunk_size = min(initial_chunk_size, len(target_indices))
-                
+
                 use_cache = False
                 if cache_key in self._preview_cache:
+                    self._preview_cache.move_to_end(cache_key)
                     cache = self._preview_cache[cache_key]
                     if cache.get('target_indices') == target_indices:
                         use_cache = True
-                
+
                 self._lazy_load_block_idx = block_idx
                 self._lazy_load_target_indices = target_indices
 
                 doc = preview_edit.document()
                 is_mock_doc = hasattr(doc, '_mock_self') and not getattr(self, '_force_progress_for_testing', False)
-                
+
                 # Determine if we need chunked first step with progress dialog
                 use_chunked_first_step = (getattr(self, '_load_fully_synchronously', False) or initial_chunk_size > 150) and not is_mock_doc
 
@@ -689,7 +746,7 @@ class PreviewUpdater(BaseUIUpdater):
 
                 if len(target_indices) >= initial_chunk_size or getattr(self, '_load_fully_synchronously', False):
                     self._lazy_load_next_index = initial_chunk_size
-                    
+
                     if not use_chunked_first_step:
                         # Quick path for small block / first chunk (directly sets populated text to avoid QTextCursor)
                         preview_lines = []
@@ -698,7 +755,7 @@ class PreviewUpdater(BaseUIUpdater):
                                 preview_line_text = None
                                 if use_cache and line_idx < len(cache['lines']) and line_idx < cache.get('next_index', 0):
                                     preview_line_text = cache['lines'][line_idx]
-                                
+
                                 if preview_line_text is None or preview_line_text == "":
                                     real_idx = target_indices[line_idx]
                                     if real_idx == -1:
@@ -710,20 +767,20 @@ class PreviewUpdater(BaseUIUpdater):
                                             b_idx, s_idx = real_idx
                                         text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                         preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                                    
+
                                     if use_cache and line_idx < len(cache['lines']):
                                         cache['lines'][line_idx] = preview_line_text
                                 preview_lines.append(preview_line_text)
                             else:
                                 preview_lines.append("")
-                        
+
                         preview_full_text = "\n".join(preview_lines)
                         if preview_edit.toPlainText() != preview_full_text:
                             preview_edit.setPlainText(preview_full_text)
-                        
+
                         if use_cache:
                             cache['next_index'] = max(cache.get('next_index', 0), initial_chunk_size)
-                        
+
                         if initial_chunk_size < len(target_indices):
                             self._lazy_load_timer.start(15)
                     else:
@@ -733,7 +790,7 @@ class PreviewUpdater(BaseUIUpdater):
                         preview_full_text = "\n".join(preview_lines)
                         if preview_edit.toPlainText() != preview_full_text:
                             preview_edit.setPlainText(preview_full_text)
-                        
+
                         # Determine if we should show progress
                         show_progress = initial_chunk_size > 150 or getattr(self, '_load_fully_synchronously', False)
                         progress = None
@@ -745,14 +802,14 @@ class PreviewUpdater(BaseUIUpdater):
                             progress.setWindowModality(Qt.WindowModality.WindowModal)
                             progress.setMinimumDuration(0) # Show immediately
                             progress.setValue(0)
-                            
+
                             # Safely show progress dialog if it's not a MagicMock
                             is_mock_progress = hasattr(progress, '_mock_self')
                             if not is_mock_progress:
                                 progress.show()
                                 progress.raise_()
                             QApplication.processEvents()
-                            
+
                         # Initialize cache structure if not exists
                         if not use_cache:
                             cache = {
@@ -761,27 +818,31 @@ class PreviewUpdater(BaseUIUpdater):
                                 'target_indices': target_indices
                             }
                             self._preview_cache[cache_key] = cache
+                            self._preview_cache.move_to_end(cache_key)
+                            if len(self._preview_cache) > self.MAX_CACHE_SIZE:
+                                self._preview_cache.popitem(last=False)
                         else:
+                            self._preview_cache.move_to_end(cache_key)
                             cache = self._preview_cache[cache_key]
-                            
+
                         doc = preview_edit.document()
                         is_mock_doc = hasattr(doc, '_mock_self')
                         cursor = None if is_mock_doc else QTextCursor(doc)
-                        
+
                         try:
                             chunk_size = 100
                             for start_offset in range(0, initial_chunk_size, chunk_size):
                                 if progress and progress.wasCanceled():
                                     break
-                                    
+
                                 end_offset = min(start_offset + chunk_size, initial_chunk_size)
                                 chunk_lines = []
-                                
+
                                 for line_idx in range(start_offset, end_offset):
                                     preview_line_text = None
                                     if line_idx < len(cache['lines']) and line_idx < cache.get('next_index', 0):
                                         preview_line_text = cache['lines'][line_idx]
-                                        
+
                                     if preview_line_text is None or preview_line_text == "":
                                         real_idx = target_indices[line_idx]
                                         if real_idx == -1:
@@ -793,12 +854,12 @@ class PreviewUpdater(BaseUIUpdater):
                                                 b_idx, s_idx = real_idx
                                             text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                             preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                                            
+
                                         if line_idx < len(cache['lines']):
                                             cache['lines'][line_idx] = preview_line_text
-                                            
+
                                     chunk_lines.append(preview_line_text)
-                                    
+
                                 # Insert chunk into document
                                 if cursor:
                                     cursor.beginEditBlock()
@@ -810,9 +871,9 @@ class PreviewUpdater(BaseUIUpdater):
                                             cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
                                             cursor.insertText(preview_line_text)
                                     cursor.endEditBlock()
-                                
+
                                 cache['next_index'] = max(cache.get('next_index', 0), end_offset)
-                                
+
                                 if progress:
                                     progress.setValue(end_offset)
                                     QApplication.processEvents()
@@ -821,13 +882,14 @@ class PreviewUpdater(BaseUIUpdater):
                                 progress.close()
                             elif progress:
                                 self._active_progress_dialog = progress
-                            
+
                         if initial_chunk_size < len(target_indices):
                             self._lazy_load_timer.start(15)
                 else:
 
                     # Small block, load everything at once
                     if use_cache:
+                        self._preview_cache.move_to_end(cache_key)
                         cache = self._preview_cache[cache_key]
                         preview_full_text = "\n".join(cache['lines'])
                         if preview_edit.toPlainText() != preview_full_text:
@@ -845,16 +907,19 @@ class PreviewUpdater(BaseUIUpdater):
                                 text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                             preview_lines.append(preview_line_text)
-                            
+
                         self._preview_cache[cache_key] = {
                             'lines': preview_lines,
                             'next_index': len(target_indices),
                             'target_indices': target_indices
                         }
+                        self._preview_cache.move_to_end(cache_key)
+                        if len(self._preview_cache) > self.MAX_CACHE_SIZE:
+                            self._preview_cache.popitem(last=False)
                         preview_full_text = "\n".join(preview_lines)
                         if preview_edit.toPlainText() != preview_full_text:
                             preview_edit.setPlainText(preview_full_text)
-                            
+
                     self._lazy_load_next_index = len(target_indices)
                     if self._lazy_load_timer.isActive():
                         self._lazy_load_timer.stop()
@@ -864,7 +929,7 @@ class PreviewUpdater(BaseUIUpdater):
 
             if preview_idx_to_select != -1 and \
                hasattr(preview_edit, 'set_selected_lines') and \
-               0 <= preview_idx_to_select < preview_edit.document().blockCount(): 
+               0 <= preview_idx_to_select < preview_edit.document().blockCount():
                 preview_edit.set_selected_lines([preview_idx_to_select])
 
             # Restore scroll value if block did NOT change (smooth updates during translation/typing)
@@ -872,9 +937,9 @@ class PreviewUpdater(BaseUIUpdater):
             # Avoid restoring scrollbar value if filter/category visibility changed
             if (not block_changed and not displayed_indices_changed) or self.mw.data_store.current_string_idx == -1:
                 preview_edit.verticalScrollBar().setValue(old_preview_scrollbar_value)
-        
-        self.update_text_views() 
-        self.synchronize_original_cursor() 
+
+        self.update_text_views()
+        self.synchronize_original_cursor()
         self.mw.is_programmatically_changing_text = _saved_programmatic_flag
 
     def _load_next_preview_chunk(self):
@@ -891,22 +956,24 @@ class PreviewUpdater(BaseUIUpdater):
             target_indices = self._lazy_load_target_indices
             start_idx = self._lazy_load_next_index
             end_idx = min(start_idx + 500, len(target_indices))
-            
+
             if start_idx >= len(target_indices):
                 self._lazy_load_timer.stop()
                 return
-                
+
             chunk_indices = target_indices[start_idx:end_idx]
             preview_lines = []
             cache_key = self.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
             cache = self._preview_cache.get(cache_key)
-            
+            if cache:
+                self._preview_cache.move_to_end(cache_key)
+
             for offset, real_idx in enumerate(chunk_indices):
                 line_idx = start_idx + offset
                 preview_line_text = None
                 if cache and line_idx < len(cache['lines']) and line_idx < cache['next_index']:
                     preview_line_text = cache['lines'][line_idx]
-                    
+
                 if preview_line_text is None:
                     if real_idx == -1:
                         preview_line_text = getattr(self, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]")
@@ -918,14 +985,16 @@ class PreviewUpdater(BaseUIUpdater):
                         text_for_preview_raw, _ = self.data_processor.get_current_string_text(b_idx, s_idx)
                         preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
                 preview_lines.append(preview_line_text)
-                
+
             _saved_programmatic_flag = self.mw.is_programmatically_changing_text
             self.mw.is_programmatically_changing_text = True
-            
+
             try:
                 cache_key = self.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
                 cache = self._preview_cache.get(cache_key)
-                
+                if cache:
+                    self._preview_cache.move_to_end(cache_key)
+
                 doc = preview_edit.document()
                 cursor = QTextCursor(doc)
                 cursor.beginEditBlock()
@@ -933,23 +1002,23 @@ class PreviewUpdater(BaseUIUpdater):
                     line_idx = start_idx + offset
                     if cache and line_idx < len(cache['lines']):
                         cache['lines'][line_idx] = preview_line_text
-                    
+
                     block = doc.findBlockByNumber(line_idx)
                     if block.isValid():
                         cursor.setPosition(block.position())
                         cursor.setPosition(block.position() + len(block.text()), QTextCursor.MoveMode.KeepAnchor)
                         cursor.insertText(preview_line_text)
                 cursor.endEditBlock()
-                
+
                 if cache:
                     cache['next_index'] = end_idx
             finally:
                 self.mw.is_programmatically_changing_text = _saved_programmatic_flag
-                
+
             self._lazy_load_next_index = end_idx
-            
+
             self._apply_highlights_for_block(block_idx)
-            
+
             preview_idx_to_select = -1
             is_chapter = (block_idx == -2)
             is_speaker = (block_idx == -3)
@@ -966,22 +1035,22 @@ class PreviewUpdater(BaseUIUpdater):
                hasattr(preview_edit, 'set_selected_lines') and \
                0 <= preview_idx_to_select < preview_edit.document().blockCount():
                 preview_edit.set_selected_lines([preview_idx_to_select])
-                
+
             if end_idx >= len(target_indices):
                 self._lazy_load_timer.stop()
-                
+
         except Exception as ex:
             log_error(f"Error in _load_next_preview_chunk: {ex}", exc_info=True)
             if hasattr(self, '_lazy_load_timer'):
                 self._lazy_load_timer.stop()
 
-    def update_text_views(self): 
+    def update_text_views(self):
         """Update the text views."""
         if getattr(self, '_in_update_text_views', False):
             return
         self._in_update_text_views = True
         is_programmatic_call_flag_original = self.mw.is_programmatically_changing_text
-        
+
         self.mw.is_programmatically_changing_text = True
         try:
             self._do_update_text_views(is_programmatic_call_flag_original)
@@ -996,13 +1065,13 @@ class PreviewUpdater(BaseUIUpdater):
         edited_text_raw = ""
         if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
             original_text_raw = self.data_processor._get_string_from_source(
-                self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx, self.mw.data_store.data, 
+                self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx, self.mw.data_store.data,
                 "original_data_for_readonly_view"
             )
             if original_text_raw is None: original_text_raw = ""
             edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
             if edited_text_raw is None: edited_text_raw = ""
- 
+
         # Update the corresponding line in preview_text_edit and in the cache dynamically
         if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
@@ -1011,7 +1080,7 @@ class PreviewUpdater(BaseUIUpdater):
                 is_speaker = (self.mw.data_store.current_block_idx == -3)
                 is_virtual = is_chapter or is_speaker
                 displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
-                
+
                 preview_idx = -1
                 if is_virtual:
                     target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
@@ -1020,15 +1089,15 @@ class PreviewUpdater(BaseUIUpdater):
                 else:
                     if self.mw.data_store.current_string_idx in displayed_indices:
                         preview_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
-                
+
                 if preview_idx != -1:
                     if self.mw.current_game_rules:
                         preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(edited_text_raw))
                     else:
                         preview_line_text = str(edited_text_raw)
-                        
+
                     self.update_cached_string(self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx, preview_line_text)
-                            
+
                     doc = preview_edit.document()
                     block = doc.findBlockByNumber(preview_idx)
                     if block.isValid() and block.text() != preview_line_text:
@@ -1041,21 +1110,21 @@ class PreviewUpdater(BaseUIUpdater):
                             cursor.insertText(preview_line_text)
                         finally:
                             self.mw.is_programmatically_changing_text = _saved_prog
-                    
+
                     if hasattr(preview_edit, 'lineNumberArea') and preview_edit.lineNumberArea:
                         preview_edit.lineNumberArea.update()
                     preview_edit.viewport().update()
-        
+
         if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
             original_text_for_display_processed = str(self.mw.current_game_rules.get_text_representation_for_editor(str(original_text_raw)))
             edited_text_for_display_processed = str(self.mw.current_game_rules.get_text_representation_for_editor(str(edited_text_raw)))
-        else: 
+        else:
             original_text_for_display_processed = str(original_text_raw)
             edited_text_for_display_processed = str(edited_text_raw)
 
         original_text_for_display = convert_spaces_to_dots_for_display(original_text_for_display_processed, self.mw.show_multiple_spaces_as_dots)
         edited_text_for_display_converted = convert_spaces_to_dots_for_display(edited_text_for_display_processed, self.mw.show_multiple_spaces_as_dots)
-        
+
         orig_edit = self.mw.original_text_edit
         if orig_edit:
             if orig_edit.toPlainText() != original_text_for_display:
@@ -1075,18 +1144,18 @@ class PreviewUpdater(BaseUIUpdater):
                 saved_edited_cursor_pos = int(edited_widget.textCursor().position())
                 saved_edited_anchor_pos = int(edited_widget.textCursor().anchor())
                 saved_edited_has_selection = bool(edited_widget.textCursor().hasSelection())
-                
+
                 edited_widget.setPlainText(edited_text_for_display_converted)
 
                 # Sync subline asterisks immediately after programmatic text update
                 if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
                     if hasattr(self.mw, 'text_operation_handler'):
                         self.mw.text_operation_handler.sync_subline_asterisks(
-                            self.mw.data_store.physical_block_idx, 
-                            self.mw.data_store.current_string_idx, 
+                            self.mw.data_store.physical_block_idx,
+                            self.mw.data_store.current_string_idx,
                             edited_text_raw
                         )
- 
+
                 restored_cursor = edited_widget.textCursor()
                 new_edited_anchor_pos = min(saved_edited_anchor_pos, len(edited_text_for_display_converted))
                 new_edited_cursor_pos = min(saved_edited_cursor_pos, len(edited_text_for_display_converted))
@@ -1094,13 +1163,13 @@ class PreviewUpdater(BaseUIUpdater):
                 if saved_edited_has_selection: restored_cursor.setPosition(new_edited_cursor_pos, QTextCursor.MoveMode.KeepAnchor)
                 else: restored_cursor.setPosition(new_edited_cursor_pos)
                 edited_widget.setTextCursor(restored_cursor)
-            
+
         # Optional: Calculate original strictly (without fallback char width) width
         if hasattr(self.mw, 'original_width_label'):
             if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
                 font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
                 icon_sequences = getattr(self.mw, 'icon_sequences', [])
-                
+
                 original_lines = str(original_text_raw).split('\n')
                 widths = []
                 for line in original_lines:
@@ -1109,9 +1178,9 @@ class PreviewUpdater(BaseUIUpdater):
                         widths = None
                         break
                     widths.append(w)
-                
+
                 strict_width = max(widths) if widths is not None and widths else None
-                
+
                 if strict_width is not None:
                     self.mw.original_width_label.setText(f"Width: {strict_width}px")
                     self.mw.original_width_label.show()
@@ -1121,15 +1190,15 @@ class PreviewUpdater(BaseUIUpdater):
             else:
                 self.mw.original_width_label.setText("")
                 self.mw.original_width_label.hide()
- 
+
         # Apply highlights to editors
         if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
              self._apply_highlights_to_editor(self.mw.edited_text_edit, self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
              self._apply_highlights_to_editor(self.mw.original_text_edit, self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
- 
+
              # Reapply syntax highlighting if applicable (Removed manual rehighlight calls as they are redundant and slow)
              pass
- 
+
              # Apply font based on exact logic
              if self.mw.current_game_rules:
                   font_info = self.mw.current_game_rules.get_font_for_block(self.mw.data_store.physical_block_idx)
@@ -1137,16 +1206,16 @@ class PreviewUpdater(BaseUIUpdater):
                       custom_font_original = self.mw.helper.get_font_for_name(font_info['original_font_name'])
                       if custom_font_original:
                           self.mw.original_text_edit.setDocumentFont(custom_font_original)
-                          
+
                       custom_font_edited = self.mw.helper.get_font_for_name(font_info['font_name'])
                       if custom_font_edited:
                           self.mw.edited_text_edit.setDocumentFont(custom_font_edited)
-                          
+
                       if getattr(self.mw, 'string_settings_handler', None) and font_info.get('font_name'):
                            setattr(self.mw.data_store, 'current_font_name', font_info['font_name'])
 
              self.mw.ui_updater.update_status_bar()
-        else: 
+        else:
             self.mw.ui_updater.clear_status_bar()
 
         # Update BFN visual preview
@@ -1200,7 +1269,7 @@ class PreviewUpdater(BaseUIUpdater):
         fonts_loaded = bool(all_bfn_fonts)
 
         toggle_action = getattr(self.mw, 'toggle_preview_action', None)
-        
+
         if not fonts_loaded:
             preview_widget.hide()
             if toggle_action:

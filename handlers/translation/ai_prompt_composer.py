@@ -11,6 +11,12 @@ from core.translation.session_manager import TranslationSessionState
 from utils.utils import ALL_TAGS_PATTERN
 from utils.logging_utils import log_debug
 
+# Import new services
+from core.translation.placeholder_manager import AIPlaceholderManager
+from core.translation.glossary_formatter import GlossaryPromptFormatter
+from core.translation.story_context_manager import StoryContextManager
+from core.translation.script_speaker_finder import ScriptSpeakerFinder
+
 
 class AIPromptComposer(BaseTranslationHandler):
     """Compose prompts for AI translation/variation tasks and manage placeholders."""
@@ -18,13 +24,121 @@ class AIPromptComposer(BaseTranslationHandler):
     def __init__(self, *args, **kwargs):
         """Initialize a new instance."""
         super().__init__(*args, **kwargs)
-        self._script_lines_cache = None
-        self._global_distilled_text_cache = None
-        self._char_to_line_map_cache = None
-        self._cached_script_path = None
-        self._cached_mtime = None
-        self._cached_size = None
-        self._cached_plugin_name = None
+
+        # Instantiate services
+        self.placeholder_manager = AIPlaceholderManager()
+        self.glossary_formatter = GlossaryPromptFormatter()
+        self.story_context = StoryContextManager(self.mw)
+        self.script_speaker_finder = ScriptSpeakerFinder(self.mw, self.story_context)
+
+    # ------------------------------------------------------------------
+    # Properties for backwards compatibility with test cache assertions
+    # ------------------------------------------------------------------
+    @property
+    def _script_lines_cache(self):
+        return self.script_speaker_finder._script_lines_cache
+    @_script_lines_cache.setter
+    def _script_lines_cache(self, val):
+        self.script_speaker_finder._script_lines_cache = val
+
+    @property
+    def _global_distilled_text_cache(self):
+        return self.script_speaker_finder._global_distilled_text_cache
+    @_global_distilled_text_cache.setter
+    def _global_distilled_text_cache(self, val):
+        self.script_speaker_finder._global_distilled_text_cache = val
+
+    @property
+    def _char_to_line_map_cache(self):
+        return self.script_speaker_finder._char_to_line_map_cache
+    @_char_to_line_map_cache.setter
+    def _char_to_line_map_cache(self, val):
+        self.script_speaker_finder._char_to_line_map_cache = val
+
+    @property
+    def _cached_script_path(self):
+        return self.script_speaker_finder._cached_script_path
+    @_cached_script_path.setter
+    def _cached_script_path(self, val):
+        self.script_speaker_finder._cached_script_path = val
+
+    @property
+    def _cached_mtime(self):
+        return self.script_speaker_finder._cached_mtime
+    @_cached_mtime.setter
+    def _cached_mtime(self, val):
+        self.script_speaker_finder._cached_mtime = val
+
+    @property
+    def _cached_size(self):
+        return self.script_speaker_finder._cached_size
+    @_cached_size.setter
+    def _cached_size(self, val):
+        self.script_speaker_finder._cached_size = val
+
+    @property
+    def _cached_plugin_name(self):
+        return self.script_speaker_finder._cached_plugin_name
+    @_cached_plugin_name.setter
+    def _cached_plugin_name(self, val):
+        self.script_speaker_finder._cached_plugin_name = val
+
+    @property
+    def _distill_cache_version(self):
+        return self.script_speaker_finder._distill_cache_version
+    @_distill_cache_version.setter
+    def _distill_cache_version(self, val):
+        self.script_speaker_finder._distill_cache_version = val
+
+    # Helper methods mapped to services
+    def _find_script_path(self) -> Optional[str]:
+        return self.script_speaker_finder.find_script_path()
+
+    def _translate_speaker(self, speaker: str) -> str:
+        glossary_manager = self.main_handler._glossary_manager
+        return self.script_speaker_finder.translate_speaker(speaker, glossary_manager)
+
+    def _find_speaker_in_script(self, block_idx: int, s_idx: int, text: str) -> Optional[Tuple[str, Optional[str]]]:
+        block_label = self.story_context.get_block_label(block_idx)
+        default_wing_name = self.story_context.get_wing_name()
+        return self.script_speaker_finder.find_speaker_in_script(
+            block_idx, s_idx, text, default_wing_name, block_label
+        )
+
+    def _get_mempalace_client(self) -> Optional[object]:
+        return self.story_context.get_mempalace_client()
+
+    def _get_wing_name(self) -> str:
+        return self.story_context.get_wing_name()
+
+    def _get_block_label(self, block_idx: int) -> str:
+        return self.story_context.get_block_label(block_idx)
+
+    def _fetch_story_context(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
+        return self.story_context.fetch_story_context(
+            block_idx, s_idx, text, self.script_speaker_finder, self.data_processor
+        )
+
+    def _append_speaker_glossary_entries(
+        self,
+        relevant_entries: List[GlossaryEntry],
+        speaker_candidates: Iterable[str]
+    ) -> None:
+        glossary_manager = self.main_handler._glossary_manager
+        self.glossary_formatter.append_speaker_glossary_entries(
+            relevant_entries, speaker_candidates, glossary_manager
+        )
+
+    def _glossary_entries_to_text(self, entries: Sequence[GlossaryEntry]) -> str:
+        return self.glossary_formatter.glossary_entries_to_text(entries)
+
+    def _prepare_glossary_for_prompt(
+        self,
+        system_prompt: str,
+        session_state: Optional[TranslationSessionState],
+        is_batch_translation: bool = False,
+    ) -> str:
+        return (system_prompt or "").strip()
 
     # ------------------------------------------------------------------
     # Public API used by translation handler
@@ -32,10 +146,10 @@ class AIPromptComposer(BaseTranslationHandler):
     def prepare_text_for_translation(
         self,
         source_text: str,
-        glossary_entries: Sequence[GlossaryEntry],  # kept for possible future use
+        glossary_entries: Sequence[GlossaryEntry],
     ) -> Tuple[str, Dict[str, Dict[str, str]]]:
         """Prepare text for translation."""
-        return source_text or '', {}
+        return self.placeholder_manager.prepare_text_for_translation(source_text, glossary_entries)
 
     def restore_placeholders(
         self,
@@ -45,33 +159,15 @@ class AIPromptComposer(BaseTranslationHandler):
         key: Optional[int] = None,
     ) -> str:
         """Restore placeholders."""
-        if not translated_text:
-            return ''
-            
-        # 1. Restore Force-aliases if they exist
-        if placeholder_map and key in placeholder_map:
-            from utils.force_alias import restore_force_aliases_in_translation
-            force_maps = placeholder_map[key]
-            glossary_translations = {}
-            glossary_manager = self.main_handler._glossary_manager
-            if glossary_manager:
-                for mapping in force_maps:
-                    word = mapping.word
-                    entry = glossary_manager.get_entry(word)
-                    if entry and entry.translation:
-                        glossary_translations[word.lower()] = entry.translation
-            translated_text = restore_force_aliases_in_translation(translated_text, force_maps, glossary_translations)
-
-        # 2. Restore normal tag aliases from default_tag_mappings
-        tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
-        if tag_mappings:
-            sorted_mappings = sorted(tag_mappings.items(), key=lambda item: len(item[0]), reverse=True)
-            for alias, original_tag in sorted_mappings:
-                if alias and original_tag:
-                    pattern = re.compile(re.escape(alias), re.IGNORECASE)
-                    translated_text = pattern.sub(original_tag, translated_text)
-
-        return translated_text
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        glossary_manager = self.main_handler._glossary_manager
+        return self.placeholder_manager.restore_placeholders(
+            translated_text,
+            placeholder_map,
+            key=key,
+            default_tag_mappings=default_tag_mappings,
+            glossary_manager=glossary_manager,
+        )
 
     # ------------------------------------------------------------------
     # Prompt composition helpers
@@ -106,14 +202,14 @@ class AIPromptComposer(BaseTranslationHandler):
             else:
                 item_id = 0
                 current_text = str(item)
-            
+
             # Apply force-aliases
             from utils.force_alias import prepare_text_for_ai
             tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
             current_text_for_ai, force_maps = prepare_text_for_ai(current_text, tag_mappings)
             if force_maps:
                 placeholder_map[item_id] = force_maps
-            
+
             # Remove line breaks inside sentences for AI translation
             current_text_clean = current_text_for_ai.replace('\n', ' ')
             current_text_clean = re.sub(r' +', ' ', current_text_clean).strip()
@@ -121,7 +217,7 @@ class AIPromptComposer(BaseTranslationHandler):
             # Resolve speaker
             speaker = None
             raw_spk = None
-            
+
             from utils.utils import remove_all_tags
             clean_item_text = remove_all_tags(current_text).strip()
             is_single_word = len(clean_item_text.split()) <= 1
@@ -142,14 +238,14 @@ class AIPromptComposer(BaseTranslationHandler):
                     cached_ctx = client.get_cached_context(bmg_id, current_text)
                     if cached_ctx:
                         speaker = cached_ctx.get("speaker")
-                        
+
                 script_res = self._find_speaker_in_script(real_b_idx, real_s_idx, current_text)
                 if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
                     raw_spk = script_res[0]
-                
+
                 if not speaker:
                     speaker = self._translate_speaker(raw_spk) if raw_spk else None
-                
+
                 if not speaker:
                     speaker = "Unknown"
 
@@ -178,7 +274,7 @@ class AIPromptComposer(BaseTranslationHandler):
             else:
                 item_id = 0
                 item_text = str(item)
-            
+
             real_b_idx = block_idx
             real_s_idx = item_id
             if temp_id_map and item_id in temp_id_map:
@@ -186,7 +282,7 @@ class AIPromptComposer(BaseTranslationHandler):
             elif temp_id_map and str(item_id) in temp_id_map:
                 real_b_idx, real_s_idx = temp_id_map[str(item_id)]
             real_block_label = self._get_block_label(real_b_idx)
-            
+
             bmg_id = f"{real_block_label}_Str_{real_s_idx}"
             cached_ctx = client.get_cached_context(bmg_id, item_text) if client else None
             if cached_ctx and cached_ctx.get("room"):
@@ -207,14 +303,14 @@ class AIPromptComposer(BaseTranslationHandler):
                 relations = client.get_relations(wing_name)
             except Exception:
                 pass
-                
+
             context_parts = []
             clean_room = room_name.replace("_", " ")
             context_parts.append(f"Story Location/Scene: {clean_room}")
-            
+
             if visual_ctx:
                 context_parts.append(f"Visual Action Context:\n{visual_ctx}")
-                
+
             relevant_relations = []
             if relations:
                 chunk_speakers = set()
@@ -222,17 +318,17 @@ class AIPromptComposer(BaseTranslationHandler):
                     spk = item.get('speaker')
                     if spk and spk != "Unknown":
                         chunk_speakers.add(spk.lower())
-                
+
                 for r in relations:
                     if r.get("source", "").lower() in chunk_speakers or r.get("target", "").lower() in chunk_speakers:
                         relevant_relations.append(r)
-                        
+
             if relevant_relations:
                 rel_lines = ["\nCharacter Relations & Status (Use for formal/informal tone):"]
                 for r in relevant_relations[:5]:
                     rel_lines.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
                 context_parts.append("\n".join(rel_lines))
-                
+
             # Collect surrounding dialogue context for the batch chunk (Surrounding Translated Context)
             surrounding_context_lines = []
             if block_idx is not None and block_idx != -1 and source_items:
@@ -254,7 +350,7 @@ class AIPromptComposer(BaseTranslationHandler):
                                     real_block_idx, first_s_idx = temp_id_map[first_temp_id]
                                 elif str(first_temp_id) in temp_id_map:
                                     real_block_idx, first_s_idx = temp_id_map[str(first_temp_id)]
-                                
+
                                 _, last_s_idx = None, None
                                 if last_temp_id in temp_id_map:
                                     _, last_s_idx = temp_id_map[last_temp_id]
@@ -272,7 +368,7 @@ class AIPromptComposer(BaseTranslationHandler):
                                     K = 3
                                     before_indices = list(range(max(0, first_s_idx - K), first_s_idx))
                                     after_indices = list(range(last_s_idx + 1, min(N, last_s_idx + K + 1)))
-                                    
+
                                     if before_indices:
                                         surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
                                         for i in before_indices:
@@ -283,7 +379,7 @@ class AIPromptComposer(BaseTranslationHandler):
                                                 surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
                                             else:
                                                 surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
-                                                
+
                                     if after_indices:
                                         surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
                                         for i in after_indices:
@@ -316,7 +412,7 @@ class AIPromptComposer(BaseTranslationHandler):
                                 real_block_idx, first_s_idx = temp_id_map[first_temp_id]
                             elif str(first_temp_id) in temp_id_map:
                                 real_block_idx, first_s_idx = temp_id_map[str(first_temp_id)]
-                            
+
                             _, last_s_idx = None, None
                             if last_temp_id in temp_id_map:
                                 _, last_s_idx = temp_id_map[last_temp_id]
@@ -335,7 +431,7 @@ class AIPromptComposer(BaseTranslationHandler):
                                 before_indices = list(range(max(0, first_s_idx - K), first_s_idx))
                                 after_indices = list(range(last_s_idx + 1, min(N, last_s_idx + K + 1)))
                                 surrounding_context_lines = []
-                                
+
                                 if before_indices:
                                     surrounding_context_lines.append("--- Dialogue BEFORE this chunk ---")
                                     for i in before_indices:
@@ -346,7 +442,7 @@ class AIPromptComposer(BaseTranslationHandler):
                                             surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\" | (Translation): \"{curr_trans_clean}\"")
                                         else:
                                             surrounding_context_lines.append(f"- [Row #{i}] (Original): \"{orig_text}\"")
-                                            
+
                                 if after_indices:
                                     surrounding_context_lines.append("--- Dialogue AFTER this chunk ---")
                                     for i in after_indices:
@@ -377,7 +473,7 @@ class AIPromptComposer(BaseTranslationHandler):
                     if isinstance(item, dict) and item.get('id') == first_item_id:
                         start_idx = idx
                         break
-                
+
                 lookahead_items = all_source_items[start_idx:start_idx + 60]
                 lookahead_text = " ".join(
                     (item.get('text', '') if isinstance(item, dict) else str(item))
@@ -436,7 +532,7 @@ class AIPromptComposer(BaseTranslationHandler):
             "cohesive block of text. Ensure your translations are consistent in style, tone, "
             "and terminology across all chunks."
         )
-        
+
         final_system_prompt = f"{system_prompt}\n\n{system_prompt_addition}"
         combined_system = self._prepare_glossary_for_prompt(final_system_prompt, session_state, is_batch_translation=True)
 
@@ -504,11 +600,10 @@ class AIPromptComposer(BaseTranslationHandler):
         current_translation: Optional[str] = None,
         selected_text: Optional[str] = None,
     ) -> Tuple[str, str]:
-        # Fetch relevant glossary terms for this single string or variation
         """Compose messages."""
         glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
-        
+
         # Resolve speaker for this string to include in glossary lookup
         speaker_candidates = set()
         from utils.utils import remove_all_tags
@@ -528,14 +623,14 @@ class AIPromptComposer(BaseTranslationHandler):
                 cached_ctx = client.get_cached_context(bmg_id, source_text)
                 if cached_ctx:
                     speaker = cached_ctx.get("speaker")
-            
+
             script_res = self._find_speaker_in_script(block_idx, string_idx, source_text)
             if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
                 raw_spk = script_res[0]
-            
+
             if not speaker:
                 speaker = self._translate_speaker(raw_spk) if raw_spk else None
-            
+
             if not speaker:
                 speaker = "Unknown"
 
@@ -756,903 +851,3 @@ class AIPromptComposer(BaseTranslationHandler):
     def compose_glossary_request(self, system_prompt: str, user_content: str, **_: Dict) -> Tuple[str, str]:
         """Compose glossary request."""
         return system_prompt.strip(), user_content
-
-    def _append_speaker_glossary_entries(
-        self,
-        relevant_entries: List[GlossaryEntry],
-        speaker_candidates: Iterable[str]
-    ) -> None:
-        """Find speaker names in the glossary and append them to relevant_entries."""
-        glossary_manager = getattr(self.main_handler, '_glossary_manager', None)
-        if not glossary_manager:
-            return
-            
-        expanded_candidates = set()
-        for cand in speaker_candidates:
-            if cand:
-                for part in cand.split(','):
-                    expanded_candidates.add(part.strip())
-                    
-        for c_raw in expanded_candidates:
-            if not c_raw or c_raw.upper() in ("UNKNOWN", "NONE"):
-                continue
-            
-            clean_cand = re.sub(r'#\s*\d+', '', c_raw).strip()
-            candidates_to_try = [c_raw, clean_cand] if clean_cand != c_raw else [c_raw]
-            
-            for c in candidates_to_try:
-                entry = glossary_manager.get_entry(c)
-                if entry:
-                    if entry not in relevant_entries:
-                        relevant_entries.append(entry)
-                else:
-                    c_low = c.strip().lower()
-                    for entry in glossary_manager.get_entries():
-                        if (entry.original.strip().lower() == c_low or
-                            entry.translation.strip().lower() == c_low):
-                            if entry not in relevant_entries:
-                                relevant_entries.append(entry)
-
-    @staticmethod
-    def _glossary_entries_to_text(entries: Sequence[GlossaryEntry]) -> str:
-        """Format glossary entries into a markdown table."""
-        if not entries:
-            return ""
-        lines = ["| Original | Translation | Notes |", "|---|---|---|"]
-        for entry in entries:
-            lines.append(f"| {entry.original} | {entry.translation} | {entry.notes} |")
-        return "\n".join(lines)
-
-
-    def _prepare_glossary_for_prompt(
-        self,
-        system_prompt: str,
-        session_state: Optional[TranslationSessionState],
-        is_batch_translation: bool = False,
-    ) -> str:
-        """Prepare the system prompt. Now returns the system prompt as-is for glossary unification."""
-        return (system_prompt or "").strip()
-
-    def _get_mempalace_client(self) -> Optional[object]:
-        """Dynamically get or initialize MemePalaceClient for current project directory."""
-        import os
-        project_dir = None
-        if hasattr(self.mw, "project_manager") and self.mw.project_manager:
-            proj_dir = getattr(self.mw.project_manager, "project_dir", None)
-            if proj_dir and isinstance(proj_dir, (str, bytes)):
-                project_dir = proj_dir
-        
-        if not project_dir:
-            if hasattr(self.mw, "data_store") and self.mw.data_store:
-                project_file = getattr(self.mw.data_store, "project_file", None)
-                json_path = getattr(self.mw.data_store, "json_path", None)
-                if project_file and isinstance(project_file, (str, bytes)):
-                    project_dir = os.path.dirname(project_file)
-                elif json_path and isinstance(json_path, (str, bytes)):
-                    project_dir = os.path.dirname(json_path)
-            if not project_dir or not isinstance(project_dir, (str, bytes)):
-                project_dir = os.getcwd()
-        
-        # Verify if the db exists or search in parent/adjacent directories up to 4 levels
-        db_file = "mempalace_local.db"
-        resolved_db = os.path.join(project_dir, db_file) if project_dir else ""
-        
-        if not project_dir or not os.path.exists(resolved_db):
-            candidates = [os.getcwd()]
-            if hasattr(self.mw, "data_store") and self.mw.data_store:
-                json_path = getattr(self.mw.data_store, "json_path", None)
-                if json_path and isinstance(json_path, (str, bytes)):
-                    candidates.append(os.path.dirname(json_path))
-                
-            found_dir = None
-            for cand in candidates:
-                if not cand: continue
-                curr = os.path.abspath(cand)
-                # Check up to 4 levels of parent directories
-                for _ in range(5):
-                    # Check current directory
-                    test_path = os.path.join(curr, db_file)
-                    if os.path.exists(test_path):
-                        found_dir = curr
-                        break
-                    # Also check immediately adjacent sibling folders
-                    parent_dir = os.path.dirname(curr)
-                    if parent_dir and parent_dir != curr:
-                        for sibling in os.listdir(parent_dir):
-                            sibling_path = os.path.join(parent_dir, sibling)
-                            if os.path.isdir(sibling_path):
-                                test_path_sib = os.path.join(sibling_path, db_file)
-                                if os.path.exists(test_path_sib):
-                                    found_dir = sibling_path
-                                    break
-                    if found_dir:
-                        break
-                    
-                    # Move one level up
-                    next_parent = os.path.dirname(curr)
-                    if next_parent == curr:
-                        break
-                    curr = next_parent
-                if found_dir:
-                    project_dir = found_dir
-                    break
-            
-        if not project_dir or not isinstance(project_dir, (str, bytes)):
-            return None
-            
-        if not hasattr(self, "_mempalace_client") or self._mempalace_client is None or getattr(self, "_mempalace_project_dir", None) != project_dir:
-            from core.mempalace_client import MemePalaceClient
-            self._mempalace_client = MemePalaceClient(project_dir=project_dir)
-            self._mempalace_project_dir = project_dir
-            
-        return self._mempalace_client
-
-    def _get_wing_name(self) -> str:
-        """Deduce clean active wing/game identifier."""
-        game_name = "Zelda_TP"
-        if hasattr(self.mw, "active_game_rules") and self.mw.active_game_rules:
-            game_name = self.mw.active_game_rules.get_display_name()
-        elif hasattr(self.mw, "current_game_rules") and self.mw.current_game_rules:
-            game_name = self.mw.current_game_rules.get_display_name()
-        
-        clean_name = "".join([c if c.isalnum() else "_" for c in game_name]).strip("_")
-        
-        # Sibling fallback: If there is a local SQLite database, check if clean_name exists there.
-        # If not, and there is exactly one other wing in the database, use that one as fallback!
-        try:
-            client = self._get_mempalace_client()
-            if client and hasattr(client, "get_wings"):
-                wings = client.get_wings()
-                wing_names = [w["name"] for w in wings]
-                if wing_names and clean_name not in wing_names:
-                    # Look for fuzzy match or prefix match
-                    for w_name in wing_names:
-                        if clean_name.lower().startswith(w_name.lower()) or w_name.lower().startswith(clean_name.lower()):
-                            return w_name
-                    # If only one wing exists in DB, use it
-                    if len(wing_names) == 1:
-                        return wing_names[0]
-        except Exception as e:
-            import utils.logging_utils
-            utils.logging_utils.log_error(f"Error resolving wing name fallback: {e}")
-            
-        return clean_name or "Zelda_TP"
-
-    def _get_block_label(self, block_idx: int) -> str:
-        """Get friendly display label for a project file block index."""
-        if block_idx is None or block_idx == -1:
-            return "Block"
-            
-        import os
-        store = self.mw.data_store
-        name_key = str(block_idx)
-        
-        # 1. Try project block name or source file stem
-        if hasattr(self.mw, 'project_manager') and self.mw.project_manager and \
-           self.mw.project_manager.project and block_idx < len(self.mw.project_manager.project.blocks):
-            block = self.mw.project_manager.project.blocks[block_idx]
-            if block.name and not block.name.startswith("Block_"):
-                return block.name
-            if block.source_file:
-                return os.path.splitext(os.path.basename(block.source_file))[0]
-
-        # 2. Try list widget item name or block_names description
-        if store.block_names and name_key in store.block_names:
-            b_desc = store.block_names[name_key]
-            base = os.path.splitext(os.path.basename(b_desc))[0]
-            if "(" in base:
-                base = base.partition("(")[0].strip()
-            return base
-
-        # 3. Fallback: if json_path is loaded in datastore, use its stem
-        if getattr(store, "json_path", None):
-            return os.path.splitext(os.path.basename(store.json_path))[0]
-            
-        return f"Block_{block_idx}"
-
-    def _fetch_story_context(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
-        """Query the local SQLite database for visual scene description, character status and timeline info."""
-        client = self._get_mempalace_client()
-        
-        from utils.utils import remove_all_tags
-        clean_t = remove_all_tags(text).strip()
-        is_single_word = len(clean_t.split()) <= 1
-
-        script_res = None
-        if not is_single_word:
-            script_res = self._find_speaker_in_script(block_idx, s_idx, text)
-            if not isinstance(script_res, (tuple, list)) or len(script_res) != 2:
-                script_res = None
-            
-        script_lines_str = script_res[1] if script_res else None
-
-        # Helper to try and resolve speaker via script fallback if missing
-        def get_script_speaker_fallback() -> Optional[Tuple[str, str, str]]:
-            """Get the script speaker fallback."""
-            if script_res:
-                raw_spk, lines_str = script_res
-                return raw_spk, self._translate_speaker(raw_spk), lines_str
-            return None
-
-        # 1. Try local in-memory cache first for instant response
-        if client:
-            wing_name = self._get_wing_name()
-            block_label = self._get_block_label(block_idx)
-            bmg_id = f"{block_label}_Str_{s_idx}"
-            
-            cached_ctx = client.get_cached_context(bmg_id, text)
-            if cached_ctx:
-                room_name = cached_ctx.get("room")
-                speaker = "NONE" if is_single_word else cached_ctx.get("speaker")
-                timestamp = cached_ctx.get("timestamp") or "Unknown time"
-                visual_ctx = client.get_room_visual_context(wing_name, room_name)
-                
-                context_parts = []
-                clean_room = room_name.replace("_", " ")
-                context_parts.append(f"Story Location/Scene: {clean_room} (Timeline: {timestamp})")
-                
-                # If speaker missing in cache, try script fallback
-                if not speaker and not is_single_word:
-                    fallback = get_script_speaker_fallback()
-                    if fallback:
-                        raw_spk, trans_spk, _ = fallback
-                        if re.match(r'^[\d,\s]+$', raw_spk):
-                            speaker = f"{raw_spk} [Disk Script]"
-                        else:
-                            speaker = f"{trans_spk} ({raw_spk}) [Disk Script]"
-                
-                if speaker:
-                    context_parts.append(f"Speaker in this line: {speaker}")
-                if script_lines_str:
-                    context_parts.append(f"Script Line: {script_lines_str}")
-                    
-                if visual_ctx:
-                    context_parts.append(f"Visual Action Context:\n{visual_ctx}")
-                else:
-                    context_parts.append("Timeline context mapped successfully (No detailed visual context generated).")
-                    
-                # Retrieve relations
-                try:
-                    relations = client.get_relations(wing_name)
-                    relevant_relations = []
-                    if speaker:
-                        speaker_low = speaker.lower()
-                        for r in relations:
-                            if r.get("source", "").lower() in speaker_low or r.get("target", "").lower() in speaker_low:
-                                relevant_relations.append(r)
-                                
-                    if not relevant_relations and relations:
-                        room_low = room_name.lower()
-                        for r in relations:
-                            valid_from = r.get("valid_from", "")
-                            if valid_from and valid_from.lower() in room_low:
-                                relevant_relations.append(r)
-                                
-                    if relevant_relations:
-                        context_parts.append("\nCharacter Status & Story Relations:")
-                        for r in relevant_relations[:5]:
-                            context_parts.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
-                except Exception as rel_err:
-                    log_debug(f"Could not load relations for visual context: {rel_err}")
-                    
-                return "\n".join(context_parts)
-
-            # 2. Search database fallback
-            results = client.search_context(wing_name, bmg_id, limit=1)
-            
-            if not results:
-                # Fallback: search by actual text (first 40 characters)
-                query_text = text.strip()[:40]
-                if len(query_text) > 8:
-                    results = client.search_context(wing_name, query_text, limit=1)
-                    
-            if results:
-                best_match = results[0]
-                room_name = best_match.get("room")
-                if room_name:
-                    # Retrieve visual scene context if generated by AI
-                    visual_ctx = client.get_room_visual_context(wing_name, room_name)
-                    
-                    # Check metadata for timestamp & speakers
-                    meta = best_match.get("metadata") or {}
-                    timestamp = meta.get("timestamp") or "Unknown time"
-                    speaker_map = meta.get("speaker_map") or {}
-                    
-                    # Deduce speaker for this row if available
-                    speaker = None
-                    content = best_match.get("content") or ""
-                    matched_id_in_content = None
-                    
-                    if content:
-                        # Helper function for tagless text cleaning
-                        def clean_for_compare(t: str) -> str:
-                            if not t:
-                                return ""
-                            t = re.sub(r'\{[^}]+\}', '', t)
-                            t = re.sub(r'\[[^]]+\]', '', t)
-                            return re.sub(r'[^a-zA-Z0-9]', '', t).lower().strip()
-                            
-                        clean_query = clean_for_compare(text)
-                        for line in content.splitlines():
-                            line_id = None
-                            line_text = None
-                            if "ID:" in line and "| Text:" in line:
-                                parts = line.split("| Text:", 1)
-                                line_id = parts[0].replace("ID:", "").strip()
-                                line_text = parts[1].strip()
-                            elif ":" in line:
-                                parts = line.split(":", 1)
-                                line_id = parts[0].strip()
-                                if line_id.startswith("[") and line_id.endswith("]"):
-                                    line_id = line_id[1:-1].strip()
-                                line_text = parts[1].strip()
-                                
-                            if line_id and line_text:
-                                if clean_for_compare(line_text) == clean_query:
-                                    matched_id_in_content = line_id
-                                    break
-                                    
-                    target_bmg_id = matched_id_in_content or bmg_id
-                    speaker = "NONE" if is_single_word else (speaker_map.get(target_bmg_id) or speaker_map.get(f"[{target_bmg_id}]"))
-                    
-                    # If speaker is missing in SQLite metadata, try disk script fallback
-                    if not speaker and not is_single_word:
-                        fallback = get_script_speaker_fallback()
-                        if fallback:
-                            raw_spk, trans_spk, _ = fallback
-                            if re.match(r'^[\d,\s]+$', raw_spk):
-                                speaker = f"{raw_spk} [Disk Script]"
-                            else:
-                                speaker = f"{trans_spk} ({raw_spk}) [Disk Script]"
-                    
-                    context_parts = []
-                    # Clean room name for display
-                    clean_room = room_name.replace("_", " ")
-                    context_parts.append(f"Story Location/Scene: {clean_room} (Timeline: {timestamp})")
-                    
-                    if speaker:
-                        context_parts.append(f"Speaker in this line: {speaker}")
-                    if script_lines_str:
-                        context_parts.append(f"Script Line: {script_lines_str}")
-                        
-                    if visual_ctx:
-                        context_parts.append(f"Visual Action Context:\n{visual_ctx}")
-                    else:
-                        context_parts.append("Timeline context mapped successfully (No detailed visual context generated).")
-                    
-                    # 3. Retrieve character relations from temporal Knowledge Graph
-                    try:
-                        relations = client.get_relations(wing_name)
-                        relevant_relations = []
-                        if speaker:
-                            speaker_low = speaker.lower()
-                            for r in relations:
-                                if r.get("source", "").lower() in speaker_low or r.get("target", "").lower() in speaker_low:
-                                    relevant_relations.append(r)
-                                    
-                        if not relevant_relations and relations:
-                            room_low = room_name.lower()
-                            for r in relations:
-                                valid_from = r.get("valid_from", "")
-                                if valid_from and valid_from.lower() in room_low:
-                                    relevant_relations.append(r)
-                                    
-                        if relevant_relations:
-                            rel_lines = ["\nCHARACTER & STORY RELATIONS (Ukrainian Grammar Priority):"]
-                            rel_lines.append("Use these social relations to determine the correct informal ('ти') or formal/respectful ('ви') pronoun and verb endings in Ukrainian:")
-                            for r in relevant_relations:
-                                rel_lines.append(f"• {r['source']} -[{r['relation']}]-> {r['target']}")
-                            context_parts.append("\n".join(rel_lines))
-                    except Exception as rel_err:
-                        import utils.logging_utils
-                        utils.logging_utils.log_error(f"Error gathering relations for prompt: {rel_err}")
-                         
-                    return "\n".join(context_parts)
-
-        # 3. Absolute Fallback: SQLite completely failed, try Script Fallback to at least extract Speaker
-        fallback = get_script_speaker_fallback() if not is_single_word else None
-        if fallback:
-            raw_spk, trans_spk, lines_str = fallback
-            context_parts = [
-                "Story Location/Scene: Mapped from Disk Script",
-                f"Speaker in this line: {trans_spk} ({raw_spk}) [Disk Script]",
-                f"Script Line: {lines_str}",
-                "Timeline: Mapped from script sequence"
-            ]
-            return "\n".join(context_parts)
-            
-        return None
-
-    def _find_script_path(self) -> Optional[str]:
-        """Find the absolute path to the game script file on disk."""
-        import os
-        from pathlib import Path
-        
-        # 1. Ask active rules if they define a default script file name
-        plugin_script_name = None
-        if hasattr(self.mw, "current_game_rules") and self.mw.current_game_rules:
-            try:
-                plugin_script_name = self.mw.current_game_rules.get_default_script_name()
-            except Exception:
-                pass
-
-        # 2. Gather directories to search in
-        search_dirs = []
-        
-        # Candidate near DB path
-        client = self._get_mempalace_client()
-        db_path = client.db_path if client else None
-        if db_path:
-            db_dir = os.path.dirname(db_path)
-            search_dirs.append(db_dir)
-            search_dirs.append(os.path.dirname(db_dir))
-            
-        # Candidate near project directory
-        project_dir = getattr(self, "_mempalace_project_dir", None)
-        if not project_dir and hasattr(self.mw, "project_manager") and self.mw.project_manager and self.mw.project_manager.project:
-            project_dir = self.mw.project_manager.project.project_dir
-            
-        if project_dir:
-            search_dirs.append(project_dir)
-            search_dirs.append(os.path.dirname(project_dir))
-
-        # Check in current working directory
-        search_dirs.append(os.getcwd())
-
-        # Clean search directories (remove duplicates and verify existence)
-        unique_dirs = []
-        for d in search_dirs:
-            if d and os.path.exists(d):
-                abs_d = os.path.abspath(d)
-                if abs_d not in unique_dirs:
-                    unique_dirs.append(abs_d)
-
-        # 3. Check for specific plugin script name
-        if plugin_script_name:
-            for d in unique_dirs:
-                p = os.path.join(d, plugin_script_name)
-                if os.path.exists(p):
-                    return p
-
-        # 4. Fallback search: look for hardcoded TP script
-        candidates = [
-            r"e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt",
-        ]
-        for d in unique_dirs:
-            candidates.append(os.path.join(d, "zelda_tp_script.txt"))
-
-        for path in candidates:
-            if path and os.path.exists(path):
-                return path
-
-        # 5. Generic search for any *script*.md or *script*.txt in the search directories
-        for d in unique_dirs:
-            try:
-                for f in os.listdir(d):
-                    # prioritize markdown over plain text
-                    if "script" in f.lower() and f.lower().endswith(".md"):
-                        p = os.path.join(d, f)
-                        if os.path.exists(p):
-                            return p
-                for f in os.listdir(d):
-                    if "script" in f.lower() and f.lower().endswith(".txt"):
-                        p = os.path.join(d, f)
-                        if os.path.exists(p):
-                            return p
-            except Exception:
-                pass
-                
-        return None
-
-    def _translate_speaker(self, speaker: str) -> str:
-        """Translate the character name using glossary if possible."""
-        if not speaker:
-            return ""
-        glossary_manager = getattr(self.main_handler, '_glossary_manager', None)
-        if not glossary_manager:
-            return speaker
-            
-        for entry in glossary_manager.get_entries():
-            if entry.original.strip().lower() == speaker.strip().lower():
-                trans = entry.translation.split(";")[0].strip()
-                if trans:
-                    return trans
-        return speaker
-
-    def _find_speaker_in_script(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
-        """Find speaker in the script file using direct DB mapping or middle third distilled matching."""
-        import os
-        import re
-        
-        script_path = self._find_script_path()
-        if not script_path or not os.path.exists(script_path):
-            log_debug("Script Fallback: script file not found.")
-            return None
-
-        # Calculate file status and plugin configuration
-        try:
-            stat = os.stat(script_path)
-            mtime = stat.st_mtime
-            size = stat.st_size
-        except Exception as e:
-            log_debug(f"Failed to stat script file {script_path}: {e}")
-            mtime = 0.0
-            size = 0
-
-        plugin_name = "Unknown"
-        if self.mw and getattr(self.mw, 'current_game_rules', None):
-            try:
-                plugin_name = self.mw.current_game_rules.get_display_name()
-            except Exception:
-                pass
-
-        # Invalidate cache if file properties or active plugin changed
-        if (getattr(self, "_cached_script_path", None) != script_path or
-            getattr(self, "_cached_mtime", None) != mtime or
-            getattr(self, "_cached_size", None) != size or
-            getattr(self, "_cached_plugin_name", None) != plugin_name):
-            self._script_lines_cache = None
-            self._global_distilled_text_cache = None
-            self._char_to_line_map_cache = None
-            self._cached_script_path = None
-            self._cached_mtime = None
-            self._cached_size = None
-            self._cached_plugin_name = None
-
-        # 1. High-priority Direct DB Script Mapping Check
-        client = self._get_mempalace_client()
-        db_mapping = None
-        if client:
-            wing_name = self._get_wing_name()
-            block_label = self._get_block_label(block_idx)
-            bmg_id = f"{block_label}_Str_{s_idx}"
-            db_mapping = client.get_script_mapping(wing_name, bmg_id)
-
-        # Retrieve dynamic name tag substitutions from the active plugin (e.g. {escape:0:0022} -> "Epona")
-        _dynamic_name_tags: dict = {}
-        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
-            try:
-                _dynamic_name_tags = self.mw.current_game_rules.get_dynamic_name_tags()
-            except Exception:
-                pass
-
-        def line_strip_is_speaker(s: str) -> bool:
-            """Line strip is speaker."""
-            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
-
-        # If direct mapping found, we can load the script and find the speaker directly from that line index
-        if db_mapping and db_mapping.get("script_line"):
-            line_num = db_mapping["script_line"]
-            # Fast check: load only lines up to line_num if not cached, or load all
-            try:
-                if hasattr(self, "_script_lines_cache") and self._script_lines_cache is not None:
-                    lines = self._script_lines_cache
-                else:
-                    try:
-                        with open(script_path, "r", encoding="cp1252", errors="replace") as f:
-                            lines = f.readlines()
-                    except Exception:
-                        with open(script_path, "r", encoding="utf-8", errors="replace") as f:
-                            lines = f.readlines()
-                    self._script_lines_cache = lines
-                    self._cached_script_path = script_path
-                    self._cached_mtime = mtime
-                    self._cached_size = size
-                    self._cached_plugin_name = plugin_name
-                
-                # Scan backwards from line_num - 2 (0-indexed offset of line_num - 1)
-                speaker = None
-                for idx in range(line_num - 2, -1, -1):
-                    s = lines[idx].strip()
-                    if not s:
-                        continue
-                    if s.startswith("[") and s.endswith("]"):
-                        continue
-                    if line_strip_is_speaker(s):
-                        speaker = s
-                        break
-                speaker_str = speaker if speaker else "NONE"
-                return speaker_str, str(line_num)
-            except Exception as e:
-                log_debug(f"Direct mapping speaker extraction failed: {e}")
-
-            
-        # Retrieve dynamic name tag substitutions from the active plugin (e.g. {escape:0:0022} -> "Epona")
-        _dynamic_name_tags: dict = {}
-        if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
-            try:
-                _dynamic_name_tags = self.mw.current_game_rules.get_dynamic_name_tags()
-            except Exception:
-                pass
-
-        def distill(t: str) -> str:
-            """Distill."""
-            if not t:
-                return ""
-            # First replace known dynamic name tags (e.g. {escape:0:0022} -> "Epona")
-            for tag, name in _dynamic_name_tags.items():
-                t = t.replace(tag, name)
-            t = re.sub(r'\{[^}]+\}', '', t)      # {escape:…} and other curly tags
-            t = re.sub(r'\[[^]]+\]', '', t)       # [action notes]
-            t = re.sub(r'\([^)]+\)', '', t)       # (button hints) e.g. (Up on D Pad)
-            return "".join(c for c in t if c.isalnum()).lower()
-
-        # Cache version – bump whenever distill() logic changes so stale caches are rebuilt
-        _DISTILL_CACHE_VERSION = 2
-
-        # Try to retrieve from In-Memory Script Cache to ensure instant response
-        if (hasattr(self, "_script_lines_cache") and self._script_lines_cache is not None and 
-            hasattr(self, "_global_distilled_text_cache") and self._global_distilled_text_cache is not None and 
-            hasattr(self, "_char_to_line_map_cache") and self._char_to_line_map_cache is not None and 
-            getattr(self, "_cached_script_path", None) == script_path and
-            getattr(self, "_cached_mtime", None) == mtime and
-            getattr(self, "_cached_size", None) == size and
-            getattr(self, "_cached_plugin_name", None) == plugin_name and
-            getattr(self, "_distill_cache_version", None) == _DISTILL_CACHE_VERSION):
-            lines = self._script_lines_cache
-            global_distilled_text = self._global_distilled_text_cache
-            char_to_line_map = self._char_to_line_map_cache
-        else:
-            if self._script_lines_cache is not None:
-                lines = self._script_lines_cache
-            else:
-                try:
-                    with open(script_path, "r", encoding="cp1252", errors="replace") as f:
-                        lines = f.readlines()
-                except Exception as e:
-                    log_debug(f"Script Fallback: failed to load with cp1252, trying utf-8: {e}")
-                    try:
-                        with open(script_path, "r", encoding="utf-8", errors="replace") as f:
-                            lines = f.readlines()
-                    except Exception as e2:
-                        log_debug(f"Script Fallback: failed to load script file: {e2}")
-                        return None
-                self._script_lines_cache = lines
-            
-            global_distilled = []
-            char_to_line_map = []
-            def line_strip_is_speaker(s: str) -> bool:
-                return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
-
-            for idx, line in enumerate(lines):
-                line_strip = line.strip()
-                # Skip action bracket lines or uppercase speaker lines in mapping to avoid false positive speaker triggers
-                if line_strip.startswith("[") and line_strip.endswith("]"):
-                    continue
-                if line_strip_is_speaker(line_strip):
-                    continue
-                    
-                distilled_line = distill(line)
-                if distilled_line:
-                    for _ in range(len(distilled_line)):
-                        char_to_line_map.append(idx + 1) # 1-based line number
-                    global_distilled.append(distilled_line)
-                    
-            self._global_distilled_text_cache = "".join(global_distilled)
-            self._char_to_line_map_cache = char_to_line_map
-            self._cached_script_path = script_path
-            self._cached_mtime = mtime
-            self._cached_size = size
-            self._cached_plugin_name = plugin_name
-            self._distill_cache_version = _DISTILL_CACHE_VERSION
-            global_distilled_text = self._global_distilled_text_cache
-            log_debug(f"Successfully cached and mapped script file {script_path} ({len(lines)} lines, {len(global_distilled_text)} distilled characters).")
-
-        # Count words in original text
-        words_count = len(re.findall(r'\w+', text))
-        
-        # Distill current text
-        distilled_query = distill(text)
-        if not distilled_query:
-            return "NONE", None
-            
-        start_offset = 0
-        if words_count < 4:
-            search_query = distilled_query
-        else:
-            n = len(distilled_query)
-            if n < 3:
-                search_query = distilled_query
-            else:
-                third = n // 3
-                start = third
-                end = n - third
-                search_query = distilled_query[start:end]
-                start_offset = start
-                
-        if not search_query:
-            return "NONE", None
-
-        def line_strip_is_speaker(s: str) -> bool:
-            """Line strip is speaker."""
-            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
-
-        def is_line_boundary(line_str: str) -> bool:
-            """Check if is line boundary."""
-            s = line_str.strip()
-            if not s:
-                return True
-            if s.startswith("[") and s.endswith("]"):
-                return True
-            if line_strip_is_speaker(s):
-                return True
-            return False
-
-        def get_script_remainder(e_pos: int) -> str:
-            """Get the script remainder."""
-            remainder_chars = []
-            prev_line = char_to_line_map[e_pos - 1] if e_pos > 0 else 1
-            for i in range(e_pos, len(global_distilled_text)):
-                curr_line = char_to_line_map[i]
-                if curr_line != prev_line:
-                    break  # Stop at line boundary!
-                remainder_chars.append(global_distilled_text[i])
-            return "".join(remainder_chars)
-
-        def get_prev_script_text(l_num: int) -> str:
-            """Get the prev script text."""
-            for idx in range(l_num - 2, -1, -1):
-                line_str = lines[idx].strip()
-                if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):
-                    continue
-                return line_str
-            return ""
-
-        def get_next_script_text(l_num: int) -> str:
-            """Get the next script text."""
-            for idx in range(l_num, len(lines)):
-                line_str = lines[idx].strip()
-                if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):
-                    continue
-                return line_str
-            return ""
-
-        # Get preceding and subsequent BMG strings for context check
-        preceding_strings = []
-        subsequent_strings = []
-        if (hasattr(self.mw, 'data_store') and self.mw.data_store and 
-            block_idx is not None and 0 <= block_idx < len(self.mw.data_store.data)):
-            block_strings = self.mw.data_store.data[block_idx]
-            # Preceding BMG strings
-            for prev_idx in range(max(0, s_idx - 5), s_idx):
-                preceding_strings.append(block_strings[prev_idx])
-            # Subsequent BMG strings
-            for next_idx in range(s_idx + 1, len(block_strings)):
-                subsequent_strings.append(block_strings[next_idx])
-
-        dist_prev_bmg = ""
-        if preceding_strings:
-            for s in reversed(preceding_strings):
-                d_s = distill(s)
-                if d_s:
-                    dist_prev_bmg = d_s
-                    break
-
-        dist_next_bmg = ""
-        if subsequent_strings:
-            for s in subsequent_strings:
-                d_s = distill(s)
-                if d_s:
-                    dist_next_bmg = d_s
-                    break
-            
-        # Search the query in the global distilled text
-        candidates = []
-        start_pos = 0
-        while True:
-            pos = global_distilled_text.find(search_query, start_pos)
-            if pos == -1:
-                break
-            # Translate position back to original line number of the START of the query
-            actual_pos = max(0, pos - start_offset)
-            end_pos = actual_pos + len(distilled_query)
-            
-            # Check if validation is needed: only if the match does NOT end at a line boundary
-            needs_validation = False
-            if end_pos < len(char_to_line_map):
-                if char_to_line_map[end_pos] == char_to_line_map[end_pos - 1]:
-                    needs_validation = True
-            
-            if needs_validation:
-                remainder = get_script_remainder(end_pos)
-                if remainder:
-                    temp_remainder = remainder
-                    match_valid = True
-                    for next_text in subsequent_strings:
-                        dist_next = distill(next_text)
-                        if not dist_next:
-                            continue
-                        if temp_remainder.startswith(dist_next):
-                            temp_remainder = temp_remainder[len(dist_next):]
-                            if not temp_remainder:
-                                break
-                        elif dist_next.startswith(temp_remainder):
-                            temp_remainder = ""
-                            break
-                        else:
-                            match_valid = False
-                            break
-                    
-                    if not match_valid or (temp_remainder and len(temp_remainder) > 0):
-                        start_pos = pos + 1
-                        continue
-            
-            if actual_pos < len(char_to_line_map) and (end_pos - 1) < len(char_to_line_map):
-                line_num = char_to_line_map[actual_pos]
-                L_start = char_to_line_map[actual_pos]
-                L_end = char_to_line_map[end_pos - 1]
-                
-                # 1. Word count diff
-                script_matched_text = " ".join(lines[l - 1].strip() for l in range(L_start, L_end + 1))
-                words_script = len(re.findall(r'\w+', script_matched_text))
-                words_bmg = len(re.findall(r'\w+', text))
-                word_diff = abs(words_script - words_bmg)
-                
-                # 2. Context Match
-                has_prev_match = False
-                if dist_prev_bmg:
-                    prev_script_text = get_prev_script_text(line_num)
-                    dist_prev_script = distill(prev_script_text)
-                    if dist_prev_script:
-                        if dist_prev_bmg in dist_prev_script or dist_prev_script in dist_prev_bmg:
-                            has_prev_match = True
-                            
-                has_next_match = False
-                if dist_next_bmg:
-                    next_script_text = get_next_script_text(line_num)
-                    dist_next_script = distill(next_script_text)
-                    if dist_next_script:
-                        if dist_next_bmg in dist_next_script or dist_next_script in dist_next_bmg:
-                            has_next_match = True
-                            
-                context_level = 0
-                if has_prev_match and has_next_match:
-                    context_level = 2
-                elif has_prev_match or has_next_match:
-                    context_level = 1
-                    
-                candidates.append({
-                    "line_num": line_num,
-                    "context_level": context_level,
-                    "word_diff": word_diff
-                })
-            start_pos = pos + 1
-            
-        if not candidates:
-            return "NONE", None
-            
-        # FILTERING HIERARCHY
-        # 1. Keep max context level
-        max_level = max(c["context_level"] for c in candidates)
-        filtered = [c for c in candidates if c["context_level"] == max_level]
-        
-        # 2. Keep min word count diff
-        min_diff = min(c["word_diff"] for c in filtered)
-        final_candidates = [c for c in filtered if c["word_diff"] == min_diff]
-        
-        matched_lines = []
-        for c in final_candidates:
-            if c["line_num"] not in matched_lines:
-                matched_lines.append(c["line_num"])
-                
-        speakers = []
-        for line_num in matched_lines:
-            speaker = None
-            for idx in range(line_num - 2, -1, -1):
-                s = lines[idx].strip()
-                if not s:
-                    continue
-                if s.startswith("[") and s.endswith("]"):
-                    continue
-                if line_strip_is_speaker(s):
-                    speaker = s
-                    break
-            if speaker and speaker not in speakers:
-                speakers.append(speaker)
-                
-        if matched_lines:
-            matched_lines_str = ", ".join(str(line_num) for line_num in matched_lines)
-            speaker_str = ", ".join(speakers) if speakers else "NONE"
-            return speaker_str, matched_lines_str
-            
-        return None

@@ -95,22 +95,22 @@
   * *Складність:* Середня
   * *Файли:* `handlers/translation/ai_lifecycle_manager.py`, `handlers/translation/glossary_builder_handler.py`, `handlers/ai_chat_handler.py`, `main.py`, `ui/main_window/main_window_helper.py`
 
-- `[ ]` **A03. Замінити eager all-block preview cache на lazy LRU/idle cache**
+- `[x]` **A03. Замінити eager all-block preview cache на lazy LRU/idle cache**
   * *Опис:* Не кешувати всі блоки одразу після завантаження. Кешувати поточний блок, сусідні блоки та idle chunks з обмеженням пам'яті; прибрати потребу в `processEvents()` у `pre_cache_all_blocks()`.
   * *Складність:* Висока
   * *Файли:* `ui/updaters/preview_updater.py`, `handlers/list_selection_handler.py`, `tests/test_ui/test_ui_updater.py`, `tests/test_ui/updaters/test_block_list_updater.py`
 
-- `[ ]` **A04. Винести spellcheck/search у cancellable worker pipeline**
+- `[x]` **A04. Винести spellcheck/search у cancellable worker pipeline**
   * *Опис:* Перенести пошук помилок, pre-highlight і великі search scans з UI thread у worker з progress/cancel. UI має показувати стабільний прогрес без `QApplication.processEvents()`.
   * *Складність:* Середня
   * *Файли:* `dialogs/spellcheck_dialog.py`, `dialogs/search_review_dialog.py`, `handlers/search_handler.py`, `core/spellchecker_manager.py`
 
-- `[ ]` **A05. Побудувати індекси для швидкої фільтрації рядків**
+- `[x]` **A05. Побудувати індекси для швидкої фільтрації рядків**
   * *Опис:* Підтримувати cached sets/bitsets для empty, translated, unsaved, overrides, warnings і categories. Оновлювати індекси інкрементально при редагуванні, щоб перемикання фільтрів не сканувало весь блок.
   * *Складність:* Висока
   * *Файли:* `core/data_store.py`, `core/data_state_processor.py`, `ui/updaters/preview_updater.py`, `handlers/list_selection_handler.py`, `ui/updaters/block_list_updater.py`
 
-- `[ ]` **A06. Зробити session autosave компактним і версіонованим**
+- `[x]` **A06. Зробити session autosave компактним і версіонованим**
   * *Опис:* Замість pickle всього `data_store` зберігати schema-based snapshot: paths, current selection, dirty edits, undo metadata, UI filters. Додати version/migration і не писати великі transient caches.
   * *Складність:* Середня
   * *Файли:* `core/data_state_processor.py`, `core/settings/session_state_manager.py`, `core/data_store.py`, `tests/test_partial_and_session_save.py`
@@ -120,15 +120,15 @@
   * *Складність:* Низька
   * *Файли:* `handlers/translation/ai_prompt_composer.py`, `tests/test_handlers/test_ai_prompt_composer.py`
 
-- `[ ]` **A08. Розділити `AIPromptComposer` на менші сервіси**
+- `[x]` **A08. Розділити `AIPromptComposer` на менші сервіси**
   * *Опис:* Винести placeholder processing, glossary formatting, MemePalace context, script speaker lookup і message assembly в окремі класи/функції. Це зменшить coupling і спростить тестування AI prompt логіки.
   * *Складність:* Висока
   * *Файли:* `handlers/translation/ai_prompt_composer.py`, `core/translation/`, `tests/test_handlers/test_ai_prompt_composer.py`
 
-- `[ ]` **A09. Розділити navigation/save logic у `ListSelectionHandler`**
+- `[x]` **A09. Розділити navigation/save logic у `ListSelectionHandler`**
   * *Опис:* Винести virtual folder navigation, speaker/character persistence, category operations і preview selection у окремі компоненти. Це зменшить ризик регресій у `physical_block_idx` сценаріях.
   * *Складність:* Висока
-  * *Файли:* `handlers/list_selection_handler.py`, `handlers/virtual_folder_handler.py`, `tests/test_handlers/test_list_selection_handler.py`, `tests/test_handlers/test_speaker_folders.py`
+  * *Файли:* `handlers/list_selection_handler.py`, `handlers/virtual_folder_handler.py`, `handlers/category_handler.py`, `handlers/speaker_handler.py`, `tests/test_handlers/test_list_selection_handler.py`, `tests/test_handlers/test_speaker_folders.py`
 
 - `[ ]` **A10. Додати performance regression тести для великих проектів**
   * *Опис:* Створити synthetic dataset benchmarks для preview load, filter toggle, spellcheck scan, width analysis і AI prompt context lookup. Додати окрему команду запуску без flaky GUI timing.

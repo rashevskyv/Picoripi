@@ -46,6 +46,8 @@ from handlers.text_analysis_handler import TextAnalysisHandler
 from handlers.ai_chat_handler import AIChatHandler
 from handlers.bookmark_handler import BookmarkHandler
 from handlers.saved_translations_handler import SavedTranslationsHandler
+from handlers.speaker_handler import SpeakerHandler
+from handlers.category_handler import CategoryHandler
 
 from core.settings_manager import SettingsManager
 from core.data_state_processor import DataStateProcessor
@@ -218,16 +220,16 @@ class MainWindow(QMainWindow):
     def _init_handlers(self) -> None:
         # Core Services
         self.settings_manager = SettingsManager(self)
-        
+
         self.helper = MainWindowHelper(self)
         self.actions = MainWindowActions(self)
         self.data_processor = DataStateProcessor(self)
         self.saved_translations_manager = SavedTranslationsManager(self)
         self.ui_updater = UIUpdater(self, self.data_processor)
         self.undo_manager = UndoManager(self)
-        
+
         self.settings_manager.load_settings()
-        
+
         # Actions Handlers
         self.string_settings_updater = StringSettingsUpdater(self, self.data_processor)
         self.spellchecker_manager = SpellcheckerManager(self)
@@ -251,18 +253,20 @@ class MainWindow(QMainWindow):
                     plugin_defaults_detection = getattr(config_module, 'DEFAULT_DETECTION_SETTINGS', {})
                 except Exception:
                     pass
-            
+
             if not self.autofix_enabled and plugin_defaults_autofix:
                 self.autofix_enabled = plugin_defaults_autofix.copy()
             if not self.detection_enabled and plugin_defaults_detection:
                 self.detection_enabled = plugin_defaults_detection.copy()
 
         # Complex Handlers
+        self.virtual_folder_handler = VirtualFolderHandler(self, self.data_processor, self.ui_updater)
+        self.speaker_handler = SpeakerHandler(self, self.data_processor, self.ui_updater)
+        self.category_handler = CategoryHandler(self, self.data_processor, self.ui_updater)
         self.list_selection_handler = ListSelectionHandler(self, self.data_processor, self.ui_updater)
         self.editor_operation_handler = TextOperationHandler(self, self.data_processor, self.ui_updater)
-        self.app_action_handler = AppActionHandler(self, self.data_processor, self.ui_updater, self.current_game_rules) 
+        self.app_action_handler = AppActionHandler(self, self.data_processor, self.ui_updater, self.current_game_rules)
         self.project_action_handler = ProjectActionHandler(self, self.data_processor, self.ui_updater)
-        self.virtual_folder_handler = VirtualFolderHandler(self, self.data_processor, self.ui_updater)
         self.issue_scan_handler = IssueScanHandler(self, self.data_processor, self.ui_updater)
         self.search_handler = SearchHandler(self, self.data_processor, self.ui_updater)
         self.string_settings_handler = StringSettingsHandler(self, self.data_processor, self.ui_updater)
@@ -281,14 +285,14 @@ class MainWindow(QMainWindow):
         self._container.register(SavedTranslationsManager, self.saved_translations_manager)
         self._container.register(UIUpdater, self.ui_updater)
         self._container.register(UndoManager, self.undo_manager)
-        
+
         self._container.register(StringSettingsUpdater, self.string_settings_updater)
         self._container.register(SpellcheckerManager, self.spellchecker_manager)
         self._container.register(MainWindowUIHandler, self.ui_handler)
         self._container.register(MainWindowPluginHandler, self.plugin_handler)
         self._container.register(MainWindowEventHandler, self.event_handler)
         self._container.register(MainWindowBlockHandler, self.block_handler)
-        
+
         self._container.register(ListSelectionHandler, self.list_selection_handler)
         self._container.register(TextOperationHandler, self.editor_operation_handler)
         self._container.register(AppActionHandler, self.app_action_handler)
@@ -325,19 +329,19 @@ class MainWindow(QMainWindow):
         self.export_translations_action = None
         self.import_translations_action = None
         self.main_vertical_layout = None
-        self.auto_fix_button: Optional[QPushButton] = None 
+        self.auto_fix_button: Optional[QPushButton] = None
         self.ai_translate_button: Optional[QPushButton] = None
         self.ai_variation_button: Optional[QPushButton] = None
         self.font_combobox: Optional[QComboBox] = None
         self.width_spinbox: Optional[QSpinBox] = None
         self.apply_width_button: Optional[QPushButton] = None
-        
+
         self.status_label_part1: Optional[QLabel] = None
         self.status_label_part2: Optional[QLabel] = None
         self.status_label_part3: Optional[QLabel] = None
         self.plugin_status_label: Optional[QLabel] = None
 
-        # Setup 
+        # Setup
         setup_main_window_ui(self)
         self.ui_handler.force_focus()
         log_info("UI setup complete.")
@@ -371,7 +375,7 @@ class MainWindow(QMainWindow):
 
         self.event_filter = MainWindowEventFilter(self)
         QApplication.instance().installEventFilter(self.event_filter)
-        
+
         self.text_edit_filter = TextEditEventFilter(self)
         self.preview_text_edit.installEventFilter(self.text_edit_filter)
         self.original_text_edit.installEventFilter(self.text_edit_filter)
@@ -386,7 +390,7 @@ class MainWindow(QMainWindow):
                 editor_widget.font_map = self.font_map
                 editor_widget.game_dialog_max_width_pixels = self.game_dialog_max_width_pixels
                 editor_widget.show_width_guideline = self.show_width_guideline
-                
+
                 if hasattr(editor_widget, 'updateLineNumberAreaWidth'):
                     editor_widget.updateLineNumberAreaWidth(0)
 
@@ -435,7 +439,7 @@ class MainWindow(QMainWindow):
         self.ui_updater.update_title()
         self.ui_updater.update_preview_visibility()
         log_info("Main window initialization complete.")
-    
+
     def keyPressEvent(self, event: QKeyEvent):
         super().keyPressEvent(event)
 
@@ -556,14 +560,14 @@ class MainWindow(QMainWindow):
         """Handle zooming in/out by adjusting font size and updating UI."""
         # delta usually comes from wheel event as 120 (one notch)
         step = 1 if delta > 0 else -1
-        
+
         targets = {
             'tree': 'tree_font_size',
             'preview': 'preview_font_size',
             'editors': 'editors_font_size',
             'all': 'current_font_size'
         }
-        
+
         attr = targets.get(target, 'current_font_size')
         old = getattr(self, attr)
         new = max(5, min(72, old + step))
@@ -584,7 +588,7 @@ class MainWindow(QMainWindow):
         if target_block_idx == -1:
             QMessageBox.information(self, "Build Glossary", "Please select a block first.")
             return
-        
+
         self.glossary_builder_handler = GlossaryBuilderHandler(self)
         self.glossary_builder_handler.build_glossary_for_block(target_block_idx, category_name)
 
@@ -645,7 +649,7 @@ class MainWindow(QMainWindow):
 
             def was_canceled(self) -> bool:
                 return self.dialog.wasCanceled()
-        
+
         return UIProgressTracker(self, title, message, max_val)
 
 
@@ -668,15 +672,15 @@ if __name__ == '__main__':
         import ctypes
         # Set AppUserModelID to ensure the taskbar icon is displayed correctly on Windows
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("rashevskyv.picoripi.v1")
-    
+
     sys.excepthook = global_exception_handler
     log_info("================= Application Start =================")
     app = QApplication(sys.argv)
-    
+
     app_icon_path = Path("assets/icon.ico")
     if app_icon_path.exists():
         app.setWindowIcon(QIcon(str(app_icon_path)))
-    
+
     # Migrate old settings file if it exists
     try:
         import os
@@ -689,7 +693,7 @@ if __name__ == '__main__':
                 log_info(f"Successfully migrated settings from {old_local_settings} to {SETTINGS_FILE_PATH}")
             else:
                 log_info(f"Settings file already exists in home directory. Skipping migration of local {old_local_settings}.")
-            
+
             # Rename old local settings file to prevent repeated checks
             migrated_old_path = old_local_settings + ".migrated"
             try:
@@ -709,7 +713,7 @@ if __name__ == '__main__':
         pass
     except Exception as e:
         log_error(f"Error reading {SETTINGS_FILE_PATH} for theme: {e}", exc_info=True)
-        
+
     theme_to_apply = temp_settings.get("theme", "auto")
     MainWindowUIHandler.apply_theme(app, theme_to_apply)
 
