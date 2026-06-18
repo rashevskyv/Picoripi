@@ -2,11 +2,16 @@
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m \"not performance\""
 qt_api = "pyqt6"
+
 filterwarnings = [
     "ignore::DeprecationWarning"
 ]
+markers = [
+    "performance: Performance and benchmark regression tests for large data"
+]
+
 
 [tool.ruff]
 target-version = "py310"

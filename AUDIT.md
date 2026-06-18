@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.034
+> **Остання версія проекту:** v0.3.037
 > **Дата оновлення:** 2026-06-18
 > **Об'єм проекту:** ~66 586 LOC Python-коду, 219 продуктових Python-файлів; ~22 872 LOC тестів, 145 тестових файлів.
 
@@ -46,8 +46,10 @@
 - **A15. Нова логіка Missing Tag Spacing та гаряча клавіша Ctrl+Q** (червень 2026). Повністю переписано функції `find_missing_icon_spacing_spans` та `fix_missing_icon_spacing` на основі аналізу очищеного тексту (Clean Text Analysis). Це дозволило точно виявляти та виправляти пропущені пробіли, виключаючи хибні спрацьовування. Також додано гарячу клавішу `Ctrl+Q` для глобального приховування/показу тегів, оновлено тултипи чекбоксів та довідку по гарячих клавішах.
 - **A16. Впровадження централізованого двигуна правил (Rule Engine)** (червень 2026). Уніфіковано аналіз та автовиправлення проблем за допомогою єдиної системи `ProblemRule` та `ProblemRuleRegistry`. Усунено дублювання логіки у плагінах, створено спільний контрактний тест `tests/test_rule_engine_contract.py` та адаптовано `TextAutofixLogic` і кешування варнінгів.
 - **A02. Уніфікувати shutdown/cancel contract для QThread workers** (червень 2026). Створено допоміжну функцію `safe_shutdown_thread`, яка безпечно зупиняє потоки QThread та їхні воркери, відключаючи сигнальні з'єднання та запобігаючи помилкам Qt при закритті вікна.
+- **A10. Додати performance regression тести для великих проектів** (червень 2026). Створено надійні pytest-тести продуктивності на основі синтетичного in-memory набору даних для перевірки швидкодії width analysis, spellcheck, filter toggle, preview load та AI prompt context lookup. Тести виділено під окремий маркер та виключено з дефолтного прогону для запобігання flaky-поведінці.
 
 Ці пункти не повертаються в активний TODO. Якщо регресії з'являться повторно, їх слід заводити новими ID з конкретним відтворенням.
+
 
 ## 3. Активні архітектурні, продуктивні та UX проблеми
 
@@ -79,9 +81,8 @@
 
 `dialogs/spellcheck_dialog.py` відтерміновує `_load_content()` через `QTimer.singleShot`, але сам аналіз і підсвічування виконуються синхронно. `dialogs/search_review_dialog.py` і `handlers/search_handler.py` також використовують `processEvents()`. Для великих текстів користувач бачить частковий feedback, але не має стабільного cancel/progress потоку без reentrancy.
 
-### A10. Немає централізованого performance budget та benchmark gate
 
-Є `scripts/benchmark.py` і `scripts/benchmark_glossary.py`, але у `pyproject.toml` немає окремого performance профілю або regression budget для великих проектів. Через це оновлення preview/filter/spellcheck/AI context можуть регресувати непомітно.
+
 
 ## 4. Пріоритетний список дій (TODO)
 
@@ -130,10 +131,10 @@
   * *Складність:* Висока
   * *Файли:* `handlers/list_selection_handler.py`, `handlers/virtual_folder_handler.py`, `handlers/category_handler.py`, `handlers/speaker_handler.py`, `tests/test_handlers/test_list_selection_handler.py`, `tests/test_handlers/test_speaker_folders.py`
 
-- `[ ]` **A10. Додати performance regression тести для великих проектів**
+- `[x]` **A10. Додати performance regression тести для великих проектів**
   * *Опис:* Створити synthetic dataset benchmarks для preview load, filter toggle, spellcheck scan, width analysis і AI prompt context lookup. Додати окрему команду запуску без flaky GUI timing.
   * *Складність:* Середня
-  * *Файли:* `scripts/benchmark.py`, `scripts/benchmark_glossary.py`, `tests/test_static_analysis.py`, `pyproject.toml`
+  * *Файли:* `scripts/benchmark.py`, `scripts/benchmark_glossary.py`, `tests/test_performance.py`, `pyproject.toml`
 
 - `[ ]` **A11. Поліпшити UX cancel/progress для довгих локальних операцій**
   * *Опис:* Додати видимий cancel/progress для preview cache, glossary occurrence build, spellcheck і search review; блокувати лише релевантні controls, а не всю програму.

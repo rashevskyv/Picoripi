@@ -1,5 +1,19 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.037] - 2026-06-18
+
+### 🚀 Added
+- **A10. Performance Regression Tests for Large Projects**:
+  - Registered the new pytest marker `performance` inside `pyproject.toml` and configured default execution options (`addopts`) to ignore performance tests by default (`-m "not performance"`) to prevent flaky test runs in standard CI environments and local dev environments.
+  - Implemented high-performance, deterministic regression tests in `tests/test_performance.py` using large synthetic datasets (5000 lines, 100 glossary terms) covering:
+    - Width calculation (`calculate_string_width`) with Trie + caching.
+    - Spellcheck manager scan throughput (2000 alphabetical words, validated via successful Hunspell dictionary loads).
+    - Block tree filter toggle performance (20 runs over index sets).
+    - Preview manager load and layout preparation (`populate_strings_for_block` for 5000 lines).
+    - AI translation context composition (`compose_batch_request` for 100 items).
+  - Enhanced the standalone benchmark script `scripts/benchmark.py` with automatic in-memory synthetic fallback data when real game resources are missing, printing formatted comparison tables.
+  - Updated `AUDIT.md` to reflect the completed state of the A10 issue.
+
 ## [0.3.036] - 2026-06-18
 
 ### 🚀 Added
