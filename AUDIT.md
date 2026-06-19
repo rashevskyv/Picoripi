@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.040
+> **Остання версія проекту:** v0.3.041
 > **Дата оновлення:** 2026-06-19
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 212 pytest test-функцій.
 
@@ -56,14 +56,13 @@
   - Додано реальні `pytest-qt` тести на життєвий цикл та відміну потоку `AutofixWorker` у `test_text_operation_handler.py`.
   - Розширено інтеграційні тести пошуку для детальної перевірки параметрів підсвічування пошукових збігів у `test_search_handler.py`.
   - Усі `1212 passed` тестів успішно виконані.
+- **B01. Прибрати залишковий `processEvents()` з progress tracker.**
+  - Вилучено `QCoreApplication.processEvents()` з `UIProgressTracker.set_value()` в [main.py](file:///d:/git/dev/Picoripi/main.py).
+  - Відключено кнопку Cancel (`setCancelButton(None)`) у діалозі прогресу для усунення reentrancy-ризиків, оскільки операції revert відбуваються синхронно в пам'яті дуже швидко (мілісекунди) та не потребують асинхронного скасування.
+  - Замінено pumping подій на пряме примусове перемалювання віджета діалогу через `self.dialog.repaint()`, що гарантує візуальне оновлення прогрес-бару без reentrancy-побічних ефектів.
+  - Збільшено таймаути очікування сигналів у QThread тестах `test_autofix_worker_real_thread_lifecycle` та `test_autofix_worker_real_thread_cancellation` у [test_autofix_worker.py](file:///d:/git/dev/Picoripi/tests/test_handlers/test_autofix_worker.py) до 15 та 10 секунд відповідно для усунення флеків під високим паралельним навантаженням.
 
 ## 3. Active architecture, performance, and UX issues (Активні проблеми)
-
-### B01. Залишковий `processEvents()` може створювати reentrancy-ризики
-
-`main.py:643-654` створює `UIProgressTracker`, де `set_value()` викликає `QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)`. Навіть з `ExcludeUserInputEvents` це дозволяє обробку частини Qt-подій посеред довгих операцій, що може призвести до повторного входу в UI-стан, неочікуваного `deleteLater()` або оновлення виджетів у неправильний момент.
-
-Рішення: замінити ручний pumping подій на сигнал-орієнтований progress update через `QTimer.singleShot(0, ...)`, worker progress signals або невеликий адаптер progress sink без прямого `processEvents()`.
 
 ### B02. Узагальнений shutdown потоків має небезпечний fallback через `terminate()`
 
@@ -119,7 +118,7 @@
 
 ## 4. Пріоритетний список дій (TODO)
 
-- `[ ]` **B01. Прибрати залишковий `processEvents()` з progress tracker**
+- `[x]` **B01. Прибрати залишковий `processEvents()` з progress tracker**
   * *Опис:* Замінити `QCoreApplication.processEvents()` у `main.py` на сигнал-орієнтоване або timer-based оновлення прогресу. Це зменшить ризик reentrancy і випадкових оновлень UI під час довгих операцій.
   * *Складність:* Низька
   * *Файли:* `main.py`, тести для flow, який використовує `create_progress_tracker()`

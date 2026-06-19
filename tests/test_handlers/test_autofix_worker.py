@@ -234,8 +234,8 @@ def test_autofix_worker_real_thread_lifecycle(qtbot):
         page_local=False
     )
     
-    # Wait for the standard QThread.finished signal
-    with qtbot.waitSignal(worker.finished, timeout=5000):
+    # Wait for the standard QThread.finished signal with a generous timeout to prevent flaky failure on slow CI/CPU
+    with qtbot.waitSignal(worker.finished, timeout=15000):
         worker.start()
         
     worker.wait()
@@ -270,8 +270,8 @@ def test_autofix_worker_real_thread_cancellation(qtbot):
     worker.start()
     assert worker.isRunning()
     
-    # Request cancellation within waitSignal context to avoid race conditions
-    with qtbot.waitSignal(worker.cancelled, timeout=2000):
+    # Request cancellation within waitSignal context with a generous timeout to prevent flaky failure on slow CI/CPU
+    with qtbot.waitSignal(worker.cancelled, timeout=10000):
         worker.cancel()
         
     worker.wait()

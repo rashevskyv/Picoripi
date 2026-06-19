@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.041] - 2026-06-19
+
+### 🚀 Added
+- **QThread Test Robustness**:
+  - Increased `qtbot.waitSignal` timeouts in QThread integration tests `test_autofix_worker_real_thread_lifecycle` (to 15s) and `test_autofix_worker_real_thread_cancellation` (to 10s) in `tests/test_handlers/test_autofix_worker.py` to prevent flaky failures under high concurrent CPU load (e.g. parallel execution with 16 workers).
+
+### 🐛 Fixed
+- **Reentrancy Risks Mitigation in Progress Dialog**:
+  - Completely removed `QCoreApplication.processEvents()` from the sync progress tracker (`UIProgressTracker` inside `create_progress_tracker` in `main.py`) to eliminate reentrancy risks (e.g., unintended event dispatching, widget updates, or window closure in the middle of transactional procedures).
+  - Disabled the "Cancel" button on the progress dialog (`setCancelButton(None)`) during strings/blocks reverting because these operations run entirely in-memory and execute extremely fast (within milliseconds to a second), making asynchronous cancellation unnecessary.
+  - Replaced manual event pumping with a direct `self.dialog.repaint()` call which safely and instantly redraws the progress widget without triggering the event queue dispatch.
+
 ## [0.3.040] - 2026-06-19
 
 ### 🚀 Added

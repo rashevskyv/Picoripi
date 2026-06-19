@@ -639,7 +639,8 @@ class MainWindow(QMainWindow):
         from PyQt6.QtCore import Qt
         class UIProgressTracker:
             def __init__(self, parent, title_str, msg_str, val_max):
-                self.dialog = QProgressDialog(msg_str, "Cancel", 0, val_max, parent)
+                self.dialog = QProgressDialog(msg_str, None, 0, val_max, parent)
+                self.dialog.setCancelButton(None)
                 self.dialog.setWindowTitle(title_str)
                 self.dialog.setWindowModality(Qt.WindowModality.WindowModal)
                 self.dialog.setMinimumDuration(500)
@@ -647,8 +648,7 @@ class MainWindow(QMainWindow):
 
             def set_value(self, val: int):
                 self.dialog.setValue(val)
-                from PyQt6.QtCore import QCoreApplication, QEventLoop
-                QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+                self.dialog.repaint()
 
             def was_canceled(self) -> bool:
                 return self.dialog.wasCanceled()
