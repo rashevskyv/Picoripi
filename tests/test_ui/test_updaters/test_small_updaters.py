@@ -37,6 +37,10 @@ def mock_mw():
     mw.data_store.data = []
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 200
+    from core.filter_query_api import FilterQueryAPI
+    mw.filter_query_api = FilterQueryAPI(mw)
+    mw.data_store.displayed_string_indices = []
+    mw._is_test_mode = True
     return mw
 
 
@@ -446,6 +450,36 @@ class TestPreviewUpdater:
 
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_populate_strings_filter_toggle_regenerates_without_force(self, mock_hl, mock_ut, updater, mock_dp):
+        preview_edit = MagicMock()
+        preview_edit.toPlainText.return_value = ""
+        preview_edit.document().blockCount.return_value = 3
+        updater.mw.preview_text_edit = preview_edit
+        updater.mw.data_store.data = [["line0", "line1", "line2"]]
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.current_game_rules = MagicMock()
+        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
+        updater.mw.project_manager = None
+
+        mock_dp.is_string_translated.side_effect = lambda b, s: s == 0
+        mock_dp.get_current_string_text.side_effect = lambda b, r: (
+            ["Hello Translated", "World Untranslated", "Another Untranslated"][r],
+            None,
+        )
+
+        updater.populate_strings_for_block(0, force=True)
+        assert updater.mw.data_store.displayed_string_indices == [0, 1, 2]
+
+        preview_edit.setPlainText.reset_mock()
+        updater.mw.data_store.hide_translated = True
+
+        updater.populate_strings_for_block(0)
+
+        preview_edit.setPlainText.assert_called_once_with("World Untranslated\nAnother Untranslated")
+        assert updater.mw.data_store.displayed_string_indices == [1, 2]
+
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
     def test_populate_strings_hide_empty_strings(self, mock_hl, mock_ut, updater, mock_dp):
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = ""
@@ -642,36 +676,7 @@ class TestPreviewUpdater:
 
         assert preview_edit.custom_line_numbers == [1, None, 5, 6, 7]
 
-    @patch('PyQt6.QtWidgets.QProgressDialog')
-    @patch.object(PreviewUpdater, 'update_text_views')
-    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
-    def test_populate_strings_shows_progress_dialog(self, mock_hl, mock_ut, mock_progress, updater, mock_dp):
-        preview_edit = MagicMock()
-        preview_edit.toPlainText.return_value = ""
-        preview_edit.document().blockCount.return_value = 250
-        updater.mw.preview_text_edit = preview_edit
 
-        updater.mw.data_store.data = [["line" + str(i) for i in range(250)]]
-        updater.mw.data_store.current_string_idx = 0
-        updater.mw.current_game_rules = MagicMock()
-        updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
-        updater.mw.project_manager = None
-
-        mock_dp.get_current_string_text.side_effect = lambda b, r: (f"line{r}", None)
-
-        progress_instance = MagicMock()
-        progress_instance.wasCanceled.return_value = False
-        mock_progress.return_value = progress_instance
-
-        updater._force_progress_for_testing = True
-        try:
-            updater.populate_strings_for_block(0, force=True)
-        finally:
-            updater._force_progress_for_testing = False
-
-        assert mock_progress.called
-        assert progress_instance.setValue.called
-        assert progress_instance.close.called
 
 
     def test_update_cached_string(self, updater):
@@ -699,6 +704,25 @@ class TestPreviewUpdater:
         # Verify both cache entries are updated
         assert updater._preview_cache[key1]['lines'] == ["line0", "new_line1", "line2"]
         assert updater._preview_cache[key2]['lines'] == ["new_line1", "line2"]
+
+    def test_update_cached_string_virtual(self, updater):
+        # Setup cache with a virtual chapter block (-2)
+        key_virtual = (-2, None, False, False, False, False, False)
+        
+        from collections import OrderedDict
+        updater._preview_cache = OrderedDict({
+            key_virtual: {
+                'lines': ["virtual_line0", "virtual_line1"],
+                'target_indices': [(0, 0), (0, 1)],
+                'next_index': 2
+            }
+        })
+        
+        # Update physical block 0, string index 1
+        updater.update_cached_string(-2, 1, "new_virtual_line", physical_block_idx=0)
+        
+        # Verify virtual cache entry was updated at correct tuple index
+        assert updater._preview_cache[key_virtual]['lines'] == ["virtual_line0", "new_virtual_line"]
 
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')

@@ -1,6 +1,6 @@
-# Picoripi v0.3.038
+# Picoripi v0.3.039
 
-The **Picoripi** (v0.3.038) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.039) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 
 ---
@@ -279,7 +279,7 @@ Fill in the API keys:
 - **Other Platforms**: Run `python main.py` directly.
 
 ### 5. Running Tests
-The suite consists of over 1000 test cases using `pytest`:
+The suite consists of over 1200 test cases using `pytest`:
 ```bash
 # Windows PowerShell
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/

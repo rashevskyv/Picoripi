@@ -32,7 +32,10 @@ def mock_mw():
         "prob2": {"priority": 2, "name": "Empty Odd Line Error"}
     }
     mw.current_game_rules = gr
-
+    mw._is_test_mode = True
+    from core.filter_query_api import FilterQueryAPI
+    mw.filter_query_api = FilterQueryAPI(mw)
+    mw.data_store.displayed_string_indices = []
     return mw
 
 @pytest.fixture

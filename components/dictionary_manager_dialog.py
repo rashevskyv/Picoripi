@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 from pathlib import Path
 from typing import List
 from PyQt6.QtWidgets import (
@@ -114,7 +114,7 @@ class DictionaryManagerDialog(QDialog):
     def load_dictionaries(self):
         """Load dictionaries."""
         self.status_label.setText("Fetching remote dictionary list...")
-        QApplication.processEvents()
+        self.status_label.repaint()
         try:
             response = requests.get(DICTIONARY_API_URL, timeout=10)
             response.raise_for_status()

@@ -1,5 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.039] - 2026-06-19
+
+### 🚀 Added
+- **A13. Real QThread Lifecycle Tests**:
+  - Implemented real `QThread` integration tests verifying worker thread start, cancellation, and clean execution cycles using `qtbot` (pytest-qt) in `tests/test_handlers/test_autofix_worker.py` and `tests/test_text_operation_handler.py`.
+  - Expanded search integration tests to assert precise parameters for `add_search_match_highlight` after block navigation in `tests/test_handlers/test_search_handler.py`.
+
+### 🐛 Fixed
+- **AutofixWorker lifecycle**:
+  - Fixed a reentrancy and thread wait blocking issue by removing direct `_cleanup_active_autofix()` calls from `completed`, `cancelled`, and `error` signals. The thread cleanup is now driven strictly by the standard `QThread.finished` signal, preventing UI thread pauses (`.wait(2000)`) during execution.
+- **Mock/MagicMock Cleanup in Product Code**:
+  - Completely removed test-specific `Mock` and `MagicMock` name checks (such as `_mock_self`, `_mock_name`, and conditional `filter_query_api is None` fallbacks) from production modules (`FilterQueryAPI`, `PreviewUpdater`, `PreviewRenderer`, `BlockListUpdater`, `PreviewCache`).
+  - Standardized mock window fixtures (`mock_mw`) in the unit test suite (`conftest.py`, `test_asterisk_logic.py`, `test_small_updaters.py`, and `test_block_list_updater.py`) to inject real `FilterQueryAPI` instances and default to clean `displayed_string_indices = []`.
+- **Project Audit Document**:
+  - Updated `AUDIT.md` to document the completed `B04-CR` and `B07` stabilization tasks and updated overall test suite statistics (1212 passed).
+
 ## [0.3.038] - 2026-06-18
 
 ### 🚀 Added

@@ -179,7 +179,6 @@ class GlossaryBuilderHandler:
 
         self._status_dialog = AIStatusDialog(self.mw)
         self._status_dialog.start(f"AI Glossary Build ({block_label})", is_chunked=True, model_name=str(model_display))
-        QApplication.processEvents()
 
         prompt_composer = None
         translation_handler = getattr(self.mw, 'translation_handler', None)
@@ -227,7 +226,6 @@ class GlossaryBuilderHandler:
         self._status_dialog.cancelled.connect(self._worker.cancel)
 
         self._thread.start()
-        QApplication.processEvents()
 
     def _on_glossary_success(self, response: ProviderResponse, task_details: dict, status_bar) -> None:
         """Internal helper to handle the glossary success event."""

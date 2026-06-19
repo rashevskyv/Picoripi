@@ -183,6 +183,16 @@ class AppDataStore:
         """Alias setter for current_character_name for Speaker terminology."""
         self.current_character_name = value
 
+    @property
+    def virtual_mappings(self) -> List[Tuple[int, int]]:
+        """Alias for chapter_mappings representing general virtual mappings (chapters or speakers)."""
+        return self.chapter_mappings
+
+    @virtual_mappings.setter
+    def virtual_mappings(self, value: List[Tuple[int, int]]) -> None:
+        """Alias setter for chapter_mappings."""
+        self.chapter_mappings = value
+
     def get_session_snapshot(self) -> dict:
         """Returns a compact dictionary representing the current session state."""
         return {

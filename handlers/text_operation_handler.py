@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import copy
 from typing import Any, Optional, List, Dict, Tuple, Set, Union, TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog, QDialog
 from PyQt6.QtGui import QTextCursor, QTextBlock
@@ -9,6 +10,7 @@ from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
+from .autofix_worker import AutofixWorker
 
 if TYPE_CHECKING:
     from core.context import ProjectContext
@@ -22,6 +24,8 @@ class TextOperationHandler(BaseHandler):
     def __init__(self, context: ProjectContext, data_processor: DataStateProcessor, ui_updater: UIUpdater):
         """Initialize a new instance."""
         super().__init__(context, data_processor, ui_updater)
+        self._active_autofix_worker: Optional[AutofixWorker] = None
+        self._active_autofix_progress: Optional[QProgressDialog] = None
 
         self.preview_update_timer = QTimer()
         self.preview_update_timer.setSingleShot(True)
@@ -914,7 +918,7 @@ class TextOperationHandler(BaseHandler):
                 self.mw.statusBar.showMessage("Auto-fix: No changes made.", 2000)
 
     def fix_all_strings(self, target_strings: list = None) -> None:
-        """Fix all strings."""
+        """Fix all strings using AutofixWorker in a background thread."""
         modifiers = QApplication.keyboardModifiers()
         is_shift_pressed = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
 
@@ -955,174 +959,148 @@ class TextOperationHandler(BaseHandler):
             QMessageBox.information(self.mw, "Auto-fix", "No strings to fix.")
             return
 
+        # Prepare deep copies of required data structures for thread-safety
+        data_copy = copy.deepcopy(self.mw.data_store.data)
+        edited_data_copy = dict(self.mw.data_store.edited_data)
+        edited_file_data_copy = copy.deepcopy(self.mw.data_store.edited_file_data)
+        string_metadata_copy = copy.deepcopy(self.mw.string_metadata)
+        all_font_maps_copy = copy.deepcopy(self.mw.all_font_maps)
+        font_map_copy = dict(self.mw.font_map) if self.mw.font_map else {}
+
+        warning_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+        logical_hard_limit = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
+
         # Show progress dialog
         progress_msg = "Applying auto-fix across selected strings..." if target_strings is not None else "Applying auto-fix across all strings..."
         progress = QProgressDialog(progress_msg, "Cancel", 0, total_strings, self.mw)
         progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(500)
+        progress.setMinimumDuration(0)
         progress.setValue(0)
+
+        # Create worker
+        self._active_autofix_worker = AutofixWorker(
+            game_rules=self.mw.current_game_rules,
+            target_strings=target_strings,
+            data=data_copy,
+            edited_data=edited_data_copy,
+            edited_file_data=edited_file_data_copy,
+            string_metadata=string_metadata_copy,
+            all_font_maps=all_font_maps_copy,
+            font_map=font_map_copy,
+            warning_threshold=warning_threshold,
+            logical_hard_limit=logical_hard_limit,
+            allowed_problems=selected_problems,
+            page_local=is_shift_pressed
+        )
+        self._active_autofix_progress = progress
+
+        # Connect signals
+        self._active_autofix_worker.progress.connect(progress.setValue)
+        self._active_autofix_worker.completed.connect(self._on_autofix_finished)
+        self._active_autofix_worker.cancelled.connect(self._on_autofix_cancelled)
+        self._active_autofix_worker.error.connect(self._on_autofix_error)
+        self._active_autofix_worker.finished.connect(self._cleanup_active_autofix)
+        progress.canceled.connect(self._cancel_active_autofix)
+
+        # Start worker
+        self._active_autofix_worker.start()
+
+    def _cancel_active_autofix(self) -> None:
+        """Cancel the active autofix worker."""
+        if self._active_autofix_worker:
+            self._active_autofix_worker.cancel()
+
+    def _cleanup_active_autofix(self) -> None:
+        """Clean up references and delete progress dialog."""
+        if self._active_autofix_progress:
+            self._active_autofix_progress.deleteLater()
+            self._active_autofix_progress = None
+        
+        worker = self._active_autofix_worker
+        self._active_autofix_worker = None
+        
+        if worker:
+            try:
+                worker.finished.disconnect(self._cleanup_active_autofix)
+            except Exception:
+                pass
+            if worker.isRunning():
+                worker.cancel()
+                from utils.logging_utils import log_warning
+                if not worker.wait(2000):
+                    log_warning("AutofixWorker thread did not stop within timeout, forcing delete.")
+            worker.deleteLater()
+
+    def _on_autofix_finished(self, results: list) -> None:
+        """Called when AutofixWorker successfully finishes."""
+        if not results:
+            if hasattr(self.mw, 'statusBar'):
+                self.mw.statusBar.showMessage("Auto-fix: No changes made to any string.", 3000)
+            return
 
         # Begin undo group
         if hasattr(self.mw, 'undo_manager'):
             self.mw.undo_manager.begin_group()
 
-        processed_strings = 0
-        changed_strings_count = 0
-        canceled = False
-
         try:
-            if target_strings is not None:
-                for block_idx, string_idx in target_strings:
-                    if progress.wasCanceled():
-                        canceled = True
-                        break
-
-                    if not (0 <= block_idx < len(self.mw.data_store.data)):
-                        continue
-                    block = self.mw.data_store.data[block_idx]
-                    if not isinstance(block, list) or not (0 <= string_idx < len(block)):
-                        continue
-
-                    current_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
-                    if current_text is None:
-                        current_text = ""
-
-                    font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-                    width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
-
-                    current_iter_text = current_text
-                    any_changed = False
-                    max_iterations = 5
-                    for _ in range(max_iterations):
-                        fixed_text, changed = self.mw.current_game_rules.autofix_data_string(
-                            current_iter_text,
-                            font_map_for_string,
-                            width_threshold_for_string,
-                            logical_hard_limit=logical_hard_limit_for_string,
-                            allowed_problems=selected_problems,
-                            block_idx=block_idx,
-                            string_idx=string_idx,
-                            page_local=is_shift_pressed
-                        )
-                        if not changed or fixed_text == current_iter_text:
-                            break
-                        current_iter_text = fixed_text
-                        any_changed = True
-                    
-                    fixed_text = current_iter_text
-                    changed = any_changed
-
-                    if changed and fixed_text != current_text:
-                        self.data_processor.update_edited_data(block_idx, string_idx, fixed_text, action_type="AUTOFIX", skip_ui_refresh=True)
-                        self._rescan_issues_for_current_string(block_idx, string_idx, fixed_text)
-                        changed_strings_count += 1
-
-                    processed_strings += 1
-                    progress.setValue(processed_strings)
-                    QApplication.processEvents()
-            else:
-                for block_idx, block in enumerate(self.mw.data_store.data):
-                    if not isinstance(block, list):
-                        continue
-
-                    for string_idx, original_text in enumerate(block):
-                        if progress.wasCanceled():
-                            canceled = True
-                            break
-
-                        current_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
-                        if current_text is None:
-                            current_text = ""
-
-                        font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-                        width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
-
-                        current_iter_text = current_text
-                        any_changed = False
-                        max_iterations = 5
-                        for _ in range(max_iterations):
-                            fixed_text, changed = self.mw.current_game_rules.autofix_data_string(
-                                current_iter_text,
-                                font_map_for_string,
-                                width_threshold_for_string,
-                                logical_hard_limit=logical_hard_limit_for_string,
-                                allowed_problems=selected_problems,
-                                block_idx=block_idx,
-                                string_idx=string_idx,
-                                page_local=is_shift_pressed
-                            )
-                            if not changed or fixed_text == current_iter_text:
-                                break
-                            current_iter_text = fixed_text
-                            any_changed = True
-                        
-                        fixed_text = current_iter_text
-                        changed = any_changed
-
-                        if changed and fixed_text != current_text:
-                            self.data_processor.update_edited_data(block_idx, string_idx, fixed_text, action_type="AUTOFIX", skip_ui_refresh=True)
-                            self._rescan_issues_for_current_string(block_idx, string_idx, fixed_text)
-                            changed_strings_count += 1
-
-                        processed_strings += 1
-                        progress.setValue(processed_strings)
-                        QApplication.processEvents()
-
-                    if canceled:
-                        break
-
+            for block_idx, string_idx, _, fixed_text in results:
+                self.data_processor.update_edited_data(block_idx, string_idx, fixed_text, action_type="AUTOFIX", skip_ui_refresh=True)
+                self._rescan_issues_for_current_string(block_idx, string_idx, fixed_text)
         finally:
-            progress.setValue(total_strings)
             if hasattr(self.mw, 'undo_manager'):
                 self.mw.undo_manager.end_group("FIX_ALL")
 
         # UI Refresh
-        if changed_strings_count > 0:
-            if hasattr(self.mw, 'ui_updater'):
-                if target_strings is not None:
-                    affected_blocks = set(b_idx for b_idx, _ in target_strings)
-                    for b_idx in affected_blocks:
-                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
-                else:
-                    for b_idx in range(len(self.mw.data_store.data)):
-                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+        affected_blocks = set(b_idx for b_idx, _, _, _ in results)
+        if hasattr(self.mw, 'ui_updater'):
+            for b_idx in affected_blocks:
+                self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
 
-            if self.preview_update_timer.isActive():
-                self.preview_update_timer.stop()
+        if self.preview_update_timer.isActive():
+            self.preview_update_timer.stop()
 
-            curr_block_idx = self.mw.data_store.physical_block_idx
-            curr_string_idx = self.mw.data_store.current_string_idx
+        curr_block_idx = self.mw.data_store.physical_block_idx
+        curr_string_idx = self.mw.data_store.current_string_idx
+
+        current_string_changed = False
+        for b_idx, s_idx, _, _ in results:
+            if b_idx == curr_block_idx and s_idx == curr_string_idx:
+                current_string_changed = True
+                break
+
+        if curr_block_idx != -1 and curr_string_idx != -1 and current_string_changed:
+            fixed_current, _ = self.data_processor.get_current_string_text(curr_block_idx, curr_string_idx)
+            visual_text_for_editor = self.mw.current_game_rules.get_text_representation_for_editor(fixed_current)
             
-            if curr_block_idx != -1 and curr_string_idx != -1:
-                fixed_current, _ = self.data_processor.get_current_string_text(curr_block_idx, curr_string_idx)
-                visual_text_for_editor = self.mw.current_game_rules.get_text_representation_for_editor(fixed_current)
-                
-                edited_text_edit = self.mw.edited_text_edit
-                if edited_text_edit:
-                    original_cursor_pos = edited_text_edit.textCursor().position()
-                    self.mw.is_programmatically_changing_text = True
-                    cursor = edited_text_edit.textCursor()
-                    cursor.beginEditBlock()
-                    cursor.select(QTextCursor.SelectionType.Document)
-                    cursor.insertText(visual_text_for_editor)
-                    cursor.endEditBlock()
-                    self.mw.is_programmatically_changing_text = False
+            edited_text_edit = self.mw.edited_text_edit
+            if edited_text_edit:
+                original_cursor_pos = edited_text_edit.textCursor().position()
+                self.mw.is_programmatically_changing_text = True
+                cursor = edited_text_edit.textCursor()
+                cursor.beginEditBlock()
+                cursor.select(QTextCursor.SelectionType.Document)
+                cursor.insertText(visual_text_for_editor)
+                cursor.endEditBlock()
+                self.mw.is_programmatically_changing_text = False
 
-                    new_doc_len = edited_text_edit.document().characterCount() - 1
-                    final_cursor_pos = min(original_cursor_pos, new_doc_len if new_doc_len >= 0 else 0)
-                    restored_cursor = edited_text_edit.textCursor()
-                    restored_cursor.setPosition(final_cursor_pos)
-                    edited_text_edit.setTextCursor(restored_cursor)
+                new_doc_len = edited_text_edit.document().characterCount() - 1
+                final_cursor_pos = min(original_cursor_pos, new_doc_len if new_doc_len >= 0 else 0)
+                restored_cursor = edited_text_edit.textCursor()
+                restored_cursor.setPosition(final_cursor_pos)
+                edited_text_edit.setTextCursor(restored_cursor)
 
-            if self.mw.data_store.current_block_idx != -1:
-                self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
-            self.mw.ui_updater.update_text_views()
+        if self.mw.data_store.current_block_idx != -1:
+            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+        self.mw.ui_updater.update_text_views()
 
-            if hasattr(self.mw, 'statusBar'):
-                msg = f"Auto-fix applied to {changed_strings_count} string(s)."
-                if canceled:
-                    msg += " (Canceled midway)"
-                self.mw.statusBar.showMessage(msg, 3000)
-        else:
-            if hasattr(self.mw, 'statusBar'):
-                self.mw.statusBar.showMessage("Auto-fix: No changes made to any string.", 3000)
+        if hasattr(self.mw, 'statusBar'):
+            msg = f"Auto-fix applied to {len(results)} string(s)."
+            self.mw.statusBar.showMessage(msg, 3000)
+    def _on_autofix_cancelled(self) -> None:
+        """Called when AutofixWorker is cancelled."""
+        if hasattr(self.mw, 'statusBar'):
+            self.mw.statusBar.showMessage("Auto-fix canceled. No changes applied.", 3000)
+
+    def _on_autofix_error(self, err_msg: str) -> None:
+        """Called when AutofixWorker encounters an error."""
+        QMessageBox.critical(self.mw, "Auto-fix Error", f"An error occurred during auto-fix:\n{err_msg}")

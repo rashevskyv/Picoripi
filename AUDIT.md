@@ -1,167 +1,173 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.038
-> **Дата оновлення:** 2026-06-18
-> **Об'єм проекту:** ~66 586 LOC Python-коду, 219 продуктових Python-файлів; ~22 872 LOC тестів, 145 тестових файлів.
+> **Остання версія проекту:** v0.3.039
+> **Дата оновлення:** 2026-06-19
+> **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 212 pytest test-функцій.
 
-Цей документ є консолідованим звітом щодо архітектури, продуктивності, UX-ризиків і плану рефакторингу Picoripi. Попередній `AUDIT.md` мав пошкоджене кодування, тому звіт переписано у валідному UTF-8 зі збереженням архіву вже виконаних покращень.
+Цей документ є консолідованим аудитом архітектури, продуктивності, життєвого циклу PyQt-об'єктів та UX-ризиків Picoripi. Звіт оновлено у валідному UTF-8; пункти, які вже позначені або підтверджені як виконані, перенесено до архіву виконаного.
 
 ## 1. Загальна статистика кодової бази
 
 | Показник | Значення |
 |---|---:|
-| Продуктові Python-файли | ~219 |
-| Тестові Python-файли | ~117 |
-| LOC продуктового коду | ~66 586 |
-| LOC тестів | ~22 377 |
-| Основний стек | Python 3.10+, PyQt6, SQLite, requests/urllib, pytest, pytest-qt, pytest-xdist, ruff |
-| Type застосунку | Desktop GUI для перекладу, локалізації, аналізу ширини рядків, AI-перекладу та роботи з game/plugin rules |
+| Продуктові Python-файли | 346 |
+| Тестові Python-файли | 152 |
+| LOC продуктового Python-коду | ~88 276 |
+| LOC тестів | ~24 205 |
+| Pytest test-функції | ~1 212 |
+| Основний стек | Python 3.10+, PyQt6, SQLite, requests/urllib, Pillow, markdown, numpy, pyahocorasick, spylls |
+| Тестовий стек | pytest, pytest-qt, pytest-timeout, pytest-xdist, ruff |
+| Тип застосунку | Desktop GUI для перекладу, локалізації, аналізу ширини рядків, AI-перекладу, глосаріїв та game/plugin rules |
 
-Архітектурно проект уже має корисне розділення на `core/`, `handlers/`, `ui/`, `components/`, `dialogs/`, `plugins/` і `tests/`. Найбільші ризики зосереджені не в одному багу, а в місцях, де GUI, довгі обчислення, кеші, disk I/O, AI-життєвий цикл і доменна логіка перетинаються в одному класі.
+Архітектура вже має корисне розділення на `core/`, `handlers/`, `ui/`, `components/`, `dialogs/`, `plugins/` і `tests/`. Найбільші ризики зосереджені не в одному модулі, а в місцях перетину GUI, довгих обчислень, фонових потоків, disk/network I/O та AI-пайплайнів.
+
+Найбільші координуючі файли:
+
+- `core/mempalace_worker.py` — ~2 028 рядків.
+- `handlers/translation_handler.py` — ~1 591 рядок.
+- `ui/main_window/main_window_actions.py` — ~1 426 рядків.
+- `dialogs/search_review_dialog.py` — ~1 320 рядків.
+- `core/data_state_processor.py` — ~1 294 рядки.
+- `ui/mempalace_builder_dialog.py` — ~1 245 рядків.
+- `ui/settings/settings_ui_setup.py` — ~1 115 рядків.
+- `handlers/list_selection_handler.py` і `core/mempalace_client.py` — по ~1 059 рядків.
+
+Команди перевірки:
+
+- `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest`
+- `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest -n auto tests/`
+- `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m ruff check .`
 
 ## 2. Завершені покращення (Архів виконаного)
 
-У попередніх ітераціях були позначені як виконані або фактично реалізовані такі напрями:
+- **D18-D44. Попередні стабілізації ядра, UI та PyQt-сумісності.** У попередніх ітераціях були заархівовані типізація ключових модулів, PyQt6 enum-сумісність, оптимізації SQLite-з'єднань MemePalace, AI-кешування, захист від deleted Qt wrapper помилок, UX/async-покращення діалогів, undo/redo persistence, стабілізація virtual folders і speaker/character navigation.
+- **A01-частково. Усунення вкладених event loop у save/glossary/width flows.** Попередній аудит фіксував заміну частини `QEventLoop.exec()` і блокуючих progress-flow на сигнал-орієнтовані переходи. В активних задачах лишається не вкладений event loop, а залишковий `QCoreApplication.processEvents()` у progress tracker.
+- **A07. Інвалідація кешу контексту AI-скриптів.** `AIPromptComposer` прив'язує кеш до шляху, mtime, розміру файлу та активного плагіна, що зменшує ризик застарілого AI-контексту.
+- **A12. Діалог фільтрації попереджень.** Замість простого combobox використовується `WarningsFilterDialog` з інтерактивним вибором типів попереджень.
+- **B02. Масовий AutoFix винесено у фоновий worker.** `handlers/autofix_worker.py` і `handlers/text_operation_handler.py:919-1004` виконують `Fix All` через `AutofixWorker` з progress/cancel, замість синхронного циклу в UI.
+- **B03. Updaters refactoring: `PreviewUpdater` декомпоновано до координатора.** `ui/updaters/preview_updater.py` тепер делегує кешування та idle pre-cache до `ui/updaters/preview_cache.py`, а рендеринг, lazy chunks і підсвічування тексту/проблем — до `ui/updaters/preview_renderer.py`. Для зворотної сумісності з існуючими компонентами й тестами залишено proxy-properties та proxy-methods.
+- **B04. Централізовано filter/index query API для preview/block tree.** `core/filter_query_api.py` об'єднує фільтрацію рядків і агрегацію problem counts для блоків, категорій, глав MemePalace та папок. `ui/updaters/block_list_updater.py` і `ui/updaters/preview_updater.py` переведені на цей API, що прибрало дублювання логіки між preview list і block tree.
+- **B04T. Стабілізовано тестову інтеграцію updaters/refactor.** Додано/оновлено тести для `FilterQueryAPI`, `PreviewUpdater` і `BlockListUpdater`; стабілізовано роботу з mocked `data_processor`, patched `QTextCursor`, mocked documents/cursors і напряму переданими `chapter_mappings`. Локальна перевірка 2026-06-19: `$env:PYTHONPATH='.'; .\.venv\Scripts\python.exe -m pytest tests/test_ui/test_updaters/test_small_updaters.py tests/test_ui/updaters/test_block_list_updater.py tests/test_core/test_filter_query_api.py` — **41 passed**.
+- **B04-CR. Виправлення зауважень аудиту (Code Review) та фінальні стабілізації.**
+  - Уніфіковано життєвий цикл `AutofixWorker` та інтегровано його зі стандартним сигналом `finished` від `QThread` для безпечного `deleteLater()` та очищення у `TextOperationHandler`. Прибрано прямі виклики `_cleanup_active_autofix()` з обробників `completed`, `cancelled` та `error`, щоб дозволити Qt lifecycle завершувати потік асинхронно без блокування UI.
+  - Повністю очищено продуктовий код (`FilterQueryAPI`, `PreviewUpdater`, `PreviewRenderer`, `BlockListUpdater`, `PreviewCache`) від перевірок `Mock`/`MagicMock` (зокрема `_mock_self`, `_mock_name`, `filter_query_api is None` в `__init__` тощо).
+  - Налаштовано створення реального `FilterQueryAPI` замість моків у глобальних та локальних тестових фікстурах `mock_mw` (`conftest.py`, `test_asterisk_logic.py`, `test_small_updaters.py` та `test_block_list_updater.py`).
+  - Додано реальні `pytest-qt` тести на життєвий цикл та відміну потоку `AutofixWorker` у `test_text_operation_handler.py`.
+  - Розширено інтеграційні тести пошуку для детальної перевірки параметрів підсвічування пошукових збігів у `test_search_handler.py`.
+  - Усі `1212 passed` тестів успішно виконані.
 
-- **D18. Впровадження суворішої типізації** для ключових модулів, зокрема `core/data_store.py` і `handlers/text_operation_handler.py`.
-- **D20. Міграція PyQt6 enum-сумісності** для `Qt.PenStyle.NoPen`, `Qt.PenStyle.DashLine` та споріднених викликів.
-- **D21. Оптимізація SQLite-з'єднань MemePalace** через thread-local connection у `core/mempalace_client.py`.
-- **D22. Асинхронне завантаження глав MemePalace** через QThread worker і неблокуючий placeholder у дереві.
-- **D24. Локальне кешування AI-перекладів** через інтеграцію з `SavedTranslationsManager`.
-- **D26. In-memory кеш для SavedTranslationsManager**, що зменшує повторний disk I/O.
-- **D27. Усунення SQL-запитів з циклу перемальовування дерева** завдяки кешуванню chapter mappings.
-- **D28-D30. Захист від deleted Qt wrapper помилок** у відкладених selection/delete сценаріях та виправлення `mark_block_unsaved`.
-- **D31-D36. UX і async-покращення діалогів, AI-порівняння, spellcheck, spacing/autofix, preview/render оптимізації.**
-- **D37. Undo/Redo persistence** через `UndoManager` у `AppDataStore`.
-- **D38-D39. Ієрархічні unsaved-маркери та уніфікація світлої теми.**
-- **D40-D44. Стабілізація virtual folders, speaker/character navigation і `physical_block_idx`**, щоб редагування у віртуальних папках не перескакувало на фізичні блоки.
-- **A01. Усунення вкладених event loop з async save/glossary/width flows** (червень 2026). Замінено вкладені `QEventLoop.exec()` та `QProgressDialog.exec()` на сигнал-орієнтовані асинхронні переходи станів за допомогою модальності діалогів та зворотних викликів (`on_finished_callback`). Це ліквідувало ризики reentrancy та RuntimeError при закритті застосунку. Також виправлено супутні проблеми:
-  - *High:* Усунено тимчасове спотворення live edit стану при асинхронному збереженні в `save_specific_edits` шляхом передачі копії транзакційних даних (`edited_data_for_transaction`) у воркер замість глобальної заміни `edited_data`.
-  - *Medium:* Стабілізовано життєвий цикл `GlossaryOccurrenceWorker` — додано батьківський об'єкт, автоматичне видалення через `deleteLater` після завершення, та інтеграцію з `prepare_to_close` для безпечного переривання воркера при закритті.
-  - *Low:* Вилучено невикористовувані імпорти `QEventLoop` з `app_action_handler.py` та `glossary_handler.py`.
-- **A07. Інвалідація кешу контексту AI-скриптів** (червень 2026). Прив'язано кеш script lines та distilled mappings в `AIPromptComposer` до шляху файлу скрипту, часу модифікації (mtime), розміру файлу та поточного активного плагіна гри. Це гарантує актуальність контексту при формуванні AI prompt.
-- **A12. Заміна випадаючого списку фільтрації попереджень на WarningsFilterDialog** (червень 2026). Замінено `warnings_combobox` на кнопку фільтрації попереджень `warnings_filter_button` (з відображенням `Warnings: X / Y`, де X — кількість обраних фільтрів попереджень, а Y — кількість увімкнених попереджень у Settings -> Detection). Створено діалогове вікно `WarningsFilterDialog` для зручного інтерактивного вибору попереджень за допомогою чекбоксів із підказками (Tooltips) для кожного типу попередження. Видалено застарілий клас `CheckableComboBox`.
-- **A13. Виправлення логіки перенесення табів на початок рядка** (червень 2026). Оновлено логіку автофіксу для плагіна Zelda BMG. Метод `_move_tabs_to_stline_start` тепер коректно очищає пробіли після лідируючих табів. Також заблоковано зворотне злиття рядків із `{tab}` або `{escape:6:000b}` під час роботи `_fix_short_lines_zbmg`, `_compact_sentences_on_pages` та `_fix_single_word_orphans_generic`.
-- **A14. Синхронізація кольорів зебри та покращення часткового збереження** (червень 2026). Синхронізовано кольори фону та парність рядків у лівій колонці (`LineNumberArea`) та правому текстовому полі (`LineNumberedTextEdit`), виключивши накладання кольорів варнінгів на текстове поле. Виправлено баг із поверненням зірочки (`*`) після часткового збереження рядків через авто-синхронізацію `edited_file_data` у пам'яті. Також реалізовано автоматичне оновлення Strings preview та дерева блоків при активних фільтрах ("Show Unsaved Only" / "Show Unsaved Blocks Only") після часткового збереження.
-- **A15. Нова логіка Missing Tag Spacing та гаряча клавіша Ctrl+Q** (червень 2026). Повністю переписано функції `find_missing_icon_spacing_spans` та `fix_missing_icon_spacing` на основі аналізу очищеного тексту (Clean Text Analysis). Це дозволило точно виявляти та виправляти пропущені пробіли, виключаючи хибні спрацьовування. Також додано гарячу клавішу `Ctrl+Q` для глобального приховування/показу тегів, оновлено тултипи чекбоксів та довідку по гарячих клавішах.
-- **A16. Впровадження централізованого двигуна правил (Rule Engine)** (червень 2026). Уніфіковано аналіз та автовиправлення проблем за допомогою єдиної системи `ProblemRule` та `ProblemRuleRegistry`. Усунено дублювання логіки у плагінах, створено спільний контрактний тест `tests/test_rule_engine_contract.py` та адаптовано `TextAutofixLogic` і кешування варнінгів.
-- **A02. Уніфікувати shutdown/cancel contract для QThread workers** (червень 2026). Створено допоміжну функцію `safe_shutdown_thread`, яка безпечно зупиняє потоки QThread та їхні воркери, відключаючи сигнальні з'єднання та запобігаючи помилкам Qt при закритті вікна.
-- **A10. Додати performance regression тести для великих проектів** (червень 2026). Створено надійні pytest-тести продуктивності на основі синтетичного in-memory набору даних для перевірки швидкодії width analysis, spellcheck, filter toggle, preview load та AI prompt context lookup. Тести виділено під окремий маркер та виключено з дефолтного прогону для запобігання flaky-поведінці.
-- **A11. Поліпшити UX cancel/progress для довгих локальних операцій** (червень 2026). Побудову індексу глосарію (`GlossaryOccurrenceWorker`) зроблено повністю скасовуваною через `QProgressDialog` з кнопкою Cancel. У діалогах Spellcheck та Search Review дозволено закриття вікна (кнопка Close більше не блокується); при закритті під час аналізу воркер безпечно скасовується у фоні, і діалог закривається тільки після повної зупинки потоку. Також інтегровано індикацію прогресу фонового кешування прев'ю у статус-бар головного вікна.
+## 3. Active architecture, performance, and UX issues (Активні проблеми)
 
-Ці пункти не повертаються в активний TODO. Якщо регресії з'являться повторно, їх слід заводити новими ID з конкретним відтворенням.
+### B01. Залишковий `processEvents()` може створювати reentrancy-ризики
 
+`main.py:643-654` створює `UIProgressTracker`, де `set_value()` викликає `QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)`. Навіть з `ExcludeUserInputEvents` це дозволяє обробку частини Qt-подій посеред довгих операцій, що може призвести до повторного входу в UI-стан, неочікуваного `deleteLater()` або оновлення виджетів у неправильний момент.
 
-## 3. Активні архітектурні, продуктивні та UX проблеми
+Рішення: замінити ручний pumping подій на сигнал-орієнтований progress update через `QTimer.singleShot(0, ...)`, worker progress signals або невеликий адаптер progress sink без прямого `processEvents()`.
 
-### A02. `QApplication.processEvents()` у довгих циклах як заміна справжньої асинхронності
+### B02. Узагальнений shutdown потоків має небезпечний fallback через `terminate()`
 
-`ui/updaters/preview_updater.py`, `dialogs/spellcheck_dialog.py`, `handlers/search_handler.py`, `handlers/text_operation_handler.py`, `handlers/list_selection_handler.py` та `main.py` використовують `QApplication.processEvents()` у синхронних циклах. Це маскує блокування UI, але дозволяє вкладеним подіям змінювати стан під час незавершеної операції. Найбільший ризик: eager pre-cache preview для всіх блоків і spellcheck/highlight великих текстів.
+`utils/thread_utils.py:5-70` робить best-effort cleanup, але на таймауті викликає `thread.terminate()` (`utils/thread_utils.py:60`). Для PyQt/SQLite/network worker-ів це може обірвати код у середині критичної секції, залишити неконсистентний файл або створити важковідтворювані аварійні завершення.
 
-### A03. Життєвий цикл QThread/worker не всюди має єдиний ownership contract
+Додатково кілька worker-сценаріїв досі не мають однаково строгого lifecycle-контракту: `ui/mempalace_builder_dialog.py:686-856,1174-1187` стартує QThread-subclass worker-и і часто просто скидає `self.worker = None` після `finished`; `components/dictionary_manager_dialog.py:177-180` стартує `DownloadThread`; `ui/settings_dialog.py:597-599` стартує `ProviderTestWorker`. Не всюди є `finished -> deleteLater`, close/cancel path і test coverage на закриття вікна під час активного worker-а.
 
-`AILifecycleManager.prepare_to_close()` робить `deleteLater()`, `quit()` і `wait(1000)`, але не має явної cancel-фази для всіх типів задач. `MainWindow.build_glossary_with_ai()` створює `GlossaryBuilderHandler` як локальний об'єкт; під час довгої AI-задачі це покладається на непрямі посилання через сигнали/лямбди. Це підвищує ризик `QThread: Destroyed while thread is still running`, orphan worker або silent cancellation при закритті.
+Рішення: зробити єдиний контракт `cancel -> quit -> wait -> deleteLater`, заборонити `terminate()` за замовчуванням, а для worker-ів з довгими network/AI/SQLite операціями додати cooperative cancel, timeout і тести на закриття.
 
-### A04. Eager preview cache може споживати багато CPU/RAM на великих проектах
+### B03. Dictionary Manager блокує UI мережевим I/O під час відкриття
 
-`PreviewUpdater.schedule_pre_cache()` запускає `pre_cache_all_blocks()`, який проходить усі блоки і будує preview lines для кожного рядка. Для великих проектів це створює startup/first-load latency, пік RAM і потребу в `processEvents()`. Водночас у `populate_strings_for_block()` уже є lazy chunk loading, тож eager all-block cache варто замінити LRU/idle cache.
+`components/dictionary_manager_dialog.py:109-126` викликає `requests.get(DICTIONARY_API_URL, timeout=10)` синхронно в `load_dictionaries()`, який запускається з конструктора діалогу. Якщо GitHub API повільний або недоступний, діалог відкривається із зависанням до 10 секунд.
 
-### A05. Фільтрація та агрегація списків усе ще виконуються переважно лінійними проходами
+`DownloadThread.run()` у `components/dictionary_manager_dialog.py:29-45` використовує `requests.get(url, stream=True)` без timeout і без cooperative cancel. Це вже винесено з UI thread, але завислий download може тримати QThread довше, ніж очікує користувач.
 
-Активні фільтри `hide_empty`, `hide_translated`, `show_overrides`, `show_unsaved`, warnings і категорії залежать від проходів по списках/metadata у `ui/updaters/preview_updater.py`, `handlers/list_selection_handler.py`, `ui/updaters/block_list_updater.py`. На блоках у тисячі рядків це може давати лаги під час перемикання фільтрів, навігації або оновлення дерева.
+Рішення: винести завантаження remote list у worker/QRunnable, показувати loading state у списку, додати timeout до download-запитів і cancel path при закритті діалогу.
 
-### A06. Autosave/session persistence пише весь `data_store` через pickle
+### B04. Session autosave використовує pickle на UI-шляху
 
-`core/data_state_processor.py` серіалізує весь `data_store` у `.picoripi_session`. Це просто і працює, але має ризики: великі файли сесії, затримки disk I/O, нестабільність між версіями класів, потенційне збереження зайвих кешів/станів UI. Для великих проектів потрібен компактний schema-based session snapshot.
+`core/data_state_processor.py:1115-1136` серіалізує session snapshot через `pickle.dump()`, а `core/data_state_processor.py:1139-1214` завантажує його через `pickle.load()`. Це швидко для crash recovery, але має два ризики: синхронний disk I/O у UI-життєвому циклі та небезпечний формат для довгоживучого стану, який важко валідовувати й мігрувати між версіями.
 
-### A08. Великі класи змішують відповідальності та ускладнюють тестування
+Рішення: залишити pickle тільки як короткоживучий crash snapshot, але додати окремий durable checkpoint з явною схемою, `version`, validation і migration. Писати його рідше: за таймером, перед довгими операціями і при штатному закритті.
 
-`main.py`, `handlers/list_selection_handler.py`, `ui/updaters/preview_updater.py`, `ui/updaters/block_list_updater.py`, `core/data_state_processor.py`, `handlers/translation/ai_prompt_composer.py`, `ui/settings/settings_ui_setup.py` мають сотні або понад тисячу рядків. У них перетинаються UI, бізнес-правила, кешування, навігація, I/O і side effects. Це збільшує coupling і вартість змін.
+### B05. Preview cache все ще може виконувати великі блоки одним timer tick
 
-### A09. Spellcheck/search UX не має справжнього cancellable worker pipeline
+`ui/updaters/preview_cache.py:101-177` запускає idle caching, але `_cache_next_idle_block()` обробляє цілий блок за один timeout. На дуже великих блоках це все одно може помітно заморозити UI. `PreviewUpdater` уже має lazy rendering chunks (`ui/updaters/preview_updater.py:393-447`), але pre-cache шлях не має такого самого бюджету на кількість рядків або час виконання.
 
-`dialogs/spellcheck_dialog.py` відтерміновує `_load_content()` через `QTimer.singleShot`, але сам аналіз і підсвічування виконуються синхронно. `dialogs/search_review_dialog.py` і `handlers/search_handler.py` також використовують `processEvents()`. Для великих текстів користувач бачить частковий feedback, але не має стабільного cancel/progress потоку без reentrancy.
+Рішення: зробити idle pre-cache chunked по рядках або time-sliced за бюджетом на tick, скасовувати чергу при зміні фільтрів/проєкту й додати performance budget для великих блоків.
 
+### B06. Glossary Builder формує великий prompt синхронно перед стартом AI worker-а
 
+`handlers/translation/glossary_builder_handler.py:96-168` збирає `target_strings`, робить `full_text = "\n".join(...)`, маскує tags і нарізає chunks до запуску `_start_async_glossary_task()`. Для великих блоків або категорій це може дати помітний UI freeze і зайвий пік пам'яті.
 
+Рішення: винести підготовку chunks у worker, або зробити генератор/streaming chunk builder з progress/cancel до старту AI-запитів.
+
+### B07. `FilterQueryAPI` зменшив дублювання, але лишив сильний coupling із MainWindow
+
+Після завершеної централізації `FilterQueryAPI` успішно прибрав дублювання між preview і block tree, але наступний архітектурний борг лишається: `core/filter_query_api.py` напряму читає `mw.data_store`, `mw.project_manager`, `mw.current_game_rules`, `mw.ui_updater` і навіть містить перевірки на `unittest.mock` у продуктовому коді (`core/filter_query_api.py:60,239,306`). Це корисний проміжний шар, але поки він не є чистим доменним сервісом і може успадкувати крихкість UI-об'єктів.
+
+Рішення: поступово перетворити API на pure service з явними input DTO для filters/context/indexes і окремим adapter-ом для MainWindow.
+
+### B08. Великі координатори залишаються головним множником складності
+
+Найбільші файли поєднують orchestration, UI updates, persistence, business rules і error handling. Найризиковіші: `core/mempalace_worker.py`, `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`.
+
+Рішення: не робити великий одномоментний rewrite. Розділяти тільки ті частини, де вже є тести або чіткий контракт: worker lifecycle, AI task orchestration, session persistence, settings panels, MemePalace pipeline steps.
+
+### B09. Performance coverage є, але не покриває всі ризикові UI-шляхи
+
+`tests/test_performance.py` існує і маркер `performance` виключений з дефолтного pytest через `pyproject.toml`, що правильно для стабільності. Але бракує deterministic budgets для: `populate_strings_for_block()` з virtual/chapter/speaker mappings, idle preview pre-cache, warning filter toggle у block tree, Dictionary Manager remote-list fallback, Glossary Builder chunk preparation.
+
+Рішення: додати синтетичні GUI-adjacent performance tests без залежності від реального timing event loop, з великими deterministic fixtures.
 
 ## 4. Пріоритетний список дій (TODO)
 
-- `[x]` **A01. Прибрати вкладені event loop з async save/glossary/width flows**
-  * *Опис:* Замінити `QEventLoop.exec()` і `QProgressDialog.exec()` на сигнал-орієнтовані state transitions: start -> progress -> finished/cancel/error. Це зменшить ризик reentrancy, зависань і RuntimeError при закритті.
-  * *Складність:* Середня
-  * *Файли:* `handlers/app_action_handler.py`, `handlers/translation/glossary_handler.py`, `core/data_state_processor.py`, `tests/test_handlers/test_project_action_handler.py`
-
-- `[x]` **A02. Уніфікувати shutdown/cancel contract для QThread workers**
-  * *Опис:* Додати єдиний helper або mixin для worker ownership: request cancel, disconnect, quit, bounded wait, fallback logging. Зберігати довгоживучі handler references для glossary AI flow.
-  * *Складність:* Середня
-  * *Файли:* `handlers/translation/ai_lifecycle_manager.py`, `handlers/translation/glossary_builder_handler.py`, `handlers/ai_chat_handler.py`, `main.py`, `ui/main_window/main_window_helper.py`
-
-- `[x]` **A03. Замінити eager all-block preview cache на lazy LRU/idle cache**
-  * *Опис:* Не кешувати всі блоки одразу після завантаження. Кешувати поточний блок, сусідні блоки та idle chunks з обмеженням пам'яті; прибрати потребу в `processEvents()` у `pre_cache_all_blocks()`.
-  * *Складність:* Висока
-  * *Файли:* `ui/updaters/preview_updater.py`, `handlers/list_selection_handler.py`, `tests/test_ui/test_ui_updater.py`, `tests/test_ui/updaters/test_block_list_updater.py`
-
-- `[x]` **A04. Винести spellcheck/search у cancellable worker pipeline**
-  * *Опис:* Перенести пошук помилок, pre-highlight і великі search scans з UI thread у worker з progress/cancel. UI має показувати стабільний прогрес без `QApplication.processEvents()`.
-  * *Складність:* Середня
-  * *Файли:* `dialogs/spellcheck_dialog.py`, `dialogs/search_review_dialog.py`, `handlers/search_handler.py`, `core/spellchecker_manager.py`
-
-- `[x]` **A05. Побудувати індекси для швидкої фільтрації рядків**
-  * *Опис:* Підтримувати cached sets/bitsets для empty, translated, unsaved, overrides, warnings і categories. Оновлювати індекси інкрементально при редагуванні, щоб перемикання фільтрів не сканувало весь блок.
-  * *Складність:* Висока
-  * *Файли:* `core/data_store.py`, `core/data_state_processor.py`, `ui/updaters/preview_updater.py`, `handlers/list_selection_handler.py`, `ui/updaters/block_list_updater.py`
-
-- `[x]` **A06. Зробити session autosave компактним і версіонованим**
-  * *Опис:* Замість pickle всього `data_store` зберігати schema-based snapshot: paths, current selection, dirty edits, undo metadata, UI filters. Додати version/migration і не писати великі transient caches.
-  * *Складність:* Середня
-  * *Файли:* `core/data_state_processor.py`, `core/settings/session_state_manager.py`, `core/data_store.py`, `tests/test_partial_and_session_save.py`
-
-- `[x]` **A07. Додати mtime/config invalidation для AI script context cache**
-  * *Опис:* Прив'язати кеш `_script_lines_cache`, `_global_distilled_text_cache`, `_char_to_line_map_cache` до `script_path`, mtime, size, plugin name і distill version. Це запобігатиме старому контексту в AI prompt після редагування script-файлу.
+- `[ ]` **B01. Прибрати залишковий `processEvents()` з progress tracker**
+  * *Опис:* Замінити `QCoreApplication.processEvents()` у `main.py` на сигнал-орієнтоване або timer-based оновлення прогресу. Це зменшить ризик reentrancy і випадкових оновлень UI під час довгих операцій.
   * *Складність:* Низька
-  * *Файли:* `handlers/translation/ai_prompt_composer.py`, `tests/test_handlers/test_ai_prompt_composer.py`
+  * *Файли:* `main.py`, тести для flow, який використовує `create_progress_tracker()`
 
-- `[x]` **A08. Розділити `AIPromptComposer` на менші сервіси**
-  * *Опис:* Винести placeholder processing, glossary formatting, MemePalace context, script speaker lookup і message assembly в окремі класи/функції. Це зменшить coupling і спростить тестування AI prompt логіки.
-  * *Складність:* Висока
-  * *Файли:* `handlers/translation/ai_prompt_composer.py`, `core/translation/`, `tests/test_handlers/test_ai_prompt_composer.py`
-
-- `[x]` **A09. Розділити navigation/save logic у `ListSelectionHandler`**
-  * *Опис:* Винести virtual folder navigation, speaker/character persistence, category operations і preview selection у окремі компоненти. Це зменшить ризик регресій у `physical_block_idx` сценаріях.
-  * *Складність:* Висока
-  * *Файли:* `handlers/list_selection_handler.py`, `handlers/virtual_folder_handler.py`, `handlers/category_handler.py`, `handlers/speaker_handler.py`, `tests/test_handlers/test_list_selection_handler.py`, `tests/test_handlers/test_speaker_folders.py`
-
-- `[x]` **A10. Додати performance regression тести для великих проектів**
-  * *Опис:* Створити synthetic dataset benchmarks для preview load, filter toggle, spellcheck scan, width analysis і AI prompt context lookup. Додати окрему команду запуску без flaky GUI timing.
+- `[ ]` **B02. Уніфікувати shutdown QThread без небезпечного `terminate()`**
+  * *Опис:* Переписати `safe_shutdown_thread()` на cooperative shutdown; `terminate()` лишити тільки як opt-in diagnostic fallback. Додати `finished -> deleteLater`, cancel/close paths і тести для MemePalace, Dictionary Manager, Provider Test та AI chat/glossary worker-ів.
   * *Складність:* Середня
-  * *Файли:* `scripts/benchmark.py`, `scripts/benchmark_glossary.py`, `tests/test_performance.py`, `pyproject.toml`
+  * *Файли:* `utils/thread_utils.py`, `ui/mempalace_builder_dialog.py`, `components/dictionary_manager_dialog.py`, `ui/settings_dialog.py`, `handlers/ai_chat_handler.py`, `handlers/translation/glossary_builder_handler.py`, `tests/test_dialogs/`, `tests/test_ui/`
 
-- `[x]` **A11. Поліпшити UX cancel/progress для довгих локальних операцій**
-  * *Опис:* Додати видимий cancel/progress для preview cache, glossary occurrence build, spellcheck і search review; блокувати лише релевантні controls, а не всю програму.
+- `[ ]` **B03. Винести remote list Dictionary Manager з UI thread**
+  * *Опис:* Завантажувати список словників через worker/QRunnable, показувати loading/failed state без зависання діалогу, додати timeout і cancel до download worker-а.
+  * *Складність:* Низька
+  * *Файли:* `components/dictionary_manager_dialog.py`, `tests/test_ui/`
+
+- `[ ]` **B04. Додати durable session checkpoint поруч із pickle crash snapshot**
+  * *Опис:* Залишити швидкий pickle для crash recovery, але додати валідований schema-based checkpoint з версією, міграціями та контрольованою частотою запису. Це зменшить ризик несумісних або небезпечних session-файлів.
   * *Складність:* Середня
-  * *Файли:* `components/ai_status_dialog.py`, `dialogs/spellcheck_dialog.py`, `handlers/translation/glossary_handler.py`, `ui/updaters/preview_updater.py`
+  * *Файли:* `core/data_state_processor.py`, `core/data_store.py`, `core/settings/session_state_manager.py`, `tests/test_partial_and_session_save.py`, `tests/test_core/test_data_store.py`
 
-## 6. Стан графу знань (Graphify)
+- `[ ]` **B05. Зробити preview idle pre-cache chunked/time-sliced**
+  * *Опис:* Обмежити роботу `_cache_next_idle_block()` бюджетом рядків або часу на tick, щоб дуже великі блоки не заморожували UI під час фонового кешування.
+  * *Складність:* Середня
+  * *Файли:* `ui/updaters/preview_cache.py`, `ui/updaters/preview_updater.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_performance.py`
 
-Проект інтегрує граф знань Graphify для аналізу зв'язків та автоматичного аудиту архітектури. Результати аналізу знаходяться в директорії `graphify-out/`:
-- `graph.json` — сира структура графу знань (7980 вузлів, 15042 ребра, 549 спільнот).
-- `GRAPH_REPORT.md` — детальний звіт про структуру, God Nodes (основні абстракції, такі як `LineNumberedTextEdit`, `BaseGameRules`, `ListSelectionHandler`, `DataStateProcessor`, `MainWindow`), несподівані зв'язки (наприклад, `AliasUpdateWorker` -> `BMGMessage`, `MainWindowActions` -> `BMGMessage`) та імпортні цикли.
-- `graph.html` — інтерактивна візуалізація графу для перегляду в браузері.
+- `[ ]` **B06. Винести підготовку Glossary Builder chunks з UI thread**
+  * *Опис:* Перенести збір `target_strings`, tag masking і chunking у cancellable worker або time-sliced builder з progress. Це зменшить freeze і пік пам'яті на великих блоках.
+  * *Складність:* Середня
+  * *Файли:* `handlers/translation/glossary_builder_handler.py`, `handlers/translation/ai_worker.py`, `tests/test_handlers/test_translation/test_glossary_builder_handler.py`
+
+- `[x]` **B07. Очистити `FilterQueryAPI` від mock coupling**
+  * *Опис:* Перевірки `unittest.mock` та Mock/MagicMock повністю прибрано з продуктового коду та перенесено в налаштування тестових фреймворків/фікстур у рамках Code Review.
+  * *Складність:* Середня
+  * *Файли:* `core/filter_query_api.py`, `ui/updaters/preview_updater.py`, `ui/updaters/block_list_updater.py`, `ui/updaters/preview_renderer.py`, `ui/updaters/preview_cache.py`, `tests/conftest.py`, `tests/test_asterisk_logic.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_ui/updaters/test_block_list_updater.py`
+
+- `[ ]` **B08. Декомпонувати найбільші координуючі класи контракт за контрактом**
+  * *Опис:* Розділяти великі класи тільки навколо стабільних меж: AI task orchestration, MemePalace pipeline steps, settings panels, persistence. Це зменшить coupling без ризикованого rewrite.
+  * *Складність:* Висока
+  * *Файли:* `core/mempalace_worker.py`, `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`
+
+- `[ ]` **B09. Розширити deterministic performance coverage для UI-шляхів**
+  * *Опис:* Додати performance budgets для preview population, idle cache, warning filter toggle, glossary chunk preparation і Dictionary Manager fallback без залежності від реального мережевого I/O чи нестабільного GUI timing.
+  * *Складність:* Середня
+  * *Файли:* `tests/test_performance.py`, `tests/test_ui/`, `tests/test_handlers/`, `ui/updaters/preview_cache.py`, `components/dictionary_manager_dialog.py`, `handlers/translation/glossary_builder_handler.py`
 
 ## 5. Настанови для розробки та тестування
 
 - Перед змінами перевіряти робоче дерево: `git status --short`. Не перезаписувати чужі незакомічені зміни.
-- Для codebase/architecture питань спочатку використовувати Graphify, якщо існує `graphify-out/graph.json`. У цьому Codex/PowerShell середовищі `graphify` не доступний як глобальна команда в `PATH`, тому запускати CLI треба через venv:
-  - `.\.venv\Scripts\graphify.exe query "питання про архітектуру або код"`
-  - `.\.venv\Scripts\graphify.exe path "A" "B"`
-  - `.\.venv\Scripts\graphify.exe explain "concept_or_node"`
-  За потреби можна явно вказати граф: `--graph graphify-out/graph.json`. `GRAPH_REPORT.md` читати лише для широкого архітектурного огляду або коли `query`/`path`/`explain` не дали достатнього контексту.
-- Після змін у кодових файлах оновлювати локальний AST-граф без API-витрат: `.\.venv\Scripts\graphify.exe update .`. Для повної перебудови з LLM-кластеризацією див. секцію Graphify у `README.md`; вона потребує API key.
-- Базовий запуск тестів: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest`.
-- Паралельний запуск повного набору: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest -n auto tests/`.
-- Точковий запуск після GUI/handler змін: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest tests/test_handlers tests/test_ui tests/test_core`.
-- Лінт для критичних помилок: `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m ruff check .`.
-- Для будь-якої зміни в `QThread`, `QTimer`, `deleteLater`, `processEvents`, `QEventLoop` додавати або оновлювати pytest-qt тести на завершення, cancel і закриття вікна.
-- Не видаляти старі функції без функціональної заміни та міграційного шляху. Для форматів проектів/сесій додавати version marker і тести на старі дані.
-- Performance-ризикові зміни перевіряти на synthetic large project: мінімум 5 000 рядків у блоці та кілька десятків блоків.
+- Для змін у `QThread`, `QTimer`, `deleteLater`, `processEvents`, `QEventLoop`, `requests` або SQLite додавати тести на cancel, close і повторний запуск операції.
+- Не видаляти старі функції без функціональної заміни та міграційного шляху. Для форматів проєктів/сесій додавати `version` і тести на старі дані.
+- Для продуктивнісних змін перевіряти synthetic large project: мінімум 5 000 рядків у блоці та кілька десятків блоків.
+- Для network/AI шляхів завжди використовувати timeout, явний error state у UI, cancel path і відсутність синхронного I/O в конструкторі діалогу.
+- Для Graphify, якщо доступний локальний граф, використовувати `.\.venv\Scripts\graphify.exe query "..."`, `path`, `explain` або `update .` після суттєвих архітектурних змін.

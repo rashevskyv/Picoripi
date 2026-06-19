@@ -52,6 +52,7 @@ def test_preview_updater_warnings_filtering(qapp, mock_mw):
     mock_mw.data_store.show_unsaved_only = False
     mock_mw.data_store.show_warnings_only = True
     mock_mw.data_store.hide_empty_strings = False
+    mock_mw.data_store.show_overrides_only = False
 
     # Setup data_processor mocks to return text correctly
     mock_mw.data_processor.get_current_string_text.return_value = ("some text", False)

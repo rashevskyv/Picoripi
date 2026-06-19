@@ -9,7 +9,7 @@ class MockUIProvider:
         self._programmatically_changing = False
         self._texts = {"edited_text_edit": "Initial text"}
         self._cursor_pos = 0
-        
+
     def is_programmatically_changing(self): return self._programmatically_changing
     def set_programmatically_changing(self, v): self._programmatically_changing = v
     def get_editor_text(self, etype): return self._texts.get(etype, "")
@@ -77,49 +77,110 @@ def test_revert_line():
     data_processor = MagicMock()
     data_processor._get_string_from_source.return_value = "Original line 1"
     data_processor.get_current_string_text.return_value = ("Changed line 1", "edited")
-    
+
     ui_updater = MagicMock()
     handler = TextOperationHandler(ctx, data_processor, ui_updater)
-    
+
     handler.revert_single_line(0)
-    
+
     # Verify update_edited_data called with original text
     data_processor.update_edited_data.assert_called_with(0, 0, "Original line 1", action_type="REVERT")
 
 def test_fix_all_strings_target_strings():
     with patch('handlers.text_operation_handler.AutofixSelectionDialog') as mock_dialog_class, \
-         patch('handlers.text_operation_handler.QProgressDialog') as mock_progress_class:
+         patch('handlers.text_operation_handler.QProgressDialog') as mock_progress_class, \
+         patch('handlers.text_operation_handler.AutofixWorker') as mock_worker_class:
         mock_dialog = MagicMock()
         mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
         mock_dialog.get_selected_problems.return_value = ["some_problem"]
         mock_dialog_class.return_value = mock_dialog
 
         mock_progress = MagicMock()
-        mock_progress.wasCanceled.return_value = False
         mock_progress_class.return_value = mock_progress
+
+        mock_worker = MagicMock()
+        mock_worker_class.return_value = mock_worker
 
         ctx = MockContext()
         ctx.current_game_rules.get_problem_definitions.return_value = {"some_problem": {"name": "Some Problem"}}
-        ctx.current_game_rules.autofix_data_string.return_value = ("Fixed text", True)
         ctx.edited_text_edit.document().characterCount.return_value = 10
         ctx.edited_text_edit.textCursor().position.return_value = 5
-        
+
         data_processor = MagicMock()
-        data_processor.get_current_string_text.return_value = ("Original text", "original")
-        
+        data_processor.get_current_string_text.return_value = ("Fixed text", "edited")
         ui_updater = MagicMock()
         handler = TextOperationHandler(ctx, data_processor, ui_updater)
-        
+
+        # Simulate worker finishing immediately when start is called
+        def mock_start():
+            handler._on_autofix_finished([(0, 0, "Original text", "Fixed text")])
+        mock_worker.start.side_effect = mock_start
+
         target_strings = [(0, 0)]
         handler.fix_all_strings(target_strings)
-        
-        assert ctx.current_game_rules.autofix_data_string.call_count == 2
+
+        mock_worker_class.assert_called_once()
+        mock_worker.start.assert_called_once()
         data_processor.update_edited_data.assert_called_once_with(
             0, 0, "Fixed text", action_type="AUTOFIX", skip_ui_refresh=True
         )
 
-if __name__ == "__main__":
-    test_text_edited_basic()
-    test_revert_line()
-    test_fix_all_strings_target_strings()
-    print("TextOperationHandler tests passed!")
+def test_autofix_cleanup_with_running_worker():
+    ctx = MockContext()
+    data_processor = MagicMock()
+    ui_updater = MagicMock()
+    handler = TextOperationHandler(ctx, data_processor, ui_updater)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    mock_worker.wait.return_value = True
+
+    handler._active_autofix_worker = mock_worker
+
+    # Call cleanup
+    handler._cleanup_active_autofix()
+
+    # Ensure worker was cancelled, waited on and deleted later
+    mock_worker.cancel.assert_called_once()
+    mock_worker.wait.assert_called_once_with(2000)
+    mock_worker.deleteLater.assert_called_once()
+    assert handler._active_autofix_worker is None
+
+
+def test_autofix_cleanup_with_real_thread(qtbot):
+    ctx = MockContext()
+    data_processor = MagicMock()
+    ui_updater = MagicMock()
+    handler = TextOperationHandler(ctx, data_processor, ui_updater)
+
+    from handlers.autofix_worker import AutofixWorker
+    worker = AutofixWorker(
+        game_rules=ctx.current_game_rules,
+        target_strings=[(0, 0)],
+        data=[["line1"]],
+        edited_data={},
+        edited_file_data=[],
+        string_metadata={},
+        all_font_maps={},
+        font_map={},
+        warning_threshold=200,
+        logical_hard_limit=300,
+        allowed_problems=set(),
+        page_local=False
+    )
+    
+    # Assign worker to handler
+    handler._active_autofix_worker = worker
+    
+    # Start thread
+    worker.start()
+    assert worker.isRunning()
+    
+    # Call cleanup
+    handler._cleanup_active_autofix()
+    
+    # Verify that the thread has stopped and handler reference is cleared
+    assert not worker.isRunning()
+    assert handler._active_autofix_worker is None
+
+

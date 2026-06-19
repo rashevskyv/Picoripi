@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Optional, List, Tuple
 from PyQt6.QtWidgets import QMessageBox, QApplication
 from PyQt6.QtCore import Qt
@@ -118,14 +118,12 @@ class TagCheckerHandler:
             if hasattr(self.mw.block_list_widget, 'select_block_by_index'):
                 self.mw.block_list_widget.select_block_by_index(original_block_idx_data)
             log_debug(f"TagChecker: Set current block in list to {original_block_idx_data}")
-            QApplication.processEvents() 
 
         if self.mw.data_store.current_block_idx != original_block_idx_data or \
            self.mw.data_store.current_string_idx != original_string_idx_data:
             log_debug(f"TagChecker: _highlight_mismatched_tag - UI (B{self.mw.data_store.current_block_idx},S{self.mw.data_store.current_string_idx}) "
                       f"doesn't match mismatch location (B{original_block_idx_data},S{original_string_idx_data}). Syncing UI further.")
             self.mw.list_selection_handler.string_selected_from_preview(original_string_idx_data)
-            QApplication.processEvents()
 
         raw_text_of_displayed_original_line = self.mw.data[original_block_idx_data][original_string_idx_data]
         

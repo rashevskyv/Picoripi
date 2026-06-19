@@ -59,6 +59,7 @@ from core.translation.config import build_default_translation_config
 from core.spellchecker_manager import SpellcheckerManager
 from core.project_manager import ProjectManager
 from core.saved_translations_manager import SavedTranslationsManager
+from core.filter_query_api import FilterQueryAPI
 
 from plugins.base_game_rules import BaseGameRules
 
@@ -220,6 +221,7 @@ class MainWindow(QMainWindow):
     def _init_handlers(self) -> None:
         # Core Services
         self.settings_manager = SettingsManager(self)
+        self.filter_query_api = FilterQueryAPI(self)
 
         self.helper = MainWindowHelper(self)
         self.actions = MainWindowActions(self)
@@ -279,6 +281,7 @@ class MainWindow(QMainWindow):
         # Service Container Registration
         self._container = ServiceContainer()
         self._container.register(SettingsManager, self.settings_manager)
+        self._container.register(FilterQueryAPI, self.filter_query_api)
         self._container.register(MainWindowHelper, self.helper)
         self._container.register(MainWindowActions, self.actions)
         self._container.register(DataStateProcessor, self.data_processor)
@@ -644,8 +647,8 @@ class MainWindow(QMainWindow):
 
             def set_value(self, val: int):
                 self.dialog.setValue(val)
-                from PyQt6.QtWidgets import QApplication
-                QApplication.processEvents()
+                from PyQt6.QtCore import QCoreApplication, QEventLoop
+                QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
             def was_canceled(self) -> bool:
                 return self.dialog.wasCanceled()

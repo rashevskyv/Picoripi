@@ -658,8 +658,6 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
         from components.ai_status_dialog import AIStatusDialog
         self.ui_handler.update_ai_operation_step(0, "Preparing data...", AIStatusDialog.STATUS_IN_PROGRESS)
-        from PyQt6.QtWidgets import QApplication
-        QApplication.processEvents()
 
         if target_block_idx == -2:
             if chapter_id is None:
@@ -1666,8 +1664,6 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
         from components.ai_status_dialog import AIStatusDialog
         self.ui_handler.update_ai_operation_step(0, "Preparing chronological data...", AIStatusDialog.STATUS_IN_PROGRESS)
-        from PyQt6.QtWidgets import QApplication
-        QApplication.processEvents()
 
         # 1. Gather all dialogue strings across all blocks
         all_project_items = []

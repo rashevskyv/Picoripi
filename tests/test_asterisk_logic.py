@@ -44,11 +44,14 @@ class MockMainWindow(QMainWindow):
         self.is_programmatically_changing_text = False
         self.current_game_rules = MagicMock()
         self.text_operation_handler = None # Will be set after creation
-        # Mocking game rules to return the same text for editor/preview
         self.current_game_rules.convert_editor_text_to_data = lambda x: x
         self.current_game_rules.get_text_representation_for_editor = lambda x: x
         self.current_game_rules.get_problem_definitions = lambda: {}
         self.helper = MagicMock()
+        from core.filter_query_api import FilterQueryAPI
+        self.filter_query_api = FilterQueryAPI(self)
+        self.displayed_string_indices = []
+        self._is_test_mode = True
 
 from unittest.mock import patch
 
@@ -375,10 +378,14 @@ def test_asterisk_propagation_hierarchy():
 
 def test_block_list_updater_unsaved_checks():
     from ui.updaters.block_list_updater import BlockListUpdater
+    from core.filter_query_api import FilterQueryAPI
     
     mw = MagicMock()
     mw.data_store.unsaved_block_indices = {2}  # data block 2 is unsaved
     mw.block_to_project_file_map = {2: 0}       # data block 2 -> project block 0
+    mw.filter_query_api = FilterQueryAPI(mw)
+    mw.data_store.displayed_string_indices = []
+    mw._is_test_mode = True
     
     updater = BlockListUpdater(mw, MagicMock())
     

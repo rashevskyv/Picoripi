@@ -1,4 +1,4 @@
-﻿# core/context.py
+# core/context.py
 from typing import Protocol, Optional, Any, Dict, List, Tuple, Set, TYPE_CHECKING, Type
 from PyQt6.QtWidgets import QStatusBar, QWidget, QListWidget, QComboBox, QSpinBox, QPushButton
 from PyQt6.QtGui import QAction
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from core.undo_manager import UndoManager
     from core.spellchecker_manager import SpellcheckerManager
     from core.saved_translations_manager import SavedTranslationsManager
+    from core.filter_query_api import FilterQueryAPI
     from ui.ui_updater import UIUpdater
     from handlers.list_selection_handler import ListSelectionHandler
     from handlers.text_operation_handler import TextOperationHandler
@@ -113,6 +114,10 @@ class ProjectContext(Protocol):
     @property
     def spellchecker_manager(self) -> 'SpellcheckerManager':
         """Spellchecker manager."""
+        ...
+    @property
+    def filter_query_api(self) -> 'FilterQueryAPI':
+        """Filter query API."""
         ...
     
     # Handlers

@@ -43,7 +43,6 @@ class BaseTextReviewDialog(QDialog):
 
         # Show dialog immediately to prevent "frozen" feeling
         self.show()
-        QApplication.processEvents()
 
     def setup_base_ui(self):
         """Sets up the common 3-panel layout: [List | Text Editor | Actions]"""

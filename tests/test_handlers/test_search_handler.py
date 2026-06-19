@@ -126,3 +126,58 @@ def test_SearchHandler_navigate_to_match_tagless(search_handler, mock_mw):
                         search_handler._navigate_to_match(0, 0, 0, 5, True)
                         
     mock_mw.preview_text_edit.highlightManager.add_search_match_highlight.assert_called()
+
+
+def test_SearchHandler_integration_navigate_between_blocks(search_handler, mock_mw):
+    mock_mw.data = [["apple"], ["banana"]]
+    mock_mw.data_store.data = [["apple"], ["banana"]]
+    mock_mw.current_block_idx = 0
+    mock_mw.current_string_idx = 0
+    mock_mw.block_list_widget = MagicMock()
+    mock_mw.list_selection_handler._get_displayed_indices.return_value = [0]
+    search_handler.data_processor.get_current_string_text.side_effect = lambda b, s: (mock_mw.data[b][s], False)
+    
+    for ed_name in ['preview_text_edit', 'original_text_edit', 'edited_text_edit']:
+        editor = MagicMock()
+        editor.objectName.return_value = ed_name
+        doc = editor.document.return_value
+        doc.blockCount.return_value = 1
+        block = doc.findBlockByNumber.return_value
+        block.isValid.return_value = True
+        block.text.return_value = "banana"
+        block.position.return_value = 0
+        setattr(mock_mw, ed_name, editor)
+
+    # Set up items in block list widget
+    item1 = MagicMock()
+    item1.data.side_effect = lambda col, role: 1 if role == Qt.ItemDataRole.UserRole else None
+    
+    class FakeIterator:
+        def __init__(self, widget):
+            self.items = [item1]
+            self.idx = 0
+        def value(self):
+            if self.idx < len(self.items):
+                return self.items[self.idx]
+            return None
+        def __iadd__(self, steps):
+            self.idx += steps
+            return self
+            
+    with patch('handlers.search_handler.QTreeWidgetItemIterator', FakeIterator):
+        with patch('handlers.search_handler.QTextCursor'):
+            # Find next banana
+            found = search_handler.find_next("banana", False, False, False)
+            assert found is True
+            assert search_handler.last_found_block == 1
+            assert search_handler.last_found_string == 0
+            
+            # Verify block change was triggered
+            mock_mw.block_list_widget.setCurrentItem.assert_called_with(item1)
+            mock_mw.list_selection_handler.select_string_by_absolute_index.assert_called_with(0)
+            
+            # Verify highlights were applied with correct arguments (0, 0, 6 for "banana")
+            mock_mw.preview_text_edit.highlightManager.add_search_match_highlight.assert_called_with(0, 0, 6)
+            mock_mw.original_text_edit.highlightManager.add_search_match_highlight.assert_called_with(0, 0, 6)
+            mock_mw.edited_text_edit.highlightManager.add_search_match_highlight.assert_called_with(0, 0, 6)
+

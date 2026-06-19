@@ -1089,13 +1089,9 @@ class ListSelectionHandler(BaseHandler):
 
                     saved_val = getattr(self, '_saved_scrollbar_value', 0)
                     self.mw.preview_text_edit.verticalScrollBar().setValue(saved_val)
-                    from PyQt6.QtWidgets import QApplication
-                    QApplication.processEvents()
             else:
                 if current_idx != -1:
                     self.scroll_to_current_string_in_preview()
-                    from PyQt6.QtWidgets import QApplication
-                    QApplication.processEvents()
 
             self._saved_approx_visible_lines = 0
 

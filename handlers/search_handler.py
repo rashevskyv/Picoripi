@@ -1,4 +1,4 @@
-﻿# handlers/search_handler.py
+# handlers/search_handler.py
 import re
 from typing import Any, Optional, List, Dict, Tuple, Set
 from PyQt6.QtCore import Qt, QPoint
@@ -257,7 +257,6 @@ class SearchHandler(BaseHandler):
         
         try:
             if self.mw.data_store.current_block_idx != block_idx_match_in_data:
-                from PyQt6.QtWidgets import QTreeWidgetItemIterator
                 iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
                 while iterator.value():
                     item = iterator.value()
@@ -267,7 +266,6 @@ class SearchHandler(BaseHandler):
                     iterator += 1
             
             self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
-            QApplication.processEvents()
         finally:
             self.mw.list_selection_handler._target_block_idx = None
             self.mw.list_selection_handler._target_string_idx = None

@@ -154,6 +154,10 @@ def mock_mw(qapp):
     mw.game_dialog_max_width_pixels = 240
     mw.current_game_rules = MagicMock()
     mw.state = None
+    mw._is_test_mode = True
+    from core.filter_query_api import FilterQueryAPI
+    mw.filter_query_api = FilterQueryAPI(mw)
+    mw.data_store.displayed_string_indices = []
 
     # Default to "no BFN editor open" so production code doesn't try to call
     # methods on a magic-mock and either blow up or produce nonsensical state.

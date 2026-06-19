@@ -16,7 +16,11 @@ class BlockListUpdater(BaseUIUpdater):
         self._chapters_cache = None
         self._chapters_cache_wing_name = None
         self._chapters_load_error = None
-        self._is_loading_chapters = False
+        if hasattr(self.mw, 'filter_query_api') and self.mw.filter_query_api is not None:
+            if getattr(self.mw.filter_query_api, '_data_processor', None) is None:
+                self.mw.filter_query_api._data_processor = data_processor
+
+
 
 
     def _set_item_style_icon(self, item: QTreeWidgetItem, column: int, standard_icon_enum) -> None:
@@ -268,97 +272,19 @@ class BlockListUpdater(BaseUIUpdater):
             return f"block_{block_idx}"
         return None
 
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, speaker_name: str = None, speaker_mappings: list = None) -> dict:
-        """Internal helper to get the aggregated problems for block."""
-        problem_counts = {}
-        if not self.mw.current_game_rules:
-            return problem_counts
-
-        is_chapter = (block_idx == -2)
-        is_speaker = (block_idx == -3)
-        if not is_chapter and not is_speaker and not (0 <= block_idx < len(self.mw.data_store.data)):
-            return problem_counts
-
-        problem_definitions = self.mw.current_game_rules.get_problem_definitions()
-        problem_counts = {pid: 0 for pid in problem_definitions.keys()}
+    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, speaker_name: str = None, speaker_mappings: list = None, chapter_mappings: list = None) -> dict:
+        """Internal helper to get the aggregated problems for block using central FilterQueryAPI."""
         detection_config = getattr(self.mw, 'detection_enabled', {})
-
-        if is_speaker:
-            spk_mappings = set(speaker_mappings or [])
-            if not spk_mappings and speaker_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager.project:
-                for b_idx, block in enumerate(self.mw.project_manager.project.blocks):
-                    assignments = block.metadata.get("character_assignments", {})
-                    for s_idx_str, c_name in assignments.items():
-                        if c_name == speaker_name:
-                            spk_mappings.add((b_idx, int(s_idx_str)))
-
-            for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
-                if (b_idx, s_idx) in spk_mappings:
-                    filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
-                    for p_id in filtered_problems:
-                        if p_id in problem_counts:
-                            problem_counts[p_id] += 1
-            return problem_counts
-
-        if is_chapter:
-            mappings = []
-            if chapter_id is not None:
-                if hasattr(self, '_chapter_mappings_cache') and self._chapter_mappings_cache is not None and chapter_id in self._chapter_mappings_cache:
-                    mappings = self._chapter_mappings_cache[chapter_id]
-                else:
-                    composer = getattr(self.mw, "translation_handler", None)
-                    if composer and hasattr(composer, "prompt_composer"):
-                        client = composer.prompt_composer._get_mempalace_client()
-                        if client:
-                            wing_name = composer.prompt_composer._get_wing_name()
-                            mappings = client.get_chapter_mappings(wing_name, chapter_id)
-            ch_mappings = set()
-            for m in mappings:
-                bmg_id = m.get("bmg_id")
-                indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id)
-                if indices:
-                    ch_mappings.add(indices)
-
-            for (b_idx, s_idx, subline_idx), problems in self.mw.data_store.problems_per_subline.items():
-                if (b_idx, s_idx) in ch_mappings:
-                    filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
-                    for p_id in filtered_problems:
-                        if p_id in problem_counts:
-                            problem_counts[p_id] += 1
-            return problem_counts
-
-        if pre_aggregated_counts is not None and category_name is None:
-            # Fast path: use the pre-calculated problem counts for this block (only for full blocks)
-            block_counts = pre_aggregated_counts.get(block_idx, {})
-            return {pid: block_counts.get(pid, 0) for pid in problem_definitions.keys()}
-
-        # Fast path/Category path using warning index
-        self.data_processor.ensure_index_warnings(block_idx)
-        warn_dict = self.mw.data_store._index_warnings.get(block_idx, {})
-
-        target_indices = None
-        if category_name:
-            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                pm = self.mw.project_manager
-                block_map = getattr(self.mw, 'block_to_project_file_map', {})
-                proj_b_idx = block_map.get(block_idx, block_idx)
-                if proj_b_idx < len(pm.project.blocks):
-                    block = pm.project.blocks[proj_b_idx]
-                    category = next((c for c in block.categories if c.name == category_name), None)
-                    if category:
-                        target_indices = set(category.line_indices)
-
-        for p_id in problem_counts.keys():
-            if not detection_config.get(p_id, True):
-                continue
-            if p_id in warn_dict:
-                if target_indices is not None:
-                    count = sum(1 for s_idx, _ in warn_dict[p_id] if s_idx in target_indices)
-                    problem_counts[p_id] = count
-                else:
-                    problem_counts[p_id] = len(warn_dict[p_id])
-
-        return problem_counts
+        return self.mw.filter_query_api.get_aggregated_problems_for_block(
+            block_idx=block_idx,
+            pre_aggregated_counts=pre_aggregated_counts,
+            category_name=category_name,
+            chapter_id=chapter_id,
+            speaker_name=speaker_name,
+            speaker_mappings=speaker_mappings,
+            detection_config=detection_config,
+            chapter_mappings=chapter_mappings
+        )
 
     def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
         """Internal helper to apply issues and tooltip."""
@@ -427,25 +353,12 @@ class BlockListUpdater(BaseUIUpdater):
         return item
 
     def _is_project_block_unsaved(self, project_block_idx: int) -> bool:
-        """Check if project block index is unsaved."""
-        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-        if isinstance(block_map, dict) and block_map:
-            return any(
-                block_map.get(data_idx) == project_block_idx
-                for data_idx in self.mw.data_store.unsaved_block_indices
-            )
-        return project_block_idx in self.mw.data_store.unsaved_block_indices
+        """Check if project block index is unsaved using central FilterQueryAPI."""
+        return self.mw.filter_query_api.is_project_block_unsaved(project_block_idx)
 
     def _folder_has_unsaved_blocks(self, folder, project, id_to_idx: dict) -> bool:
-        """Helper to recursively check if folder or its children have unsaved blocks."""
-        for b_id in folder.block_ids:
-            idx = id_to_idx.get(b_id)
-            if idx is not None and self._is_project_block_unsaved(idx):
-                return True
-        for child in folder.children:
-            if self._folder_has_unsaved_blocks(child, project, id_to_idx):
-                return True
-        return False
+        """Helper to recursively check if folder or its children have unsaved blocks using central FilterQueryAPI."""
+        return self.mw.filter_query_api.folder_has_unsaved_blocks(folder, project, id_to_idx)
 
     def _add_virtual_folder_to_tree(self, parent_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts: dict = None, folder_id_to_select=None):
         """Recursively add virtual folders and their blocks to the tree with folder compaction (GitHub style)."""
@@ -736,11 +649,7 @@ class BlockListUpdater(BaseUIUpdater):
                             self._chapters_load_error = None
                             self._is_loading_chapters = False
 
-                        # Check if running in tests or with MagicMocks to load synchronously
-                        from unittest.mock import MagicMock
-                        is_test = (isinstance(client, MagicMock) or
-                                   'Mock' in type(client).__name__ or
-                                   getattr(self.mw, '_is_test_mode', False))
+                        is_test = getattr(self.mw, '_is_test_mode', False)
                         if is_test and self._chapters_cache is None:
                             try:
                                 self._chapter_mappings_cache = client.get_all_chapter_mappings(wing_name)
@@ -839,7 +748,7 @@ class BlockListUpdater(BaseUIUpdater):
 
                                 self._register_item_in_cache(ch_item)
                                 problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
-                                ch_problem_counts = self._get_aggregated_problems_for_block(-2, chapter_id=ch_id)
+                                ch_problem_counts = self._get_aggregated_problems_for_block(-2, chapter_id=ch_id, chapter_mappings=ch_mappings_list)
                                 self._apply_issues_and_tooltip(ch_item, ch_name, ch_problem_counts, problem_definitions)
 
                                 act_nodes[act_name].addChild(ch_item)
@@ -1107,7 +1016,8 @@ class BlockListUpdater(BaseUIUpdater):
                     base_display_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
                     base_display_name = self._get_block_display_name_with_ext(block_idx, base_display_name)
 
-                block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=ch_id)
+                ch_mappings_from_item = item.data(0, Qt.ItemDataRole.UserRole + 13) if ch_id is not None else None
+                block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=ch_id, chapter_mappings=ch_mappings_from_item)
                 self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
         finally:
             self.mw.block_list_widget.blockSignals(False)
