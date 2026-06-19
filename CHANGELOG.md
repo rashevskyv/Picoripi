@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.042] - 2026-06-19
+
+### 📝 Documentation
+- **Audit TODO Wording Alignment**:
+  - Updated the TODO description of the **B01** task in `AUDIT.md` to perfectly match the implemented `repaint()` solution and removed references to obsolete signal-oriented or timer-based placeholders, ensuring document consistency.
+
 ## [0.3.041] - 2026-06-19
 
 ### 🚀 Added
