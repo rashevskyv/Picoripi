@@ -178,7 +178,7 @@ class IssueScanHandler(BaseHandler):
                                 tag_warning_id = pid
                                 break
                                 
-                    if tag_warning_id and not type(tag_warning_id).__name__ in ('MagicMock', 'Mock'):
+                    if tag_warning_id and isinstance(tag_warning_id, str):
                         if not all_problems_for_string:
                             all_problems_for_string = [set()]
                         if not isinstance(all_problems_for_string[0], set):

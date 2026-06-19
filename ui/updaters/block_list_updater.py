@@ -218,8 +218,14 @@ class BlockListUpdater(BaseUIUpdater):
                                             doc_len = 0
 
                                         try:
-                                            c_pos = int(cursor_pos) if not hasattr(cursor_pos, '_mock_name') else 0
-                                            d_len = int(doc_len) if not hasattr(doc_len, '_mock_name') else 0
+                                            try:
+                                                c_pos = int(cursor_pos)
+                                            except (TypeError, ValueError):
+                                                c_pos = 0
+                                            try:
+                                                d_len = int(doc_len)
+                                            except (TypeError, ValueError):
+                                                d_len = 0
                                             pos_to_set = min(c_pos, max(0, d_len))
                                             log_info(f"UIUpdater: Restoring cursor position to {pos_to_set}")
                                         except Exception:

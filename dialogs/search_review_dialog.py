@@ -397,7 +397,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
             self.rebuild_text_by_options()
 
         log_debug("SearchReviewDialog: Starting content loading")
-        is_test = (parent is None or "Mock" in str(type(parent))) and not self.force_async
+        is_test = (parent is None or bool(getattr(parent, '_is_test_mode', False))) and not self.force_async
         if not is_test:
             QTimer.singleShot(50, self._load_content)
 
@@ -497,7 +497,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
             import sys
             parent = self.parentWidget()
-            is_test = ('pytest' in sys.modules or parent is None or "Mock" in str(type(parent))) and not getattr(self, 'force_async', False)
+            is_test = ('pytest' in sys.modules or parent is None or bool(getattr(parent, '_is_test_mode', False))) and not getattr(self, 'force_async', False)
 
             if is_test:
                 log_debug("SearchReviewDialog: Running in test mode, using synchronous loading")
@@ -921,7 +921,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
         import sys
         parent = self.parentWidget()
-        is_test = 'pytest' in sys.modules or parent is None or "Mock" in str(type(parent))
+        is_test = 'pytest' in sys.modules or parent is None or bool(getattr(parent, '_is_test_mode', False))
 
         if is_test:
             log_debug("SearchReviewDialog.perform_search: running synchronously in test mode")

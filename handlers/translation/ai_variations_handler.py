@@ -218,11 +218,11 @@ class AIVariationsHandler(BaseTranslationHandler):
             has_selection = False
             if edited_edit:
                 try:
-                    from unittest.mock import Mock
-                    if isinstance(edited_edit, Mock):
-                        has_selection = (edited_edit.textCursor().hasSelection() is True)
-                    else:
-                        has_selection = bool(edited_edit.textCursor().hasSelection())
+                    cursor = edited_edit.textCursor()
+                    if cursor is not None and hasattr(cursor, 'hasSelection') and callable(cursor.hasSelection):
+                        res_val = cursor.hasSelection()
+                        if isinstance(res_val, bool):
+                            has_selection = res_val
                 except Exception:
                     pass
             

@@ -173,7 +173,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             if block_idx != -1 and string_idx != -1 and block_idx not in (-2, -3) and project:
                 block_map = getattr(self.mw, 'block_to_project_file_map', {})
                 proj_b_idx = block_map.get(block_idx, block_idx)
-                # Mock len(project.blocks) to avoid MagicMock comparison TypeError in tests
+                # Fallback attribute verification to avoid comparison TypeError in tests
                 try:
                     blocks_len = len(project.blocks)
                 except Exception:

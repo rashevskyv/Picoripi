@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.039
+> **Остання версія проекту:** v0.3.040
 > **Дата оновлення:** 2026-06-19
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 212 pytest test-функцій.
 
@@ -51,6 +51,7 @@
 - **B04-CR. Виправлення зауважень аудиту (Code Review) та фінальні стабілізації.**
   - Уніфіковано життєвий цикл `AutofixWorker` та інтегровано його зі стандартним сигналом `finished` від `QThread` для безпечного `deleteLater()` та очищення у `TextOperationHandler`. Прибрано прямі виклики `_cleanup_active_autofix()` з обробників `completed`, `cancelled` та `error`, щоб дозволити Qt lifecycle завершувати потік асинхронно без блокування UI.
   - Повністю очищено продуктовий код (`FilterQueryAPI`, `PreviewUpdater`, `PreviewRenderer`, `BlockListUpdater`, `PreviewCache`) від перевірок `Mock`/`MagicMock` (зокрема `_mock_self`, `_mock_name`, `filter_query_api is None` в `__init__` тощо).
+  - Очищено від перевірок та згадок `Mock`/`MagicMock` інші продуктові модулі (`syntax_highlighter.py`, `block_list_updater.py`, `main_window_actions.py`, `text_autofix_logic.py`, `bfn_preview_widget.py`, `string_settings_updater.py`), замінивши їх на безпечні capability-перевірки, callable-статус, try-except приведення типів або нейтральні назви.
   - Налаштовано створення реального `FilterQueryAPI` замість моків у глобальних та локальних тестових фікстурах `mock_mw` (`conftest.py`, `test_asterisk_logic.py`, `test_small_updaters.py` та `test_block_list_updater.py`).
   - Додано реальні `pytest-qt` тести на життєвий цикл та відміну потоку `AutofixWorker` у `test_text_operation_handler.py`.
   - Розширено інтеграційні тести пошуку для детальної перевірки параметрів підсвічування пошукових збігів у `test_search_handler.py`.
@@ -149,9 +150,9 @@
   * *Файли:* `handlers/translation/glossary_builder_handler.py`, `handlers/translation/ai_worker.py`, `tests/test_handlers/test_translation/test_glossary_builder_handler.py`
 
 - `[x]` **B07. Очистити `FilterQueryAPI` від mock coupling**
-  * *Опис:* Перевірки `unittest.mock` та Mock/MagicMock повністю прибрано з продуктового коду та перенесено в налаштування тестових фреймворків/фікстур у рамках Code Review.
+  * *Опис:* Перевірки `unittest.mock` та Mock/MagicMock повністю прибрано з кодової бази SyntaxHighlighter, BlockListUpdater, MainWindowActions, FilterQueryAPI, PreviewUpdater, PreviewRenderer, PreviewCache, text_autofix_logic.py, bfn_preview_widget.py, string_settings_updater.py та перенесено в налаштування тестових фікстур/тестів.
   * *Складність:* Середня
-  * *Файли:* `core/filter_query_api.py`, `ui/updaters/preview_updater.py`, `ui/updaters/block_list_updater.py`, `ui/updaters/preview_renderer.py`, `ui/updaters/preview_cache.py`, `tests/conftest.py`, `tests/test_asterisk_logic.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_ui/updaters/test_block_list_updater.py`
+  * *Файли:* `core/filter_query_api.py`, `ui/updaters/preview_updater.py`, `ui/updaters/block_list_updater.py`, `ui/updaters/preview_renderer.py`, `ui/updaters/preview_cache.py`, `utils/syntax_highlighter.py`, `ui/updaters/string_settings_updater.py`, `ui/components/bfn_preview_widget.py`, `handlers/text_autofix_logic.py`, `tests/conftest.py`, `tests/test_asterisk_logic.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_ui/updaters/test_block_list_updater.py`
 
 - `[ ]` **B08. Декомпонувати найбільші координуючі класи контракт за контрактом**
   * *Опис:* Розділяти великі класи тільки навколо стабільних меж: AI task orchestration, MemePalace pipeline steps, settings panels, persistence. Це зменшить coupling без ризикованого rewrite.

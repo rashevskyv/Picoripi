@@ -104,17 +104,19 @@ class UndoManager:
                 self._fallback_undo_stack = []
             return self._fallback_undo_stack
         
-        from unittest.mock import Mock
-        if isinstance(ds, Mock):
-            stack = ds.__dict__.get('_real_undo_stack')
-            if stack is None:
-                stack = []
-                ds.__dict__['_real_undo_stack'] = stack
-            return stack
+        undo_stack_attr = getattr(ds, 'undo_stack', None)
+        if not isinstance(undo_stack_attr, list):
+            if hasattr(ds, '__dict__'):
+                stack = ds.__dict__.get('_real_undo_stack')
+                if stack is None:
+                    stack = []
+                    ds.__dict__['_real_undo_stack'] = stack
+                return stack
+            if not hasattr(self, '_fallback_undo_stack'):
+                self._fallback_undo_stack = []
+            return self._fallback_undo_stack
             
-        if not hasattr(ds, 'undo_stack') or not isinstance(ds.undo_stack, list):
-            ds.undo_stack = []
-        return ds.undo_stack
+        return undo_stack_attr
 
     @undo_stack.setter
     def undo_stack(self, val):
@@ -123,9 +125,13 @@ class UndoManager:
         if ds is None:
             self._fallback_undo_stack = val
             return
-        from unittest.mock import Mock
-        if isinstance(ds, Mock):
-            ds.__dict__['_real_undo_stack'] = val
+        
+        undo_stack_attr = getattr(ds, 'undo_stack', None)
+        if not isinstance(undo_stack_attr, list):
+            if hasattr(ds, '__dict__'):
+                ds.__dict__['_real_undo_stack'] = val
+                return
+            self._fallback_undo_stack = val
             return
         ds.undo_stack = val
 
@@ -138,17 +144,19 @@ class UndoManager:
                 self._fallback_redo_stack = []
             return self._fallback_redo_stack
         
-        from unittest.mock import Mock
-        if isinstance(ds, Mock):
-            stack = ds.__dict__.get('_real_redo_stack')
-            if stack is None:
-                stack = []
-                ds.__dict__['_real_redo_stack'] = stack
-            return stack
+        redo_stack_attr = getattr(ds, 'redo_stack', None)
+        if not isinstance(redo_stack_attr, list):
+            if hasattr(ds, '__dict__'):
+                stack = ds.__dict__.get('_real_redo_stack')
+                if stack is None:
+                    stack = []
+                    ds.__dict__['_real_redo_stack'] = stack
+                return stack
+            if not hasattr(self, '_fallback_redo_stack'):
+                self._fallback_redo_stack = []
+            return self._fallback_redo_stack
             
-        if not hasattr(ds, 'redo_stack') or not isinstance(ds.redo_stack, list):
-            ds.redo_stack = []
-        return ds.redo_stack
+        return redo_stack_attr
 
     @redo_stack.setter
     def redo_stack(self, val):
@@ -157,9 +165,13 @@ class UndoManager:
         if ds is None:
             self._fallback_redo_stack = val
             return
-        from unittest.mock import Mock
-        if isinstance(ds, Mock):
-            ds.__dict__['_real_redo_stack'] = val
+        
+        redo_stack_attr = getattr(ds, 'redo_stack', None)
+        if not isinstance(redo_stack_attr, list):
+            if hasattr(ds, '__dict__'):
+                ds.__dict__['_real_redo_stack'] = val
+                return
+            self._fallback_redo_stack = val
             return
         ds.redo_stack = val
         
@@ -447,8 +459,7 @@ class UndoManager:
         if block_idx == -1: return
 
         current_block = self.mw.data_store.current_block_idx
-        from unittest.mock import Mock
-        if not isinstance(current_block, Mock) and current_block < 0:
+        if isinstance(current_block, int) and current_block < 0:
             displayed = getattr(self.mw.data_store, 'displayed_string_indices', [])
             target = (block_idx, string_idx)
             if target in displayed:
@@ -550,7 +561,7 @@ class UndoManager:
         # Ensure data_store points to the real physical block so that
         # save_speaker_for_current_string can locate the metadata entry.
         # _navigate_to may only call the widget method without updating data_store
-        # (e.g. when the widget is mocked or the current view is a virtual folder).
+        # (e.g. when in synthetic widget context or the current view is a virtual folder).
         self.mw.data_store.physical_block_idx = block_idx
         self.mw.data_store.current_string_idx = string_idx
         if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:

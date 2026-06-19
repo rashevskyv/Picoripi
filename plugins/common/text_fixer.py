@@ -13,11 +13,12 @@ class GenericTextFixer:
 
     def _calculate_width(self, text: str, font_map: dict) -> int:
         if self.mw and getattr(self.mw, 'current_game_rules', None):
-            if not hasattr(self.mw.current_game_rules, '_mock_self'):
-                if hasattr(self.mw.current_game_rules, 'calculate_string_width_override'):
-                    override_val = self.mw.current_game_rules.calculate_string_width_override(text, font_map)
-                    if override_val is not None:
-                        return override_val
+            rules = self.mw.current_game_rules
+            from plugins.base_game_rules import BaseGameRules
+            if isinstance(rules, BaseGameRules) and hasattr(rules, 'calculate_string_width_override') and callable(rules.calculate_string_width_override):
+                override_val = rules.calculate_string_width_override(text, font_map)
+                if override_val is not None:
+                    return override_val
 
         from utils.utils import calculate_string_width
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
@@ -114,7 +115,8 @@ class GenericTextFixer:
                 b_idx = block_idx if block_idx is not None else getattr(self.mw.data_store, 'current_block_idx', -1)
                 s_idx = string_idx if string_idx is not None else getattr(self.mw.data_store, 'current_string_idx', -1)
 
-                if getattr(self.mw, 'helper', None) and not hasattr(self.mw.helper, '_mock_self') and b_idx != -1 and s_idx != -1:
+                helper = getattr(self.mw, 'helper', None)
+                if helper and hasattr(helper, 'get_font_map_for_string') and callable(helper.get_font_map_for_string) and b_idx != -1 and s_idx != -1:
                     font_map = self.mw.helper.get_font_map_for_string(b_idx, s_idx)
 
                 threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
@@ -272,13 +274,10 @@ class GenericTextFixer:
             return data_string, False
 
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        if type(lines_per_page).__name__ in ('MagicMock', 'Mock'):
+        try:
+            lines_per_page = int(lines_per_page)
+        except (TypeError, ValueError):
             lines_per_page = 4
-        else:
-            try:
-                lines_per_page = int(lines_per_page)
-            except (TypeError, ValueError):
-                lines_per_page = 4
         lines = data_string.split('\n')
         pages_chunks = [lines[i:i + lines_per_page] for i in range(0, len(lines), lines_per_page)]
 
@@ -401,13 +400,10 @@ class GenericTextFixer:
                 original_message_text = str(self.mw.data_store.data[block_idx][string_idx])
 
         lines_per_page = getattr(self.mw, 'lines_per_page', 4) if self.mw else 4
-        if type(lines_per_page).__name__ in ('MagicMock', 'Mock'):
+        try:
+            lines_per_page = int(lines_per_page)
+        except (TypeError, ValueError):
             lines_per_page = 4
-        else:
-            try:
-                lines_per_page = int(lines_per_page)
-            except (TypeError, ValueError):
-                lines_per_page = 4
         changed_shift = False
         changed_compact = False
 

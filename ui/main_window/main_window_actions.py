@@ -1421,7 +1421,7 @@ class MainWindowActions:
             return
 
         # Check if we are running in tests or QApplication is not fully initialized
-        is_test = "Mock" in str(type(self.mw)) or not isinstance(QApplication.instance(), QApplication)
+        is_test = bool(getattr(self.mw, '_is_test_mode', False)) or not isinstance(QApplication.instance(), QApplication)
         
         # High-performance shallow copies of the block string lists
         edited_data_copy = dict(ds.edited_data) if has_edited else {}

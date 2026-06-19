@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.040] - 2026-06-19
+
+### 🚀 Added
+- **QThread Test Suite Stabilization**:
+  - Fixed a race condition in `test_autofix_worker_real_thread_cancellation` by triggering `worker.cancel()` directly inside the `qtbot.waitSignal` context manager.
+  - Added deterministic cleanup utilizing QThread `.wait()` in `tests/test_handlers/test_autofix_worker.py` to prevent background threads from outliving test executions.
+
+### 🐛 Fixed
+- **Mock Cleanup in Product Code**:
+  - Removed all remaining mock-specific comments and terminology from product modules (`report_dialog.py`, `toast.py`, `undo_manager.py`, and `text_autofix_logic.py`), replacing them with neutral terms like "non-QWidget parent", "test/fallback context", and "synthetic widget context".
+
 ## [0.3.039] - 2026-06-19
 
 ### 🚀 Added

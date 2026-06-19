@@ -1,4 +1,4 @@
-﻿# components/toast.py
+# components/toast.py
 import sys
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
 from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QPoint, QEasingCurve
@@ -9,7 +9,7 @@ class ToastNotification(QWidget):
     _active_toasts = []  # Keep references to prevent garbage collection
 
     def __init__(self, parent, message: str, duration: int = 2000, toast_type: str = "success"):
-        # Safe fallback for mock objects in testing environments
+        # Safe fallback for non-QWidget parent in testing environments
         """Initialize a new instance."""
         actual_parent = parent if isinstance(parent, QWidget) else None
         super().__init__(actual_parent)
@@ -123,7 +123,7 @@ class ToastNotification(QWidget):
             except Exception:
                 pass
         
-        # Bottom-left of the screen fallback (or if parent is None/mock)
+        # Bottom-left of the screen fallback (or if parent is None or non-QWidget)
         screen_geom = QApplication.primaryScreen().geometry()
         x = screen_geom.x() + 30
         y = screen_geom.y() + screen_geom.height() - self.height() - 80

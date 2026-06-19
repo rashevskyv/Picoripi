@@ -89,31 +89,25 @@ class GenericProblemAnalyzer:
         self.registry = create_default_registry(self.profile)
 
     def build_context(self, text: str, font_map: dict, threshold: int, logical_hard_limit: Optional[int] = None, original_text: Optional[str] = None) -> RuleContext:
-        def _is_mock(obj) -> bool:
-            typename = type(obj).__name__
-            return "Mock" in typename or "mock" in typename
-
         limit = logical_hard_limit if logical_hard_limit is not None else getattr(self.mw, 'game_dialog_max_width_pixels', threshold)
-        if _is_mock(limit) or not isinstance(limit, (int, float)):
+        if not isinstance(limit, (int, float)):
             limit = threshold
 
         lines_per_page = 4
         if self.mw and hasattr(self.mw, 'lines_per_page'):
             val = getattr(self.mw, 'lines_per_page', 4)
-            if _is_mock(val):
-                lines_per_page = 4
-            else:
+            if isinstance(val, (int, float, str)):
                 try:
                     lines_per_page = int(val)
                 except (TypeError, ValueError):
                     lines_per_page = 4
 
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) if self.mw else {}
-        if _is_mock(default_tag_mappings):
+        if not isinstance(default_tag_mappings, dict):
             default_tag_mappings = {}
 
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
-        if _is_mock(icon_sequences):
+        if not isinstance(icon_sequences, list):
             icon_sequences = []
 
         # Support context block and string idx

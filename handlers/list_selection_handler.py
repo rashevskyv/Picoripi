@@ -23,7 +23,7 @@ class ListSelectionHandler(BaseHandler):
         from handlers.virtual_folder_handler import VirtualFolderHandler
 
         self.category_handler = getattr(self.mw, 'category_handler', None)
-        if self.category_handler is None or type(self.category_handler).__name__ in ('Mock', 'MagicMock'):
+        if not isinstance(self.category_handler, CategoryHandler):
             self.category_handler = CategoryHandler(self.mw, self.data_processor, self.ui_updater)
             try:
                 self.mw.category_handler = self.category_handler
@@ -31,7 +31,7 @@ class ListSelectionHandler(BaseHandler):
                 pass
 
         self.speaker_handler = getattr(self.mw, 'speaker_handler', None)
-        if self.speaker_handler is None or type(self.speaker_handler).__name__ in ('Mock', 'MagicMock'):
+        if not isinstance(self.speaker_handler, SpeakerHandler):
             self.speaker_handler = SpeakerHandler(self.mw, self.data_processor, self.ui_updater)
             try:
                 self.mw.speaker_handler = self.speaker_handler
@@ -39,7 +39,7 @@ class ListSelectionHandler(BaseHandler):
                 pass
 
         self.virtual_folder_handler = getattr(self.mw, 'virtual_folder_handler', None)
-        if self.virtual_folder_handler is None or type(self.virtual_folder_handler).__name__ in ('Mock', 'MagicMock'):
+        if not isinstance(self.virtual_folder_handler, VirtualFolderHandler):
             self.virtual_folder_handler = VirtualFolderHandler(self.mw, self.data_processor, self.ui_updater)
             try:
                 self.mw.virtual_folder_handler = self.virtual_folder_handler

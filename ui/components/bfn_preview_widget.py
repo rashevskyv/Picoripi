@@ -1,4 +1,4 @@
-﻿import json
+import json
 import math
 import re
 from pathlib import Path
@@ -9,11 +9,10 @@ from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
 
 
 def _looks_like_bfn_editor(editor) -> bool:
-    """Structural check that 'editor' is a real BFN editor window (not None / not a bare test mock).
+    """Structural check that 'editor' is a real BFN editor window.
 
     The real BfnEditorWindow and the test DummyBfnEditor both expose a `metadata` dict
-    and a `sheet_images` list. A bare MagicMock would have these attributes auto-created
-    as Mock objects (not dict / not list), so it fails this check.
+    and a `sheet_images` list.
     """
     if editor is None:
         return False

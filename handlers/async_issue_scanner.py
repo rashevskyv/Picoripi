@@ -202,7 +202,7 @@ class AsyncIssueScanner(QRunnable):
                             tag_warning_id = pid
                             break
                             
-                if tag_warning_id and not type(tag_warning_id).__name__ in ('MagicMock', 'Mock'):
+                if tag_warning_id and isinstance(tag_warning_id, str):
                     # Ensure problems_in_string has at least one subline set
                     if not problems_in_string:
                         problems_in_string = [set()]

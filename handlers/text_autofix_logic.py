@@ -13,17 +13,14 @@ class TextAutofixLogic:
         self.data_processor: Any = data_processor
         self.ui_updater: Any = ui_updater
 
-    def _is_mock(self, obj) -> bool:
-        if obj is None:
-            return True
-        typename = type(obj).__name__
-        return "Mock" in typename or "mock" in typename
 
     def _get_rules(self) -> Any:
         rules = getattr(self.mw, 'current_game_rules', None)
-        if self._is_mock(rules) or self._is_mock(self.mw):
-            # Patch mock_mw attributes so QColor and TagManager don't crash on MagicMock
-            mock_attrs = {
+        from plugins.base_game_rules import BaseGameRules
+        from PyQt6.QtWidgets import QWidget
+        if not isinstance(self.mw, QWidget) or not isinstance(rules, BaseGameRules):
+            # Patch window attributes for non-widget context so QColor and TagManager don't crash
+            fallback_attrs = {
                 'tag_color_rgba': "#FF8C00",
                 'newline_color_rgba': "#A020F0",
                 'tag_bold': True,
@@ -39,7 +36,7 @@ class TextAutofixLogic:
                 'issue_warning_color': "#FF8C00",
                 'issue_error_color': "#FF8C00"
             }
-            for attr, val in mock_attrs.items():
+            for attr, val in fallback_attrs.items():
                 try:
                     setattr(self.mw, attr, val)
                 except Exception:
@@ -85,8 +82,8 @@ class TextAutofixLogic:
             page_local=False
         )
 
-        if self._is_mock(res):
-            # Fallback for legacy mock tests using old stabilization loop
+        if not isinstance(res, tuple) or len(res) != 2:
+            # Fallback for environment context tests using old stabilization loop
             fixed_text = current_text
             iteration = 0
             max_iterations = 10
@@ -195,7 +192,7 @@ class TextAutofixLogic:
             if hasattr(rules, 'problem_analyzer') and hasattr(rules.problem_analyzer, 'registry'):
                 pid = rules.problem_analyzer.registry.get_prefixed_id("EMPTY_ODD_SUBLINE_DISPLAY")
             res = rules.autofix_data_string(text, {}, 1000, allowed_problems={pid}, disable_pagination=True)
-            if not self._is_mock(res):
+            if isinstance(res, tuple) and len(res) == 2:
                 fixed, _ = res
                 return fixed
         sublines = text.split('\n')
@@ -228,7 +225,7 @@ class TextAutofixLogic:
             if hasattr(rules, 'problem_analyzer') and hasattr(rules.problem_analyzer, 'registry'):
                 pid = rules.problem_analyzer.registry.get_prefixed_id("SHORT_LINE")
             res = rules.autofix_data_string(text, fm, wt, logical_hard_limit=lhl, allowed_problems={pid}, disable_pagination=True)
-            if not self._is_mock(res):
+            if isinstance(res, tuple) and len(res) == 2:
                 fixed, _ = res
                 return fixed
         return text
@@ -242,7 +239,7 @@ class TextAutofixLogic:
             if hasattr(rules, 'problem_analyzer') and hasattr(rules.problem_analyzer, 'registry'):
                 pid = rules.problem_analyzer.registry.get_prefixed_id("WIDTH_EXCEEDED")
             res = rules.autofix_data_string(text, fm, wt, logical_hard_limit=wt, allowed_problems={pid}, disable_pagination=True)
-            if not self._is_mock(res):
+            if isinstance(res, tuple) and len(res) == 2:
                 fixed, _ = res
                 return fixed
         return text
@@ -262,7 +259,7 @@ class TextAutofixLogic:
             if hasattr(rules, 'problem_analyzer') and hasattr(rules.problem_analyzer, 'registry'):
                 pid = rules.problem_analyzer.registry.get_prefixed_id("BAD_SPACING")
             res = rules.autofix_data_string(text, fm, wt, allowed_problems={pid}, disable_pagination=True)
-            if not self._is_mock(res):
+            if isinstance(res, tuple) and len(res) == 2:
                 fixed, _ = res
                 return fixed
         return text

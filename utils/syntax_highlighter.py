@@ -543,10 +543,12 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             return []
             
         block_text = ""
-        # Handle unit tests where block might be mocked
-        if hasattr(block, 'text') and not hasattr(block.text, '_mock_self'):
+        # Handle cases where block text is not a callable or doesn't return a string
+        if hasattr(block, 'text') and callable(block.text):
             try:
-                block_text = block.text()
+                val = block.text()
+                if isinstance(val, str):
+                    block_text = val
             except Exception:
                 pass
                 
@@ -555,9 +557,11 @@ class JsonTagHighlighter(QSyntaxHighlighter):
             if doc:
                 try:
                     block_num = block.blockNumber()
-                    if hasattr(block_num, '_mock_self'):
-                        block_num = 0
-                    block_text = doc.findBlockByNumber(int(block_num)).text()
+                    try:
+                        block_num_int = int(block_num)
+                    except (TypeError, ValueError):
+                        block_num_int = 0
+                    block_text = doc.findBlockByNumber(block_num_int).text()
                 except Exception:
                     block_text = ""
                     

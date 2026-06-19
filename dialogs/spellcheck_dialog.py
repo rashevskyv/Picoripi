@@ -167,7 +167,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
             import sys
             parent = self.parentWidget()
-            is_test = ('pytest' in sys.modules or parent is None or "Mock" in str(type(parent))) and not getattr(self, 'force_async', False)
+            is_test = ('pytest' in sys.modules or parent is None or bool(getattr(parent, '_is_test_mode', False))) and not getattr(self, 'force_async', False)
 
             if is_test:
                 log_debug("SpellcheckDialog: Running in test mode, using synchronous loading")

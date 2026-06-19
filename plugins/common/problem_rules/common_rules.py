@@ -18,15 +18,11 @@ from utils.utils import (
     ALL_TAGS_PATTERN
 )
 
-def _is_mock(obj) -> bool:
-    typename = type(obj).__name__
-    return "Mock" in typename or "mock" in typename
-
 # Helper function to calculate width within rules
 def _get_string_width(text: str, context: RuleContext) -> int:
     if context.game_profile and context.game_profile.width_calculator:
         val = context.game_profile.width_calculator(text, context.font_map)
-        if val is not None and not _is_mock(val):
+        if val is not None and isinstance(val, (int, float)):
             try:
                 return int(val)
             except (TypeError, ValueError):
@@ -40,7 +36,7 @@ def _get_string_width(text: str, context: RuleContext) -> int:
         icon_sequences=context.icon_sequences,
         default_tag_mappings=context.default_tag_mappings
     )
-    if _is_mock(w):
+    if not isinstance(w, (int, float)):
         try:
             return int(w)
         except (TypeError, ValueError):
