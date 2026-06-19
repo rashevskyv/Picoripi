@@ -1,5 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.044] - 2026-06-19
+
+### 🚀 Added
+- **Durable JSON Session Checkpoints**:
+  - Introduced a schema-based human-readable JSON session saving mechanism (`.picoripi_session.json`) alongside the binary Pickle-based `.picoripi_session` file.
+  - Automatically serializes internal fields (like tuple keys in `edited_data` and `problems_per_subline`, sets in `unsaved_block_indices`, and custom Undo/Redo stack actions) to valid JSON structures.
+  - Saves the JSON session checkpoint at application shutdown (`closeEvent`), periodically (every 5 minutes) via a background timer, and before major operations.
+- **Robust Startup Restoration & Fallback**:
+  - Refactored `load_session_file` to preferentially load and validate the durable JSON session checkpoint to avoid Python/PyQt binary incompatibility issues.
+  - Falls back smoothly to the fast binary Pickle snapshot if the JSON session is absent or corrupted.
+- **Durable Session Unit Testing**:
+  - Created a comprehensive test suite in `tests/test_core/test_durable_session.py` covering serialization, deserialization of types, checkpoint saving, and robust Pickle fallback behavior.
+
+### ⚙️ Changed
+- **Autosave Debounce Focus**:
+  - Retained fast binary Pickle serialization for quick 2-second debounced autosaves to keep the editor thread completely free of JSON performance overhead.
+
 ## [0.3.043] - 2026-06-19
 
 ### 🚀 Added

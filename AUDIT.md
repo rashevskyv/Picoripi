@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.043
+> **Остання версія проекту:** v0.3.044
 > **Дата оновлення:** 2026-06-19
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 212 pytest test-функцій.
 
@@ -65,6 +65,12 @@
   - Додано cooperative cancel (`self._is_cancelled`) до циклу читання chunk-ів у `DownloadThread` та очищення часткових файлів при відміні чи помилці.
   - Додано `reject()` у `DictionaryManagerDialog` для безпечного переривання фонового завантаження та парсингу списку через `safe_shutdown_thread()`.
   - Написано окремий тестовий набір `tests/test_ui/test_dictionary_manager.py` для перевірки асинхронності та відміни.
+- **B04. Додати durable session checkpoint поруч із pickle crash snapshot.**
+  - Реалізовано надійне JSON-збереження (`.picoripi_session.json`) з явною схемою, версіонуванням та валідацією типів.
+  - JSON-checkpoint створюється автоматично при штатному закритті застосунку (`closeEvent()`), періодично за окремим таймером (кожні 5 хвилин) та перед великими операціями.
+  - При старті спочатку валідується та завантажується JSON-сесія, а у разі її відсутності або пошкодження відбувається автоматичний fallback на Pickle-сесію.
+  - Написано юніт-тести для перевірки серіалізації типів (кортежі-ключі, множини, об'єкти дії undo стеку) та відновлення стану.
+
 
 ## 3. Active architecture, performance, and UX issues (Активні проблеми)
 
@@ -124,7 +130,7 @@
   * *Складність:* Низька
   * *Файли:* `components/dictionary_manager_dialog.py`, `tests/test_ui/`
 
-- `[ ]` **B04. Додати durable session checkpoint поруч із pickle crash snapshot**
+- `[x]` **B04. Додати durable session checkpoint поруч із pickle crash snapshot**
   * *Опис:* Залишити швидкий pickle для crash recovery, але додати валідований schema-based checkpoint з версією, міграціями та контрольованою частотою запису. Це зменшить ризик несумісних або небезпечних session-файлів.
   * *Складність:* Середня
   * *Файли:* `core/data_state_processor.py`, `core/data_store.py`, `core/settings/session_state_manager.py`, `tests/test_partial_and_session_save.py`, `tests/test_core/test_data_store.py`

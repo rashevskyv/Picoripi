@@ -1,6 +1,6 @@
-# Picoripi v0.3.043
+# Picoripi v0.3.044
 
-The **Picoripi** (v0.3.043) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.044) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 
 ---
@@ -12,12 +12,12 @@ The **Picoripi** (v0.3.043) is a visual translation and localization workbench b
 - **Virtual Folder Structure**: Organizes text blocks into nested virtual folders (categories) for logical narrative layout. Supports drag-and-drop file organization.
 - **Granular Status & Propagation**: Unsaved changes propagate dynamically as asterisks (`*`) up the folder tree, with specialized error/warning counts on parent nodes.
 - **Partial Changes Saving**:
-  - **Selected Blocks Saving**: Allows saving only specifically selected blocks/categories containing translation modifications via the project tree context menu, keeping other changes in-memory.
-  - **Targeted String Saving**: Context menus in both translation editors and read-only previews allow saving either a single selected string or a targeted set of lines to files, leaving the remaining edits untouched.
+- **Selected Blocks Saving**: Allows saving only specifically selected blocks/categories containing translation modifications via the project tree context menu, keeping other changes in-memory.
+- **Targeted String Saving**: Context menus in both translation editors and read-only previews allow saving either a single selected string or a targeted set of lines to files, leaving the remaining edits untouched.
 - **Fault-Tolerant Session Autosaving**:
-  - Automatically saves a lightweight schema-based snapshot of the workspace state into a localized `.picoripi_session` binary file via `pickle` serialization.
+  - Automatically saves the workspace state using a human-readable, durable JSON session file (`.picoripi_session.json`) alongside a binary crash recovery snapshot (`.picoripi_session`) using the `Pickle` protocol.
   - **Compact & Versioned**: Avoids writing heavy original game texts or translation files to disk. Instead, it serializes only UI filters, navigation paths, unsaved changes, and metadata.
-  - **Dirty State Control**: Autosave only triggers when actual changes occur (text editing, selection navigation, filter switches) utilizing a 2-second debounce timer, preventing redundant disk writes when the user is idle.
+  - **Durable JSON Checkpoints & Fallback**: Fast autosave operations are debounced (2 seconds) and use Pickle to prevent disk lag. A schema-based, validated JSON checkpoint is saved at application shutdown, periodically (every 5 minutes), and before long operations. Startup loads the JSON checkpoint first, falling back to the Pickle snapshot if JSON is missing or corrupted.
   - **Undo/Redo History Persistence**: The complete Undo/Redo operations stack is preserved within the session file, enabling users to seamlessly undo (`Ctrl+Z`) and redo (`Ctrl+Y`) edits across application restarts.
   - **Instant Recovery**: If a crash occurs or the app is closed, the application automatically loads fresh data from disk asynchronously and recovers the exact session state on startup.
 - **Soft Shading & Progress Bars**:
