@@ -1,5 +1,25 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.043] - 2026-06-19
+
+### 🚀 Added
+- **Asynchronous Dictionary Loading**:
+  - Introduced `DictionaryListFetchWorker` (subclassing `QThread`) to download the remote repository dictionaries list in the background, keeping the main thread free and opening the Dictionary Manager dialog instantly.
+- **Dictionary Manager Testing**:
+  - Created a comprehensive test file `tests/test_ui/test_dictionary_manager.py` validating async fetching, error scenarios, and proper thread shutdown on dialog rejection.
+- **Failsafe Shutdown Tests**:
+  - Expanded thread utility tests in `tests/test_utils/test_thread_utils.py` to cover both cooperative shutdown and forced termination logic.
+
+### ⚙️ Changed
+- **Cooperative Thread Shutdown**:
+  - Refactored `safe_shutdown_thread()` in `utils/thread_utils.py` with an `allow_terminate=False` default parameter. Abrupt `thread.terminate()` call is now disabled by default, replacing forced termination with safe warning logs to prevent PyQt/SQLite runtime crashes.
+  - Realigned `SettingsDialog` and `MemePalaceBuilderDialog` to invoke `safe_shutdown_thread()` for their respective workers (`ProviderTestWorker` and pipeline workers) during close events.
+  - Linked `finished.connect(worker.deleteLater)` to all MemePalace workers to clean up their resources smoothly upon successful completion.
+
+### 🐛 Fixed
+- **Cooperative Cancel in Downloads**:
+  - Integrated `self._is_cancelled` check into `DownloadThread` chunk iterator to abort download operations cooperatively and clean up partial files when the manager is closed early.
+
 ## [0.3.042] - 2026-06-19
 
 ### 📝 Documentation

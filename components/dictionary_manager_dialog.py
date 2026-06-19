@@ -15,7 +15,7 @@ DICTIONARY_DOWNLOAD_URL_TEMPLATE = "https://raw.githubusercontent.com/wooorm/dic
 LOCAL_DICT_PATH = "resources/spellchecker"
 
 class DownloadThread(QThread):
-    """Download thread implementation."""
+    """Download thread implementation with cooperative cancellation."""
     progress = pyqtSignal(str, int)
     finished = pyqtSignal(str, bool, str)
 
@@ -23,6 +23,11 @@ class DownloadThread(QThread):
         """Initialize a new instance."""
         super().__init__()
         self.downloads = downloads
+        self._is_cancelled = False
+
+    def cancel(self):
+        """Request cancellation."""
+        self._is_cancelled = True
 
     def run(self):
         """Run."""
@@ -31,7 +36,7 @@ class DownloadThread(QThread):
             file_name = save_path_obj.name
             try:
                 self.progress.emit(f"Downloading {file_name}...", 0)
-                response = requests.get(url, stream=True)
+                response = requests.get(url, stream=True, timeout=10)
                 response.raise_for_status()
                 total_size = int(response.headers.get('content-length', 0))
                 
@@ -40,6 +45,16 @@ class DownloadThread(QThread):
                 downloaded_size = 0
                 with open(save_path_obj, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
+                        if self._is_cancelled:
+                            log_debug("DownloadThread: Cancelled during chunk download.")
+                            f.close()
+                            if save_path_obj.exists():
+                                try:
+                                    save_path_obj.unlink()
+                                except Exception as e:
+                                    log_error(f"Failed to delete partial file: {e}")
+                            self.finished.emit(url, False, "Download cancelled.")
+                            return
                         if not chunk: continue
                         f.write(chunk)
                         downloaded_size += len(chunk)
@@ -50,9 +65,44 @@ class DownloadThread(QThread):
                 self.progress.emit(f"Downloaded {file_name}", 100)
             except Exception as e:
                 log_error(f"Failed to download dictionary from {url}: {e}", exc_info=True)
+                if save_path_obj.exists():
+                    try:
+                        save_path_obj.unlink()
+                    except Exception:
+                        pass
                 self.finished.emit(url, False, str(e))
                 return
         self.finished.emit("", True, "All files downloaded successfully.")
+
+
+class DictionaryListFetchWorker(QThread):
+    """Thread to fetch the list of remote dictionaries asynchronously."""
+    finished_signal = pyqtSignal(bool, list, str)
+
+    def __init__(self, url: str):
+        super().__init__()
+        self.url = url
+        self._is_cancelled = False
+
+    def cancel(self):
+        """Request cancellation."""
+        self._is_cancelled = True
+
+    def run(self):
+        """Run."""
+        try:
+            response = requests.get(self.url, timeout=10)
+            if self._is_cancelled:
+                return
+            response.raise_for_status()
+            data = response.json()
+            if self._is_cancelled:
+                return
+            self.finished_signal.emit(True, data, "")
+        except Exception as e:
+            if self._is_cancelled:
+                return
+            self.finished_signal.emit(False, [], str(e))
 
 
 class DictionaryManagerDialog(QDialog):
@@ -67,6 +117,9 @@ class DictionaryManagerDialog(QDialog):
         self.remote_languages = []
         self.local_languages = []
         self.lang_code_map = {}
+        
+        self.list_worker = None
+        self.download_thread = None
         
         main_layout = QVBoxLayout(self)
         
@@ -112,23 +165,21 @@ class DictionaryManagerDialog(QDialog):
             return code
 
     def load_dictionaries(self):
-        """Load dictionaries."""
+        """Load dictionaries asynchronously."""
         self.status_label.setText("Fetching remote dictionary list...")
-        self.status_label.repaint()
-        try:
-            response = requests.get(DICTIONARY_API_URL, timeout=10)
-            response.raise_for_status()
-            data = response.json()
+        self.list_worker = DictionaryListFetchWorker(DICTIONARY_API_URL)
+        self.list_worker.finished_signal.connect(self.on_list_fetched)
+        self.list_worker.start()
+
+    def on_list_fetched(self, success, data, error_msg):
+        """Handle dictionary list fetch completed."""
+        if success:
             self.remote_languages = sorted([item['name'] for item in data if item['type'] == 'dir'])
-            
             self.lang_code_map = {code: self._get_lang_name(code) for code in self.remote_languages}
-            
             self.status_label.setText("Ready.")
-        except Exception as e:
-            error_message = f"Error fetching list: {e}"
-            self.status_label.setText(error_message)
-            log_error(f"Could not fetch dictionary list: {e}", exc_info=True)
-        
+        else:
+            self.status_label.setText(f"Error fetching list: {error_msg}")
+            log_error(f"Could not fetch dictionary list: {error_msg}")
         self.refresh_list()
 
     def refresh_list(self):
@@ -193,3 +244,19 @@ class DictionaryManagerDialog(QDialog):
             if self.spellchecker_manager:
                 self.spellchecker_manager.reload_dictionary(self.spellchecker_manager.language)
         self.update_button_state()
+
+    def reject(self):
+        """Safely clean up threads on rejection/closure."""
+        from utils.thread_utils import safe_shutdown_thread
+        if self.download_thread:
+            safe_shutdown_thread(self.download_thread, self.download_thread)
+            self.download_thread = None
+        if self.list_worker:
+            safe_shutdown_thread(self.list_worker, self.list_worker)
+            self.list_worker = None
+        super().reject()
+
+    def closeEvent(self, event):
+        """Handle dialog close event."""
+        self.reject()
+        event.accept()

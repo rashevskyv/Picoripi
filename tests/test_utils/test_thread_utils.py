@@ -44,13 +44,26 @@ def test_safe_shutdown_thread_not_running():
     thread.quit.assert_not_called()
     thread.wait.assert_not_called()
 
-def test_safe_shutdown_thread_timeout_terminates():
+def test_safe_shutdown_thread_timeout_without_terminate():
     worker = MagicMock()
     thread = MagicMock()
     thread.isRunning.return_value = True
     thread.wait.return_value = False  # Simulate timeout
 
-    safe_shutdown_thread(thread, worker, timeout_ms=100)
+    safe_shutdown_thread(thread, worker, timeout_ms=100, allow_terminate=False)
+
+    # Thread quit was called, wait timed out, but terminate was not called
+    thread.quit.assert_called_once()
+    thread.terminate.assert_not_called()
+    assert thread.wait.call_count == 1
+
+def test_safe_shutdown_thread_timeout_with_terminate():
+    worker = MagicMock()
+    thread = MagicMock()
+    thread.isRunning.return_value = True
+    thread.wait.return_value = False  # Simulate timeout
+
+    safe_shutdown_thread(thread, worker, timeout_ms=100, allow_terminate=True)
 
     # Thread quit was called, wait timed out, so terminate was called
     thread.quit.assert_called_once()

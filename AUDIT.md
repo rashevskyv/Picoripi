@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.042
+> **Остання версія проекту:** v0.3.043
 > **Дата оновлення:** 2026-06-19
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 212 pytest test-функцій.
 
@@ -51,34 +51,25 @@
 - **B04-CR. Виправлення зауважень аудиту (Code Review) та фінальні стабілізації.**
   - Уніфіковано життєвий цикл `AutofixWorker` та інтегровано його зі стандартним сигналом `finished` від `QThread` для безпечного `deleteLater()` та очищення у `TextOperationHandler`. Прибрано прямі виклики `_cleanup_active_autofix()` з обробників `completed`, `cancelled` та `error`, щоб дозволити Qt lifecycle завершувати потік асинхронно без блокування UI.
   - Повністю очищено продуктовий код (`FilterQueryAPI`, `PreviewUpdater`, `PreviewRenderer`, `BlockListUpdater`, `PreviewCache`) від перевірок `Mock`/`MagicMock` (зокрема `_mock_self`, `_mock_name`, `filter_query_api is None` в `__init__` тощо).
-  - Очищено від перевірок та згадок `Mock`/`MagicMock` інші продуктові модулі (`syntax_highlighter.py`, `block_list_updater.py`, `main_window_actions.py`, `text_autofix_logic.py`, `bfn_preview_widget.py`, `string_settings_updater.py`), замінивши їх на безпечні capability-перевірки, callable-статус, try-except приведення типів або нейтральні назви.
+  - Очищено від перевірок та згадок `Mock`/`MagicMock` інші формування (`syntax_highlighter.py`, `block_list_updater.py`, `main_window_actions.py`, `text_autofix_logic.py`, `bfn_preview_widget.py`, `string_settings_updater.py`), замінивши їх на безпечні capability-перевірки, callable-статус, try-except приведення типів або нейтральні назви.
   - Налаштовано створення реального `FilterQueryAPI` замість моків у глобальних та локальних тестових фікстурах `mock_mw` (`conftest.py`, `test_asterisk_logic.py`, `test_small_updaters.py` та `test_block_list_updater.py`).
   - Додано реальні `pytest-qt` тести на життєвий цикл та відміну потоку `AutofixWorker` у `test_text_operation_handler.py`.
   - Розширено інтеграційні тести пошуку для детальної перевірки параметрів підсвічування пошукових збігів у `test_search_handler.py`.
   - Усі `1212 passed` тестів успішно виконані.
-- **B01. Прибрати залишковий `processEvents()` з progress tracker.**
-  - Вилучено `QCoreApplication.processEvents()` з `UIProgressTracker.set_value()` в [main.py](file:///d:/git/dev/Picoripi/main.py).
-  - Відключено кнопку Cancel (`setCancelButton(None)`) у діалозі прогресу для усунення reentrancy-ризиків, оскільки операції revert відбуваються синхронно в пам'яті дуже швидко (мілісекунди) та не потребують асинхронного скасування.
-  - Замінено pumping подій на пряме примусове перемалювання віджета діалогу через `self.dialog.repaint()`, що гарантує візуальне оновлення прогрес-бару без reentrancy-побічних ефектів.
-  - Збільшено таймаути очікування сигналів у QThread тестах `test_autofix_worker_real_thread_lifecycle` та `test_autofix_worker_real_thread_cancellation` у [test_autofix_worker.py](file:///d:/git/dev/Picoripi/tests/test_handlers/test_autofix_worker.py) до 15 та 10 секунд відповідно для усунення флеків під високим паралельним навантаженням.
+- **B02. Уніфікувати shutdown QThread без небезпечного `terminate()`.**
+  - Модифіковано `safe_shutdown_thread()` у `utils/thread_utils.py` додаванням параметра `allow_terminate=False` за замовчуванням. Тепер примусове переривання потоку `terminate()` не виконується без явної згоди, мінімізуючи ризики неконсистентності даних.
+  - Додано очищення воркерів та потоків `finished.connect(worker.deleteLater)` при кожному запуску, а також впроваджено `closeEvent()` з викликом `safe_shutdown_thread()` для діалогів `SettingsDialog` та `MemePalaceBuilderDialog`.
+  - Додано тести `test_safe_shutdown_thread_timeout_with_terminate` та `test_safe_shutdown_thread_timeout_without_terminate`.
+- **B03. Винести remote list Dictionary Manager з UI thread.**
+  - Переведено завантаження списку словників у фоновий `DictionaryListFetchWorker(QThread)`, що усунуло 10-секундне зависання UI при відкритті діалогу.
+  - Додано cooperative cancel (`self._is_cancelled`) до циклу читання chunk-ів у `DownloadThread` та очищення часткових файлів при відміні чи помилці.
+  - Додано `reject()` у `DictionaryManagerDialog` для безпечного переривання фонового завантаження та парсингу списку через `safe_shutdown_thread()`.
+  - Написано окремий тестовий набір `tests/test_ui/test_dictionary_manager.py` для перевірки асинхронності та відміни.
 
 ## 3. Active architecture, performance, and UX issues (Активні проблеми)
 
-### B02. Узагальнений shutdown потоків має небезпечний fallback через `terminate()`
 
-`utils/thread_utils.py:5-70` робить best-effort cleanup, але на таймауті викликає `thread.terminate()` (`utils/thread_utils.py:60`). Для PyQt/SQLite/network worker-ів це може обірвати код у середині критичної секції, залишити неконсистентний файл або створити важковідтворювані аварійні завершення.
 
-Додатково кілька worker-сценаріїв досі не мають однаково строгого lifecycle-контракту: `ui/mempalace_builder_dialog.py:686-856,1174-1187` стартує QThread-subclass worker-и і часто просто скидає `self.worker = None` після `finished`; `components/dictionary_manager_dialog.py:177-180` стартує `DownloadThread`; `ui/settings_dialog.py:597-599` стартує `ProviderTestWorker`. Не всюди є `finished -> deleteLater`, close/cancel path і test coverage на закриття вікна під час активного worker-а.
-
-Рішення: зробити єдиний контракт `cancel -> quit -> wait -> deleteLater`, заборонити `terminate()` за замовчуванням, а для worker-ів з довгими network/AI/SQLite операціями додати cooperative cancel, timeout і тести на закриття.
-
-### B03. Dictionary Manager блокує UI мережевим I/O під час відкриття
-
-`components/dictionary_manager_dialog.py:109-126` викликає `requests.get(DICTIONARY_API_URL, timeout=10)` синхронно в `load_dictionaries()`, який запускається з конструктора діалогу. Якщо GitHub API повільний або недоступний, діалог відкривається із зависанням до 10 секунд.
-
-`DownloadThread.run()` у `components/dictionary_manager_dialog.py:29-45` використовує `requests.get(url, stream=True)` без timeout і без cooperative cancel. Це вже винесено з UI thread, але завислий download може тримати QThread довше, ніж очікує користувач.
-
-Рішення: винести завантаження remote list у worker/QRunnable, показувати loading state у списку, додати timeout до download-запитів і cancel path при закритті діалогу.
 
 ### B04. Session autosave використовує pickle на UI-шляху
 
@@ -123,12 +114,12 @@
   * *Складність:* Низька
   * *Файли:* `main.py`, тести для flow, який використовує `create_progress_tracker()`
 
-- `[ ]` **B02. Уніфікувати shutdown QThread без небезпечного `terminate()`**
+- `[x]` **B02. Уніфікувати shutdown QThread без небезпечного `terminate()`**
   * *Опис:* Переписати `safe_shutdown_thread()` на cooperative shutdown; `terminate()` лишити тільки як opt-in diagnostic fallback. Додати `finished -> deleteLater`, cancel/close paths і тести для MemePalace, Dictionary Manager, Provider Test та AI chat/glossary worker-ів.
   * *Складність:* Середня
   * *Файли:* `utils/thread_utils.py`, `ui/mempalace_builder_dialog.py`, `components/dictionary_manager_dialog.py`, `ui/settings_dialog.py`, `handlers/ai_chat_handler.py`, `handlers/translation/glossary_builder_handler.py`, `tests/test_dialogs/`, `tests/test_ui/`
 
-- `[ ]` **B03. Винести remote list Dictionary Manager з UI thread**
+- `[x]` **B03. Винести remote list Dictionary Manager з UI thread**
   * *Опис:* Завантажувати список словників через worker/QRunnable, показувати loading/failed state без зависання діалогу, додати timeout і cancel до download worker-а.
   * *Складність:* Низька
   * *Файли:* `components/dictionary_manager_dialog.py`, `tests/test_ui/`

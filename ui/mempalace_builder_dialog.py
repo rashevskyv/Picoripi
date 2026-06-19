@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import sqlite3
 import ctypes
@@ -697,6 +697,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
         self.worker.finished.connect(self._handle_char_mining_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
     def _handle_char_mining_finished(self, success, message):
@@ -781,6 +782,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
         self.worker.finished.connect(self._handle_speech_profiling_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
     def _handle_speech_profiling_finished(self, success, message):
@@ -853,6 +855,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
         self.worker.finished.connect(self._handle_chapters_mapping_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
     def _handle_chapters_mapping_finished(self, success, message):
@@ -1184,6 +1187,7 @@ class MemePalaceBuilderDialog(QDialog):
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
         self.worker.finished.connect(self._handle_chapter_analysis_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
     def _handle_worker_progress(self, current, total, text):
@@ -1362,3 +1366,15 @@ class MemePalaceBuilderDialog(QDialog):
                 sm.save_settings()
         except Exception as e:
             log_error(f"Failed to save builder settings: {e}")
+
+    def closeEvent(self, event):
+        """Handle builder close event by safely shutting down the worker thread."""
+        self.should_sleep_after = False
+        restore_sleep()
+        if self.worker:
+            from utils.thread_utils import safe_shutdown_thread
+            self.append_log("Shutting down worker thread...")
+            safe_shutdown_thread(self.worker, self.worker)
+            self.worker = None
+        self.save_builder_settings()
+        event.accept()

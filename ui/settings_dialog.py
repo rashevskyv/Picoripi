@@ -1,4 +1,4 @@
-﻿# /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
+# /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 from pathlib import Path
 import json
 from PyQt6.QtWidgets import (
@@ -28,6 +28,11 @@ class ProviderTestWorker(QThread):
         super().__init__()
         self.provider_key = provider_key
         self.provider_settings = provider_settings
+        self._is_cancelled = False
+
+    def cancel(self):
+        """Request cancellation."""
+        self._is_cancelled = True
 
     def run(self):
         """Run."""
@@ -37,12 +42,18 @@ class ProviderTestWorker(QThread):
             messages = [
                 {"role": "user", "content": "Say the word \"Test\" and nothing else."}
             ]
+            if self._is_cancelled:
+                return
             response = provider.translate(messages)
+            if self._is_cancelled:
+                return
             if response and response.text:
                 self.finished_signal.emit(True, response.text.strip())
             else:
                 self.finished_signal.emit(False, "Received empty response from provider.")
         except Exception as e:
+            if self._is_cancelled:
+                return
             self.finished_signal.emit(False, str(e))
 
 class SettingsDialog(QDialog, SettingsDialogUiMixin):
@@ -60,6 +71,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.autofix_checkboxes = {}
         self.detection_checkboxes = {}
         self.translation_config_snapshot = build_default_translation_config()
+        self.test_worker = None
         self.plugin_changed_requires_restart = False
         self.theme_changed_requires_restart = False
         self.initial_plugin_name = self.mw.active_game_plugin
@@ -789,3 +801,16 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             self.translation_preset_combo.blockSignals(False)
             
             self._apply_translation_config_to_ui(build_default_translation_config())
+
+    def reject(self):
+        """Safely clean up worker thread on rejection/closure."""
+        if self.test_worker:
+            from utils.thread_utils import safe_shutdown_thread
+            safe_shutdown_thread(self.test_worker, self.test_worker)
+            self.test_worker = None
+        super().reject()
+
+    def closeEvent(self, event):
+        """Handle dialog close event."""
+        self.reject()
+        event.accept()
