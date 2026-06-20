@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.052] - 2026-06-20
+
+### 🚀 Added
+- **Glossary Builder Exception Safeguard**:
+  - Replaced unsafe `response.text` evaluation in the outer `catch-all` block of `AIWorker.run()` with a null-safe reference `resp_t = response.text if 'response' in locals() and response is not None else None`. This avoids `AttributeError` when provider calls or parsing raise exceptions before the response object is instantiated.
+- **Unit Testing**:
+  - Added `test_ai_worker_build_glossary_exception_handling` to ensure the outer exception handling path runs safely and broadcasts the `error` signal.
+
+### ⚙️ Changed
+- **Version Updates**:
+  - Bumped version to `0.3.052` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.051] - 2026-06-20
 
 ### 🚀 Added

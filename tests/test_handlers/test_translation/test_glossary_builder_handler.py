@@ -305,3 +305,31 @@ def test_gbh_prepare_to_close(gbh):
     gbh._cleanup_worker = MagicMock()
     gbh.prepare_to_close()
     gbh._cleanup_worker.assert_called_once()
+
+def test_ai_worker_build_glossary_exception_handling():
+    from handlers.translation.ai_worker import AIWorker
+    
+    mock_provider = MagicMock()
+    mock_provider.translate.side_effect = RuntimeError("Provider connection failed")
+    
+    task_details = {
+        'type': 'build_glossary',
+        'system_prompt': 'sys',
+        'user_prompt_template': '{text_chunk}',
+        'block_data': ["Hello World!"],
+        'target_indices': [0],
+        'chunk_size': 1000,
+        'dialog_steps': ["step1", "step2", "step3", "step4"],
+        'block_id': 0
+    }
+    
+    worker = AIWorker(mock_provider, None, task_details)
+    
+    emitted_errors = []
+    worker.error.connect(lambda msg, details: emitted_errors.append((msg, details)))
+    
+    worker.run()
+    
+    assert len(emitted_errors) == 1
+    err_msg, details = emitted_errors[0]
+    assert "Provider connection failed" in err_msg

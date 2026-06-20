@@ -678,7 +678,7 @@ class AIWorker(QObject):
         except (TranslationProviderError, ValueError, Exception) as e:
             if not self.is_cancelled:
                 self._log_ai_traffic(getattr(self, '_last_messages', None) or [], error=str(e))
-                resp_t = response.text if 'response' in locals() else None
+                resp_t = response.text if 'response' in locals() and response is not None else None
                 err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, "worker thread exception")
                 self.error.emit(err_msg, updated_details)
         finally:
