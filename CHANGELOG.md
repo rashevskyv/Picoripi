@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.049] - 2026-06-20
+
+### ⚙️ Changed
+- **Cancellable Startup Pre-cache Timer**:
+  - Replaced the static `QTimer.singleShot` deferred execution wrapper inside `schedule_pre_cache` with an instance-level single-shot `QTimer` (`_pre_cache_start_timer`).
+  - Added explicit cancellation of `_pre_cache_start_timer` inside `cancel_idle_caching()` to eliminate the risk of executing delayed background caching callbacks after a project is closed or reloaded.
+- **Documentation**:
+  - Synced and cleaned up `AUDIT.md` by transferring the historical B05 description from Active Issues into the Completed Improvements section.
+
+### 🚀 Added
+- **Unit Testing**:
+  - Added `test_schedule_pre_cache_cancellation` to `tests/test_ui/test_updaters/test_preview_cache_stabilization.py` verifying that calling `cancel_idle_caching()` stops the pending pre-cache timer and prevents the `pre_cache_all_blocks` method from firing.
+
 ## [0.3.048] - 2026-06-20
 
 ### 🚀 Added

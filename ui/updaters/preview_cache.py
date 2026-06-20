@@ -12,6 +12,7 @@ class PreviewCache:
         self.MAX_CACHE_SIZE = 15
         self._idle_cache_queue = []
         self._idle_timer = None
+        self._pre_cache_start_timer = None
         self._total_idle_cache_count = 1
         
         self._current_caching_block_idx = None
@@ -71,12 +72,20 @@ class PreviewCache:
         if is_test:
             self.pre_cache_all_blocks()
         else:
-            QTimer.singleShot(100, self.pre_cache_all_blocks)
+            if not self._pre_cache_start_timer:
+                from PyQt6.QtCore import QObject
+                timer_parent = self.mw if isinstance(self.mw, QObject) else None
+                self._pre_cache_start_timer = QTimer(timer_parent)
+                self._pre_cache_start_timer.setSingleShot(True)
+                self._pre_cache_start_timer.timeout.connect(self.pre_cache_all_blocks)
+            self._pre_cache_start_timer.start(100)
 
     def cancel_idle_caching(self):
         """Cancel any active background idle caching."""
         if self._idle_timer and self._idle_timer.isActive():
             self._idle_timer.stop()
+        if self._pre_cache_start_timer and self._pre_cache_start_timer.isActive():
+            self._pre_cache_start_timer.stop()
         self._idle_cache_queue = []
         self._current_caching_block_idx = None
         self._current_caching_key = None

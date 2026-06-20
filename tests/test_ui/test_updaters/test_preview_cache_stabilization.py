@@ -94,3 +94,26 @@ def test_cache_completed_and_stored(mock_perf_counter, mock_mw):
     assert cache.cache[cache_key]['lines'] == ["text_0_0", "text_0_1"]
     assert cache.cache[cache_key]['next_index'] == 2
     assert cache.cache[cache_key]['target_indices'] == [0, 1]
+
+def test_schedule_pre_cache_cancellation(mock_mw, qtbot):
+    mock_dp = MagicMock()
+    mock_dp.get_current_string_text.return_value = ("some text", None)
+    
+    mock_mw.data_store.data = [["s1", "s2"]]
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.current_game_rules = None
+    mock_mw._is_test_mode = False  # Ensure it runs the QTimer branch in schedule_pre_cache
+    
+    cache = PreviewCache(mock_mw, mock_dp)
+    
+    with patch.object(cache, 'pre_cache_all_blocks') as mock_pre_cache:
+        cache.schedule_pre_cache()
+        assert cache._pre_cache_start_timer is not None
+        assert cache._pre_cache_start_timer.isActive()
+        
+        cache.cancel_idle_caching()
+        assert not cache._pre_cache_start_timer.isActive()
+        
+        qtbot.wait(150)
+        mock_pre_cache.assert_not_called()
+
