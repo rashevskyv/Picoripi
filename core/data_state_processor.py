@@ -10,6 +10,9 @@ from components.toast import ToastNotification
 
 import pickle
 from PyQt6.QtCore import QTimer
+from .data_processor.session_manager import SessionManager
+from .data_processor.revert_manager import RevertManager
+from .data_processor.set_calculator import SetCalculator
 
 class DataStateProcessor:
     """Data state processor implementation."""
@@ -17,8 +20,11 @@ class DataStateProcessor:
         """Initialize a new instance."""
         self.mw = main_window
 
-        self._session_dirty = False
-        self._durable_session_dirty = False
+        # Decomposed managers
+        self.session_manager = SessionManager(self)
+        self.revert_manager = RevertManager(self)
+        self.set_calculator = SetCalculator(self)
+
         try:
             self.autosave_timer = QTimer()
             self.autosave_timer.setSingleShot(True)
@@ -33,6 +39,22 @@ class DataStateProcessor:
             log_warning(f"DSP: Failed to initialize QTimer (probably running in non-GUI test environment): {e}")
             self.autosave_timer = None
             self.durable_session_timer = None
+
+    @property
+    def _session_dirty(self) -> bool:
+        return self.session_manager._session_dirty
+
+    @_session_dirty.setter
+    def _session_dirty(self, val: bool) -> None:
+        self.session_manager._session_dirty = val
+
+    @property
+    def _durable_session_dirty(self) -> bool:
+        return self.session_manager._durable_session_dirty
+
+    @_durable_session_dirty.setter
+    def _durable_session_dirty(self, val: bool) -> None:
+        self.session_manager._durable_session_dirty = val
 
     def _show_message(self, title: str, text: str, type: str = "info"):
         """Internal helper to show message."""
@@ -235,278 +257,15 @@ class DataStateProcessor:
 
     def revert_strings_to_original(self, block_idx: int, string_indices: List[int], progress_dialog=None, progress_offset: int = 0) -> int:
         """Reverts multiple strings in a block to their original state (from the loaded file)."""
-        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'edited_data'): return 0
-
-        # Auto-save translation before reverting
-        if hasattr(self.mw, 'saved_translations_manager') and self.mw.saved_translations_manager:
-            to_save = []
-            for s_idx in string_indices:
-                curr_text, _ = self.get_current_string_text(block_idx, s_idx)
-                original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data_store.data, "original_source_data")
-                if curr_text and curr_text != original_text:
-                    to_save.append((s_idx, curr_text))
-            if to_save:
-                self.mw.saved_translations_manager.save_translations_bulk(block_idx, to_save)
-
-        has_undo = hasattr(self.mw, 'undo_manager')
-        if has_undo:
-            self.mw.undo_manager.begin_group()
-
-        show_progress = len(string_indices) > 20 and hasattr(self.mw, 'ui_updater') and progress_dialog is None
-        progress = progress_dialog
-        if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
-            progress = self.mw.ui_provider.create_progress_tracker("Revert Strings", "Reverting strings to original...", len(string_indices))
-
-        processed = 0
-        try:
-            for i, s_idx in enumerate(string_indices):
-                if progress and progress.was_canceled():
-                    break
-
-                # We specifically use self.mw.data_store.data here because "Original" refers to the source text (left panel)
-                original_text = self._get_string_from_source(block_idx, s_idx, self.mw.data_store.data, "original_source_data")
-
-                if original_text is not None:
-                    # Recording this as a REVERT action
-                    self.update_edited_data(block_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
-
-                processed += 1
-                if progress:
-                    if progress_dialog is not None:
-                        progress.set_value(progress_offset + processed)
-                    else:
-                        progress.set_value(processed)
-        finally:
-            if show_progress and progress:
-                progress.set_value(len(string_indices))
-            if has_undo:
-                self.mw.undo_manager.end_group("REVERT")
-
-            # Explicitly refresh the tree widget once at the end
-            if hasattr(self.mw, 'ui_updater'):
-                self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
-
-        if hasattr(self.mw, 'ui_updater') and getattr(self.mw.data_store, 'current_block_idx', -1) == block_idx:
-            preview_edit = getattr(self.mw, 'preview_text_edit', None)
-            if preview_edit and self.mw.current_game_rules:
-                old_scrollbar_value = preview_edit.verticalScrollBar().value()
-
-                # Prevent triggering events during the text updates
-                was_programmatically_changing = self.mw.is_programmatically_changing_text
-                self.mw.is_programmatically_changing_text = True
-
-                try:
-                    target_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
-                    if not target_indices:
-                        if 0 <= block_idx < len(self.mw.data_store.data) and isinstance(self.mw.data_store.data[block_idx], list):
-                            target_indices = list(range(len(self.mw.data_store.data[block_idx])))
-                        else:
-                            target_indices = []
-
-                    # Generate all preview lines (this is very fast)
-                    preview_lines = []
-                    preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
-                    for line_idx, real_idx in enumerate(target_indices):
-                        if isinstance(real_idx, tuple) and len(real_idx) == 2:
-                            b, s = real_idx
-                        else:
-                            b, s = block_idx, real_idx
-
-                        if real_idx == -1:
-                            preview_line_text = getattr(preview_updater, '_placeholder_texts', {}).get(line_idx, "[Empty Lines]") if preview_updater else "[Empty Lines]"
-                        elif 0 <= b < len(self.mw.data_store.data) and 0 <= s < len(self.mw.data_store.data[b]):
-                            text_for_preview_raw, _ = self.get_current_string_text(b, s)
-                            preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                        else:
-                            preview_line_text = ""
-                        preview_lines.append(preview_line_text)
-
-
-                    preview_full_text = "\n".join(preview_lines)
-
-                    # Update preview editor instantly
-                    if preview_edit.toPlainText() != preview_full_text:
-                        preview_edit.setPlainText(preview_full_text)
-
-                    # Update local cache to match the new text
-                    preview_updater = getattr(self.mw.ui_updater, 'preview_updater', None)
-                    if preview_updater and hasattr(preview_updater, '_preview_cache'):
-                        cache_key = preview_updater.get_cache_key(block_idx, getattr(self.mw.data_store, 'current_category_name', None))
-                        preview_updater._preview_cache[cache_key] = {
-                            'lines': preview_lines,
-                            'next_index': len(target_indices),
-                            'target_indices': target_indices
-                        }
-                        for s_idx in string_indices:
-                            text_for_preview_raw, _ = self.get_current_string_text(block_idx, s_idx)
-                            if self.mw.current_game_rules:
-                                preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
-                            else:
-                                preview_line_text = str(text_for_preview_raw)
-                            preview_updater.update_cached_string(block_idx, s_idx, preview_line_text)
-
-                    # Refresh highlights
-                    if hasattr(preview_edit, 'highlightManager'):
-                        preview_edit.highlightManager.clearAllProblemHighlights()
-                        self.mw.ui_updater.preview_updater._apply_highlights_for_block(block_idx)
-
-                    # Restore selection
-                    if self.mw.data_store.current_string_idx != -1 and self.mw.data_store.current_string_idx in target_indices:
-                        preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
-                        if 0 <= preview_idx_to_select < preview_edit.document().blockCount():
-                            preview_edit.set_selected_lines([preview_idx_to_select])
-
-                    # Restore scrollbar position perfectly
-                    preview_edit.verticalScrollBar().setValue(old_scrollbar_value)
-                    if hasattr(preview_edit, 'lineNumberArea'):
-                        preview_edit.lineNumberArea.update()
-                finally:
-                    self.mw.is_programmatically_changing_text = was_programmatically_changing
-
-            # Fast update for original and edited text views
-            self.mw.ui_updater.update_text_views()
-
-        return processed
+        return self.revert_manager.revert_strings_to_original(block_idx, string_indices, progress_dialog, progress_offset)
 
     def perform_revert_strings(self, block_idx: int, string_indices: List[Any], confirm: bool = True) -> None:
         """Unified revert function with optional confirmation and UI updates."""
-        if not string_indices or block_idx == -1: return
-
-        is_chapter_revert = False
-        if block_idx == -2 or (string_indices and isinstance(string_indices[0], tuple)):
-            is_chapter_revert = True
-
-        if confirm:
-            num = len(string_indices)
-            if is_chapter_revert:
-                msg = f"Revert {num} string(s) in this chapter to original?" if num > 1 else "Revert this string to original?"
-            else:
-                msg = f"Revert {num} string(s) in this block to original?" if num > 1 else "Revert this string to original?"
-
-            reply = self._ask_yes_no('Revert to Original', msg + "\n\nUnsaved changes for these strings will be lost.", default_yes=False)
-            if not reply: return
-
-        if is_chapter_revert:
-            # Group strings by block_idx
-            grouped = {}
-            for item in string_indices:
-                if isinstance(item, tuple) and len(item) == 2:
-                    b_idx, s_idx = item
-                else:
-                    b_idx = block_idx
-                    s_idx = item
-                grouped.setdefault(b_idx, []).append(s_idx)
-
-            # Perform revert for each block
-            has_undo = hasattr(self.mw, 'undo_manager')
-            if has_undo:
-                self.mw.undo_manager.begin_group()
-
-            total_strings = len(string_indices)
-            show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
-            progress = None
-            if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
-                progress = self.mw.ui_provider.create_progress_tracker(
-                    "Revert Strings", "Reverting strings to original...", total_strings
-                )
-
-            processed = 0
-            try:
-                for b_idx, s_indices in grouped.items():
-                    if progress and progress.was_canceled():
-                        break
-                    p_count = self.revert_strings_to_original(b_idx, s_indices, progress_dialog=progress, progress_offset=processed)
-                    processed += p_count
-            finally:
-                if show_progress and progress:
-                    progress.set_value(total_strings)
-                if has_undo:
-                    self.mw.undo_manager.end_group("REVERT")
-
-            # Refresh tree items and active preview
-            if hasattr(self.mw, 'ui_updater'):
-                for b_idx in grouped.keys():
-                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
-                # Re-populate preview for the current block/category
-                curr_block = getattr(self.mw.data_store, 'current_block_idx', -1)
-                curr_cat = getattr(self.mw.data_store, 'current_category_name', None)
-                self.mw.ui_updater.populate_strings_for_block(curr_block, curr_cat, force=True)
-                self.mw.ui_updater.update_text_views()
-        else:
-            self.revert_strings_to_original(block_idx, string_indices)
-
-        if hasattr(self.mw, 'statusBar'):
-            if len(string_indices) == 1:
-                if is_chapter_revert:
-                    self.mw.statusBar.showMessage("String reverted to original.", 2000)
-                else:
-                    self.mw.statusBar.showMessage(f"String {string_indices[0] + 1} reverted to original.", 2000)
-            else:
-                self.mw.statusBar.showMessage(f"{len(string_indices)} strings reverted to original.", 2000)
+        self.revert_manager.perform_revert_strings(block_idx, string_indices, confirm)
 
     def revert_blocks_to_original(self, block_indices: List[int]) -> None:
         """Reverts entire blocks to their state from the loaded edited file (or original)."""
-        if not hasattr(self.mw, 'data_store') or not hasattr(self.mw.data_store, 'data') or not self.mw.data_store.data: return
-
-        # Auto-save translation before reverting blocks
-        if hasattr(self.mw, 'saved_translations_manager') and self.mw.saved_translations_manager:
-            for b_idx in block_indices:
-                if 0 <= b_idx < len(self.mw.data_store.data):
-                    to_save = []
-                    num_strings = len(self.mw.data_store.data[b_idx])
-                    for s_idx in range(num_strings):
-                        curr_text, _ = self.get_current_string_text(b_idx, s_idx)
-                        original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
-                        if curr_text and curr_text != original_text:
-                            to_save.append((s_idx, curr_text))
-                    if to_save:
-                        self.mw.saved_translations_manager.save_translations_bulk(b_idx, to_save)
-
-        has_undo = hasattr(self.mw, 'undo_manager')
-        if has_undo:
-            self.mw.undo_manager.begin_group()
-
-        total_strings = 0
-        for b_idx in block_indices:
-            if 0 <= b_idx < len(self.mw.data_store.data):
-                total_strings += len(self.mw.data_store.data[b_idx])
-
-        show_progress = total_strings > 20 and hasattr(self.mw, 'ui_updater')
-        progress = None
-        if show_progress and hasattr(self.mw, 'ui_provider') and self.mw.ui_provider:
-            progress = self.mw.ui_provider.create_progress_tracker(
-                "Revert Blocks", "Reverting blocks to original...", total_strings
-            )
-
-        processed = 0
-        try:
-            for b_idx in block_indices:
-                if progress and progress.was_canceled():
-                    break
-                if 0 <= b_idx < len(self.mw.data_store.data):
-                    num_strings = len(self.mw.data_store.data[b_idx])
-                    for s_idx in range(num_strings):
-                        if progress and progress.was_canceled():
-                            break
-                        original_text = self._get_string_from_source(b_idx, s_idx, self.mw.data_store.data, "original_source_data")
-                        if original_text is not None:
-                            self.update_edited_data(b_idx, s_idx, original_text, action_type="REVERT", skip_ui_refresh=True)
-
-                        processed += 1
-                        if progress:
-                            progress.set_value(processed)
-        finally:
-            if progress:
-                progress.set_value(total_strings)
-            if has_undo:
-                self.mw.undo_manager.end_group("REVERT_BLOCKS")
-
-        if hasattr(self.mw, 'ui_updater'):
-            if self.mw.data_store.current_block_idx in block_indices:
-                self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
-                self.mw.ui_updater.update_text_views()
-            for b_idx in block_indices:
-                self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+        self.revert_manager.revert_blocks_to_original(block_indices)
 
 
     def _perform_save_impl(self, output_data_list: List[Any], progress_callback=None, edited_data_for_transaction: Optional[Dict[Tuple[int, int], str]] = None) -> Tuple[bool, List[Tuple[str, int, int]], List[str]]:
@@ -957,604 +716,49 @@ class DataStateProcessor:
 
     def revert_edited_file_to_original(self) -> bool:
         """Revert edited file to original."""
-        is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
-
-        if not is_project_mode:
-            if not self.mw.data_store.json_path or not self.mw.data_store.edited_json_path:
-                self._show_message("Revert Error", "Original or Changes file path is not set.", type="warning")
-                return False
-            if not self.mw.data_store.data:
-                self._show_message("Revert Error", "Original data is not loaded.", type="warning")
-                return False
-            if not self.mw.current_game_rules:
-                self._show_message("Revert Error", "No game plugin active to format the save file.", type="error")
-                return False
-
-            reply = self._ask_yes_no('Revert Changes File', f"This will overwrite the file:\n{Path(self.mw.data_store.edited_json_path).name}\nwith the content from:\n{Path(self.mw.data_store.json_path).name}\n\nAll previous edits in the changes file will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", default_yes=False)
-            if not reply: return False
-            try:
-                output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data_store.data, self.mw.data_store.block_names)
-
-                save_file_success = False
-                file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
-
-                if file_extension == '.json':
-                    save_file_success = save_json_file(self.mw.data_store.edited_json_path, output_data)
-                elif file_extension == '.txt':
-                    if isinstance(output_data, str):
-                        save_file_success = save_text_file(self.mw.data_store.edited_json_path, output_data)
-                    else:
-                        log_debug("Revert Error: Plugin for .txt file did not return a string for saving.")
-                        self._show_message("Revert Error", "Plugin save format error: expected a string for .txt file.", type="error")
-                        return False
-                elif file_extension == '.bmg':
-                    try:
-                        with Path(self.mw.data_store.edited_json_path).open('wb') as f:
-                            f.write(output_data)
-                        save_file_success = True
-                    except Exception as e:
-                        log_debug(f"Failed to write BMG: {e}")
-                        save_file_success = False
-
-                if save_file_success:
-                    self.mw.data_store.unsaved_changes = False; self.mw.data_store.edited_data = {}; self.mw.data_store.edited_sublines.clear();
-
-                    # Backup and restore keys since we are reading translation data
-                    plugin_keys_backup = None
-                    if hasattr(self.mw.current_game_rules, 'original_keys'):
-                        plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-
-                    reverted_data_list, _ = self.mw.current_game_rules.load_data_from_json_obj(output_data)
-
-                    if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                        self.mw.current_game_rules.original_keys = plugin_keys_backup
-
-                    self.mw.data_store.edited_file_data = reverted_data_list
-
-                    self._show_message("Reverted", f"Changes file '{Path(self.mw.data_store.edited_json_path).name}' has been reverted to match the original.", type="info")
-                    self.mw.ui_updater.update_title();
-                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
-                    return True
-                else: return False
-            except Exception as e:
-                log_error(f"Unexpected error during revert: {e}", exc_info=True)
-                self._show_message("Revert Error", f"Unexpected error during revert:\n{e}", type="error")
-                return False
-        else:
-            # Project mode revert
-            reply = self._ask_yes_no('Revert Project Changes', "This will overwrite all active block translation files with original data.\nAll previous edits in the translation files will be lost.\nCurrent unsaved edits in memory will also be discarded.\n\nAre you sure?", default_yes=False)
-            if not reply: return False
-
-            try:
-                log_debug("Reverting in Project Mode: Splitting blocks back to their original state")
-                blocks = self.mw.project_manager.project.blocks
-                success_all = True
-
-                project_block_to_data_blocks = {}
-                for data_b_idx, p_b_idx in self.mw.block_to_project_file_map.items():
-                    if p_b_idx not in project_block_to_data_blocks:
-                        project_block_to_data_blocks[p_b_idx] = []
-                    project_block_to_data_blocks[p_b_idx].append(data_b_idx)
-
-                global_keys_backup = None
-                if hasattr(self.mw.current_game_rules, 'original_keys'):
-                    global_keys_backup = list(self.mw.current_game_rules.original_keys)
-
-                for p_b_idx, data_indices in project_block_to_data_blocks.items():
-                    if p_b_idx >= len(blocks): continue
-
-                    block = blocks[p_b_idx]
-                    trans_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
-
-                    # Extract original self.mw.data_store.data
-                    file_data_list = [self.mw.data_store.data[d_idx] for d_idx in data_indices]
-                    file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
-
-                    if global_keys_backup is not None:
-                        sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
-                        self.mw.current_game_rules.original_keys = sliced_keys
-
-                    final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
-
-                    file_extension = Path(trans_path).suffix.lower()
-                    if file_extension == '.json':
-                        save_file_success = save_json_file(trans_path, final_obj_to_save)
-                    elif file_extension == '.txt':
-                        if isinstance(final_obj_to_save, str):
-                            save_file_success = save_text_file(trans_path, final_obj_to_save)
-                        else:
-                            save_file_success = False
-                    elif file_extension == '.bmg':
-                        try:
-                            with Path(trans_path).open('wb') as f:
-                                f.write(final_obj_to_save)
-                            save_file_success = True
-                        except Exception as e:
-                            save_file_success = False
-                    else:
-                        save_file_success = save_text_file(trans_path, str(final_obj_to_save))
-
-                    if not save_file_success:
-                        success_all = False
-                        break
-
-                if success_all:
-                    self.mw.data_store.unsaved_changes = False
-                    self.mw.data_store.edited_data = {}
-                    if global_keys_backup is not None:
-                        self.mw.current_game_rules.original_keys = global_keys_backup
-
-                    # Reload blocks
-                    if hasattr(self.mw, 'project_action_handler') and self.mw.project_action_handler:
-                        self.mw.project_action_handler._populate_blocks_from_project()
-
-                    self._show_message("Project Reverted", "All project translation files reverted successfully.", type="info")
-                    return True
-                else:
-                    if global_keys_backup is not None:
-                        self.mw.current_game_rules.original_keys = global_keys_backup
-                    return False
-
-            except Exception as e:
-                log_error(f"Unexpected error during project revert: {e}", exc_info=True)
-                self._show_message("Revert Error", f"Unexpected error during project revert:\n{e}", type="error")
-                return False
+        return self.revert_manager.revert_edited_file_to_original()
 
     def get_session_file_path(self) -> Optional[Path]:
         """Get the file path for saving/loading session data."""
-        if hasattr(self.mw, 'project_manager') and self.mw.project_manager:
-            p_dir = getattr(self.mw.project_manager, 'project_dir', None)
-            if p_dir and isinstance(p_dir, (str, Path)):
-                return Path(p_dir) / ".picoripi_session"
-        if hasattr(self.mw, 'data_store') and self.mw.data_store:
-            ed_path = getattr(self.mw.data_store, 'edited_json_path', None)
-            if ed_path and isinstance(ed_path, (str, Path)):
-                return Path(ed_path).parent / ".picoripi_session"
-        return None
+        return self.session_manager.get_session_file_path()
 
     def get_durable_session_file_path(self) -> Optional[Path]:
         """Get the file path for saving/loading durable JSON session data."""
-        p_path = self.get_session_file_path()
-        if p_path:
-            return p_path.with_name(p_path.name + ".json")
-        return None
+        return self.session_manager.get_durable_session_file_path()
 
     def _serialize_action(self, action: Any) -> dict:
-        from core.undo_manager import UndoAction, GroupAction, StructuralAction
-        if isinstance(action, UndoAction):
-            return {
-                "type": "UndoAction",
-                "action_type": action.action_type,
-                "block_idx": action.block_idx,
-                "string_idx": action.string_idx,
-                "old_text": action.old_text,
-                "new_text": action.new_text,
-                "timestamp": action.timestamp,
-                "cursor_pos": action.cursor_pos,
-                "metadata": action.metadata
-            }
-        elif isinstance(action, GroupAction):
-            return {
-                "type": "GroupAction",
-                "actions": [self._serialize_action(a) for a in action.actions],
-                "action_type": action.action_type,
-                "timestamp": action.timestamp
-            }
-        elif isinstance(action, StructuralAction):
-            return {
-                "type": "StructuralAction",
-                "action_type": action.action_type,
-                "before_snapshot": action.before_snapshot,
-                "after_snapshot": action.after_snapshot,
-                "label": action.label,
-                "timestamp": action.timestamp
-            }
-        return {}
+        return self.session_manager._serialize_action(action)
 
     def _deserialize_action(self, data: dict) -> Any:
-        from core.undo_manager import UndoAction, GroupAction, StructuralAction
-        if not data:
-            return None
-        action_type = data.get("type")
-        if action_type == "UndoAction":
-            return UndoAction(
-                action_type=data["action_type"],
-                block_idx=data["block_idx"],
-                string_idx=data["string_idx"],
-                old_text=data["old_text"],
-                new_text=data["new_text"],
-                timestamp=data["timestamp"],
-                cursor_pos=data.get("cursor_pos"),
-                metadata=data.get("metadata")
-            )
-        elif action_type == "GroupAction":
-            actions = [self._deserialize_action(a) for a in data["actions"] if a]
-            return GroupAction(
-                actions=actions,
-                action_type=data["action_type"],
-                timestamp=data["timestamp"]
-            )
-        elif action_type == "StructuralAction":
-            return StructuralAction(
-                action_type=data["action_type"],
-                before_snapshot=data["before_snapshot"],
-                after_snapshot=data["after_snapshot"],
-                label=data["label"],
-                timestamp=data["timestamp"]
-            )
-        return None
+        return self.session_manager._deserialize_action(data)
 
     def serialize_session_to_json(self, snapshot: dict) -> dict:
         """Serialize AppDataStore snapshot to a JSON-compatible dictionary."""
-        # 1. Convert tuple keys in edited_data to strings
-        edited_data_serialized = {}
-        for (b_idx, s_idx), text in snapshot.get("edited_data", {}).items():
-            edited_data_serialized[f"{b_idx},{s_idx}"] = text
-
-        # 2. Convert unsaved_block_indices from set to list
-        unsaved_blocks = list(snapshot.get("unsaved_block_indices", []))
-
-        # 3. Convert tuple keys in problems_per_subline to strings, and sets to lists
-        problems_serialized = {}
-        for key, val in snapshot.get("problems_per_subline", {}).items():
-            if isinstance(key, tuple) and len(key) == 3:
-                key_str = f"{key[0]},{key[1]},{key[2]}"
-                problems_serialized[key_str] = list(val) if isinstance(val, (set, list)) else val
-
-        # 4. Serialize undo/redo stacks
-        undo_stack_serialized = [self._serialize_action(a) for a in snapshot.get("undo_stack", [])]
-        redo_stack_serialized = [self._serialize_action(a) for a in snapshot.get("redo_stack", [])]
-
-        # 5. Serialize block_to_project_file_map (ints to strings)
-        block_to_file_serialized = {}
-        for key, val in snapshot.get("block_to_project_file_map", {}).items():
-            block_to_file_serialized[str(key)] = val
-
-        # 6. Build final json-compatible dictionary
-        json_snapshot = {
-            "version": 1,
-            "saved_at": snapshot.get("saved_at", 0.0),
-            "json_path": snapshot.get("json_path"),
-            "edited_json_path": snapshot.get("edited_json_path"),
-            "edited_data": edited_data_serialized,
-            "current_block_idx": snapshot.get("current_block_idx", -1),
-            "_physical_block_idx": snapshot.get("_physical_block_idx", -1),
-            "current_string_idx": snapshot.get("current_string_idx", -1),
-            "selected_string_indices": snapshot.get("selected_string_indices", []),
-            "current_category_name": snapshot.get("current_category_name"),
-            "current_character_name": snapshot.get("current_character_name"),
-            "last_selected_block_index": snapshot.get("last_selected_block_index", -1),
-            "last_selected_string_index": snapshot.get("last_selected_string_index", -1),
-            "highlight_categorized": snapshot.get("highlight_categorized", False),
-            "hide_categorized": snapshot.get("hide_categorized", False),
-            "hide_translated": snapshot.get("hide_translated", False),
-            "hide_original_tags": snapshot.get("hide_original_tags", False),
-            "hide_translation_tags": snapshot.get("hide_translation_tags", False),
-            "show_overrides_only": snapshot.get("show_overrides_only", False),
-            "hide_empty_strings": snapshot.get("hide_empty_strings", False),
-            "show_unsaved_only": snapshot.get("show_unsaved_only", False),
-            "show_unsaved_blocks_only": snapshot.get("show_unsaved_blocks_only", False),
-            "show_warnings_only": snapshot.get("show_warnings_only", False),
-            "active_warning_filters": snapshot.get("active_warning_filters", []),
-            "undo_stack": undo_stack_serialized,
-            "redo_stack": redo_stack_serialized,
-            "block_names": snapshot.get("block_names", {}),
-            "unsaved_changes": snapshot.get("unsaved_changes", False),
-            "unsaved_block_indices": unsaved_blocks,
-            "block_to_project_file_map": block_to_file_serialized,
-            "problems_per_subline": problems_serialized,
-        }
-        return json_snapshot
+        return self.session_manager.serialize_session_to_json(snapshot)
 
     def deserialize_session_from_json(self, json_data: dict) -> dict:
         """Deserialize JSON-compatible dictionary to AppDataStore snapshot format."""
-        # 1. Restore edited_data tuple keys
-        edited_data_deserialized = {}
-        for key_str, text in json_data.get("edited_data", {}).items():
-            try:
-                parts = key_str.split(',')
-                if len(parts) == 2:
-                    edited_data_deserialized[(int(parts[0]), int(parts[1]))] = text
-            except Exception:
-                pass
-
-        # 2. Restore unsaved_block_indices as set
-        unsaved_blocks = set(json_data.get("unsaved_block_indices", []))
-
-        # 3. Restore problems_per_subline tuple keys and set values
-        problems_deserialized = {}
-        for key_str, val in json_data.get("problems_per_subline", {}).items():
-            try:
-                parts = key_str.split(',')
-                if len(parts) == 3:
-                    problems_deserialized[(int(parts[0]), int(parts[1]), int(parts[2]))] = set(val)
-            except Exception:
-                pass
-
-        # 4. Restore block_to_project_file_map keys as int
-        block_to_file_deserialized = {}
-        for key_str, val in json_data.get("block_to_project_file_map", {}).items():
-            try:
-                block_to_file_deserialized[int(key_str)] = val
-            except Exception:
-                block_to_file_deserialized[key_str] = val
-
-        # 5. Restore undo/redo stacks
-        undo_stack_deserialized = [self._deserialize_action(a) for a in json_data.get("undo_stack", []) if a]
-        redo_stack_deserialized = [self._deserialize_action(a) for a in json_data.get("redo_stack", []) if a]
-
-        # 6. Rebuild final snapshot dict
-        snapshot = {
-            "version": 1,
-            "saved_at": json_data.get("saved_at", 0.0),
-            "json_path": json_data.get("json_path"),
-            "edited_json_path": json_data.get("edited_json_path"),
-            "edited_data": edited_data_deserialized,
-            "current_block_idx": json_data.get("current_block_idx", -1),
-            "_physical_block_idx": json_data.get("_physical_block_idx", -1),
-            "current_string_idx": json_data.get("current_string_idx", -1),
-            "selected_string_indices": json_data.get("selected_string_indices", []),
-            "current_category_name": json_data.get("current_category_name"),
-            "current_character_name": json_data.get("current_character_name"),
-            "last_selected_block_index": json_data.get("last_selected_block_index", -1),
-            "last_selected_string_index": json_data.get("last_selected_string_index", -1),
-            "highlight_categorized": json_data.get("highlight_categorized", False),
-            "hide_categorized": json_data.get("hide_categorized", False),
-            "hide_translated": json_data.get("hide_translated", False),
-            "hide_original_tags": json_data.get("hide_original_tags", False),
-            "hide_translation_tags": json_data.get("hide_translation_tags", False),
-            "show_overrides_only": json_data.get("show_overrides_only", False),
-            "hide_empty_strings": json_data.get("hide_empty_strings", False),
-            "show_unsaved_only": json_data.get("show_unsaved_only", False),
-            "show_unsaved_blocks_only": json_data.get("show_unsaved_blocks_only", False),
-            "show_warnings_only": json_data.get("show_warnings_only", False),
-            "active_warning_filters": json_data.get("active_warning_filters", []),
-            "undo_stack": undo_stack_deserialized,
-            "redo_stack": redo_stack_deserialized,
-            "block_names": json_data.get("block_names", {}),
-            "unsaved_changes": json_data.get("unsaved_changes", False),
-            "unsaved_block_indices": unsaved_blocks,
-            "block_to_project_file_map": block_to_file_deserialized,
-            "problems_per_subline": problems_deserialized,
-        }
-        return snapshot
+        return self.session_manager.deserialize_session_from_json(json_data)
 
     def schedule_autosave(self) -> None:
         """Schedule session autosave after a short delay (debounce)."""
-        self._session_dirty = True
-        self._durable_session_dirty = True
-        if getattr(self, 'autosave_timer', None) is not None:
-            self.autosave_timer.start()
+        self.session_manager.schedule_autosave()
 
     def _autosave_session(self, force: bool = False) -> None:
         """Autosave entire data_store into a pickle file if dirty or forced."""
-        if not force and not getattr(self, '_session_dirty', False):
-            # No changes were made since last save, skip file writing
-            return
-
-        session_path = self.get_session_file_path()
-        if not session_path:
-            return
-
-        try:
-            data_store = getattr(self.mw, 'data_store', None)
-            if data_store:
-                import time
-                # Create parent directories if they don't exist
-                session_path.parent.mkdir(parents=True, exist_ok=True)
-                snapshot = data_store.get_session_snapshot()
-                snapshot["saved_at"] = time.time()
-                with session_path.open('wb') as f:
-                    pickle.dump(snapshot, f)
-                self._session_dirty = False
-                log_debug(f"DSP: Session autosaved to {session_path}")
-        except Exception as e:
-            log_error(f"DSP: Failed to autosave session: {e}", exc_info=True)
+        self.session_manager._autosave_session(force)
 
     def _save_durable_session_json(self, force: bool = False) -> bool:
-        """Autosave entire data_store into a JSON file if dirty or forced.
-        Returns True on success, False otherwise.
-        """
-        if not force and not getattr(self, '_durable_session_dirty', False):
-            # No changes were made since last save, skip file writing
-            return True
-
-        json_path = self.get_durable_session_file_path()
-        if not json_path:
-            return False
-
-        tmp_path = None
-        try:
-            data_store = getattr(self.mw, 'data_store', None)
-            if data_store:
-                import time
-                import os
-                json_path.parent.mkdir(parents=True, exist_ok=True)
-                snapshot = data_store.get_session_snapshot()
-                snapshot["saved_at"] = time.time()
-                json_snapshot = self.serialize_session_to_json(snapshot)
-                
-                # Write to temp file first to ensure atomic replacement
-                tmp_path = json_path.with_suffix(json_path.suffix + ".tmp")
-                with tmp_path.open('w', encoding='utf-8') as f:
-                    json.dump(json_snapshot, f, ensure_ascii=False, indent=2)
-                    f.flush()
-                    try:
-                        os.fsync(f.fileno())
-                    except Exception:
-                        pass
-                
-                # Atomic replacement
-                tmp_path.replace(json_path)
-                
-                self._durable_session_dirty = False
-                log_debug(f"DSP: Durable JSON session saved to {json_path}")
-                return True
-            return False
-        except Exception as e:
-            log_error(f"DSP: Failed to save durable JSON session: {e}", exc_info=True)
-            if tmp_path and tmp_path.exists():
-                try:
-                    tmp_path.unlink()
-                except Exception:
-                    pass
-            return False
+        """Autosave entire data_store into a JSON file if dirty or forced."""
+        return self.session_manager._save_durable_session_json(force)
 
     def load_session_file(self) -> bool:
         """Load entire project state from a JSON file (preferred) or a pickle file (fallback)."""
-        json_path = self.get_durable_session_file_path()
-        session_path = self.get_session_file_path()
-        
-        json_snapshot = None
-        json_saved_at = 0.0
-        
-        pickle_snapshot = None
-        pickle_saved_at = 0.0
-
-        # 1. Read JSON snapshot if it exists
-        if json_path and json_path.exists():
-            try:
-                with json_path.open('r', encoding='utf-8') as f:
-                    json_data = json.load(f)
-                json_snapshot = self.deserialize_session_from_json(json_data)
-                if json_snapshot:
-                    json_saved_at = json_snapshot.get("saved_at", 0.0)
-            except Exception as e:
-                log_warning(f"DSP: Failed to load durable JSON session: {e}")
-                json_snapshot = None
-
-        # 2. Read Pickle snapshot if it exists
-        if session_path and session_path.exists():
-            try:
-                with session_path.open('rb') as f:
-                    pickle_snapshot = pickle.load(f)
-
-                # Support legacy session files that dumped the entire AppDataStore object
-                if pickle_snapshot and not isinstance(pickle_snapshot, dict):
-                    restored_store = pickle_snapshot
-                    pickle_snapshot = {
-                        "version": 1,
-                        "json_path": restored_store.__dict__.get("json_path"),
-                        "edited_json_path": restored_store.__dict__.get("edited_json_path"),
-                        "edited_data": dict(restored_store.__dict__.get("edited_data", {})),
-                        "current_block_idx": restored_store.__dict__.get("current_block_idx", -1),
-                        "_physical_block_idx": restored_store.__dict__.get("_physical_block_idx", -1),
-                        "current_string_idx": restored_store.__dict__.get("current_string_idx", -1),
-                        "selected_string_indices": restored_store.__dict__.get("selected_string_indices", []),
-                        "current_category_name": restored_store.__dict__.get("current_category_name"),
-                        "current_character_name": restored_store.__dict__.get("current_character_name"),
-                        "last_selected_block_index": restored_store.__dict__.get("last_selected_block_index", -1),
-                        "last_selected_string_index": restored_store.__dict__.get("last_selected_string_index", -1),
-                        "highlight_categorized": restored_store.__dict__.get("highlight_categorized", False),
-                        "hide_categorized": restored_store.__dict__.get("hide_categorized", False),
-                        "hide_translated": restored_store.__dict__.get("hide_translated", False),
-                        "hide_original_tags": restored_store.__dict__.get("hide_original_tags", False),
-                        "hide_translation_tags": restored_store.__dict__.get("hide_translation_tags", False),
-                        "show_overrides_only": restored_store.__dict__.get("show_overrides_only", False),
-                        "hide_empty_strings": restored_store.__dict__.get("hide_empty_strings", False),
-                        "show_unsaved_only": restored_store.__dict__.get("show_unsaved_only", False),
-                        "show_unsaved_blocks_only": restored_store.__dict__.get("show_unsaved_blocks_only", False),
-                        "show_warnings_only": restored_store.__dict__.get("show_warnings_only", False),
-                        "active_warning_filters": restored_store.__dict__.get("active_warning_filters", []),
-                        "undo_stack": restored_store.__dict__.get("undo_stack", []),
-                        "redo_stack": restored_store.__dict__.get("redo_stack", []),
-                        "block_names": restored_store.__dict__.get("block_names", {}),
-                        "unsaved_changes": restored_store.__dict__.get("unsaved_changes", False),
-                        "unsaved_block_indices": restored_store.__dict__.get("unsaved_block_indices", set()),
-                        "block_to_project_file_map": restored_store.__dict__.get("block_to_project_file_map", {}),
-                        "problems_per_subline": dict(restored_store.__dict__.get("problems_per_subline", {})),
-                    }
-                if pickle_snapshot:
-                    pickle_saved_at = pickle_snapshot.get("saved_at", 0.0)
-            except Exception as e:
-                log_error(f"DSP: Failed to load pickle fallback session: {e}", exc_info=True)
-                pickle_snapshot = None
-
-        # 3. Compare saved_at and select the newest snapshot
-        snapshot = None
-        needs_durable_sync = False
-
-        if json_snapshot and pickle_snapshot:
-            if pickle_saved_at > json_saved_at:
-                snapshot = pickle_snapshot
-                needs_durable_sync = True
-                log_info(f"DSP: Pickle session is newer than JSON session ({pickle_saved_at} > {json_saved_at}), using Pickle fallback")
-            else:
-                snapshot = json_snapshot
-                log_info(f"DSP: Loaded session from JSON checkpoint {json_path} ({json_saved_at} >= {pickle_saved_at})")
-        elif json_snapshot:
-            snapshot = json_snapshot
-            log_info(f"DSP: Loaded session from JSON checkpoint {json_path}")
-        elif pickle_snapshot:
-            snapshot = pickle_snapshot
-            needs_durable_sync = True
-            log_info(f"DSP: Loaded session from Pickle fallback {session_path}")
-
-        if not snapshot:
-            return False
-
-        try:
-            if hasattr(self.mw, 'data_store') and self.mw.data_store:
-                success = self.mw.data_store.restore_from_snapshot(snapshot)
-                if not success:
-                    return False
-
-                if hasattr(self.mw.data_store, 'block_to_project_file_map'):
-                    self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
-
-                log_info("DSP: Successfully restored entire project state from session")
-
-                if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
-                    self.mw.ui_updater.sync_filter_checkboxes_with_store()
-
-                # Rebuild indices and refresh UI
-                if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'rebuild_unsaved_block_indices'):
-                    self.mw.helper.rebuild_unsaved_block_indices()
-
-                if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:
-                    self.mw.ui_updater.update_title()
-                    self.mw.ui_updater.populate_blocks()
-
-                    block_idx = self.mw.data_store.current_block_idx
-                    category_name = self.mw.data_store.current_category_name
-                    string_idx = self.mw.data_store.current_string_idx
-
-                    if block_idx != -1:
-                        tree_widget = getattr(self.mw, 'block_list_widget', None)
-                        if tree_widget and hasattr(tree_widget, 'select_block_by_index'):
-                            tree_widget.select_block_by_index(block_idx, category_name)
-
-                        self.mw.ui_updater.populate_strings_for_block(block_idx, category_name, force=True)
-
-                        if string_idx != -1:
-                            self.mw.ui_updater.update_text_views()
-
-                # Reset dirty flags and stop timer since loading shouldn't count as a new user change
-                self._session_dirty = False
-                self._durable_session_dirty = False
-                if getattr(self, 'autosave_timer', None) is not None:
-                    self.autosave_timer.stop()
-                if getattr(self, 'durable_session_timer', None) is not None:
-                    self.durable_session_timer.start()
-
-                if needs_durable_sync:
-                    self._durable_session_dirty = True
-                    self._save_durable_session_json(force=True)
-
-                return True
-        except Exception as e:
-            log_error(f"DSP: Failed to load session: {e}", exc_info=True)
-        return False
+        return self.session_manager.load_session_file()
 
     def clear_session_file(self) -> None:
         """Delete the temporary session file if it exists."""
-        session_path = self.get_session_file_path()
-        if session_path and session_path.exists():
-            try:
-                session_path.unlink()
-                log_info(f"DSP: Cleaned up session file {session_path}")
-            except Exception as e:
-                log_warning(f"DSP: Could not delete session file {session_path}: {e}")
+        self.session_manager.clear_session_file()
 
     def save_specific_edits(self, strings_to_save: List[Tuple[int, int]], ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """
@@ -1743,123 +947,28 @@ class DataStateProcessor:
 
     def get_empty_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of empty string indices for the given block."""
-        store = self.mw.data_store
-        if block_idx < 0 or not store.data or block_idx >= len(store.data):
-            return set()
-
-        if block_idx not in store._index_empty:
-            empty_set = set()
-            block_data = store.data[block_idx]
-            if isinstance(block_data, list):
-                for s_idx in range(len(block_data)):
-                    orig_text = self._get_string_from_source(block_idx, s_idx, store.data, "readonly")
-                    edited_text, _ = self.get_current_string_text(block_idx, s_idx)
-                    is_empty = (not orig_text or not orig_text.strip()) and (not edited_text or not str(edited_text).strip())
-                    if is_empty:
-                        empty_set.add(s_idx)
-            store._index_empty[block_idx] = empty_set
-
-        return store._index_empty[block_idx]
+        return self.set_calculator.get_empty_set(block_idx)
 
     def get_translated_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of translated string indices for the given block."""
-        store = self.mw.data_store
-        if block_idx < 0 or not store.data or block_idx >= len(store.data):
-            return set()
-
-        if block_idx not in store._index_translated:
-            trans_set = set()
-            block_data = store.data[block_idx]
-            if isinstance(block_data, list):
-                for s_idx in range(len(block_data)):
-                    if self.is_string_translated(block_idx, s_idx):
-                        trans_set.add(s_idx)
-            store._index_translated[block_idx] = trans_set
-
-        return store._index_translated[block_idx]
+        return self.set_calculator.get_translated_set(block_idx)
 
     def get_unsaved_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of unsaved string indices for the given block."""
-        store = self.mw.data_store
-        if block_idx not in store._index_unsaved:
-            unsaved_set = set()
-            for b_idx, s_idx in store.edited_data.keys():
-                if b_idx == block_idx:
-                    unsaved_set.add(s_idx)
-            store._index_unsaved[block_idx] = unsaved_set
-
-        return store._index_unsaved[block_idx]
+        return self.set_calculator.get_unsaved_set(block_idx)
 
     def get_overrides_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of override string indices for the given block."""
-        store = self.mw.data_store
-        if block_idx < 0 or not store.data or block_idx >= len(store.data):
-            return set()
-
-        if block_idx not in store._index_overrides:
-            overrides_set = set()
-            default_font = getattr(self.mw, 'default_font_file', None)
-            max_width = getattr(self.mw, 'game_dialog_max_width_pixels', None)
-            metadata = getattr(self.mw, 'string_metadata', {})
-
-            for (b_idx, s_idx), meta in metadata.items():
-                if b_idx == block_idx:
-                    has_font = "font_file" in meta and meta["font_file"] != default_font and meta["font_file"] != "default"
-                    has_width = "width" in meta and meta["width"] != max_width and meta["width"] != 0
-                    if has_font or has_width:
-                        overrides_set.add(s_idx)
-            store._index_overrides[block_idx] = overrides_set
-
-        return store._index_overrides[block_idx]
+        return self.set_calculator.get_overrides_set(block_idx)
 
     def get_categorized_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of categorized string indices for the given block."""
-        store = self.mw.data_store
-        if block_idx < 0:
-            return set()
-
-        if block_idx not in store._index_categorized:
-            categorized_set = set()
-            pm = getattr(self.mw, 'project_manager', None)
-            if pm and pm.project:
-                block_map = getattr(self.mw, 'block_to_project_file_map', {})
-                proj_b_idx = block_map.get(block_idx, block_idx)
-                if isinstance(proj_b_idx, int) and proj_b_idx < len(pm.project.blocks):
-                    block = pm.project.blocks[proj_b_idx]
-                    categorized_set.update(block.get_categorized_line_indices())
-            store._index_categorized[block_idx] = categorized_set
-
-        return store._index_categorized[block_idx]
+        return self.set_calculator.get_categorized_set(block_idx)
 
     def ensure_index_warnings(self, block_idx: int):
         """Helper to build warnings index if it is missing."""
-        store = self.mw.data_store
-        if block_idx not in store._index_warnings:
-            warn_dict = {}
-            for (b_idx, s_idx, subline_idx), problems in store.problems_per_subline.items():
-                if b_idx == block_idx:
-                    for p_id in problems:
-                        if p_id not in warn_dict:
-                            warn_dict[p_id] = set()
-                        warn_dict[p_id].add((s_idx, subline_idx))
-            store._index_warnings[block_idx] = warn_dict
+        self.set_calculator.ensure_index_warnings(block_idx)
 
     def get_warnings_matching_set(self, block_idx: int, active_filters: List[str], detection_config: dict) -> Set[int]:
         """Get the set of string indices matching active or enabled warnings."""
-        store = self.mw.data_store
-        if block_idx < 0:
-            return set()
-
-        self.ensure_index_warnings(block_idx)
-        warn_dict = store._index_warnings[block_idx]
-
-        matching_strings = set()
-        if active_filters:
-            for p_id in active_filters:
-                if p_id in warn_dict:
-                    matching_strings.update(s_idx for s_idx, _ in warn_dict[p_id])
-        else:
-            for p_id, occurrences in warn_dict.items():
-                if detection_config.get(p_id, True):
-                    matching_strings.update(s_idx for s_idx, _ in occurrences)
-        return matching_strings
+        return self.set_calculator.get_warnings_matching_set(block_idx, active_filters, detection_config)

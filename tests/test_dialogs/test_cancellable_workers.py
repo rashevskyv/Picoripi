@@ -163,7 +163,7 @@ def test_spellcheck_dialog_close_during_analysis(qtbot):
     dialog = SpellcheckDialog(parent, text, spellchecker_manager, starting_line_number=0, line_numbers=[0]*2000, block_idx=0, force_async=True)
     
     # Let analysis start (50ms timer + startup delay)
-    qtbot.wait(150)
+    qtbot.waitUntil(lambda: hasattr(dialog, 'analysis_worker') and dialog.analysis_worker is not None, timeout=3000)
     
     assert dialog.analysis_worker is not None
     assert dialog.analysis_worker.isRunning()
@@ -193,7 +193,7 @@ def test_search_review_dialog_close_during_analysis(qtbot):
         dialog = SearchReviewDialog(parent, text, "query", starting_line_number=0, line_numbers=list(range(1000)), block_idx=0, force_async=True)
         
         # Let search start (50ms timer + startup delay)
-        qtbot.wait(150)
+        qtbot.waitUntil(lambda: hasattr(dialog, 'search_worker') and dialog.search_worker is not None, timeout=3000)
         
         assert dialog.search_worker is not None
         assert dialog.search_worker.isRunning()

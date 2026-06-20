@@ -12,26 +12,45 @@ Qt.CheckStateRole = Qt.ItemDataRole.CheckStateRole
 Qt.FontRole = Qt.ItemDataRole.FontRole
 Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 
-from unittest.mock import MagicMock, Mock, NonCallableMagicMock
+from unittest.mock import MagicMock, Mock
 from PyQt6.QtWidgets import QApplication, QWidget
 
-# Monkeypatch Mock and NonCallableMagicMock to support physical_block_idx property
-def _get_physical_block_idx_mock(self):
-    if hasattr(self, '_physical_block_idx'):
-        val = self._physical_block_idx
-        if not isinstance(val, Mock):
-            return val
-    if hasattr(self, 'current_block_idx'):
-        c_idx = self.current_block_idx
-        if not isinstance(c_idx, Mock):
-            return c_idx
-    return -1
+class MockMainWindow(MagicMock):
+    """A specialized MagicMock subclass for MainWindow in tests, exposing physical_block_idx."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._physical_block_idx = -1
 
-def _set_physical_block_idx_mock(self, val):
-    self._physical_block_idx = val
+    @property
+    def physical_block_idx(self) -> int:
+        if hasattr(self, '_physical_block_idx'):
+            val = self._physical_block_idx
+            if not isinstance(val, Mock):
+                try:
+                    val_int = int(val)
+                    if val_int >= 0:
+                        return val_int
+                except (TypeError, ValueError):
+                    pass
+        if hasattr(self, 'current_block_idx'):
+            c_idx = self.current_block_idx
+            if not isinstance(c_idx, Mock):
+                try:
+                    c_idx_int = int(c_idx)
+                    if c_idx_int >= 0:
+                        return c_idx_int
+                except (TypeError, ValueError):
+                    pass
+        return -1
 
-NonCallableMagicMock.physical_block_idx = property(_get_physical_block_idx_mock, _set_physical_block_idx_mock)
-Mock.physical_block_idx = property(_get_physical_block_idx_mock, _set_physical_block_idx_mock)
+    def __getattribute__(self, name):
+        if name in ('physical_block_idx', '_physical_block_idx'):
+            return object.__getattribute__(self, name)
+        return super().__getattribute__(name)
+
+    @physical_block_idx.setter
+    def physical_block_idx(self, val: int) -> None:
+        self._physical_block_idx = val
 
 
 @pytest.fixture(autouse=True)
@@ -120,7 +139,7 @@ def cleanup_qt(qapp):
 @pytest.fixture
 def mock_mw(qapp):
     """Provides a mocked MainWindow instance."""
-    mw = MagicMock()
+    mw = MockMainWindow()
     mw.data_store = mw
     mw.data_store.unsaved_changes = False
     # Common UI elements
@@ -153,6 +172,7 @@ def mock_mw(qapp):
     mw.line_width_warning_threshold_pixels = 100
     mw.game_dialog_max_width_pixels = 240
     mw.current_game_rules = MagicMock()
+    mw.active_game_plugin = ""
     mw.state = None
     mw._is_test_mode = True
     from core.filter_query_api import FilterQueryAPI

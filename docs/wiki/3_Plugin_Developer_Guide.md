@@ -2,6 +2,13 @@
 
 This document provides technical guidelines on how the Picoripi plugin architecture functions and details how to build new game-specific plugins. It includes a copy-pasteable prompt designed to instruct AI models (like Gemini, ChatGPT, Claude) to build fully functional plugins.
 
+Current quick-start path:
+
+- Start from `plugins/default_plugin/`.
+- Read `docs/PLUGIN_AUTHORING_GUIDE.md`.
+- Use `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` for AI-assisted plugin design.
+- Use PyQt6 imports only.
+
 ---
 
 ## 1. Architectural Overview & Hook System

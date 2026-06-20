@@ -19,9 +19,27 @@ class MockUIProvider:
     def show_message(self, t, m, i="info"): pass
 
 class MockContext(MagicMock):
+    @property
+    def physical_block_idx(self) -> int:
+        if hasattr(self, '_physical_block_idx') and self._physical_block_idx >= 0:
+            return self._physical_block_idx
+        if hasattr(self, 'current_block_idx') and self.current_block_idx >= 0:
+            return self.current_block_idx
+        return -1
+
+    def __getattribute__(self, name):
+        if name in ('physical_block_idx', '_physical_block_idx'):
+            return object.__getattribute__(self, name)
+        return super().__getattribute__(name)
+
+    @physical_block_idx.setter
+    def physical_block_idx(self, val: int) -> None:
+        self._physical_block_idx = val
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_store = self
+        self._physical_block_idx = -1
         self.current_block_idx = 0
         self.current_string_idx = 0
         self.data = [["Original line 1"]]

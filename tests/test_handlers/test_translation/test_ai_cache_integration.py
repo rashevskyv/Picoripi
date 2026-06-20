@@ -6,11 +6,13 @@ from core.data_state_processor import DataStateProcessor
 
 @pytest.fixture
 def mock_mw():
-    mw = MagicMock()
+    from conftest import MockMainWindow
+    mw = MockMainWindow()
     
     # Setup data_store
     mw.data_store = mw
     mw.data_store.data = [["original_0", "original_1"]]
+    mw.data_store.edited_file_data = []
     mw.data_store.current_block_idx = 0
     mw.data_store.current_string_idx = 0
     mw.data_store.block_names = {"0": "Block0"}

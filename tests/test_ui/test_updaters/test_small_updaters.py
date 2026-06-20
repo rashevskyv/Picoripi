@@ -9,7 +9,8 @@ from ui.updaters.preview_updater import PreviewUpdater
 
 @pytest.fixture
 def mock_mw():
-    mw = MagicMock()
+    from conftest import MockMainWindow
+    mw = MockMainWindow()
     mw.data_store = mw
     mw.data_store.json_path = None
     mw.data_store.edited_json_path = None

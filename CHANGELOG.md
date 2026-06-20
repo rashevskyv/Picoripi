@@ -1,5 +1,32 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.056] - 2026-06-20
+
+### 🚀 Added
+- **Real QThread Worker Smoke Tests (T02)**:
+  - Created `tests/test_dialogs/test_real_workers_lifecycle.py` to establish solid non-mock QThread lifecycle integration tests.
+  - Implemented async lifecycle tests (start, status signals, cancellation, finished callbacks) for `WidthCalculationWorker`, `ProjectLoadWorker`, `SpellcheckWorker`, `ProviderTestWorker`, `AliasUpdateWorker`, and `SaveWorker`.
+- **Scenario-Based User Journeys (T04)**:
+  - Created `tests/test_integration/test_user_journeys.py` covering multi-step user scenarios under realistic asynchronous operations.
+  - Added integration tests for:
+    - Undo/Redo & Preview Update sequence.
+    - Plugin Switch & Width Validation rules dynamically adapting to layout settings.
+    - Glossary CRUD flow alongside automatic highlighting and session autosaves.
+
+### ⚙️ Changed
+- **Decomposed DataStateProcessor (B08)**:
+  - Decomposed the monolithic state mutations inside `core/data_state_processor.py` into localized, dedicated modules under `core/data_processor/` to improve testability and code separation:
+    - `SessionManager`: encapsulates session serialization, JSON checkpoints, Pickle binary snapshots, and crash recovery.
+    - `RevertManager`: handles partial reverting of modified translation blocks and categories.
+    - `SetCalculator`: performs mathematical index set computations for modified elements.
+  - Maintained 100% backward compatibility of the public `DataStateProcessor` interface.
+- **Test Stability and Parallel Optimization**:
+  - Resolved potential thread leaks in worker tests under high CPU loads during parallel test suites run (`pytest -n auto`).
+  - Added a defensive `finally` thread cleanup helper and explicit worker waits (`worker.wait(5000)`) to avoid leftover zombie threads upon test assertion failures.
+  - Corrected mock target patching within `test_data_state_processor.py` to patch `core.data_manager.save_json_file`, fixing local import side-effects.
+- **Version Updates**:
+  - Bumped version to `0.3.056` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.055] - 2026-06-20
 
 ### 🚀 Added

@@ -2,6 +2,13 @@
 
 This guide provides absolute technical specifications and code templates for creating new game plugins for **Picoripi**. Since plugin development is frequently performed or assisted by AI models, this document is structured to serve as a direct instructions manual for AI coding assistants.
 
+Current quick-start path:
+
+- Copy `plugins/default_plugin/` to `plugins/<your_plugin_name>/`.
+- Follow `docs/PLUGIN_AUTHORING_GUIDE.md`.
+- Use `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` to gather requirements before coding.
+- Use PyQt6 imports only.
+
 ---
 
 ## 1. Architectural Overview
@@ -33,7 +40,7 @@ Your class `GameRules` **must** inherit from `BaseGameRules` (`plugins/base_game
 import os
 import re
 from typing import Optional, Set, Dict, Any, Tuple, List
-from PyQt5.QtGui import QTextCharFormat
+from PyQt6.QtGui import QTextCharFormat
 
 from plugins.base_game_rules import BaseGameRules
 from .config import (

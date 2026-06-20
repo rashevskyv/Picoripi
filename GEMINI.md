@@ -1,7 +1,92 @@
-# The "Picoripi" (v0.3.055)
+# The "Picoripi" (v0.3.056)
 
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
+
+## AI Development Manifesto (Mandatory)
+
+Picoripi is largely AI-developed, so every AI agent must behave like a careful maintainer, not like a one-shot code generator. This section is the required operating contract for AI work in this repository. The extended version lives in `docs/AI_DEVELOPMENT_MANIFESTO.md`, but the rules below are authoritative even when that file is not opened.
+
+### Core Rules
+
+- Protect user work first: always inspect `git status --short`, never revert unrelated changes, and treat unknown modified files as user work.
+- Prefer small, verified changes over broad rewrites. Decompose large modules only around stable contracts and tests.
+- Read nearby code before editing. Follow existing architecture, naming, Qt signal patterns, and helper APIs.
+- Keep product code free of test-specific checks such as `Mock`, `MagicMock`, `_mock_self`, `_mock_name`, or string checks for mock types.
+- Preserve backwards compatibility for projects, sessions, plugins, glossary data, and user translation files unless a migration path is implemented and tested.
+- Do not remove old behavior unless the replacement is implemented, tested, documented, and compatible with existing workflows.
+
+### Required AI Workflow
+
+1. Inspect the current state with `git status --short`.
+2. Read the relevant local code and tests before forming the implementation plan.
+3. Identify the ownership boundary: `core/`, `handlers/`, `ui/`, `components/`, `plugins/`, `tests/`, or docs.
+4. Implement the narrowest complete fix.
+5. Add or update tests for changed behavior.
+6. Update documentation when behavior, test policy, plugin contracts, release process, or user workflows change.
+7. Run relevant parallel tests and `git diff --check`.
+8. Report what changed, what was verified, and what risk remains.
+
+### Architecture Rules
+
+- `AppDataStore` owns shared state; `DataStateProcessor` owns data mutation, save, revert, and session operations (delegated to `SessionManager`, `RevertManager`, and `SetCalculator` inside `core/data_processor/`).
+- Handlers should use processor/context APIs instead of directly mutating data arrays or UI internals.
+- `MainWindow` is an orchestrator. New behavior should usually live in a handler, service, updater, component, or plugin.
+- UI updaters should coordinate rendering, not own business rules.
+- Plugin-specific behavior belongs in plugins. Shared plugin rules belong in `plugins/common/problem_rules/`.
+- New plugin work should start from `plugins/default_plugin/` and update `docs/PLUGIN_AUTHORING_GUIDE.md` if contracts change.
+
+### PyQt And Performance Rules
+
+- Never add synchronous disk, network, AI, SQLite, archive parsing, or heavy computation to the UI thread.
+- Use `QThread`, cancellable timers, chunking, or time-slicing for long work.
+- Avoid `QCoreApplication.processEvents()` in production paths unless the reason is documented and safer alternatives were rejected.
+- Every worker/thread pair needs clear ownership, cooperative cancellation, bounded shutdown, and cleanup.
+- Avoid static `QTimer.singleShot(...)` for deferred work that can outlive a project, dialog, or owner; prefer instance-owned cancellable timers.
+- Cache only when invalidation is clear. Hot paths include preview rendering, filtering, block tree updates, width calculation, glossary matching, spellchecking, archive compression, session persistence, and MemePalace mapping.
+
+### Testing Rules
+
+- Run tests in parallel by default.
+- For broad verification, use:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\test_all.ps1
+  ```
+- For the default suite, use:
+  ```powershell
+  $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/
+  ```
+- Run performance tests explicitly because they are excluded from the default pytest lane:
+  ```powershell
+  $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto -m performance tests/test_performance.py
+  ```
+- For pure logic, add focused unit tests. For workers, add real `pytest-qt` lifecycle smoke tests with start, signal, cancel/finish, and cleanup.
+- Avoid fixed sleeps when `qtbot.waitSignal` or `qtbot.waitUntil` can express the condition.
+- Do not monkeypatch global `Mock`, `MagicMock`, Python builtins, or Qt classes globally.
+- Use explicit fake objects for domain contracts; use `MagicMock` only where call observation is the point.
+- Product code must never import or branch on `unittest.mock`.
+
+### Documentation And Release Rules
+
+- Documentation is part of done.
+- Update `README.md` for top-level commands and documentation maps.
+- Update `GEMINI.md` when AI operating rules, architecture guidance, or default commands change.
+- Update `AUDIT.md` for audit findings, completed improvements, active follow-ups, and plans.
+- Update `docs/FEATURE_REFERENCE.md` for important user-facing behavior.
+- Update `docs/TESTING_STRATEGY_AND_AUDIT.md` for test infrastructure or policy changes.
+- Update `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/default_plugin/` when plugin contracts change.
+- When the user asks to commit or release, bump the version and update `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`, and `CHANGELOG.md`.
+
+### Final AI Self-Checklist
+
+- Did I preserve unrelated user changes?
+- Did I make the smallest complete change?
+- Did I keep product code free of test-only hacks?
+- Did I add or update the right tests?
+- Did I run relevant parallel tests?
+- Did I update the relevant docs?
+- Did I run `git diff --check`?
+- Did I explain remaining risk honestly?
 
 ## Project Overview
 
@@ -75,10 +160,10 @@ General application settings are stored in `settings.json`.
 The project uses `pytest` with 1200+ unit tests:
 ```bash
 # Windows
-$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/
 
 # With coverage
-$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest --cov=core --cov=handlers --cov=ui tests/
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto --cov=core --cov=handlers --cov=ui tests/
 ```
 
 ## Codebase Structure & Conventions
@@ -148,12 +233,12 @@ The project follows a well-organized, modular structure with clear separation of
 ### Key Development Conventions
 
 -   **State Management**: The application uses `StateManager` (`core/state_manager.py`) with `AppState` enum values (e.g., `LOADING_DATA`, `SAVING_DATA`, `ADJUSTING_CURSOR`). States are entered via context managers: `with self.state.enter(AppState.LOADING_DATA):`. This replaced the old system of 46+ boolean flags.
--   **Data Flow**: All data mutations go through `DataStateProcessor` (`core/data_state_processor.py`). Direct access to `data`/`edited_data` arrays should be avoided — use the processor's methods instead.
+-   **Data Flow**: All data mutations go through `DataStateProcessor` ([core/data_state_processor.py](file:///d:/git/dev/Picoripi/core/data_state_processor.py)), which delegates session persistence, reverts, and set calculations to [core/data_processor/](file:///d:/git/dev/Picoripi/core/data_processor/) submodules. Direct access to `data`/`edited_data` arrays should be avoided — use the processor's methods instead.
 -   **Delegation**: `MainWindow` delegates logic to handlers in `handlers/`. Each handler receives `ProjectContext`, `DataStateProcessor`, and `UIUpdater` via `BaseHandler`.
 -   **Decoupling**: Handlers use `ProjectContext` (Protocol, defined in `core/context.py`) instead of direct `MainWindow` references, enabling unit testing with mocks.
 -   **Logging**: All diagnostic output is managed by `utils/logging_utils.py` using `RotatingFileHandler` (2 MB limit, 5 backups). Written to `app_debug.txt`. Use `log_info()`, `log_warning()`, `log_error(msg, exc_info=True)` for logging.
 -   **Plugin Interface**: `plugins/base_game_rules.py` defines the abstract base class. Plugins must implement: `load_data_from_json_obj`, `save_data_to_json_obj`, `get_enter_char`, `analyze_subline`, and optionally `autofix_data_string`, `process_pasted_segment`.
--   **Testing**: All tests use `pytest` with fixtures defined in `tests/conftest.py`. Mock-based unit tests for handlers use `unittest.mock.MagicMock` for `MainWindow` and Qt widgets. Не тестуй самостійнол. Я сам запускатим тести за потреби
+-   **Testing**: All tests use `pytest` with fixtures defined in `tests/conftest.py`. Mock-based unit tests for handlers use `unittest.mock.MagicMock` for `MainWindow` and Qt widgets. Prefer parallel local verification with `pytest -n auto` unless a specific serial Qt timing investigation is required.
 
 Розмовляй та пиши волксру та плани лише українською
 

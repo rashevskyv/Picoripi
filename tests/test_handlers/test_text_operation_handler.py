@@ -317,7 +317,8 @@ def test_AsyncIssueScanner_execution(handler, mock_mw):
     assert results[0][3] == [{"PROB_ASYNC"}]
 
 def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
-    mock_mw.data_store = MagicMock()
+    from core.data_store import AppDataStore
+    mock_mw.data_store = AppDataStore()
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_string_idx = 1
     mock_mw.data_store.problems_per_subline = {}

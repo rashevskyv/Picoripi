@@ -1,7 +1,19 @@
-# Picoripi v0.3.055
+# Picoripi v0.3.056
 
-The **Picoripi** (v0.3.055) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.056) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
+
+---
+
+## Documentation Map
+
+- [Feature Reference](docs/FEATURE_REFERENCE.md): detailed description of the main user-facing and engineering subsystems.
+- [AI Development Manifesto](docs/AI_DEVELOPMENT_MANIFESTO.md): rules for AI-assisted architecture, implementation, testing, documentation, and release work.
+- [Testing Strategy And Test Audit](docs/TESTING_STRATEGY_AND_AUDIT.md): test-suite audit, risk register, and parallel test commands.
+- [Plugin Authoring Guide](docs/PLUGIN_AUTHORING_GUIDE.md): current guide for creating new plugins from `plugins/default_plugin/`.
+- [Default Plugin Template](plugins/default_plugin/README.md): copy-ready baseline plugin for new game/text formats.
+- [AI Plugin Assistant Prompt](plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md): guided prompt for AI-assisted plugin development.
+- [Wiki Plugin Developer Guide](docs/wiki/3_Plugin_Developer_Guide.md): extended plugin API and hook reference.
 
 ---
 
@@ -241,6 +253,7 @@ Picoripi/
 ├── plugins/                    # Extensible game-specific plugins
 │   ├── base_game_rules.py      # Rules base class (API specifications)
 │   ├── common/                 # Shared default metrics and prompts
+│   ├── default_plugin/         # Copy-ready baseline for new plugins
 │   ├── zelda_mc/               # Zelda: Minish Cap plugin
 │   ├── zelda_ww/               # Zelda: The Wind Waker plugin
 │   ├── pokemon_fr/             # Pokemon FireRed plugin
@@ -282,7 +295,10 @@ Fill in the API keys:
 The suite consists of over 1200 test cases using `pytest`:
 ```bash
 # Windows PowerShell
-$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest tests/
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/
+
+# Performance lane, excluded from default pytest addopts
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto -m performance tests/test_performance.py
 ```
 
 ### 6. Codebase Knowledge Graph (Graphify)

@@ -1,8 +1,8 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.055
+> **Остання версія проекту:** v0.3.056
 > **Дата оновлення:** 2026-06-20
-> **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 213 pytest test-функцій.
+> **Об'єм проекту:** 405 Python-файлів загалом; 248 продуктових Python-файлів, 157 тестових Python-файлів; ~66 741 LOC продуктового Python-коду, ~25 391 LOC тестів; ~1 253 pytest test-функції.
 
 Цей документ є консолідованим аудитом архітектури, продуктивності, життєвого циклу PyQt-об'єктів та UX-ризиків Picoripi. Звіт оновлено у валідному UTF-8; пункти, які вже позначені або підтверджені як виконані, перенесено до архіву виконаного.
 
@@ -10,11 +10,11 @@
 
 | Показник | Значення |
 |---|---:|
-| Продуктові Python-файли | 346 |
-| Тестові Python-файли | 152 |
-| LOC продуктового Python-коду | ~88 276 |
-| LOC тестів | ~24 205 |
-| Pytest test-функції | ~1 212 |
+| Продуктові Python-файли | 248 |
+| Тестові Python-файли | 157 |
+| LOC продуктового Python-коду | ~66 741 |
+| LOC тестів | ~25 391 |
+| Pytest test-функції | ~1 253 |
 | Основний стек | Python 3.10+, PyQt6, SQLite, requests/urllib, Pillow, markdown, numpy, pyahocorasick, spylls |
 | Тестовий стек | pytest, pytest-qt, pytest-timeout, pytest-xdist, ruff |
 | Тип застосунку | Desktop GUI для перекладу, локалізації, аналізу ширини рядків, AI-перекладу, глосаріїв та game/plugin rules |
@@ -33,14 +33,14 @@
 
 Команди перевірки:
 
-- `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest`
-- `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m pytest -n auto tests/`
-- `$env:PYTHONPATH = "."; .\.venv\Scripts\python.exe -m ruff check .`
+- `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/`
+- `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto -m performance tests/test_performance.py`
+- `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m ruff check .`
 
 ## 2. Завершені покращення (Архів виконаного)
 
 - **D18-D44. Попередні стабілізації ядра, UI та PyQt-сумісності.** У попередніх ітераціях були заархівовані типізація ключових модулів, PyQt6 enum-сумісність, оптимізації SQLite-з'єднань MemePalace, AI-кешування, захист від deleted Qt wrapper помилок, UX/async-покращення діалогів, undo/redo persistence, стабілізація virtual folders і speaker/character navigation.
-- **A01-частково. Усунення вкладених event loop у save/glossary/width flows.** Попередній аудит фіксував заміну частини `QEventLoop.exec()` і блокуючих progress-flow на сигнал-орієнтовані переходи. В активних задачах лишається не вкладений event loop, а залишковий `QCoreApplication.processEvents()` у progress tracker.
+- **A01/B01. Усунення вкладених event loop і залишкового `processEvents()` у progress tracker.** Попередній аудит фіксував заміну частини `QEventLoop.exec()` і блокуючих progress-flow на сигнал-орієнтовані переходи. У задачі B01 залишковий `QCoreApplication.processEvents()` у progress tracker замінено на контрольоване перемалювання без reentrancy-ризику.
 - **A07. Інвалідація кешу контексту AI-скриптів.** `AIPromptComposer` прив'язує кеш до шляху, mtime, розміру файлу та активного плагіна, що зменшує ризик застарілого AI-контексту.
 - **A12. Діалог фільтрації попереджень.** Замість простого combobox використовується `WarningsFilterDialog` з інтерактивним вибором типів попереджень.
 - **B02. Масовий AutoFix винесено у фоновий worker.** `handlers/autofix_worker.py` і `handlers/text_operation_handler.py:919-1004` виконують `Fix All` через `AutofixWorker` з progress/cancel, замість синхронного циклу в UI.
@@ -84,36 +84,92 @@
   - Декомпоновано великий координуючий файл `core/mempalace_worker.py` (~2230 LOC), що поєднував логіку різних QThread-воркерів для кроків MemePalace конвеєра.
   - Створено пакет `core/mempalace` та винесено воркери в окремі модулі: `weaver_worker.py`, `script_analyzer.py`, `chapter_mapper.py`, `chapter_ai_analyzer.py`, `character_profiler.py` та `chapters_loader.py`.
   - Переписано `core/mempalace_worker.py` як набір ре-експортів, повністю зберігши зворотну сумісність.
+- **DOC01. Створено актуальну документацію функцій, тестів і plugin authoring.**
+  - Додано `docs/FEATURE_REFERENCE.md` з описом ключових функцій Picoripi: проекти, сесії, preview/cache, AutoFix, plugin rules, AI, glossary, MemePalace, search/spellcheck, BFN/archive tooling.
+  - Додано `docs/TESTING_STRATEGY_AND_AUDIT.md` з аудитом тестів, ризиками `Mock`/Qt lifecycle/performance lane та пріоритетним test TODO.
+  - Додано `docs/PLUGIN_AUTHORING_GUIDE.md` як сучасний шлях створення нових плагінів через `plugins/default_plugin/`.
+  - Оновлено `README.md`, `GEMINI.md`, `docs/wiki/3_Plugin_Developer_Guide.md` і `plugins/DEVELOPER_GUIDE.md`, щоб прибрати застаріле `PyQt5`, додати `pytest -n auto` та посилання на нові документи.
+- **DOC04. Створено AI Development Manifesto.**
+  - Додано `docs/AI_DEVELOPMENT_MANIFESTO.md` як головний набір правил для AI-розробки Picoripi: захист користувацьких змін, вузькі перевірені кроки, архітектурні межі, PyQt lifecycle, продуктивність, тестування, документація, релізи та self-checklist.
+  - Розширено `GEMINI.md` повноцінним обов'язковим розділом `AI Development Manifesto (Mandatory)`, щоб майбутній AI-агент мав правила прямо у стартовому контексті навіть без відкриття окремого документа.
+  - Оновлено `README.md`, щоб документ був доступний у Documentation Map.
+- **P01. Підготовлено default plugin template для користувацьких плагінів.**
+  - Створено `plugins/default_plugin/` з робочими `rules.py`, `config.py`, `config.json`, tag/analyzer/fixer adapters, font maps, prompt overrides і README.
+  - Додано `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md`, який проводить користувача через збір вимог до нового плагіна: формат файлів, save round-trip, теги, font metrics, layout, AI/glossary поведінка та тести.
+  - Додано `tests/test_plugins/test_default_plugin/test_rules.py`; цільова перевірка `pytest -n auto tests/test_plugins/test_default_plugin` — **5 passed**.
+- **T01. Заміна глобального monkeypatch для Mock.**
+  - Повністю видалено глобальний monkeypatch класів `Mock` та `NonCallableMagicMock` у `tests/conftest.py`.
+  - Створено безпечний типізований клас `MockMainWindow` із явною підтримкою властивості `physical_block_idx`, а також оновлено локальні моки у тестах.
+  - Після повторного перегляду `MockMainWindow.physical_block_idx` додатково захищено від нечислових значень через безпечне `int(...)` приведення, а глобальна фікстура `mock_mw` отримала явний `active_game_plugin = ""`, щоб тестові fallback-шляхи не створювали випадкові директорії `plugins/MockMainWindow/...`.
+- **T03. Інтеграція performance lane та скрипт тестування.**
+  - Створено PowerShell-скрипт `./test_all.ps1` для повного тестування (unit-тести, performance lane, ruff) та інтегровано його у workflow розгортання `deploy.md` як обов'язковий крок.
+  - `test_all.ps1` зроблено незалежним від поточної робочої директорії: скрипт переходить у корінь репозиторію через власний шлях і запускає Python із локального `venv`.
+- **T02. Real Qt lifecycle smoke-тести для воркерів.**
+  - Додано `tests/test_dialogs/test_real_workers_lifecycle.py` з 7 тестами для перевірки реального життєвого циклу QThread воркерів без використання динамічних MagicMock у потоках, що повністю усуває Segmentation Faults в pytest-xdist середовищі.
+  - Після review додано `finally`-cleanup helper для реальних QThread тестів, щоб навіть при timeout/assertion failure воркери не залишалися живими у процесі xdist.
+- **T04. Сценарні інтеграційні тести user journeys.**
+  - Додано `tests/test_integration/test_user_journeys.py` з трьома інтеграційними сценаріями (Undo/Redo & Preview, Plugin Switch & Width, Glossary CRUD & Highlight).
+  - Після review додано явне очікування завершення `GlossaryOccurrenceWorker` у сценарії Glossary CRUD & Highlight.
+- **B08 follow-up. Декомпозиція DataStateProcessor.**
+  - Великий координатор `core/data_state_processor.py` успішно декомпоновано на менеджери (`SessionManager`, `RevertManager`, `SetCalculator` в `core/data_processor/`), повністю зберігши зворотну сумісність публічного API.
 
 
 
 
-## 3. Active architecture, performance, and UX issues (Активні проблеми)
 
+## 3. Active architecture, performance, UX and test issues (Активні проблеми)
 
+Поточний архітектурно-продуктивний аудит B01-B09 закрито. Новий активний шар аудиту від 2026-06-20 фокусується на тестовій інфраструктурі, документації та plugin authoring.
 
+### T01. Глобальна зміна поведінки `Mock` у `tests/conftest.py` (Вирішено)
 
-### B04. Session autosave використовує pickle на UI-шляху
+Раніше `tests/conftest.py` додавав властивість `physical_block_idx` безпосередньо до `Mock` і `NonCallableMagicMock` глобально. Це створювало системний ризик приховування помилок.
 
-`core/data_state_processor.py:1115-1136` серіалізує session snapshot через `pickle.dump()`, а `core/data_state_processor.py:1139-1214` завантажує його через `pickle.load()`. Це швидко для crash recovery, але має два ризики: синхронний disk I/O у UI-життєвому циклі та небезпечний формат для довгоживучого стану, який важко валідовувати й мігрувати між версіями.
+Рішення: Глобальний monkeypatch повністю видалено. Створено безпечний клас-спадкоємець `MockMainWindow` для мокових тестів UI, а також адаптовано локальні тестові фікстури. Докладніше: `docs/TESTING_STRATEGY_AND_AUDIT.md`.
 
-Рішення: залишити pickle тільки як короткоживучий crash snapshot, але додати окремий durable checkpoint з явною схемою, `version`, validation і migration. Писати його рідше: за таймером, перед довгими операціями і при штатному закритті.
+Post-review уточнення: `MockMainWindow.physical_block_idx` тепер безпечно ігнорує нечислові fallback-значення, а `mock_mw.active_game_plugin = ""` блокує побічне створення тестових plugin-директорій на основі `MagicMock` рядків.
 
+### T02. Mock-heavy UI/QThread тести не повністю доводять реальний Qt lifecycle (Вирішено)
 
-### B07. `FilterQueryAPI` зменшив дублювання, але лишив сильний coupling із MainWindow
+Багато тестів правильно ізолюють handler/updater логіку через `MagicMock`, але це не замінює перевірку реальних `QThread`, `QTimer`, `deleteLater()` і сигналів Qt.
 
-Після завершеної централізації `FilterQueryAPI` успішно прибрав дублювання між preview і block tree, але наступний архітектурний борг лишається: `core/filter_query_api.py` напряму читає `mw.data_store`, `mw.project_manager`, `mw.current_game_rules`, `mw.ui_updater` і навіть містить перевірки на `unittest.mock` у продуктовому коді (`core/filter_query_api.py:60,239,306`). Це корисний проміжний шар, але поки він не є чистим доменним сервісом і може успадкувати крихкість UI-об'єктів.
+Рішення: створено тестовий набір `tests/test_dialogs/test_real_workers_lifecycle.py` із 7 тестами, що використовують Stub-об'єкти замість MagicMock для запуску QThread воркерів у фоновому потоці, запобігаючи крашам та таймаутам.
 
-Рішення: поступово перетворити API на pure service з явними input DTO для filters/context/indexes і окремим adapter-ом для MainWindow.
+Post-review уточнення: real-worker тести додатково загорнуто в `try/finally` cleanup, щоб `stop()`/`cancel()`/`requestInterruption()` і `wait()` виконувалися навіть при timeout або failed assertion.
 
+### T03. Performance-тести існують, але виключені з default pytest lane (Вирішено)
 
-### B08. Великі координатори залишаються головним множником складності (Follow-up)
+`pyproject.toml` має `addopts = "-v --tb=short -m \"not performance\""`, тому `tests/test_performance.py` не запускається у звичайному `pytest -n auto tests/`. Це створювало ризик пропуску регресій продуктивності.
 
-Найбільші файли поєднують orchestration, UI updates, persistence, business rules і error handling. Після декомпозиції `core/mempalace_worker.py` найризиковішими залишаються: `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`.
+Рішення: Створено PowerShell-скрипт `./test_all.ps1` для повного тестування (включаючи окремий запуск `-m performance`). Цей скрипт інтегровано в deploy workflow (`deploy.md`) як обов'язковий крок верифікації перед релізом.
 
-Рішення: не робити великий одномоментний rewrite. Розділяти тільки ті частини, де вже є тести або чіткий контракт: AI task orchestration, session persistence, settings panels, MemePalace pipeline steps.
+Post-review уточнення: скрипт більше не залежить від поточної директорії запуску, оскільки сам переходить у корінь репозиторію та використовує абсолютний шлях до `venv\Scripts\python.exe`.
 
+### T04. Інтеграційне покриття user journeys нерівномірне (Вирішено)
 
+Suite має багато сильних unit/regression тестів, але мало інтеграційних сценаріїв, які проходять через кілька підсистем одночасно.
+
+Рішення: створено `tests/test_integration/test_user_journeys.py` для перевірки трьох інтеграційних сценаріїв (Undo/Redo & Preview, Plugin Switch & Width, Glossary CRUD & Highlight) зі стабілізованими таймерами та очікуваннями.
+
+Post-review уточнення: сценарій Glossary CRUD & Highlight тепер явно очікує завершення `GlossaryOccurrenceWorker` через `worker.wait(5000)` у `finally`.
+
+### D01. Документація важливих функцій потребує постійної синхронізації
+
+До цього проходу README був детальний, але не було окремого актуального feature reference, а старі plugin docs частково розходилися з реальністю (`PyQt5` у старому developer guide, непаралельні test commands). Це підвищує ризик неправильних майбутніх плагінів і тестів.
+
+До цього проходу README був детальний, але не було окремого актуального feature reference, а старі plugin docs частково розходилися з реальністю.
+
+Додатково створено `docs/AI_DEVELOPMENT_MANIFESTO.md`, який фіксує правила для AI-агентів: як аналізувати робоче дерево, як обмежувати scope змін, як тестувати PyQt/worker paths, як уникати mock-specific product code, як оновлювати документацію і як готувати релізи. Операційна обов'язкова версія цих правил також вбудована напряму в `GEMINI.md`.
+
+### P01. Default plugin template потребує підтримки як продуктового контракту
+
+Новий `plugins/default_plugin/` створено як копійований baseline для користувацьких плагінів. Його не можна розглядати як одноразову документаційну папку: він має лишатися loadable, тестованим і сумісним із plugin discovery (`config.json`) та runtime loading (`rules.py`).
+
+### B08. Великі координатори залишаються головним множником складності (Follow-up) (Частково вирішено)
+
+Після декомпозиції `core/mempalace_worker.py` та `core/data_state_processor.py` найризиковішими залишаються: `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`.
+
+Рішення: продовжити декомпозицію координаторів частинами, де є чіткий контракт та тести. На цьому кроці успішно винесено сесії, скасування змін та розрахунки множин з `DataStateProcessor` до пакету `core/data_processor/`.
 
 ## 4. Пріоритетний список дій (TODO)
 
@@ -162,11 +218,136 @@
   * *Складність:* Середня
   * *Файли:* `tests/test_performance.py`, `tests/test_ui/`, `tests/test_handlers/`, `ui/updaters/preview_cache.py`, `components/dictionary_manager_dialog.py`, `handlers/translation/glossary_builder_handler.py`
 
+- `[x]` **DOC01. Створити feature reference для ключових функцій Picoripi**
+  * *Опис:* Описати основні функціональні підсистеми програми в одному довіднику: project/session recovery, block tree, preview/cache, AutoFix, plugin rules, AI, glossary, MemePalace, search/spellcheck, archive/BFN tooling.
+  * *Складність:* Середня
+  * *Файли:* `docs/FEATURE_REFERENCE.md`, `README.md`
+
+- `[x]` **DOC02. Створити тестовий аудит і testing strategy**
+  * *Опис:* Зафіксувати структуру тестів, сильні сторони, ризики global Mock patch, mock-heavy Qt tests, performance lane і сценарні прогалини. Додати паралельні команди запуску.
+  * *Складність:* Середня
+  * *Файли:* `docs/TESTING_STRATEGY_AND_AUDIT.md`, `AUDIT.md`, `README.md`, `GEMINI.md`
+
+- `[x]` **P01. Підготувати default plugin template**
+  * *Опис:* Створити робочий baseline plugin, який можна копіювати для нових користувацьких плагінів. Додати мінімальні правила, config discovery, font map, prompt overrides, README і контрактні тести.
+  * *Складність:* Середня
+  * *Файли:* `plugins/default_plugin/`, `tests/test_plugins/test_default_plugin/test_rules.py`, `docs/PLUGIN_AUTHORING_GUIDE.md`
+
+- `[x]` **P02. Додати AI prompt для створення нових плагінів**
+  * *Опис:* Написати промпт, який спершу збирає вимоги до формату, тегів, font metrics, layout, save round-trip, AI/glossary поведінки та тестів, а вже потім просить AI генерувати код.
+  * *Складність:* Низька
+  * *Файли:* `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md`
+
+- `[x]` **T01. Замінити залежність від global Mock monkeypatch на явні fake-об'єкти**
+  * *Опис:* Поступово прибрати залежність тестів від властивості `physical_block_idx`, доданої напряму до `Mock`/`NonCallableMagicMock` у `tests/conftest.py`. Це зробить тести ближчими до реальних контрактів.
+  * *Складність:* Середня
+  * *Файли:* `tests/conftest.py`, `tests/test_ui/`, `tests/test_handlers/`, `tests/test_core/`
+
+- `[x]` **T02. Додати real Qt lifecycle smoke tests для кожної worker-family**
+  * *Опис:* Для нових або змінених `QThread`/`QTimer` шляхів додавати хоча б один real-thread `pytest-qt` тест на cancel/finish/close, не покладаючись лише на `MagicMock`.
+  * *Складність:* Середня
+  * *Файли:* `tests/test_handlers/`, `tests/test_ui/`, `utils/thread_utils.py`, worker modules
+
+- `[x]` **T03. Додати окремий performance lane у CI або release checklist**
+  * *Опис:* Запускати `pytest -n auto -m performance tests/test_performance.py` окремо від default suite, оскільки `pyproject.toml` виключає performance-тести за замовчуванням.
+  * *Складність:* Низька
+  * *Файли:* CI/release scripts, `docs/TESTING_STRATEGY_AND_AUDIT.md`, `AUDIT.md`
+
+- `[x]` **T04. Додати сценарні інтеграційні тести ключових user journeys**
+  * *Опис:* Покрити маршрути plugin switch -> font map reload -> width refresh, project restore -> virtual navigation -> partial save, AI comparison -> apply -> undo/redo -> preview update.
+  * *Складність:* Висока
+  * *Файли:* `tests/test_integration/` або відповідні feature test directories
+
+- `[ ]` **DOC03. Підтримувати feature docs як release requirement**
+  * *Опис:* Для кожної зміни важливої функції оновлювати `docs/FEATURE_REFERENCE.md`, а для plugin API змін — `docs/PLUGIN_AUTHORING_GUIDE.md` і `plugins/default_plugin/README.md`.
+  * *Складність:* Низька
+  * *Файли:* `docs/FEATURE_REFERENCE.md`, `docs/PLUGIN_AUTHORING_GUIDE.md`, `plugins/default_plugin/README.md`, `CHANGELOG.md`
+
+- `[x]` **DOC04. Створити AI Development Manifesto**
+  * *Опис:* Описати правила, яких має дотримуватися AI під час розробки Picoripi: захист незакомічених змін, архітектурні межі, PyQt lifecycle, performance habits, тестова стратегія, документаційний Definition of Done, release/versioning checklist. Обов'язкову операційну версію вбудовано прямо в `GEMINI.md`, а розширену довідкову версію залишено в `docs/AI_DEVELOPMENT_MANIFESTO.md`.
+  * *Складність:* Низька
+  * *Файли:* `docs/AI_DEVELOPMENT_MANIFESTO.md`, `README.md`, `GEMINI.md`, `AUDIT.md`
+
 ## 5. Настанови для розробки та тестування
 
 - Перед змінами перевіряти робоче дерево: `git status --short`. Не перезаписувати чужі незакомічені зміни.
+- Основний тестовий запуск виконувати паралельно: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/`.
+- Performance lane запускати окремо, бо він виключений з default `pytest` addopts: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto -m performance tests/test_performance.py`.
+- Повну release-перевірку запускати через: `powershell -ExecutionPolicy Bypass -File .\test_all.ps1`.
+- Для plugin template контракту використовувати: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_plugins/test_default_plugin/`.
 - Для змін у `QThread`, `QTimer`, `deleteLater`, `processEvents`, `QEventLoop`, `requests` або SQLite додавати тести на cancel, close і повторний запуск операції.
 - Не видаляти старі функції без функціональної заміни та міграційного шляху. Для форматів проєктів/сесій додавати `version` і тести на старі дані.
 - Для продуктивнісних змін перевіряти synthetic large project: мінімум 5 000 рядків у блоці та кілька десятків блоків.
 - Для network/AI шляхів завжди використовувати timeout, явний error state у UI, cancel path і відсутність синхронного I/O в конструкторі діалогу.
+- Для документації ключових функцій підтримувати `docs/FEATURE_REFERENCE.md`; для тестової політики — `docs/TESTING_STRATEGY_AND_AUDIT.md`; для plugin authoring — `docs/PLUGIN_AUTHORING_GUIDE.md` і `plugins/default_plugin/`.
+- Для AI-розробки починати з розділу `AI Development Manifesto (Mandatory)` у `GEMINI.md`; розширена довідкова версія зберігається в `docs/AI_DEVELOPMENT_MANIFESTO.md`.
 - Для Graphify, якщо доступний локальний граф, використовувати `.\.venv\Scripts\graphify.exe query "..."`, `path`, `explain` або `update .` після суттєвих архітектурних змін.
+
+## 6. Аудит тестів — 2026-06-20
+
+### 6.1. Поточна картина
+
+- Тестовий обсяг після цього проходу: 157 тестових Python-файлів, ~25 391 LOC тестів, ~1 253 pytest test-функції.
+- Основні сім'ї тестів: `tests/test_core/`, `tests/test_handlers/`, `tests/test_ui/`, `tests/test_components/`, `tests/test_plugins/`, `tests/test_utils/`, `tests/test_performance.py`.
+- Сильні сторони: широка regression coverage, багато ізольованих handler/updater тестів, реальні QThread тести для найризиковішого `AutofixWorker`, окремі durable-session тести, plugin-specific suites.
+- Найважливіша документація: `docs/TESTING_STRATEGY_AND_AUDIT.md`.
+
+### 6.2. Знайдені ризики
+
+- **Global Mock patch (Вирішено):** Глобальний monkeypatch `Mock`/`NonCallableMagicMock` видалено з `tests/conftest.py` та замінено на безпечний типізований `MockMainWindow`.
+- **Mock-heavy Qt coverage:** багато UI/QThread шляхів перевірені через mock-и, що добре для unit coverage, але не завжди ловить реальні lifecycle проблеми Qt.
+- **Performance lane excluded (Вирішено):** Додано PowerShell-скрипт `./test_all.ps1` для повного тестування, який явно запускає тести продуктивності. Скрипт інтегровано в deploy workflow.
+- **Scenario gaps:** комплексні user journeys покриті нерівномірно; більше уваги потрібно маршрутам, що проходять через plugin/font/session/preview/undo одразу.
+
+### 6.3. Що зроблено в цьому проході
+
+- Створено `docs/TESTING_STRATEGY_AND_AUDIT.md` з повним описом тестових ризиків і команд.
+- Додано `tests/test_plugins/test_default_plugin/test_rules.py` для шаблонного плагіна.
+- Оновлено `README.md` і `GEMINI.md`, щоб default test command використовував `pytest -n auto`.
+- Видалено глобальний monkeypatch `Mock`/`NonCallableMagicMock` та створено безпечний `MockMainWindow`.
+- Після повторного review `MockMainWindow` посилено безпечним приведенням індексів, а `mock_mw.active_game_plugin` явно скинуто до порожнього значення, щоб тести не створювали випадкові plugin-директорії.
+- Створено PowerShell-скрипт `./test_all.ps1` для запуску юніт-тестів, тестів продуктивності та ruff.
+- `test_all.ps1` зроблено незалежним від поточної директорії запуску.
+- Інтегровано запуск тестування у workflow розгортання `deploy.md`.
+- Перевірено новий default plugin contract: `pytest -n auto tests/test_plugins/test_default_plugin` — **5 passed**.
+- Повний default suite: `pytest -n auto tests/` — **1241 passed, 1 skipped**.
+- Performance lane: `pytest -n auto -m performance tests/test_performance.py` — **9 passed**.
+- Ruff для всього проєкту: `ruff check .` — **passed**.
+
+### 6.4. Що не зроблено в цьому проході
+
+- Не додано coverage/mutation testing.
+- Не змінено CI pipeline.
+- Не додано великий E2E GUI шар.
+
+
+## 7. План документації та default plugin
+
+### 7.1. Документація ключових функцій
+
+- `[x]` `docs/FEATURE_REFERENCE.md` — створено довідник по основних функціях програми: workspace/session recovery, preview/filtering, AutoFix, plugin architecture, AI, glossary, MemePalace, search/spellcheck, archive/BFN tooling.
+- `[x]` `GEMINI.md` — оновлено тестові команди на `pytest -n auto`, прибрано застарілу інструкцію не запускати тести та вбудовано обов'язковий `AI Development Manifesto (Mandatory)` для майбутніх AI-агентів.
+- `[x]` `docs/AI_DEVELOPMENT_MANIFESTO.md` — створено розширену довідкову версію маніфесту AI-розробки з правилами архітектури, тестування, PyQt lifecycle, продуктивності, документації та релізів.
+- `[x]` `README.md` — додано Documentation Map і паралельні тестові команди.
+- `[x]` `docs/wiki/3_Plugin_Developer_Guide.md` — додано current quick-start через `plugins/default_plugin/`.
+- `[x]` `plugins/DEVELOPER_GUIDE.md` — додано current quick-start і замінено застарілий `PyQt5` приклад на `PyQt6`.
+- `[ ]` Під час майбутніх релізів підтримувати `docs/FEATURE_REFERENCE.md` як обов'язковий changelog-супутник для великих функцій.
+
+### 7.2. Default plugin template
+
+- `[x]` `plugins/default_plugin/config.json` — plugin discovery-ready конфігурація для Settings UI.
+- `[x]` `plugins/default_plugin/rules.py` — робочий `GameRules` baseline з parser/save hooks, preview/editor conversion, rule-engine аналізом, AutoFix delegation і width override.
+- `[x]` `plugins/default_plugin/config.py` — default warning IDs і shared `generate_base_config`.
+- `[x]` `plugins/default_plugin/tag_manager.py` — базова валідація `{...}` і `[...]` тегів.
+- `[x]` `plugins/default_plugin/problem_analyzer.py` і `text_fixer.py` — адаптери до `plugins/common/`.
+- `[x]` `plugins/default_plugin/fonts/default_font.json` і `font_map.json` — мінімальні font metrics і видимі tag/icon widths.
+- `[x]` `plugins/default_plugin/translation_prompts/prompts.json` — локальні prompt overrides.
+- `[x]` `plugins/default_plugin/README.md` — інструкція копіювання й кастомізації.
+- `[x]` `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` — промпт, який збирає вимоги до нового плагіна перед генерацією коду.
+- `[x]` `tests/test_plugins/test_default_plugin/test_rules.py` — regression contract для шаблону.
+- `[ ]` У майбутньому можна додати UI-команду "Create plugin from template", яка копіюватиме `default_plugin`, перейменовуватиме display name і відкриватиме prompt-файл.
+
+### 7.3. Рекомендований порядок наступних робіт
+
+1. **DOC03, низька складність:** підтримувати feature/plugin/manifest docs як release requirement.
+2. **B08 follow-up, висока складність:** продовжувати декомпозицію інших великих координаторів (наприклад, `handlers/translation_handler.py` або `ui/main_window/main_window_actions.py`) тільки навколо стабільних контрактів і наявного тестового покриття.

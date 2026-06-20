@@ -188,7 +188,7 @@ def test_save_current_edits_no_changes(dsp, mock_mw):
     mock_mw.ui_provider.show_message.assert_called_with("Save", "No changes to save.", "info")
 
 
-@patch("core.data_state_processor.save_json_file")
+@patch("core.data_manager.save_json_file")
 def test_revert_edited_file_to_original_single_file(mock_save, dsp, mock_mw):
     mock_mw.ui_provider.ask_yes_no.return_value = True
     mock_save.return_value = True
