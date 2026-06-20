@@ -299,8 +299,12 @@ class DataStateProcessor:
 
                 # Backup original keys for pokemon plugin logic
                 global_keys_backup = None
-                if hasattr(self.mw.current_game_rules, 'original_keys'):
-                    global_keys_backup = list(self.mw.current_game_rules.original_keys)
+                original_keys = getattr(self.mw.current_game_rules, 'original_keys', None)
+                if original_keys is not None:
+                    try:
+                        global_keys_backup = list(original_keys)
+                    except TypeError:
+                        global_keys_backup = None
 
                 files_saved_in_this_transaction = set()
 
@@ -348,8 +352,14 @@ class DataStateProcessor:
 
                     # Override the plugins 'original_keys' array to only include keys for this specific file
                     if global_keys_backup is not None:
-                        sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
-                        self.mw.current_game_rules.original_keys = sliced_keys
+                        if all(0 <= d_idx < len(global_keys_backup) for d_idx in data_indices):
+                            sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
+                            self.mw.current_game_rules.original_keys = sliced_keys
+                        else:
+                            log_warning(
+                                "Project save skipped plugin original_keys slicing because the key snapshot is incomplete.",
+                                category="file_ops"
+                            )
 
                     # For Zelda BMG plugin, pre-load the actual BMG file structure
                     if hasattr(self.mw.current_game_rules, 'last_loaded_bmg'):
@@ -564,13 +574,15 @@ class DataStateProcessor:
             return False
 
         log_debug(f"--> AppActionHandler: save_data_action called. ask_confirmation={ask_confirmation}, current unsaved={self.mw.data_store.unsaved_changes}", category="file_ops")
-        if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
-            self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path)
-        if not self.mw.data_store.edited_json_path:
-            self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
-            if on_finished_callback:
-                on_finished_callback(False)
-            return False
+        is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
+        if not is_project_mode:
+            if self.mw.data_store.json_path and not self.mw.data_store.edited_json_path:
+                self.mw.data_store.edited_json_path = self.mw.app_action_handler._derive_edited_path(self.mw.data_store.json_path)
+            if not self.mw.data_store.edited_json_path:
+                self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
+                if on_finished_callback:
+                    on_finished_callback(False)
+                return False
         if not self.mw.current_game_rules:
             self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
             if on_finished_callback:
@@ -586,7 +598,11 @@ class DataStateProcessor:
             return True
 
         if ask_confirmation:
-            reply = self._ask_yes_no('Save Changes', f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?", default_yes=True)
+            if is_project_mode:
+                msg = "Save changes to all project translation files?"
+            else:
+                msg = f"Save changes to '{Path(self.mw.data_store.edited_json_path).name}'?"
+            reply = self._ask_yes_no('Save Changes', msg, default_yes=True)
             if not reply:
                 if on_finished_callback:
                     on_finished_callback(False)
@@ -782,11 +798,13 @@ class DataStateProcessor:
                 on_finished_callback(True)
             return True
 
-        if not self.mw.data_store.edited_json_path:
-            self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
-            if on_finished_callback:
-                on_finished_callback(False)
-            return False
+        is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
+        if not is_project_mode:
+            if not self.mw.data_store.edited_json_path:
+                self._show_message("Save Error", "Edited file path is not set. Cannot save.", type="warning")
+                if on_finished_callback:
+                    on_finished_callback(False)
+                return False
         if not self.mw.current_game_rules:
             self._show_message("Save Error", "No game plugin active to format the save file.", type="error")
             if on_finished_callback:

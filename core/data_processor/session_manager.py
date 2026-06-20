@@ -2,6 +2,7 @@ import json
 import pickle
 import time
 import os
+import base64
 from pathlib import Path
 from typing import Any, Optional
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
@@ -33,6 +34,65 @@ class SessionManager:
         if p_path:
             return p_path.with_name(p_path.name + ".json")
         return None
+
+    def _attach_runtime_session_state(self, snapshot: dict) -> dict:
+        """Add runtime-only state that lives outside AppDataStore."""
+        game_rules = getattr(self.mw, 'current_game_rules', None)
+        original_keys = getattr(game_rules, 'original_keys', None)
+        if original_keys is not None:
+            try:
+                snapshot["plugin_original_keys"] = list(original_keys)
+            except TypeError:
+                pass
+        return snapshot
+
+    def _restore_runtime_session_state(self, snapshot: dict) -> None:
+        """Restore runtime-only state that is required before project saves."""
+        if "plugin_original_keys" not in snapshot:
+            return
+
+        game_rules = getattr(self.mw, 'current_game_rules', None)
+        if game_rules is None or not hasattr(game_rules, 'original_keys'):
+            return
+
+        plugin_keys = snapshot.get("plugin_original_keys")
+        if plugin_keys is None:
+            return
+        game_rules.original_keys = list(plugin_keys or [])
+
+    def _to_json_safe_value(self, value: Any) -> Any:
+        """Convert nested session values to JSON-safe primitives."""
+        if isinstance(value, bytes):
+            return {
+                "__picoripi_type__": "bytes",
+                "base64": base64.b64encode(value).decode("ascii")
+            }
+        if isinstance(value, bytearray):
+            return self._to_json_safe_value(bytes(value))
+        if isinstance(value, tuple):
+            return [self._to_json_safe_value(item) for item in value]
+        if isinstance(value, list):
+            return [self._to_json_safe_value(item) for item in value]
+        if isinstance(value, dict):
+            return {str(key): self._to_json_safe_value(val) for key, val in value.items()}
+        if isinstance(value, set):
+            return [self._to_json_safe_value(item) for item in value]
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        return str(value)
+
+    def _from_json_safe_value(self, value: Any) -> Any:
+        """Restore nested values encoded by _to_json_safe_value."""
+        if isinstance(value, list):
+            return [self._from_json_safe_value(item) for item in value]
+        if isinstance(value, dict):
+            if value.get("__picoripi_type__") == "bytes":
+                try:
+                    return base64.b64decode(value.get("base64", ""))
+                except Exception:
+                    return b""
+            return {key: self._from_json_safe_value(val) for key, val in value.items()}
+        return value
 
     def _serialize_action(self, action: Any) -> dict:
         from core.undo_manager import UndoAction, GroupAction, StructuralAction
@@ -125,6 +185,8 @@ class SessionManager:
             "saved_at": snapshot.get("saved_at", 0.0),
             "json_path": snapshot.get("json_path"),
             "edited_json_path": snapshot.get("edited_json_path"),
+            "data": self._to_json_safe_value(snapshot.get("data", [])),
+            "edited_file_data": self._to_json_safe_value(snapshot.get("edited_file_data", [])),
             "edited_data": edited_data_serialized,
             "current_block_idx": snapshot.get("current_block_idx", -1),
             "_physical_block_idx": snapshot.get("_physical_block_idx", -1),
@@ -152,6 +214,7 @@ class SessionManager:
             "unsaved_block_indices": unsaved_blocks,
             "block_to_project_file_map": block_to_file_serialized,
             "problems_per_subline": problems_serialized,
+            "plugin_original_keys": snapshot.get("plugin_original_keys"),
         }
         return json_snapshot
 
@@ -192,6 +255,8 @@ class SessionManager:
             "saved_at": json_data.get("saved_at", 0.0),
             "json_path": json_data.get("json_path"),
             "edited_json_path": json_data.get("edited_json_path"),
+            "data": self._from_json_safe_value(json_data.get("data", [])),
+            "edited_file_data": self._from_json_safe_value(json_data.get("edited_file_data", [])),
             "edited_data": edited_data_deserialized,
             "current_block_idx": json_data.get("current_block_idx", -1),
             "_physical_block_idx": json_data.get("_physical_block_idx", -1),
@@ -219,6 +284,7 @@ class SessionManager:
             "unsaved_block_indices": unsaved_blocks,
             "block_to_project_file_map": block_to_file_deserialized,
             "problems_per_subline": problems_deserialized,
+            "plugin_original_keys": json_data.get("plugin_original_keys"),
         }
         return snapshot
 
@@ -243,6 +309,7 @@ class SessionManager:
             if data_store:
                 session_path.parent.mkdir(parents=True, exist_ok=True)
                 snapshot = data_store.get_session_snapshot()
+                self._attach_runtime_session_state(snapshot)
                 snapshot["saved_at"] = time.time()
                 with session_path.open('wb') as f:
                     pickle.dump(snapshot, f)
@@ -266,6 +333,7 @@ class SessionManager:
             if data_store:
                 json_path.parent.mkdir(parents=True, exist_ok=True)
                 snapshot = data_store.get_session_snapshot()
+                self._attach_runtime_session_state(snapshot)
                 snapshot["saved_at"] = time.time()
                 json_snapshot = self.serialize_session_to_json(snapshot)
                 
@@ -325,6 +393,8 @@ class SessionManager:
                         "version": 1,
                         "json_path": restored_store.__dict__.get("json_path"),
                         "edited_json_path": restored_store.__dict__.get("edited_json_path"),
+                        "data": restored_store.__dict__.get("_data", restored_store.__dict__.get("data", [])),
+                        "edited_file_data": restored_store.__dict__.get("edited_file_data", []),
                         "edited_data": dict(restored_store.__dict__.get("edited_data", {})),
                         "current_block_idx": restored_store.__dict__.get("current_block_idx", -1),
                         "_physical_block_idx": restored_store.__dict__.get("_physical_block_idx", -1),
@@ -352,6 +422,7 @@ class SessionManager:
                         "unsaved_block_indices": restored_store.__dict__.get("unsaved_block_indices", set()),
                         "block_to_project_file_map": restored_store.__dict__.get("block_to_project_file_map", {}),
                         "problems_per_subline": dict(restored_store.__dict__.get("problems_per_subline", {})),
+                        "plugin_original_keys": restored_store.__dict__.get("plugin_original_keys"),
                     }
                 if pickle_snapshot:
                     pickle_saved_at = pickle_snapshot.get("saved_at", 0.0)
@@ -389,6 +460,8 @@ class SessionManager:
 
                 if hasattr(self.mw.data_store, 'block_to_project_file_map'):
                     self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
+
+                self._restore_runtime_session_state(snapshot)
 
                 log_info("DSP: Successfully restored entire project state from session")
 

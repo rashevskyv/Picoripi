@@ -471,13 +471,52 @@ def test_ProjectActionHandler_populate_blocks_from_project_session_restore(mock_
     mock_data_processor.load_session_file.return_value = True
 
     mock_mw.data_store = MagicMock()
+    mock_mw.data_store.data = [['restored']]
     mock_mw.data_store.block_to_project_file_map = {0: 10}
 
     h = ProjectActionHandler(mock_mw, mock_data_processor, mock_mw.ui_updater)
 
     on_completed_mock = MagicMock()
 
-    # We patch ProjectLoadWorker to simulate asynchronous loading completion
+    with patch('handlers.project_action_handler.ProjectLoadWorker') as mock_worker_class:
+        h._populate_blocks_from_project(on_completed=on_completed_mock)
+
+        # Verify load_session_file was called
+        mock_data_processor.load_session_file.assert_called_once()
+        mock_data_processor._autosave_session.assert_not_called()
+
+        # Verify block_to_project_file_map was copied
+        assert mock_mw.block_to_project_file_map == {0: 10}
+
+        # Verify paths were updated
+        assert mock_mw.data_store.json_path == "abs_a.json"
+        assert mock_mw.data_store.edited_json_path == "abs_t_a.json"
+
+        # Fast session restore should skip ProjectLoadWorker and avoid the load progress dialog.
+        mock_worker_class.assert_not_called()
+
+        # Verify callback was called with True
+        on_completed_mock.assert_called_once_with(True)
+
+
+def test_ProjectActionHandler_populate_blocks_from_project_empty_session_falls_back(mock_mw):
+    mock_mw.project_manager = MagicMock()
+    mock_block = MagicMock(source_file='a.json', translation_file='t_a.json', name="Block A")
+    mock_mw.project_manager.project.blocks = [mock_block]
+    mock_mw.project_manager.get_absolute_path.side_effect = lambda path, **kwargs: "abs_" + path
+
+    mock_mw.current_game_rules = MagicMock()
+
+    mock_data_processor = MagicMock()
+    mock_data_processor.load_session_file.return_value = True
+
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.data = []
+    mock_mw.data_store.block_to_project_file_map = {}
+
+    h = ProjectActionHandler(mock_mw, mock_data_processor, mock_mw.ui_updater)
+    on_completed_mock = MagicMock()
+
     with patch('handlers.project_action_handler.ProjectLoadWorker') as mock_worker_class:
         mock_worker = mock_worker_class.return_value
         callbacks = []
@@ -486,7 +525,7 @@ def test_ProjectActionHandler_populate_blocks_from_project_session_restore(mock_
         def run_mock():
             for cb in callbacks:
                 cb({
-                    'data': ['data'],
+                    'data': [['data']],
                     'edited_file_data': [['t_data']],
                     'block_names': {'0': 'Block A'},
                     'block_to_project_file_map': {0: 10},
@@ -496,18 +535,10 @@ def test_ProjectActionHandler_populate_blocks_from_project_session_restore(mock_
 
         h._populate_blocks_from_project(on_completed=on_completed_mock)
 
-        # Verify load_session_file was called
         mock_data_processor.load_session_file.assert_called_once()
-
-        # Verify block_to_project_file_map was copied
+        mock_data_processor._autosave_session.assert_called_once_with(force=True)
+        mock_worker_class.assert_called_once()
+        assert mock_mw.data_store.data == [['data']]
         assert mock_mw.block_to_project_file_map == {0: 10}
-
-        # Verify paths were updated
         assert mock_mw.data_store.json_path == "abs_a.json"
         assert mock_mw.data_store.edited_json_path == "abs_t_a.json"
-
-        # Verify ProjectLoadWorker WAS instantiated
-        mock_worker_class.assert_called_once()
-
-        # Verify callback was called with True
-        on_completed_mock.assert_called_once_with(True)

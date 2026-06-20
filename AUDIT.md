@@ -1,8 +1,8 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.056
+> **Остання версія проекту:** v0.3.057
 > **Дата оновлення:** 2026-06-20
-> **Об'єм проекту:** 405 Python-файлів загалом; 248 продуктових Python-файлів, 157 тестових Python-файлів; ~66 741 LOC продуктового Python-коду, ~25 391 LOC тестів; ~1 253 pytest test-функції.
+> **Об'єм проекту:** 405 Python-файлів загалом; 248 продуктових Python-файлів, 157 тестових Python-файлів; ~66 741 LOC продуктового Python-коду, ~25 391 LOC тестів; 1 254 pytest items (`1253 passed, 1 skipped` у повному `test_all.ps1`).
 
 Цей документ є консолідованим аудитом архітектури, продуктивності, життєвого циклу PyQt-об'єктів та UX-ризиків Picoripi. Звіт оновлено у валідному UTF-8; пункти, які вже позначені або підтверджені як виконані, перенесено до архіву виконаного.
 
@@ -14,7 +14,7 @@
 | Тестові Python-файли | 157 |
 | LOC продуктового Python-коду | ~66 741 |
 | LOC тестів | ~25 391 |
-| Pytest test-функції | ~1 253 |
+| Pytest items | 1 254 (`1253 passed, 1 skipped` у повному `test_all.ps1`) |
 | Основний стек | Python 3.10+, PyQt6, SQLite, requests/urllib, Pillow, markdown, numpy, pyahocorasick, spylls |
 | Тестовий стек | pytest, pytest-qt, pytest-timeout, pytest-xdist, ruff |
 | Тип застосунку | Desktop GUI для перекладу, локалізації, аналізу ширини рядків, AI-перекладу, глосаріїв та game/plugin rules |
@@ -69,6 +69,15 @@
   - JSON-checkpoint створюється автоматично при штатному закритті застосунку (`closeEvent()`), періодично за окремим таймером (кожні 5 хвилин) та перед великими операціями.
   - При старті спочатку валідується та завантажується JSON-сесія, а у разі її відсутності або пошкодження відбувається автоматичний fallback на Pickle-сесію.
   - Написано юніт-тести для перевірки серіалізації типів (кортежі-ключі, множини, об'єкти дії undo стеку) та відновлення стану.
+- **B04-FIX. Повний fast project session checkpoint і виправлення project save.**
+  - Виявлено ключовий дефект попереднього переходу на JSON/Pickle session: snapshot не містив `data` та `edited_file_data`, тому він не міг відновити відкритий проект без повторного повного читання source/translation файлів. Через це при старті все одно запускався `ProjectLoadWorker` і показувався progress dialog.
+  - `AppDataStore.get_session_snapshot()` і `restore_from_snapshot()` тепер включають повний parsed state (`data`, `edited_file_data`) разом з edits, UI state, undo/redo, warnings та project mapping.
+  - Durable JSON serializer отримав безпечну рекурсивну адаптацію значень для parsed state, включно з base64-маркером для `bytes`, щоб майбутні плагіни не ламали `.picoripi_session.json`.
+  - `SessionManager` зберігає та відновлює runtime-стан плагіна `plugin_original_keys`, потрібний для коректного project-save у key-based плагінах після швидкого відновлення.
+  - `_populate_blocks_from_project()` тепер спочатку пробує session fast path. Якщо сесія валідна і містить блоки, повний `ProjectLoadWorker` не створюється, progress dialog не показується, а проект відкривається з checkpoint. Якщо сесія порожня або пошкоджена, виконується fallback на повний loader.
+  - Після fallback-повного завантаження одразу створюється повний Pickle checkpoint, щоб старі неповні session-файли автоматично оновилися і наступний старт міг пройти через fast path навіть без додаткового редагування.
+  - Project-save додатково захищено від аварійного `IndexError`, якщо `original_keys` є, але неповні; project mode більше не залежить від legacy `edited_json_path`, бо запис іде по translation-файлах блоків.
+  - Додано regression-тести для fast session restore без `ProjectLoadWorker`, fallback при порожній сесії, round-trip `data`/`edited_file_data`/`plugin_original_keys` і project-save без `edited_json_path`.
 - **B05. Зробити preview idle pre-cache chunked/time-sliced.**
   - Реалізовано порційну (time-sliced) фонову обробку великих блоків з лімітом виконання не більше 10 мс на один тік таймера.
   - Обмежено чергу фонового кешування до 15 найближчих блоків для усунення перевитрат пам'яті та CPU.
@@ -192,6 +201,11 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
   * *Опис:* Залишити швидкий pickle для crash recovery, але додати валідований schema-based checkpoint з версією, міграціями та контрольованою частотою запису. Це зменшить ризик несумісних або небезпечних session-файлів.
   * *Складність:* Середня
   * *Файли:* `core/data_state_processor.py`, `core/data_store.py`, `core/settings/session_state_manager.py`, `tests/test_partial_and_session_save.py`, `tests/test_core/test_data_store.py`
+
+- `[x]` **B04-FIX. Зробити project session повним fast checkpoint-ом**
+  * *Опис:* Додати `data`, `edited_file_data` і `plugin_original_keys` до session snapshot; пробувати session restore до створення `ProjectLoadWorker`; пропускати progress dialog при валідній сесії; залишити fallback на повний loader для порожніх/старих сесій; після fallback одразу записувати повний Pickle checkpoint; захистити project-save від неповних plugin keys і від залежності від `edited_json_path`.
+  * *Складність:* Середня
+  * *Файли:* `core/data_store.py`, `core/data_processor/session_manager.py`, `handlers/project_action_handler.py`, `core/data_state_processor.py`, `tests/test_core/test_durable_session.py`, `tests/test_handlers/test_project_action_handler.py`, `tests/test_core/test_data_state_processor.py`
 
 - `[x]` **B05. Зробити preview idle pre-cache chunked/time-sliced**
   * *Опис:* Обмежити роботу `_cache_next_idle_block()` бюджетом рядків або часу на tick, щоб дуже великі блоки не заморожували UI під час фонового кешування.

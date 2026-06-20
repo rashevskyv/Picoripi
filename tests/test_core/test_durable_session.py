@@ -18,6 +18,7 @@ class MockMainWindow:
         self.helper = MagicMock()
         self.app_action_handler = MagicMock()
         self.current_game_rules = MagicMock()
+        self.current_game_rules.original_keys = []
 
 @pytest.fixture
 def mock_mw():
@@ -44,6 +45,8 @@ def test_serialize_and_deserialize_session(dsp):
     snapshot = {
         "json_path": "test.uiproj",
         "edited_json_path": "edited.json",
+        "data": [["source_0"], [b"raw_source"]],
+        "edited_file_data": [["translated_0"], ["translated_1"]],
         "edited_data": {(0, 0): "new", (1, 2): "new_val"},
         "current_block_idx": 1,
         "unsaved_block_indices": {0, 1},
@@ -55,7 +58,8 @@ def test_serialize_and_deserialize_session(dsp):
         "redo_stack": [struct_action],
         "block_names": {0: "block1", 1: "block2"},
         "block_to_project_file_map": {0: "file1.json", 1: "file2.json"},
-        "unsaved_changes": True
+        "unsaved_changes": True,
+        "plugin_original_keys": ["key0", "key1"],
     }
 
     # Serialize
@@ -63,6 +67,8 @@ def test_serialize_and_deserialize_session(dsp):
 
     # Assert correct types in JSON representation
     assert isinstance(json_snapshot["edited_data"], dict)
+    assert json_snapshot["data"][0] == ["source_0"]
+    assert json_snapshot["data"][1][0]["__picoripi_type__"] == "bytes"
     assert "0,0" in json_snapshot["edited_data"]
     assert json_snapshot["edited_data"]["0,0"] == "new"
 
@@ -80,11 +86,14 @@ def test_serialize_and_deserialize_session(dsp):
 
     assert json_snapshot["redo_stack"][0]["type"] == "StructuralAction"
     assert json_snapshot["redo_stack"][0]["label"] == "moved"
+    assert json_snapshot["plugin_original_keys"] == ["key0", "key1"]
 
     # Deserialize
     deserialized = dsp.deserialize_session_from_json(json_snapshot)
 
     # Assert restored types
+    assert deserialized["data"] == [["source_0"], [b"raw_source"]]
+    assert deserialized["edited_file_data"] == [["translated_0"], ["translated_1"]]
     assert deserialized["edited_data"] == {(0, 0): "new", (1, 2): "new_val"}
     assert deserialized["unsaved_block_indices"] == {0, 1}
     assert deserialized["problems_per_subline"] == {
@@ -111,14 +120,18 @@ def test_serialize_and_deserialize_session(dsp):
     assert restored_struct.action_type == "folder_move"
     assert restored_struct.before_snapshot == {"snap": 1}
     assert restored_struct.label == "moved"
+    assert deserialized["plugin_original_keys"] == ["key0", "key1"]
 
 def test_save_and_load_durable_session_json(dsp, mock_mw, tmp_path):
     mock_mw.project_manager.project_dir = str(tmp_path)
     mock_mw.project_manager.project = MagicMock()
 
     mock_mw.data_store.edited_data = {(0, 0): "test_json"}
+    mock_mw.data_store.data = [["source_json"]]
+    mock_mw.data_store.edited_file_data = [["translated_json"]]
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_string_idx = 0
+    mock_mw.current_game_rules.original_keys = ["project_key"]
 
     dsp.schedule_autosave()
     assert dsp._session_dirty is True
@@ -132,14 +145,21 @@ def test_save_and_load_durable_session_json(dsp, mock_mw, tmp_path):
     with json_file.open('r', encoding='utf-8') as f:
         data = json.load(f)
     assert data["edited_data"]["0,0"] == "test_json"
+    assert data["data"] == [["source_json"]]
+    assert data["edited_file_data"] == [["translated_json"]]
+    assert data["plugin_original_keys"] == ["project_key"]
 
     # Clear current state
     mock_mw.data_store = AppDataStore()
+    mock_mw.current_game_rules.original_keys = []
 
     # Load session (should prefer JSON)
     loaded = dsp.load_session_file()
     assert loaded is True
+    assert mock_mw.data_store.data == [["source_json"]]
+    assert mock_mw.data_store.edited_file_data == [["translated_json"]]
     assert mock_mw.data_store.edited_data == {(0, 0): "test_json"}
+    assert mock_mw.current_game_rules.original_keys == ["project_key"]
     assert dsp._session_dirty is False
 
 def test_load_session_fallback_to_pickle(dsp, mock_mw, tmp_path):
@@ -368,6 +388,5 @@ def test_newer_pickle_chosen_json_sync_fails_dirty_remains(dsp, mock_mw, tmp_pat
         assert loaded is True
         # Since sync failed, _durable_session_dirty must remain True
         assert dsp._durable_session_dirty is True
-
 
 

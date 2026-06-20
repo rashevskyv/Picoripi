@@ -1,4 +1,4 @@
-# The "Picoripi" (v0.3.056)
+# The "Picoripi" (v0.3.057)
 
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
@@ -90,7 +90,7 @@ Picoripi is largely AI-developed, so every AI agent must behave like a careful m
 
 ## Project Overview
 
-The "Picoripi" (v0.3.055) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.057) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.

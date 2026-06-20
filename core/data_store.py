@@ -199,6 +199,8 @@ class AppDataStore:
             "version": 1,
             "json_path": self.json_path,
             "edited_json_path": self.edited_json_path,
+            "data": self.data,
+            "edited_file_data": self.edited_file_data,
             "edited_data": dict(self.edited_data),
             "current_block_idx": self.current_block_idx,
             "_physical_block_idx": self._physical_block_idx,
@@ -239,6 +241,8 @@ class AppDataStore:
 
         self.json_path = snapshot.get("json_path")
         self.edited_json_path = snapshot.get("edited_json_path")
+        self.data = snapshot.get("data", [])
+        self.edited_file_data = snapshot.get("edited_file_data", [])
 
         # Restore edited_data wrapping in IndexingDict
         self.edited_data = IndexingDict(

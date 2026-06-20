@@ -2,6 +2,7 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch
 from pathlib import Path
+from types import SimpleNamespace
 from PyQt6.QtWidgets import QMessageBox
 from core.data_state_processor import DataStateProcessor
 
@@ -179,6 +180,38 @@ def test_save_current_edits_no_project(mock_save, dsp, mock_mw):
     
     # Verify final data was reloaded
     mock_mw.current_game_rules.load_data_from_json_obj.assert_called()
+
+
+@patch("core.data_state_processor.save_json_file")
+def test_save_current_edits_project_mode_without_edited_json_path(mock_save, dsp, mock_mw, tmp_path):
+    mock_save.return_value = True
+
+    block = SimpleNamespace(source_file="sources/a.json", translation_file="translations/a.json")
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = SimpleNamespace(blocks=[block])
+    mock_mw.project_manager.get_absolute_path.side_effect = (
+        lambda path, is_translation=False: str(tmp_path / path)
+    )
+    mock_mw.block_to_project_file_map = {0: 0}
+
+    mock_mw.data_store.json_path = None
+    mock_mw.data_store.edited_json_path = None
+    mock_mw.data_store.unsaved_changes = True
+    mock_mw.data_store.data = [["original"]]
+    mock_mw.data_store.edited_file_data = [["old_translation"]]
+    mock_mw.data_store.edited_data = {(0, 0): "project_edit"}
+    mock_mw.data_store.block_names = {"0": "Block A"}
+
+    mock_mw.current_game_rules.save_data_to_json_obj.return_value = {"saved": "project"}
+
+    result = dsp.save_current_edits(ask_confirmation=False)
+
+    assert result is True
+    expected_path = str(tmp_path / "translations/a.json")
+    mock_save.assert_called_once_with(expected_path, {"saved": "project"})
+    mock_mw.current_game_rules.save_data_to_json_obj.assert_called_with([["project_edit"]], {"0": "Block A"})
+    assert mock_mw.data_store.unsaved_changes is False
+    assert mock_mw.data_store.edited_data == {}
 
 
 def test_save_current_edits_no_changes(dsp, mock_mw):

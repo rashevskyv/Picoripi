@@ -670,12 +670,76 @@ class ProjectActionHandler(BaseHandler):
         """Add items to folder action."""
         self.mw.virtual_folder_handler.add_items_to_folder_action()
 
+    def _ensure_project_compat_paths(self) -> None:
+        """Populate legacy source/translation paths from the first project block."""
+        project_manager = getattr(self.mw, 'project_manager', None)
+        project = getattr(project_manager, 'project', None)
+        blocks = getattr(project, 'blocks', None)
+        if not project_manager or not blocks:
+            return
+
+        try:
+            first_block = blocks[0]
+            self.mw.data_store.json_path = project_manager.get_absolute_path(first_block.source_file)
+            self.mw.data_store.edited_json_path = project_manager.get_absolute_path(
+                first_block.translation_file,
+                is_translation=True
+            )
+        except Exception as e:
+            log_warning(f"Could not set project compatibility paths: {e}", category="file_ops")
+
+    def _restore_project_session_fast_path(self, on_completed=None) -> bool:
+        """Restore a project from the session checkpoint before starting the full loader."""
+        if not hasattr(self.data_processor, 'load_session_file'):
+            return False
+
+        try:
+            session_loaded = bool(self.data_processor.load_session_file())
+        except Exception as e:
+            log_warning(f"Project session restore failed before full load: {e}", category="file_ops")
+            return False
+
+        if not session_loaded:
+            return False
+
+        if not getattr(self.mw.data_store, 'data', None):
+            log_warning(
+                "Project session restored no block data; falling back to full project load.",
+                category="file_ops"
+            )
+            return False
+
+        if hasattr(self.mw.data_store, 'block_to_project_file_map'):
+            self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
+
+        self._ensure_project_compat_paths()
+
+        if getattr(self.mw, 'project_manager', None):
+            self.mw.project_manager.clear_archive_cache()
+
+        if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+            self.mw.translation_handler.load_progress_from_metadata()
+
+        if hasattr(self.ui_updater, 'preview_updater'):
+            self.ui_updater.preview_updater.schedule_pre_cache()
+
+        if hasattr(self.ui_updater, 'update_statusbar_paths'):
+            self.ui_updater.update_statusbar_paths()
+
+        log_info("Project state restored from session checkpoint; skipped full project file load.")
+        if on_completed:
+            on_completed(True)
+        return True
+
 
     def _populate_blocks_from_project(self, on_completed=None) -> None:
         """Populate block list from current project and load data asynchronously."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             if on_completed:
                 on_completed(False)
+            return
+
+        if self._restore_project_session_fast_path(on_completed):
             return
 
         # Reset block/string selection state to avoid stale index issues
@@ -731,10 +795,7 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.current_game_rules.original_keys = plugin_keys_backup
 
             # Update paths for old-style save/load compatibility
-            if self.mw.project_manager.project.blocks:
-                first_block = self.mw.project_manager.project.blocks[0]
-                self.mw.data_store.json_path = self.mw.project_manager.get_absolute_path(first_block.source_file)
-                self.mw.data_store.edited_json_path = self.mw.project_manager.get_absolute_path(first_block.translation_file, is_translation=True)
+            self._ensure_project_compat_paths()
 
             self.mw.project_manager.clear_archive_cache()
 
@@ -745,20 +806,12 @@ class ProjectActionHandler(BaseHandler):
             if hasattr(self.mw, 'app_action_handler'):
                 self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
 
+            if hasattr(self.data_processor, '_autosave_session'):
+                self.data_processor._autosave_session(force=True)
+
             # Pre-cache preview data for all blocks
             if hasattr(self.ui_updater, 'preview_updater'):
                 self.ui_updater.preview_updater.schedule_pre_cache()
-
-            session_loaded = False
-            if hasattr(self.data_processor, 'load_session_file'):
-                session_loaded = self.data_processor.load_session_file()
-                if session_loaded:
-                    log_info("Project state successfully restored from session file.")
-
-            if session_loaded:
-                if on_completed:
-                    on_completed(True)
-                return
 
             # Update UI
             self.ui_updater.populate_blocks()

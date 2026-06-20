@@ -1,5 +1,24 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.057] - 2026-06-20
+
+### 🚀 Added
+- **Full Fast Session Restoration (B04-FIX)**:
+  - Added full parsed state serialization (`data` and `edited_file_data`) inside the `AppDataStore` session snapshot.
+  - Implemented base64 encoding/decoding helper in `SessionManager` to safely process raw binary `bytes` in JSON format.
+  - Added automatic restoration of `plugin_original_keys` runtime state within the session lifecycle.
+  - Implemented session fast-path check in `ProjectActionHandler._restore_project_session_fast_path()`. If session is valid and populated, the app loads instantly, skipping the background `ProjectLoadWorker` thread and its visual progress dialog.
+  - Added regression test suite covering fast restoration path, fallback behavior, bytes serialization, and project saving.
+
+### 🐛 Fixed
+- **Project Saving Stability**:
+  - Decoupled project-save execution from legacy `edited_json_path` configuration, saving directly using the individual block translation paths.
+  - Added defensive validation to prevent `IndexError` on save when `plugin_original_keys` is incomplete or missing.
+
+### ⚙️ Changed
+- **Version Updates**:
+  - Bumped version to `0.3.057` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.056] - 2026-06-20
 
 ### 🚀 Added
