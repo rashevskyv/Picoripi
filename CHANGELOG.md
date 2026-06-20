@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.047] - 2026-06-20
+
+### ⚙️ Changed
+- **Enhanced Atomic Write Unit Testing**:
+  - Improved `test_atomic_json_write` in `tests/test_core/test_durable_session.py` to assert that `_save_durable_session_json(force=True)` correctly returns `False` upon write failure and successfully cleans up the temporary `.tmp` file from the disk.
+
 ## [0.3.046] - 2026-06-20
 
 ### ⚙️ Changed

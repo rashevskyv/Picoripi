@@ -283,14 +283,17 @@ def test_atomic_json_write(dsp, mock_mw, tmp_path):
     mock_mw.data_store.edited_data = {(0, 0): "new_corrupt_attempt"}
     dsp._durable_session_dirty = True
 
+    tmp_file = json_file.with_suffix(json_file.suffix + ".tmp")
     with patch.object(Path, "replace", side_effect=IOError("atomic write failed")):
-        dsp._save_durable_session_json(force=True)
+        success = dsp._save_durable_session_json(force=True)
+        assert success is False
 
     # Verify that the original valid JSON was not truncated or modified
     assert json_file.exists()
     with json_file.open('r', encoding='utf-8') as f:
         loaded = json.load(f)
     assert loaded["edited_data"]["0,0"] == "valid_data"
+    assert tmp_file.exists() is False
 
 
 def test_durable_session_complex_undo_redo_roundtrip(dsp, mock_mw, tmp_path):
