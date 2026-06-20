@@ -1351,16 +1351,19 @@ class DataStateProcessor:
         except Exception as e:
             log_error(f"DSP: Failed to autosave session: {e}", exc_info=True)
 
-    def _save_durable_session_json(self, force: bool = False) -> None:
-        """Autosave entire data_store into a JSON file if dirty or forced."""
+    def _save_durable_session_json(self, force: bool = False) -> bool:
+        """Autosave entire data_store into a JSON file if dirty or forced.
+        Returns True on success, False otherwise.
+        """
         if not force and not getattr(self, '_durable_session_dirty', False):
             # No changes were made since last save, skip file writing
-            return
+            return True
 
         json_path = self.get_durable_session_file_path()
         if not json_path:
-            return
+            return False
 
+        tmp_path = None
         try:
             data_store = getattr(self.mw, 'data_store', None)
             if data_store:
@@ -1386,8 +1389,16 @@ class DataStateProcessor:
                 
                 self._durable_session_dirty = False
                 log_debug(f"DSP: Durable JSON session saved to {json_path}")
+                return True
+            return False
         except Exception as e:
             log_error(f"DSP: Failed to save durable JSON session: {e}", exc_info=True)
+            if tmp_path and tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except Exception:
+                    pass
+            return False
 
     def load_session_file(self) -> bool:
         """Load entire project state from a JSON file (preferred) or a pickle file (fallback)."""
@@ -1527,6 +1538,7 @@ class DataStateProcessor:
                     self.durable_session_timer.start()
 
                 if needs_durable_sync:
+                    self._durable_session_dirty = True
                     self._save_durable_session_json(force=True)
 
                 return True

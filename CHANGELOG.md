@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.046] - 2026-06-20
+
+### ⚙️ Changed
+- **Forced Session JSON Sync Retries**:
+  - Refactored `_save_durable_session_json()` to return a boolean success state and to clean up the temporary `.tmp` file immediately if an exception is raised (preventing orphan temp files on disk).
+  - Reset `_durable_session_dirty` only after a successful write.
+  - Adjusted `load_session_file()` to set `_durable_session_dirty = True` before initiating a forced JSON sync after choosing a newer Pickle fallback. If this forced save fails, the dirty flag remains `True`, ensuring that the 5-minute timer retry handler will attempt to sync it again.
+
+### 🚀 Added
+- **Unit Testing**:
+  - Added `test_newer_pickle_chosen_json_sync_fails_dirty_remains` in `tests/test_core/test_durable_session.py` to verify that the durable dirty flag remains set to `True` upon a failed forced JSON sync.
+
 ## [0.3.045] - 2026-06-20
 
 ### 🚀 Added

@@ -335,3 +335,36 @@ def test_durable_session_complex_undo_redo_roundtrip(dsp, mock_mw, tmp_path):
     assert mock_mw.data_store.redo_stack[0].label == "moved"
 
 
+def test_newer_pickle_chosen_json_sync_fails_dirty_remains(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.project_manager.project = MagicMock()
+    
+    json_file = Path(tmp_path) / ".picoripi_session.json"
+    pickle_file = Path(tmp_path) / ".picoripi_session"
+
+    # Pickle is newer than JSON (Pickle: 200.0, JSON: 100.0)
+    mock_mw.data_store.edited_data = {(0, 0): "old_json"}
+    snapshot_json = mock_mw.data_store.get_session_snapshot()
+    snapshot_json["saved_at"] = 100.0
+    json_snapshot = dsp.serialize_session_to_json(snapshot_json)
+    with json_file.open('w', encoding='utf-8') as f:
+        json.dump(json_snapshot, f)
+
+    mock_mw.data_store.edited_data = {(0, 0): "new_pickle"}
+    snapshot_pickle = mock_mw.data_store.get_session_snapshot()
+    snapshot_pickle["saved_at"] = 200.0
+    with pickle_file.open('wb') as f:
+        pickle.dump(snapshot_pickle, f)
+
+    # Clear state
+    mock_mw.data_store = AppDataStore()
+
+    # Mock Path.replace to raise IOError to simulate sync failure
+    with patch.object(Path, "replace", side_effect=IOError("write failed")):
+        loaded = dsp.load_session_file()
+        assert loaded is True
+        # Since sync failed, _durable_session_dirty must remain True
+        assert dsp._durable_session_dirty is True
+
+
+
