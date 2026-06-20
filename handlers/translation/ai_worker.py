@@ -190,19 +190,28 @@ class AIWorker(QObject):
                 user_template = self.task_details.get('user_prompt_template', '{text_chunk}')
                 block_data = self.task_details.get('block_data', [])
                 target_indices = self.task_details.get('target_indices', [])
-                chunk_size = self.task_details.get('chunk_size', 8000)
+                raw_chunk_size = self.task_details.get('chunk_size', 8000)
                 dialog_steps = self.task_details.get('dialog_steps', [])
+
+                # Normalize chunk_size
+                try:
+                    chunk_size = int(raw_chunk_size)
+                    if chunk_size <= 0:
+                        chunk_size = 8000
+                except (ValueError, TypeError):
+                    chunk_size = 8000
+                chunk_size = max(1000, min(32000, chunk_size))
 
                 # 1. Background text aggregation
                 target_strings = [str(block_data[i]) for i in target_indices if i < len(block_data)]
                 full_text = "\n".join(target_strings)
 
-                # 2. Background chunking
-                raw_chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
-                
-                # 3. Background tag masking
+                # 2. Background tag masking first to prevent tag leakage on chunk boundaries
                 from utils.utils import ALL_TAGS_PATTERN
-                chunks = [ALL_TAGS_PATTERN.sub(' ', chunk or '') for chunk in raw_chunks]
+                masked_text = ALL_TAGS_PATTERN.sub(' ', full_text or '')
+
+                # 3. Background chunking
+                chunks = [masked_text[i:i+chunk_size] for i in range(0, len(masked_text), chunk_size)]
                 
                 total_chunks = len(chunks)
                 log_debug(f"AIWorker: Splitting text into {total_chunks} chunks of size ~{chunk_size} in background.")
@@ -238,6 +247,7 @@ class AIWorker(QObject):
                         {"role": "user", "content": user_prompt}
                     ]
 
+                    response = None
                     try:
                         self._last_messages = messages
                         self._log_ai_traffic(messages)
@@ -252,7 +262,7 @@ class AIWorker(QObject):
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
                         self._log_ai_traffic(messages, error=str(exc))
                         if not self.is_cancelled:
-                            resp_t = response.text if 'response' in locals() else ""
+                            resp_t = response.text if response is not None else ""
                             err_msg, updated_details = handle_ai_error(exc, self.task_details, resp_t, f"Glossary chunk {idx + 1}")
                             self.error.emit(err_msg, updated_details)
                         return

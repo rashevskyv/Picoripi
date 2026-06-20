@@ -145,13 +145,17 @@ def test_ai_worker_build_glossary_background_processing():
     mock_provider = MagicMock()
     mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
     
+    # Under a chunk_size limit clamp of 1000, we need the text length > 1000 to get 2 chunks.
+    # Hello {Color:Red}World! repeated 50 times -> 23 * 50 = 1150 chars.
+    # Line [PLAYER] 2 repeated 50 times -> 15 * 50 = 750 chars.
+    # Total: ~1900 chars. Masked text is 13 * 50 + 1 + 9 * 50 = 1101 chars.
     task_details = {
         'type': 'build_glossary',
         'system_prompt': 'sys',
         'user_prompt_template': '{text_chunk}',
-        'block_data': ["Hello {Color:Red}World!", "Line [PLAYER] 2"],
+        'block_data': ["Hello {Color:Red}World!" * 50, "Line [PLAYER] 2" * 50],
         'target_indices': [0, 1],
-        'chunk_size': 20,
+        'chunk_size': 20,  # Clamped to 1000
         'dialog_steps': ["step1", "step2", "step3", "step4"],
         'block_id': 0
     }
@@ -161,12 +165,6 @@ def test_ai_worker_build_glossary_background_processing():
     # We call run directly to simulate execution in the worker thread
     worker.run()
     
-    # Verify that the provider was called with masked tags and chunks
-    # Since chunk_size is 20, and aggregated text is "Hello {Color:Red}World!\nLine [PLAYER] 2"
-    # Tag-masked version: "Hello  World!\nLine   2" (len: 23)
-    # With chunk_size 20, it splits into:
-    # 1. "Hello  World!\nLine  "
-    # 2. " 2"
     assert mock_provider.translate.call_count == 2
     
     call_args_1 = mock_provider.translate.call_args_list[0][0][0]
@@ -176,8 +174,86 @@ def test_ai_worker_build_glossary_background_processing():
     assert call_args_1[0] == {"role": "system", "content": "sys"}
     # Check user chunks
     assert call_args_1[1]["role"] == "user"
-    assert call_args_1[1]["content"] == "Hello  Wor"
-    assert call_args_2[1]["content"] == "ld!\nLine   2"
+    
+    expected_full = "Hello  World!" * 50 + "\n" + "Line   2" * 50
+    assert call_args_1[1]["content"] == expected_full[:1000]
+    assert call_args_2[1]["content"] == expected_full[1000:]
+
+def test_ai_worker_build_glossary_boundary_tags():
+    from handlers.translation.ai_worker import AIWorker
+    from core.translation.providers import ProviderResponse
+    
+    mock_provider = MagicMock()
+    mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
+    
+    # Under a clamp of 1000, we put [PLAYER] at index 995.
+    # In the old code (split first), splitting at 1000 breaks [PLAYER] into [PLA and YER], causing leak.
+    # In the new code, masking first replaces it with space, resulting in safe chunks.
+    task_details = {
+        'type': 'build_glossary',
+        'system_prompt': 'sys',
+        'user_prompt_template': '{text_chunk}',
+        'block_data': ["A" * 995 + "[PLAYER]World!"],
+        'target_indices': [0],
+        'chunk_size': 10,  # Clamped to 1000
+        'dialog_steps': ["step1", "step2", "step3", "step4"],
+        'block_id': 0
+    }
+    
+    worker = AIWorker(mock_provider, None, task_details)
+    worker.run()
+    
+    assert mock_provider.translate.call_count == 2
+    call_args_1 = mock_provider.translate.call_args_list[0][0][0]
+    call_args_2 = mock_provider.translate.call_args_list[1][0][0]
+    
+    # Verify chunks do not contain broken tag fragments
+    assert call_args_1[1]["content"] == "A" * 995 + " Worl"
+    assert call_args_2[1]["content"] == "d!"
+
+def test_ai_worker_build_glossary_chunk_size_normalization():
+    from handlers.translation.ai_worker import AIWorker
+    from core.translation.providers import ProviderResponse
+    
+    mock_provider = MagicMock()
+    mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
+    
+    # 1. Invalid values should fallback to default (8000), resulting in 1 chunk for 1500 chars
+    for bad_size in ["bad", None, 0, -1]:
+        mock_provider.translate.reset_mock()
+        task_details = {
+            'type': 'build_glossary',
+            'block_data': ["A" * 1500],
+            'target_indices': [0],
+            'chunk_size': bad_size
+        }
+        worker = AIWorker(mock_provider, None, task_details)
+        worker.run()
+        assert mock_provider.translate.call_count == 1
+        
+    # 2. Values smaller than 1000 should be clamped to 1000 -> 2 chunks for 1500 chars
+    mock_provider.translate.reset_mock()
+    task_details = {
+        'type': 'build_glossary',
+        'block_data': ["A" * 1500],
+        'target_indices': [0],
+        'chunk_size': 500  # Clamped to 1000 -> 2 chunks
+    }
+    worker = AIWorker(mock_provider, None, task_details)
+    worker.run()
+    assert mock_provider.translate.call_count == 2
+
+    # 3. Values larger than 32000 should be clamped to 32000 -> 2 chunks for 33000 chars
+    mock_provider.translate.reset_mock()
+    task_details = {
+        'type': 'build_glossary',
+        'block_data': ["A" * 33000],
+        'target_indices': [0],
+        'chunk_size': 50000  # Clamped to 32000 -> 2 chunks
+    }
+    worker = AIWorker(mock_provider, None, task_details)
+    worker.run()
+    assert mock_provider.translate.call_count == 2
 
 
 

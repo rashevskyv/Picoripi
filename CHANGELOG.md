@@ -1,5 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.051] - 2026-06-20
+
+### 🚀 Added
+- **Glossary Builder Enhancements**:
+  - **Tag Leakage Prevention on Chunk Boundaries**: Mask tags using `ALL_TAGS_PATTERN` *before* slicing the aggregated text into chunks. This guarantees that tags crossing chunk boundaries are correctly stripped and do not leak into AI prompts.
+  - **Chunk Size Normalization & Validation**: Added robust validation and clamping for `chunk_size`. Non-numeric, zero, or negative values automatically fallback to `8000`, and valid values are clamped to the safe range `1000..32000`.
+  - **Clean Error Reference Tracking**: Explicitly reset the `response` variable to `None` at the start of each iteration in the glossary request loop to prevent referencing a stale response from a prior successful chunk in error handlers.
+- **Unit Testing**:
+  - Added `test_ai_worker_build_glossary_boundary_tags` to verify boundary tag leakage protection.
+  - Added `test_ai_worker_build_glossary_chunk_size_normalization` to cover invalid configurations (e.g. `0`, `-1`, `"bad"`, `None`) and clamping thresholds.
+  - Refactored `test_ai_worker_build_glossary_background_processing` to align with the clamped chunk size threshold of 1000.
+
+### ⚙️ Changed
+- **Version Updates & Docs**:
+  - Bumped version to `0.3.051` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.050] - 2026-06-20
 
 ### 🚀 Added
