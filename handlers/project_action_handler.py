@@ -472,6 +472,10 @@ class ProjectActionHandler(BaseHandler):
         """Close project action."""
         log_info("Close Project action triggered.")
 
+        # Cancel active pre-caching immediately
+        if hasattr(self.ui_updater, 'preview_updater') and self.ui_updater.preview_updater:
+            self.ui_updater.preview_updater.cancel_idle_caching()
+
         # Force save session before closing so current edits are saved in .picoripi_session
         if hasattr(self.data_processor, '_autosave_session'):
             self.data_processor._autosave_session(force=True)

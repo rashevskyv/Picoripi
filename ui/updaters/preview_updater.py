@@ -93,6 +93,9 @@ class PreviewUpdater(BaseUIUpdater):
     def pre_cache_all_blocks(self):
         self.preview_cache.pre_cache_all_blocks()
 
+    def cancel_idle_caching(self):
+        self.preview_cache.cancel_idle_caching()
+
     @property
     def _idle_cache_queue(self) -> list:
         return self.preview_cache._idle_cache_queue

@@ -13,6 +13,11 @@ class PreviewCache:
         self._idle_cache_queue = []
         self._idle_timer = None
         self._total_idle_cache_count = 1
+        
+        self._current_caching_block_idx = None
+        self._current_caching_key = None
+        self._current_caching_lines = []
+        self._current_caching_next_idx = 0
 
     @property
     def cache(self) -> OrderedDict:
@@ -68,8 +73,20 @@ class PreviewCache:
         else:
             QTimer.singleShot(100, self.pre_cache_all_blocks)
 
+    def cancel_idle_caching(self):
+        """Cancel any active background idle caching."""
+        if self._idle_timer and self._idle_timer.isActive():
+            self._idle_timer.stop()
+        self._idle_cache_queue = []
+        self._current_caching_block_idx = None
+        self._current_caching_key = None
+        self._current_caching_lines = []
+        self._current_caching_next_idx = 0
+
     def pre_cache_all_blocks(self):
         """Pre-cache preview lines for all blocks to enable instantaneous switching."""
+        self.cancel_idle_caching()
+
         if not self.mw.data_store.data:
             return
 
@@ -134,6 +151,9 @@ class PreviewCache:
             if idx not in queue:
                 queue.append(idx)
 
+        # Performance budget: only pre-cache up to MAX_CACHE_SIZE blocks close to current
+        queue = queue[:self.MAX_CACHE_SIZE]
+
         self._idle_cache_queue = queue
         self._total_idle_cache_count = len(queue)
 
@@ -144,56 +164,108 @@ class PreviewCache:
             self._idle_timer.setInterval(200)
             self._idle_timer.timeout.connect(self._cache_next_idle_block)
 
+        self._idle_timer.setInterval(200)
         self._idle_timer.start()
 
     def _cache_next_idle_block(self):
-        """Cache next block in background thread scheduler."""
-        if not self._idle_cache_queue:
-            if self._idle_timer:
-                self._idle_timer.stop()
-            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                self.mw.statusBar.showMessage("Previews fully cached.", 3000)
-            return
+        """Cache next block in background using time-slicing (10ms budget)."""
+        import time
 
-        block_idx = self._idle_cache_queue.pop(0)
-        
-        # Display progress message
+        # 1. If we are not currently caching any block, pick the next one from the queue
+        if self._current_caching_block_idx is None:
+            if not self._idle_cache_queue:
+                if self._idle_timer:
+                    self._idle_timer.stop()
+                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                    self.mw.statusBar.showMessage("Previews fully cached.", 3000)
+                return
+
+            block_idx = self._idle_cache_queue.pop(0)
+
+            if block_idx < 0 or block_idx >= len(self.mw.data_store.data):
+                # Skip invalid blocks
+                QTimer.singleShot(0, self._cache_next_idle_block)
+                return
+
+            cache_key = self.get_cache_key(block_idx, None)
+            block_data = self.mw.data_store.data[block_idx]
+            if not isinstance(block_data, list):
+                # Skip invalid data
+                QTimer.singleShot(0, self._cache_next_idle_block)
+                return
+
+            # Check if already fully cached
+            if cache_key in self.cache:
+                cache_val = self.cache[cache_key]
+                if cache_val.get('next_index', 0) >= len(block_data):
+                    self.cache.move_to_end(cache_key)
+                    # Proceed to the next block immediately
+                    QTimer.singleShot(0, self._cache_next_idle_block)
+                    return
+
+            # Initialize state for this block
+            self._current_caching_block_idx = block_idx
+            self._current_caching_key = cache_key
+            self._current_caching_lines = []
+            self._current_caching_next_idx = 0
+
+        # 2. We are in the middle of caching a block. Process items within time budget.
+        block_idx = self._current_caching_block_idx
+        cache_key = self._current_caching_key
+        block_data = self.mw.data_store.data[block_idx]
+        total_strings = len(block_data)
+
+        # Update status message with progress within the block
         total_cache_count = getattr(self, '_total_idle_cache_count', 1)
         cached_count = total_cache_count - len(self._idle_cache_queue)
         if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-            self.mw.statusBar.showMessage(f"Caching previews: {cached_count}/{total_cache_count} blocks...", 2000)
+            percent = int((self._current_caching_next_idx / total_strings) * 100) if total_strings > 0 else 100
+            self.mw.statusBar.showMessage(
+                f"Caching previews: {cached_count}/{total_cache_count} blocks ({percent}% of block {block_idx+1})...", 
+                2000
+            )
 
-        if block_idx < 0 or block_idx >= len(self.mw.data_store.data):
-            return
+        start_time = time.perf_counter()
+        time_budget = 0.010  # 10ms budget per tick
 
-        cache_key = self.get_cache_key(block_idx, None)
-        if cache_key in self.cache:
-            self.cache.move_to_end(cache_key)
-            cache_val = self.cache[cache_key]
-            block_data = self.mw.data_store.data[block_idx]
-            if isinstance(block_data, list) and cache_val.get('next_index', 0) >= len(block_data):
-                return
-
-        block_data = self.mw.data_store.data[block_idx]
-        if not isinstance(block_data, list):
-            return
-
-        target_indices = list(range(len(block_data)))
-        preview_lines = []
-
-        for real_idx in target_indices:
+        while self._current_caching_next_idx < total_strings:
+            real_idx = self._current_caching_next_idx
             text_for_preview_raw, _ = self.data_processor.get_current_string_text(block_idx, real_idx)
             if self.mw.current_game_rules:
                 preview_line_text = self.mw.current_game_rules.get_text_representation_for_preview(str(text_for_preview_raw))
             else:
                 preview_line_text = str(text_for_preview_raw)
-            preview_lines.append(preview_line_text)
+            
+            self._current_caching_lines.append(preview_line_text)
+            self._current_caching_next_idx += 1
 
-        self.cache[cache_key] = {
-            'lines': preview_lines,
-            'next_index': len(target_indices),
-            'target_indices': target_indices
-        }
-        self.cache.move_to_end(cache_key)
-        if len(self.cache) > self.MAX_CACHE_SIZE:
-            self.cache.popitem(last=False)
+            # Check if time budget is exceeded
+            if time.perf_counter() - start_time > time_budget:
+                break
+
+        # 3. Handle caching tick result
+        if self._current_caching_next_idx >= total_strings:
+            # Block is fully cached
+            target_indices = list(range(total_strings))
+            self.cache[cache_key] = {
+                'lines': self._current_caching_lines,
+                'next_index': total_strings,
+                'target_indices': target_indices
+            }
+            self.cache.move_to_end(cache_key)
+            if len(self.cache) > self.MAX_CACHE_SIZE:
+                self.cache.popitem(last=False)
+
+            # Reset caching state
+            self._current_caching_block_idx = None
+            self._current_caching_key = None
+            self._current_caching_lines = []
+            self._current_caching_next_idx = 0
+
+            # Restore standard idle interval (200ms) for the next block
+            if self._idle_timer:
+                self._idle_timer.setInterval(200)
+        else:
+            # Block not finished, schedule next slice quickly (e.g., 30ms)
+            if self._idle_timer:
+                self._idle_timer.setInterval(30)

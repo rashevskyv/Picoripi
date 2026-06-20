@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.048] - 2026-06-20
+
+### 🚀 Added
+- **Time-Sliced Background Pre-Caching (B05)**:
+  - Redesigned the background idle caching loop `_cache_next_idle_block` to process preview lines in small increments restricted by a 10ms execution budget. This completely avoids micro-stuttering on massive blocks containing thousands of lines.
+  - Implemented automatic acceleration of the timer (30ms interval) while a block is partially cached, and restoration of the standard 200ms background pause once the block is completed.
+  - Added robust caching cancellation `cancel_idle_caching()` which clears current queues and resets caching state. This is hooked up to pre-cache rebuilds and project closure.
+  - Added queue constraints to restrict `_idle_cache_queue` to the `MAX_CACHE_SIZE = 15` nearest blocks, preventing memory and CPU wastage on large-scale projects.
+  - Added a proxy `cancel_idle_caching` to `PreviewUpdater` and implemented cancellation on project close inside `close_project_action`.
+- **Stabilization Testing**:
+  - Created a new test file `tests/test_ui/test_updaters/test_preview_cache_stabilization.py` containing comprehensive unit tests verifying queue limits, caching cancellation, time-slicing logic, and store success conditions.
+
 ## [0.3.047] - 2026-06-20
 
 ### ⚙️ Changed
