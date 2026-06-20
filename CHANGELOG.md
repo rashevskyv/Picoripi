@@ -1,5 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.045] - 2026-06-20
+
+### 🚀 Added
+- **Robust Unit Testing Coverage**:
+  - Expanded `tests/test_core/test_durable_session.py` to validate stale JSON vs newer Pickle fallback behavior, separate dirty flag timer tracks, atomic writing resilience under IOErrors, and complex Undo/Redo stacked action roundtrips.
+
+### ⚙️ Changed
+- **Durable JSON Checkpoint Stabilizations**:
+  - **Freshness Policy**: Introduced `saved_at` timestamp comparison inside `load_session_file` to resolve conflicts where stale JSON checkpoints could overwrite newer Pickle autosave files after application crashes.
+  - **Separate Dirty State Flags**: De-conflicted dirty trackers by splitting them into `_session_dirty` (Pickle autosave debounce) and `_durable_session_dirty` (durable JSON timer). `schedule_autosave` now marks both, preventing quick Pickle dumps from prematurely clearing JSON saves.
+  - **Atomic JSON Writes**: Replaced raw file writers with atomic `.tmp` file writing, flushing/fsync-ing, and `Path.replace` replacement to prevent session corruption on sudden power-off or disk failure.
+- **QThread Test Stabilization**:
+  - Stabilized `test_autofix_worker_real_thread_lifecycle` and `test_autofix_worker_real_thread_cancellation` in `tests/test_handlers/test_autofix_worker.py` under heavy CPU load from `pytest-xdist`.
+  - Replaced non-thread-safe `MagicMock` game rules with a clean and thread-safe `FakeGameRules` helper class.
+  - Replaced flaky `qtbot.waitUntil` signal monitoring with robust `QThread.wait()` execution tracking and queued signal propagation using `QCoreApplication.processEvents()`, eliminating timing issues under extreme CPU starvation.
+
 ## [0.3.044] - 2026-06-19
 
 ### 🚀 Added

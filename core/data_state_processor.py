@@ -18,6 +18,7 @@ class DataStateProcessor:
         self.mw = main_window
 
         self._session_dirty = False
+        self._durable_session_dirty = False
         try:
             self.autosave_timer = QTimer()
             self.autosave_timer.setSingleShot(True)
@@ -1204,9 +1205,15 @@ class DataStateProcessor:
         undo_stack_serialized = [self._serialize_action(a) for a in snapshot.get("undo_stack", [])]
         redo_stack_serialized = [self._serialize_action(a) for a in snapshot.get("redo_stack", [])]
 
-        # 5. Build final json-compatible dictionary
+        # 5. Serialize block_to_project_file_map (ints to strings)
+        block_to_file_serialized = {}
+        for key, val in snapshot.get("block_to_project_file_map", {}).items():
+            block_to_file_serialized[str(key)] = val
+
+        # 6. Build final json-compatible dictionary
         json_snapshot = {
             "version": 1,
+            "saved_at": snapshot.get("saved_at", 0.0),
             "json_path": snapshot.get("json_path"),
             "edited_json_path": snapshot.get("edited_json_path"),
             "edited_data": edited_data_serialized,
@@ -1234,7 +1241,7 @@ class DataStateProcessor:
             "block_names": snapshot.get("block_names", {}),
             "unsaved_changes": snapshot.get("unsaved_changes", False),
             "unsaved_block_indices": unsaved_blocks,
-            "block_to_project_file_map": snapshot.get("block_to_project_file_map", {}),
+            "block_to_project_file_map": block_to_file_serialized,
             "problems_per_subline": problems_serialized,
         }
         return json_snapshot
@@ -1279,6 +1286,7 @@ class DataStateProcessor:
         # 6. Rebuild final snapshot dict
         snapshot = {
             "version": 1,
+            "saved_at": json_data.get("saved_at", 0.0),
             "json_path": json_data.get("json_path"),
             "edited_json_path": json_data.get("edited_json_path"),
             "edited_data": edited_data_deserialized,
@@ -1314,6 +1322,7 @@ class DataStateProcessor:
     def schedule_autosave(self) -> None:
         """Schedule session autosave after a short delay (debounce)."""
         self._session_dirty = True
+        self._durable_session_dirty = True
         if getattr(self, 'autosave_timer', None) is not None:
             self.autosave_timer.start()
 
@@ -1330,9 +1339,11 @@ class DataStateProcessor:
         try:
             data_store = getattr(self.mw, 'data_store', None)
             if data_store:
+                import time
                 # Create parent directories if they don't exist
                 session_path.parent.mkdir(parents=True, exist_ok=True)
                 snapshot = data_store.get_session_snapshot()
+                snapshot["saved_at"] = time.time()
                 with session_path.open('wb') as f:
                     pickle.dump(snapshot, f)
                 self._session_dirty = False
@@ -1342,7 +1353,7 @@ class DataStateProcessor:
 
     def _save_durable_session_json(self, force: bool = False) -> None:
         """Autosave entire data_store into a JSON file if dirty or forced."""
-        if not force and not getattr(self, '_session_dirty', False):
+        if not force and not getattr(self, '_durable_session_dirty', False):
             # No changes were made since last save, skip file writing
             return
 
@@ -1353,12 +1364,27 @@ class DataStateProcessor:
         try:
             data_store = getattr(self.mw, 'data_store', None)
             if data_store:
+                import time
+                import os
                 json_path.parent.mkdir(parents=True, exist_ok=True)
                 snapshot = data_store.get_session_snapshot()
+                snapshot["saved_at"] = time.time()
                 json_snapshot = self.serialize_session_to_json(snapshot)
-                with json_path.open('w', encoding='utf-8') as f:
+                
+                # Write to temp file first to ensure atomic replacement
+                tmp_path = json_path.with_suffix(json_path.suffix + ".tmp")
+                with tmp_path.open('w', encoding='utf-8') as f:
                     json.dump(json_snapshot, f, ensure_ascii=False, indent=2)
-                self._session_dirty = False
+                    f.flush()
+                    try:
+                        os.fsync(f.fileno())
+                    except Exception:
+                        pass
+                
+                # Atomic replacement
+                tmp_path.replace(json_path)
+                
+                self._durable_session_dirty = False
                 log_debug(f"DSP: Durable JSON session saved to {json_path}")
         except Exception as e:
             log_error(f"DSP: Failed to save durable JSON session: {e}", exc_info=True)
@@ -1368,29 +1394,34 @@ class DataStateProcessor:
         json_path = self.get_durable_session_file_path()
         session_path = self.get_session_file_path()
         
-        snapshot = None
+        json_snapshot = None
+        json_saved_at = 0.0
+        
+        pickle_snapshot = None
+        pickle_saved_at = 0.0
 
-        # 1. Try JSON first
+        # 1. Read JSON snapshot if it exists
         if json_path and json_path.exists():
             try:
                 with json_path.open('r', encoding='utf-8') as f:
                     json_data = json.load(f)
-                snapshot = self.deserialize_session_from_json(json_data)
-                log_info(f"DSP: Loaded session from JSON checkpoint {json_path}")
+                json_snapshot = self.deserialize_session_from_json(json_data)
+                if json_snapshot:
+                    json_saved_at = json_snapshot.get("saved_at", 0.0)
             except Exception as e:
-                log_warning(f"DSP: Failed to load durable JSON session, will fallback: {e}")
-                snapshot = None
+                log_warning(f"DSP: Failed to load durable JSON session: {e}")
+                json_snapshot = None
 
-        # 2. Try Pickle fallback
-        if not snapshot and session_path and session_path.exists():
+        # 2. Read Pickle snapshot if it exists
+        if session_path and session_path.exists():
             try:
                 with session_path.open('rb') as f:
-                    snapshot = pickle.load(f)
+                    pickle_snapshot = pickle.load(f)
 
                 # Support legacy session files that dumped the entire AppDataStore object
-                if snapshot and not isinstance(snapshot, dict):
-                    restored_store = snapshot
-                    snapshot = {
+                if pickle_snapshot and not isinstance(pickle_snapshot, dict):
+                    restored_store = pickle_snapshot
+                    pickle_snapshot = {
                         "version": 1,
                         "json_path": restored_store.__dict__.get("json_path"),
                         "edited_json_path": restored_store.__dict__.get("edited_json_path"),
@@ -1422,10 +1453,31 @@ class DataStateProcessor:
                         "block_to_project_file_map": restored_store.__dict__.get("block_to_project_file_map", {}),
                         "problems_per_subline": dict(restored_store.__dict__.get("problems_per_subline", {})),
                     }
-                log_info(f"DSP: Loaded session from Pickle fallback {session_path}")
+                if pickle_snapshot:
+                    pickle_saved_at = pickle_snapshot.get("saved_at", 0.0)
             except Exception as e:
                 log_error(f"DSP: Failed to load pickle fallback session: {e}", exc_info=True)
-                snapshot = None
+                pickle_snapshot = None
+
+        # 3. Compare saved_at and select the newest snapshot
+        snapshot = None
+        needs_durable_sync = False
+
+        if json_snapshot and pickle_snapshot:
+            if pickle_saved_at > json_saved_at:
+                snapshot = pickle_snapshot
+                needs_durable_sync = True
+                log_info(f"DSP: Pickle session is newer than JSON session ({pickle_saved_at} > {json_saved_at}), using Pickle fallback")
+            else:
+                snapshot = json_snapshot
+                log_info(f"DSP: Loaded session from JSON checkpoint {json_path} ({json_saved_at} >= {pickle_saved_at})")
+        elif json_snapshot:
+            snapshot = json_snapshot
+            log_info(f"DSP: Loaded session from JSON checkpoint {json_path}")
+        elif pickle_snapshot:
+            snapshot = pickle_snapshot
+            needs_durable_sync = True
+            log_info(f"DSP: Loaded session from Pickle fallback {session_path}")
 
         if not snapshot:
             return False
@@ -1466,12 +1518,16 @@ class DataStateProcessor:
                         if string_idx != -1:
                             self.mw.ui_updater.update_text_views()
 
-                # Reset dirty flag and stop timer since loading shouldn't count as a new user change
+                # Reset dirty flags and stop timer since loading shouldn't count as a new user change
                 self._session_dirty = False
+                self._durable_session_dirty = False
                 if getattr(self, 'autosave_timer', None) is not None:
                     self.autosave_timer.stop()
                 if getattr(self, 'durable_session_timer', None) is not None:
                     self.durable_session_timer.start()
+
+                if needs_durable_sync:
+                    self._save_durable_session_json(force=True)
 
                 return True
         except Exception as e:

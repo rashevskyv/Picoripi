@@ -178,3 +178,160 @@ def test_load_session_fallback_to_pickle(dsp, mock_mw, tmp_path):
     loaded = dsp.load_session_file()
     assert loaded is True
     assert mock_mw.data_store.edited_data == {(0, 0): "pickle_val_after_json_fail"}
+
+
+def test_load_session_prefers_newer_pickle_fallback(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.project_manager.project = MagicMock()
+
+    json_file = Path(tmp_path) / ".picoripi_session.json"
+    pickle_file = Path(tmp_path) / ".picoripi_session"
+
+    # Case 1: Pickle is newer than JSON (Pickle: 200.0, JSON: 100.0)
+    # Generate valid JSON snapshot
+    mock_mw.data_store.edited_data = {(0, 0): "old_json_val"}
+    snapshot_json = mock_mw.data_store.get_session_snapshot()
+    snapshot_json["saved_at"] = 100.0
+    
+    json_snapshot = dsp.serialize_session_to_json(snapshot_json)
+    with json_file.open('w', encoding='utf-8') as f:
+        json.dump(json_snapshot, f)
+
+    # Generate valid Pickle snapshot
+    mock_mw.data_store.edited_data = {(0, 0): "new_pickle_val"}
+    snapshot_pickle = mock_mw.data_store.get_session_snapshot()
+    snapshot_pickle["saved_at"] = 200.0
+    with pickle_file.open('wb') as f:
+        pickle.dump(snapshot_pickle, f)
+
+    # Clear state
+    mock_mw.data_store = AppDataStore()
+
+    # Load session: should load from Pickle and trigger atomic JSON sync
+    loaded = dsp.load_session_file()
+    assert loaded is True
+    assert mock_mw.data_store.edited_data == {(0, 0): "new_pickle_val"}
+
+    # Verify JSON was synced (saved_at in JSON should be >= 200.0)
+    with json_file.open('r', encoding='utf-8') as f:
+        synced_json = json.load(f)
+    assert synced_json["edited_data"]["0,0"] == "new_pickle_val"
+    assert synced_json["saved_at"] > 100.0
+
+    # Case 2: JSON is newer than Pickle (Pickle: 300.0, JSON: 400.0)
+    mock_mw.data_store.edited_data = {(0, 0): "newest_json_val"}
+    snapshot_json2 = mock_mw.data_store.get_session_snapshot()
+    snapshot_json2["saved_at"] = 400.0
+    
+    json_snapshot = dsp.serialize_session_to_json(snapshot_json2)
+    with json_file.open('w', encoding='utf-8') as f:
+        json.dump(json_snapshot, f)
+
+    mock_mw.data_store.edited_data = {(0, 0): "older_pickle_val"}
+    snapshot_pickle2 = mock_mw.data_store.get_session_snapshot()
+    snapshot_pickle2["saved_at"] = 300.0
+    with pickle_file.open('wb') as f:
+        pickle.dump(snapshot_pickle2, f)
+
+    # Clear state
+    mock_mw.data_store = AppDataStore()
+
+    # Load session: should load from JSON
+    loaded = dsp.load_session_file()
+    assert loaded is True
+    assert mock_mw.data_store.edited_data == {(0, 0): "newest_json_val"}
+
+
+def test_separate_dirty_flags(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.project_manager.project = MagicMock()
+
+    # Initial state
+    assert dsp._session_dirty is False
+    assert dsp._durable_session_dirty is False
+
+    # schedule_autosave sets both
+    dsp.schedule_autosave()
+    assert dsp._session_dirty is True
+    assert dsp._durable_session_dirty is True
+
+    # Pickle autosave clears only _session_dirty
+    dsp._autosave_session()
+    assert dsp._session_dirty is False
+    assert dsp._durable_session_dirty is True
+
+    # JSON save clears only _durable_session_dirty
+    dsp._save_durable_session_json()
+    assert dsp._session_dirty is False
+    assert dsp._durable_session_dirty is False
+
+
+def test_atomic_json_write(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.project_manager.project = MagicMock()
+    json_file = Path(tmp_path) / ".picoripi_session.json"
+
+    # Pre-populate valid json
+    mock_mw.data_store.edited_data = {(0, 0): "valid_data"}
+    snapshot = mock_mw.data_store.get_session_snapshot()
+    snapshot["saved_at"] = 10.0
+    json_snapshot = dsp.serialize_session_to_json(snapshot)
+    with json_file.open('w', encoding='utf-8') as f:
+        json.dump(json_snapshot, f)
+
+    # Trigger save, but mock path.replace to fail/raise exception
+    mock_mw.data_store.edited_data = {(0, 0): "new_corrupt_attempt"}
+    dsp._durable_session_dirty = True
+
+    with patch.object(Path, "replace", side_effect=IOError("atomic write failed")):
+        dsp._save_durable_session_json(force=True)
+
+    # Verify that the original valid JSON was not truncated or modified
+    assert json_file.exists()
+    with json_file.open('r', encoding='utf-8') as f:
+        loaded = json.load(f)
+    assert loaded["edited_data"]["0,0"] == "valid_data"
+
+
+def test_durable_session_complex_undo_redo_roundtrip(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.project_manager.project = MagicMock()
+
+    json_file = Path(tmp_path) / ".picoripi_session.json"
+
+    # Setup complex actions in undo/redo stack
+    action1 = UndoAction("edit", 0, 0, "old", "new", 123.45, 2, {"meta": "data"})
+    action2 = UndoAction("edit", 0, 1, "old2", "new2", 124.45, None, None)
+    group_action = GroupAction([action1, action2], "group_edit", 125.45)
+    struct_action = StructuralAction("folder_move", {"snap": 1}, {"snap": 2}, "moved", 126.45)
+
+    mock_mw.data_store.undo_stack = [action1, group_action]
+    mock_mw.data_store.redo_stack = [struct_action]
+
+    dsp.schedule_autosave()
+    dsp._save_durable_session_json(force=True)
+    assert json_file.exists()
+
+    # Clear state
+    mock_mw.data_store = AppDataStore()
+
+    # Load session
+    loaded = dsp.load_session_file()
+    assert loaded is True
+
+    # Assert undo/redo stacks are correctly restored with class instances
+    assert len(mock_mw.data_store.undo_stack) == 2
+    assert isinstance(mock_mw.data_store.undo_stack[0], UndoAction)
+    assert mock_mw.data_store.undo_stack[0].old_text == "old"
+    assert mock_mw.data_store.undo_stack[0].metadata == {"meta": "data"}
+
+    assert isinstance(mock_mw.data_store.undo_stack[1], GroupAction)
+    assert len(mock_mw.data_store.undo_stack[1].actions) == 2
+    assert mock_mw.data_store.undo_stack[1].actions[1].new_text == "new2"
+
+    assert len(mock_mw.data_store.redo_stack) == 1
+    assert isinstance(mock_mw.data_store.redo_stack[0], StructuralAction)
+    assert mock_mw.data_store.redo_stack[0].before_snapshot == {"snap": 1}
+    assert mock_mw.data_store.redo_stack[0].label == "moved"
+
+

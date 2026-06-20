@@ -214,9 +214,19 @@ def test_autofix_worker_cancel_safe_shutdown():
     assert worker._is_cancelled is True
 
 
+class FakeGameRules:
+    def __init__(self, slow=False):
+        self.slow = slow
+
+    def autofix_data_string(self, *args, **kwargs):
+        if self.slow:
+            import time
+            time.sleep(0.02)
+        return ("fixed", True)
+
+
 def test_autofix_worker_real_thread_lifecycle(qtbot):
-    game_rules = MagicMock()
-    game_rules.autofix_data_string.return_value = ("fixed", True)
+    game_rules = FakeGameRules(slow=False)
     
     data = [["line1"]]
     worker = AutofixWorker(
@@ -234,27 +244,51 @@ def test_autofix_worker_real_thread_lifecycle(qtbot):
         page_local=False
     )
     
-    # Wait for the standard QThread.finished signal with a generous timeout to prevent flaky failure on slow CI/CPU
-    with qtbot.waitSignal(worker.finished, timeout=15000):
+    completed_called = False
+    def on_completed(results):
+        nonlocal completed_called
+        completed_called = True
+    worker.completed.connect(on_completed)
+    
+    error_msg = None
+    def on_error(msg):
+        nonlocal error_msg
+        error_msg = msg
+    worker.error.connect(on_error)
+    
+    finished_called = False
+    def on_finished():
+        nonlocal finished_called
+        finished_called = True
+    worker.finished.connect(on_finished)
+    
+    try:
         worker.start()
+        # Wait for the thread to finish execution on OS level
+        finished_ok = worker.wait(15000)
+        assert finished_ok is True, "Worker thread timed out on wait()"
+    finally:
+        worker.cancel()
+        worker.wait(15000)
         
-    worker.wait()
-    assert not worker.isRunning()
+    # Process queued signals
+    from PyQt6.QtCore import QCoreApplication
+    QCoreApplication.processEvents()
+        
+    assert error_msg is None, f"Worker failed with error: {error_msg}"
+    assert finished_called is True, "Worker thread did not even finish"
+    assert completed_called is True, "Worker finished but completed was not called"
 
 
 def test_autofix_worker_real_thread_cancellation(qtbot):
-    game_rules = MagicMock()
-    # Simulate a slow rule execution to allow cancellation to take place
-    import time
-    def slow_autofix(*args, **kwargs):
-        time.sleep(0.1)
-        return ("fixed", True)
-    game_rules.autofix_data_string.side_effect = slow_autofix
+    game_rules = FakeGameRules(slow=True)
     
-    data = [["line1", "line2", "line3"]]
+    # Use enough strings to give it time to receive cancel request
+    data = [["line1", "line2", "line3", "line4", "line5", "line6", "line7", "line8", "line9", "line10"]]
+    target = [(0, i) for i in range(10)]
     worker = AutofixWorker(
         game_rules=game_rules,
-        target_strings=[(0, 0), (0, 1), (0, 2)],
+        target_strings=target,
         data=data,
         edited_data={},
         edited_file_data=[],
@@ -267,12 +301,42 @@ def test_autofix_worker_real_thread_cancellation(qtbot):
         page_local=False
     )
     
-    worker.start()
-    assert worker.isRunning()
+    cancelled_called = False
+    def on_cancelled():
+        nonlocal cancelled_called
+        cancelled_called = True
+    worker.cancelled.connect(on_cancelled)
     
-    # Request cancellation within waitSignal context with a generous timeout to prevent flaky failure on slow CI/CPU
-    with qtbot.waitSignal(worker.cancelled, timeout=10000):
+    error_msg = None
+    def on_error(msg):
+        nonlocal error_msg
+        error_msg = msg
+    worker.error.connect(on_error)
+    
+    finished_called = False
+    def on_finished():
+        nonlocal finished_called
+        finished_called = True
+    worker.finished.connect(on_finished)
+    
+    try:
+        worker.start()
+        # Give the thread a little time to start executing loop
+        qtbot.wait(100)
         worker.cancel()
         
-    worker.wait()
-    assert not worker.isRunning()
+        # Wait for the thread to finish execution on OS level
+        finished_ok = worker.wait(15000)
+        assert finished_ok is True, "Worker thread timed out on wait()"
+    finally:
+        worker.cancel()
+        worker.wait(15000)
+        
+    # Process queued signals
+    from PyQt6.QtCore import QCoreApplication
+    QCoreApplication.processEvents()
+        
+    assert error_msg is None, f"Worker failed with error: {error_msg}"
+    assert finished_called is True, "Worker thread did not even finish"
+    assert cancelled_called is True, "Worker finished but cancelled was not called"
+
