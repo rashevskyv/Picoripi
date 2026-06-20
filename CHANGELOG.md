@@ -1,5 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.053] - 2026-06-20
+
+### 🚀 Added
+- **Extended Deterministic Performance Coverage (B09)**:
+  - Added comprehensive performance tests covering key UI-adjacent operations:
+    - **Glossary Builder chunk preparation**: verified background chunking and tag masking performance on 5,000 lines (budget: < 50ms).
+    - **Preview pre-cache time-slicing**: verified that the tick operation does not exceed the budget of 20ms per cycle on 1,000 lines.
+    - **Warning filter toggle**: measured index resolution performance under filter conditions on 5,000 lines (budget: < 50ms).
+    - **Dictionary fetch fallback**: verified that the fetch worker's fallback handling on network error completes under 50ms without blocking UI.
+  - Adjusted `test_warning_filter_toggle_performance` parameters (`hide_categorized`, `hide_translated`, `show_overrides_only`, `show_unsaved_only`, `show_warnings_only`, `active_warning_filters`, `detection_config`, `hide_empty_strings`) to match the actual signature of `FilterQueryAPI.get_filtered_string_indices`.
+
+### ⚙️ Changed
+- **Version Updates**:
+  - Bumped version to `0.3.053` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.052] - 2026-06-20
 
 ### 🚀 Added

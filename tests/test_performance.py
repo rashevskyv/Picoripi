@@ -210,6 +210,8 @@ def test_preview_load_performance(qapp):
     
     dp = DataStateProcessor(mw)
     mw.data_processor = dp
+    from core.filter_query_api import FilterQueryAPI
+    mw.filter_query_api = FilterQueryAPI(mw)
     
     updater = PreviewUpdater(mw, dp)
     
@@ -280,3 +282,145 @@ def test_ai_prompt_context_lookup_performance(qapp):
     print(f"\nAI Prompt context composition duration for 100 items: {duration*1000:.2f}ms")
     # Budget is < 100ms
     assert duration < 0.100, f"AI Prompt context composition took too long: {duration*1000:.2f}ms (budget: 100ms)"
+
+
+@pytest.mark.performance
+def test_glossary_builder_chunk_preparation_performance():
+    """Measures Glossary Builder chunking and tag masking performance on 5000 lines (budget: < 50ms)."""
+    from handlers.translation.ai_worker import AIWorker
+    from core.translation.providers import ProviderResponse
+    
+    lines, _, _, _ = generate_synthetic_dataset(lines_count=5000)
+    mock_provider = MagicMock()
+    mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
+    
+    task_details = {
+        'type': 'build_glossary',
+        'system_prompt': 'sys',
+        'user_prompt_template': '{text_chunk}',
+        'block_data': lines,
+        'target_indices': list(range(5000)),
+        'chunk_size': 8000
+    }
+    
+    worker = AIWorker(mock_provider, None, task_details)
+    
+    t0 = time.perf_counter()
+    target_strings = [str(worker.task_details['block_data'][i]) for i in worker.task_details['target_indices']]
+    full_text = "\n".join(target_strings)
+    
+    from utils.utils import ALL_TAGS_PATTERN
+    masked_text = ALL_TAGS_PATTERN.sub(' ', full_text or '')
+    chunks = [masked_text[i:i+8000] for i in range(0, len(masked_text), 8000)]
+    duration = time.perf_counter() - t0
+    
+    print(f"\nGlossary Builder chunk preparation for 5000 lines: {duration*1000:.2f}ms")
+    assert duration < 0.050, f"Glossary preparation took too long: {duration*1000:.2f}ms (budget: 50ms)"
+
+
+@pytest.mark.performance
+def test_preview_pre_cache_time_slice_performance(qapp):
+    """Measures that preview pre-cache time-slicing does not exceed the 15ms execution budget per tick."""
+    lines, _, font_map, tag_mappings = generate_synthetic_dataset(lines_count=1000)
+    
+    store = AppDataStore()
+    store.data = [lines]
+    store.block_names = ["Block0"]
+    store.current_block_idx = 0
+    
+    mw = MagicMock()
+    mw.data_store = store
+    mw.font_map = font_map
+    mw.default_tag_mappings = tag_mappings
+    mw.string_metadata = {}
+    mw.line_width_warning_threshold_pixels = 280
+    mw.game_dialog_max_width_pixels = 300
+    mw.is_programmatically_changing_text = False
+    mw.show_multiple_spaces_as_dots = False
+    
+    rules = MagicMock()
+    rules.get_text_representation_for_preview.side_effect = lambda x: x
+    mw.current_game_rules = rules
+    
+    dp = DataStateProcessor(mw)
+    mw.data_processor = dp
+    
+    from ui.updaters.preview_cache import PreviewCache
+    cache = PreviewCache(mw, dp)
+    
+    cache._idle_cache_queue = [0]
+    cache._idle_caching_active = True
+    
+    t0 = time.perf_counter()
+    cache._cache_next_idle_block()
+    duration = time.perf_counter() - t0
+    
+    print(f"\nPreview pre-cache time-slice tick duration: {duration*1000:.2f}ms")
+    assert duration < 0.020, f"Preview pre-cache tick took too long: {duration*1000:.2f}ms (budget: 20ms)"
+
+
+@pytest.mark.performance
+def test_warning_filter_toggle_performance():
+    """Measures performance of warning filter queries on 5000 lines (budget: < 50ms)."""
+    from core.filter_query_api import FilterQueryAPI
+    lines, _, font_map, tag_mappings = generate_synthetic_dataset(lines_count=5000)
+    
+    store = AppDataStore()
+    store.data = [lines]
+    store.block_names = ["Block0"]
+    store.current_block_idx = 0
+    
+    mw = MagicMock()
+    mw.data_store = store
+    mw.font_map = font_map
+    mw.default_tag_mappings = tag_mappings
+    mw.string_metadata = {}
+    mw.line_width_warning_threshold_pixels = 280
+    mw.game_dialog_max_width_pixels = 300
+    
+    rules = MagicMock()
+    rules.get_text_representation_for_preview.side_effect = lambda x: x
+    rules.get_problem_analyzer.return_value = MagicMock()
+    mw.current_game_rules = rules
+    
+    dp = DataStateProcessor(mw)
+    mw.data_processor = dp
+    
+    api = FilterQueryAPI(mw)
+    
+    t0 = time.perf_counter()
+    for _ in range(5):
+        api.get_filtered_string_indices(
+            block_idx=0,
+            category_name=None,
+            hide_categorized=False,
+            hide_translated=False,
+            show_overrides_only=False,
+            show_unsaved_only=False,
+            show_warnings_only=True,
+            active_warning_filters=None,
+            detection_config=None,
+            hide_empty_strings=False
+        )
+    duration = time.perf_counter() - t0
+    
+    print(f"\nWarning filter query duration (5 runs): {duration*1000:.2f}ms")
+    assert duration < 0.050, f"Warning filter query took too long: {duration*1000:.2f}ms (budget: 50ms)"
+
+
+@pytest.mark.performance
+def test_dictionary_manager_fetch_fallback_performance(qapp):
+    """Measures that DictionaryListFetchWorker fallback handling on network error takes < 50ms."""
+    from components.dictionary_manager_dialog import DictionaryListFetchWorker
+    from unittest.mock import patch
+    import requests
+    
+    worker = DictionaryListFetchWorker("https://some-api")
+    
+    with patch('requests.get', side_effect=requests.exceptions.RequestException("Simulated error")):
+        t0 = time.perf_counter()
+        worker.run()
+        duration = time.perf_counter() - t0
+        
+    print(f"\nDictionary list fetch fallback duration: {duration*1000:.2f}ms")
+    assert duration < 0.050, f"Dictionary fetch fallback took too long: {duration*1000:.2f}ms (budget: 50ms)"

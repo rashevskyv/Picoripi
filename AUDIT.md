@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.052
+> **Остання версія проекту:** v0.3.053
 > **Дата оновлення:** 2026-06-20
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 213 pytest test-функцій.
 
@@ -78,6 +78,9 @@
   - Перенесено збір рядків, маскування тегів регулярними виразами та нарізання тексту на чанки з головного UI-потоку в фоновий потік `QThread` (всередину `AIWorker`).
   - Оновлено `_start_async_glossary_task` для динамічного оновлення статус-бару через сигнал `total_chunks_calculated`.
   - Додано нові тести у `test_glossary_builder_handler.py` для перевірки фонової обробки та оновлено існуючі тести.
+- **B09. Розширити deterministic performance coverage для UI-шляхів.**
+  - Додано детерміновані тести продуктивності для фонової підготовки чанків Glossary Builder (chunking & masking), порційного фонового кешування попереднього перегляду (time-sliced pre-cache tick), фільтрації за попередженнями (warning filter toggle) та обробки помилок завантаження списку словників (Dictionary Manager fallback).
+  - Всі 9 тестів продуктивності успішно виконуються в рамках визначених бюджетів часу.
 
 
 
@@ -107,11 +110,7 @@
 
 Рішення: не робити великий одномоментний rewrite. Розділяти тільки ті частини, де вже є тести або чіткий контракт: worker lifecycle, AI task orchestration, session persistence, settings panels, MemePalace pipeline steps.
 
-### B09. Performance coverage є, але не покриває всі ризикові UI-шляхи
 
-`tests/test_performance.py` існує і маркер `performance` виключений з дефолтного pytest через `pyproject.toml`, що правильно для стабільності. Але бракує deterministic budgets для: `populate_strings_for_block()` з virtual/chapter/speaker mappings, idle preview pre-cache, warning filter toggle у block tree, Dictionary Manager remote-list fallback, Glossary Builder chunk preparation.
-
-Рішення: додати синтетичні GUI-adjacent performance tests без залежності від реального timing event loop, з великими deterministic fixtures.
 
 ## 4. Пріоритетний список дій (TODO)
 
@@ -155,7 +154,7 @@
   * *Складність:* Висока
   * *Файли:* `core/mempalace_worker.py`, `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`
 
-- `[ ]` **B09. Розширити deterministic performance coverage для UI-шляхів**
+- `[x]` **B09. Розширити deterministic performance coverage для UI-шляхів**
   * *Опис:* Додати performance budgets для preview population, idle cache, warning filter toggle, glossary chunk preparation і Dictionary Manager fallback без залежності від реального мережевого I/O чи нестабільного GUI timing.
   * *Складність:* Середня
   * *Файли:* `tests/test_performance.py`, `tests/test_ui/`, `tests/test_handlers/`, `ui/updaters/preview_cache.py`, `components/dictionary_manager_dialog.py`, `handlers/translation/glossary_builder_handler.py`
