@@ -98,13 +98,14 @@ class GlossaryBuilderHandler:
         if not self.prompt_data:
             return
 
-        # 1. Get all text from the block
-        target_strings = []
+        # 1. Get block data and target indices
+        block_data = []
+        target_indices = []
         if self.mw.data_store.data and block_id < len(self.mw.data_store.data):
-            block_data = self.mw.data_store.data[block_id]
+            block_data = list(self.mw.data_store.data[block_id])
             
             # Determine target indices
-            target_indices = range(len(block_data))
+            target_indices = list(range(len(block_data)))
             if category_name and hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
                 pm = self.mw.project_manager
                 block_map = getattr(self.mw, 'block_to_project_file_map', {})
@@ -113,14 +114,17 @@ class GlossaryBuilderHandler:
                     block = pm.project.blocks[proj_b_idx]
                     category = next((c for c in block.get_all_categories_flat() if c.name == category_name), None)
                     if category:
-                        target_indices = category.line_indices
+                        target_indices = list(category.line_indices)
                         log_debug(f"Building glossary only for category '{category_name}' ({len(target_indices)} lines)")
-            
-            target_strings = [str(block_data[i]) for i in target_indices if i < len(block_data)]
-        
-        full_text = "\n".join(target_strings)
-        
-        if not full_text.strip():
+
+        # Verify that we actually have non-empty text in targeted strings
+        has_content = False
+        for idx in target_indices:
+            if idx < len(block_data) and str(block_data[idx]).strip():
+                has_content = True
+                break
+
+        if not has_content:
             QMessageBox.information(self.mw, "Info", "The selected block/category is empty. Nothing to process.")
             return
 
@@ -155,19 +159,9 @@ class GlossaryBuilderHandler:
             QMessageBox.critical(self.mw, "AI Error", f"Failed to initialize AI provider: {e}")
             return
 
-        # 4. Split text into chunks
-        raw_chunks = self._split_text_into_chunks(full_text, chunk_size)
-        chunks = [self._mask_tags_for_ai(chunk) for chunk in raw_chunks]
-        total_chunks = len(chunks)
-        log_debug(f"Splitting text into {total_chunks} chunks of size ~{chunk_size}.")
+        self._start_async_glossary_task(block_id, provider, glossary_ai_config, block_data, target_indices, chunk_size)
 
-        if not chunks:
-            QMessageBox.information(self.mw, "Finished", "Nothing to send to the AI after preprocessing.")
-            return
-
-        self._start_async_glossary_task(block_id, provider, glossary_ai_config, chunks)
-
-    def _start_async_glossary_task(self, block_id: int, provider, glossary_ai_config: dict, chunks: list[str]) -> None:
+    def _start_async_glossary_task(self, block_id: int, provider, glossary_ai_config: dict, block_data: list, target_indices: list, chunk_size: int) -> None:
         """Internal helper to start async glossary task."""
         status_bar = getattr(self.mw, 'statusBar', None)
 
@@ -192,7 +186,9 @@ class GlossaryBuilderHandler:
             'type': 'build_glossary',
             'system_prompt': self.prompt_data['system_prompt'],
             'user_prompt_template': self.prompt_data['user_prompt_template'],
-            'chunks': chunks,
+            'block_data': block_data,
+            'target_indices': target_indices,
+            'chunk_size': chunk_size,
             'dialog_steps': self._status_dialog.steps,
             'block_id': block_id
         }
@@ -216,11 +212,11 @@ class GlossaryBuilderHandler:
         self._worker.finished.connect(lambda: setattr(self, '_worker', None))
 
         if status_bar:
-            total_chunks = len(chunks)
+            self._worker.total_chunks_calculated.connect(lambda total, skipped: setattr(self, '_current_total_chunks', total))
             self._worker.progress_updated.connect(
-                lambda completed, total=total_chunks: status_bar.showMessage(
-                    f"Processing chunk {min(completed, total)}/{total}...", 0
-                )
+                lambda completed: status_bar.showMessage(
+                    f"Processing chunk {min(completed, getattr(self, '_current_total_chunks', 1))}/{getattr(self, '_current_total_chunks', 1)}...", 0
+                ) if getattr(self, '_current_total_chunks', None) is not None else None
             )
 
         self._status_dialog.cancelled.connect(self._worker.cancel)

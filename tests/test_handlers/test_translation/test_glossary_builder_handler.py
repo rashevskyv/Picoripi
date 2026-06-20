@@ -114,7 +114,9 @@ def test_gbh_build_glossary_for_block_success(mock_provider, mock_start, gbh):
     gbh.build_glossary_for_block(0)
     mock_start.assert_called_once()
     assert mock_start.call_args[0][0] == 0 # block_id
-    assert mock_start.call_args[0][3] == ["Line 1\nLine 2"] # chunks
+    assert mock_start.call_args[0][3] == ["Line 1", "Line 2"] # block_data
+    assert mock_start.call_args[0][4] == [0, 1] # target_indices
+    assert mock_start.call_args[0][5] == 100 # chunk_size
 
 @patch('handlers.translation.glossary_builder_handler.QApplication.processEvents')
 @patch('handlers.translation.glossary_builder_handler.AIWorker')
@@ -129,12 +131,55 @@ def test_gbh_start_async_glossary_task(mock_dialog, mock_thread, mock_worker, mo
     gbh.mw.statusBar = MagicMock()
     gbh.mw.glossary_manager = MagicMock()
     
-    gbh._start_async_glossary_task(0, mock_provider, {"model": "gpt-3"}, ["chunk1"])
+    gbh._start_async_glossary_task(0, mock_provider, {"model": "gpt-3"}, ["Line 1", "Line 2"], [0, 1], 100)
     
     mock_dialog_inst.start.assert_called()
     mock_thread_inst.start.assert_called()
     assert gbh._worker == mock_worker_inst
     assert gbh._thread == mock_thread_inst
+
+def test_ai_worker_build_glossary_background_processing():
+    from handlers.translation.ai_worker import AIWorker
+    from core.translation.providers import ProviderResponse
+    
+    mock_provider = MagicMock()
+    mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
+    
+    task_details = {
+        'type': 'build_glossary',
+        'system_prompt': 'sys',
+        'user_prompt_template': '{text_chunk}',
+        'block_data': ["Hello {Color:Red}World!", "Line [PLAYER] 2"],
+        'target_indices': [0, 1],
+        'chunk_size': 20,
+        'dialog_steps': ["step1", "step2", "step3", "step4"],
+        'block_id': 0
+    }
+    
+    worker = AIWorker(mock_provider, None, task_details)
+    
+    # We call run directly to simulate execution in the worker thread
+    worker.run()
+    
+    # Verify that the provider was called with masked tags and chunks
+    # Since chunk_size is 20, and aggregated text is "Hello {Color:Red}World!\nLine [PLAYER] 2"
+    # Tag-masked version: "Hello  World!\nLine   2" (len: 23)
+    # With chunk_size 20, it splits into:
+    # 1. "Hello  World!\nLine  "
+    # 2. " 2"
+    assert mock_provider.translate.call_count == 2
+    
+    call_args_1 = mock_provider.translate.call_args_list[0][0][0]
+    call_args_2 = mock_provider.translate.call_args_list[1][0][0]
+    
+    # Check that system prompt is correct
+    assert call_args_1[0] == {"role": "system", "content": "sys"}
+    # Check user chunks
+    assert call_args_1[1]["role"] == "user"
+    assert call_args_1[1]["content"] == "Hello  Wor"
+    assert call_args_2[1]["content"] == "ld!\nLine   2"
+
+
 
 @patch('handlers.translation.glossary_builder_handler.QMessageBox')
 def test_gbh_on_glossary_success(mock_box, gbh):

@@ -80,7 +80,9 @@ def test_AIWorker_run_build_glossary(worker_deps):
     
     task_details = {
         'type': 'build_glossary',
-        'chunks': ['chunk1'],
+        'block_data': ['test'],
+        'target_indices': [0],
+        'chunk_size': 8000,
         'dialog_steps': ['1', '2', '3', '4']
     }
     worker = AIWorker(provider, prompt_composer, task_details)

@@ -188,14 +188,39 @@ class AIWorker(QObject):
             if task_type == 'build_glossary':
                 system_prompt = self.task_details.get('system_prompt', '')
                 user_template = self.task_details.get('user_prompt_template', '{text_chunk}')
-                chunks: List[str] = self.task_details.get('chunks', [])
+                block_data = self.task_details.get('block_data', [])
+                target_indices = self.task_details.get('target_indices', [])
+                chunk_size = self.task_details.get('chunk_size', 8000)
                 dialog_steps = self.task_details.get('dialog_steps', [])
+
+                # 1. Background text aggregation
+                target_strings = [str(block_data[i]) for i in target_indices if i < len(block_data)]
+                full_text = "\n".join(target_strings)
+
+                # 2. Background chunking
+                raw_chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
+                
+                # 3. Background tag masking
+                from utils.utils import ALL_TAGS_PATTERN
+                chunks = [ALL_TAGS_PATTERN.sub(' ', chunk or '') for chunk in raw_chunks]
+                
                 total_chunks = len(chunks)
+                log_debug(f"AIWorker: Splitting text into {total_chunks} chunks of size ~{chunk_size} in background.")
+
                 aggregated_terms: List[Dict[str, Any]] = []
 
                 self.total_chunks_calculated.emit(total_chunks, 0)
                 if dialog_steps:
                     self.step_updated.emit(0, dialog_steps[0], AIStatusDialog.STATUS_IN_PROGRESS)
+
+                if not chunks:
+                    aggregated_payload = ProviderResponse(text="[]", raw_payload=[])
+                    if dialog_steps:
+                        self.step_updated.emit(1, dialog_steps[1], AIStatusDialog.STATUS_DONE)
+                        self.step_updated.emit(2, dialog_steps[2], AIStatusDialog.STATUS_DONE)
+                        self.step_updated.emit(3, dialog_steps[3], AIStatusDialog.STATUS_DONE)
+                    self.success.emit(aggregated_payload, self.task_details)
+                    return
 
                 for idx, chunk in enumerate(chunks):
                     if self.is_cancelled:

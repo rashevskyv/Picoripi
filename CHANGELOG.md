@@ -1,5 +1,20 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.050] - 2026-06-20
+
+### 🚀 Added
+- **Glossary Builder Background Offload (B06)**:
+  - Moved string collection, tag masking using `ALL_TAGS_PATTERN`, and text chunking logic from the main UI thread into the background `AIWorker` thread (`task_type == 'build_glossary'`). This prevents UI freezes and memory spikes when preparing large categories or files for translation/glossary generation.
+  - Integrated `total_chunks_calculated` signal to dynamic progress updates in the main window's status bar.
+- **Unit Testing**:
+  - Added `test_ai_worker_build_glossary_background_processing` to verify background chunking and tag masking logic.
+  - Updated and fixed `test_AIWorker_run_build_glossary` in `tests/test_handlers/test_translation/test_ai_worker.py`.
+
+### ⚙️ Changed
+- **Version Updates & Docs**:
+  - Bumped version to `0.3.050` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+  - Moved B06 task in `AUDIT.md` from the TODO list/Active Issues into the Completed section.
+
 ## [0.3.049] - 2026-06-20
 
 ### ⚙️ Changed

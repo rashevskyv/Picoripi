@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.049
+> **Остання версія проекту:** v0.3.050
 > **Дата оновлення:** 2026-06-20
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 213 pytest test-функцій.
 
@@ -74,6 +74,11 @@
   - Реалізовано порційну (time-sliced) фонову обробку великих блоків з лімітом виконання не більше 10 мс на один тік таймера.
   - Обмежено чергу фонового кешування до 15 найближчих блоків для усунення перевитрат пам'яті та CPU.
   - Додано надійне скасування фонового кешування (включаючи відміну запланованого запуску) при переналаштуванні або закритті проекту.
+- **B06. Винести підготовку Glossary Builder chunks з UI thread.**
+  - Перенесено збір рядків, маскування тегів регулярними виразами та нарізання тексту на чанки з головного UI-потоку в фоновий потік `QThread` (всередину `AIWorker`).
+  - Оновлено `_start_async_glossary_task` для динамічного оновлення статус-бару через сигнал `total_chunks_calculated`.
+  - Додано нові тести у `test_glossary_builder_handler.py` для перевірки фонової обробки та оновлено існуючі тести.
+
 
 
 
@@ -89,17 +94,12 @@
 Рішення: залишити pickle тільки як короткоживучий crash snapshot, але додати окремий durable checkpoint з явною схемою, `version`, validation і migration. Писати його рідше: за таймером, перед довгими операціями і при штатному закритті.
 
 
-### B06. Glossary Builder формує великий prompt синхронно перед стартом AI worker-а
-
-`handlers/translation/glossary_builder_handler.py:96-168` збирає `target_strings`, робить `full_text = "\n".join(...)`, маскує tags і нарізає chunks до запуску `_start_async_glossary_task()`. Для великих блоків або категорій це може дати помітний UI freeze і зайвий пік пам'яті.
-
-Рішення: винести підготовку chunks у worker, або зробити генератор/streaming chunk builder з progress/cancel до старту AI-запитів.
-
 ### B07. `FilterQueryAPI` зменшив дублювання, але лишив сильний coupling із MainWindow
 
 Після завершеної централізації `FilterQueryAPI` успішно прибрав дублювання між preview і block tree, але наступний архітектурний борг лишається: `core/filter_query_api.py` напряму читає `mw.data_store`, `mw.project_manager`, `mw.current_game_rules`, `mw.ui_updater` і навіть містить перевірки на `unittest.mock` у продуктовому коді (`core/filter_query_api.py:60,239,306`). Це корисний проміжний шар, але поки він не є чистим доменним сервісом і може успадкувати крихкість UI-об'єктів.
 
 Рішення: поступово перетворити API на pure service з явними input DTO для filters/context/indexes і окремим adapter-ом для MainWindow.
+
 
 ### B08. Великі координатори залишаються головним множником складності
 
@@ -140,7 +140,7 @@
   * *Складність:* Середня
   * *Файли:* `ui/updaters/preview_cache.py`, `ui/updaters/preview_updater.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_performance.py`
 
-- `[ ]` **B06. Винести підготовку Glossary Builder chunks з UI thread**
+- `[x]` **B06. Винести підготовку Glossary Builder chunks з UI thread**
   * *Опис:* Перенести збір `target_strings`, tag masking і chunking у cancellable worker або time-sliced builder з progress. Це зменшить freeze і пік пам'яті на великих блоках.
   * *Складність:* Середня
   * *Файли:* `handlers/translation/glossary_builder_handler.py`, `handlers/translation/ai_worker.py`, `tests/test_handlers/test_translation/test_glossary_builder_handler.py`
