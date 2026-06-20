@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.055] - 2026-06-20
+
+### 🚀 Added
+- **Audit Consistency Refactoring**:
+  - Updated `AUDIT.md` metrics, removing the retired `core/mempalace_worker.py` from the list of the largest files (which is now a clean 6-line shim).
+  - Renamed the active `B08` issue section in `AUDIT.md` to a follow-up task targeting other large coordinators (`handlers/translation_handler.py`, etc.).
+  - Documented completion of the first step (MemePalace workers decoupling) under the `B08` entry in the TODO list.
+
+### ⚙️ Changed
+- **Version Updates**:
+  - Bumped version to `0.3.055` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.054] - 2026-06-20
 
 ### 🚀 Added

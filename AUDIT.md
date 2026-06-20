@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.054
+> **Остання версія проекту:** v0.3.055
 > **Дата оновлення:** 2026-06-20
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 213 pytest test-функцій.
 
@@ -23,7 +23,6 @@
 
 Найбільші координуючі файли:
 
-- `core/mempalace_worker.py` — ~2 028 рядків.
 - `handlers/translation_handler.py` — ~1 591 рядок.
 - `ui/main_window/main_window_actions.py` — ~1 426 рядків.
 - `dialogs/search_review_dialog.py` — ~1 320 рядків.
@@ -108,11 +107,11 @@
 Рішення: поступово перетворити API на pure service з явними input DTO для filters/context/indexes і окремим adapter-ом для MainWindow.
 
 
-### B08. Великі координатори залишаються головним множником складності
+### B08. Великі координатори залишаються головним множником складності (Follow-up)
 
-Найбільші файли поєднують orchestration, UI updates, persistence, business rules і error handling. Найризиковіші: `core/mempalace_worker.py`, `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`.
+Найбільші файли поєднують orchestration, UI updates, persistence, business rules і error handling. Після декомпозиції `core/mempalace_worker.py` найризиковішими залишаються: `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`.
 
-Рішення: не робити великий одномоментний rewrite. Розділяти тільки ті частини, де вже є тести або чіткий контракт: worker lifecycle, AI task orchestration, session persistence, settings panels, MemePalace pipeline steps.
+Рішення: не робити великий одномоментний rewrite. Розділяти тільки ті частини, де вже є тести або чіткий контракт: AI task orchestration, session persistence, settings panels, MemePalace pipeline steps.
 
 
 
@@ -154,9 +153,9 @@
   * *Файли:* `core/filter_query_api.py`, `ui/updaters/preview_updater.py`, `ui/updaters/block_list_updater.py`, `ui/updaters/preview_renderer.py`, `ui/updaters/preview_cache.py`, `utils/syntax_highlighter.py`, `ui/updaters/string_settings_updater.py`, `ui/components/bfn_preview_widget.py`, `handlers/text_autofix_logic.py`, `tests/conftest.py`, `tests/test_asterisk_logic.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_ui/updaters/test_block_list_updater.py`
 
 - `[x]` **B08. Декомпонувати найбільші координуючі класи контракт за контрактом**
-  * *Опис:* Розділяти великі класи тільки навколо стабільних меж: AI task orchestration, MemePalace pipeline steps, settings panels, persistence. Це зменшить coupling без ризикованого rewrite.
+  * *Опис:* Розділяти великі класи тільки навколо стабільних меж. Перший етап виконано (декомпоновано `core/mempalace_worker.py` на окремі воркери). Наступні кандидати: `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`.
   * *Складність:* Висока
-  * *Файли:* `core/mempalace_worker.py`, `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`
+  * *Файли:* `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`
 
 - `[x]` **B09. Розширити deterministic performance coverage для UI-шляхів**
   * *Опис:* Додати performance budgets для preview population, idle cache, warning filter toggle, glossary chunk preparation і Dictionary Manager fallback без залежності від реального мережевого I/O чи нестабільного GUI timing.
