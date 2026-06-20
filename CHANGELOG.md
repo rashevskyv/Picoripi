@@ -1,5 +1,23 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.054] - 2026-06-20
+
+### 🚀 Added
+- **Decoupled core/mempalace_worker.py (B08)**:
+  - Created a new package `core/mempalace/` with individual modules to host background `QThread` workers for MemePalace pipelines.
+  - Moved worker classes into dedicated files:
+    - `weaver_worker.py` containing `MemePalaceWorker` and `robust_json_loads`.
+    - `script_analyzer.py` containing `MemePalaceScriptAnalyzerWorker`.
+    - `chapter_mapper.py` containing `MemePalaceChapterMapperWorker`.
+    - `chapter_ai_analyzer.py` containing `MemePalaceChapterAIAnalyzerWorker`.
+    - `character_profiler.py` containing `MemePalaceCharacterProfilerWorker`.
+    - `chapters_loader.py` containing `MemePalaceChaptersLoadWorker`.
+  - Updated `core/mempalace_worker.py` to import and re-export all classes and functions, maintaining 100% backward compatibility for all importers and test suites.
+
+### ⚙️ Changed
+- **Version Updates**:
+  - Bumped version to `0.3.054` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.053] - 2026-06-20
 
 ### 🚀 Added

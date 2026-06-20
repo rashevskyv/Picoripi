@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.053
+> **Остання версія проекту:** v0.3.054
 > **Дата оновлення:** 2026-06-20
 > **Об'єм проекту:** 498 Python-файлів загалом; 346 продуктових Python-файлів, 152 тестові Python-файли; ~88 276 LOC продуктового Python-коду, ~24 205 LOC тестів; ~1 213 pytest test-функцій.
 
@@ -81,6 +81,10 @@
 - **B09. Розширити deterministic performance coverage для UI-шляхів.**
   - Додано детерміновані тести продуктивності для фонової підготовки чанків Glossary Builder (chunking & masking), порційного фонового кешування попереднього перегляду (time-sliced pre-cache tick), фільтрації за попередженнями (warning filter toggle) та обробки помилок завантаження списку словників (Dictionary Manager fallback).
   - Всі 9 тестів продуктивності успішно виконуються в рамках визначених бюджетів часу.
+- **B08. Декомпонувати найбільші координуючі класи контракт за контрактом.**
+  - Декомпоновано великий координуючий файл `core/mempalace_worker.py` (~2230 LOC), що поєднував логіку різних QThread-воркерів для кроків MemePalace конвеєра.
+  - Створено пакет `core/mempalace` та винесено воркери в окремі модулі: `weaver_worker.py`, `script_analyzer.py`, `chapter_mapper.py`, `chapter_ai_analyzer.py`, `character_profiler.py` та `chapters_loader.py`.
+  - Переписано `core/mempalace_worker.py` як набір ре-експортів, повністю зберігши зворотну сумісність.
 
 
 
@@ -149,7 +153,7 @@
   * *Складність:* Середня
   * *Файли:* `core/filter_query_api.py`, `ui/updaters/preview_updater.py`, `ui/updaters/block_list_updater.py`, `ui/updaters/preview_renderer.py`, `ui/updaters/preview_cache.py`, `utils/syntax_highlighter.py`, `ui/updaters/string_settings_updater.py`, `ui/components/bfn_preview_widget.py`, `handlers/text_autofix_logic.py`, `tests/conftest.py`, `tests/test_asterisk_logic.py`, `tests/test_ui/test_updaters/test_small_updaters.py`, `tests/test_ui/updaters/test_block_list_updater.py`
 
-- `[ ]` **B08. Декомпонувати найбільші координуючі класи контракт за контрактом**
+- `[x]` **B08. Декомпонувати найбільші координуючі класи контракт за контрактом**
   * *Опис:* Розділяти великі класи тільки навколо стабільних меж: AI task orchestration, MemePalace pipeline steps, settings panels, persistence. Це зменшить coupling без ризикованого rewrite.
   * *Складність:* Висока
   * *Файли:* `core/mempalace_worker.py`, `handlers/translation_handler.py`, `ui/main_window/main_window_actions.py`, `core/data_state_processor.py`, `ui/mempalace_builder_dialog.py`, `ui/settings/settings_ui_setup.py`, `handlers/list_selection_handler.py`
