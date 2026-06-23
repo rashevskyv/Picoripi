@@ -106,3 +106,46 @@ def test_openai_provider_translate_sse_stream(mock_post):
     assert res.message_id == "chatcmpl-sse-123"
 
 
+@patch('core.translation.providers.requests.post')
+def test_openai_provider_cancel_active_stream_closes_response(mock_post):
+    class FakeStreamResponse:
+        status_code = 200
+
+        def __init__(self):
+            self.closed = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            self.close()
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            yield b'data: {"choices": [{"delta": {"content": "Hello"}}]}'
+            yield b'data: [DONE]'
+
+        def close(self):
+            self.closed = True
+
+    fake_response = FakeStreamResponse()
+    mock_post.return_value = fake_response
+
+    provider = OpenAIProvider({
+        "endpoint": "http://localhost:20128/v1",
+        "model": "kr/claude-sonnet-4.5"
+    })
+    stream = provider.translate_stream([{"role": "user", "content": "Hello"}])
+
+    assert next(stream) == "Hello"
+    assert provider._active_stream_response is fake_response
+
+    provider.cancel_active_stream()
+    assert fake_response.closed is True
+
+    stream.close()
+    assert provider._active_stream_response is None
+
+

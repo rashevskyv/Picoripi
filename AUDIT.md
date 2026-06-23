@@ -397,7 +397,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 ### 8.3. Продуктивність / UI-потік
 
 - **AUD-P1 (вирішено, середня). Синхронний `deepcopy` усього датасету на UI-потоці перед Fix All.** Старий повний `copy.deepcopy(data)` + `edited_file_data` + `string_metadata` + `all_font_maps` замінено на дешеві snapshot-копії: outer/inner block lists, `edited_data`, per-entry metadata dicts і двошарові font-map dicts. Це зменшує стартовий freeze AutoFix і не передає у QThread живі mutable references.
-- **AUD-P2 (низька). Стрім AI не уриває сокет миттєво при cancel.** `handlers/translation/ai_worker.py:164-166` коректно перевіряє `is_cancelled` між токенами, але провайдери (`core/translation/providers.py:205,281,490`) тримають `requests.post(stream=True)` відкритим до вичерпання генератора. Скасування логічне, сокет закривається із затримкою. *Пропозиція:* за потреби передавати cancel-прапорець у провайдер для раннього `break`.
+- **AUD-P2 (вирішено, низька). Стрім AI тепер закриває активний HTTP-stream при cancel.** `AIWorker.cancel()` викликає provider-level `cancel_active_stream()`, а `OpenAIProvider`, `OllamaChatProvider` і native/compat `GeminiProvider` трекають активний `requests.Response` та закривають його через `response.close()`. Це дає cancel-дії можливість зірвати socket одразу, а не чекати наступного токена.
 - **AUD-P3 (вирішено, низька). `_archive_cache` без межі розміру.** `core/project_manager.py` переведено на `OrderedDict` LRU з лімітом 10 контейнерів і `move_to_end()` на cache-hit.
 - **AUD-P4 (вирішено, низька). Короткі `singleShot(lambda: ...)`, що захоплюють `self`.** Основні ризикові кластери перевірено й закрито: `ListSelectionHandler`, `BookmarkHandler`, `ProjectActionHandler`, AI variation refresh і AI retry flow використовують instance-owned cancellable timers; короткі focus/navigation callbacks у `SpeakerHandler`, `TextAnalysisHandler` і `TranslationUIHandler` мають Qt-deleted guards. Залишковий `TranslationHandler` 0ms init-хук (`install_menu_actions`) не захоплює lambda і не є lifecycle-ризиком.
 
@@ -463,7 +463,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 ### Статус для передачі агенту-1 (наступні незавершені задачі)
 
-Виконано й перевірено QA: AUD01, AUD02, AUD-P1, AUD-P3, AUD-P4b, AUD-P4c, AUD-T1a, AUD-T1b, AUD-T2, AUD-T3, AUD-T5, AUD-T6, AUD-A1, AUD-A2, AUD-A3, AUD-A4, AUD-CLEAN, AUD-P4d, AUD-T7, **AUD-T8**.
+Виконано й перевірено QA: AUD01, AUD02, AUD-P1, AUD-P2, AUD-P3, AUD-P4b, AUD-P4c, AUD-T1a, AUD-T1b, AUD-T2, AUD-T3, AUD-T5, AUD-T6, AUD-A1, AUD-A2, AUD-A3, AUD-A4, AUD-CLEAN, AUD-P4d, AUD-T7, **AUD-T8**.
 
 **AUD-P4a — виправлено регресію через AUD-P4d** (таймери відновлено; QA: `singleShot` у handler-і відсутній, `_selection_timer`+`cleanup` на місці, обидві cursor-visible точки уніфіковано, `diff.txt` прибрано).
 
@@ -473,7 +473,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 1. **Наступний архітектурний цикл після AUD-A3** — за бажанням продовжити декомпозицію інших великих координаторів (`mempalace_builder_dialog.py`, `settings_ui_setup.py` тощо) по стабільних контрактах.
 
-Решта (AUD-P2, AUD-T4, **AUD-T8-opt** — опційний low-parallelism lane для повного детермінізму) — інформативні/низькоризикові, без обов'язкової дії на цьому етапі.
+Решта (AUD-T4, **AUD-T8-opt** — опційний low-parallelism lane для повного детермінізму) — інформативні/низькоризикові, без обов'язкової дії на цьому етапі.
 
 **AUD-A2/A3/A4 — виконано і QA-verified агентом-3 (full-gate 15/15 без падінь, ruff clean, re-exports і прод-поведінка підтверджені — див. §8.16).**
 
@@ -610,4 +610,22 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - `ruff check .` — clean (all checks passed).
 - Робота над декомпозицією та очищенням від mock-guards стабільна, зворотна сумісність збережена.
 - **Agent-2 QA:** production-пошук по `assert_called_with`, `MagicMock`, `unittest.mock` поза `tests/` — порожній; `py_compile` та import-smoke для винесених модулів (`dialogs.search.*`, `dialogs.tag_alias_dialog`, `ui.main_window.bfn_actions`, `ui.main_window.mempalace_actions`, `handlers.translation.*`) — OK; дотичний A3/A4 набір під `pytest -n auto` — **118 passed**. `ruff check .` clean; `git diff --check` clean після прибирання службового blank EOF у цьому файлі. Повний `1373 passed, 1 skipped` лишається підтвердженням агента-1/користувацького full-gate і має бути остаточно підтверджений агентом-3.
+
+### 8.17. Закриття AUD-P2 (2026-06-23, streaming AI cancel)
+
+**Проблема:** streaming chat cancel у `AIWorker` зупиняв обробку тільки після наступного yield із `provider.translate_stream(...)`. Якщо `requests.Response.iter_lines()` чекав на socket, активний HTTP-stream міг лишатися відкритим до наступного токена або timeout.
+
+**Рішення:** додано provider-level lifecycle hook:
+- `BaseTranslationProvider.cancel_active_stream()` закриває поточний `_active_stream_response`.
+- `OpenAIProvider`, `OllamaChatProvider` і native `GeminiProvider` реєструють активний streaming `requests.Response` одразу після `requests.post(..., stream=True)` і гарантовано очищають посилання у `finally`.
+- `GeminiProvider` у OpenAI-compatible режимі прокидає cancel у внутрішній `OpenAIProvider`.
+- `AIWorker.cancel()` викликає `provider.cancel_active_stream()` після встановлення `is_cancelled = True`.
+
+**QA agent-2:**
+- Додано regression-тест `test_openai_provider_cancel_active_stream_closes_response`.
+- Додано regression-тест `test_AIWorker_cancel_closes_active_provider_stream`.
+- Дотичний набір `tests/test_core/test_translation/test_providers.py` + `tests/test_handlers/test_translation/test_ai_worker.py`: **20 passed**.
+- `ruff check` для змінених файлів — clean; `git diff --check` — clean (окрім стандартних Windows LF/CRLF попереджень).
+
+**Висновок:** `AUD-P2` закрито. Скасування streaming AI тепер має реальний шлях до закриття активного HTTP-stream, а не лише логічну перевірку між токенами.
 - **Agent-3 незалежний full-gate QA (2026-06-23):** **15 повних** `pytest -n auto tests/` — **0 падінь / 15** (1373 passed, 1 skipped); ruff clean. Окремо підтверджено: (1) AUD-A4 production-safe за побудовою — видалений guard `not hasattr(..., 'assert_called_with')` у проді завжди True, тож прод-поведінка не змінилась; (2) re-exports цілі — тести імпортують `AliasUpdateWorker`/`TagAliasDialog` зі старого `ui.main_window.main_window_actions`, який реекспортує з `dialogs.tag_alias_dialog`; (3) `AliasUpdateWorker` перенесено структурно ідентично HEAD; (4) `singleShot` у `search_review_dialog`/`tag_alias_dialog` — передіснуючі dialog-level, не регресії; (5) тихого відкату завершеної роботи (як AUD-P4a в AUD-A1) **немає**. **AUD-A3 та AUD-A4 — QA-verified.**

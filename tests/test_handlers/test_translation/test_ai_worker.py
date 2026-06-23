@@ -28,6 +28,15 @@ def test_AIWorker_cancel(worker_deps):
     worker.cancel()
     assert worker.is_cancelled is True
 
+
+def test_AIWorker_cancel_closes_active_provider_stream(worker_deps):
+    provider, prompt_composer = worker_deps
+    worker = AIWorker(provider, prompt_composer, {})
+
+    worker.cancel()
+
+    provider.cancel_active_stream.assert_called_once()
+
 def test_AIWorkerclean_json_response(worker_deps):
     provider, prompt_composer = worker_deps
     worker = AIWorker(provider, prompt_composer, {})

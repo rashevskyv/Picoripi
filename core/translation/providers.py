@@ -27,6 +27,7 @@ class BaseTranslationProvider:
     def __init__(self, settings: Dict[str, Any]) -> None:
         """Initialize a new instance."""
         self.settings = settings
+        self._active_stream_response = None
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
         """Translate."""
@@ -39,6 +40,25 @@ class BaseTranslationProvider:
         if response.text:
             yield response.text
 
+    def _set_active_stream_response(self, response):
+        """Track an open streaming response so cancellation can close the socket."""
+        self._active_stream_response = response
+
+    def _clear_active_stream_response(self, response):
+        """Clear the tracked streaming response if it is still current."""
+        if self._active_stream_response is response:
+            self._active_stream_response = None
+
+    def cancel_active_stream(self):
+        """Close any active streaming HTTP response."""
+        response = self._active_stream_response
+        if response is None:
+            return
+        try:
+            response.close()
+        except Exception as e:
+            log_debug(f"{self.__class__.__name__}: Failed to close active stream response: {e}")
+
 class OpenAIProvider(BaseTranslationProvider):
     """Open a i provider implementation."""
     supports_sessions = True
@@ -46,6 +66,7 @@ class OpenAIProvider(BaseTranslationProvider):
     def __init__(self, settings: Dict[str, Any]) -> None:
         """Initialize a new instance."""
         super().__init__(settings)
+        self._compat_stream_provider = None
         self.api_key = self.settings.get('api_key') or os.getenv(str(self.settings.get('api_key_env')))
         endpoint_val = self.settings.get('endpoint') or self.settings.get('base_url') or ""
         is_default_openai = not endpoint_val or endpoint_val.rstrip('/').lower() == "https://api.openai.com/v1"
@@ -200,25 +221,29 @@ class OpenAIProvider(BaseTranslationProvider):
         try:
             log_info(f"OpenAIProvider: Sending stream request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
             with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
-                log_info(f"OpenAIProvider: Stream response received. Status code: {response.status_code}", category="ai")
-                response.raise_for_status()
-                for line in response.iter_lines():
-                    if line:
-                        line_str = line.decode('utf-8')
-                        if line_str.startswith('data: '):
-                            json_str = line_str[6:]
-                            if json_str.strip() == '[DONE]':
-                                break
-                            try:
-                                data = json.loads(json_str)
-                                if 'choices' in data and data['choices']:
-                                    delta = data['choices'][0].get('delta', {})
-                                    content = delta.get('content')
-                                    if content:
-                                        yield content
-                            except json.JSONDecodeError:
-                                log_debug(f"Stream decode error for line: {json_str}")
-                                continue
+                self._set_active_stream_response(response)
+                try:
+                    log_info(f"OpenAIProvider: Stream response received. Status code: {response.status_code}", category="ai")
+                    response.raise_for_status()
+                    for line in response.iter_lines():
+                        if line:
+                            line_str = line.decode('utf-8')
+                            if line_str.startswith('data: '):
+                                json_str = line_str[6:]
+                                if json_str.strip() == '[DONE]':
+                                    break
+                                try:
+                                    data = json.loads(json_str)
+                                    if 'choices' in data and data['choices']:
+                                        delta = data['choices'][0].get('delta', {})
+                                        content = delta.get('content')
+                                        if content:
+                                            yield content
+                                except json.JSONDecodeError:
+                                    log_debug(f"Stream decode error for line: {json_str}")
+                                    continue
+                finally:
+                    self._clear_active_stream_response(response)
         except requests.RequestException as e:
             raise TranslationProviderError(f"API stream request failed: {e}")
 
@@ -277,17 +302,21 @@ class OllamaChatProvider(BaseTranslationProvider):
 
         try:
             with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
-                response.raise_for_status()
-                for line in response.iter_lines():
-                    if line:
-                        try:
-                            data = json.loads(line.decode('utf-8'))
-                            content = data.get('message', {}).get('content')
-                            if content:
-                                yield content
-                        except json.JSONDecodeError:
-                            log_debug(f"Ollama stream decode error for line: {line}")
-                            continue
+                self._set_active_stream_response(response)
+                try:
+                    response.raise_for_status()
+                    for line in response.iter_lines():
+                        if line:
+                            try:
+                                data = json.loads(line.decode('utf-8'))
+                                content = data.get('message', {}).get('content')
+                                if content:
+                                    yield content
+                            except json.JSONDecodeError:
+                                log_debug(f"Ollama stream decode error for line: {line}")
+                                continue
+                finally:
+                    self._clear_active_stream_response(response)
         except requests.RequestException as e:
             raise TranslationProviderError(f"API stream request failed: {e}")
 
@@ -389,7 +418,11 @@ class GeminiProvider(BaseTranslationProvider):
             if self._use_openai_compat:
                 # Assuming the compatible endpoint also supports OpenAI's stream format
                 compat_provider = OpenAIProvider(self.settings)
-                yield from compat_provider.translate_stream(messages, session, settings_override)
+                self._compat_stream_provider = compat_provider
+                try:
+                    yield from compat_provider.translate_stream(messages, session, settings_override)
+                finally:
+                    self._compat_stream_provider = None
             else:
                 yield from self._translate_via_native_stream(messages, headers, current_settings, timeout)
         except requests.RequestException as e:
@@ -399,6 +432,13 @@ class GeminiProvider(BaseTranslationProvider):
             except Exception:
                 error_details = e.response.text if e.response else "No response body"
             raise TranslationProviderError(f"API request failed: {e}\nDetails: {error_details}")
+
+    def cancel_active_stream(self):
+        """Close any active Gemini stream, including OpenAI-compatible delegated streams."""
+        super().cancel_active_stream()
+        compat_provider = self._compat_stream_provider
+        if compat_provider is not None:
+            compat_provider.cancel_active_stream()
 
     def _translate_via_openai_compat(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any], timeout: int) -> ProviderResponse:
         """Internal helper to translate via openai compat."""
@@ -488,20 +528,24 @@ class GeminiProvider(BaseTranslationProvider):
             body['generationConfig'] = generation_config
 
         with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
-            response.raise_for_status()
-            for line in response.iter_lines():
-                if line:
-                    line_str = line.decode('utf-8').strip()
-                    if line_str.startswith('"text":'):
-                        # This is a simplified parser for Gemini's stream format
-                        # It might need to be more robust for production
-                        try:
-                            # Extract the content between the quotes
-                            content = line_str.split(':', 1)[1].strip()
-                            if content.startswith('"') and content.endswith('"'):
-                                yield json.loads(content)
-                        except (json.JSONDecodeError, IndexError):
-                            continue
+            self._set_active_stream_response(response)
+            try:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if line:
+                        line_str = line.decode('utf-8').strip()
+                        if line_str.startswith('"text":'):
+                            # This is a simplified parser for Gemini's stream format
+                            # It might need to be more robust for production
+                            try:
+                                # Extract the content between the quotes
+                                content = line_str.split(':', 1)[1].strip()
+                                if content.startswith('"') and content.endswith('"'):
+                                    yield json.loads(content)
+                            except (json.JSONDecodeError, IndexError):
+                                continue
+            finally:
+                self._clear_active_stream_response(response)
 
 def create_translation_provider(provider_key: str, settings: Dict[str, Any]) -> BaseTranslationProvider:
     """Factory function to create a translation provider instance."""

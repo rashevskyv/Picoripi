@@ -50,6 +50,9 @@ class AIWorker(QObject):
         """Cancel."""
         log_debug("AIWorker: Cancellation requested.")
         self.is_cancelled = True
+        cancel_stream = getattr(self.provider, "cancel_active_stream", None)
+        if callable(cancel_stream):
+            cancel_stream()
 
     def _remove_trailing_commas(self, json_str: str) -> str:
         """Internal helper to remove trailing commas."""
