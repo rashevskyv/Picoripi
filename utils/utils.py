@@ -1503,8 +1503,36 @@ def find_smart_matches(text: str, query: str, case_sensitive: bool = False) -> L
     except re.error:
         # Fallback to simple find if regex fails
         pass
-
     return matches
 
 
+def is_control_modifier_pressed() -> bool:
+    """Check if Ctrl key modifier is physically or logically pressed.
 
+    This encapsulates ctypes User32 queries on Windows and QApplication state checks,
+    providing a centralized and reliable keyboard query API for tests and production.
+    """
+    try:
+        import ctypes
+        if hasattr(ctypes, 'windll') and hasattr(ctypes.windll, 'user32'):
+            # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
+            if bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000):
+                return True
+            if bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000):
+                return True
+    except Exception:
+        pass
+
+    try:
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtCore import Qt
+        modifiers = QApplication.keyboardModifiers()
+        if hasattr(modifiers, 'value'):
+            return bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
+        elif isinstance(modifiers, int):
+            return bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
+        else:
+            return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+    except Exception:
+        pass
+    return False

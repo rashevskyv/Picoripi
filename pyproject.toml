@@ -9,7 +9,8 @@ filterwarnings = [
     "ignore::DeprecationWarning"
 ]
 markers = [
-    "performance: Performance and benchmark regression tests for large data"
+    "performance: Performance and benchmark regression tests for large data",
+    "serial: Heavy real QThread or integration tests requiring low parallelism"
 ]
 
 

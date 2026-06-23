@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 from typing import Any, Optional
 from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator
 from PyQt6.QtCore import Qt, QTimer
@@ -13,6 +13,12 @@ class BookmarkHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
+        from PyQt6.QtCore import QObject
+        timer_parent = self.mw if isinstance(self.mw, QObject) else None
+        self._jump_timer = QTimer(timer_parent)
+        self._jump_timer.setSingleShot(True)
+        self._jump_timer.timeout.connect(self._on_jump_timer_timeout)
+        self._pending_jump_string_idx: Optional[int] = None
 
     def add_bookmark(self) -> None:
         """Create a new bookmark at the current line of the active block."""
@@ -122,11 +128,34 @@ class BookmarkHandler(BaseHandler):
             if found_item:
                 self.mw.block_list_widget.setCurrentItem(found_item)
                 # Defer string selection to allow UI update to finish
-                QTimer.singleShot(80, lambda: self.mw.list_selection_handler.select_string_by_absolute_index(string_idx))
+                self._pending_jump_string_idx = string_idx
+                self._jump_timer.start(80)
             else:
                 log_debug(f"Could not find block {block_idx} in the list widget tree.")
         else:
             self.mw.list_selection_handler.select_string_by_absolute_index(string_idx)
+
+    def _on_jump_timer_timeout(self) -> None:
+        """Handle deferred jump string selection safely."""
+        self._jump_timer.stop()
+        try:
+            from PyQt6 import sip
+            from PyQt6.QtCore import QObject
+        except ImportError:
+            import sip
+            from PyQt6.QtCore import QObject
+
+        try:
+            if not self.mw or (isinstance(self.mw, QObject) and sip.isdeleted(self.mw)):
+                return
+        except (TypeError, RuntimeError):
+            return
+
+        idx = self._pending_jump_string_idx
+        self._pending_jump_string_idx = None
+        if idx is not None:
+            if hasattr(self.mw, 'list_selection_handler'):
+                self.mw.list_selection_handler.select_string_by_absolute_index(idx)
 
     def clear_bookmarks(self) -> None:
         """Clear all saved bookmarks after user confirmation."""

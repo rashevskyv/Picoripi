@@ -1,4 +1,5 @@
 import pytest
+pytestmark = pytest.mark.serial
 from dialogs.search_review_dialog import SearchReviewDialog
 from PyQt6.QtCore import Qt
 

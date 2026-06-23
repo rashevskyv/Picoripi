@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from handlers.translation_handler import TranslationHandler
 from core.saved_translations_manager import SavedTranslationsManager
 from core.data_state_processor import DataStateProcessor
+from dialogs.cached_translation_dialog import CachedTranslationDialog
 
 @pytest.fixture
 def mock_mw():
@@ -91,10 +92,7 @@ def test_filter_already_saved_translations_partial(translation_handler, mock_mw)
     
     with patch.object(mock_mw.saved_translations_manager, 'load_all_saved_translations', return_value=saved_db), \
          patch.object(translation_handler.data_processor, 'update_edited_data') as mock_update, \
-         patch('handlers.translation_handler.CachedTranslationDialog') as mock_dialog_class:
-         
-        mock_dialog_instance = mock_dialog_class.return_value
-        mock_dialog_instance.exec.return_value = 1
+         patch.object(CachedTranslationDialog, 'exec', return_value=1):
          
         filtered_items, filtered_map = translation_handler._filter_already_saved_translations(source_items, temp_id_map)
         
@@ -114,10 +112,7 @@ def test_filter_already_saved_translations_all(translation_handler, mock_mw):
     
     with patch.object(mock_mw.saved_translations_manager, 'load_all_saved_translations', return_value=saved_db), \
          patch.object(translation_handler.data_processor, 'update_edited_data') as mock_update, \
-         patch('handlers.translation_handler.CachedTranslationDialog') as mock_dialog_class:
-         
-        mock_dialog_instance = mock_dialog_class.return_value
-        mock_dialog_instance.exec.return_value = 1
+         patch.object(CachedTranslationDialog, 'exec', return_value=1):
          
         filtered_items, filtered_map = translation_handler._filter_already_saved_translations(source_items, temp_id_map)
         
@@ -132,10 +127,7 @@ def test_translate_and_apply_cache_hit(translation_handler, mock_mw):
     with patch.object(mock_mw.saved_translations_manager, 'load_all_saved_translations', return_value=saved_db), \
          patch.object(translation_handler.data_processor, 'update_edited_data') as mock_update, \
          patch.object(translation_handler, '_run_ai_task') as mock_run_ai, \
-         patch('handlers.translation_handler.CachedTranslationDialog') as mock_dialog_class:
-         
-        mock_dialog_instance = mock_dialog_class.return_value
-        mock_dialog_instance.exec.return_value = 1
+         patch.object(CachedTranslationDialog, 'exec', return_value=1):
          
         translation_handler._translate_and_apply(
             source_text="original_0",

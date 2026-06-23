@@ -25,10 +25,12 @@ from .translation.ai_lifecycle_manager import AILifecycleManager
 from .translation.ai_worker import AIWorker
 from .translation.text_formatter import TextFormatter
 from .translation.ai_variations_handler import AIVariationsHandler
+from .translation.progress_manager import TranslationProgressManager
+from .translation.batch_translator import AIBatchTranslator
 from components.prompt_editor_dialog import PromptEditorDialog
 from dialogs.cached_translation_dialog import CachedTranslationDialog
 from utils.logging_utils import log_debug, log_warning
-from utils.utils import convert_spaces_to_dots_for_display
+from utils.utils import convert_spaces_to_dots_for_display, is_control_modifier_pressed
 
 
 class TranslationHandler(BaseHandler):
@@ -58,10 +60,12 @@ class TranslationHandler(BaseHandler):
         self.ai_lifecycle_manager = AILifecycleManager(self)
         self.text_formatter = TextFormatter(self.mw)
         self.variations_handler = AIVariationsHandler(self)
+        self.progress_manager = TranslationProgressManager(self)
+        self.batch_translator = AIBatchTranslator(self)
 
         # Register AI success/error handlers
-        self.ai_lifecycle_manager.register_handler('translate_preview', self._handle_preview_translation_success)
-        self.ai_lifecycle_manager.register_handler('translate_single', self._handle_single_translation_success)
+        self.ai_lifecycle_manager.register_handler('translate_preview', self.batch_translator.handle_preview_translation_success)
+        self.ai_lifecycle_manager.register_handler('translate_single', self.batch_translator.handle_single_translation_success)
         self.ai_lifecycle_manager.register_handler('generate_variation', self.variations_handler._handle_variation_success)
         self.ai_lifecycle_manager.register_handler('fill_glossary', self.glossary_handler._handle_ai_fill_success)
         self.ai_lifecycle_manager.register_handler('glossary_occurrence_update', self.glossary_handler._handle_glossary_occurrence_update_success)
@@ -72,8 +76,8 @@ class TranslationHandler(BaseHandler):
         
         # Block translation has a chunk handler
         self.ai_lifecycle_manager.register_handler('translate_block_chunked', 
-                                                    self._handle_block_translation_success,
-                                                    chunk_cb=self._handle_chunk_translated)
+                                                    self.batch_translator.handle_block_translation_success,
+                                                    chunk_cb=self.batch_translator.handle_chunk_translated)
 
         self._glossary_manager = self.glossary_handler.glossary_manager
         
@@ -81,86 +85,15 @@ class TranslationHandler(BaseHandler):
         log_debug(f"TranslationHandler.__init__: start_new_session initialized to {self.start_new_session}")
 
         QTimer.singleShot(0, self.glossary_handler.install_menu_actions)
+
     
     def save_progress_to_metadata(self, block_idx: int) -> None:
         """Saves translation progress for a single block into the block's project metadata."""
-        if not self.mw.project_manager or not self.mw.project_manager.project:
-            return
-            
-        block_map = self.mw.block_to_project_file_map
-        proj_block_idx = block_map.get(block_idx, block_idx)
-            
-        if proj_block_idx < 0 or proj_block_idx >= len(self.mw.project_manager.project.blocks):
-            return
-            
-        block = self.mw.project_manager.project.blocks[proj_block_idx]
-        
-        if block_idx in self.translation_progress:
-            prog = self.translation_progress[block_idx]
-            # Convert set to list for JSON serialization
-            serialized_prog = {
-                'completed_chunks': list(prog.get('completed_chunks', [])),
-                'total_chunks': prog.get('total_chunks', 0),
-                'source_items': prog.get('source_items', []),
-                'temp_id_map': prog.get('temp_id_map', {}),
-                'custom_user_header': prog.get('custom_user_header'),
-                'custom_user_label': prog.get('custom_user_label'),
-                'system_prompt_override': prog.get('system_prompt_override'),
-                'session_reset_attempted': prog.get('session_reset_attempted', False)
-            }
-            block.metadata['translation_progress'] = serialized_prog
-        else:
-            if 'translation_progress' in block.metadata:
-                del block.metadata['translation_progress']
-                
-        # Persist project changes
-        self.mw.project_manager.save()
+        self.progress_manager.save_progress_to_metadata(block_idx)
 
     def load_progress_from_metadata(self) -> None:
         """Loads translation progress for all blocks from their project metadata."""
-        self.translation_progress.clear()
-        if not self.mw.project_manager or not self.mw.project_manager.project:
-            return
-            
-        block_map = self.mw.block_to_project_file_map
-        # Create a reverse map to go from project block index back to data block index
-        rev_block_map = {proj_idx: data_idx for data_idx, proj_idx in block_map.items()}
-        
-        for proj_idx, block in enumerate(self.mw.project_manager.project.blocks):
-            serialized_prog = block.metadata.get('translation_progress')
-            if serialized_prog and isinstance(serialized_prog, dict):
-                # Resolve the correct data block index
-                data_block_idx = rev_block_map.get(proj_idx, proj_idx)
-                
-                # Reconstruct completed_chunks as a set
-                completed_chunks = set(serialized_prog.get('completed_chunks', []))
-                
-                # Reconstruct temp_id_map, converting keys back to integers where possible
-                raw_temp_map = serialized_prog.get('temp_id_map', {})
-                temp_id_map = {}
-                for k, v in raw_temp_map.items():
-                    # Handle tuple conversion (in JSON, list was saved)
-                    if isinstance(v, list) and len(v) == 2:
-                        val = (v[0], v[1])
-                    else:
-                        val = v
-                        
-                    try:
-                        temp_id_map[int(k)] = val
-                    except (ValueError, TypeError):
-                        temp_id_map[k] = val
-                
-                self.translation_progress[data_block_idx] = {
-                    'completed_chunks': completed_chunks,
-                    'total_chunks': serialized_prog.get('total_chunks', 0),
-                    'source_items': serialized_prog.get('source_items', []),
-                    'temp_id_map': temp_id_map,
-                    'custom_user_header': serialized_prog.get('custom_user_header'),
-                    'custom_user_label': serialized_prog.get('custom_user_label'),
-                    'system_prompt_override': serialized_prog.get('system_prompt_override'),
-                    'session_reset_attempted': serialized_prog.get('session_reset_attempted', False)
-                }
-        log_debug(f"Loaded translation progress for {len(self.translation_progress)} blocks from project metadata.")
+        self.progress_manager.load_progress_from_metadata()
 
     def initialize_glossary_highlighting(self) -> None:
         """Initialize glossary highlighting."""
@@ -249,26 +182,7 @@ class TranslationHandler(BaseHandler):
         force_prompt: bool = False,
     ) -> Optional[Tuple[str, str]]:
         """Internal helper to maybe edit prompt."""
-        is_ctrl_pressed = force_prompt
-        if not is_ctrl_pressed:
-            try:
-                import ctypes
-                # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
-                is_ctrl_pressed = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
-                if not is_ctrl_pressed:
-                    is_ctrl_pressed = bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000)
-            except Exception:
-                pass
-
-        if not is_ctrl_pressed:
-            modifiers = QApplication.keyboardModifiers()
-            if hasattr(modifiers, 'value'):
-                is_ctrl_pressed = bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
-            elif isinstance(modifiers, int):
-                is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
-            else:
-                is_ctrl_pressed = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-
+        is_ctrl_pressed = force_prompt or is_control_modifier_pressed()
         enabled = self.mw.prompt_editor_enabled
         if not is_ctrl_pressed and not enabled:
             return system_prompt, user_prompt
@@ -443,25 +357,7 @@ class TranslationHandler(BaseHandler):
 
     def _is_control_pressed(self) -> bool:
         """Helper to check if Ctrl key is physically pressed."""
-        try:
-            import ctypes
-            # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
-            if bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000):
-                return True
-            if bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000):
-                return True
-        except Exception:
-            pass
-        try:
-            modifiers = QApplication.keyboardModifiers()
-            if hasattr(modifiers, 'value'):
-                return bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
-            elif isinstance(modifiers, int):
-                return bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
-            else:
-                return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-        except Exception:
-            return False
+        return is_control_modifier_pressed()
 
     def translate_current_string(self, force_prompt: bool = False) -> None:
         """Translate current string."""
@@ -850,11 +746,7 @@ class TranslationHandler(BaseHandler):
 
     def _resolve_base_timeout(self, provider: BaseTranslationProvider) -> int:
         """Internal helper to resolve base timeout."""
-        try:
-            base = int(provider.settings.get('timeout', 120))
-        except (TypeError, ValueError):
-            base = 120
-        return max(base, 30)
+        return self.batch_translator._resolve_base_timeout(provider)
 
     def _filter_already_saved_translations(
         self, source_items: List[Dict[str, Any]], temp_id_map: Dict[Any, Tuple[int, int]], force_prompt: bool = False
@@ -864,126 +756,7 @@ class TranslationHandler(BaseHandler):
         Applies those saved translations immediately to the database and refreshes the UI.
         Returns the remaining source items and their corresponding temp_id_map.
         """
-        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
-        if not saved_mgr or hasattr(saved_mgr, 'assert_called_with'):
-            return source_items, temp_id_map
-
-        saved_translations = saved_mgr.load_all_saved_translations()
-        if not isinstance(saved_translations, dict) or hasattr(saved_translations, 'assert_called_with') or not saved_translations:
-            return source_items, temp_id_map
-
-        # Collect cached items info
-        cached_items_info = []
-        for item in source_items:
-            item_id = item.get("id")
-            if temp_id_map and item_id in temp_id_map:
-                r_block_idx, r_string_idx = temp_id_map[item_id]
-            else:
-                r_block_idx = self.mw.data_store.physical_block_idx
-                try:
-                    r_string_idx = int(item_id)
-                except (ValueError, TypeError):
-                    r_string_idx = item_id
-
-            key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
-            saved_text = saved_translations.get(key)
-            if saved_text and isinstance(saved_text, str) and not hasattr(saved_text, 'assert_called_with') and saved_text.strip():
-                block_name = None
-                if hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
-                    block_name = self.mw.data_store.block_names.get(str(r_block_idx))
-                if not block_name:
-                    block_name = f"Block {r_block_idx + 1}"
-                cached_items_info.append({
-                    'block_idx': r_block_idx,
-                    'block_name': block_name,
-                    'string_idx': r_string_idx,
-                    'text': saved_text
-                })
-
-        if force_prompt:
-            # Ctrl+click: skip cache entirely, translate everything anew
-            return source_items, temp_id_map
-
-        if cached_items_info:
-            dialog = CachedTranslationDialog(self.mw, cached_items_info)
-            res = dialog.exec()
-            
-            if res == 2:
-                # User wants to translate everything anew (Translate Anew)
-                return source_items, temp_id_map
-            elif res != 1:
-                # User cancelled or closed the dialog (Cancel)
-                return [], {}
-
-        filtered_source_items = []
-        filtered_temp_id_map = {}
-        restored_items = []
-
-        for item in source_items:
-            item_id = item.get("id")
-            if temp_id_map and item_id in temp_id_map:
-                r_block_idx, r_string_idx = temp_id_map[item_id]
-            else:
-                r_block_idx = self.mw.data_store.physical_block_idx
-                try:
-                    r_string_idx = int(item_id)
-                except (ValueError, TypeError):
-                    r_string_idx = item_id
-
-            key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
-            saved_text = saved_translations.get(key)
-            
-            if saved_text and isinstance(saved_text, str) and not hasattr(saved_text, 'assert_called_with') and saved_text.strip():
-                restored_items.append((r_block_idx, r_string_idx, saved_text))
-            else:
-                filtered_source_items.append(item)
-                if temp_id_map and item_id in temp_id_map:
-                    filtered_temp_id_map[item_id] = (r_block_idx, r_string_idx)
-
-
-        if restored_items:
-            has_undo = hasattr(self.mw, 'undo_manager')
-            if has_undo:
-                self.mw.undo_manager.begin_group()
-
-            try:
-                for r_block_idx, r_string_idx, saved_text in restored_items:
-                    final_text = self._format_and_wrap_translation(saved_text, r_block_idx, r_string_idx)
-                    self.data_processor.update_edited_data(
-                        r_block_idx, r_string_idx, final_text, action_type="RESTORE", skip_ui_refresh=True
-                    )
-                    if hasattr(self.mw, 'text_operation_handler') and self.mw.text_operation_handler:
-                        self.mw.text_operation_handler._rescan_issues_for_current_string(r_block_idx, r_string_idx, final_text)
-            finally:
-                if has_undo:
-                    self.mw.undo_manager.end_group("RESTORE_SAVED")
-
-            modified_blocks = {b_idx for b_idx, _, _ in restored_items}
-            for m_block in modified_blocks:
-                self.ui_updater.update_block_item_text_with_problem_count(m_block)
-
-            current_view_block = self.mw.data_store.current_block_idx
-            if self.mw.data_store.current_chapter_id is not None:
-                current_view_block = -2
-            self.ui_updater.populate_strings_for_block(
-                current_view_block, getattr(self.mw.data_store, 'current_category_name', None), force=True
-            )
-            self.ui_updater.update_text_views()
-            self.ui_updater.update_title()
-
-            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                self.mw.statusBar.showMessage(f"Restored {len(restored_items)} lines from saved translations.", 3000)
-
-            # Refresh SearchReviewDialog if open
-            try:
-                from dialogs.search_review_dialog import SearchReviewDialog
-                for widget in QApplication.topLevelWidgets():
-                    if isinstance(widget, SearchReviewDialog):
-                        widget.refresh_from_project()
-            except Exception as e:
-                log_warning(f"Failed to refresh SearchReviewDialog in _filter_already_saved_translations: {e}")
-
-        return filtered_source_items, filtered_temp_id_map
+        return self.batch_translator.filter_already_saved_translations(source_items, temp_id_map, force_prompt)
 
 
     def _format_and_wrap_translation(self, text: str, block_idx: int, string_idx: int) -> str:
@@ -997,447 +770,15 @@ class TranslationHandler(BaseHandler):
 
     def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
         """Internal helper to initiate batch translation."""
-        self.translated_chunks_count = 0
-        provider = context['provider']
-        
-        block_idx = context.get('block_idx')
-        task_type = context.get('type')
-
-        if 'precomposed_prompt' in context:
-            self._run_ai_task(provider, context)
-            return
-
-        if task_type == 'translate_block_chunked' and block_idx is not None:
-            if not context.get('is_resume', False):
-                self.reset_translation_session()
-                self.translation_progress[block_idx] = {
-                    'completed_chunks': set(),
-                    'total_chunks': 0,
-                    'source_items': context.get('source_items', []),
-                    'temp_id_map': context.get('temp_id_map', {})
-                }
-            
-            context['chunks_to_skip'] = self.translation_progress.get(block_idx, {}).get('completed_chunks', set())
-
-        system_prompt, _ = self.glossary_handler.load_prompts()
-        if not system_prompt:
-            self.ui_handler.finish_ai_operation()
-            return
-
-        if context.get('system_prompt_override'):
-            system_prompt = context['system_prompt_override']
-
-        session_state = self._session_manager.get_state()
-        composer_args = {
-            'system_prompt': system_prompt,
-            'source_items': context['source_items'],
-            'all_source_items': context['source_items'],
-            'block_idx': context['block_idx'],
-            'mode_description': context['mode_description'], 'is_retry': (context['attempt'] > 1),
-            'retry_reason': context.get('last_error', ''),
-            'session_state': session_state,
-            'temp_id_map': context.get('temp_id_map'),
-        }
-        context['composer_args'] = composer_args
-
-        if 'precomposed_prompt' not in context:
-            force_prompt = context.get('force_prompt', False)
-            if not force_prompt:
-                try:
-                    import ctypes
-                    # Try GetAsyncKeyState (0x11 is VK_CONTROL) to check the physical keyboard state directly
-                    force_prompt = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
-                    if not force_prompt:
-                        force_prompt = bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000)
-                except Exception:
-                    pass
-            if not force_prompt:
-                modifiers = QApplication.keyboardModifiers()
-                if hasattr(modifiers, 'value'):
-                    force_prompt = bool(modifiers.value & Qt.KeyboardModifier.ControlModifier.value)
-                elif isinstance(modifiers, int):
-                    force_prompt = bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
-                else:
-                    force_prompt = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-            should_edit_prompt = (
-                task_type == 'translate_block_chunked'
-                and block_idx is not None
-                and (force_prompt or not context.get('is_resume', False))
-            )
-            if should_edit_prompt:
-                preview_system, preview_user, _ = self.prompt_composer.compose_batch_request(**composer_args)
-                title = "AI Block Translation Prompt"
-                if context.get('mode_description'):
-                    desc = context['mode_description']
-                    if "block" not in desc.lower() and "chapter" not in desc.lower():
-                        title = f"AI Translation Prompt ({desc})"
-                    elif "chapter" in desc.lower():
-                        title = "AI Chapter Translation Prompt"
-
-                edited = self._maybe_edit_prompt(
-                    title=title,
-                    system_prompt=preview_system,
-                    user_prompt=preview_user,
-                    save_section='translation',
-                    force_prompt=force_prompt,
-                )
-                if edited is None:
-                    self.ui_handler.finish_ai_operation()
-                    if block_idx is not None and not context.get('is_resume', False):
-                        self.translation_progress.pop(block_idx, None)
-                        self.pre_translation_state.pop(block_idx, None)
-                    return
-                edited_system, edited_user = edited
-                context['composer_args']['system_prompt'] = edited_system
-                header, sep, json_section = edited_user.partition('JSON DATA TO PROCESS:')
-                if sep:
-                    context['custom_user_header'] = header
-                    context['custom_user_label'] = sep
-                else:
-                    context['custom_user_header'] = edited_user
-                    context['custom_user_label'] = 'JSON DATA TO PROCESS:'
-                context['system_prompt_override'] = edited_system
-                if block_idx is not None:
-                    progress_entry = self.translation_progress.setdefault(block_idx, {'completed_chunks': set(), 'total_chunks': 0})
-                    progress_entry['custom_user_header'] = context['custom_user_header']
-                    progress_entry['custom_user_label'] = context['custom_user_label']
-                    progress_entry['system_prompt_override'] = edited_system
-        
-        if task_type == 'translate_block_chunked' and block_idx is not None:
-            self.save_progress_to_metadata(block_idx)
-
-        final_system_prompt = context['composer_args']['system_prompt']
-        context['composer_args']['all_source_items'] = context['source_items']
-        final_user_prompt, _, p_map = self.prompt_composer.compose_batch_request(**context['composer_args'])
-        context['placeholder_map'] = p_map 
-
-        if not self._attach_session_to_task(
-            context,
-            base_system_prompt=system_prompt,
-            full_system_prompt=final_system_prompt,
-            user_prompt=final_user_prompt,
-            task_type=task_type,
-        ):
-             if 'precomposed_prompt' not in context:
-                context['precomposed_prompt'] = [
-                    {"role": "system", "content": final_system_prompt},
-                    {"role": "user", "content": final_user_prompt}
-                ]
-        
-        self._run_ai_task(provider, context)
+        self.batch_translator.initiate_batch_translation(context)
 
     def _handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: Dict[str, Any]) -> None:
-        """Internal helper to handle chunk translated."""
-        log_debug(f"Received translated chunk {chunk_index}. Raw AI response:\n{chunk_text}")
-        try:
-            block_idx = context['block_idx']
-            parsed_json = json.loads(chunk_text)
-            translated_strings = parsed_json.get("translated_strings", [])
-            self.mw.undo_manager.begin_group()
-
-            temp_id_map = context.get('temp_id_map')
-            modified_blocks = set()
-            translations_by_block = {}
-
-            # Retrieve calculated chunks for robust sequential mapping in case AI returns sequential/reordered IDs
-            chunks = context.get('calculated_chunks')
-            current_chunk = chunks[chunk_index] if (chunks and chunk_index < len(chunks)) else None
-
-            for idx_in_response, item in enumerate(translated_strings):
-                temp_id = item.get("id")
-                translated_text = item.get("translation") or item.get("text") or item.get("translated_text") or ""
-                
-                p_map = context.get('placeholder_map', {})
-                if p_map:
-                    translated_text = self.prompt_composer.restore_placeholders(translated_text, p_map, key=temp_id)
-                
-                # 1. First, try to resolve real block/string indices using sequential order inside the chunk
-                # (Highly robust against LLMs completely changing ID format or returning sequential indices 0, 1, 2...)
-                resolved = False
-                if current_chunk and idx_in_response < len(current_chunk):
-                    orig_item = current_chunk[idx_in_response]
-                    orig_id = orig_item.get('id') if isinstance(orig_item, dict) else None
-                    if orig_id is not None:
-                        if temp_id_map and orig_id in temp_id_map:
-                            real_block_idx, real_string_idx = temp_id_map[orig_id]
-                            resolved = True
-                        elif not temp_id_map:
-                            real_block_idx = block_idx
-                            real_string_idx = orig_id
-                            resolved = True
-                
-                # 2. Fallback to mapping by ID in temp_id_map (with type-safe conversions)
-                if not resolved:
-                    if temp_id_map:
-                        # Try integer conversion
-                        try:
-                            int_id = int(temp_id)
-                            if int_id in temp_id_map:
-                                real_block_idx, real_string_idx = temp_id_map[int_id]
-                                resolved = True
-                        except (ValueError, TypeError):
-                            pass
-                        
-                        # Try string key fallback
-                        if not resolved:
-                            str_id = str(temp_id)
-                            if str_id in temp_id_map:
-                                real_block_idx, real_string_idx = temp_id_map[str_id]
-                                resolved = True
-                    else:
-                        try:
-                            real_block_idx = block_idx
-                            real_string_idx = int(temp_id)
-                            resolved = True
-                        except (ValueError, TypeError):
-                            pass
-
-                if resolved:
-                    modified_blocks.add(real_block_idx)
-                    final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
-                    
-                    # Track previous translation if it was already translated
-                    if self.data_processor.is_string_translated(real_block_idx, real_string_idx):
-                        res = self.data_processor.get_current_string_text(real_block_idx, real_string_idx)
-                        if isinstance(res, tuple) and len(res) == 2:
-                            old_val, _ = res
-                            if not hasattr(self, 'current_session_previous_translations') or self.current_session_previous_translations is None:
-                                self.current_session_previous_translations = {}
-                            if real_block_idx not in self.current_session_previous_translations:
-                                self.current_session_previous_translations[real_block_idx] = []
-                            self.current_session_previous_translations[real_block_idx].append((real_string_idx, old_val))
-                    else:
-                        self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
-                        if real_block_idx not in translations_by_block:
-                            translations_by_block[real_block_idx] = []
-                        translations_by_block[real_block_idx].append((real_string_idx, final_text))
-                    
-                    if not hasattr(self, 'current_session_translations') or self.current_session_translations is None:
-                        self.current_session_translations = {}
-                    if real_block_idx not in self.current_session_translations:
-                        self.current_session_translations[real_block_idx] = []
-                    self.current_session_translations[real_block_idx].append((real_string_idx, final_text))
-
-
-            
-            self.mw.undo_manager.end_group("TRANSLATE")
-            
-            saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
-            if saved_mgr:
-                for b_idx, items in translations_by_block.items():
-                    if b_idx != 999999 and b_idx >= 0:
-                        saved_mgr.save_translations_bulk(b_idx, items)
-
-            
-            if block_idx == -2:
-                modified_blocks.add(-2)
-
-            if block_idx in self.translation_progress:
-                self.translation_progress[block_idx]['completed_chunks'].add(chunk_index)
-                self.save_progress_to_metadata(block_idx)
-
-            # Refresh tree indicators for all modified blocks once
-            for m_block in modified_blocks:
-                self.ui_updater.update_block_item_text_with_problem_count(m_block)
-
-            self.ui_updater.update_title()
-            
-            self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
-            
-            current_view_block = self.mw.data_store.current_block_idx
-            if self.mw.data_store.current_chapter_id is not None:
-                current_view_block = -2
-            self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
-            self.translated_chunks_count = len(self.translation_progress.get(block_idx, {}).get('completed_chunks', set()))
-            self.ui_handler.status_dialog.update_progress(self.translated_chunks_count)
-            
-            total_chunks = self.translation_progress.get(block_idx, {}).get('total_chunks', -1)
-            if total_chunks != -1 and self.translated_chunks_count == total_chunks:
-                previous_details = getattr(self, 'current_session_previous_translations', None)
-                self.ui_handler.finish_ai_operation(
-                    translation_details=self.current_session_translations,
-                    previous_translations=previous_details
-                )
-                self.ui_updater.update_text_views()
-                if hasattr(self.mw, 'app_action_handler'):
-                    for m_block in modified_blocks:
-                        if m_block != 999999 and m_block >= 0:
-                            self.mw.issue_scan_handler.rescan_issues_for_single_block(m_block, show_message_on_completion=False)
-                
-                if block_idx == -2:
-                    if -2 in self.translation_progress:
-                        del self.translation_progress[-2]
-                    temp_id_map = context.get('temp_id_map', {})
-                    modified_blocks_for_cleanup = {b_idx for b_idx, _ in temp_id_map.values()}
-                    for b_idx in modified_blocks_for_cleanup:
-                        if b_idx in self.pre_translation_state:
-                            del self.pre_translation_state[b_idx]
-                    if -2 in self.pre_translation_state:
-                        del self.pre_translation_state[-2]
-                else:
-                    if block_idx in self.translation_progress:
-                        del self.translation_progress[block_idx]
-                        self.save_progress_to_metadata(block_idx)
-                    if block_idx in self.pre_translation_state:
-                        del self.pre_translation_state[block_idx]
-                
-                # Removed self.reset_translation_session() to allow user to inspect context if needed
-
-        except (json.JSONDecodeError, ValueError) as e:
-            self._handle_ai_error(f"Failed to process chunk {chunk_index + 1}: {e}", context)
+        """Proxy helper to handle chunk translated."""
+        self.batch_translator.handle_chunk_translated(chunk_index, chunk_text, context)
 
     def _handle_preview_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
-        """Internal helper to handle preview translation success."""
-        log_debug(f"_handle_preview_translation_success called: source_items_count={len(context.get('source_items', []))}")
-        self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        cleaned_text = self.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
-        log_debug(f"_handle_preview_translation_success: cleaned_text length={len(cleaned_text)}")
-        
-        try:
-            parsed_json = json.loads(cleaned_text)
-            translated_strings = parsed_json.get("translated_strings")
-            if not isinstance(translated_strings, list) or len(translated_strings) != len(context['source_items']):
-                raise ValueError("Invalid response structure or item count mismatch.")
-
-            self.mw.undo_manager.begin_group()
-                
-            self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-            
-            temp_id_map = context.get('temp_id_map')
-            p_map = context.get('placeholder_map', {})
-            source_items = context.get('source_items', [])
-            modified_blocks = set()
-            translations_by_block = {}
-
-            for idx_in_response, item in enumerate(translated_strings):
-                temp_id = item.get("id")
-                translated_text = item.get("translation") or item.get("text") or item.get("translated_text") or ""
-                
-                resolved_orig_id = None
-                if idx_in_response < len(source_items):
-                    orig_item = source_items[idx_in_response]
-                    if isinstance(orig_item, dict):
-                        resolved_orig_id = orig_item.get('id')
-                
-                # Restore placeholders using sequential mapping key first, fallback to temp_id
-                restore_key = resolved_orig_id if resolved_orig_id is not None else temp_id
-                if p_map:
-                    translated_text = self.prompt_composer.restore_placeholders(translated_text, p_map, key=restore_key)
-                else:
-                    translated_text = self.prompt_composer.restore_placeholders(translated_text, None, key=None)
-
-                # 1. Try sequential order inside source_items first
-                resolved = False
-                if resolved_orig_id is not None:
-                    if temp_id_map and resolved_orig_id in temp_id_map:
-                        real_block_idx, real_string_idx = temp_id_map[resolved_orig_id]
-                        resolved = True
-                    elif not temp_id_map:
-                        real_block_idx = context['block_idx']
-                        real_string_idx = resolved_orig_id
-                        resolved = True
-
-                # 2. Fallback to mapping by ID in temp_id_map (with type-safe conversions)
-                if not resolved:
-                    if temp_id_map:
-                        try:
-                            int_id = int(temp_id)
-                            if int_id in temp_id_map:
-                                real_block_idx, real_string_idx = temp_id_map[int_id]
-                                resolved = True
-                        except (ValueError, TypeError):
-                            pass
-                        
-                        if not resolved:
-                            str_id = str(temp_id)
-                            if str_id in temp_id_map:
-                                real_block_idx, real_string_idx = temp_id_map[str_id]
-                                resolved = True
-                    else:
-                        try:
-                            real_block_idx = context['block_idx']
-                            real_string_idx = int(temp_id)
-                            resolved = True
-                        except (ValueError, TypeError):
-                            pass
-                
-                if not resolved:
-                    real_block_idx = context['block_idx']
-                    try:
-                        real_string_idx = int(temp_id)
-                    except (ValueError, TypeError):
-                        real_string_idx = temp_id
-
-                modified_blocks.add(real_block_idx)
-                final_text = self._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
-                
-                if not hasattr(self, 'current_session_translations') or self.current_session_translations is None:
-                    self.current_session_translations = {}
-                if real_block_idx not in self.current_session_translations:
-                    self.current_session_translations[real_block_idx] = []
-                self.current_session_translations[real_block_idx].append((real_string_idx, final_text))
-
-                # Track previous translation if it was already translated
-                if self.data_processor.is_string_translated(real_block_idx, real_string_idx):
-                    res = self.data_processor.get_current_string_text(real_block_idx, real_string_idx)
-                    if isinstance(res, tuple) and len(res) == 2:
-                        old_val, _ = res
-                        if not hasattr(self, 'current_session_previous_translations') or self.current_session_previous_translations is None:
-                            self.current_session_previous_translations = {}
-                        if real_block_idx not in self.current_session_previous_translations:
-                            self.current_session_previous_translations[real_block_idx] = []
-                        self.current_session_previous_translations[real_block_idx].append((real_string_idx, old_val))
-                else:
-                    self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE")
-                    
-                    if real_block_idx not in translations_by_block:
-                        translations_by_block[real_block_idx] = []
-                    translations_by_block[real_block_idx].append((real_string_idx, final_text))
-
-            self.mw.undo_manager.end_group("TRANSLATE")
-
-            saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
-            if saved_mgr:
-                for b_idx, items in translations_by_block.items():
-                    if b_idx != 999999 and b_idx >= 0:
-                        saved_mgr.save_translations_bulk(b_idx, items)
-
-
-            self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_text, response=response)
-
-            # Refresh tree indicators for all modified blocks once
-            for m_block in modified_blocks:
-                self.ui_updater.update_block_item_text_with_problem_count(m_block)
-
-            previous_details = getattr(self, 'current_session_previous_translations', None)
-            self.ui_handler.finish_ai_operation(
-                translation_details=self.current_session_translations,
-                previous_translations=previous_details
-            )
-            
-            current_view_block = self.mw.data_store.current_block_idx
-            if self.mw.data_store.current_chapter_id is not None:
-                current_view_block = -2
-            self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
-            self.ui_updater.update_text_views()
-            self.ui_updater.update_title()
-
-            # Refresh SearchReviewDialog if open
-            try:
-                from dialogs.search_review_dialog import SearchReviewDialog
-                for widget in QApplication.topLevelWidgets():
-                    if isinstance(widget, SearchReviewDialog):
-                        widget.refresh_from_project()
-            except Exception as e:
-                log_warning(f"Failed to refresh SearchReviewDialog in _handle_preview_translation_success: {e}")
-
-            if hasattr(self.mw, 'app_action_handler'):
-                for m_block in modified_blocks:
-                    if m_block != 999999:
-                        self.mw.issue_scan_handler.rescan_issues_for_single_block(m_block, show_message_on_completion=False)
-
-        except (json.JSONDecodeError, ValueError) as e:
-            self._handle_ai_error(f"Validation failed: {e}", context)
+        """Proxy helper to handle preview translation success."""
+        self.batch_translator.handle_preview_translation_success(response, context)
 
     def _handle_ai_error(self, error_msg: str, context: Dict[str, Any]) -> None:
         """Internal helper to handle ai error."""
@@ -1499,7 +840,7 @@ class TranslationHandler(BaseHandler):
         log_debug(f"_translate_and_apply: block={block_idx}, string={string_idx}, source_text_len={len(source_text)}, force_prompt={force_prompt}")
         
         saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
-        if not force_prompt and saved_mgr and not hasattr(saved_mgr, 'assert_called_with'):
+        if not force_prompt and saved_mgr:
             source_items = [{"id": string_idx, "text": source_text}]
             temp_id_map = {string_idx: (block_idx, string_idx)}
             filtered_items, filtered_map = self._filter_already_saved_translations(
@@ -1568,10 +909,6 @@ class TranslationHandler(BaseHandler):
         self.ui_handler.start_ai_operation("AI Translation", model_name=self.ai_lifecycle_manager._active_model_name)
         self._run_ai_task(provider, task_details)
         
-    def _handle_block_translation_success(self, response: ProviderResponse, context: dict):
-        """Internal helper to handle block translation success."""
-        log_debug(f"Block translation finished for block {context.get('block_idx')}")
-        self.ui_handler.finish_ai_operation()
 
     def translate_selected_lines(self, force_prompt: bool = False):
         """

@@ -82,9 +82,9 @@ def test_scroll_to_current_string_in_preview_logic(app):
     
     # Initialize handler
     handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    handler._cursor_visible_timer = MagicMock()
     
-    with patch("PyQt6.QtCore.QTimer.singleShot") as mock_timer, \
-         patch("handlers.list_selection_handler.QTextCursor") as mock_cursor_class:
+    with patch("handlers.list_selection_handler.QTextCursor") as mock_cursor_class:
         
         mock_cursor = MagicMock()
         mock_cursor_class.return_value = mock_cursor
@@ -96,5 +96,5 @@ def test_scroll_to_current_string_in_preview_logic(app):
         mock_cursor_class.assert_called_once_with(mock_block)
         mock_preview.setTextCursor.assert_called_once_with(mock_cursor)
         mock_preview.set_selected_lines.assert_called_once_with([2])
-        mock_timer.assert_called_once()
+        handler._cursor_visible_timer.start.assert_called_once_with(10)
 

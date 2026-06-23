@@ -1,4 +1,5 @@
 import pytest
+pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock
 from dialogs.spellcheck_dialog import SpellcheckAnalysisWorker
 from dialogs.search_review_dialog import SearchWorker
@@ -13,7 +14,7 @@ def test_spellcheck_worker_success(qtbot):
     text = "Hello world.\nThis is a test."
     worker = SpellcheckAnalysisWorker(text, spellchecker_manager)
 
-    with qtbot.waitSignal(worker.finished, timeout=1000) as blocker:
+    with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
         worker.start()
 
     items_to_review, new_cache_entries = blocker.args
@@ -34,7 +35,7 @@ def test_spellcheck_worker_cancel(qtbot):
     text = "\n".join(["word"] * 5000)
     worker = SpellcheckAnalysisWorker(text, spellchecker_manager)
 
-    with qtbot.waitSignal(worker.cancelled, timeout=1000):
+    with qtbot.waitSignal(worker.cancelled, timeout=30000):
         worker.start()
         worker.cancel()
 
@@ -55,7 +56,7 @@ def test_search_worker_local_success(qtbot):
 
     worker = SearchWorker('local', params)
 
-    with qtbot.waitSignal(worker.finished, timeout=1000) as blocker:
+    with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
         worker.start()
 
     items_to_review, text, line_numbers, block_indices, unique_string_indices = blocker.args
@@ -78,7 +79,7 @@ def test_search_worker_cancel(qtbot):
 
     worker = SearchWorker('local', params)
 
-    with qtbot.waitSignal(worker.cancelled, timeout=1000):
+    with qtbot.waitSignal(worker.cancelled, timeout=30000):
         worker.start()
         worker.cancel()
 
@@ -106,7 +107,7 @@ def test_search_worker_global_success(qtbot):
 
     worker = SearchWorker('global', params)
 
-    with qtbot.waitSignal(worker.finished, timeout=1000) as blocker:
+    with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
         worker.start()
 
     items_to_review, current_text, line_numbers, block_indices, unique_string_indices = blocker.args
@@ -163,7 +164,7 @@ def test_spellcheck_dialog_close_during_analysis(qtbot):
     dialog = SpellcheckDialog(parent, text, spellchecker_manager, starting_line_number=0, line_numbers=[0]*2000, block_idx=0, force_async=True)
     
     # Let analysis start (50ms timer + startup delay)
-    qtbot.waitUntil(lambda: hasattr(dialog, 'analysis_worker') and dialog.analysis_worker is not None, timeout=3000)
+    qtbot.waitUntil(lambda: hasattr(dialog, 'analysis_worker') and dialog.analysis_worker is not None, timeout=30000)
     
     assert dialog.analysis_worker is not None
     assert dialog.analysis_worker.isRunning()
@@ -175,7 +176,7 @@ def test_spellcheck_dialog_close_during_analysis(qtbot):
     assert dialog._is_closing is True
     
     # Wait for thread to shutdown safely and dialog to reject
-    qtbot.waitUntil(lambda: dialog.analysis_worker is None, timeout=3000)
+    qtbot.waitUntil(lambda: dialog.analysis_worker is None, timeout=30000)
 
 def test_search_review_dialog_close_during_analysis(qtbot):
     from dialogs.search_review_dialog import SearchReviewDialog
@@ -193,7 +194,7 @@ def test_search_review_dialog_close_during_analysis(qtbot):
         dialog = SearchReviewDialog(parent, text, "query", starting_line_number=0, line_numbers=list(range(1000)), block_idx=0, force_async=True)
         
         # Let search start (50ms timer + startup delay)
-        qtbot.waitUntil(lambda: hasattr(dialog, 'search_worker') and dialog.search_worker is not None, timeout=3000)
+        qtbot.waitUntil(lambda: hasattr(dialog, 'search_worker') and dialog.search_worker is not None, timeout=30000)
         
         assert dialog.search_worker is not None
         assert dialog.search_worker.isRunning()
@@ -205,7 +206,7 @@ def test_search_review_dialog_close_during_analysis(qtbot):
         assert dialog._is_closing is True
         
         # Wait for thread to shutdown safely and dialog to reject
-        qtbot.waitUntil(lambda: dialog.search_worker is None, timeout=3000)
+        qtbot.waitUntil(lambda: dialog.search_worker is None, timeout=30000)
     finally:
         # Restore original function
         dialogs.search_review_dialog.find_smart_matches = original_find

@@ -390,10 +390,9 @@ def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mo
     # Session state IS restored
     h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(True) if on_completed else None)
 
-    with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
-        h._open_recent_project("real_path.uiproj")
-        # Since session state was restored, singleShot should NOT be called for restore_view
-        mock_timer.assert_not_called()
+    h._restore_view_timer = MagicMock()
+    h._open_recent_project("real_path.uiproj")
+    h._restore_view_timer.start.assert_not_called()
 
 @patch('handlers.project_action_handler.ProjectManager')
 @patch('handlers.project_action_handler.QMessageBox')
@@ -413,13 +412,9 @@ def test_ProjectActionHandler_open_recent_project_no_session_restore_runs_timer(
     # Session state is NOT restored
     h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(False) if on_completed else None)
 
-    with patch('PyQt6.QtCore.QTimer.singleShot') as mock_timer:
-        h._open_recent_project("real_path.uiproj")
-        # Since session state was NOT restored, singleShot SHOULD be called to schedule restore_view
-        mock_timer.assert_called_once()
-        args, _ = mock_timer.call_args
-        assert args[0] == 150
-        assert callable(args[1])
+    h._restore_view_timer = MagicMock()
+    h._open_recent_project("real_path.uiproj")
+    h._restore_view_timer.start.assert_called_once_with(150)
 
 
 def test_ProjectLoadWorker_run_and_emits(mock_mw):

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QMessageBox
 
 from handlers.translation.ai_lifecycle_manager import AILifecycleManager
@@ -147,11 +147,11 @@ def test_ailm_handle_task_error(mock_box, ailm):
     mock_box.question.return_value = mock_box.StandardButton.Yes
     ctx = {'type': 'translate_preview', 'attempt': 1, 'max_retries': 3}
     
-    with patch('handlers.translation.ai_lifecycle_manager.QTimer') as mock_timer:
-        ailm._handle_task_error("Read timed out", ctx)
-        mock_box.question.assert_called_once()
-        assert ailm._retry_context == ctx
-        mock_timer.singleShot.assert_called_once()
+    ailm._retry_delay_timer = MagicMock()
+    ailm._handle_task_error("Read timed out", ctx)
+    mock_box.question.assert_called_once()
+    assert ailm._retry_context == ctx
+    ailm._retry_delay_timer.start.assert_called_once_with(0)
         
     # Non-timeout error max attempts reached
     mock_box.reset_mock()
@@ -183,11 +183,11 @@ def test_ailm_clean_model_output(ailm):
 def test_ailm_perform_retry(ailm):
     ailm._retry_context = {'type': 'translate_preview'}
     
-    with patch('handlers.translation.ai_lifecycle_manager.QTimer') as mock_timer:
-        ailm._perform_retry()
-        # Ensure label reset
-        assert ailm._retry_context is None
-        mock_timer.singleShot.assert_called_once()
+    ailm._deferred_retry_timer = MagicMock()
+    ailm._perform_retry()
+    # Ensure label reset
+    assert ailm._retry_context is None
+    ailm._deferred_retry_timer.start.assert_called_once_with(0)
         
     # Unhandled task type
     ailm._retry_context = {'type': 'unknown'}
@@ -199,18 +199,14 @@ def test_ailm_perform_retry_translate_single(ailm):
     mock_provider = MagicMock()
     ailm._retry_context = {'type': 'translate_single', 'provider': mock_provider}
     
-    with patch('handlers.translation.ai_lifecycle_manager.QTimer') as mock_timer:
-        ailm._perform_retry()
-        assert ailm._retry_context is None
-        mock_timer.singleShot.assert_called_once()
-        
-        # Test callback logic
-        args, kwargs = mock_timer.singleShot.call_args
-        callback = args[1]
-        
-        # Execute the lambda callback
-        callback()
-        ailm.main_handler._run_ai_task.assert_called_once_with(mock_provider, {'type': 'translate_single', 'provider': mock_provider})
+    ailm._deferred_retry_timer = MagicMock()
+    ailm._perform_retry()
+    assert ailm._retry_context is None
+    ailm._deferred_retry_timer.start.assert_called_once_with(0)
+
+    # Execute the deferred callback through the real timeout handler.
+    ailm._on_deferred_retry_timer_timeout()
+    ailm.main_handler._run_ai_task.assert_called_once_with(mock_provider, {'type': 'translate_single', 'provider': mock_provider})
 
 @patch('utils.thread_utils.safe_shutdown_thread')
 def test_ailm_prepare_to_close(mock_safe_shutdown, ailm):
@@ -218,7 +214,15 @@ def test_ailm_prepare_to_close(mock_safe_shutdown, ailm):
     mock_worker = MagicMock()
     ailm.thread = mock_thread
     ailm.worker = mock_worker
+    ailm._retry_delay_timer = MagicMock()
+    ailm._deferred_retry_timer = MagicMock()
+    ailm._pending_deferred_retry = MagicMock()
+    ailm._retry_context = {'type': 'translate_preview'}
     ailm.prepare_to_close()
+    ailm._retry_delay_timer.stop.assert_called_once()
+    ailm._deferred_retry_timer.stop.assert_called_once()
+    assert ailm._pending_deferred_retry is None
+    assert ailm._retry_context is None
     mock_safe_shutdown.assert_called_once_with(mock_thread, mock_worker)
     assert ailm.thread is None
     assert ailm.worker is None

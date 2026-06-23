@@ -1,4 +1,4 @@
-# The "Picoripi" (v0.3.057)
+# The "Picoripi" (v0.3.058)
 
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
@@ -90,7 +90,7 @@ Picoripi is largely AI-developed, so every AI agent must behave like a careful m
 
 ## Project Overview
 
-The "Picoripi" (v0.3.057) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
+The "Picoripi" (v0.3.058) is a desktop application built with **Python** and **PyQt6**. Its primary purpose is to facilitate the simple, visual, and convenient translation of any texts, specifically optimized for cases with strict length and formatting constraints.
 
 
 The application is designed to be highly versatile, with features tailored to handling various text constraints, such as character limits, pixel-perfect width calculations (using game-specific or custom fonts from a configurable fonts directory path), and custom control codes. While it excels at retro game localization, its core architecture is suitable for any structured translation project.
@@ -157,7 +157,7 @@ General application settings are stored in `settings.json`.
 
 ### 4. Running Tests
 
-The project uses `pytest` with 1200+ unit tests:
+The project uses `pytest` with 1281+ default-lane items plus a dedicated performance lane:
 ```bash
 # Windows
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/
@@ -228,7 +228,7 @@ The project follows a well-organized, modular structure with clear separation of
     -   `zelda_mc/`, `zelda_ww/`, `pokemon_fr/`, `plain_text/`: Individual game plugins.
 -   `tools/`: Helper utilities and embedded tools, including `bfn_editor/` (Nintendo Binary Font visual editor and compiler).
 -   `utils/`: Utility functions (`utils.py`), constants (`constants.py`), syntax highlighter (`syntax_highlighter.py`), and logging (`logging_utils.py`).
--   `tests/`: 960+ unit tests organized by module (pytest).
+-   `tests/`: 1281+ default-lane pytest items plus performance tests organized by module.
 
 ### Key Development Conventions
 

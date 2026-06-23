@@ -5,6 +5,7 @@ from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import Qt, QPoint
 from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
+from utils.utils import is_control_modifier_pressed
 
 class LNETContextMenuLogic:
     """L n e t context menu logic implementation."""
@@ -312,27 +313,10 @@ class LNETContextMenuLogic:
                     line_num = cursor.blockNumber()
                     action_text = f"AI Translate Line {line_num + 1} (UA)"
 
-                is_ctrl_at_populate = False
-                try:
-                    import ctypes
-                    is_ctrl_at_populate = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
-                except Exception:
-                    pass
-                if not is_ctrl_at_populate:
-                    is_ctrl_at_populate = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+                is_ctrl_at_populate = is_control_modifier_pressed()
 
                 def check_ctrl_now():
-                    is_ctrl = False
-                    try:
-                        import ctypes
-                        is_ctrl = bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
-                        if not is_ctrl:
-                            is_ctrl = bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000)
-                    except Exception:
-                        pass
-                    if not is_ctrl:
-                        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
-                    return is_ctrl
+                    return is_control_modifier_pressed()
 
                 def make_translate_trigger(pos):
                     return lambda checked=False: translator.translate_preview_selection(

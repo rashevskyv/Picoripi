@@ -13,15 +13,14 @@ $env:PYTHONPATH = $RepoRoot
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "Running Picoripi Test Suite & Verification" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
-
-Write-Host "`n[1/3] Running Unit & Integration Tests..." -ForegroundColor Yellow
-& $Python -m pytest -n auto tests/
+Write-Host "`n[1/3] Running Unit & Worker Tests (Parallel)..." -ForegroundColor Yellow
+& $Python -m pytest -n auto -m "not performance" tests/
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n[ERROR] Unit/Integration Tests Failed!" -ForegroundColor Red
+    Write-Host "`n[ERROR] Unit & Worker Tests Failed!" -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
-Write-Host "`n[2/3] Running Performance Tests..." -ForegroundColor Yellow
+Write-Host "`n[2/3] Running Performance Tests (Parallel)..." -ForegroundColor Yellow
 & $Python -m pytest -n auto -m performance tests/test_performance.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n[ERROR] Performance Tests Failed!" -ForegroundColor Red

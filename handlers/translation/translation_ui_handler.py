@@ -267,6 +267,19 @@ class TranslationUIHandler(BaseTranslationHandler):
         line_idx = entry.get('line_idx')
         if block is None or string is None: return
 
+        try:
+            from PyQt6 import sip
+            from PyQt6.QtCore import QObject
+        except ImportError:
+            import sip
+            from PyQt6.QtCore import QObject
+
+        def is_qt_deleted(obj: Any) -> bool:
+            try:
+                return isinstance(obj, QObject) and sip.isdeleted(obj)
+            except (TypeError, RuntimeError):
+                return True
+
         block_idx, string_idx = int(block), int(string)
         line_number = int(line_idx) if line_idx is not None else None
 
@@ -274,13 +287,17 @@ class TranslationUIHandler(BaseTranslationHandler):
         current_block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
         block_changed = (block_idx != current_block_idx)
 
-        if block_widget and hasattr(block_widget, 'select_block_by_index'):
+        if block_widget and not is_qt_deleted(block_widget) and hasattr(block_widget, 'select_block_by_index'):
             block_widget.select_block_by_index(block_idx)
 
         def select_string_and_scroll():
             """Select string and scroll."""
-            if hasattr(self.mw, 'list_selection_handler'):
-                self.mw.list_selection_handler.select_string_by_absolute_index(string_idx)
+            if not self.mw or is_qt_deleted(self.mw):
+                return
+
+            list_selection_handler = getattr(self.mw, 'list_selection_handler', None)
+            if list_selection_handler and not is_qt_deleted(list_selection_handler):
+                list_selection_handler.select_string_by_absolute_index(string_idx)
             else:
                 self.mw.data_store.current_block_idx = block_idx
                 self.mw.data_store.current_string_idx = string_idx
@@ -288,7 +305,7 @@ class TranslationUIHandler(BaseTranslationHandler):
                 self.mw.ui_updater.update_text_views()
 
             editor = getattr(self.mw, 'original_text_edit', None)
-            if editor and line_number is not None:
+            if editor and not is_qt_deleted(editor) and line_number is not None:
                 block_obj = editor.document().findBlockByNumber(line_number)
                 if block_obj.isValid():
                     cursor = editor.textCursor()
@@ -298,9 +315,12 @@ class TranslationUIHandler(BaseTranslationHandler):
 
             def apply_focus():
                 """Apply focus."""
-                if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
-                    self.mw.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
-                elif editor:
+                if not self.mw or is_qt_deleted(self.mw):
+                    return
+                edited_text_edit = getattr(self.mw, 'edited_text_edit', None)
+                if edited_text_edit and not is_qt_deleted(edited_text_edit):
+                    edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
+                elif editor and not is_qt_deleted(editor):
                     editor.setFocus(Qt.FocusReason.OtherFocusReason)
                 self.mw.raise_()
                 self.mw.activateWindow()

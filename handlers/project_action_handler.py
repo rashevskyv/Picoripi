@@ -249,6 +249,14 @@ class ProjectActionHandler(BaseHandler):
         if not hasattr(self.mw, 'project_manager') or self.mw.project_manager is None:
             self.mw.project_manager = ProjectManager()
 
+        from PyQt6.QtCore import QObject, QTimer
+        timer_parent = self.mw if isinstance(self.mw, QObject) else None
+        self._restore_view_timer = QTimer(timer_parent)
+        self._restore_view_timer.setSingleShot(True)
+        self._restore_view_timer.timeout.connect(self._on_restore_view_timer_timeout)
+        self._pending_restore_block: int = 0
+        self._pending_restore_cat: Optional[str] = None
+
     def _set_project_actions_enabled(self, enabled: bool):
         """Enable or disable project-specific UI actions and update their tooltips."""
         actions_map = {
@@ -960,21 +968,11 @@ class ProjectActionHandler(BaseHandler):
 
                 log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
 
-                # 6. Final UI polish: select the last block/category after QTreeWidget has settled
-                # Only fallback to default block selection if no session state was restored!
                 if not state_restored:
-                    def restore_view():
-                        log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
-                        if hasattr(self.mw, 'block_list_widget'):
-                            self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
-
-                        # These calls refresh the string list and editors
-                        self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
-                        self.ui_updater.update_statusbar_paths()
-                        self.ui_updater.update_plugin_status_label() # Ensure label is accurate
-
-                    from PyQt6.QtCore import QTimer
-                    QTimer.singleShot(150, restore_view) # Increased delay to 150ms for stability
+                    log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
+                    self._pending_restore_block = restored_block
+                    self._pending_restore_cat = restored_cat
+                    self._restore_view_timer.start(150)
 
             self._populate_blocks_from_project(on_completed=on_recent_opened)
         else:
@@ -983,6 +981,39 @@ class ProjectActionHandler(BaseHandler):
                 "Project Load Failed",
                 f"Failed to load project from:\n{project_path}"
             )
+
+    def _on_restore_view_timer_timeout(self) -> None:
+        """Handle deferred restore view safely."""
+        self._restore_view_timer.stop()
+        try:
+            from PyQt6 import sip
+            from PyQt6.QtCore import QObject
+        except ImportError:
+            import sip
+            from PyQt6.QtCore import QObject
+
+        try:
+            if not self.mw or (isinstance(self.mw, QObject) and sip.isdeleted(self.mw)):
+                return
+        except (TypeError, RuntimeError):
+            return
+
+        restored_block = self._pending_restore_block
+        restored_cat = self._pending_restore_cat
+        self._pending_restore_cat = None
+
+        try:
+            is_deleted = sip.isdeleted(self.mw.block_list_widget)
+        except (TypeError, ValueError, AttributeError, RuntimeError):
+            is_deleted = False
+
+        if hasattr(self.mw, 'block_list_widget') and not is_deleted:
+            self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
+
+        # These calls refresh the string list and editors
+        self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
+        self.ui_updater.update_statusbar_paths()
+        self.ui_updater.update_plugin_status_label() # Ensure label is accurate
 
     def _clear_recent_projects(self) -> None:
         """Clear all recent projects."""

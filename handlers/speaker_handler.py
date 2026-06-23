@@ -46,9 +46,32 @@ class SpeakerHandler(BaseHandler):
 
         def focus_editor() -> None:
             try:
+                from PyQt6 import sip
+                from PyQt6.QtCore import QObject
+            except ImportError:
+                import sip
+                from PyQt6.QtCore import QObject
+
+            def is_qt_deleted(obj: Any) -> bool:
+                try:
+                    return isinstance(obj, QObject) and sip.isdeleted(obj)
+                except (TypeError, RuntimeError):
+                    return True
+
+            try:
+                if not self.mw or is_qt_deleted(self.mw):
+                    return
+                if not editor or is_qt_deleted(editor):
+                    return
                 editor.setFocus(Qt.FocusReason.OtherFocusReason)
             except TypeError:
-                editor.setFocus()
+                try:
+                    if editor and not is_qt_deleted(editor):
+                        editor.setFocus()
+                except Exception:
+                    pass
+            except RuntimeError:
+                pass
 
         QTimer.singleShot(0, focus_editor)
 

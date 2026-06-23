@@ -217,6 +217,11 @@ class MainWindowEventHandler:
         self.mw.app_action_handler.handle_close_event(event)
         
         if event.isAccepted():
+            if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
+                try:
+                    self.mw.list_selection_handler.cleanup()
+                except Exception:
+                    pass
             if hasattr(self.mw, 'data_processor') and self.mw.data_processor:
                 self.mw.data_processor._save_durable_session_json(force=True)
             self.disconnect_signals()

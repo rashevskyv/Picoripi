@@ -466,7 +466,6 @@ class MemePalaceClient:
                 )
                 if conn is None:
                     local_conn.commit()
-                    local_conn.close()
                 return True
             except Exception as e:
                 log_error(f"Local DB error in add_relation: {e}")

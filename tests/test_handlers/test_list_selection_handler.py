@@ -9,6 +9,7 @@ def handler(mock_mw):
     # Ensure a clean, predictable mock_mw state for every test
     mock_mw.is_loading_data = False
     mock_mw.is_programmatically_changing_text = False
+    mock_mw._restoring_session_state = False
     mock_mw.current_block_idx = -1
     mock_mw.current_string_idx = -1
     mock_mw.current_category_name = None
@@ -55,14 +56,28 @@ def test_ListSelectionHandler_block_selected(handler):
     mock_item = MagicMock()
     # Return block_index=0, category=None
     mock_item.data.side_effect = lambda col, role: 0 if role == Qt.UserRole else None
-    
+
     # Setup what we want to "restore"
     handler.mw.project_manager.project.blocks[0].last_selected_string_idx = 42
     
-    with patch('PyQt6.QtCore.QTimer.singleShot'):
-        handler.block_selected(mock_item, None)
-        assert handler.mw.data_store.current_block_idx == 0
-        assert handler.mw.data_store.current_string_idx == 42
+    handler.block_selected(mock_item, None)
+
+    assert handler.mw.data_store.current_block_idx == 0
+    assert handler.mw.data_store.current_string_idx == 42
+    handler.data_processor.schedule_autosave.assert_called_once()
+
+def test_ListSelectionHandler_cleanup_stops_owned_timers(handler):
+    handler._cursor_visible_timer.start(1000)
+    handler._schedule_string_selection(7)
+    assert handler._cursor_visible_timer.isActive()
+    assert handler._selection_timer.isActive()
+    assert handler._pending_selection_line == 7
+
+    handler.cleanup()
+
+    assert not handler._cursor_visible_timer.isActive()
+    assert not handler._selection_timer.isActive()
+    assert handler._pending_selection_line is None
 
 def test_ListSelectionHandler_restore_block_selection(handler):
     mock_item = MagicMock()
@@ -107,12 +122,11 @@ def test_ListSelectionHandler_string_selected_from_preview(handler):
     handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.data = [["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7"]]
     
-    with patch('PyQt6.QtCore.QTimer.singleShot'):
-        with patch('handlers.list_selection_handler.QTextCursor') as mock_cursor:
-            # Selecting preview line 1 corresponds to abs index 6
-            handler.string_selected_from_preview(1)
-            assert handler.mw.data_store.current_string_idx == 6
-            handler.mw.ui_updater.update_text_views.assert_called()
+    with patch('handlers.list_selection_handler.QTextCursor') as mock_cursor:
+        # Selecting preview line 1 corresponds to abs index 6
+        handler.string_selected_from_preview(1)
+        assert handler.mw.data_store.current_string_idx == 6
+        handler.mw.ui_updater.update_text_views.assert_called()
 
 def test_ListSelectionHandler_rename_block(handler):
     handler.rename_block(MagicMock())
@@ -443,6 +457,96 @@ def test_ListSelectionHandler_toggle_hide_tags_global(handler):
     assert handler.mw.data_store.hide_translation_tags is True
     handler.mw.helper.reconfigure_all_highlighters.assert_called_once()
     handler.ui_updater.populate_strings_for_block.assert_called_with(0, "test_cat")
+
+
+def test_ListSelectionHandler_handle_virtual_row_selection(handler):
+    mock_item = MagicMock()
+    mock_item.data.side_effect = lambda col, role: {
+        Qt.UserRole: 0,
+        Qt.UserRole + 1: 1,
+        Qt.UserRole + 11: 42
+    }.get(role, None)
+
+    # Setup mock translation handler & prompt composer & client
+    mock_composer = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_chapter_mappings.return_value = [{"bmg_id": "test_Str_1"}]
+    mock_composer.prompt_composer._get_mempalace_client.return_value = mock_client
+    mock_composer.prompt_composer._get_wing_name.return_value = "Zelda_TP"
+    handler.mw.translation_handler = mock_composer
+    handler.resolve_bmg_id_to_indices = MagicMock(return_value=(0, 1))
+    handler._get_displayed_indices = MagicMock(return_value=[(0, 1)])
+
+    with patch.object(handler, '_schedule_string_selection') as mock_schedule:
+        handler._handle_virtual_row_selection(mock_item)
+        assert handler.mw.data_store.current_block_idx == 0
+        assert handler.mw.data_store.current_string_idx == 1
+        assert handler.mw.data_store.current_chapter_id == 42
+        assert handler.mw.data_store.chapter_mappings == [(0, 1)]
+        mock_schedule.assert_called_once_with(0)
+
+
+def test_ListSelectionHandler_handle_speaker_selection(handler):
+    mock_item = MagicMock()
+    mock_item.data.side_effect = lambda col, role: {
+        Qt.UserRole + 15: "Zelda",
+        Qt.UserRole + 13: [(0, 1), (0, 2)]
+    }.get(role, None)
+
+    with patch.object(handler, '_schedule_string_selection') as mock_schedule:
+        handler._handle_speaker_selection(mock_item)
+        assert handler.mw.data_store.current_block_idx == -3
+        assert handler.mw.data_store.current_speaker_name == "Zelda"
+        assert handler.mw.data_store.chapter_mappings == [(0, 1), (0, 2)]
+        assert handler.mw.data_store.physical_block_idx == 0
+        assert handler.mw.data_store.current_string_idx == 1
+        mock_schedule.assert_called_once_with(0)
+
+
+def test_ListSelectionHandler_handle_chapter_selection(handler):
+    # Setup mock translation handler & prompt composer & client
+    mock_composer = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_chapter_mappings.return_value = [{"bmg_id": "test_Str_2"}]
+    mock_composer.prompt_composer._get_mempalace_client.return_value = mock_client
+    mock_composer.prompt_composer._get_wing_name.return_value = "Zelda_TP"
+    handler.mw.translation_handler = mock_composer
+    handler.resolve_bmg_id_to_indices = MagicMock(return_value=(0, 2))
+
+    with patch.object(handler, '_schedule_string_selection') as mock_schedule:
+        handler._handle_chapter_selection(42)
+        assert handler.mw.data_store.current_block_idx == -2
+        assert handler.mw.data_store.current_chapter_id == 42
+        assert handler.mw.data_store.chapter_mappings == [(0, 2)]
+        assert handler.mw.data_store.physical_block_idx == 0
+        assert handler.mw.data_store.current_string_idx == 2
+        mock_schedule.assert_called_once_with(0)
+
+
+def test_ListSelectionHandler_handle_folder_selection(handler):
+    handler.mw.string_settings_updater = MagicMock()
+    handler._handle_folder_selection()
+    assert handler.mw.data_store.current_block_idx == -1
+    assert handler.mw.data_store.physical_block_idx == -1
+    assert handler.mw.data_store.current_string_idx == -1
+    handler.mw.string_settings_updater.update_string_settings_panel.assert_called()
+
+
+def test_ListSelectionHandler_handle_physical_block_selection(handler):
+    handler.mw.project_manager.project = MagicMock()
+    handler.mw.project_manager.project.blocks = [MagicMock()]
+    handler.mw.project_manager.project.blocks[0].last_selected_string_idx = 5
+    handler.mw.block_to_project_file_map = {0: 0}
+    handler._get_displayed_indices = MagicMock(return_value=[5])
+    handler.mw.string_settings_updater = MagicMock()
+
+    with patch.object(handler, '_schedule_string_selection') as mock_schedule:
+        handler._handle_physical_block_selection(0, "test_cat", -1, -1, None)
+        assert handler.mw.data_store.current_block_idx == 0
+        assert handler.mw.data_store.physical_block_idx == 0
+        assert handler.mw.data_store.current_string_idx == 5
+        assert handler.mw.data_store.current_category_name == "test_cat"
+        mock_schedule.assert_called_once_with(0)
 
 
 

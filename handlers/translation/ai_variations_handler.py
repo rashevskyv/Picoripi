@@ -15,6 +15,60 @@ class AIVariationsHandler(BaseTranslationHandler):
         """Initialize a new instance."""
         super().__init__(main_handler)
         self.variations_cache: Dict[tuple, Dict[str, Any]] = {}
+        from PyQt6.QtCore import QObject
+        timer_parent = self.mw if isinstance(self.mw, QObject) else None
+        self._variation_refresh_timer = QTimer(timer_parent)
+        self._variation_refresh_timer.setSingleShot(True)
+        self._variation_refresh_timer.timeout.connect(self._on_variation_refresh_timer_timeout)
+        self._pending_variation_refresh: Optional[Dict[str, Any]] = None
+
+    def _is_qt_deleted(self, obj: Any) -> bool:
+        try:
+            from PyQt6 import sip
+            from PyQt6.QtCore import QObject
+            return isinstance(obj, QObject) and sip.isdeleted(obj)
+        except (TypeError, RuntimeError):
+            return True
+
+    def _schedule_variation_refresh(
+        self,
+        block_idx: int,
+        string_idx: int,
+        *,
+        on_success_callback: Optional[callable],
+        parent: Optional[Any],
+        selected_text: Optional[str],
+    ) -> None:
+        """Schedule a safe delayed variation refresh."""
+        self._pending_variation_refresh = {
+            'block_idx': block_idx,
+            'string_idx': string_idx,
+            'on_success_callback': on_success_callback,
+            'parent': parent,
+            'selected_text': selected_text,
+        }
+        self._variation_refresh_timer.start(100)
+
+    def _on_variation_refresh_timer_timeout(self) -> None:
+        """Run a delayed variation refresh if the owner widgets are still alive."""
+        self._variation_refresh_timer.stop()
+        pending = self._pending_variation_refresh
+        self._pending_variation_refresh = None
+        if not pending:
+            return
+        if not self.mw or self._is_qt_deleted(self.mw):
+            return
+        parent = pending.get('parent')
+        if parent is not None and self._is_qt_deleted(parent):
+            parent = None
+        self.generate_variation_for_string(
+            pending['block_idx'],
+            pending['string_idx'],
+            force=True,
+            on_success_callback=pending.get('on_success_callback'),
+            parent=parent,
+            selected_text=pending.get('selected_text'),
+        )
 
     def _handle_variation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         """Internal helper to handle variation success."""
@@ -58,7 +112,13 @@ class AIVariationsHandler(BaseTranslationHandler):
 
         chosen = self.main_handler.ui_handler.show_variations_dialog(restored_variants, show_refresh=True, parent=parent_widget)
         if chosen == "__REFRESH__":
-            QTimer.singleShot(100, lambda: self.generate_variation_for_string(block_idx, string_idx, force=True, on_success_callback=on_success_callback, parent=parent_widget, selected_text=selected_text))
+            self._schedule_variation_refresh(
+                block_idx,
+                string_idx,
+                on_success_callback=on_success_callback,
+                parent=parent_widget,
+                selected_text=selected_text,
+            )
             return
         if chosen:
             if on_success_callback:
@@ -125,7 +185,13 @@ class AIVariationsHandler(BaseTranslationHandler):
             restored_variants = cached.get('variants', [])
             chosen = self.main_handler.ui_handler.show_variations_dialog(restored_variants, show_refresh=True, parent=parent)
             if chosen == "__REFRESH__":
-                QTimer.singleShot(100, lambda: self.generate_variation_for_string(block_idx, string_idx, force=True, on_success_callback=on_success_callback, parent=parent, selected_text=selected_text))
+                self._schedule_variation_refresh(
+                    block_idx,
+                    string_idx,
+                    on_success_callback=on_success_callback,
+                    parent=parent,
+                    selected_text=selected_text,
+                )
             elif chosen:
                 if on_success_callback:
                     on_success_callback(chosen)

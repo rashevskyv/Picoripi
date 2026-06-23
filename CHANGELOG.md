@@ -1,5 +1,24 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.058] - 2026-06-23
+
+### ⚙️ Changed
+- **Decomposed SearchReviewDialog and MainWindowActions (AUD-A3)**:
+  - Created a new package `dialogs/search/` and extracted background search logic into `SearchWorker` in `search_worker.py` and pure utility functions in `search_utils.py`.
+  - Created `dialogs/tag_alias_dialog.py` for `TagAliasDialog` and `AliasUpdateWorker`.
+  - Extracted BFN Editor actions into `ui/main_window/bfn_actions.py` and MemePalace actions into `ui/main_window/mempalace_actions.py`.
+  - Integrated helpers into `MainWindowActions` with proxy calls, keeping 100% backward compatibility for all importers and test suites.
+  - Reduced `main_window_actions.py` code length by ~650 lines.
+- **Removed mock-aware guards from product code (AUD-A4)**:
+  - Removed all 5 occurrences of `hasattr(..., 'assert_called_with')` checks from `translation_handler.py` and `batch_translator.py`.
+  - Cleared production codebase from testing mock artifacts, leaving assertions solely to unit tests.
+- **Improved Test Suite Robustness under Parallel xdist (AUD-T8)**:
+  - Set QThread timeouts to 30 seconds for real workers lifecycle test suits to prevent flaky failures under CPU starvation.
+  - Set spellchecker performance budget threshold to 800ms under high load.
+  - Converted GlossaryOccurrenceWorker execution to synchronous in user journey tests to eliminate thread scheduling dependency.
+- **Version Updates**:
+  - Bumped version to `0.3.058` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.057] - 2026-06-20
 
 ### 🚀 Added

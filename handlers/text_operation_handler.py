@@ -142,7 +142,10 @@ class TextOperationHandler(BaseHandler):
             logical_hard_limit=logical_hard_limit,
         )
         self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
-        get_scanner_thread_pool().start(self.current_scanner_thread)
+        if getattr(self.mw, '_is_sync_scan', False) is True:
+            self.current_scanner_thread.run()
+        else:
+            get_scanner_thread_pool().start(self.current_scanner_thread)
 
     def launch_async_scanner_immediate(self, block_idx: int = -1, string_idx: int = -1) -> None:
         """Launch a new AsyncIssueScanner immediately without QTimer debounce."""
@@ -207,7 +210,10 @@ class TextOperationHandler(BaseHandler):
             logical_hard_limit=logical_hard_limit_for_string
         )
         self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
-        get_scanner_thread_pool().start(self.current_scanner_thread)
+        if getattr(self.mw, '_is_sync_scan', False) is True:
+            self.current_scanner_thread.run()
+        else:
+            get_scanner_thread_pool().start(self.current_scanner_thread)
 
     def _log_undo_state(self, editor, context_message):
         """Internal helper to log undo state."""
@@ -447,7 +453,10 @@ class TextOperationHandler(BaseHandler):
                 logical_hard_limit=logical_hard_limit_for_string
             )
             self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
-            get_scanner_thread_pool().start(self.current_scanner_thread)
+            if getattr(self.mw, '_is_sync_scan', False) is True:
+                self.current_scanner_thread.run()
+            else:
+                get_scanner_thread_pool().start(self.current_scanner_thread)
 
         # 5. Synchronize original cursor and update lineNumberArea
         self.mw.ui_updater.synchronize_original_cursor()

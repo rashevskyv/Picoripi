@@ -1,4 +1,4 @@
-﻿# core/project_manager.py
+# core/project_manager.py
 """
 Project management system for the translation workbench.
 
@@ -9,6 +9,7 @@ This module provides data models and management for the project-oriented paradig
 """
 
 import json
+from collections import OrderedDict
 from typing import List, Dict, Optional, Set, Any, Union
 from pathlib import Path
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
@@ -83,7 +84,7 @@ class ProjectManager:
         self.project: Optional[Project] = None
         self.project_dir: Optional[str] = None
         self.project_file_path: Optional[str] = None
-        self._archive_cache = {}
+        self._archive_cache = OrderedDict()
 
         if project_path:
             self.load(str(project_path))
@@ -500,6 +501,7 @@ class ProjectManager:
             
         cache_key = (archive_rel_path, is_translation)
         if cache_key in self._archive_cache:
+            self._archive_cache.move_to_end(cache_key)
             return self._archive_cache[cache_key]
             
         raw_archive = Path(archive_abs_path).read_bytes()
@@ -508,6 +510,8 @@ class ProjectManager:
             raise ValueError(f"Failed to open archive: {archive_abs_path}")
             
         self._archive_cache[cache_key] = container
+        if len(self._archive_cache) > 10:
+            self._archive_cache.popitem(last=False)
         return container
 
     def clear_archive_cache(self) -> None:

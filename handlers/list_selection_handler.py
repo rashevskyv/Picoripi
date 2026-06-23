@@ -1,7 +1,7 @@
 # handlers/list_selection_handler.py
 from typing import Any, Optional, List, Dict, Union, Tuple
 from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QObject
 from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
@@ -15,6 +15,17 @@ class ListSelectionHandler(BaseHandler):
         self._restoring_selection: bool = False
         self._target_string_idx: Optional[int] = None
         self._target_block_idx: Optional[int] = None
+        if isinstance(self.mw, QObject):
+            self._cursor_visible_timer = QTimer(self.mw)
+            self._selection_timer = QTimer(self.mw)
+        else:
+            self._cursor_visible_timer = QTimer()
+            self._selection_timer = QTimer()
+        self._cursor_visible_timer.setSingleShot(True)
+        self._cursor_visible_timer.timeout.connect(self._on_cursor_visible_timeout)
+        self._selection_timer.setSingleShot(True)
+        self._selection_timer.timeout.connect(self._on_selection_timer_timeout)
+        self._pending_selection_line: Optional[int] = None
 
         # Sub-handlers for Single Responsibility Principle
         # First, import them locally to avoid circular import issues
@@ -45,6 +56,18 @@ class ListSelectionHandler(BaseHandler):
                 self.mw.virtual_folder_handler = self.virtual_folder_handler
             except AttributeError:
                 pass
+
+    def cleanup(self) -> None:
+        """Stop deferred UI timers owned by this handler."""
+        for t_name in ('_cursor_visible_timer', '_selection_timer'):
+            timer = getattr(self, t_name, None)
+            if timer:
+                try:
+                    timer.stop()
+                except RuntimeError:
+                    pass
+        self._pending_selection_line = None
+
     def navigate_between_blocks(self, forward: bool) -> None:
         """Handle global Alt+Shift+Up/Down to jump to next/prev block in the tree."""
         self.virtual_folder_handler.navigate_between_blocks(forward)
@@ -97,49 +120,7 @@ class ListSelectionHandler(BaseHandler):
         try:
             is_virtual_row = current_item.data(0, Qt.UserRole + 12)
             if is_virtual_row:
-                b_idx = current_item.data(0, Qt.UserRole)
-                s_idx = current_item.data(0, Qt.UserRole + 1)
-                ch_id = current_item.data(0, Qt.UserRole + 11)
-                self._clear_pending_speaker_retention((b_idx, s_idx))
-
-                self.mw.data_store.current_block_idx = b_idx
-                self.mw.data_store.current_string_idx = s_idx
-                self.mw.data_store.current_chapter_id = ch_id
-                self.mw.data_store.current_category_name = None
-                self.mw.data_store.current_speaker_name = None
-
-                # Fetch mappings from MemePalace client
-                chapter_mappings = []
-                composer = getattr(self.mw, "translation_handler", None)
-                if composer and hasattr(composer, "prompt_composer"):
-                    client = composer.prompt_composer._get_mempalace_client()
-                    if client:
-                        wing_name = composer.prompt_composer._get_wing_name()
-                        mappings = client.get_chapter_mappings(wing_name, ch_id)
-                        for m in mappings:
-                            bmg_id = m.get("bmg_id")
-                            indices = self.resolve_bmg_id_to_indices(bmg_id)
-                            if indices:
-                                chapter_mappings.append(indices)
-                self.mw.data_store.chapter_mappings = chapter_mappings
-
-                self.ui_updater.populate_strings_for_block(-2)
-
-                # Find relative index for preview
-                rel_idx = -1
-                displayed_indices = self._get_displayed_indices()
-                target_tuple = (b_idx, s_idx)
-                if target_tuple in displayed_indices:
-                    rel_idx = displayed_indices.index(target_tuple)
-
-                if rel_idx != -1:
-                    if not getattr(self.mw, '_restoring_session_state', False):
-                        QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
-                else:
-                    self.ui_updater.update_text_views()
-
-                self.ui_updater.update_statusbar_paths()
-                self._update_block_toolbar_button_states(-2)
+                self._handle_virtual_row_selection(current_item)
                 return
 
             block_index = current_item.data(0, Qt.UserRole)
@@ -147,185 +128,275 @@ class ListSelectionHandler(BaseHandler):
             chapter_id = current_item.data(0, Qt.UserRole + 11)
 
             if block_index == -3:
-                # Speaker item selected
-                char_name = current_item.data(0, Qt.UserRole + 15)
-                pending = self._pending_speaker_retention
-                if not pending or pending[0] != char_name:
-                    self._clear_pending_speaker_retention()
-
-                self.mw.data_store.current_block_idx = -3
-                self.mw.data_store.current_category_name = None
-                self.mw.data_store.current_chapter_id = None
-
-                self.mw.data_store.current_speaker_name = char_name
-
-                # Retrieve pre-calculated mappings from the tree item
-                char_mappings = current_item.data(0, Qt.UserRole + 13) or []
-                self.mw.data_store.chapter_mappings = char_mappings
-
-                self.ui_updater.populate_strings_for_block(-3)
-
-                if char_mappings:
-                    target_idx = -1
-                    if self._target_string_idx is not None and self._target_block_idx is not None:
-                        target_tuple = (self._target_block_idx, self._target_string_idx)
-                        if target_tuple in char_mappings:
-                            target_idx = char_mappings.index(target_tuple)
-
-                    if target_idx != -1:
-                        first_mapping = char_mappings[target_idx]
-                        self.mw.data_store.physical_block_idx = first_mapping[0]
-                        self.mw.data_store.current_string_idx = first_mapping[1]
-                        self._target_block_idx = None
-                        self._target_string_idx = None
-                        if not getattr(self.mw, '_restoring_session_state', False):
-                            QTimer.singleShot(0, lambda ridx=target_idx: self.string_selected_from_preview(ridx))
-                    else:
-                        first_mapping = char_mappings[0]
-                        self.mw.data_store.physical_block_idx = first_mapping[0]
-                        self.mw.data_store.current_string_idx = first_mapping[1]
-                        if not getattr(self.mw, '_restoring_session_state', False):
-                            QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
-                else:
-                    self.mw.data_store.physical_block_idx = -1
-                    self.mw.data_store.current_string_idx = -1
-                    self.ui_updater.update_text_views()
-
-                self.ui_updater.update_statusbar_paths()
-                self._update_block_toolbar_button_states(-3)
+                self._handle_speaker_selection(current_item)
                 return
 
             if chapter_id is not None:
-                # Chapter item selected
-                self._clear_pending_speaker_retention()
-                self.mw.data_store.current_block_idx = -2
-                self.mw.data_store.current_category_name = None
-                self.mw.data_store.current_chapter_id = chapter_id
-                self.mw.data_store.current_speaker_name = None
-
-                # Fetch mappings from MemePalace client
-                chapter_mappings = []
-                composer = getattr(self.mw, "translation_handler", None)
-                if composer and hasattr(composer, "prompt_composer"):
-                    client = composer.prompt_composer._get_mempalace_client()
-                    if client:
-                        wing_name = composer.prompt_composer._get_wing_name()
-                        mappings = client.get_chapter_mappings(wing_name, chapter_id)
-                        for m in mappings:
-                            bmg_id = m.get("bmg_id")
-                            indices = self.resolve_bmg_id_to_indices(bmg_id)
-                            if indices:
-                                chapter_mappings.append(indices)
-                self.mw.data_store.chapter_mappings = chapter_mappings
-
-                self.ui_updater.populate_strings_for_block(-2)
-
-                if chapter_mappings:
-                    target_idx = -1
-                    if self._target_string_idx is not None and self._target_block_idx is not None:
-                        target_tuple = (self._target_block_idx, self._target_string_idx)
-                        if target_tuple in chapter_mappings:
-                            target_idx = chapter_mappings.index(target_tuple)
-
-                    if target_idx != -1:
-                        first_mapping = chapter_mappings[target_idx]
-                        self.mw.data_store.physical_block_idx = first_mapping[0]
-                        self.mw.data_store.current_string_idx = first_mapping[1]
-                        self._target_block_idx = None
-                        self._target_string_idx = None
-                        if not getattr(self.mw, '_restoring_session_state', False):
-                            QTimer.singleShot(0, lambda ridx=target_idx: self.string_selected_from_preview(ridx))
-                    else:
-                        first_mapping = chapter_mappings[0]
-                        self.mw.data_store.physical_block_idx = first_mapping[0]
-                        self.mw.data_store.current_string_idx = first_mapping[1]
-                        if not getattr(self.mw, '_restoring_session_state', False):
-                            QTimer.singleShot(0, lambda: self.string_selected_from_preview(0))
-                else:
-                    self.mw.data_store.physical_block_idx = -1
-                    self.mw.data_store.current_string_idx = -1
-                    self.ui_updater.update_text_views()
-
-                self.ui_updater.update_statusbar_paths()
-                self._update_block_toolbar_button_states(-2)
+                self._handle_chapter_selection(chapter_id)
                 return
 
             if block_index is None:
-                self._clear_pending_speaker_retention()
-                self.mw.data_store.current_block_idx = -1
-                self.mw.data_store.physical_block_idx = -1
-                self.mw.data_store.current_string_idx = -1
-                self.mw.data_store.current_category_name = None
-                self.mw.data_store.current_chapter_id = None
-                self.mw.data_store.current_speaker_name = None
-                self.mw.data_store.chapter_mappings = []
-                self.ui_updater.populate_strings_for_block(-1)
-                if hasattr(self.mw, 'string_settings_updater'):
-                    self.mw.string_settings_updater.update_string_settings_panel()
-                self._update_block_toolbar_button_states(-1)
+                self._handle_folder_selection()
                 return
 
-            if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
-                self._clear_pending_speaker_retention()
-                self.mw.data_store.current_block_idx = block_index
-                self.mw.data_store.physical_block_idx = block_index
-                self.mw.data_store.current_category_name = category_name
-                self.mw.data_store.current_chapter_id = None
-                self.mw.data_store.current_speaker_name = None
-                self.mw.data_store.chapter_mappings = []
-
-                # Restore selection logic
-                target_string_idx = -1
-                if self._target_string_idx is not None and (self._target_block_idx is None or self._target_block_idx == block_index):
-                    target_string_idx = self._target_string_idx
-                else:
-                    if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                        project = self.mw.project_manager.project
-                        if hasattr(self.mw, 'block_to_project_file_map'):
-                             project_block_idx = self.mw.block_to_project_file_map.get(block_index)
-                             if project_block_idx is not None and project_block_idx < len(project.blocks):
-                                 target_string_idx = project.blocks[project_block_idx].last_selected_string_idx
-
-                self.mw.data_store.current_string_idx = target_string_idx
-
-                if hasattr(self.mw, 'undo_manager'):
-                    # Navigation recording
-                    self.mw.undo_manager.record_navigation(
-                        block_index, target_string_idx,
-                        old_block, old_string,
-                        category_name, old_category
-                    )
-
-                self.ui_updater.populate_strings_for_block(block_index, category_name)
-
-                if target_string_idx != -1:
-                    rel_idx = -1
-                    displayed_indices = self._get_displayed_indices()
-                    if target_string_idx in displayed_indices:
-                        rel_idx = displayed_indices.index(target_string_idx)
-
-                    if rel_idx != -1:
-                        # Schedule selection to avoid recursion issues
-                        if not getattr(self.mw, '_restoring_session_state', False):
-                            QTimer.singleShot(0, lambda ridx=rel_idx: self.string_selected_from_preview(ridx))
-                else:
-                    self.ui_updater.update_text_views()
-                    if hasattr(self.mw, 'string_settings_updater'):
-                        self.mw.string_settings_updater.update_string_settings_panel()
-
-                self.ui_updater.update_statusbar_paths()
-                self.ui_updater.update_block_item_text_with_problem_count(block_index)
-
-            if hasattr(self.mw, 'string_settings_updater'):
-                self.mw.string_settings_updater.update_font_combobox()
-                self.mw.string_settings_updater.update_string_settings_panel()
-
-            self._update_block_toolbar_button_states(block_index)
+            self._handle_physical_block_selection(block_index, category_name, old_block, old_string, old_category)
         finally:
             self.mw.is_programmatically_changing_text = False
 
         if not getattr(self.mw, 'is_loading_data', False) and not self._restoring_selection:
             self.data_processor.schedule_autosave()
+
+    def _handle_virtual_row_selection(self, current_item: QTreeWidgetItem) -> None:
+        b_idx = current_item.data(0, Qt.UserRole)
+        s_idx = current_item.data(0, Qt.UserRole + 1)
+        ch_id = current_item.data(0, Qt.UserRole + 11)
+        self._clear_pending_speaker_retention((b_idx, s_idx))
+
+        self.mw.data_store.current_block_idx = b_idx
+        self.mw.data_store.current_string_idx = s_idx
+        self.mw.data_store.current_chapter_id = ch_id
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_speaker_name = None
+
+        # Fetch mappings from MemePalace client
+        chapter_mappings = []
+        composer = getattr(self.mw, "translation_handler", None)
+        if composer and hasattr(composer, "prompt_composer"):
+            client = composer.prompt_composer._get_mempalace_client()
+            if client:
+                wing_name = composer.prompt_composer._get_wing_name()
+                mappings = client.get_chapter_mappings(wing_name, ch_id)
+                for m in mappings:
+                    bmg_id = m.get("bmg_id")
+                    indices = self.resolve_bmg_id_to_indices(bmg_id)
+                    if indices:
+                        chapter_mappings.append(indices)
+        self.mw.data_store.chapter_mappings = chapter_mappings
+
+        self.ui_updater.populate_strings_for_block(-2)
+
+        # Find relative index for preview
+        rel_idx = -1
+        displayed_indices = self._get_displayed_indices()
+        target_tuple = (b_idx, s_idx)
+        if target_tuple in displayed_indices:
+            rel_idx = displayed_indices.index(target_tuple)
+
+        if rel_idx != -1:
+            if not getattr(self.mw, '_restoring_session_state', False):
+                self._schedule_string_selection(rel_idx)
+        else:
+            self.ui_updater.update_text_views()
+
+        self.ui_updater.update_statusbar_paths()
+        self._update_block_toolbar_button_states(-2)
+
+    def _handle_speaker_selection(self, current_item: QTreeWidgetItem) -> None:
+        char_name = current_item.data(0, Qt.UserRole + 15)
+        pending = self._pending_speaker_retention
+        if not pending or pending[0] != char_name:
+            self._clear_pending_speaker_retention()
+
+        self.mw.data_store.current_block_idx = -3
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_chapter_id = None
+        self.mw.data_store.current_speaker_name = char_name
+
+        # Retrieve pre-calculated mappings from the tree item
+        char_mappings = current_item.data(0, Qt.UserRole + 13) or []
+        self.mw.data_store.chapter_mappings = char_mappings
+
+        self.ui_updater.populate_strings_for_block(-3)
+
+        if char_mappings:
+            target_idx = -1
+            if self._target_string_idx is not None and self._target_block_idx is not None:
+                target_tuple = (self._target_block_idx, self._target_string_idx)
+                if target_tuple in char_mappings:
+                    target_idx = char_mappings.index(target_tuple)
+
+            if target_idx != -1:
+                first_mapping = char_mappings[target_idx]
+                self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_string_idx = first_mapping[1]
+                self._target_block_idx = None
+                self._target_string_idx = None
+                if not getattr(self.mw, '_restoring_session_state', False):
+                    self._schedule_string_selection(target_idx)
+            else:
+                first_mapping = char_mappings[0]
+                self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_string_idx = first_mapping[1]
+                if not getattr(self.mw, '_restoring_session_state', False):
+                    self._schedule_string_selection(0)
+        else:
+            self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_string_idx = -1
+            self.ui_updater.update_text_views()
+
+        self.ui_updater.update_statusbar_paths()
+        self._update_block_toolbar_button_states(-3)
+
+    def _handle_chapter_selection(self, chapter_id: int) -> None:
+        self._clear_pending_speaker_retention()
+        self.mw.data_store.current_block_idx = -2
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_chapter_id = chapter_id
+        self.mw.data_store.current_speaker_name = None
+
+        # Fetch mappings from MemePalace client
+        chapter_mappings = []
+        composer = getattr(self.mw, "translation_handler", None)
+        if composer and hasattr(composer, "prompt_composer"):
+            client = composer.prompt_composer._get_mempalace_client()
+            if client:
+                wing_name = composer.prompt_composer._get_wing_name()
+                mappings = client.get_chapter_mappings(wing_name, chapter_id)
+                for m in mappings:
+                    bmg_id = m.get("bmg_id")
+                    indices = self.resolve_bmg_id_to_indices(bmg_id)
+                    if indices:
+                        chapter_mappings.append(indices)
+        self.mw.data_store.chapter_mappings = chapter_mappings
+
+        self.ui_updater.populate_strings_for_block(-2)
+
+        if chapter_mappings:
+            target_idx = -1
+            if self._target_string_idx is not None and self._target_block_idx is not None:
+                target_tuple = (self._target_block_idx, self._target_string_idx)
+                if target_tuple in chapter_mappings:
+                    target_idx = chapter_mappings.index(target_tuple)
+
+            if target_idx != -1:
+                first_mapping = chapter_mappings[target_idx]
+                self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_string_idx = first_mapping[1]
+                self._target_block_idx = None
+                self._target_string_idx = None
+                if not getattr(self.mw, '_restoring_session_state', False):
+                    self._schedule_string_selection(target_idx)
+            else:
+                first_mapping = chapter_mappings[0]
+                self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_string_idx = first_mapping[1]
+                if not getattr(self.mw, '_restoring_session_state', False):
+                    self._schedule_string_selection(0)
+        else:
+            self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_string_idx = -1
+            self.ui_updater.update_text_views()
+
+        self.ui_updater.update_statusbar_paths()
+        self._update_block_toolbar_button_states(-2)
+
+    def _handle_folder_selection(self) -> None:
+        self._clear_pending_speaker_retention()
+        self.mw.data_store.current_block_idx = -1
+        self.mw.data_store.physical_block_idx = -1
+        self.mw.data_store.current_string_idx = -1
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_chapter_id = None
+        self.mw.data_store.current_speaker_name = None
+        self.mw.data_store.chapter_mappings = []
+        self.ui_updater.populate_strings_for_block(-1)
+        if hasattr(self.mw, 'string_settings_updater'):
+            self.mw.string_settings_updater.update_string_settings_panel()
+        self._update_block_toolbar_button_states(-1)
+
+    def _handle_physical_block_selection(self, block_index: int, category_name: Optional[str], old_block: int, old_string: int, old_category: Optional[str]) -> None:
+        if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
+            self._clear_pending_speaker_retention()
+            self.mw.data_store.current_block_idx = block_index
+            self.mw.data_store.physical_block_idx = block_index
+            self.mw.data_store.current_category_name = category_name
+            self.mw.data_store.current_chapter_id = None
+            self.mw.data_store.current_speaker_name = None
+            self.mw.data_store.chapter_mappings = []
+
+            # Restore selection logic
+            target_string_idx = -1
+            if self._target_string_idx is not None and (self._target_block_idx is None or self._target_block_idx == block_index):
+                target_string_idx = self._target_string_idx
+            else:
+                if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
+                    project = self.mw.project_manager.project
+                    if hasattr(self.mw, 'block_to_project_file_map'):
+                         project_block_idx = self.mw.block_to_project_file_map.get(block_index)
+                         if project_block_idx is not None and project_block_idx < len(project.blocks):
+                             target_string_idx = project.blocks[project_block_idx].last_selected_string_idx
+
+            self.mw.data_store.current_string_idx = target_string_idx
+
+            if hasattr(self.mw, 'undo_manager'):
+                # Navigation recording
+                self.mw.undo_manager.record_navigation(
+                    block_index, target_string_idx,
+                    old_block, old_string,
+                    category_name, old_category
+                )
+
+            self.ui_updater.populate_strings_for_block(block_index, category_name)
+
+            if target_string_idx != -1:
+                rel_idx = -1
+                displayed_indices = self._get_displayed_indices()
+                if target_string_idx in displayed_indices:
+                    rel_idx = displayed_indices.index(target_string_idx)
+
+                if rel_idx != -1:
+                    # Schedule selection to avoid recursion issues
+                    if not getattr(self.mw, '_restoring_session_state', False):
+                        self._schedule_string_selection(rel_idx)
+            else:
+                self.ui_updater.update_text_views()
+                if hasattr(self.mw, 'string_settings_updater'):
+                    self.mw.string_settings_updater.update_string_settings_panel()
+
+            self.ui_updater.update_statusbar_paths()
+            self.ui_updater.update_block_item_text_with_problem_count(block_index)
+
+        if hasattr(self.mw, 'string_settings_updater'):
+            self.mw.string_settings_updater.update_font_combobox()
+            self.mw.string_settings_updater.update_string_settings_panel()
+
+        self._update_block_toolbar_button_states(block_index)
+
+    def _on_cursor_visible_timeout(self) -> None:
+        """Ensure preview cursor is visible when timer fires."""
+        preview_edit = getattr(self.mw, 'preview_text_edit', None)
+        if preview_edit:
+            try:
+                from PyQt6 import sip
+            except ImportError:
+                import sip
+            try:
+                if not sip.isdeleted(preview_edit):
+                    preview_edit.ensureCursorVisible()
+            except (TypeError, RuntimeError):
+                pass
+
+    def _schedule_string_selection(self, line_number: int) -> None:
+        """Schedule string selection via timer."""
+        self._pending_selection_line = line_number
+        self._selection_timer.start(0)
+
+    def _on_selection_timer_timeout(self) -> None:
+        """Handle selection timer timeout with safety guards."""
+        if self._pending_selection_line is not None:
+            line_to_select = self._pending_selection_line
+            self._pending_selection_line = None
+            try:
+                from PyQt6 import sip
+            except ImportError:
+                import sip
+            try:
+                if hasattr(self, 'mw') and self.mw:
+                    if isinstance(self.mw, QObject) and sip.isdeleted(self.mw):
+                        return
+                    self.string_selected_from_preview(line_to_select)
+            except (TypeError, RuntimeError):
+                pass
 
     def _restore_block_selection(self) -> None:
         """Internal helper to restore block selection."""
@@ -634,8 +705,7 @@ class ListSelectionHandler(BaseHandler):
                     cursor = QTextCursor(block_to_show)
                     preview_edit.setTextCursor(cursor)
                     # Use a small timer to ensure the widget has finished layout after potential text updates
-                    from PyQt6.QtCore import QTimer
-                    QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
+                    self._cursor_visible_timer.start(10)
         elif preview_edit and hasattr(preview_edit, 'highlightManager'):
             preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
 
@@ -1181,8 +1251,7 @@ class ListSelectionHandler(BaseHandler):
                     preview_edit.setTextCursor(cursor)
                     if hasattr(preview_edit, 'set_selected_lines'):
                         preview_edit.set_selected_lines([rel_idx])
-                    from PyQt6.QtCore import QTimer
-                    QTimer.singleShot(10, lambda: preview_edit.ensureCursorVisible())
+                    self._cursor_visible_timer.start(10)
 
     def _get_displayed_indices(self) -> list:
         """Internal helper to get the displayed indices."""

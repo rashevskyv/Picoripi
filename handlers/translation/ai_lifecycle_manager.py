@@ -35,6 +35,37 @@ class AILifecycleManager(BaseTranslationHandler):
         # Retry context
         self._retry_context: Optional[dict] = None
         self._is_waiting_retry_delay = False
+        from PyQt6.QtCore import QObject
+        timer_parent = self.mw if isinstance(self.mw, QObject) else None
+        self._retry_delay_timer = QTimer(timer_parent)
+        self._retry_delay_timer.setSingleShot(True)
+        self._retry_delay_timer.timeout.connect(self._on_retry_delay_timer_timeout)
+        self._deferred_retry_timer = QTimer(timer_parent)
+        self._deferred_retry_timer.setSingleShot(True)
+        self._deferred_retry_timer.timeout.connect(self._on_deferred_retry_timer_timeout)
+        self._pending_deferred_retry: Optional[Callable[[], None]] = None
+
+    def _schedule_retry_delay(self, delay_ms: int) -> None:
+        """Schedule retry delay with an instance-owned cancellable timer."""
+        self._retry_delay_timer.start(delay_ms)
+
+    def _on_retry_delay_timer_timeout(self) -> None:
+        """Forward retry delay timeout to the retry state machine."""
+        self._retry_delay_timer.stop()
+        self._on_retry_timer_timeout()
+
+    def _schedule_deferred_retry(self, callback: Callable[[], None]) -> None:
+        """Schedule a zero-delay retry callback with a cancellable timer."""
+        self._pending_deferred_retry = callback
+        self._deferred_retry_timer.start(0)
+
+    def _on_deferred_retry_timer_timeout(self) -> None:
+        """Run a deferred retry callback if it was not cancelled."""
+        self._deferred_retry_timer.stop()
+        callback = self._pending_deferred_retry
+        self._pending_deferred_retry = None
+        if callback:
+            callback()
 
     def register_handler(self, task_type: str, success_cb: Callable, error_cb: Optional[Callable] = None, chunk_cb: Optional[Callable] = None):
         """Register handler."""
@@ -237,7 +268,7 @@ class AILifecycleManager(BaseTranslationHandler):
                     log_debug("Retrying AI translation after user confirmation post-timeout.")
                     self._retry_context = context
                     self._is_waiting_retry_delay = False
-                    QTimer.singleShot(0, self._on_retry_timer_timeout)
+                    self._schedule_retry_delay(0)
                     return
             else:
                 log_debug(f"Showing debug retry dialog for AI task. Attempt {attempt}/{max_attempts}")
@@ -273,7 +304,7 @@ class AILifecycleManager(BaseTranslationHandler):
                         dialog.subtitle_label.setStyleSheet("color: #d32f2f;")
                         dialog.subtitle_label.setVisible(True)
                     
-                    QTimer.singleShot(3000, self._on_retry_timer_timeout)
+                    self._schedule_retry_delay(3000)
                     return
                 else:
                     log_debug("User clicked Cancel in debug dialog.")
@@ -371,12 +402,18 @@ class AILifecycleManager(BaseTranslationHandler):
             if not provider:
                 provider = self._prepare_provider()
             if provider:
-                QTimer.singleShot(0, lambda: self.main_handler._run_ai_task(provider, retry_context))
+                def run_single_retry() -> None:
+                    self.main_handler._run_ai_task(provider, retry_context)
+
+                self._schedule_deferred_retry(run_single_retry)
             else:
                 self.main_handler.ui_handler.finish_ai_operation(success=False)
         elif task_type in ['translate_preview', 'translate_block_chunked']:
             # We must use 0-delay timer because we are likely in a callback/signal handler context
-            QTimer.singleShot(0, lambda: self.main_handler._initiate_batch_translation(retry_context))
+            def run_batch_retry() -> None:
+                self.main_handler._initiate_batch_translation(retry_context)
+
+            self._schedule_deferred_retry(run_batch_retry)
         else:
             log_warning(f"A retry was requested for an unhandled task type: {task_type}")
             self.main_handler.ui_handler.finish_ai_operation(success=False)
@@ -385,6 +422,10 @@ class AILifecycleManager(BaseTranslationHandler):
     def prepare_to_close(self) -> None:
         """Prepare to close."""
         from utils.thread_utils import safe_shutdown_thread
+        self._retry_delay_timer.stop()
+        self._deferred_retry_timer.stop()
+        self._pending_deferred_retry = None
+        self._retry_context = None
         safe_shutdown_thread(self.thread, self.worker)
         self.thread = None
         self.worker = None

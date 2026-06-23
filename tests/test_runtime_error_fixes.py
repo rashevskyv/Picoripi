@@ -6,6 +6,9 @@ from handlers.list_selection_handler import ListSelectionHandler
 from ui.updaters.block_list_updater import BlockListUpdater
 from unittest.mock import MagicMock
 
+import utils.utils
+_ORIGINAL_IS_CONTROL_MODIFIER_PRESSED = utils.utils.is_control_modifier_pressed
+
 def test_SearchReviewDialog_save_changes_calls_mark_dirty(qapp):
     """Test that SearchReviewDialog.save_changes_to_project calls data_store.mark_dirty."""
     mock_main_window = MagicMock()
@@ -220,7 +223,8 @@ def test_maybe_edit_prompt_with_ctypes_ctrl_pressed(qapp):
     
     handler = TranslationHandler(mw, MagicMock(), MagicMock())
     
-    with patch('ctypes.windll.user32.GetAsyncKeyState') as mock_get_async_key_state, \
+    with patch('handlers.translation_handler.is_control_modifier_pressed', _ORIGINAL_IS_CONTROL_MODIFIER_PRESSED), \
+         patch('ctypes.windll.user32.GetAsyncKeyState') as mock_get_async_key_state, \
          patch('ctypes.windll.user32.GetKeyState') as mock_get_key_state, \
          patch('handlers.translation_handler.PromptEditorDialog') as mock_dialog_class:
          

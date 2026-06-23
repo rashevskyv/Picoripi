@@ -121,6 +121,15 @@ def _stop_lingering_qthreads():
 def cleanup_qt(qapp):
     """Ensures all top-level widgets are destroyed and memory is collected after each test."""
     yield
+    # Stop and wait for the scanner thread pool tasks to exit
+    try:
+        from handlers.async_issue_scanner import get_scanner_thread_pool
+        pool = get_scanner_thread_pool()
+        if pool is not None:
+            pool.waitForDone(2000)
+    except Exception:
+        pass
+
     # Close all top-level widgets that might have been created
     for widget in QApplication.topLevelWidgets():
         widget.close()
@@ -251,3 +260,25 @@ def clear_caches_before_test():
     clear_width_caches()
 
 
+@pytest.fixture(autouse=True)
+def mock_keyboard_state():
+    """Mock OS and QApplication keyboard state globally to prevent system-level leaks."""
+    import ctypes
+    from unittest.mock import patch
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QApplication
+
+    has_user32 = False
+    try:
+        if hasattr(ctypes, 'windll') and hasattr(ctypes.windll, 'user32'):
+            has_user32 = True
+    except Exception:
+        pass
+
+    with patch.object(QApplication, 'keyboardModifiers', return_value=Qt.KeyboardModifier.NoModifier):
+        if has_user32:
+            with patch('ctypes.windll.user32.GetAsyncKeyState', return_value=0), \
+                 patch('ctypes.windll.user32.GetKeyState', return_value=0):
+                yield
+        else:
+            yield

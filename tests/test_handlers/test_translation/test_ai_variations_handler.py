@@ -120,11 +120,16 @@ def test_handle_variation_success_refresh(mock_info, vh, mock_main_handler):
     context = {}
     
     mock_main_handler.ui_handler.show_variations_dialog.return_value = '__REFRESH__'
-    vh.generate_variation_for_current_string = MagicMock()
+    vh._schedule_variation_refresh = MagicMock()
     
-    with patch('handlers.translation.ai_variations_handler.QTimer.singleShot') as mock_timer:
-        vh._handle_variation_success(response, context)
-        mock_timer.assert_called_once()
+    vh._handle_variation_success(response, context)
+    vh._schedule_variation_refresh.assert_called_once_with(
+        0,
+        0,
+        on_success_callback=None,
+        parent=None,
+        selected_text=None,
+    )
 
 
 def test_generate_variation_selected_text(vh, mock_main_handler):

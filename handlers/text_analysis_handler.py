@@ -1,4 +1,4 @@
-﻿# handlers/text_analysis_handler.py
+# handlers/text_analysis_handler.py
 """Handler for original text width analysis tool."""
 from __future__ import annotations
 
@@ -158,7 +158,31 @@ class TextAnalysisHandler(BaseHandler):
 
         def select_string_and_scroll():
             """Select string and scroll."""
-            if hasattr(self.mw, 'list_selection_handler'):
+            try:
+                from PyQt6 import sip
+                from PyQt6.QtCore import QObject
+            except ImportError:
+                import sip
+                from PyQt6.QtCore import QObject
+
+            def is_qt_deleted(obj: Any) -> bool:
+                try:
+                    return isinstance(obj, QObject) and sip.isdeleted(obj)
+                except (TypeError, RuntimeError):
+                    return True
+
+            try:
+                if not self.mw or is_qt_deleted(self.mw):
+                    return
+            except (TypeError, RuntimeError):
+                return
+
+            try:
+                is_deleted = is_qt_deleted(self.mw.list_selection_handler)
+            except (TypeError, ValueError, AttributeError, RuntimeError):
+                is_deleted = False
+
+            if hasattr(self.mw, 'list_selection_handler') and not is_deleted:
                 self.mw.list_selection_handler.select_string_by_absolute_index(string_idx)
             else:
                 self.mw.data_store.current_block_idx = block_idx
@@ -168,21 +192,49 @@ class TextAnalysisHandler(BaseHandler):
 
             original_editor: Any = getattr(self.mw, 'original_text_edit', None)
             if original_editor and line_number is not None:
-                block_obj: Any = original_editor.document().findBlockByNumber(line_number)
-                if block_obj.isValid():
-                    cursor: Any = original_editor.textCursor()
-                    cursor.setPosition(block_obj.position())
-                    original_editor.setTextCursor(cursor)
-                    original_editor.ensureCursorVisible()
+                try:
+                    editor_deleted = sip.isdeleted(original_editor)
+                except (TypeError, ValueError, AttributeError, RuntimeError):
+                    editor_deleted = False
+
+                if not editor_deleted:
+                    try:
+                        block_obj: Any = original_editor.document().findBlockByNumber(line_number)
+                        if block_obj.isValid():
+                            cursor: Any = original_editor.textCursor()
+                            cursor.setPosition(block_obj.position())
+                            original_editor.setTextCursor(cursor)
+                            original_editor.ensureCursorVisible()
+                    except Exception:
+                        pass
 
             def apply_focus():
                 """Apply focus."""
-                if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
-                    self.mw.edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
-                elif original_editor:
-                    original_editor.setFocus(Qt.FocusReason.OtherFocusReason)
-                self.mw.raise_()
-                self.mw.activateWindow()
+                try:
+                    from PyQt6 import sip
+                    from PyQt6.QtCore import QObject
+                except ImportError:
+                    import sip
+                    from PyQt6.QtCore import QObject
+
+                def is_qt_deleted(obj: Any) -> bool:
+                    try:
+                        return isinstance(obj, QObject) and sip.isdeleted(obj)
+                    except (TypeError, RuntimeError):
+                        return True
+
+                try:
+                    if not self.mw or is_qt_deleted(self.mw):
+                        return
+                    edited_text_edit = getattr(self.mw, 'edited_text_edit', None)
+                    if edited_text_edit and not is_qt_deleted(edited_text_edit):
+                        edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
+                    elif original_editor and not is_qt_deleted(original_editor):
+                        original_editor.setFocus(Qt.FocusReason.OtherFocusReason)
+                    self.mw.raise_()
+                    self.mw.activateWindow()
+                except (TypeError, RuntimeError):
+                    pass
 
             QTimer.singleShot(100, apply_focus)
 

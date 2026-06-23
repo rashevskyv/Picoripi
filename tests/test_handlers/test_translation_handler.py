@@ -90,10 +90,16 @@ def test_th_reset_translation_session(mock_gemini, th):
     assert th.start_new_session is True
     mock_gemini.return_value.start_new_chat_session.assert_called_once()
 
+def test_th_resolve_base_timeout_uses_provider_settings(th):
+    provider = MagicMock()
+    provider.settings = {'timeout': 47}
+
+    assert th._resolve_base_timeout(provider) == 47
+
 @patch('handlers.translation_handler.PromptEditorDialog')
-@patch('handlers.translation_handler.QApplication')
-def test_th_maybe_edit_prompt(mock_app, mock_dialog, th):
-    mock_app.keyboardModifiers.return_value = 0 # No modifiers
+@patch('handlers.translation_handler.is_control_modifier_pressed')
+def test_th_maybe_edit_prompt(mock_is_pressed, mock_dialog, th):
+    mock_is_pressed.return_value = False
     th.mw.prompt_editor_enabled = False
     
     sys, usr = th._maybe_edit_prompt(title="T", system_prompt="s", user_prompt="u")

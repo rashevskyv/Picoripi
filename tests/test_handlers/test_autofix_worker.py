@@ -1,4 +1,5 @@
 import pytest
+pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock
 from handlers.autofix_worker import AutofixWorker
 

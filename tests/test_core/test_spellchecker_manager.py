@@ -1,4 +1,5 @@
 import pytest
+pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 from core.spellchecker_manager import SpellcheckerManager, LOCAL_DICT_PATH, CUSTOM_DICT_FILENAME
@@ -288,9 +289,8 @@ def test_SpellcheckerManager_load_dictionary_async(mock_from_files, mock_mw, tmp
 
 
 @patch('core.spellchecker_manager.Dictionary.from_files')
-def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw, tmp_path):
+def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw, tmp_path, qtbot):
     import sys
-    from PyQt6.QtCore import QEventLoop, QTimer
     
     dict_dir = tmp_path / "dict"
     dict_dir.mkdir()
@@ -305,20 +305,10 @@ def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw,
     
     with patch('sys.modules', fake_modules):
         sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=dict_dir)
-        sm._ensure_initialized()
         
-        # We wait for the dictionary_loaded signal using a QEventLoop
-        loop = QEventLoop()
-        sm.dictionary_loaded.connect(loop.quit)
-        
-        # Set a timeout timer in case the thread hangs
-        timeout_timer = QTimer()
-        timeout_timer.setSingleShot(True)
-        timeout_timer.timeout.connect(loop.quit)
-        timeout_timer.start(2000)
-        
-        loop.exec()
-        timeout_timer.stop()
+        # We wait for the dictionary_loaded signal using qtbot
+        with qtbot.waitSignal(sm.dictionary_loaded, timeout=20000):
+            sm._ensure_initialized()
         
         # Check that hunspell was loaded and prefetch worker was set up
         assert sm.hunspell == mock_dict
@@ -412,9 +402,8 @@ def test_SpellcheckWorker_emit_runtime_error_handling(mock_mw):
         pytest.fail("SpellcheckWorker.spellcheck_results_ready.emit RuntimeError was not handled!")
 
 
-def test_SpellcheckerManager_extreme_load_processing(mock_mw):
+def test_SpellcheckerManager_extreme_load_processing(mock_mw, qtbot):
     import sys
-    from PyQt6.QtCore import QEventLoop, QTimer
     
     sm = SpellcheckerManager(mock_mw)
     sm.enabled = True
@@ -431,26 +420,8 @@ def test_SpellcheckerManager_extreme_load_processing(mock_mw):
     for i in range(500):
         sm.enqueue_word(f"word{i}")
         
-    # Wait for the worker to finish processing the queue
-    loop = QEventLoop()
-    
-    def check_queue():
-        with sm.worker._queue_lock:
-            if not sm.worker._queue:
-                loop.quit()
-                return
-        QTimer.singleShot(50, check_queue)
-        
-    QTimer.singleShot(50, check_queue)
-    
-    # Safety timeout of 5 seconds
-    timeout = QTimer()
-    timeout.setSingleShot(True)
-    timeout.timeout.connect(loop.quit)
-    timeout.start(5000)
-    
-    loop.exec()
-    timeout.stop()
+    # Wait for the worker to finish processing the queue and populate the cache
+    qtbot.waitUntil(lambda: len(sm._spell_cache) >= 500, timeout=20000)
     
     # Stop worker
     sm.prepare_to_close()
@@ -463,9 +434,7 @@ def test_SpellcheckerManager_extreme_load_processing(mock_mw):
             assert sm._spell_cache[word] == (hash(word) % 2 != 0)
 
 
-def test_SpellcheckerManager_state_transitions_during_processing(mock_mw):
-    from PyQt6.QtCore import QEventLoop, QTimer
-    
+def test_SpellcheckerManager_state_transitions_during_processing(mock_mw, qtbot):
     sm = SpellcheckerManager(mock_mw)
     sm.enabled = True
     sm.hunspell = MagicMock()
@@ -488,22 +457,8 @@ def test_SpellcheckerManager_state_transitions_during_processing(mock_mw):
     sm.set_enabled(True)
     sm.enqueue_word("activethree")
     
-    # Wait for queue to clear
-    loop = QEventLoop()
-    def check_queue():
-        with sm.worker._queue_lock:
-            if not sm.worker._queue:
-                loop.quit()
-                return
-        QTimer.singleShot(20, check_queue)
-    QTimer.singleShot(20, check_queue)
-    
-    timeout = QTimer()
-    timeout.setSingleShot(True)
-    timeout.timeout.connect(loop.quit)
-    timeout.start(2000)
-    loop.exec()
-    timeout.stop()
+    # Wait for processing to complete and cache to be populated
+    qtbot.waitUntil(lambda: "activeone" in sm._spell_cache and "activethree" in sm._spell_cache, timeout=20000)
     
     sm.prepare_to_close()
     
@@ -534,10 +489,9 @@ def test_SpellcheckerManager_shutdown_mid_flight(mock_mw):
     assert not sm.worker.isRunning()
 
 
-def test_SpellcheckerManager_async_initialization_race_conditions(mock_mw):
+def test_SpellcheckerManager_async_initialization_race_conditions(mock_mw, qtbot):
     import sys
     import time
-    from PyQt6.QtCore import QEventLoop, QTimer
     
     # Simulating async initialization by calling it in a separate thread
     # but we must make sure 'pytest' is temporarily removed from sys.modules
@@ -560,15 +514,8 @@ def test_SpellcheckerManager_async_initialization_race_conditions(mock_mw):
         assert sm.get_suggestions("testword") == []
         
         # Wait for load to finish
-        loop = QEventLoop()
-        sm.dictionary_loaded.connect(loop.quit)
-        
-        timeout = QTimer()
-        timeout.setSingleShot(True)
-        timeout.timeout.connect(loop.quit)
-        timeout.start(3000)
-        loop.exec()
-        timeout.stop()
+        with qtbot.waitSignal(sm.dictionary_loaded, timeout=20000):
+            pass
         
         # Clean up thread
         sm.prepare_to_close()

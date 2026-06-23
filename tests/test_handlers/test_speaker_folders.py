@@ -68,7 +68,7 @@ def test_save_speaker_restores_editor_focus_after_combobox_change(qapp, mock_mw,
 
     handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
 
-    with patch('handlers.list_selection_handler.QTimer.singleShot', side_effect=lambda _ms, callback: callback()):
+    with patch('handlers.speaker_handler.QTimer.singleShot', side_effect=lambda _ms, callback: callback()):
         handler.save_speaker_for_current_string("Villain")
 
     mock_mw.edited_text_edit.setFocus.assert_called_once_with(Qt.FocusReason.OtherFocusReason)
