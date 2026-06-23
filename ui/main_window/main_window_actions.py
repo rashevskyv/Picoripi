@@ -371,7 +371,28 @@ class MainWindowActions:
     # BFN Font Editor integration
     # ------------------------------------------------------------------
 
+    def open_script_markup_studio(self):
+        """Open the Script Markup Studio dialog in modeless mode."""
+        try:
+            from PyQt6 import sip
+        except ImportError:
+            import sip
 
+        if hasattr(self.mw, 'script_markup_studio_dialog') and self.mw.script_markup_studio_dialog:
+            try:
+                if not sip.isdeleted(self.mw.script_markup_studio_dialog):
+                    self.mw.script_markup_studio_dialog.show()
+                    self.mw.script_markup_studio_dialog.raise_()
+                    self.mw.script_markup_studio_dialog.activateWindow()
+                    return
+            except (RuntimeError, TypeError, NameError):
+                pass
+            self.mw.script_markup_studio_dialog = None
+
+        from ui.script_markup_studio_dialog import ScriptMarkupStudioDialog
+        dialog = ScriptMarkupStudioDialog(self.mw)
+        self.mw.script_markup_studio_dialog = dialog
+        dialog.show()
 
     def open_mempalace_builder(self):
         """Open the MemePalace Context Builder dialog in modeless mode."""

@@ -285,6 +285,26 @@ class MenuBuilder:
         self.mw.bfn_editor_action.setToolTip('Open the BFN Font Editor (Nintendo binary font)')
         tools_menu.addAction(self.mw.bfn_editor_action)
 
+        # Create a dynamic beautiful icon for Script Markup Studio with letter 'R'
+        pixmap_r2 = QPixmap(32, 32)
+        pixmap_r2.fill(Qt.GlobalColor.transparent)
+        painter_r2 = QPainter(pixmap_r2)
+        painter_r2.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter_r2.setPen(QColor("#8e44ad"))  # Accent purple
+        font_r2 = QFont("Arial", 22, QFont.Weight.Bold)
+        painter_r2.setFont(font_r2)
+        painter_r2.drawText(pixmap_r2.rect(), Qt.AlignmentFlag.AlignCenter, "R")
+        painter_r2.end()
+        markup_icon = QIcon(pixmap_r2)
+
+        self.mw.script_markup_studio_action = QAction(
+            markup_icon,
+            'Script Markup &Studio...',
+            self.mw
+        )
+        self.mw.script_markup_studio_action.setToolTip('Convert a raw walkthrough into the standardized script format for MemePalace (Phase 0)')
+        tools_menu.addAction(self.mw.script_markup_studio_action)
+
         # Create a dynamic beautiful icon for MemePalace Context Builder with letter 'M'
         pixmap_m = QPixmap(32, 32)
         pixmap_m.fill(Qt.GlobalColor.transparent)
