@@ -330,6 +330,7 @@ class MainWindow(QMainWindow):
         self.save_translated_action = None
         self.restore_translated_action = None
         self.export_translations_action = None
+        self.export_original_action = None
         self.import_translations_action = None
         self.main_vertical_layout = None
         self.auto_fix_button: Optional[QPushButton] = None

@@ -161,10 +161,10 @@ def test_spellcheck_dialog_close_during_analysis(qtbot):
         words.append("word" + suffix)
     text = "\n".join(words)
     
-    dialog = SpellcheckDialog(parent, text, spellchecker_manager, starting_line_number=0, line_numbers=[0]*2000, block_idx=0, force_async=True)
-    
-    # Let analysis start (50ms timer + startup delay)
-    qtbot.waitUntil(lambda: hasattr(dialog, 'analysis_worker') and dialog.analysis_worker is not None, timeout=30000)
+    from unittest.mock import patch
+    with patch('PyQt6.QtCore.QTimer.singleShot'):
+        dialog = SpellcheckDialog(parent, text, spellchecker_manager, starting_line_number=0, line_numbers=[0]*2000, block_idx=0, force_async=True)
+        dialog._load_content()
     
     assert dialog.analysis_worker is not None
     assert dialog.analysis_worker.isRunning()
@@ -180,34 +180,52 @@ def test_spellcheck_dialog_close_during_analysis(qtbot):
 
 def test_search_review_dialog_close_during_analysis(qtbot):
     from dialogs.search_review_dialog import SearchReviewDialog
-    import dialogs.search_review_dialog
-    import time
-    
+    import dialogs.search.search_worker as search_worker_module
+    import threading
+    from unittest.mock import patch
+
     parent = None
     text = "\n".join(["query text line"] * 1000)
-    
-    # Monkeypatch find_smart_matches in search_review_dialog to slow it down
-    original_find = dialogs.search_review_dialog.find_smart_matches
-    dialogs.search_review_dialog.find_smart_matches = lambda text_in, query_in, case_in: time.sleep(0.001) or original_find(text_in, query_in, case_in)
-    
+
+    # Gate the worker inside find_smart_matches so it is provably still running
+    # when we assert isRunning(), instead of racing a time.sleep against fast
+    # hardware. The worker calls find_smart_matches bound in search_worker, not
+    # the symbol in search_review_dialog, so patch the module the worker uses.
+    worker_entered = threading.Event()  # set once the worker is blocked in find_smart_matches
+    release = threading.Event()         # the test releases the worker through this
+    original_find = search_worker_module.find_smart_matches
+
+    def gated_find(text_in, query_in, case_in):
+        worker_entered.set()
+        release.wait(timeout=30)
+        return original_find(text_in, query_in, case_in)
+
+    search_worker_module.find_smart_matches = gated_find
+
     try:
-        dialog = SearchReviewDialog(parent, text, "query", starting_line_number=0, line_numbers=list(range(1000)), block_idx=0, force_async=True)
-        
-        # Let search start (50ms timer + startup delay)
-        qtbot.waitUntil(lambda: hasattr(dialog, 'search_worker') and dialog.search_worker is not None, timeout=30000)
-        
+        with patch('PyQt6.QtCore.QTimer.singleShot'):
+            dialog = SearchReviewDialog(parent, text, "query", starting_line_number=0, line_numbers=list(range(1000)), block_idx=0, force_async=True)
+            dialog._load_content()
+
+        # Wait until the worker is actually blocked inside find_smart_matches, so
+        # it cannot have finished before the assertions below run.
+        qtbot.waitUntil(lambda: worker_entered.is_set(), timeout=30000)
+
         assert dialog.search_worker is not None
         assert dialog.search_worker.isRunning()
-        
-        # Close dialog while worker is running
+
+        # Close dialog while worker is running mid-analysis
         dialog.reject()
-        
+
         # Verify closing flag is set
         assert dialog._is_closing is True
-        
+
+        # Release the gate so the worker can observe the cancellation and tear down
+        release.set()
+
         # Wait for thread to shutdown safely and dialog to reject
         qtbot.waitUntil(lambda: dialog.search_worker is None, timeout=30000)
     finally:
-        # Restore original function
-        dialogs.search_review_dialog.find_smart_matches = original_find
-
+        # Always release the gate (in case an assertion failed) and restore the original
+        release.set()
+        search_worker_module.find_smart_matches = original_find

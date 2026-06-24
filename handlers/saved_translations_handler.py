@@ -1,6 +1,7 @@
-﻿# handlers/saved_translations_handler.py
+# handlers/saved_translations_handler.py
 import json
 import datetime
+from collections.abc import Mapping
 from pathlib import Path
 from typing import List, Tuple, Any, Optional
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
@@ -13,6 +14,40 @@ class SavedTranslationsHandler(BaseHandler):
     def __init__(self, context, data_processor, ui_updater):
         """Initialize a new instance."""
         super().__init__(context, data_processor, ui_updater)
+
+    def _get_project_name_for_export(self) -> str:
+        project_manager = getattr(self.ctx, 'project_manager', None)
+        project = getattr(project_manager, 'project', None) if project_manager else None
+        return getattr(project, 'name', 'Single File') if project else 'Single File'
+
+    def _get_block_export_location(self, block_idx: int) -> Tuple[str, str]:
+        """Return the file/key pair used by translation JSON exports."""
+        block_source_file = "single_file"
+        block_internal_key = ""
+        ctx_block_map = getattr(self.ctx, 'block_to_project_file_map', None)
+        store_block_map = getattr(self.data_store, 'block_to_project_file_map', None)
+        block_map = None
+        if isinstance(ctx_block_map, Mapping) and ctx_block_map:
+            block_map = ctx_block_map
+        elif isinstance(store_block_map, Mapping) and store_block_map:
+            block_map = store_block_map
+        project_manager = getattr(self.ctx, 'project_manager', None)
+        project = getattr(project_manager, 'project', None) if project_manager else None
+
+        if block_map and project:
+            p_b_idx = block_map.get(block_idx)
+            if p_b_idx is not None and 0 <= p_b_idx < len(project.blocks):
+                block = project.blocks[p_b_idx]
+                block_source_file = block.source_file
+                block_internal_key = block.internal_key or ""
+                if not block_internal_key:
+                    mapped_block_count = sum(1 for mapped_idx in block_map.values() if mapped_idx == p_b_idx)
+                    if mapped_block_count > 1:
+                        block_internal_key = self.data_store.block_names.get(str(block_idx), f"block_{block_idx}")
+        elif hasattr(self.data_store, 'block_names') and self.data_store.block_names:
+            block_source_file = self.data_store.block_names.get(str(block_idx), f"block_{block_idx}")
+
+        return block_source_file, block_internal_key
 
     def restore_translation(self, block_idx: int, string_idx: int) -> bool:
         """Restore translation."""
@@ -210,23 +245,13 @@ class SavedTranslationsHandler(BaseHandler):
         # Collect all translations.
         export_data = {
             "exported_at": datetime.datetime.now().isoformat(),
-            "project_name": getattr(self.ctx.project_manager.project, 'name', 'Single File') if hasattr(self.ctx, 'project_manager') and self.ctx.project_manager and self.ctx.project_manager.project else 'Single File',
+            "project_name": self._get_project_name_for_export(),
             "files": {}
         }
 
         # Let's iterate over all data blocks
         for block_idx in range(len(self.data_store.data)):
-            # Determine block paths
-            block_source_file = "single_file"
-            block_internal_key = ""
-            if hasattr(self.ctx, 'block_to_project_file_map') and self.ctx.block_to_project_file_map:
-                p_b_idx = self.ctx.block_to_project_file_map.get(block_idx)
-                if p_b_idx is not None and self.ctx.project_manager and self.ctx.project_manager.project and p_b_idx < len(self.ctx.project_manager.project.blocks):
-                    block = self.ctx.project_manager.project.blocks[p_b_idx]
-                    block_source_file = block.source_file
-                    block_internal_key = block.internal_key or ""
-            elif hasattr(self.data_store, 'block_names') and self.data_store.block_names:
-                block_source_file = self.data_store.block_names.get(str(block_idx), f"block_{block_idx}")
+            block_source_file, block_internal_key = self._get_block_export_location(block_idx)
 
             # Get all strings in this block
             num_strings = len(self.data_store.data[block_idx])
@@ -249,7 +274,65 @@ class SavedTranslationsHandler(BaseHandler):
                 f'Successfully exported translations to:\n{save_path}'
             )
         except Exception as e:
-            QMessageBox.critical(self.ctx, 'Export Error', f'Failed to save JSON:\\n{e}')
+            QMessageBox.critical(self.ctx, 'Export Error', f'Failed to save JSON:\n{e}')
+
+    def export_original_to_json_action(self) -> None:
+        """Export original text to json action."""
+        if not self.data_store.data:
+            QMessageBox.warning(self.ctx, "Export Error", "No project or file is currently open.")
+            return
+
+        # Determine target file name
+        default_name = "project_original_export.json"
+        if hasattr(self.ctx, 'project_manager') and self.ctx.project_manager and self.ctx.project_manager.project:
+            proj_name = self.ctx.project_manager.project.name.replace('/', '_').replace('\\', '_')
+            default_name = f"{proj_name}_original_export.json"
+        elif self.data_store.json_path:
+            file_name = Path(self.data_store.json_path).stem
+            default_name = f"{file_name}_original_export.json"
+
+        save_path, _ = QFileDialog.getSaveFileName(
+            self.ctx,
+            'Export Original Text to JSON',
+            str(Path.home() / default_name),
+            'JSON Files (*.json);;All Files (*)'
+        )
+        if not save_path:
+            return
+
+        # Collect all original texts.
+        export_data = {
+            "exported_at": datetime.datetime.now().isoformat(),
+            "project_name": self._get_project_name_for_export(),
+            "files": {}
+        }
+
+        # Let's iterate over all data blocks
+        for block_idx in range(len(self.data_store.data)):
+            block_source_file, block_internal_key = self._get_block_export_location(block_idx)
+
+            # Get all original strings in this block
+            num_strings = len(self.data_store.data[block_idx])
+            block_originals = {}
+            for s_idx in range(num_strings):
+                orig_text = self.data_processor._get_string_from_source(block_idx, s_idx, self.data_store.data, "original_data")
+                if orig_text is not None:
+                    block_originals[str(s_idx)] = orig_text
+
+            if block_originals:
+                # Add to export
+                export_data["files"].setdefault(block_source_file, {})
+                export_data["files"][block_source_file][block_internal_key] = block_originals
+
+        try:
+            with open(save_path, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            QMessageBox.information(
+                self.ctx, 'Export Original Text',
+                f'Successfully exported original text to:\n{save_path}'
+            )
+        except Exception as e:
+            QMessageBox.critical(self.ctx, 'Export Error', f'Failed to save JSON:\n{e}')
 
     def import_translations_from_json_action(self) -> None:
         """Import translations from json action."""
@@ -298,17 +381,7 @@ class SavedTranslationsHandler(BaseHandler):
         try:
             manager = self.ctx.saved_translations_manager
             for block_idx in range(len(self.data_store.data)):
-                # Determine block paths
-                block_source_file = "single_file"
-                block_internal_key = ""
-                if hasattr(self.ctx, 'block_to_project_file_map') and self.ctx.block_to_project_file_map:
-                    p_b_idx = self.ctx.block_to_project_file_map.get(block_idx)
-                    if p_b_idx is not None and self.ctx.project_manager and self.ctx.project_manager.project and p_b_idx < len(self.ctx.project_manager.project.blocks):
-                        block = self.ctx.project_manager.project.blocks[p_b_idx]
-                        block_source_file = block.source_file
-                        block_internal_key = block.internal_key or ""
-                elif hasattr(self.data_store, 'block_names') and self.data_store.block_names:
-                    block_source_file = self.data_store.block_names.get(str(block_idx), f"block_{block_idx}")
+                block_source_file, block_internal_key = self._get_block_export_location(block_idx)
 
                 # Check if this file has imported translations
                 file_imports = files_data.get(block_source_file, {})

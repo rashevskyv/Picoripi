@@ -1,5 +1,6 @@
 import pytest
 import json
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch, mock_open
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 from handlers.saved_translations_handler import SavedTranslationsHandler
@@ -116,3 +117,87 @@ def test_saved_translations_handler_import_translations(mock_ctx):
                     handler.import_translations_from_json_action()
                     data_processor.update_edited_data.assert_called_with(0, 0, "Imported Translation", action_type="IMPORT", skip_ui_refresh=True)
                     mock_info.assert_called_once()
+
+def test_saved_translations_handler_export_original(mock_ctx):
+    data_processor = MagicMock()
+    data_processor._get_string_from_source.side_effect = lambda b_idx, s_idx, data, name: data[b_idx][s_idx]
+
+    mock_ctx.project_manager.project.name = "MyProject"
+    mock_ctx.project_manager.project.blocks = []
+
+    handler = SavedTranslationsHandler(mock_ctx, data_processor, MagicMock())
+
+    m_open = mock_open()
+    with patch('builtins.open', m_open):
+        with patch.object(QFileDialog, 'getSaveFileName', return_value=("/path/to/export_original.json", "json")):
+            with patch.object(QMessageBox, 'information') as mock_info:
+                with patch('handlers.saved_translations_handler.json.dump') as mock_dump:
+                    handler.export_original_to_json_action()
+                    m_open.assert_called_once_with("/path/to/export_original.json", 'w', encoding='utf-8')
+                    mock_info.assert_called_once()
+                    exported = mock_dump.call_args.args[0]
+                    assert exported["project_name"] == "MyProject"
+                    assert exported["files"] == {
+                        "block_0": {
+                            "": {
+                                "0": "Line 1",
+                                "1": "Line 2",
+                            }
+                        }
+                    }
+
+def test_saved_translations_handler_export_original_keeps_project_sub_blocks(mock_ctx):
+    data_processor = MagicMock()
+    data_processor._get_string_from_source.side_effect = lambda b_idx, s_idx, data, name: data[b_idx][s_idx]
+
+    mock_ctx.data_store.data = [["Block A line"], ["Block B line"]]
+    mock_ctx.data_store.block_names = {"0": "Block A", "1": "Block B"}
+    mock_ctx.block_to_project_file_map = {0: 0, 1: 0}
+    mock_ctx.project_manager.project.name = "MyProject"
+    mock_ctx.project_manager.project.blocks = [
+        SimpleNamespace(source_file="script.txt", internal_key=None)
+    ]
+
+    handler = SavedTranslationsHandler(mock_ctx, data_processor, MagicMock())
+
+    with patch('builtins.open', mock_open()):
+        with patch.object(QFileDialog, 'getSaveFileName', return_value=("/path/to/export_original.json", "json")):
+            with patch.object(QMessageBox, 'information'):
+                with patch('handlers.saved_translations_handler.json.dump') as mock_dump:
+                    handler.export_original_to_json_action()
+                    exported = mock_dump.call_args.args[0]
+                    assert exported["files"] == {
+                        "script.txt": {
+                            "Block A": {"0": "Block A line"},
+                            "Block B": {"0": "Block B line"},
+                        }
+                    }
+
+def test_export_original_action_menu_connection():
+    from ui.main_window.main_window_event_handler import MainWindowEventHandler
+    mw = MagicMock()
+    mw.export_original_action = MagicMock()
+    mw.saved_translations_handler = MagicMock()
+
+    handler = MainWindowEventHandler(mw)
+    handler.connect_signals()
+
+    mw.export_original_action.triggered.connect.assert_called_once_with(
+        mw.saved_translations_handler.export_original_to_json_action
+    )
+
+def test_export_original_action_enabling():
+    from handlers.app_action_handler import AppActionHandler
+    mw = MagicMock()
+    mw.export_original_action = MagicMock()
+
+    data_processor = MagicMock()
+    data_processor.load_session_file.return_value = True
+    ui_updater = MagicMock()
+    rules = MagicMock()
+
+    handler = AppActionHandler(mw, data_processor, ui_updater, rules)
+    with patch('PyQt6.QtCore.QTimer.singleShot'):
+        handler.load_all_data_for_path("dummy.json")
+
+    mw.export_original_action.setEnabled.assert_called_with(True)

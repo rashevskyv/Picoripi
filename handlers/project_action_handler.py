@@ -300,6 +300,10 @@ class ProjectActionHandler(BaseHandler):
                 'enabled_tip': "Export all current project/file translations to a JSON file",
                 'disabled_tip': "No project or file is open"
             },
+            'export_original_action': {
+                'enabled_tip': "Export all current project/file original text to a JSON file",
+                'disabled_tip': "No project or file is open"
+            },
             'import_translations_action': {
                 'enabled_tip': "Import translations from an exported JSON file",
                 'disabled_tip': "No project or file is open"

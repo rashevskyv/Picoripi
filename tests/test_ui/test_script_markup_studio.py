@@ -204,6 +204,19 @@ def test_studio_content_sync_moves_and_highlights_preview(qapp):
     assert dialog.preview_edit.extraSelections() == []
 
 
+def test_studio_autofollow_off_by_default_no_passive_sync(qapp):
+    dialog = _make_dialog(qapp)
+    _use_custom_mode(dialog)
+    dialog.raw_edit.setPlainText(
+        "[Chapter: Prologue]\nMIDNA: Hello there.\nZELDA: Hi.\n"
+    )
+    dialog._refresh()
+    assert not dialog.cb_autofollow.isChecked()   # off by default
+    before = dialog.preview_edit.textCursor().blockNumber()
+    dialog._on_left_scrolled()                     # passive sync is a no-op while off
+    assert dialog.preview_edit.textCursor().blockNumber() == before
+
+
 def test_studio_content_sync_respects_suspend(qapp):
     dialog = _make_dialog(qapp)
     _use_custom_mode(dialog)
@@ -223,3 +236,29 @@ def test_studio_clear_range_restores_full_file(qapp):
     dialog._clear_timeline_range()
     assert dialog.start_line == 0 and dialog.end_line == 0
     assert "full file" in dialog.range_label.text()
+
+
+def test_studio_autofollow_on_passive_sync_scrolls(qapp):
+    dialog = _make_dialog(qapp)
+    _use_custom_mode(dialog)
+    dialog.raw_edit.setPlainText(
+        "[Chapter: Prologue]\n"
+        "MIDNA: Hello there.\n"
+        "ZELDA: Hi.\n"
+    )
+    dialog._refresh()
+    dialog.cb_autofollow.setChecked(True)
+
+    # Mock raw_edit.firstVisibleBlock to return block index 1 (MIDNA line)
+    mock_block = MagicMock()
+    mock_block.blockNumber.return_value = 1
+    dialog.raw_edit.firstVisibleBlock = MagicMock(return_value=mock_block)
+
+    # Mock _preview_block_visible to return False, simulating that the block is out of view
+    dialog._preview_block_visible = MagicMock(return_value=False)
+
+    # Trigger scroll sync
+    dialog._on_left_scrolled()
+
+    # The active block number should have updated to MIDNA line's counterpart (using source mapping)
+    assert dialog.preview_edit.textCursor().blockNumber() == dialog._output_for_source(1)

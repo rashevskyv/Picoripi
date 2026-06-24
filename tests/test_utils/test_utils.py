@@ -368,3 +368,33 @@ class TestWidthCalculationCaching:
         w4 = calculate_string_width("abc", sample_font_map)
         assert w4 == 17
 
+    def test_lru_eviction_behavior(self, sample_font_map):
+        from utils.utils import clear_width_caches, calculate_string_width
+        import utils.utils as uu
+
+        clear_width_caches()
+        # Add 10,000 items
+        for i in range(10000):
+            calculate_string_width(f"str_{i}", sample_font_map)
+
+        assert len(uu._STRING_WIDTH_CACHE) == 10000
+
+        # Check that first inserted item is in cache
+        first_key = ("str_0", id(sample_font_map), 8, None, False, None)
+        assert first_key in uu._STRING_WIDTH_CACHE
+
+        # Access first item to move it to the end (MRU)
+        calculate_string_width("str_0", sample_font_map)
+
+        # Add one more item to trigger eviction
+        calculate_string_width("str_new", sample_font_map)
+
+        assert len(uu._STRING_WIDTH_CACHE) == 10000
+
+        # Since "str_0" was moved to end, it should NOT be evicted
+        assert first_key in uu._STRING_WIDTH_CACHE
+
+        # The oldest item should have been "str_1", which should now be evicted
+        second_key = ("str_1", id(sample_font_map), 8, None, False, None)
+        assert second_key not in uu._STRING_WIDTH_CACHE
+

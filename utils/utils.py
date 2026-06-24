@@ -1,6 +1,7 @@
 import datetime
 import re
 import difflib # Додано
+from collections import OrderedDict
 from typing import Optional, List, Tuple, Any
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from .logging_utils import log_debug
@@ -582,7 +583,7 @@ class TrieNode:
         self.length: int = 0
 
 _WIDTH_CACHE = {}
-_STRING_WIDTH_CACHE = {}
+_STRING_WIDTH_CACHE = OrderedDict()
 
 def clear_width_caches():
     """Clear all width calculation caches."""
@@ -724,6 +725,7 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
 
     global _STRING_WIDTH_CACHE
     if cache_key in _STRING_WIDTH_CACHE:
+        _STRING_WIDTH_CACHE.move_to_end(cache_key)
         return _STRING_WIDTH_CACHE[cache_key]
 
     if SPACE_DOT_SYMBOL in text or "\u00a0" in text:
@@ -790,8 +792,8 @@ def _calculate_string_width_impl(text: str, font_map: dict, default_char_width: 
             total_width += char_widths.get(ch, default_char_width)
         i += 1
 
-    if len(_STRING_WIDTH_CACHE) > 10000:
-        _STRING_WIDTH_CACHE.clear()
+    if len(_STRING_WIDTH_CACHE) >= 10000:
+        _STRING_WIDTH_CACHE.popitem(last=False)
     _STRING_WIDTH_CACHE[cache_key] = total_width
     return total_width
 

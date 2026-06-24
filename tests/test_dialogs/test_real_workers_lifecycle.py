@@ -119,14 +119,11 @@ def _cleanup_worker(worker, timeout=30000):
 def test_real_spellcheck_worker_lifecycle(qtbot):
     sm = StubSpellcheckerManager()
     worker = SpellcheckWorker(sm)
-    results = []
-    worker.spellcheck_results_ready.connect(lambda r1, r2: results.append((r1, r2)))
-    
+
     try:
-        worker.start()
-        worker.enqueue("testword")
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
+        with qtbot.waitSignal(worker.spellcheck_results_ready, timeout=30000):
+            worker.start()
+            worker.enqueue("testword")
     finally:
         _cleanup_worker(worker)
     assert not worker.isRunning()
@@ -153,14 +150,10 @@ def test_real_width_calculation_worker_lifecycle(qtbot):
         mw_settings=mw_settings
     )
     
-    results = []
-    worker.calculation_finished.connect(lambda res: results.append(res))
-    
     try:
-        worker.start()
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
-        result = results[0]
+        with qtbot.waitSignal(worker.calculation_finished, timeout=30000) as blocker:
+            worker.start()
+        result = blocker.args[0]
         assert "entries" in result
         assert len(result["entries"]) == 2
     finally:
@@ -202,18 +195,15 @@ def test_real_project_load_worker_lifecycle(qtbot):
     current_game_rules = StubGameRules()
     
     worker = ProjectLoadWorker(project_manager, current_game_rules)
-    results = []
-    worker.finished.connect(lambda res: results.append(res))
     
     with patch("handlers.project_action_handler.Path.exists", return_value=True), \
          patch("handlers.project_action_handler.load_json_file", return_value=("{}", False)):
         try:
-            worker.start()
-            qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
+            with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
+                worker.start()
         finally:
             _cleanup_worker(worker)
-    assert len(results) == 1
-    result = results[0]
+    result = blocker.args[0]
     assert "data" in result
     assert result["data"] == ["data"]
     assert not worker.isRunning()
@@ -223,20 +213,16 @@ def test_real_provider_test_worker_lifecycle(qtbot):
     provider_settings = {"api_key": "test_key", "base_url": "http://localhost"}
     
     worker = ProviderTestWorker(provider_key, provider_settings)
-    results = []
-    worker.finished_signal.connect(lambda success, text: results.append((success, text)))
-    
     mock_provider = StubProvider()
     
     with patch("core.translation.providers.create_translation_provider", return_value=mock_provider):
         try:
-            worker.start()
-            qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
+            with qtbot.waitSignal(worker.finished_signal, timeout=30000) as blocker:
+                worker.start()
         finally:
             _cleanup_worker(worker)
             
-    assert len(results) == 1
-    success, text = results[0]
+    success, text = blocker.args
     assert success is True
     assert text == "Test"
     assert not worker.isRunning()
@@ -254,14 +240,10 @@ def test_real_alias_update_worker_lifecycle(qtbot):
         original_tag="{original_tag}"
     )
     
-    results = []
-    worker.finished_signal.connect(lambda a, b, c: results.append((a, b, c)))
-    
     try:
-        worker.start()
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
-        edited_res, data_res, edited_file_res = results[0]
+        with qtbot.waitSignal(worker.finished_signal, timeout=30000) as blocker:
+            worker.start()
+        edited_res, data_res, edited_file_res = blocker.args
         assert edited_res[(0, 0)] == "hello {original_tag} world"
         assert data_res[0][0] == "hello {original_tag} world"
         assert edited_file_res[0][0] == "hello {original_tag} world"
@@ -274,14 +256,11 @@ def test_real_save_worker_lifecycle(qtbot):
     output_data_list = ["data"]
     
     worker = SaveWorker(data_processor, output_data_list)
-    results = []
-    worker.finished_with_result.connect(lambda s, w, e: results.append((s, w, e)))
     
     try:
-        worker.start()
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
-        success, warnings, errors = results[0]
+        with qtbot.waitSignal(worker.finished_with_result, timeout=30000) as blocker:
+            worker.start()
+        success, warnings, errors = blocker.args
         assert success is True
         assert warnings == ["warning"]
         assert errors == ["error"]
@@ -306,12 +285,9 @@ def test_real_mempalace_worker_lifecycle(qtbot, tmp_path):
         wing_name="TestWing",
         mapping_only=True
     )
-    results = []
-    worker.finished.connect(lambda success, msg: results.append((success, msg)))
     try:
-        worker.start()
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
+        with qtbot.waitSignal(worker.finished, timeout=30000):
+            worker.start()
     finally:
         _cleanup_worker(worker)
 
@@ -327,13 +303,9 @@ def test_real_mempalace_script_analyzer_worker_lifecycle(qtbot, tmp_path):
         wing_name="TestWing"
     )
 
-    results = []
-    worker.finished.connect(lambda success, msg: results.append((success, msg)))
-
     try:
-        worker.start()
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
+        with qtbot.waitSignal(worker.finished, timeout=30000):
+            worker.start()
     finally:
         _cleanup_worker(worker)
 
@@ -349,14 +321,10 @@ def test_real_mempalace_chapter_mapper_worker_lifecycle(qtbot, tmp_path):
         wing_name="TestWing"
     )
 
-    results = []
-    worker.finished.connect(lambda success, msg: results.append((success, msg)))
-
     with patch("core.script_segmenter.segment_script_file", return_value=[{"num": "1", "title": "Ch1", "start_line": 1, "end_line": 2}]):
         try:
-            worker.start()
-            qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-            assert len(results) == 1
+            with qtbot.waitSignal(worker.finished, timeout=30000):
+                worker.start()
         finally:
             _cleanup_worker(worker)
 
@@ -373,13 +341,9 @@ def test_real_mempalace_chapter_ai_analyzer_worker_lifecycle(qtbot, tmp_path):
         start_line=1
     )
 
-    results = []
-    worker.finished.connect(lambda success, msg: results.append((success, msg)))
-
     try:
-        worker.start()
-        qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-        assert len(results) == 1
+        with qtbot.waitSignal(worker.finished, timeout=30000):
+            worker.start()
     finally:
         _cleanup_worker(worker)
 
@@ -392,13 +356,9 @@ def test_real_mempalace_character_profiler_worker_lifecycle(qtbot, tmp_path):
         wing_name="TestWing"
     )
 
-    results = []
-    worker.finished.connect(lambda success, msg: results.append((success, msg)))
-
     with patch.object(client, "get_all_character_lines", return_value={}):
         try:
-            worker.start()
-            qtbot.waitUntil(lambda: len(results) > 0, timeout=30000)
-            assert len(results) == 1
+            with qtbot.waitSignal(worker.finished, timeout=30000):
+                worker.start()
         finally:
             _cleanup_worker(worker)

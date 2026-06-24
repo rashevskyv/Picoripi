@@ -148,6 +148,8 @@ class MainWindowEventHandler:
             self.mw.restore_translated_action.triggered.connect(self.mw.saved_translations_handler.restore_translation_action)
         if hasattr(self.mw, 'export_translations_action') and self.mw.export_translations_action:
             self.mw.export_translations_action.triggered.connect(self.mw.saved_translations_handler.export_translations_to_json_action)
+        if hasattr(self.mw, 'export_original_action') and self.mw.export_original_action:
+            self.mw.export_original_action.triggered.connect(self.mw.saved_translations_handler.export_original_to_json_action)
         if hasattr(self.mw, 'import_translations_action') and self.mw.import_translations_action:
             self.mw.import_translations_action.triggered.connect(self.mw.saved_translations_handler.import_translations_from_json_action)
 
@@ -338,6 +340,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'save_translated_action'): safe_disconnect(mw.save_translated_action, 'triggered')
         if hasattr(mw, 'restore_translated_action'): safe_disconnect(mw.restore_translated_action, 'triggered')
         if hasattr(mw, 'export_translations_action'): safe_disconnect(mw.export_translations_action, 'triggered')
+        if hasattr(mw, 'export_original_action'): safe_disconnect(mw.export_original_action, 'triggered')
         if hasattr(mw, 'import_translations_action'): safe_disconnect(mw.import_translations_action, 'triggered')
 
         if hasattr(mw, 'ai_translate_button'): safe_disconnect(mw.ai_translate_button, 'clicked')

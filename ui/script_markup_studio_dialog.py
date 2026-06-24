@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import (
     QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QTextCursor, QTextFormat,
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QPoint
 
 from core.script_markup import (
     convert, default_recipe, LineKind,
@@ -195,6 +195,14 @@ class ScriptMarkupStudioDialog(QDialog):
         )
         self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         top.addWidget(self.mode_combo)
+
+        self.cb_autofollow = QCheckBox("Auto-follow scroll")
+        self.cb_autofollow.setChecked(False)
+        self.cb_autofollow.setToolTip(
+            "When on, scrolling the raw pane keeps the preview aligned to it.\n"
+            "When off (default), the preview stays put — click a raw line to jump to it."
+        )
+        top.addWidget(self.cb_autofollow)
 
         self.path_label = QLabel("No file loaded")
         self.path_label.setStyleSheet("color:#666;")
@@ -552,31 +560,47 @@ class ScriptMarkupStudioDialog(QDialog):
         return nearest_output(self._src_to_out, self._mapped_src_sorted, src_idx)
 
     def _on_left_scrolled(self, _value=0):
-        """Passive sync: bring the output for the top-visible raw line into view."""
+        """Passive sync (opt-in): keep the preview aligned to the raw pane while
+        scrolling, but only when 'Auto-follow scroll' is enabled, and never when
+        the matching line is already on screen (so it does not fight the user)."""
         if self._suspend_sync or self._syncing:
             return
+        if not self.cb_autofollow.isChecked():
+            return
         top_block = self.raw_edit.firstVisibleBlock().blockNumber()
-        self._scroll_preview_to_source(top_block, highlight=False)
+        self._scroll_preview_to_source(top_block, highlight=False, gentle=True)
 
     def _on_left_clicked(self):
         """Click/caret sync: jump to and highlight the exact counterpart."""
         if self._suspend_sync or self._syncing:
             return
         line = self.raw_edit.textCursor().blockNumber()
-        self._scroll_preview_to_source(line, highlight=True)
+        self._scroll_preview_to_source(line, highlight=True, gentle=False)
 
-    def _scroll_preview_to_source(self, src_idx: int, highlight: bool):
+    def _preview_block_visible(self, out_idx: int) -> bool:
+        pe = self.preview_edit
+        first = pe.firstVisibleBlock().blockNumber()
+        bottom = pe.cursorForPosition(QPoint(0, pe.viewport().height() - 1)).blockNumber()
+        return first <= out_idx <= bottom
+
+    def _scroll_preview_to_source(self, src_idx: int, highlight: bool, gentle: bool = False):
         out_idx = self._output_for_source(src_idx)
         if out_idx is None:
             return
+        block = self.preview_edit.document().findBlockByNumber(out_idx)
+        if not block.isValid():
+            return
+        # Gentle (passive) sync must not yank a line that's already in view.
+        if gentle and self._preview_block_visible(out_idx):
+            return
         self._syncing = True
         try:
-            block = self.preview_edit.document().findBlockByNumber(out_idx)
-            if not block.isValid():
-                return
             cursor = QTextCursor(block)
             self.preview_edit.setTextCursor(cursor)
-            self.preview_edit.centerCursor()
+            if gentle:
+                self.preview_edit.ensureCursorVisible()
+            else:
+                self.preview_edit.centerCursor()
             self._highlight_preview_block(out_idx if highlight else None)
         finally:
             self._syncing = False

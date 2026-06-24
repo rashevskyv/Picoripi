@@ -99,6 +99,10 @@ class MenuBuilder:
         self.mw.export_translations_action.setEnabled(False)
         file_menu.addAction(self.mw.export_translations_action)
 
+        self.mw.export_original_action = QAction(QIcon.fromTheme("document-export"), '&Export Original to JSON...', self.mw)
+        self.mw.export_original_action.setEnabled(False)
+        file_menu.addAction(self.mw.export_original_action)
+
         self.mw.import_translations_action = QAction(QIcon.fromTheme("document-import"), '&Import Translations from JSON...', self.mw)
         self.mw.import_translations_action.setEnabled(False)
         file_menu.addAction(self.mw.import_translations_action)

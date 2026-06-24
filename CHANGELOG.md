@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.060-dev] - 2026-06-24
+
+### 🚀 Added
+- **Export Original Text (AUD-EXP1)**: Implemented "Export Original" menu action in the File menu, allowing users to export the original string content of the project blocks to a structured JSON file. Added tests for connection, enabling state, and functionality.
+- **Script Markup Studio Auto-follow**: Added a checkbox `Auto-follow scroll` to the Script Markup Studio toolbar. When checked, scrolling the raw script pane dynamically aligns the preview pane to the top visible line in the raw pane using `ensureCursorVisible()` (gentle scrolling). If the target line is already visible, the view remains stationary to avoid layout jumping. Added tests verifying active scrolling behavior, including viewport mocking.
+
+### ⚙️ Changed
+- **Bounded LRU Width Cache (AUD-P5)**: Transitioned `_STRING_WIDTH_CACHE` in `utils/utils.py` to a bounded LRU cache with a maximum capacity of 10,000 entries. This prevents memory leaks and full cache flushes/thrashing after exceeding the limit.
+- **QThread Lifecycle Test Stabilization**: Restored true asynchronous thread lifecycle testing (`worker.start()`) in `tests/test_dialogs/test_real_workers_lifecycle.py`. Replaced unreliable polling loops (`qtbot.waitUntil`) and synchronous `.run()` bypasses with deterministic QTest signal waiters (`qtbot.waitSignal`).
+- **Git Diff Compliance**: Fixed formatting issues highlighted by `git diff --check` (extra newlines at end-of-file).
+- **Version Updates**: Bumped version to `0.3.060-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.058] - 2026-06-23
 
 ### ⚙️ Changed

@@ -1,6 +1,6 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.059-dev
+> **Остання версія проекту:** v0.3.060-dev
 > **Дата оновлення:** 2026-06-21
 > **Об'єм проекту (поточний workspace, без gitignored копій):** 412 Python-файлів загалом; 253 продуктових Python-файли, 159 тестових Python-файлів; ~67 375 LOC продуктового Python-коду (не-тестового), ~26 273 LOC тестів; 1 290 pytest items (`1280 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`). Цифри попередніх проходів (~66 741 LOC / 248 файлів / ~25 391 LOC тестів) застаріли і перераховані під час аудиту 2026-06-21.
 > **Примітка:** каталоги `gemini/` (~25k LOC, стара повна копія коду) і `scratch/` — gitignored, нетраковані, у продукт не входять і в обсяг не зараховуються.
@@ -44,6 +44,11 @@
 
 ## 2. Завершені покращення (Архів виконаного)
 
+- **AUD-P5, AUD-EXP1, Auto-follow та стабілізація тестів (2026-06-24).**
+  - **AUD-P5** — додано LRU-кешування для `_STRING_WIDTH_CACHE` у `utils/utils.py`, що покращує швидкодію обчислення ширини тексту.
+  - **AUD-EXP1** — реалізовано симетричний експорт оригінального тексту до JSON-файлу через нове меню `Export Original`.
+  - **Script Markup Studio auto-follow** — додано опцію "Auto-follow scroll" для Gentle Scrolling, яка синхронізує прев'ю з прокручуванням вихідного тексту.
+  - **Стабілізація тестів** — відновлено реальні асинхронні `QThread` тести в `tests/test_dialogs/test_real_workers_lifecycle.py` за допомогою `qtbot.waitSignal` замість нестійких `.run()` або `qtbot.waitUntil(...)` затримки. Виправлено порожні рядки в кінці тестових файлів, щоб задовольнити `git diff --check`. Додано тести для меню експорту оригіналів та поведінки прокручування.
 - **D18-D44. Попередні стабілізації ядра, UI та PyQt-сумісності.** У попередніх ітераціях були заархівовані типізація ключових модулів, PyQt6 enum-сумісність, оптимізації SQLite-з'єднань MemePalace, AI-кешування, захист від deleted Qt wrapper помилок, UX/async-покращення діалогів, undo/redo persistence, стабілізація virtual folders і speaker/character navigation.
 - **A01/B01. Усунення вкладених event loop і залишкового `processEvents()` у progress tracker.** Попередній аудит фіксував заміну частини `QEventLoop.exec()` і блокуючих progress-flow на сигнал-орієнтовані переходи. У задачі B01 залишковий `QCoreApplication.processEvents()` у progress tracker замінено на контрольоване перемалювання без reentrancy-ризику.
 - **A07. Інвалідація кешу контексту AI-скриптів.** `AIPromptComposer` прив'язує кеш до шляху, mtime, розміру файлу та активного плагіна, що зменшує ризик застарілого AI-контексту.
@@ -629,3 +634,123 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 **Висновок:** `AUD-P2` закрито. Скасування streaming AI тепер має реальний шлях до закриття активного HTTP-stream, а не лише логічну перевірку між токенами.
 - **Agent-3 незалежний full-gate QA (2026-06-23):** **15 повних** `pytest -n auto tests/` — **0 падінь / 15** (1373 passed, 1 skipped); ruff clean. Окремо підтверджено: (1) AUD-A4 production-safe за побудовою — видалений guard `not hasattr(..., 'assert_called_with')` у проді завжди True, тож прод-поведінка не змінилась; (2) re-exports цілі — тести імпортують `AliasUpdateWorker`/`TagAliasDialog` зі старого `ui.main_window.main_window_actions`, який реекспортує з `dialogs.tag_alias_dialog`; (3) `AliasUpdateWorker` перенесено структурно ідентично HEAD; (4) `singleShot` у `search_review_dialog`/`tag_alias_dialog` — передіснуючі dialog-level, не регресії; (5) тихого відкату завершеної роботи (як AUD-P4a в AUD-A1) **немає**. **AUD-A3 та AUD-A4 — QA-verified.**
+
+## 9. Новий аудит — 2026-06-23 (повторне використання та продуктивність)
+
+Фокус цього проходу за запитом: **дублювання коду / reuse** і **продуктивність**. База на HEAD `a416d94`, дерево чисте, `1375 passed, 1 skipped`, ruff clean. Знахідки нижче — нові, не перетинаються з §8.
+
+### 9.1. Підтверджено як здорове (щоб не чіпати)
+
+- **Обчислення ширини рядка** (`utils._calculate_string_width_impl`) — добре оптимізоване: trie для багатосимвольних послідовностей кешується per-font_map (`_WIDTH_CACHE`), результати кешуються (`_STRING_WIDTH_CACHE`). Гарячий шлях аналізу/прев'ю не потребує переробки алгоритму.
+- Мережа/таймаути, cancel воркерів, відсутність `processEvents`/`unittest.mock` у продукті — лишаються чистими (див. §8.6).
+
+### 9.2. Reuse / дублювання (головний фокус)
+
+- **AUD-R1 (середня). Фрагментація tag-патерну — головна знахідка reuse.** Регулярний вираз для тегів `\{[^}]*\}|\[[^\]]*\]` існує у **трьох** канонічних копіях — `utils.ALL_TAGS_PATTERN` ([utils/utils.py:9](utils/utils.py:9)), `core/tag_utils.ANY_TAG_PATTERN` ([core/tag_utils.py:4](core/tag_utils.py:4)), `plugins/default_plugin/tag_manager.TAG_RE` — **плюс ~15 inline ad-hoc копій** у `core/data_state_processor.py:137`, `core/mempalace/character_profiler.py:256,438`, `core/mempalace/weaver_worker.py:140`, `core/mempalace_client.py:1055`, `core/translation/script_speaker_finder.py:215`, `core/translation/story_context_manager.py:270`, `handlers/translation/text_formatter.py`, `plugins/common/problem_rules/common_rules.py` (кілька), `components/editor/lnet_context_menu_logic.py:24` тощо. Варіанти ще й тонко різняться (`[^}]*` проти `[^}]+`, з/без capture-групи) — це не лише дублювання, а й **прихований correctness-ризик** розходження поведінки. *Пропозиція:* зробити `core/tag_utils.py` єдиним джерелом істини (один pattern + хелпери `strip_tags`/`split_keeping_tags`), звести `ALL_TAGS_PATTERN`/`TAG_RE` до ре-експортів, поступово замінити inline-копії. *Складність:* Середня (механічно, але треба тести на кожен сайт через тонкі варіації). *Файли:* `core/tag_utils.py`, `utils/utils.py`, перелічені вище.
+- **AUD-R2 (низька). Regex компілюється всередині методів.** `core/mempalace/character_profiler.py:256,438` та `core/mempalace_client.py:1055` роблять `re.compile(...)` при кожному виклику. Винести на рівень модуля (зливши з AUD-R1). *Складність:* Низька.
+- **AUD-R3 (низька). Тривіальні дублюючі обгортки маскування тегів.** `glossary_builder._mask_tags_for_ai` — однорядкова обгортка над `ALL_TAGS_PATTERN.sub(' ', ...)`, що дублює inline-використання в `ai_worker.py:214`. Витягнути єдиний `mask_tags(text)` у `tag_utils`. *Складність:* Тривіальна.
+
+### 9.3. Продуктивність
+
+- **AUD-P5 (низька/середня). Груба евікція кешу ширини.** `_STRING_WIDTH_CACHE` при досягненні 10000 записів робить повний `.clear()` ([utils/utils.py:793](utils/utils.py:793)) — на великому проєкті це періодичний thrash (скидання всього кешу й повна переобчислення). Замінити на bounded LRU (`OrderedDict` + `move_to_end`/`popitem`, як вже зроблено для `_archive_cache` в AUD-P3). Додатково: ключ кешу містить `id(font_map)`/`id(default_tag_mappings)` — латентний staleness-ризик, якщо словник буде GC'нуто і `id` перевикористано (на практиці малоймовірно, але варто задокументувати/підстрахувати). *Складність:* Низька. *Файли:* `utils/utils.py`.
+- **AUD-P6 (низька). Повторне вимірювання ширини в циклі розбиття рядка.** `common_rules` (`ShortLineRule.fix`, [plugins/common/problem_rules/common_rules.py:85-96](plugins/common/problem_rules/common_rules.py:85)) у `while _get_string_width(line) > threshold` повторно міряє ширину підрядків, що зростають/зменшуються — алгоритмічно близько до O(n²) на довгих рядках. Мітигується кешем ширини, але виклики все одно надлишкові. *Пропозиція:* міряти інкрементально (накопичувати ширину part-by-part) замість повного перевимірювання. *Складність:* Низька-середня. *Файли:* `plugins/common/problem_rules/common_rules.py`.
+
+### 9.4. Архітектура (опційно, не у фокусі запиту)
+
+- **AUD-A5 (опційно). Залишкові монолітні координатори.** `ui/mempalace_builder_dialog.py` (1380, 2 класи/40 методів) і `ui/settings/settings_ui_setup.py` (1231) ще не декомпоновані. Не блокери; за бажання — наступний архітектурний цикл по стабільних контрактах.
+
+### 9.5. Пріоритетний список (новий аудит)
+
+- `[ ]` **AUD-R1** (середня) — консолідувати tag-патерн у `core/tag_utils.py`, прибрати ~15 inline-копій + 3 канонічні дублі.
+- `[ ]` **AUD-R2** (низька) — винести inline `re.compile` на рівень модуля (разом з AUD-R1).
+- `[ ]` **AUD-R3** (тривіальна) — єдиний `mask_tags()` хелпер.
+- `[x]` **AUD-P5** (низька/середня) — bounded LRU для `_STRING_WIDTH_CACHE`.
+- `[ ]` **AUD-P6** (низька) — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
+- `[ ]` **AUD-A5** (опційно) — декомпозиція `mempalace_builder_dialog`/`settings_ui_setup`.
+
+Рекомендований порядок: **AUD-R1+R2+R3 разом** (один reuse-рефактор tag-патерну з тестами) → **AUD-P5** (швидка перемога) → **AUD-P6** → опційно AUD-A5.
+
+### 9.6. Друга ітерація пошуку (2026-06-23)
+
+- **AUD-P7 (середня, reuse+perf). `displayed_indices.index(...)` повторюється 10× і робить O(n) скан.** У [handlers/list_selection_handler.py](handlers/list_selection_handler.py) виклики `displayed_indices.index(target)` зустрічаються на рядках 183, 216, 269, 345, 569, 572, 694, 697, 1020, 1023. `displayed_string_indices` — звичайний список (встановлюється у `preview_updater.py:314`), тож кожен `.index()` — лінійний скан; на великих блоках (5000+ рядків) це відчутно при навігації/виборі. Це і **дублювання** (10 однакових патернів), і **продуктивність**. *Пропозиція:* будувати зворотну мапу `{value: rel_pos}` один раз при встановленні `displayed_string_indices` і єдиний хелпер `_relative_index(target)` з O(1)-пошуком. *Складність:* Низька-середня. *Файли:* `handlers/list_selection_handler.py`, `ui/updaters/preview_updater.py`, `core/data_store.py`.
+- **AUD-R4 (низька, reuse). Немає спільного ітератора по всіх рядках.** Патерн `for block in data: for s_idx in range(len(block))` дублюється у 10+ файлах (`data_state_processor`, `set_calculator`, `revert_manager`, `filter_query_api`, `glossary_manager`, `mempalace/*`, `search_review_dialog` тощо). *Пропозиція:* єдиний генератор `iter_all_strings(data) -> (block_idx, string_idx, text)` у `core/` і поступовий перехід на нього. *Складність:* Низька (але багато сайтів — робити поступово з тестами).
+- **AUD-P8 (низька, perf). Сортування у paint-шляху редактора.** [components/editor/line_number_area_paint_logic.py:297](components/editor/line_number_area_paint_logic.py:297) робить `sorted(list(filtered_problems), key=lambda pid: problem_definitions[pid]['priority'])` **усередині циклу по видимих рядках у `execute_paint_event`** — тобто на кожен рядок при кожному перемальовуванні. `k` (проблем на рядок) малий, тож severity низька, але ключ сортування (`priority`) статичний. *Пропозиція:* передобчислити `priority_rank` мапу один раз (config статичний) і сортувати дешевим lookup, або тримати проблеми вже впорядкованими. *Складність:* Низька. *Файли:* `components/editor/line_number_area_paint_logic.py`.
+
+**Підтверджено здоровим у цій ітерації (НЕ чіпати):** `FilterQueryAPI`-фільтри O(1) завдяки кешованим set-ам (`store._index_translated` тощо); Aho-Corasick глосарію будується один раз у `_build_pattern_cache` (на зміну глосарію), а не per-match; пакування контейнерів RARC/U8/Yaz0 уже використовує `bytearray` (без O(n²) конкатенації bytes).
+
+### 9.6b. Третя ітерація пошуку (2026-06-23)
+
+- **AUD-P9 (низька-середня, perf). Аллокація `QColor` у paint-шляху делегата списку.** [components/custom_list_item_delegate.py](components/custom_list_item_delegate.py) у `paint()` (рядок 88) конструює ~15-20 **статичних** `QColor` inline на кожне перемальовування кожного item (рядки 101, 118-129, 295, 368, 401, 460-461, 555, 570 тощо) — теми/стани, що не залежать від рантайму. `__init__` уже кешує частину (`self._colors`), тож є прецедент. *Пропозиція:* винести статичні кольори у class/instance-константи (по темі), залишивши inline лише справді динамічні (`QColor(problem_def["color"])`). Severity низька (QColor дешевий), але це alloc-churn у найгарячішому списковому шляху при скролі. *Складність:* Низька. *Файли:* `components/custom_list_item_delegate.py`.
+- **AUD-R5 (низька, reuse). Дублювання констант у конфігах плагінів.** `plugins/*/config.py` спільно використовують `generate_base_config`, але повторюють однакові константи (`PRIORITY_DEFAULT = 99`, `COLOR_WARNING_TAG = QColor(200, 200, 200, 150)`, мапінг `"TAG_WARNING": ...`). Частина дублювання прийнятна (config як шаблон під кастомізацію), тож пріоритет низький; можна винести спільні дефолти у `plugins/common/`. *Складність:* Низька.
+
+**Примітка про спадну віддачу:** після трьох ітерацій великі/середні знахідки вичерпуються — нові пункти (P8, P9, R4, R5) переважно низької severity. Найбільша віддача лишається за **AUD-R1** (tag-патерн: дублювання + correctness-ризик), **AUD-P7** (index→мапа: −10 дублів + O(n)→O(1)) і **AUD-P5** (LRU кеш).
+
+### 9.8. Глибокий аудит логіки, промптів і тестів (2026-06-23)
+
+Цей прохід — не grep-патерни, а читання логіки. Знайдено справжні прогалини.
+
+- **AUD-L1 (СЕРЕДНЯ-ВИСОКА, logic). Цільова мова жорстко зашита як «Ukrainian».** README/GEMINI позиціонують застосунок як «fully generalizable to any structured translation», але AI-переклад **захардкоджено на українську** не лише в `translation_prompts/prompts.json` («When translating into Ukrainian…»), а й у **Python-коді**: `handlers/translation/ai_prompt_composer.py:502` (`'…into Ukrainian.'`), `:507` (`'…match Ukrainian grammar…'`), `:518` (ще раз «into Ukrainian»). У всій кодовій базі **немає жодного `target_lang`/`target_language` налаштування** (grep порожній). Наслідок: користувач, що перекладає будь-якою іншою мовою, отримує системну інструкцію перекладати **українською** — навіть редагуванням `prompts.json` це не обійти, бо рядки в Python дописуються до system prompt. *Пропозиція:* ввести `target_language` (global/project setting) і підставляти його (`into {target_lang}`, `match {target_lang} grammar`) і в JSON, і в Python-доповненнях. *Складність:* Середня. *Файли:* `handlers/translation/ai_prompt_composer.py`, `translation_prompts/prompts.json`, `core/settings/*`.
+- **AUD-L2 (низька-середня, prompt vs code). Промпт інструктує зберігати `\n`, якого AI не бачить.** У batch-перекладі `compose_batch_request` стрипить переноси перед відправкою (`current_text_clean = current_text_for_ai.replace('\n', ' ')`, `ai_prompt_composer.py:~209`), а системний промпт містить розгорнуті правила #1 і #3 про збереження `\n` у тій самій позиції. Тобто для batch-шляху ці правила — мертві інструкції (модель не отримує жодного `\n`), що марнують токени й можуть плутати модель; реальну структуру рядків відновлює вже `_format_and_wrap_translation` пост-фактум. *Пропозиція:* розділити системні промпти для batch (без `\n`-правил) і single-line, або явно зазначити, що рядки прийдуть «розгорнутими». *Складність:* Низька. *Файли:* `translation_prompts/prompts.json`, `handlers/translation/ai_prompt_composer.py`.
+- **AUD-X1 (низька, dead code). `_prepare_glossary_for_prompt` — no-op заглушка.** `ai_prompt_composer.py` має метод, що лише повертає `(system_prompt or '').strip()` (глосарій тепер інжектиться per-item, що ефективно), але метод досі викликається у кількох місцях як значущий крок. Прибрати або задокументувати як свідому заглушку. *Складність:* Тривіальна.
+- **AUD-W1 (середня, test theater). Тести, що нічого не перевіряють попри назву.** Конкретні приклади:
+  - `tests/test_utils/test_utils.py::test_empty_font_map` — docstring «all chars use default_char_width», обчислює `width = calculate_string_width("abc", empty_font_map, default_char_width=7)` і **не асертить** (мав би `== 21`). Це тест **гарячої функції ширини** — пройде навіть якщо вона поверне 0.
+  - `tests/test_utils/test_syntax_highlighter.py::test_JsonTagHighlighter_highlightBlock_colors` — назва обіцяє перевірку кольорів WW/MC, викликає `highlightBlock(...)`, але **жодного assert** (сусідній `_rules` асертить `setFormat.call_count >= 4`, а цей — ні).
+  - Загалом у suite ~25 assertion-free тест-функцій; частина — легітимні «no-crash» smoke (paint fallback), але перелічені вище **обіцяють перевірку поведінки і не роблять її**. *Пропозиція:* додати реальні асерти (очікувана ширина; перевірка переданих кольорів через `setFormat.call_args_list`); провести ревізію решти 23. *Складність:* Низька. *Файли:* `tests/test_utils/test_utils.py`, `tests/test_utils/test_syntax_highlighter.py`, аудит решти.
+
+**Незвичні підходи до прискорення (ідеї, не задачі):** (1) для аналізу ширини великого блоку — рахувати ширину рядків у тому ж `WidthCalculationWorker`-потоці пакетно з реюзом trie, а не лениво по одному; (2) `_STRING_WIDTH_CACHE` можна зробити дворівневим (per-font_map → per-text) щоб уникнути великого спільного словника і його повного `.clear()`; (3) у paint-шляху делегата кешувати не лише QColor, а й зібрані `QTextLayout`/format-діапазони для незмінних рядків.
+
+### 9.9. Підсумок найвищого пріоритету (після глибокого проходу)
+
+1. **AUD-L1** (середня-висока) — розхардкодити цільову мову. Найбільша *смислова* прогалина: суперечить заявленій генеральності продукту.
+2. **AUD-R1** (середня) — консолідація tag-патерну (дублювання + correctness).
+3. **AUD-P7** (середня) — `displayed_indices` зворотна мапа.
+4. **AUD-W1** (середня) — полагодити тести-театр (особливо ширина — це гарячий шлях без реальної перевірки).
+5. **AUD-P5** (низька) — LRU кеш ширини. Повторні читання файлів (`font_map_loader`, dialog settings) — load-time, не hot-path, тож не вимагають дії.
+
+### 9.7. Оновлений пріоритетний список
+
+- `[ ]` **AUD-R1/R2/R3** — консолідація tag-патерну (один рефактор).
+- `[x]` **AUD-P5** — bounded LRU для `_STRING_WIDTH_CACHE`.
+- `[ ]` **AUD-P7** — зворотна мапа для `displayed_indices` (прибирає 10 дублів + O(n)→O(1)).
+- `[ ]` **AUD-P6** — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
+- `[ ]` **AUD-P8** — передобчислення сортування проблем у paint-шляху.
+- `[ ]` **AUD-R4** — спільний `iter_all_strings()` (поступово).
+- `[ ]` **AUD-A5** (опційно) — декомпозиція `mempalace_builder_dialog`/`settings_ui_setup`.
+
+## 10. Логіка AI-перекладу та збереження структури — 2026-06-23 (глибокий аудит)
+
+Цей розділ — найважливіший за останні ітерації: він про **семантику перекладу**, а не мікро-перформанс. Поточний пайплайн зберігає _зміст_, але **знищує структуру** оригіналу.
+
+### 10.1. Поточна поведінка (підтверджено кодом)
+
+- **На відправці в AI** — [handlers/translation/ai_prompt_composer.py:213](handlers/translation/ai_prompt_composer.py:213): `current_text_clean = current_text_for_ai.replace('\n', ' ')` + стиснення пробілів. Усі переноси рядків оригіналу сплющуються в один рядок.
+- **На поверненні** — [handlers/translation/text_formatter.py:29](handlers/translation/text_formatter.py:29): відповідь AI теж `text.replace('\n', ' ')`, після чого перерозбивається **виключно за піксельною шириною** (`warning_threshold`/`max_width`) і пагінується за `lines_per_page`.
+- **Наслідок:** початкова, часто **навмисна** структура (значущі переноси, теги на початку рядка, заголовки, пункти вибору) втрачається й замінюється механічним width-wrap. Збігається з основною претензією користувача.
+
+### 10.2. Знахідки
+
+- **AUD-L1 (висока, логіка+промпт). Цільова мова жорстко зашита як «Ukrainian».** Не лише в `translation_prompts/prompts.json`, а й у Python-коді: [ai_prompt_composer.py:502,507,518](handlers/translation/ai_prompt_composer.py:502) — `'...into Ukrainian'`, `'...match Ukrainian grammar'`. У всій базі **немає `target_language`-налаштування** (grep порожній). Це прямо суперечить README/GEMINI («fully generalizable to any structured translation»). *Пропозиція:* ввести `target_language` (project/settings), підставляти у промпт (`into {target_lang}`, `match {target_lang} grammar`), прибрати hardcode. *Складність:* Середня. *Файли:* `handlers/translation/ai_prompt_composer.py`, `translation_prompts/prompts.json`, settings.
+- **AUD-L2 (висока, логіка). Втрата структури при round-trip.** Поточний flatten→translate→width-rewrap зберігає зміст, але не вигляд. *Мета:* AI має _розуміти_ переданий текст як **одну семантичну одиницю** (для зв'язності/граматики), але **повертати** його структурно наближено до оригіналу — кількість і розташування переносів відносно тегів. *Пропозиція:* передавати структуру явно (напр., нумеровані сегменти/маркери переносів або інструкцію «збережи позиції \n відносно тексту й тегів») і **не** сплющувати відповідь беззастережно; перерозбивати лише там, де ширина реально перевищує ліміт, поважаючи навмисні переноси оригіналу. *Складність:* Висока. *Файли:* `ai_prompt_composer.py`, `text_formatter.py`, `prompts.json`.
+- **AUD-L3 (висока, логіка). Дискримінатор тегів — НАЯВНІСТЬ ALIAS, а не вгадування «позиційний/непозиційний».** *Уточнення від користувача:* до розмітки тег — це просто **непрозорий шматок коду** (напр., `{escape:0:0000}`), і неможливо знати, чи це колір, чи ім'я, чи керівний код. Семантику тегам надає сам користувач у процесі **призначення aliases** (`default_tag_mappings: {alias} -> {original_tag}`, плюс force-aliases `{F:Word}`). Тому правило таке:
+  - Тег **має alias** → відправляти на переклад **alias** (читабельну форму), а після відповіді AI **розгортати назад в оригінальний тег** (round-trip). Це і дає AI зрозумілий «якор», і вирішує питання змісту.
+  - Тег **без alias** → трактувати як непрозорий **anchored** токен: не перекладати, не рухати, зберігати позицію.
+
+  Наявний `utils/force_alias.py` (`apply_aliases_to_text`, `extract_force_aliases`, `prepare_text_for_ai`) реалізує **вузький** випадок (`{F:...}` → плоске слово → відновлення через глосарій). *Уточнення від користувача:* **будь-який alias** (не лише `F:`) — це за фактом **текст**, що позначає семантику тегу, і ця семантика потрібна **і AI-перекладачу**, щоб він розумів, чи це кнопка, дія, пауза, чи просто підсвічування кольору. Тому:
+  - **Семантику alias треба доносити до AI для ВСІХ аліасованих тегів** (зараз AI отримує або непрозорий код, або тільки `F:`-слово). Напр., передавати легенду «токен → значення alias» у промпті, або підставляти читабельний alias як позначений токен, який AI не перекладає, але розуміє його роль (це впливає і на переклад, і на розташування).
+  - Різниця лише на **виході/відновленні**: `F:`-alias → лишається перекладеним плоским текстом у грі; **звичайний** alias → **відновлюється назад в оригінальний тег** (у грі лишається тегом).
+  - Тег **без alias** → непрозорий anchored токен (не перекладати, не рухати).
+
+  *Пропозиція:* (1) формувати tag-легенду (token→meaning) з `default_tag_mappings` і вкладати її в промпт; (2) зробити крок відновлення оригінального тегу надійним (не губити тег, якщо перекладене слово не знайшлося буквально). Окремий випадок: **рядок, що починається з тегу в оригіналі** — ймовірно семантичний (пункт вибору/опція), зберігати як окремий рядок. *Складність:* Висока. *Файли:* `utils/force_alias.py`, `handlers/translation/ai_prompt_composer.py`, `handlers/translation/text_formatter.py`, `translation_prompts/prompts.json`.
+- **AUD-L4 (середня, логіка). Наївна евристика злиття/розбиття рядків.** Поточне width-only перерозбиття (і будь-яке злиття за принципом «нема розділового знака → продовження») помилкове для **заголовків** і коротких самостійних одиниць: заголовок — завершена одиниця без крапки, що зазвичай **не займає всю ширину рядка**. *Пропозиція:* при рішенні зліплювати/розбивати враховувати сигнали ширини й позиції (рядок, що значно коротший за ліміт і не закінчується розділовим — ймовірно заголовок/окрема одиниця, не зливати), а не лише пунктуацію. *Складність:* Середня. *Файли:* `text_formatter.py`.
+
+### 10.3. Експорт оригіналу (окремий запит)
+
+- **AUD-EXP1 (низька, фіча). Додати пункт меню «Export Original». (Вирішено)** Зараз є лише експорт перекладу ([handlers/saved_translations_handler.py:186](handlers/saved_translations_handler.py:186) `export_translations_to_json_action`, зареєстрований у [project_action_handler.py:299](handlers/project_action_handler.py:299) `export_translations_action`). Потрібен симетричний експорт **оригінального** тексту. *Пропозиція:* дзеркальна дія `export_original_action` поряд із наявною, що віддає оригінал у тому ж форматі. *Складність:* Низька. *Файли:* `handlers/saved_translations_handler.py`, `handlers/project_action_handler.py`, `ui/builders/menu_builder.py`.
+
+### 10.4. Якість тестів (тести-театр)
+
+- **AUD-Q1 (середня, тести). Тести, що не перевіряють заявлене.** Підтверджені приклади: `tests/test_utils/test_syntax_highlighter.py::test_JsonTagHighlighter_highlightBlock_colors` — назва обіцяє перевірку кольорів, але **жодного assert** (сусідній `_rules` асертить `setFormat.call_count`); `tests/test_utils/test_utils.py::TestCalculateStringWidth.test_empty_font_map` — docstring «all chars use default_char_width», обчислює `width` і **не асертить** (мав би `== 21`). Усього ~25 assertion-free тест-функцій (частина — легітимні paint-smoke, але кілька — справжній театр). *Пропозиція:* додати реальні асерти у явно «обіцяючі» тести; для smoke-only лишити коментар-обґрунтування. *Складність:* Низька. *Файли:* перелічені + аудит решти 25.
+
+### 10.5. Пріоритет розділу 10
+
+Найвища цінність: **AUD-L1** (розблоковує не-українські проєкти) і **AUD-L2/L3** (ядро якості перекладу — збереження структури й позиційних тегів). Це складні логічні зміни — робити ітеративно, з прикладами в промпті та тестами на round-trip структури. **AUD-EXP1** (вирішено) і **AUD-Q1** — швидкі незалежні перемоги.
