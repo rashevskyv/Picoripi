@@ -267,8 +267,8 @@ class StoryContextManager:
                         def clean_for_compare(t: str) -> str:
                             if not t:
                                 return ""
-                            t = re.sub(r'\{[^}]+\}', '', t)
-                            t = re.sub(r'\[[^]]+\]', '', t)
+                            from core.tag_utils import strip_tags
+                            t = strip_tags(t)
                             return re.sub(r'[^a-zA-Z0-9]', '', t).lower().strip()
 
                         clean_query = clean_for_compare(text)

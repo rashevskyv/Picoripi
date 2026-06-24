@@ -6,8 +6,9 @@ from typing import Optional, List, Tuple, Any
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 from .logging_utils import log_debug
 
+from core.tag_utils import ALL_TAGS_PATTERN
+
 SPACE_DOT_SYMBOL = "·"
-ALL_TAGS_PATTERN = re.compile(r'\[[^\]]*\]|\{[^}]*\}|' + re.escape(P_VISUAL_EDITOR_MARKER) + r'|' + re.escape(L_VISUAL_EDITOR_MARKER))
 FORCED_ALIAS_PATTERN = re.compile(r'\{[Ff]:([^}]*)\}')
 DEFAULT_CHAR_WIDTH_FALLBACK = 6
 

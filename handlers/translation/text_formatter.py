@@ -1,8 +1,9 @@
-﻿# handlers/translation/text_formatter.py
+# handlers/translation/text_formatter.py
 
 import re
 from typing import Any, List
 from utils.utils import calculate_string_width, remove_all_tags
+from core.tag_utils import ANY_TAG_PATTERN_STR
 
 
 class TextFormatter:
@@ -30,9 +31,9 @@ class TextFormatter:
         # Normalize double/multiple spaces to single space
         cleaned_text = re.sub(r' +', ' ', cleaned_text).strip()
         # Remove spaces immediately following leading tags
-        cleaned_text = re.sub(r'^((?:\{[^}]*\}|\[[^\]]*\])*)\s+', r'\1', cleaned_text)
+        cleaned_text = re.sub(rf'^((?:{ANY_TAG_PATTERN_STR})*)\s+', r'\1', cleaned_text)
         # Remove spaces between tags and punctuation marks (e.g. "{tag} ," -> "{tag},")
-        cleaned_text = re.sub(r'(\{[^}]*\}|\[[^\]]*\])\s+([,\.!?;:…])', r'\1\2', cleaned_text)
+        cleaned_text = re.sub(rf'({ANY_TAG_PATTERN_STR})\s+([,\.!?;:…])', r'\1\2', cleaned_text)
 
         # Get font map
         font_map = getattr(self.mw, 'current_font_map', None) or getattr(self.mw, 'font_map', None) or {}
@@ -124,7 +125,7 @@ class TextFormatter:
         # Helper to wrap a single sentence/text into lines based on warning_threshold and max_width
         def wrap_text_segment(segment_text: str) -> List[str]:
             """Wrap text segment."""
-            parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', segment_text)
+            parts = re.findall(rf'({ANY_TAG_PATTERN_STR}|\S+|\s+)', segment_text)
             segment_lines = []
             current_line = ""
             current_w = 0

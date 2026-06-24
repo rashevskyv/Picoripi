@@ -137,8 +137,8 @@ class MemePalaceWorker(QThread):
             for tag, name in _dynamic_name_tags.items():
                 text = text.replace(tag, name)
             # Remove XML/custom tags like {Color:Red}, [PLAYER], {escape:...}
-            text_no_tags = re.sub(r'\{[^}]+\}', '', text)
-            text_no_tags = re.sub(r'\[[^]]+\]', '', text_no_tags)
+            from core.tag_utils import strip_tags
+            text_no_tags = strip_tags(text)
             # Remove punctuation, spaces, quotes, apostrophes, and convert to lower
             cleaned = re.sub(r'[^a-zA-Z0-9]', '', text_no_tags).lower()
             return cleaned

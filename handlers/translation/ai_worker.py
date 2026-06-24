@@ -210,8 +210,8 @@ class AIWorker(QObject):
                 full_text = "\n".join(target_strings)
 
                 # 2. Background tag masking first to prevent tag leakage on chunk boundaries
-                from utils.utils import ALL_TAGS_PATTERN
-                masked_text = ALL_TAGS_PATTERN.sub(' ', full_text or '')
+                from core.tag_utils import mask_all_tags_including_visual_markers
+                masked_text = mask_all_tags_including_visual_markers(full_text)
 
                 # 3. Background chunking
                 chunks = [masked_text[i:i+chunk_size] for i in range(0, len(masked_text), chunk_size)]

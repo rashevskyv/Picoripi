@@ -646,9 +646,16 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 ### 9.2. Reuse / дублювання (головний фокус)
 
-- **AUD-R1 (середня). Фрагментація tag-патерну — головна знахідка reuse.** Регулярний вираз для тегів `\{[^}]*\}|\[[^\]]*\]` існує у **трьох** канонічних копіях — `utils.ALL_TAGS_PATTERN` ([utils/utils.py:9](utils/utils.py:9)), `core/tag_utils.ANY_TAG_PATTERN` ([core/tag_utils.py:4](core/tag_utils.py:4)), `plugins/default_plugin/tag_manager.TAG_RE` — **плюс ~15 inline ad-hoc копій** у `core/data_state_processor.py:137`, `core/mempalace/character_profiler.py:256,438`, `core/mempalace/weaver_worker.py:140`, `core/mempalace_client.py:1055`, `core/translation/script_speaker_finder.py:215`, `core/translation/story_context_manager.py:270`, `handlers/translation/text_formatter.py`, `plugins/common/problem_rules/common_rules.py` (кілька), `components/editor/lnet_context_menu_logic.py:24` тощо. Варіанти ще й тонко різняться (`[^}]*` проти `[^}]+`, з/без capture-групи) — це не лише дублювання, а й **прихований correctness-ризик** розходження поведінки. *Пропозиція:* зробити `core/tag_utils.py` єдиним джерелом істини (один pattern + хелпери `strip_tags`/`split_keeping_tags`), звести `ALL_TAGS_PATTERN`/`TAG_RE` до ре-експортів, поступово замінити inline-копії. *Складність:* Середня (механічно, але треба тести на кожен сайт через тонкі варіації). *Файли:* `core/tag_utils.py`, `utils/utils.py`, перелічені вище.
-- **AUD-R2 (низька). Regex компілюється всередині методів.** `core/mempalace/character_profiler.py:256,438` та `core/mempalace_client.py:1055` роблять `re.compile(...)` при кожному виклику. Винести на рівень модуля (зливши з AUD-R1). *Складність:* Низька.
-- **AUD-R3 (низька). Тривіальні дублюючі обгортки маскування тегів.** `glossary_builder._mask_tags_for_ai` — однорядкова обгортка над `ALL_TAGS_PATTERN.sub(' ', ...)`, що дублює inline-використання в `ai_worker.py:214`. Витягнути єдиний `mask_tags(text)` у `tag_utils`. *Складність:* Тривіальна.
+- **AUD-R1 (середня). Фрагментація tag-патерну — головна знахідка reuse. ✅ Done (2026-06-25, this commit)**
+  *Виконано:* Зроблено `core/tag_utils.py` єдиним джерелом істини. Патерни та хелпери `strip_tags`/`split_keeping_tags` винесено туди. Замінено inline-копії у `core/data_state_processor.py`, `core/mempalace/character_profiler.py`, `core/mempalace/weaver_worker.py`, `core/mempalace_client.py`, `core/translation/script_speaker_finder.py`, `core/translation/story_context_manager.py`, `handlers/translation/text_formatter.py`, `plugins/common/problem_rules/common_rules.py`, `plugins/zelda_mc/tag_logic.py`, `plugins/import_plugins/kruptar_format/rules.py`.
+  *Маскування та візуальні маркери:* Додано `ALL_TAGS_PATTERN` та хелпер `mask_all_tags_including_visual_markers()` для маскування маркерів `▶` та `▷` в AI/glossary шляхах, запобігаючи регресіям.
+  *Уніфікація квантифікатора (+ vs *):* Усі консолідовані сайти переведено на загальний `*`-базований паттерн `ANY_TAG_PATTERN` (це безпечно, оскільки після видалення тегів слідує очищення `isalnum`/`[^a-zA-Z0-9]`, за винятком евристики MemePalace, де порожні `{}`/`[]` тепер також коректно вирізаються). Проте для дефолтного плагіна валідація залишена строго непустою за допомогою `ANY_NON_EMPTY_TAG_CAPTURE_PATTERN` (з квантифікатором `+`), щоб відхиляти `{}` та `[]`.
+  *Навмисне обмеження (Intentional Scope):* Цей прохід консолідував лише загальноцільові копії regex-ів. Доменно-специфічні паттерни (підсвічування синтаксису, кліки в UI, специфічна логіка плагінів Zelda/PlainText/BMG, токенізація force-alias, роздільники в глосаріях) було свідомо залишено окремо.
+- **AUD-R2 (низька). Regex компілюється всередині методів. ✅ Done (2026-06-25, this commit)**
+  *Виконано:* Винесено імпорт `ANY_TAG_PATTERN` у `core/mempalace/character_profiler.py` та `core/mempalace_client.py` на рівень модуля.
+- **AUD-R3 (низька). ... Тривіальні дублюючі обгортки маскування тегів. ✅ Done (2026-06-25, this commit)**
+  *Виконано:* Замінено локальні обгортки на єдиний хелпер `mask_all_tags_including_visual_markers()` в `ai_worker.py` та `glossary_builder_handler.py`.
+
 
 ### 9.3. Продуктивність
 
@@ -661,14 +668,14 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 ### 9.5. Пріоритетний список (новий аудит)
 
-- `[ ]` **AUD-R1** (середня) — консолідувати tag-патерн у `core/tag_utils.py`, прибрати ~15 inline-копій + 3 канонічні дублі.
-- `[ ]` **AUD-R2** (низька) — винести inline `re.compile` на рівень модуля (разом з AUD-R1).
-- `[ ]` **AUD-R3** (тривіальна) — єдиний `mask_tags()` хелпер.
+- `[x]` **AUD-R1** (середня) — консолідувати tag-патерн у `core/tag_utils.py`, прибрати ~15 inline-копій + 3 канонічні дублі.
+- `[x]` **AUD-R2** (низька) — винести inline `re.compile` на рівень модуля (разом з AUD-R1).
+- `[x]` **AUD-R3** (тривіальна) — єдиний `mask_tags()` хелпер.
 - `[x]` **AUD-P5** (низька/середня) — bounded LRU для `_STRING_WIDTH_CACHE`.
 - `[ ]` **AUD-P6** (низька) — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
 - `[ ]` **AUD-A5** (опційно) — декомпозиція `mempalace_builder_dialog`/`settings_ui_setup`.
 
-Рекомендований порядок: **AUD-R1+R2+R3 разом** (один reuse-рефактор tag-патерну з тестами) → **AUD-P5** (швидка перемога) → **AUD-P6** → опційно AUD-A5.
+Рекомендований порядок: **AUD-R1+R2+R3 разом** (виконано в цьому комміті) → **AUD-P5** (виконано) → **AUD-P7** → **AUD-P6** → опційно AUD-A5.
 
 ### 9.6. Друга ітерація пошуку (2026-06-23)
 
@@ -683,7 +690,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - **AUD-P9 (низька-середня, perf). Аллокація `QColor` у paint-шляху делегата списку.** [components/custom_list_item_delegate.py](components/custom_list_item_delegate.py) у `paint()` (рядок 88) конструює ~15-20 **статичних** `QColor` inline на кожне перемальовування кожного item (рядки 101, 118-129, 295, 368, 401, 460-461, 555, 570 тощо) — теми/стани, що не залежать від рантайму. `__init__` уже кешує частину (`self._colors`), тож є прецедент. *Пропозиція:* винести статичні кольори у class/instance-константи (по темі), залишивши inline лише справді динамічні (`QColor(problem_def["color"])`). Severity низька (QColor дешевий), але це alloc-churn у найгарячішому списковому шляху при скролі. *Складність:* Низька. *Файли:* `components/custom_list_item_delegate.py`.
 - **AUD-R5 (низька, reuse). Дублювання констант у конфігах плагінів.** `plugins/*/config.py` спільно використовують `generate_base_config`, але повторюють однакові константи (`PRIORITY_DEFAULT = 99`, `COLOR_WARNING_TAG = QColor(200, 200, 200, 150)`, мапінг `"TAG_WARNING": ...`). Частина дублювання прийнятна (config як шаблон під кастомізацію), тож пріоритет низький; можна винести спільні дефолти у `plugins/common/`. *Складність:* Низька.
 
-**Примітка про спадну віддачу:** після трьох ітерацій великі/середні знахідки вичерпуються — нові пункти (P8, P9, R4, R5) переважно низької severity. Найбільша віддача лишається за **AUD-R1** (tag-патерн: дублювання + correctness-ризик), **AUD-P7** (index→мапа: −10 дублів + O(n)→O(1)) і **AUD-P5** (LRU кеш).
+**Примітка про спадну віддачу:** після виконання AUD-R1/R2/R3 та AUD-P5 найбільша віддача лишається за **AUD-P7** (index→мапа: −10 дублів + O(n)→O(1)) та подальшими задачами.
 
 ### 9.8. Глибокий аудит логіки, промптів і тестів (2026-06-23)
 
@@ -702,14 +709,14 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 ### 9.9. Підсумок найвищого пріоритету (після глибокого проходу)
 
 1. **AUD-L1** (середня-висока) — розхардкодити цільову мову. Найбільша *смислова* прогалина: суперечить заявленій генеральності продукту.
-2. **AUD-R1** (середня) — консолідація tag-патерну (дублювання + correctness).
+2. **AUD-R1/R2/R3** — ✅ Done (2026-06-25, this commit).
 3. **AUD-P7** (середня) — `displayed_indices` зворотна мапа.
 4. **AUD-W1** (середня) — полагодити тести-театр (особливо ширина — це гарячий шлях без реальної перевірки).
-5. **AUD-P5** (низька) — LRU кеш ширини. Повторні читання файлів (`font_map_loader`, dialog settings) — load-time, не hot-path, тож не вимагають дії.
+5. **AUD-P5** — ✅ Done (bounded LRU).
 
 ### 9.7. Оновлений пріоритетний список
 
-- `[ ]` **AUD-R1/R2/R3** — консолідація tag-патерну (один рефактор).
+- `[x]` **AUD-R1/R2/R3** — консолідація tag-патерну (один рефактор).
 - `[x]` **AUD-P5** — bounded LRU для `_STRING_WIDTH_CACHE`.
 - `[ ]` **AUD-P7** — зворотна мапа для `displayed_indices` (прибирає 10 дублів + O(n)→O(1)).
 - `[ ]` **AUD-P6** — інкрементальне вимірювання ширини в `ShortLineRule.fix`.

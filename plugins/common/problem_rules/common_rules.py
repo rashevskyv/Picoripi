@@ -1,5 +1,6 @@
 import re
 from typing import List, Tuple, Set, Optional, Dict, Any
+from core.tag_utils import ANY_TAG_PATTERN_STR
 from .base import ProblemRule
 from .models import ProblemMatch, FixResult
 from .context import RuleContext
@@ -88,7 +89,7 @@ class WidthRule(ProblemRule):
 
             while _get_string_width(line, context) > threshold:
                 made_change = True
-                line_parts = re.findall(r'((?:\{[^}]*\}|\[[^\]]*\])-\S+|\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', line)
+                line_parts = re.findall(rf'((?:{ANY_TAG_PATTERN_STR})-\S+|{ANY_TAG_PATTERN_STR}|\S+|\s+)', line)
                 best_split_point = -1
                 punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'", '—', '–'}
                 for j in range(len(line_parts) - 1, 0, -1):
@@ -174,7 +175,7 @@ class BadSpacingRule(ProblemRule):
 
         for line in sublines:
             # Cleanup space around tags based on style
-            pattern = re.compile(r"(?P<tag>\{[^}]*\}|\[[^\]]*\])(?P<space>[ \u00a0])(?P<after_space>.)?")
+            pattern = re.compile(rf"(?P<tag>{ANY_TAG_PATTERN_STR})(?P<space>[ \u00a0])(?P<after_space>.)?")
             current_pos = 0
             result_parts = []
             last_processed_end = 0
@@ -207,7 +208,7 @@ class BadSpacingRule(ProblemRule):
             
             cleaned_line = "".join(result_parts)
             # Force remove spaces before punctuation marks after any tags
-            cleaned_line = re.sub(r'(\{[^}]*\}|\[[^\]]*\])\s+([,\.!?;:…])', r'\1\2', cleaned_line)
+            cleaned_line = re.sub(rf'({ANY_TAG_PATTERN_STR})\s+([,\.!?;:…])', r'\1\2', cleaned_line)
             cleaned_line = clean_spaces(cleaned_line)
             if cleaned_line != line:
                 changed = True
@@ -447,7 +448,7 @@ class SingleWordSublineRule(ProblemRule):
         if last_word and last_word[-1] in ['.', '!', '?', '…']:
             return True
 
-        prev_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', prev)
+        prev_parts = re.findall(rf'({ANY_TAG_PATTERN_STR}|\S+|\s+)', prev)
         last_word_idx = -1
         for k in range(len(prev_parts) - 1, -1, -1):
             part = prev_parts[k]
@@ -546,7 +547,7 @@ class SingleWordSublineRule(ProblemRule):
             if self._is_single_word_orphan_allowed(current_line, prev_line, context):
                 continue
 
-            prev_parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', prev_line)
+            prev_parts = re.findall(rf'({ANY_TAG_PATTERN_STR}|\S+|\s+)', prev_line)
             last_word_idx = -1
             for k in range(len(prev_parts) - 1, -1, -1):
                 part = prev_parts[k]
@@ -807,7 +808,7 @@ class StarTagRule(ProblemRule):
                     result.append(prefix + remaining)
                     break
 
-                parts = re.findall(r'(\{[^}]*\}|\[[^\]]*\]|\S+|\s+)', remaining)
+                parts = re.findall(rf'({ANY_TAG_PATTERN_STR}|\S+|\s+)', remaining)
                 best_split = -1
                 for j in range(len(parts) - 1, 0, -1):
                     candidate = ''.join(parts[:j]).rstrip()

@@ -1,7 +1,46 @@
-﻿import re
+import re
 from utils.logging_utils import log_debug
 
-ANY_TAG_PATTERN = re.compile(r'\[[^\]]*\]|\{[^}]*\}')
+from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
+
+ANY_TAG_PATTERN_STR = r'\[[^\]]*\]|\{[^}]*\}'
+ANY_TAG_PATTERN = re.compile(ANY_TAG_PATTERN_STR)
+ANY_TAG_CAPTURE_PATTERN = re.compile(rf'({ANY_TAG_PATTERN_STR})')
+
+ANY_NON_EMPTY_TAG_PATTERN_STR = r'\[[^\]]+\]|\{[^}]+\}'
+ANY_NON_EMPTY_TAG_PATTERN = re.compile(ANY_NON_EMPTY_TAG_PATTERN_STR)
+ANY_NON_EMPTY_TAG_CAPTURE_PATTERN = re.compile(rf'({ANY_NON_EMPTY_TAG_PATTERN_STR})')
+
+CURLY_TAG_PATTERN = re.compile(r'\{[^}]*\}')
+BRACKET_TAG_PATTERN = re.compile(r'\[[^\]]*\]')
+
+ALL_TAGS_PATTERN = re.compile(
+    ANY_TAG_PATTERN_STR + r'|' + re.escape(P_VISUAL_EDITOR_MARKER) + r'|' + re.escape(L_VISUAL_EDITOR_MARKER)
+)
+
+def strip_tags(text: str) -> str:
+    """Remove all tag patterns from text."""
+    if not text:
+        return ""
+    return ANY_TAG_PATTERN.sub("", text)
+
+def mask_tags(text: str) -> str:
+    """Mask tags by replacing them with space."""
+    if not text:
+        return ""
+    return ANY_TAG_PATTERN.sub(" ", text)
+
+def mask_all_tags_including_visual_markers(text: str) -> str:
+    """Mask all tags and visual markers (▶, ▷) by replacing them with space."""
+    if not text:
+        return ""
+    return ALL_TAGS_PATTERN.sub(" ", text)
+
+def split_keeping_tags(text: str) -> list[str]:
+    """Split text, keeping tags as separate elements."""
+    if not text:
+        return []
+    return ANY_TAG_CAPTURE_PATTERN.split(text)
 
 TAG_STATUS_OK = "OK"
 TAG_STATUS_CRITICAL = "CRITICAL"

@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QThread
 from utils.logging_utils import log_debug
 from core.translation.providers import get_provider_for_config, ProviderResponse
-from utils.utils import ALL_TAGS_PATTERN
+from core.tag_utils import mask_all_tags_including_visual_markers
 from components.ai_status_dialog import AIStatusDialog
 from handlers.translation.ai_worker import AIWorker
 
@@ -37,7 +37,7 @@ class GlossaryBuilderHandler:
 
     def _mask_tags_for_ai(self, text: str) -> str:
         """Internal helper to mask tags for ai."""
-        return ALL_TAGS_PATTERN.sub(' ', text or '')
+        return mask_all_tags_including_visual_markers(text)
 
     def _clean_json_response(self, text: str) -> str:
         """Internal helper to clean json response."""

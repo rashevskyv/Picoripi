@@ -1,10 +1,7 @@
-import re
 from typing import Set
 
 from plugins.common.tag_manager import GenericTagManager
-
-
-TAG_RE = re.compile(r"(\[[^\]]+\]|\{[^}]+\})")
+from core.tag_utils import ANY_NON_EMPTY_TAG_CAPTURE_PATTERN as TAG_RE
 
 
 class TagManager(GenericTagManager):

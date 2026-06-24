@@ -13,6 +13,7 @@ from PyQt6.QtCore import QTimer
 from .data_processor.session_manager import SessionManager
 from .data_processor.revert_manager import RevertManager
 from .data_processor.set_calculator import SetCalculator
+from core.tag_utils import strip_tags
 
 class DataStateProcessor:
     """Data state processor implementation."""
@@ -134,7 +135,7 @@ class DataStateProcessor:
             return False
 
         original_text = str(block_original[string_idx])
-        cleaned_original = re.sub(r'\{[^}]*\}|\[[^\]]*\]', '', original_text).strip()
+        cleaned_original = strip_tags(original_text).strip()
         return bool(cleaned_original)
 
     def is_string_translated(self, block_idx: int, string_idx: int) -> bool:

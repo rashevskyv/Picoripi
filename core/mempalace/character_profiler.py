@@ -8,6 +8,7 @@ from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider
 from utils.logging_utils import log_error, log_ai_traffic, log_warning, log_info
 from .weaver_worker import robust_json_loads
+from core.tag_utils import ANY_TAG_PATTERN
 
 
 class MemePalaceCharacterProfilerWorker(QThread):
@@ -253,7 +254,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 if store and store.data:
                     char_dialogues = {}
                     total_blocks = len(store.data)
-                    tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
+                    tag_pattern = ANY_TAG_PATTERN
                     
                     for b_idx in range(total_blocks):
                         if self.is_cancelled:
@@ -435,7 +436,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
 
                 # 2. Filter out non-informative short dialogue lines (< 3 words) and enrich with timeline chapter context
                 clean_lines = []
-                tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
+                tag_pattern = ANY_TAG_PATTERN
                 for line in lines:
                     # Clean tags before counting words
                     text_no_tags = tag_pattern.sub('', line).strip()

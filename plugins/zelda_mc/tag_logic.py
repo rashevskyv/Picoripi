@@ -1,8 +1,9 @@
-﻿import re
+import re
 from typing import Tuple
 from utils.logging_utils import log_debug
 from utils.utils import ALL_TAGS_PATTERN
 from utils.constants import ORIGINAL_PLAYER_TAG
+from core.tag_utils import CURLY_TAG_PATTERN, BRACKET_TAG_PATTERN, strip_tags
 
 TAG_STATUS_OK = "OK"
 TAG_STATUS_CRITICAL = "CRITICAL_ERROR"
@@ -44,8 +45,8 @@ def analyze_tags_for_issues_zmc(processed_text: str, original_text: str, editor_
         error_msg = (f"Unresolved editor tags [...] found (excluding player placeholder): {remaining_brackets}.")
         return TAG_STATUS_UNRESOLVED_BRACKETS, error_msg
 
-    final_pasted_curly_tags = re.findall(r'\{[^}]*\}', temp_processed_text)
-    original_tags_curly_all = re.findall(r'\{[^}]*\}', temp_original_text)
+    final_pasted_curly_tags = CURLY_TAG_PATTERN.findall(temp_processed_text)
+    original_tags_curly_all = CURLY_TAG_PATTERN.findall(temp_original_text)
     if len(final_pasted_curly_tags) != len(original_tags_curly_all):
         error_msg = (f"Tag count mismatch for {{...}} tags. Processed (adj.): {len(final_pasted_curly_tags)} "
                      f"(tags: {final_pasted_curly_tags}), Original (adj.): {len(original_tags_curly_all)} (tags: {original_tags_curly_all}).\n"
@@ -70,7 +71,7 @@ def process_segment_tags_aggressively_zmc(
     elif segment_had_slash00 and original_had_slash00:
         return current_segment_state, TAG_STATUS_CRITICAL, "'/00' present in both."
     
-    text_without_any_tags = re.sub(r'\[[^\]]*\]|\{[^}]*\}', '', current_segment_state)
+    text_without_any_tags = strip_tags(current_segment_state)
     if '/' in text_without_any_tags:
         return current_segment_state, TAG_STATUS_CRITICAL, "Segment contains '/' outside of tags."
 
@@ -80,8 +81,8 @@ def process_segment_tags_aggressively_zmc(
     if status == TAG_STATUS_OK:
         return segment_for_analysis, TAG_STATUS_OK, msg
     elif status == TAG_STATUS_UNRESOLVED_BRACKETS:
-        pasted_bracket_tags_remaining = re.findall(r'\[[^\]]*\]', segment_for_analysis)
-        original_curly_tags_list = re.findall(r'\{[^}]*\}', original_text_for_tags)
+        pasted_bracket_tags_remaining = BRACKET_TAG_PATTERN.findall(segment_for_analysis)
+        original_curly_tags_list = CURLY_TAG_PATTERN.findall(original_text_for_tags)
         if len(pasted_bracket_tags_remaining) == len(original_curly_tags_list):
             temp_segment = str(segment_for_analysis)
             current_curly_idx = 0
@@ -94,7 +95,7 @@ def process_segment_tags_aggressively_zmc(
                         current_curly_idx += 1
                         return replacement_tag
                 return tag_to_replace
-            segment_fully_replaced = re.sub(r'\[[^\]]*\]', replace_bracket_by_order_func, temp_segment)
+            segment_fully_replaced = BRACKET_TAG_PATTERN.sub(replace_bracket_by_order_func, temp_segment)
             status_after_order, msg_after_order = analyze_tags_for_issues_zmc(segment_fully_replaced, original_text_for_tags, editor_player_tag_const)
             if status_after_order == TAG_STATUS_OK:
                 return segment_fully_replaced, TAG_STATUS_OK, ""

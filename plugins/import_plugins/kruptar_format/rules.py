@@ -1,10 +1,11 @@
-﻿from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional
 import re
 from ..base_import_rules import BaseImportRules, TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS, TAG_STATUS_WARNING
 from plugins.base_game_rules import BaseGameRules 
 from utils.logging_utils import log_debug 
 from utils.constants import ORIGINAL_PLAYER_TAG 
 from utils.utils import ALL_TAGS_PATTERN 
+from core.tag_utils import CURLY_TAG_PATTERN, BRACKET_TAG_PATTERN
 
 
 PLAYER_PSEUDO_TAG_FOR_COUNTING = "{PLAYER_CONSTRUCT_INTERNAL_KIF}" 
@@ -29,8 +30,8 @@ def _analyze_tags_for_issues_kruptar(processed_text: str, original_text: str, ed
         error_msg = (f"Unresolved editor tags [...] found: {remaining_brackets}.")
         return TAG_STATUS_UNRESOLVED_BRACKETS, error_msg 
 
-    final_pasted_curly_tags = re.findall(r'\{[^}]*\}', temp_processed_text)
-    original_tags_curly_all = re.findall(r'\{[^}]*\}', temp_original_text)
+    final_pasted_curly_tags = CURLY_TAG_PATTERN.findall(temp_processed_text)
+    original_tags_curly_all = CURLY_TAG_PATTERN.findall(temp_original_text)
 
     if len(final_pasted_curly_tags) != len(original_tags_curly_all):
         error_msg = (f"Tag count mismatch for {{...}} tags. Processed (adj.): {len(final_pasted_curly_tags)} "
@@ -85,7 +86,7 @@ class ImportRules(BaseImportRules):
         ]
         
         temp_original_for_curly_count = original_data_string_for_context.replace(ORIGINAL_PLAYER_TAG, PLAYER_PSEUDO_TAG_FOR_COUNTING)
-        original_curly_tags_for_ordered_replace = re.findall(r'\{[^}]*\}', temp_original_for_curly_count)
+        original_curly_tags_for_ordered_replace = CURLY_TAG_PATTERN.findall(temp_original_for_curly_count)
         
         if remaining_brackets_after_default_map and \
            len(remaining_brackets_after_default_map) == len(original_curly_tags_for_ordered_replace):
@@ -103,7 +104,7 @@ class ImportRules(BaseImportRules):
                         return replacement
                 return tag 
 
-            current_segment_state = re.sub(r'\[[^\]]*\]', ordered_replace_func, temp_segment_for_ordered_replace)
+            current_segment_state = BRACKET_TAG_PATTERN.sub(ordered_replace_func, temp_segment_for_ordered_replace)
 
         status, msg = _analyze_tags_for_issues_kruptar(current_segment_state, original_data_string_for_context, editor_player_tag)
         

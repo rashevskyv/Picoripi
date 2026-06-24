@@ -212,8 +212,8 @@ class ScriptSpeakerFinder:
                 return ""
             for tag, name in _dynamic_name_tags.items():
                 t = t.replace(tag, name)
-            t = re.sub(r'\{[^}]+\}', '', t)
-            t = re.sub(r'\[[^]]+\]', '', t)
+            from core.tag_utils import strip_tags
+            t = strip_tags(t)
             t = re.sub(r'\([^)]+\)', '', t)
             return "".join(c for c in t if c.isalnum()).lower()
 

@@ -4,6 +4,7 @@ import sqlite3
 import urllib.request
 import urllib.error
 import re
+from core.tag_utils import ANY_TAG_PATTERN as tag_pattern
 import threading
 from typing import Dict, List, Any, Optional
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
@@ -1052,7 +1053,6 @@ class MemePalaceClient:
                     rows = cursor.fetchall()
                     
                 # Tag cleaning pattern
-                tag_pattern = re.compile(r'\{[^}]+\}|\[[^]]+\]')
                 
                 for content, metadata_str in rows:
                     if not content:
