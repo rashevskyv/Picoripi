@@ -38,6 +38,25 @@ class LNETLineNumberAreaPaintLogic:
                 if hasattr(main_window_ref, 'detection_enabled'):
                     detection_config = main_window_ref.detection_enabled
 
+            # Precompute problem priorities and preconstructed QColor objects to optimize paint loop
+            problem_priorities = {}
+            problem_colors_editor = {}
+            problem_colors_preview = {}
+            for pid, pdef in problem_definitions.items():
+                problem_priorities[pid] = pdef.get("priority", 99)
+                raw_color = pdef.get("color", Qt.GlobalColor.transparent)
+
+                c_ed = QColor(raw_color)
+                if c_ed.isValid():
+                    c_ed.setAlpha(160)
+                problem_colors_editor[pid] = c_ed
+
+                c_pr = QColor(raw_color)
+                if c_pr.isValid():
+                    c_pr.setAlpha(220)
+                problem_colors_preview[pid] = c_pr
+            ordered_problem_ids = sorted(problem_definitions, key=lambda pid: problem_priorities.get(pid, 99))
+
             total_area_width = self.editor.lineNumberAreaWidth()
             extra_part_width = 0
             if self.editor.objectName() in["original_text_edit", "edited_text_edit"] and hasattr(main_window_ref, 'font_map') and main_window_ref.font_map:
@@ -233,14 +252,13 @@ class LNETLineNumberAreaPaintLogic:
 
                     filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
                     if is_editor and filtered_problems:
-                        sorted_probs = sorted(list(filtered_problems), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))
+                        sorted_probs = [p_id for p_id in ordered_problem_ids if p_id in filtered_problems]
+                        sorted_probs.extend(p_id for p_id in filtered_problems if p_id not in problem_priorities)
                         N = len(sorted_probs)
                         w = extra_part_width / N
                         for i, p_id in enumerate(sorted_probs):
-                            p_def = problem_definitions.get(p_id, {})
-                            bg_color = QColor(p_def.get("color", Qt.GlobalColor.transparent))
+                            bg_color = problem_colors_editor.get(p_id, QColor(Qt.GlobalColor.transparent))
                             if bg_color.isValid():
-                                bg_color.setAlpha(160)
                                 x_pos = number_part_width + i * w
                                 # Handle last stripe to exactly cover pixel borders
                                 current_w = int(w) + 1 if i < N - 1 else (number_part_width + extra_part_width - int(x_pos))
@@ -294,11 +312,11 @@ class LNETLineNumberAreaPaintLogic:
                             if filtered_problems:
                                 s_x = indicator_x_start
                                 s_w = 4
-                                for p_id in sorted(list(filtered_problems), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99)):
-                                    p_def = problem_definitions.get(p_id, {})
-                                    s_color = QColor(p_def.get("color", Qt.GlobalColor.transparent))
+                                sorted_probs = [p_id for p_id in ordered_problem_ids if p_id in filtered_problems]
+                                sorted_probs.extend(p_id for p_id in filtered_problems if p_id not in problem_priorities)
+                                for p_id in sorted_probs:
+                                    s_color = problem_colors_preview.get(p_id, QColor(Qt.GlobalColor.transparent))
                                     if s_color.isValid():
-                                        s_color.setAlpha(220)
                                         painter.fillRect(s_x, top + 2, s_w, line_height - 4, s_color)
                                         s_x += s_w + 1
                                         if s_x + s_w > indicator_x_start + 15:

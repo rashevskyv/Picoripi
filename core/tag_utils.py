@@ -57,3 +57,12 @@ def apply_default_mappings_only(text_segment: str, default_mappings: dict) -> tu
         if short_tag in modified_segment:
             modified_segment = modified_segment.replace(short_tag, full_tag); changed = True
     return modified_segment, changed
+
+def iter_all_strings(data: list):
+    """Yields (block_idx, string_idx, text) for every string in the project data."""
+    if not data:
+        return
+    for block_idx, block in enumerate(data):
+        if isinstance(block, list):
+            for string_idx, text in enumerate(block):
+                yield block_idx, string_idx, text

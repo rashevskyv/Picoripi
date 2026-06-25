@@ -11,6 +11,7 @@ from utils.logging_utils import log_debug, log_info
 from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 from .autofix_worker import AutofixWorker
+from core.tag_utils import iter_all_strings
 
 if TYPE_CHECKING:
     from core.context import ProjectContext
@@ -958,11 +959,7 @@ class TextOperationHandler(BaseHandler):
         if target_strings is not None:
             total_strings = len(target_strings)
         else:
-            total_strings = 0
-            if self.mw.data_store.data:
-                for block in self.mw.data_store.data:
-                    if isinstance(block, list):
-                        total_strings += len(block)
+            total_strings = sum(1 for _ in iter_all_strings(self.mw.data_store.data))
 
         if total_strings == 0:
             QMessageBox.information(self.mw, "Auto-fix", "No strings to fix.")

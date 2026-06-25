@@ -31,6 +31,7 @@ from components.prompt_editor_dialog import PromptEditorDialog
 from dialogs.cached_translation_dialog import CachedTranslationDialog
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import convert_spaces_to_dots_for_display, is_control_modifier_pressed
+from core.tag_utils import iter_all_strings
 
 
 class TranslationHandler(BaseHandler):
@@ -1008,17 +1009,12 @@ class TranslationHandler(BaseHandler):
 
         # 1. Gather all dialogue strings across all blocks
         all_project_items = []
-        for b_idx in range(len(data_source)):
-            block_strings = self.glossary_handler._get_original_block(b_idx)
-            if not block_strings:
-                continue
-            for s_idx in range(len(block_strings)):
-                original_text = str(self.glossary_handler._get_original_string(b_idx, s_idx) or "")
-                all_project_items.append({
-                    'block_idx': b_idx,
-                    'string_idx': s_idx,
-                    'text': original_text
-                })
+        for b_idx, s_idx, original_text in iter_all_strings(data_source):
+            all_project_items.append({
+                'block_idx': b_idx,
+                'string_idx': s_idx,
+                'text': str(original_text or "")
+            })
 
         if not all_project_items:
             self.ui_handler.finish_ai_operation()

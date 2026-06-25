@@ -2,7 +2,7 @@
 
 > **Остання версія проекту:** v0.3.062-dev
 > **Дата оновлення:** 2026-06-25
-> **Об'єм проекту (поточний workspace, без gitignored копій):** 412 Python-файлів загалом; 253 продуктових Python-файли, 159 тестових Python-файлів; ~67 375 LOC продуктового Python-коду (не-тестового), ~26 273 LOC тестів; 1 290 pytest items (`1280 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`). Цифри попередніх проходів (~66 741 LOC / 248 файлів / ~25 391 LOC тестів) застаріли і перераховані під час аудиту 2026-06-21.
+> **Об'єм проекту (поточний workspace, без gitignored копій):** 412 Python-файлів загалом; 253 продуктових Python-файли, 159 тестових Python-файлів; ~67 375 LOC продуктового Python-коду (не-тестового), ~26 273 LOC тестів; 1 408 pytest items (`1398 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`). Цифри попередніх проходів (~66 741 LOC / 248 файлів / ~25 391 LOC тестів) застаріли і перераховані під час аудиту 2026-06-21.
 > **Примітка:** каталоги `gemini/` (~25k LOC, стара повна копія коду) і `scratch/` — gitignored, нетраковані, у продукт не входять і в обсяг не зараховуються.
 
 Цей документ є консолідованим аудитом архітектури, продуктивності, життєвого циклу PyQt-об'єктів та UX-ризиків Picoripi. Звіт оновлено у валідному UTF-8; пункти, які вже позначені або підтверджені як виконані, перенесено до архіву виконаного.
@@ -15,7 +15,7 @@
 | Тестові Python-файли | 159 |
 | LOC продуктового Python-коду | ~67 375 |
 | LOC тестів | ~26 273 |
-| Pytest items | 1 290 (`1280 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`) |
+| Pytest items | 1 408 (`1398 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`) |
 | Основний стек | Python 3.10+, PyQt6, SQLite, requests/urllib, Pillow, markdown, numpy, pyahocorasick, spylls |
 | Тестовий стек | pytest, pytest-qt, pytest-timeout, pytest-xdist, ruff |
 | Тип застосунку | Desktop GUI для перекладу, локалізації, аналізу ширини рядків, AI-перекладу, глосаріїв та game/plugin rules |
@@ -43,6 +43,11 @@
 - `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m ruff check .`
 
 ## 2. Завершені покращення (Архів виконаного)
+
+- **AUD-P6, AUD-P8, AUD-R4. Оптимізація та рефакторинг ядра (2026-06-25).**
+  - **AUD-P6** — замінено лінійний скан $O(N)$ у `WidthRule.fix` на бінарний пошук $O(\log N)$ точки розбиття підрядків за піксельною шириною. Пошук точки переносу з кінця перед розділовими знаками оптимізовано для уникнення зайвих викликів вимірювання ширини.
+  - **AUD-P8** — оптимізовано промальовування номерів рядків у `LNETLineNumberAreaPaintLogic`. Об'єкти `QColor` із заданою прозорістю алокуються один раз перед початком циклу, а пріоритети типів проблем передобчислюються перед подкаповим циклом на самому початку малювання для виключення сортування в гарячому циклі по видимих рядках.
+  - **AUD-R4** — реалізовано єдиний лінивий генератор `iter_all_strings()` у `core/tag_utils.py` для безпечного та уніфікованого обходу всіх текстових рядків у блоках даних, на який переведено `AutofixWorker`, `TextOperationHandler` та `TranslationHandler`.
 
 - **AUD-P5, AUD-EXP1, Auto-follow та стабілізація тестів (2026-06-24).**
   - **AUD-P5** — додано LRU-кешування для `_STRING_WIDTH_CACHE` у `utils/utils.py`, що покращує швидкодію обчислення ширини тексту.
@@ -686,7 +691,8 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 ### 9.3. Продуктивність
 
 - **AUD-P5 (низька/середня). Груба евікція кешу ширини.** `_STRING_WIDTH_CACHE` при досягненні 10000 записів робить повний `.clear()` ([utils/utils.py:793](utils/utils.py:793)) — на великому проєкті це періодичний thrash (скидання всього кешу й повна переобчислення). Замінити на bounded LRU (`OrderedDict` + `move_to_end`/`popitem`, як вже зроблено для `_archive_cache` в AUD-P3). Додатково: ключ кешу містить `id(font_map)`/`id(default_tag_mappings)` — латентний staleness-ризик, якщо словник буде GC'нуто і `id` перевикористано (на практиці малоймовірно, але варто задокументувати/підстрахувати). *Складність:* Низька. *Файли:* `utils/utils.py`.
-- **AUD-P6 (низька). Повторне вимірювання ширини в циклі розбиття рядка.** `common_rules` (`ShortLineRule.fix`, [plugins/common/problem_rules/common_rules.py:85-96](plugins/common/problem_rules/common_rules.py:85)) у `while _get_string_width(line) > threshold` повторно міряє ширину підрядків, що зростають/зменшуються — алгоритмічно близько до O(n²) на довгих рядках. Мітигується кешем ширини, але виклики все одно надлишкові. *Пропозиція:* міряти інкрементально (накопичувати ширину part-by-part) замість повного перевимірювання. *Складність:* Низька-середня. *Файли:* `plugins/common/problem_rules/common_rules.py`.
+- **AUD-P6 (низька). Повторне вимірювання ширини в циклі розбиття рядка. ✅ Done (2026-06-25, this commit)**
+  `common_rules` (`WidthRule.fix`, [plugins/common/problem_rules/common_rules.py:85-96](plugins/common/problem_rules/common_rules.py:85)) у `while _get_string_width(line) > threshold` повторно міряє ширину підрядків, що зростають/зменшуються. Замінено лінійний скан на бінарний пошук $O(\log N)$ за піксельною шириною та оптимізовано пошук з кінця перед розділовими знаками.
 
 ### 9.4. Архітектура (опційно, не у фокусі запиту)
 
@@ -698,17 +704,19 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - `[x]` **AUD-R2** (низька) — винести inline `re.compile` на рівень модуля (разом з AUD-R1).
 - `[x]` **AUD-R3** (тривіальна) — єдиний `mask_tags()` хелпер.
 - `[x]` **AUD-P5** (низька/середня) — bounded LRU для `_STRING_WIDTH_CACHE`.
-- `[ ]` **AUD-P6** (низька) — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
+- `[x]` **AUD-P6** (низька) — бінарний пошук точки розбиття у `WidthRule.fix`.
 - `[ ]` **AUD-A5** (опційно) — декомпозиція `mempalace_builder_dialog`/`settings_ui_setup`.
 
-Рекомендований порядок оновлено після виконання **AUD-R1+R2+R3**, **AUD-P5**, **AUD-P7** та **AUD-W1**: наступними найбільш корисними лишаються **AUD-P6** → **AUD-P8** → **AUD-R4** → опційно AUD-A5.
+Рекомендований порядок оновлено після виконання **AUD-R1+R2+R3**, **AUD-P5**, **AUD-P7**, **AUD-W1**, **AUD-P6**, **AUD-P8** та **AUD-R4**: наступним лишається опційно **AUD-A5**.
 
 ### 9.6. Друга ітерація пошуку (2026-06-23)
 
 - **AUD-P7 (середня, reuse+perf). `displayed_indices.index(...)` повторюється 10× і робить O(n) скан. ✅ Done (2026-06-25, this commit)**
   У [handlers/list_selection_handler.py](handlers/list_selection_handler.py) виклики `displayed_indices.index(target)` зустрічаються на рядках 183, 216, 269, 345, 569, 572, 694, 697, 1020, 1023. `displayed_string_indices` — звичайний список (встановлюється у `preview_updater.py:314`), тож кожен `.index()` — лінійний скан; на великих блоках (5000+ рядків) це відчутно при навігації/виборі. Це і **дублювання** (10 однакових патернів), і **продуктивність**. *Пропозиція:* будувати зворотну мапу `{value: rel_pos}` один раз при встановленні `displayed_string_indices` і єдиний хелпер `_relative_index(target)` з O(1)-пошуком. *Складність:* Низька-середня. *Файли:* `handlers/list_selection_handler.py`, `ui/updaters/preview_updater.py`, `core/data_store.py`.
-- **AUD-R4 (низька, reuse). Немає спільного ітератора по всіх рядках.** Патерн `for block in data: for s_idx in range(len(block))` дублюється у 10+ файлах (`data_state_processor`, `set_calculator`, `revert_manager`, `filter_query_api`, `glossary_manager`, `mempalace/*`, `search_review_dialog` тощо). *Пропозиція:* єдиний генератор `iter_all_strings(data) -> (block_idx, string_idx, text)` у `core/` і поступовий перехід на нього. *Складність:* Низька (але багато сайтів — робити поступово з тестами).
-- **AUD-P8 (низька, perf). Сортування у paint-шляху редактора.** [components/editor/line_number_area_paint_logic.py:297](components/editor/line_number_area_paint_logic.py:297) робить `sorted(list(filtered_problems), key=lambda pid: problem_definitions[pid]['priority'])` **усередині циклу по видимих рядках у `execute_paint_event`** — тобто на кожен рядок при кожному перемальовуванні. `k` (проблем на рядок) малий, тож severity низька, але ключ сортування (`priority`) статичний. *Пропозиція:* передобчислити `priority_rank` мапу один раз (config статичний) і сортувати дешевим lookup, або тримати проблеми вже впорядкованими. *Складність:* Низька. *Файли:* `components/editor/line_number_area_paint_logic.py`.
+- **AUD-R4 (низька, reuse). Немає спільного ітератора по всіх рядках. ✅ Done (2026-06-25, this commit)**
+  Реалізовано спільний генератор `iter_all_strings(data)` у `core/tag_utils.py`, що ліниво повертає `(block_idx, string_idx, text)`. Переведено `AutofixWorker`, `TextOperationHandler` та `TranslationHandler`.
+- **AUD-P8 (низька, perf). Сортування у paint-шляху редактора. ✅ Done (2026-06-25, this commit)**
+  [components/editor/line_number_area_paint_logic.py:297](components/editor/line_number_area_paint_logic.py:297) робив сортування усередині циклу по видимих рядках у `execute_paint_event`. Пріоритети статичних проблем передобчислено один раз на початку paint event, а кольори QColor алокуються один раз перед початком циклу малювання.
 
 **Підтверджено здоровим у цій ітерації (НЕ чіпати):** `FilterQueryAPI`-фільтри O(1) завдяки кешованим set-ам (`store._index_translated` тощо); Aho-Corasick глосарію будується один раз у `_build_pattern_cache` (на зміну глосарію), а не per-match; пакування контейнерів RARC/U8/Yaz0 уже використовує `bytearray` (без O(n²) конкатенації bytes).
 
@@ -717,7 +725,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - **AUD-P9 (низька-середня, perf). Аллокація `QColor` у paint-шляху делегата списку.** [components/custom_list_item_delegate.py](components/custom_list_item_delegate.py) у `paint()` (рядок 88) конструює ~15-20 **статичних** `QColor` inline на кожне перемальовування кожного item (рядки 101, 118-129, 295, 368, 401, 460-461, 555, 570 тощо) — теми/стани, що не залежать від рантайму. `__init__` уже кешує частину (`self._colors`), тож є прецедент. *Пропозиція:* винести статичні кольори у class/instance-константи (по темі), залишивши inline лише справді динамічні (`QColor(problem_def["color"])`). Severity низька (QColor дешевий), але це alloc-churn у найгарячішому списковому шляху при скролі. *Складність:* Низька. *Файли:* `components/custom_list_item_delegate.py`.
 - **AUD-R5 (низька, reuse). Дублювання констант у конфігах плагінів.** `plugins/*/config.py` спільно використовують `generate_base_config`, але повторюють однакові константи (`PRIORITY_DEFAULT = 99`, `COLOR_WARNING_TAG = QColor(200, 200, 200, 150)`, мапінг `"TAG_WARNING": ...`). Частина дублювання прийнятна (config як шаблон під кастомізацію), тож пріоритет низький; можна винести спільні дефолти у `plugins/common/`. *Складність:* Низька.
 
-**Примітка про спадну віддачу:** після виконання AUD-R1/R2/R3, AUD-P5, AUD-P7 та AUD-W1 найбільша віддача лишається за **AUD-P6**, **AUD-P8** та поступовим **AUD-R4**.
+**Примітка про спадну віддачу:** після виконання AUD-R1/R2/R3, AUD-P5, AUD-P7, AUD-W1, AUD-P6, AUD-P8 та AUD-R4 найбільша віддача лишається за опційним **AUD-A5**.
 
 ### 9.8. Глибокий аудит логіки, промптів і тестів (2026-06-23)
 
@@ -738,8 +746,11 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 1. **AUD-L1** (середня-висока) — ✅ Done (2026-06-25, this commit).
 2. **AUD-R1/R2/R3** — ✅ Done (2026-06-25, this commit).
 3. **AUD-P7** (середня) — ✅ Done (2026-06-25, this commit) — `displayed_indices` зворотна мапа.
-4. **AUD-W1** (середня) — ✅ Done (2026-06-25, this commit) — полагодити тести-театр (особливо ширина — це гарячий шлях без реальної перевірки).
+4. **AUD-W1** (середня) — ✅ Done (2026-06-25, this commit) — полагодити тести-театр (додано реальні асерти).
 5. **AUD-P5** — ✅ Done (bounded LRU).
+6. **AUD-P6** — ✅ Done (2026-06-25, this commit) — бінарний пошук точки розбиття у `WidthRule.fix`.
+7. **AUD-P8** — ✅ Done (2026-06-25, this commit) — передобчислення сортування та кольорів у paint-шляху.
+8. **AUD-R4** — ✅ Done (2026-06-25, this commit) — спільний ітератор `iter_all_strings()`.
 
 ### 9.7. Оновлений пріоритетний список
 
@@ -747,9 +758,9 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - `[x]` **AUD-P5** — bounded LRU для `_STRING_WIDTH_CACHE`.
 - `[x]` **AUD-P7** — зворотна мапа для `displayed_indices` (прибирає 10 дублів + O(n)→O(1)).
 - `[x]` **AUD-W1** — полагодити тести-театр (додано реальні асерти).
-- `[ ]` **AUD-P6** — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
-- `[ ]` **AUD-P8** — передобчислення сортування проблем у paint-шляху.
-- `[ ]` **AUD-R4** — спільний `iter_all_strings()` (поступово).
+- `[x]` **AUD-P6** — бінарний пошук точки розбиття у `WidthRule.fix`.
+- `[x]` **AUD-P8** — передобчислення сортування проблем у paint-шляху.
+- `[x]` **AUD-R4** — спільний `iter_all_strings()`.
 - `[ ]` **AUD-A5** (опційно) — декомпозиція `mempalace_builder_dialog`/`settings_ui_setup`.
 
 ## 10. Логіка AI-перекладу та збереження структури — 2026-06-23 (глибокий аудит)

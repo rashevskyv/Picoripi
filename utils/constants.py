@@ -1,5 +1,5 @@
 from pathlib import Path
-APP_VERSION = "0.3.062-dev"
+APP_VERSION = "0.3.063-dev"
 
 
 

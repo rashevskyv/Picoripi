@@ -1,5 +1,6 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 from typing import List, Tuple, Dict, Set, Optional, Any
+from core.tag_utils import iter_all_strings
 
 class AutofixWorker(QThread):
     """Background worker for executing autofix rules across multiple strings."""
@@ -85,10 +86,7 @@ class AutofixWorker(QThread):
             if self.target_strings is not None:
                 strings_to_process = self.target_strings
             else:
-                for b_idx, block in enumerate(self.data):
-                    if isinstance(block, list):
-                        for s_idx in range(len(block)):
-                            strings_to_process.append((b_idx, s_idx))
+                strings_to_process = [(b_idx, s_idx) for b_idx, s_idx, _ in iter_all_strings(self.data)]
 
             total = len(strings_to_process)
             results = []

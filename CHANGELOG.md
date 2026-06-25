@@ -1,5 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.063-dev] - 2026-06-25
+
+### ⚡ Optimized
+- **Binary Search for Line Splitting (AUD-P6)**:
+  - Replaced the linear $O(N)$ scanning in `WidthRule.fix` with a binary search $O(\log N)$ based on subline pixel width measurements.
+  - Optimized the search for split points near punctuation from the back of the split index to bypass extra calls to `_get_string_width`.
+- **Precomputed Problems & Pre-allocated Colors in Gutter Painting (AUD-P8)**:
+  - Eliminated dynamic `QColor` allocations and alpha value modification (`setAlpha()`) in the hot loop of `LNETLineNumberAreaPaintLogic`.
+  - Added precomputed severity prioritizing ranks to sort layout problems once per paint event.
+
+### ⚙️ Changed
+- **Consolidated Text Iteration (AUD-R4)**:
+  - Introduced a shared lazy generator `iter_all_strings()` in `core/tag_utils.py` to unify the loop structure for iterating over all strings across all blocks and categories.
+  - Refactored `AutofixWorker`, `TextOperationHandler`, and `TranslationHandler` to utilize the new unified generator.
+  - Added test suite `test_iter_all_strings` to verify iterator correctness.
+- **Version Updates**: Bumped version to `0.3.063-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.062-dev] - 2026-06-25
 
 ### ⚡ Optimized

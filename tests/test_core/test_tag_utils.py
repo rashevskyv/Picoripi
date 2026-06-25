@@ -8,6 +8,7 @@ from core.tag_utils import (
     mask_tags,
     split_keeping_tags,
     mask_all_tags_including_visual_markers,
+    iter_all_strings,
 )
 from plugins.default_plugin.tag_manager import TagManager
 
@@ -59,4 +60,22 @@ def test_default_plugin_empty_tags_rejected():
     # Invalid values
     assert not tm.is_tag_legitimate(None)
     assert not tm.is_tag_legitimate(123)
+
+def test_iter_all_strings():
+    data = [
+        ["A", "B"],
+        ["C"],
+        "not a list",
+        ["D", "E"]
+    ]
+    results = list(iter_all_strings(data))
+    assert results == [
+        (0, 0, "A"),
+        (0, 1, "B"),
+        (1, 0, "C"),
+        (3, 0, "D"),
+        (3, 1, "E")
+    ]
+    assert list(iter_all_strings([])) == []
+    assert list(iter_all_strings(None)) == []
 

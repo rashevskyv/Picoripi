@@ -92,14 +92,29 @@ class WidthRule(ProblemRule):
                 line_parts = re.findall(rf'((?:{ANY_TAG_PATTERN_STR})-\S+|{ANY_TAG_PATTERN_STR}|\S+|\s+)', line)
                 best_split_point = -1
                 punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'", '—', '–'}
-                for j in range(len(line_parts) - 1, 0, -1):
-                    line_part_one = "".join(line_parts[:j]).rstrip()
-                    if _get_string_width(line_part_one, context) <= threshold:
+
+                # Use binary search to find the largest j where prefix width <= threshold
+                low = 1
+                high = len(line_parts)
+                largest_fitting = -1
+                while low <= high:
+                    mid = (low + high) // 2
+                    prefix = "".join(line_parts[:mid]).rstrip()
+                    if _get_string_width(prefix, context) <= threshold:
+                        largest_fitting = mid
+                        low = mid + 1
+                    else:
+                        high = mid - 1
+
+                # Check from largest_fitting downwards for a split point not starting with punctuation
+                if largest_fitting != -1:
+                    for j in range(largest_fitting, 0, -1):
                         line_part_two = "".join(line_parts[j:]).lstrip()
                         if line_part_two and line_part_two[0] in punctuation_chars:
                             continue
                         best_split_point = j
                         break
+
                 if best_split_point == -1 and len(line_parts) > 1:
                     best_split_point = 1
 
