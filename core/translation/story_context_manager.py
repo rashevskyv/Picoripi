@@ -233,9 +233,21 @@ class StoryContextManager:
                                 relevant_relations.append(r)
 
                     if relevant_relations:
-                        context_parts.append("\nCharacter Status & Story Relations:")
+                        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+                        if not isinstance(target_lang, str):
+                            target_lang = 'Ukrainian'
+                        if target_lang.strip().lower() == 'ukrainian':
+                            rel_lines = ["\nCHARACTER & STORY RELATIONS (Ukrainian Grammar Priority):"]
+                            rel_lines.append("Use these social relations to determine the correct informal ('ти') or formal/respectful ('ви') pronoun and verb endings in Ukrainian:")
+                        else:
+                            from utils.utils import resolve_target_language_prompt
+                            rel_lines = [
+                                resolve_target_language_prompt("\nCHARACTER & STORY RELATIONS ({target_lang} Grammar Priority):", target_lang),
+                                resolve_target_language_prompt("Use these social relations to determine the correct tone, level of formality (e.g. formal/informal address), and pronoun/verb endings in {target_lang}:", target_lang)
+                            ]
                         for r in relevant_relations[:5]:
-                            context_parts.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
+                            rel_lines.append(f"• {r.get('source')} -[{r.get('relation')}]-> {r.get('target')}")
+                        context_parts.append("\n".join(rel_lines))
                 except Exception as rel_err:
                     log_debug(f"Could not load relations for visual context: {rel_err}")
 
@@ -334,8 +346,18 @@ class StoryContextManager:
                                     relevant_relations.append(r)
 
                         if relevant_relations:
-                            rel_lines = ["\nCHARACTER & STORY RELATIONS (Ukrainian Grammar Priority):"]
-                            rel_lines.append("Use these social relations to determine the correct informal ('ти') or formal/respectful ('ви') pronoun and verb endings in Ukrainian:")
+                            target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+                            if not isinstance(target_lang, str):
+                                target_lang = 'Ukrainian'
+                            if target_lang.strip().lower() == 'ukrainian':
+                                rel_lines = ["\nCHARACTER & STORY RELATIONS (Ukrainian Grammar Priority):"]
+                                rel_lines.append("Use these social relations to determine the correct informal ('ти') or formal/respectful ('ви') pronoun and verb endings in Ukrainian:")
+                            else:
+                                from utils.utils import resolve_target_language_prompt
+                                rel_lines = [
+                                    resolve_target_language_prompt("\nCHARACTER & STORY RELATIONS ({target_lang} Grammar Priority):", target_lang),
+                                    resolve_target_language_prompt("Use these social relations to determine the correct tone, level of formality (e.g. formal/informal address), and pronoun/verb endings in {target_lang}:", target_lang)
+                                ]
                             for r in relevant_relations:
                                 rel_lines.append(f"• {r['source']} -[{r['relation']}]-> {r['target']}")
                             context_parts.append("\n".join(rel_lines))

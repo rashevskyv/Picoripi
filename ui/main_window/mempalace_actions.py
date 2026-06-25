@@ -142,16 +142,22 @@ class MempalaceActions:
                         
                         events_html = ""
                         if current_event:
+                            summary_val = (
+                                current_event.get('summary_translated') or
+                                current_event.get('summary_ukrainian') or
+                                current_event.get('summary') or
+                                ''
+                            )
                             events_html += (
                                 f"<div style='background-color: #e6f4ea; border-left: 4px solid #137333; padding: 8px; margin-bottom: 8px; border-radius: 4px;'>"
-                                f"<b style='color: #137333;'>👉 Поточна подія (Current Event): {current_event.get('event_name', 'Без назви')} (Lines {current_event['start_line']}-{current_event['end_line']})</b><br>"
-                                f"<span style='color: #202124;'>{current_event.get('summary_ukrainian', '')}</span>"
+                                f"<b style='color: #137333;'>👉 Current Event: {current_event.get('event_name', 'Untitled')} (Lines {current_event['start_line']}-{current_event['end_line']})</b><br>"
+                                f"<span style='color: #202124;'>{summary_val}</span>"
                                 f"</div>"
                             )
                         else:
                             events_html += (
                                 f"<div style='background-color: #fce8e6; border-left: 4px solid #c5221f; padding: 8px; margin-bottom: 8px; border-radius: 4px;'>"
-                                f"<span style='color: #c5221f;'>Поточну подію для рядка {line_num} не знайдено в хронології.</span>"
+                                f"<span style='color: #c5221f;'>Current event for line {line_num} not found in timeline.</span>"
                                 f"</div>"
                             )
                             
@@ -159,16 +165,22 @@ class MempalaceActions:
                         for ev in events_list:
                             if isinstance(ev, dict) and "event_name" in ev:
                                 is_current = (current_event and ev.get('event_name') == current_event.get('event_name') and ev.get('start_line') == current_event.get('start_line'))
-                                marker = "<b>👉 [Поточна подія]</b> " if is_current else "• "
+                                marker = "<b>👉 [Current Event]</b> " if is_current else "• "
                                 style = " style='background-color: #e2f0d9; padding: 4px 6px; border-radius: 3px; font-weight: bold;'" if is_current else ""
+                                ev_summary = (
+                                    ev.get('summary_translated') or
+                                    ev.get('summary_ukrainian') or
+                                    ev.get('summary') or
+                                    ''
+                                )
                                 timeline_items.append(
                                     f"<div{style} style='padding: 2px 4px; margin-bottom: 2px;'>"
                                     f"{marker}{ev['event_name']} (Lines {ev.get('start_line')}-{ev.get('end_line')}): "
-                                    f"<span style='color: #5f6368;'>{ev.get('summary_ukrainian', '')}</span>"
+                                    f"<span style='color: #5f6368;'>{ev_summary}</span>"
                                     f"</div>"
                                 )
                         
-                        timeline_html = "<br><b>Хронологія розділу (Timeline):</b><br>" + "".join(timeline_items)
+                        timeline_html = "<br><b>Chapter Timeline:</b><br>" + "".join(timeline_items)
                         
                         chapter_html = (
                             f"<div style='background-color: #f0f4f9; border-left: 4px solid #0078d7; padding: 10px; margin-bottom: 12px; border-radius: 4px;'>"
@@ -205,19 +217,22 @@ class MempalaceActions:
                         relevant_relations.append(r)
                 
                 if relevant_relations:
-                    relations_html = "<b>Character Relations (Відношення персонажів):</b><br>"
+                    relations_html = "<b>Character Relations:</b><br>"
                     for r in relevant_relations:
                         src_trans = composer._translate_speaker(r['source'])
                         tgt_trans = composer._translate_speaker(r['target'])
                         rel_trans = r['relation']
                         if rel_trans == "addresses_informally":
-                            rel_display = "звертається на 'ти' до"
+                            rel_display = "addresses informally"
                         elif rel_trans == "addresses_respectfully":
-                            rel_display = "звертається на 'ви' до"
+                            rel_display = "addresses respectfully"
+                        elif rel_trans == "addresses_formally":
+                            rel_display = "addresses formally"
                         else:
                             rel_display = rel_trans
                         relations_html += f"• {src_trans} ({r['source']}) — <i>{rel_display}</i> —> {tgt_trans} ({r['target']})<br>"
                     relations_html += "<hr>"
+
 
         # 4. Display result
         if story_context:

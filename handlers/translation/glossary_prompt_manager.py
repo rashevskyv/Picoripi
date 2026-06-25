@@ -1,4 +1,4 @@
-﻿# handlers/translation/glossary_prompt_manager.py
+# handlers/translation/glossary_prompt_manager.py
 """
 Manages loading, caching, and saving of translation prompts and the glossary file.
 Isolated from AI request logic and dialog handling.
@@ -10,10 +10,10 @@ from typing import Dict, Optional, Tuple
 from utils.logging_utils import log_debug
 
 _DEFAULT_GLOSSARY_PROMPT = (
-    "You are the creative Ukrainian localization lead for {game_name}. "
-    "When given a source term (and optional context line), craft a vivid Ukrainian translation that matches the game's universe, tone, and established terminology. "
+    "You are the creative {target_lang} localization lead for {{GAME_NAME}}. "
+    "When given a source term (and optional context line), craft a vivid {target_lang} translation that matches the game's universe, tone, and established terminology. "
     "Describe the in-game meaning in one short note – explain what the term represents or how it is used, without grammar labels, part-of-speech hints, or plural/singular remarks. "
-    "Respond strictly in JSON with keys \"translation\" and \"notes\"; keep both values in Ukrainian."
+    "Respond strictly in JSON with keys \"translation\" and \"notes\"; keep both values in {target_lang}."
 )
 
 
@@ -182,26 +182,35 @@ class GlossaryPromptManager:
     def get_glossary_prompt_template(self) -> Tuple[str, Optional[Path]]:
         """Returns (template_string, prompts_path). Uses cache if plugin unchanged."""
         plugin_name = getattr(self._mw, "active_game_plugin", None)
+
+        raw_template = None
         if self._cached_glossary_prompt_template and self._cached_glossary_prompt_plugin == plugin_name:
-            return self._cached_glossary_prompt_template, self._current_glossary_path
+            raw_template = self._cached_glossary_prompt_template
+        else:
+            prompts_path = self._resolve_file("prompts.json", plugin_name)
+            if prompts_path:
+                self.current_prompts_path = prompts_path
 
-        prompts_path = self._resolve_file("prompts.json", plugin_name)
-        if prompts_path:
-            self.current_prompts_path = prompts_path
+            raw_template = _DEFAULT_GLOSSARY_PROMPT
+            if prompts_path:
+                try:
+                    prompt_data = json.loads(prompts_path.read_text("utf-8"))
+                    extracted = self._extract_glossary_prompt(prompt_data)
+                    if extracted:
+                        raw_template = extracted
+                except Exception as e:
+                    log_debug(f"Glossary prompt template read error: {e}")
 
-        template = _DEFAULT_GLOSSARY_PROMPT
-        if prompts_path:
-            try:
-                prompt_data = json.loads(prompts_path.read_text("utf-8"))
-                extracted = self._extract_glossary_prompt(prompt_data)
-                if extracted:
-                    template = extracted
-            except Exception as e:
-                log_debug(f"Glossary prompt template read error: {e}")
+            self._cached_glossary_prompt_template = raw_template
+            self._cached_glossary_prompt_plugin = plugin_name
 
-        self._cached_glossary_prompt_template = template
-        self._cached_glossary_prompt_plugin = plugin_name
-        return template, self._current_glossary_path
+        target_lang = getattr(self._mw, 'target_language', 'Ukrainian')
+        if not isinstance(target_lang, str):
+            target_lang = 'Ukrainian'
+
+        from utils.utils import resolve_target_language_prompt
+        resolved_template = resolve_target_language_prompt(raw_template, target_lang)
+        return resolved_template, self._current_glossary_path
 
     # ── Public: save a prompt section ───────────────────────────────────
 

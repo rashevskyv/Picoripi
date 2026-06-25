@@ -3,17 +3,16 @@ from unittest.mock import MagicMock
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 from core.glossary_manager import GlossaryEntry
 
+
 @pytest.fixture
 def composer():
     mw = MagicMock()
     mw.data_store = mw
     main_handler = MagicMock()
-    # Mocking current_game_rules to avoid errors in __init__?
-    # Actually AIPromptComposer inherits from BaseTranslationHandler
-    # which takes main_handler and mw is accessed via main_handler.mw
     main_handler.mw = mw
     composer = AIPromptComposer(main_handler)
     return composer
+
 
 def test_AIPromptComposer_glossary_entries_to_text(composer):
     entries = [
@@ -24,6 +23,7 @@ def test_AIPromptComposer_glossary_entries_to_text(composer):
     assert "| Original | Translation | Notes |" in output
     assert "| Sword | Меч | Weapon |" in output
     assert "| Shield | Щит | Armor |" in output
+
 
 def test_AIPromptComposer_compose_batch_request_context(composer):
     all_items = [
@@ -44,9 +44,10 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
         "SysPrompt", source_items, all_items, block_idx=0, mode_description="TestMode"
     )
 
-    assert "World" in user # current text
+    assert "World" in user  # current text
     assert "Test Game" in user
     assert "Block 0" in user
+
 
 def test_AIPromptComposer_prepare_glossary_for_prompt_full(composer):
     gm = MagicMock()
@@ -60,6 +61,7 @@ def test_AIPromptComposer_prepare_glossary_for_prompt_full(composer):
     prompt = composer._prepare_glossary_for_prompt("Base", session_state)
     assert prompt == "Base"  # Now returns system_prompt as-is for glossary unification
 
+
 def test_AIPromptComposer_prepare_glossary_for_prompt_updates(composer):
     gm = MagicMock()
     updated_entry = GlossaryEntry("New", "Новий", "Note")
@@ -67,10 +69,11 @@ def test_AIPromptComposer_prepare_glossary_for_prompt_updates(composer):
     composer.main_handler._glossary_manager = gm
 
     session_state = MagicMock()
-    session_state.glossary_sent = True # Already sent once
+    session_state.glossary_sent = True  # Already sent once
 
     prompt = composer._prepare_glossary_for_prompt("Base", session_state)
     assert prompt == "Base"  # Now returns system_prompt as-is for glossary unification
+
 
 def test_AIPromptComposer_restore_placeholders(composer):
     # Setup normal tag mappings
@@ -90,7 +93,7 @@ def test_AIPromptComposer_restore_placeholders(composer):
 def test_AIPromptComposer_compose_batch_request_chapter(composer):
     all_items = [{"id": 0, "text": "Hello, world!"}]
     source_items = [{"id": 0, "text": "Hello, world!"}]
-    temp_id_map = {0: (3, 5)} # temp_id 0 corresponds to block 3, string 5
+    temp_id_map = {0: (3, 5)}  # temp_id 0 corresponds to block 3, string 5
 
     composer.main_handler._glossary_manager = MagicMock()
     composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
@@ -199,3 +202,309 @@ def test_AIPromptComposer_script_cache_invalidation(composer, tmp_path):
     composer.mw.current_game_rules.get_display_name.return_value = "Zelda: WW"
     res4 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
     assert composer._cached_plugin_name == "Zelda: WW"
+
+
+def test_non_default_target_language_resolution(composer):
+    composer.mw.target_language = "Spanish"
+
+    # Mock dependencies
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+
+    # 1. Batch translation request
+    system, user, pmap = composer.compose_batch_request(
+        "Translate Ukrainian term to Spanish in this test.",
+        [{"id": 1, "text": "World"}],
+        [{"id": 1, "text": "World"}],
+        block_idx=0,
+        mode_description="TestMode"
+    )
+    # The helper replaces "Ukrainian" with target_language ("Spanish")
+    assert "Spanish" in system
+    assert "Ukrainian" not in system
+    assert "Spanish" in user
+    assert "Ukrainian" not in user
+
+    # 2. Single translation request
+    system_single, user_single = composer.compose_messages(
+        "Translate this Ukrainian sentence.",
+        "Hello world",
+        block_idx=0,
+        string_idx=0,
+        expected_lines=1,
+        mode_description="Translate",
+        request_type="translation"
+    )
+    assert "Spanish" in system_single
+    assert "Ukrainian" not in system_single
+    assert "Spanish" in user_single
+    # "Ukrainian" should not be in the instructions
+    assert "Ukrainian" not in user_single
+
+    # 3. Variations request
+    system_var, user_var = composer.compose_messages(
+        "Translate this Ukrainian sentence.",
+        "Hello world",
+        block_idx=0,
+        string_idx=0,
+        expected_lines=1,
+        mode_description="Variations",
+        request_type="variation_list"
+    )
+    assert "Spanish" in system_var
+    assert "Ukrainian" not in system_var
+    assert "Spanish" in user_var
+    assert "Ukrainian" not in user_var
+
+    # 4. Glossary occurrence update request
+    system_occ, user_occ = composer.compose_glossary_occurrence_update_request(
+        "Update Ukrainian glossary term.",
+        source_text="Hola",
+        current_translation="Hola",
+        original_text="Hello",
+        term="Hello",
+        old_translation="Hola",
+        new_translation="Hola",
+        expected_lines=1
+    )
+    assert "Spanish" in system_occ
+    assert "Ukrainian" not in system_occ
+    assert "Spanish" in user_occ
+    assert "Ukrainian" not in user_occ
+
+    # 5. Glossary occurrence batch request
+    system_batch, user_batch = composer.compose_glossary_occurrence_batch_request(
+        "Update Ukrainian glossary batch.",
+        term="Hello",
+        old_translation="Hola",
+        new_translation="Hola",
+        batch_items=[{"id": "0", "translation": "Hola"}]
+    )
+    assert "Spanish" in system_batch
+    assert "Ukrainian" not in system_batch
+    assert "Spanish" in user_batch
+    assert "Ukrainian" not in user_batch
+
+
+def test_story_context_manager_spanish_relations():
+    from core.translation.story_context_manager import StoryContextManager
+    mw = MagicMock()
+    mw.target_language = "Spanish"
+    mw.data_store = MagicMock()
+    mw.data_store.block_names = {}
+
+    # Mock MemePalaceClient and its relations
+    client_mock = MagicMock()
+    client_mock.get_cached_context.return_value = {
+        "room": "Room_0",
+        "speaker": "Hero",
+        "timestamp": "12:00"
+    }
+    client_mock.get_relations.return_value = [
+        {"source": "Hero", "relation": "friend", "target": "Princess"}
+    ]
+
+    scm = StoryContextManager(mw)
+    scm.get_mempalace_client = MagicMock(return_value=client_mock)
+    scm.get_block_label = MagicMock(return_value="Block_0")
+
+    context = scm.fetch_story_context(
+        block_idx=0,
+        s_idx=0,
+        text="Hello Princess",
+        script_speaker_finder=None,
+        data_processor=None
+    )
+
+    assert "CHARACTER & STORY RELATIONS (Spanish Grammar Priority):" in context
+    assert "Spanish" in context
+    assert "Ukrainian" not in context
+    assert "Hero -[friend]-> Princess" in context
+
+
+def test_translation_session_history_compression_spanish():
+    from core.translation.session_manager import TranslationSessionState
+
+    session = TranslationSessionState(
+        provider_key="test_provider",
+        base_system_prompt="Base",
+        current_system_prompt="Current",
+        target_lang="Spanish"
+    )
+
+    # Add dummy history to exceed MAX_HISTORY_MESSAGES * 2 (which is 40 messages)
+    for i in range(25):
+        session.history.append({"role": "user", "content": f"Hello {i}"})
+        session.history.append({"role": "assistant", "content": f"Hola {i}"})
+
+    provider_mock = MagicMock()
+    # Mock provider.translate to verify the compression prompt has Spanish
+    def mock_translate(messages):
+        # Find the system message in the compression request
+        sys_msg = next(msg["content"] for msg in messages if msg["role"] == "system")
+        assert "Spanish" in sys_msg
+        assert "Ukrainian" not in sys_msg
+
+        response = MagicMock()
+        response.text = "Compressed summary of style and context"
+        return response
+
+    provider_mock.translate = mock_translate
+
+    session.compress_history(provider_mock)
+
+    # Verify that the history was compressed down
+    assert len(session.history) < 50
+    assert session.history[0]["role"] == "system"
+    assert "Style and context summary" in session.history[0]["content"]
+
+
+def test_global_settings_target_language_serialization(tmp_path):
+    from core.settings.global_settings import GlobalSettings
+
+    class LocalMockMainWindow:
+        def __init__(self):
+            self.data_store = self
+            self.hide_empty_strings = False
+            self.active_game_plugin = "zelda_mc"
+            self.current_font_size = 10
+            self.theme = "auto"
+            self.restore_unsaved_on_startup = False
+            self.show_multiple_spaces_as_dots = True
+            self.space_dot_color_hex = "#BBBBBB"
+            self.window_was_maximized_on_close = False
+            self.window_normal_geometry_on_close = None
+            self.prompt_editor_enabled = True
+            self.recent_projects = []
+            self.translation_ai = {}
+            self.glossary_ai = {}
+            self.spellchecker_enabled = False
+            self.spellchecker_language = 'uk'
+            self.last_browse_dir = ""
+            self.enable_console_logging = True
+            self.enable_file_logging = True
+            self.settings_window_width = 800
+            self.log_file_path = ""
+            self.enabled_log_categories = []
+            self.edited_data = {}
+            self.json_path = None
+            self.edited_json_path = None
+            self.main_splitter = None
+            self.right_splitter = None
+            self.bottom_right_splitter = None
+            self.ui_updater = MagicMock()
+            self.statusBar = MagicMock()
+
+    mw = LocalMockMainWindow()
+    mw.target_language = "Spanish"
+
+    settings_file = tmp_path / "settings.json"
+    gs = GlobalSettings(mw, settings_file_path=str(settings_file))
+    settings_dict = {}
+    gs.save(settings_dict)
+
+    # Read settings file to assert value is correct
+    import json
+    with open(str(settings_file), "r", encoding="utf-8") as f:
+        loaded_data = json.load(f)
+    assert loaded_data.get("target_language") == "Spanish"
+
+
+def test_mempalace_chapter_ai_analyzer_worker_target_language():
+    from core.mempalace.chapter_ai_analyzer import MemePalaceChapterAIAnalyzerWorker
+    client = MagicMock()
+    ai_provider = MagicMock()
+
+    worker = MemePalaceChapterAIAnalyzerWorker(
+        client=client,
+        ai_provider=ai_provider,
+        chapter_id=1,
+        num="1",
+        title="Intro",
+        content="Line 1\nLine 2",
+        start_line=1,
+        target_lang="Spanish"
+    )
+
+    # Mock ai_provider.translate to capture prompts
+    captured_messages = []
+    def mock_translate(messages, session=None):
+        nonlocal captured_messages
+        captured_messages = messages
+        resp = MagicMock()
+        resp.text = "[]"
+        return resp
+
+    ai_provider.translate = mock_translate
+
+    # Call run synchronously
+    worker.run()
+
+    # Assert
+    assert len(captured_messages) == 2
+    system_msg = captured_messages[0]["content"]
+    user_msg = captured_messages[1]["content"]
+
+    # Verify Spanish is requested and summary_translated is requested
+    assert "Spanish" in user_msg
+    assert "Ukrainian" not in user_msg
+    assert "summary_translated" in system_msg
+
+
+def test_resolved_defaults_prompts_have_no_cyrillic(composer):
+    import json
+    import re
+    from pathlib import Path
+    from utils.utils import resolve_target_language_prompt
+
+    cyrillic_pattern = re.compile(r"[а-яА-ЯіїІїЄєґҐёЁ]")
+
+    # 1. Check plugins/common/defaults/prompts.json
+    defaults_path = Path("plugins") / "common" / "defaults" / "prompts.json"
+    assert defaults_path.exists()
+
+    with open(defaults_path, "r", encoding="utf-8") as f:
+        prompts = json.load(f)
+
+    # System translation prompt
+    sys_prompt = prompts["translation"]["system_prompt"]
+    resolved_sys = resolve_target_language_prompt(sys_prompt, "Spanish")
+    assert not cyrillic_pattern.search(resolved_sys), f"Cyrillic characters found in resolved defaults system prompt: {cyrillic_pattern.findall(resolved_sys)}"
+
+    # Glossary prompt template
+    glossary_template = prompts["glossary"]["prompt_template"]
+    resolved_glossary = resolve_target_language_prompt(glossary_template, "Spanish")
+    assert not cyrillic_pattern.search(resolved_glossary)
+
+    # Glossary occurrence update system prompt
+    occ_sys = prompts["glossary_occurrence_update"]["system_prompt"]
+    resolved_occ = resolve_target_language_prompt(occ_sys, "Spanish")
+    assert not cyrillic_pattern.search(resolved_occ)
+
+    # 2. Check translation_prompts/prompts.json
+    proj_prompts_path = Path("translation_prompts") / "prompts.json"
+    if proj_prompts_path.exists():
+        with open(proj_prompts_path, "r", encoding="utf-8") as f:
+            proj_prompts = json.load(f)
+        resolved_proj_sys = resolve_target_language_prompt(proj_prompts["translation"]["system_prompt"], "Spanish")
+        assert not cyrillic_pattern.search(resolved_proj_sys), f"Cyrillic characters found in resolved project system prompt: {cyrillic_pattern.findall(resolved_proj_sys)}"
+
+    # 3. Check translation_prompts/glossary_builder_prompts.json
+    builder_prompts_path = Path("translation_prompts") / "glossary_builder_prompts.json"
+    if builder_prompts_path.exists():
+        with open(builder_prompts_path, "r", encoding="utf-8") as f:
+            builder_prompts = json.load(f)
+        resolved_builder_sys = resolve_target_language_prompt(builder_prompts["system_prompt"], "Spanish")
+        resolved_builder_user = resolve_target_language_prompt(builder_prompts["user_prompt_template"], "Spanish")
+        assert not cyrillic_pattern.search(resolved_builder_sys), f"Cyrillic characters found in resolved builder system prompt: {cyrillic_pattern.findall(resolved_builder_sys)}"
+        assert not cyrillic_pattern.search(resolved_builder_user), f"Cyrillic characters found in resolved builder user prompt: {cyrillic_pattern.findall(resolved_builder_user)}"
+
+    # 4. Check plugins/zelda_mc/translation_prompts/prompts.json
+    mc_prompts_path = Path("plugins") / "zelda_mc" / "translation_prompts" / "prompts.json"
+    if mc_prompts_path.exists():
+        with open(mc_prompts_path, "r", encoding="utf-8") as f:
+            mc_prompts = json.load(f)
+        resolved_mc_sys = resolve_target_language_prompt(mc_prompts["translation"]["system_prompt"], "Spanish")
+        assert not cyrillic_pattern.search(resolved_mc_sys), f"Cyrillic characters found in resolved Minish Cap system prompt: {cyrillic_pattern.findall(resolved_mc_sys)}"

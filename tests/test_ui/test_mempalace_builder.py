@@ -161,3 +161,49 @@ def test_mempalace_builder_sleep_checkboxes_enabled_during_execution(qapp):
     assert dialog.prevent_sleep_checkbox.isEnabled() is True
     assert dialog.sleep_after_checkbox.isEnabled() is True
 
+
+def test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer(qapp):
+    mock_mw = MagicMock()
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = None
+    mock_mw.data_store = MagicMock()
+    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.data = [["Line"]]
+    mock_mw.data_store.block_names = {"0": "zel_00"}
+    mock_mw.settings_manager = MagicMock()
+    mock_mw.target_language = "Spanish"
+
+    # Mock translation_handler and provider
+    mock_provider = MagicMock()
+    mock_mw.translation_handler = MagicMock()
+    mock_mw.translation_handler._prepare_provider.return_value = mock_provider
+
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    # Set up queue and mocks
+    dialog.analysis_queue = [1]
+    dialog.client = MagicMock()
+    dialog.client.db_path = "dummy_db_path"
+
+    # Patch sqlite3 connect and query to return dummy row
+    with patch("sqlite3.connect") as mock_connect, \
+         patch("ui.mempalace_builder_dialog.MemePalaceChapterAIAnalyzerWorker") as mock_worker_class:
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = ("1", "Intro", 1, "Line 1\nLine 2")
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # Mock the worker instance and start method
+        mock_worker_instance = MagicMock()
+        mock_worker_class.return_value = mock_worker_instance
+
+        # Call the queue processor
+        dialog._process_analysis_queue()
+
+        # Assert worker was created with correct target_lang
+        mock_worker_class.assert_called_once()
+        kwargs = mock_worker_class.call_args[1]
+        assert kwargs.get("target_lang") == "Spanish"

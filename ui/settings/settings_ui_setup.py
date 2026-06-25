@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import json
 import pycountry
 from PyQt6.QtWidgets import *
@@ -612,6 +612,10 @@ class SettingsDialogUiMixin:
         layout = QVBoxLayout(self.ai_translation_tab)
         provider_form = QFormLayout()
         
+        self.target_language_edit = QLineEdit(self)
+        self.target_language_edit.setPlaceholderText("e.g. Ukrainian, Spanish, German")
+        provider_form.addRow("Target Language:", self.target_language_edit)
+
         provider_layout = QHBoxLayout()
         self.translation_provider_combo = QComboBox(self)
         self.translation_provider_combo.addItem("Disabled", "disabled")

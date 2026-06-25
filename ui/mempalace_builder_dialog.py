@@ -680,8 +680,7 @@ class MemePalaceBuilderDialog(QDialog):
         if not gm and hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
             gm = getattr(self.mw.translation_handler, '_glossary_manager', None)
 
-        lang_code = getattr(self.mw, 'spellchecker_language', 'uk')
-        target_lang = "Ukrainian" if lang_code == 'uk' else "Russian" if lang_code == 'ru' else "English"
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
 
         self.worker = MemePalaceScriptAnalyzerWorker(
             client=self.client,
@@ -765,8 +764,7 @@ class MemePalaceBuilderDialog(QDialog):
         if not gm and hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
             gm = getattr(self.mw.translation_handler, '_glossary_manager', None)
 
-        lang_code = getattr(self.mw, 'spellchecker_language', 'uk')
-        target_lang = "Ukrainian" if lang_code == 'uk' else "Russian" if lang_code == 'ru' else "English"
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
 
         self.worker = MemePalaceCharacterProfilerWorker(
             client=self.client,
@@ -1174,6 +1172,8 @@ class MemePalaceBuilderDialog(QDialog):
             self._set_ui_enabled(True)
             return
 
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+
         self.worker = MemePalaceChapterAIAnalyzerWorker(
             client=self.client,
             ai_provider=ai_provider,
@@ -1182,6 +1182,7 @@ class MemePalaceBuilderDialog(QDialog):
             title=title,
             content=content,
             start_line=start_line,
+            target_lang=target_lang,
             mw=self.mw
         )
         self.worker.progress.connect(self._handle_worker_progress)

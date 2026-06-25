@@ -220,12 +220,16 @@ class TranslationHandler(BaseHandler):
         log_debug(f"Preparing session, start_new_session is {self.start_new_session}")
         if not self._should_use_session(task_type):
             return None
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+        if not isinstance(target_lang, str):
+            target_lang = 'Ukrainian'
         state = self._session_manager.ensure_session(
             provider_key=self._active_provider_key or '',
             base_system_prompt=base_system_prompt,
             full_system_prompt=full_system_prompt,
             supports_sessions=self._provider_supports_sessions,
             start_new_session=self.start_new_session,
+            target_lang=target_lang,
         )
         if not state:
             return None

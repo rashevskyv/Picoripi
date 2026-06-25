@@ -71,7 +71,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
             return p_sys.format(target_lang=self.target_lang), p_usr.format(script_segment=script_segment, target_lang=self.target_lang)
 
         # Fallback built-in prompts
-        if self.target_lang == "Ukrainian":
+        if self.target_lang.strip().lower() == "ukrainian":
             system_prompt = (
                 "Ви — професійний сценарист відеоігор та директор з локалізації. Ваше завдання — проаналізувати список персонажів "
                 "та вступний текст ігрового скрипту, вилучити всіх ключових персонажів, їхні профілі, важливі предмети, "
@@ -141,9 +141,9 @@ Extract:
    - "description": detailed context and personality description strictly in {self.target_lang}.
 3. Key gameplay/story objects, items, locations, or special terminology ("objects_and_terms") found in the script with a clear description of what they are, written strictly in {self.target_lang}.
 4. Social relations between characters that dictate how they should speak to each other in {self.target_lang} translation:
-   - "addresses_informally" (meaning they use "ти"): for close friends, equals, family, children, mentors speaking to students.
-   - "addresses_respectfully" (meaning they use respect forms).
-   - "addresses_formally" (meaning they use formal "ви").
+    - "addresses_informally" (meaning they use informal forms of address, e.g. 'tu', 'du', or equivalent): for close friends, equals, family, children, mentors speaking to students.
+    - "addresses_respectfully" (meaning they use respectful forms of address).
+    - "addresses_formally" (meaning they use formal forms of address, e.g. 'usted', 'Sie', or equivalent).
    
 INTRO TEXT SEGMENT:
 {script_segment}
@@ -188,7 +188,7 @@ JSON structure:
                 target_lang=self.target_lang
             )
 
-        if self.target_lang == "Ukrainian":
+        if self.target_lang.strip().lower() == "ukrainian":
             synth_system_prompt = (
                 "Ви — професійний лексикограф та перекладач відеоігор. Ваше завдання — об'єднати існуючі нотатки/опис "
                 "терміна у глосарії з новими деталями, знайденими в ігровому скрипті. Ви повинні синтезувати їх "
@@ -241,7 +241,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 target_lang=self.target_lang
             )
 
-        if self.target_lang == "Ukrainian":
+        if self.target_lang.strip().lower() == "ukrainian":
             new_term_system_prompt = (
                 "Ви — професійний перекладач ретро-ігор з англійської на українську мову. Ваше завдання — "
                 "запропонувати природний переклад або транслітерацію назви терміна українською мовою, "
@@ -314,7 +314,7 @@ JSON structure:
                     # process characters
                     for char in characters:
                         term_name = char["name"]
-                        if self.target_lang == "Ukrainian":
+                        if self.target_lang.strip().lower() == "ukrainian":
                             notes = f"Стать: {char['gender']}. Вік: {char['age_group']}. Зв'язки: {char['relationship_summary']}. Звертання: {char['address_type']}. Опис: {char['description']}"
                         else:
                             notes = f"Gender: {char['gender']}. Age: {char['age_group']}. Relations: {char['relationship_summary']}. Address Style: {char['address_type']}. Description: {char['description']}"
@@ -505,8 +505,9 @@ JSON structure:
                         
                         existing_notes = existing_entry.notes or ""
                         
-                        if item["type"] == "character":
-                            details = f"""
+                        if self.target_lang.strip().lower() == "ukrainian":
+                            if item["type"] == "character":
+                                details = f"""
 - Тип сутності: Персонаж
 - Стать: {item['gender']}
 - Вікова категорія: {item['age_group']}
@@ -514,10 +515,25 @@ JSON structure:
 - Форми звертання (на "ти" / на "ви"): {item['address_type']}
 - Новий сюжетний контекст: {item['description']}
 """
-                        else:
-                            details = f"""
+                            else:
+                                details = f"""
 - Тип сутності: Предмет/Локація/Термін
 - Новий сюжетний контекст: {item['description']}
+"""
+                        else:
+                            if item["type"] == "character":
+                                details = f"""
+- Entity Type: Character
+- Gender: {item['gender']}
+- Age Group: {item['age_group']}
+- Relations: {item['relationship_summary']}
+- Forms of Address: {item['address_type']}
+- New Context: {item['description']}
+"""
+                            else:
+                                details = f"""
+- Entity Type: Item/Location/Term
+- New Context: {item['description']}
 """
                         
                         synth_system_prompt, synth_user_prompt = self._get_synthesis_prompts(
@@ -551,8 +567,9 @@ JSON structure:
                         # New term! Translate term and construct initial notes in self.target_lang
                         self.log.emit(f"Term '{term_name}' is new. Translating name and creating structured notes in {self.target_lang} via AI...")
                         
-                        if item["type"] == "character":
-                            details = f"""
+                        if self.target_lang.strip().lower() == "ukrainian":
+                            if item["type"] == "character":
+                                details = f"""
 - Тип сутності: Персонаж
 - Стать: {item['gender']}
 - Вікова категорія: {item['age_group']}
@@ -560,10 +577,25 @@ JSON structure:
 - Форми звертання (на "ти" / на "ви"): {item['address_type']}
 - Опис: {item['description']}
 """
-                        else:
-                            details = f"""
+                            else:
+                                details = f"""
 - Тип сутності: Предмет/Локація/Термін
 - Опис: {item['description']}
+"""
+                        else:
+                            if item["type"] == "character":
+                                details = f"""
+- Entity Type: Character
+- Gender: {item['gender']}
+- Age Group: {item['age_group']}
+- Relations: {item['relationship_summary']}
+- Forms of Address: {item['address_type']}
+- Description: {item['description']}
+"""
+                            else:
+                                details = f"""
+- Entity Type: Item/Location/Term
+- Description: {item['description']}
 """
 
                         new_term_system_prompt, new_term_user_prompt = self._get_new_term_prompts(

@@ -124,10 +124,10 @@ class MemePalaceCharacterProfilerWorker(QThread):
             return ""
         
         # If target language is already English, no translation needed
-        if self.target_lang == "English":
+        if self.target_lang.strip().lower() == "english":
             return f"Page: {title}\n{text}"
             
-        if self.target_lang == "Ukrainian":
+        if self.target_lang.strip().lower() == "ukrainian":
             system_prompt = (
                 "Ви — професійний перекладач відеоігор та редактор локалізації. Ваше завдання — зробити точний, "
                 "літературний переклад вступного опису персонажа з англійської Вікіпедії на українську мову. "
@@ -197,7 +197,7 @@ Return ONLY the translated text. Do not add any introduction or meta comments.
                 target_lang=self.target_lang
             )
 
-        if self.target_lang == "Ukrainian":
+        if self.target_lang.strip().lower() == "ukrainian":
             synth_system_prompt = (
                 "Ви — професійний лексикограф та перекладач відеоігор. Ваше завдання — об'єднати існуючі нотатки/опис "
                 "персонажа у глосарії з новим детальним аналізом його стилю мовлення та характеру від ШІ. Ви повинні синтезувати їх "
@@ -305,7 +305,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
             prompts_data = self._load_plugin_prompts()
             
             # System prompt for profiling (optimized for target language)
-            if self.target_lang == "Ukrainian":
+            if self.target_lang.strip().lower() == "ukrainian":
                 system_prompt = (
                     "Ви — видатний директор з локалізації відеоігор, психолог персонажів та професійний лінгвіст. "
                     "Ваше завдання — проаналізувати всі репліки, які вимовляє конкретний персонаж гри, та скласти надзвичайно "
@@ -454,7 +454,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                             
                     if ctx:
                         room = ctx.get("room", "Unknown Chapter")
-                        if self.target_lang == "Ukrainian":
+                        if self.target_lang.strip().lower() == "ukrainian":
                             clean_lines.append(f'[У главі "{room}"]: "{line}"')
                         else:
                             clean_lines.append(f'[In Chapter "{room}"]: "{line}"')
@@ -472,7 +472,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 dialogue_text_block = "\n".join(f'- {line}' for line in sampled_lines)
 
                 # Formulate user prompt
-                if self.target_lang == "Ukrainian":
+                if self.target_lang.strip().lower() == "ukrainian":
                     wiki_section = ""
                     if wiki_context:
                         wiki_section = f"\n--- Wiki Context (Джерело істини з Zelda Wiki) ---\n{wiki_context}\n"
@@ -625,7 +625,10 @@ JSON Structure:
                                 log_ai_traffic(self.mw, "mempalace_speech_profile_synthesis", synth_messages, error=str(e_synth))
                                 log_error(f"Failed to synthesize speech notes for {char_name}: {e_synth}")
                                 # Fallback: append profile to notes directly
-                                fallback_notes = f"{existing_notes}\n\nСтиль мовлення: {speech_profile}"
+                                if self.target_lang.strip().lower() == "ukrainian":
+                                    fallback_notes = f"{existing_notes}\n\nСтиль мовлення: {speech_profile}"
+                                else:
+                                    fallback_notes = f"{existing_notes}\n\nSpeech Style: {speech_profile}"
                                 self.glossary_manager.update_entry(
                                     original=existing_entry.original,
                                     translation=existing_entry.translation,

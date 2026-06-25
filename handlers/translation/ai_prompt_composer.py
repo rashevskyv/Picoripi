@@ -8,7 +8,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 from .base_translation_handler import BaseTranslationHandler
 from core.glossary_manager import GlossaryEntry
 from core.translation.session_manager import TranslationSessionState
-from utils.utils import ALL_TAGS_PATTERN
+from utils.utils import ALL_TAGS_PATTERN, resolve_target_language_prompt
 from utils.logging_utils import log_debug
 
 # Import new services
@@ -30,6 +30,13 @@ class AIPromptComposer(BaseTranslationHandler):
         self.glossary_formatter = GlossaryPromptFormatter()
         self.story_context = StoryContextManager(self.mw)
         self.script_speaker_finder = ScriptSpeakerFinder(self.mw, self.story_context)
+
+    def _get_target_lang(self) -> str:
+        """Helper to get and sanitize the target language."""
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+        if not isinstance(target_lang, str) or not target_lang.strip():
+            return 'Ukrainian'
+        return target_lang
 
     # ------------------------------------------------------------------
     # Properties for backwards compatibility with test cache assertions
@@ -497,15 +504,16 @@ class AIPromptComposer(BaseTranslationHandler):
         if glossary_text:
             json_payload_for_ai['glossary'] = glossary_text
 
+        target_lang = self._get_target_lang()
         if not is_retry:
             instructions = [
-                'Translate the "text" field for each object in the "strings_to_translate" array into Ukrainian.',
+                f'Translate the "text" field for each object in the "strings_to_translate" array into {target_lang}.',
                 'Return a single, valid JSON object with a "translated_strings" key.',
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object in the returned array must have the original "id" (integer) and a "translation" (string) field.',
                 'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
-                'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match Ukrainian grammar. Glossary overrides everything.',
-                'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (ти/ви). Apply this information to the entire translation.',
+                f'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
+                'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (e.g. formal/informal). Apply this information to the entire translation.',
                 'Use "scene_context" (if present) and "speaker" to determine the correct tone, formality, and speech mannerisms.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
@@ -515,7 +523,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 'Your previous response was invalid. Please correct it.',
                 f'Error: {retry_reason}',
                 'Follow these instructions carefully:',
-                'Translate the "text" field for each object in the "strings_to_translate" array into Ukrainian.',
+                f'Translate the "text" field for each object in the "strings_to_translate" array into {target_lang}.',
                 'Return a single, valid JSON object with a "translated_strings" key.',
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object must have the original "id" and a "translation" field.',
@@ -534,6 +542,7 @@ class AIPromptComposer(BaseTranslationHandler):
         )
 
         final_system_prompt = f"{system_prompt}\n\n{system_prompt_addition}"
+        final_system_prompt = resolve_target_language_prompt(final_system_prompt, target_lang)
         combined_system = self._prepare_glossary_for_prompt(final_system_prompt, session_state, is_batch_translation=True)
 
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
@@ -601,6 +610,7 @@ class AIPromptComposer(BaseTranslationHandler):
         selected_text: Optional[str] = None,
     ) -> Tuple[str, str]:
         """Compose messages."""
+        target_lang = self._get_target_lang()
         glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
 
@@ -648,7 +658,7 @@ class AIPromptComposer(BaseTranslationHandler):
             if relevant_glossary_entries:
                 glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
-        combined_system = system_prompt
+        combined_system = resolve_target_language_prompt(system_prompt, target_lang)
 
         context_lines: List[str] = []
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
@@ -701,7 +711,7 @@ class AIPromptComposer(BaseTranslationHandler):
         if request_type == 'variation_list':
             if selected_text:
                 instructions = [
-                    'Generate 10 different Ukrainian translation alternatives specifically for the selected text segment, keeping the context of the full string in mind.',
+                    f'Generate 10 different {target_lang} translation alternatives specifically for the selected text segment, keeping the context of the full string in mind.',
                     f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
                     'Follow the glossary and preserve all tags exactly as they appear.',
                     'Follow the tone of the original text and the surrounding translation.',
@@ -710,7 +720,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 ]
             else:
                 instructions = [
-                    'Generate 10 different Ukrainian translation alternatives for the provided text.',
+                    f'Generate 10 different {target_lang} translation alternatives for the provided text.',
                     f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
                     'Follow the glossary and preserve all tags exactly as they appear.',
                     'Follow the tone of the original text.',
@@ -719,7 +729,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 ]
         elif request_type == 'glossary_notes_variation':
             instructions = [
-                'Generate 5 alternative Ukrainian glossary descriptions for the provided term.',
+                f'Generate 5 alternative {target_lang} glossary descriptions for the provided term.',
                 'Each description should be 1-2 sentences and stay under 60 words.',
                 'Preserve any tags/placeholders exactly as provided.',
                 'Keep the description informative and suitable for a glossary entry.',
@@ -728,10 +738,10 @@ class AIPromptComposer(BaseTranslationHandler):
             ]
         else:
             instructions = [
-                'Translate the text into Ukrainian without altering the meaning.',
+                f'Translate the text into {target_lang} without altering the meaning.',
                 f'Keep exactly {expected_lines} lines (including empty ones) and preserve their order.',
-                'GLOSSARY IS MANDATORY: Every term found in the glossary MUST be translated exactly as specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect word endings to match Ukrainian grammar.',
-                'Read the "Notes" column in the glossary carefully for character gender, age, personality, speech style, and form of address (ти/ви). Apply this to the full translation.',
+                f'GLOSSARY IS MANDATORY: Every term found in the glossary MUST be translated exactly as specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect word endings to match {target_lang} grammar.',
+                'Read the "Notes" column in the glossary carefully for character gender, age, personality, speech style, and form of address (e.g. formal/informal). Apply this to the full translation.',
                 'All tags must be preserved exactly as they appear.',
                 'Do not add explanations or meta text; return only the translation.',
             ]
@@ -782,14 +792,15 @@ class AIPromptComposer(BaseTranslationHandler):
         session_state: Optional[TranslationSessionState] = None,
     ) -> Tuple[str, str]:
         """Compose glossary occurrence update request."""
-        combined_system = self._prepare_glossary_for_prompt(system_prompt, session_state)
-
+        target_lang = self._get_target_lang()
+        system_prompt_resolved = resolve_target_language_prompt(system_prompt, target_lang)
+        combined_system = self._prepare_glossary_for_prompt(system_prompt_resolved, session_state)
         instructions = [
-            "Update the existing Ukrainian translation to reflect the new glossary term translation.",
+            f"Update the existing {target_lang} translation to reflect the new glossary term translation.",
             "Preserve all tags, placeholders, punctuation, whitespace, and line breaks exactly as in the input.",
             f"Keep the total number of lines at {expected_lines}; do not add or remove lines.",
             "Use the new glossary translation naturally (adjust case/grammar if required by context).",
-            "Return JSON only: {\"translation\": \"...\"} with the updated Ukrainian text.",
+            f"Return JSON only: {{\"translation\": \"...\"}} with the updated {target_lang} text.",
         ]
 
         user_sections = [
@@ -821,10 +832,11 @@ class AIPromptComposer(BaseTranslationHandler):
         session_state: Optional[TranslationSessionState] = None,
     ) -> Tuple[str, str]:
         """Compose glossary occurrence batch request."""
-        combined_system = self._prepare_glossary_for_prompt(system_prompt, session_state)
-
+        target_lang = self._get_target_lang()
+        system_prompt_resolved = resolve_target_language_prompt(system_prompt, target_lang)
+        combined_system = self._prepare_glossary_for_prompt(system_prompt_resolved, session_state)
         instructions = [
-            "For each object in the JSON payload, update the Ukrainian translation to use the new glossary translation.",
+            f"For each object in the JSON payload, update the {target_lang} translation to use the new glossary translation.",
             "Preserve all tags/placeholders, punctuation, whitespace, and line breaks exactly as provided.",
             "Keep the line count for each translation identical to the original.",
             "Return JSON only: {\"occurrences\": [{\"id\": string, \"translation\": string}, ...]}.",

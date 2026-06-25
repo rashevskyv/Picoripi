@@ -290,6 +290,11 @@ class ProjectContext(Protocol):
         ...
     
     @property
+    def target_language(self) -> str:
+        """Target language."""
+        ...
+
+    @property
     def newline_display_symbol(self) -> str:
         """Newline display symbol."""
         ...

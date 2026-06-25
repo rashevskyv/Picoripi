@@ -130,12 +130,16 @@ class AIChatHandler(BaseHandler):
             use_stream = False
             log_debug("AI Chat: Gemini with base_url detected, disabling streaming.")
 
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+        if not isinstance(target_lang, str):
+            target_lang = 'Ukrainian'
         state = session_manager.ensure_session(
             provider_key=provider_key,
             base_system_prompt=self.system_prompt,
             full_system_prompt=self.system_prompt,
             supports_sessions=True,
-            start_new_session=False
+            start_new_session=False,
+            target_lang=target_lang,
         )
 
         messages, session_payload = state.prepare_request({"role": "user", "content": message})

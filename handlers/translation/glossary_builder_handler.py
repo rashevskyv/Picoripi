@@ -182,10 +182,17 @@ class GlossaryBuilderHandler:
         else:
             self._glossary_manager = getattr(self.mw, 'glossary_manager', None)
 
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+        if not isinstance(target_lang, str):
+            target_lang = 'Ukrainian'
+        from utils.utils import resolve_target_language_prompt
+        resolved_system_prompt = resolve_target_language_prompt(self.prompt_data['system_prompt'], target_lang)
+        resolved_user_prompt_template = resolve_target_language_prompt(self.prompt_data['user_prompt_template'], target_lang)
+
         task_details = {
             'type': 'build_glossary',
-            'system_prompt': self.prompt_data['system_prompt'],
-            'user_prompt_template': self.prompt_data['user_prompt_template'],
+            'system_prompt': resolved_system_prompt,
+            'user_prompt_template': resolved_user_prompt_template,
             'block_data': block_data,
             'target_indices': target_indices,
             'chunk_size': chunk_size,
@@ -289,12 +296,12 @@ class GlossaryBuilderHandler:
             translation_handler.reset_translation_session()
 
         summary_parts = [
-            f"Додано {added_total} термінів",
-            f"нових: {added_new}",
-            f"оновлено: {added_existing}",
+            f"Added {added_total} terms",
+            f"new: {added_new}",
+            f"updated: {added_existing}",
         ]
         if skipped_duplicates:
-            summary_parts.append(f"пропущено дублікатів: {skipped_duplicates}")
+            summary_parts.append(f"skipped duplicates: {skipped_duplicates}")
         summary_text = ", ".join(summary_parts)
 
         log_debug(

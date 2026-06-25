@@ -49,18 +49,19 @@ class MemePalaceChapterAIAnalyzerWorker(QThread):
             if len(content_snippet) > 35000:
                 content_snippet = content_snippet[:35000] + "\n\n[TRUNCATED FOR LENGTH...]"
 
+            target_lang = self.target_lang
             system_prompt = (
                 "You are an expert game narrative architect. Your task is to analyze a game script chapter "
                 "and divide it into logical, sequential story events (micro-scenes or narrative events) with precise line ranges. "
                 "Format your entire response as a single valid JSON array of objects. Each object must have fields: "
-                "'start_line', 'end_line', 'event_name', and 'summary_ukrainian'. Ensure that there are no line gaps between events, "
+                "'start_line', 'end_line', 'event_name', and 'summary_translated'. Ensure that there are no line gaps between events, "
                 "and they cover the entire chapter sequentially."
             )
             
             user_prompt = f"""
 Analyze the following game script chapter where each line is prefixed with its actual script file line number.
 Divide this chapter into sequential, logical narrative events (scenes or plot points).
-For each event, determine the start line and end line numbers and write a brief, 1-2 sentence summary of what is happening in Ukrainian.
+For each event, determine the start line and end line numbers and write a brief, 1-2 sentence summary of what is happening in {target_lang}.
 
 CHAPTER: Chapter {self.num} - {self.title}
 

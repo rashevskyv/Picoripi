@@ -1,5 +1,23 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.061-dev] - 2026-06-25
+
+### 🚀 Added
+- **Dynamic Target Language Selection (AUD-L1)**:
+  - De-hardcoded target language ("Ukrainian") from default prompts and system workflows to support any target language (e.g., Spanish, German) seamlessly.
+  - Added target language controls to Settings UI and decoupled logic via the `ProjectContext` protocol.
+  - Added regression test `test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer` verifying call-site language propagation.
+  - Added regex-based test `test_resolved_defaults_prompts_have_no_cyrillic` validating prompt translation templates.
+
+### ⚙️ Changed
+- **Prompt Isolation & Localized Fallbacks**:
+  - Replaced Cyrillic/Ukrainian references in all default prompts JSON files with neutral English instructions and `{target_lang}` placeholders.
+  - Localized entities metadata formatting ("Entity Type", "Gender", etc.) and fallback speech styles in MemePalace workers dynamically.
+  - Translated Glossary Builder UI status messages to English, enforcing the English UI policy.
+- **Double-Substitution Guard**:
+  - Reinforced `resolve_target_language_prompt` with a temporary placeholder mapping to prevent recursive loops when `target_lang` contains "Ukrainian".
+- **Version Updates**: Bumped version to `0.3.061-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.060-dev] - 2026-06-24
 
 ### 🚀 Added

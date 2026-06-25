@@ -1,4 +1,4 @@
-﻿"""Session manager for chat-based translation providers."""
+"""Session manager for chat-based translation providers."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -21,6 +21,7 @@ class TranslationSessionState:
     history: List[Dict[str, str]] = field(default_factory=list)
     session_instructions: str = ""
     bootstrap_viewed: bool = False
+    target_lang: str = "Ukrainian"
 
     def set_instructions(self, instructions: str) -> None:
         """Set the instructions."""
@@ -89,11 +90,14 @@ class TranslationSessionState:
                 
         history_text = "\n\n".join(history_str_list)
         
-        compression_sys_prompt = (
+        target_lang_val = self.target_lang if isinstance(self.target_lang, str) else "Ukrainian"
+        from utils.utils import resolve_target_language_prompt
+        compression_sys_prompt = resolve_target_language_prompt(
             "You are an AI game localization assistant. Summarize the style, tone, character voices, "
             "and key translation decisions from the provided translation history. "
-            "Focus strictly on Ukrainian translation details (e.g., formal/informal tone, "
-            "specific character speech traits, name translations). Keep the summary under 150 words."
+            "Focus strictly on {target_lang} translation details (e.g., formal/informal tone, "
+            "specific character speech traits, name translations). Keep the summary under 150 words.",
+            target_lang_val
         )
         
         user_prompt = ""
@@ -145,6 +149,7 @@ class TranslationSessionManager:
         full_system_prompt: str,
         supports_sessions: bool,
         start_new_session: bool = False,
+        target_lang: str = "Ukrainian",
     ) -> Optional[TranslationSessionState]:
         """Ensure session."""
         if not supports_sessions:
@@ -161,10 +166,12 @@ class TranslationSessionManager:
                 provider_key=provider_key,
                 base_system_prompt=normalized_base,
                 current_system_prompt=full_system_prompt.strip(),
+                target_lang=target_lang,
             )
         else:
             # Update the current prompt for the existing session
             self._state.current_system_prompt = full_system_prompt.strip()
+            self._state.target_lang = target_lang
             
         return self._state
 

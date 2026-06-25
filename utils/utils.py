@@ -1539,3 +1539,31 @@ def is_control_modifier_pressed() -> bool:
     except Exception:
         pass
     return False
+
+
+def resolve_target_language_prompt(text: str, target_lang: str) -> str:
+    """Centralized helper to resolve target language placeholders in AI prompts.
+
+    Main workflow:
+      Replaces "{target_lang}" with the resolved target language (e.g. "Spanish").
+      This is the primary and recommended path for all bundled and custom prompts.
+
+    Legacy Fallback:
+      Also replaces the literal word "Ukrainian" with target_lang for backward
+      compatibility with older user files or plugins.
+
+      WARNING: This replacement is a simple string replacement and CANNOT automatically
+      translate Ukrainian text, Cyrillic letters, grammar-specific examples, or rules
+      into the target language. Bundled prompts should rely on explicit {target_lang}
+      placeholders and neutral English instructions.
+    """
+    if not text:
+        return ""
+    if not isinstance(target_lang, str) or not target_lang.strip():
+        target_lang = "Ukrainian"
+
+    temp_placeholder = "___TARGET_LANG_TEMP_PLACEHOLDER___"
+    text = text.replace("{target_lang}", temp_placeholder)
+    text = text.replace("Ukrainian", target_lang)
+    text = text.replace(temp_placeholder, target_lang)
+    return text

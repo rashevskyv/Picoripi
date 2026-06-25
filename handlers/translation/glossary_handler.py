@@ -406,8 +406,13 @@ class GlossaryHandler(BaseTranslationHandler):
         if not template:
             return
 
+        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
+        if not isinstance(target_lang, str):
+            target_lang = 'Ukrainian'
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else "this game"
         system_prompt = template.replace("{{GAME_NAME}}", game_name)
+        from utils.utils import resolve_target_language_prompt
+        system_prompt = resolve_target_language_prompt(system_prompt, target_lang)
 
         user_content_parts = [f'Term: "{term}"']
         if context:

@@ -362,6 +362,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         self.translation_config_snapshot = merge_translation_config(build_default_translation_config(), getattr(self.mw, 'translation_config', {}))
         self._apply_translation_config_to_ui(self.translation_config_snapshot)
+        self.target_language_edit.setText(getattr(self.mw, 'target_language', 'Ukrainian'))
 
         # Load AI Glossary settings
         glossary_ai_cfg = getattr(self.mw, 'glossary_ai', {})
@@ -515,6 +516,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'prevent_empty_lines_in_autofix': self.prevent_empty_lines_checkbox.isChecked() if hasattr(self, 'prevent_empty_lines_checkbox') else False,
             'translation_config': translation_config_to_save,
             'translation_presets': self.translation_presets,
+            'target_language': self.target_language_edit.text().strip() or 'Ukrainian',
             'current_translation_preset': self.translation_preset_combo.currentData(),
             'detection_enabled': detection_settings,
             'glossary_ai': glossary_ai_settings,
