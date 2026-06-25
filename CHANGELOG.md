@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.064-dev] - 2026-06-25
+
+### ⚙️ Changed
+- **Version Updates**: Bumped version to `0.3.064-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.063-dev] - 2026-06-25
 
 ### ⚡ Optimized
