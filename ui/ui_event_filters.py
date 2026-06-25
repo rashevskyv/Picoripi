@@ -1,4 +1,4 @@
-﻿from PyQt6.QtCore import QObject, QEvent, Qt
+from PyQt6.QtCore import QObject, QEvent, Qt
 from PyQt6.QtGui import QKeySequence
 from PyQt6.QtWidgets import QApplication, QWidget
 from utils.logging_utils import log_debug
@@ -71,15 +71,11 @@ class TextEditEventFilter(QObject):
                         return True
                         
                     is_chapter = getattr(self.mw.data_store, 'current_chapter_id', None) is not None or (displayed_indices and isinstance(displayed_indices[0], tuple))
-                    current_preview_idx = -1
                     if is_chapter:
                         target = (self.mw.data_store.current_block_idx, self.mw.data_store.current_string_idx)
-                        if target in displayed_indices:
-                            current_preview_idx = displayed_indices.index(target)
                     else:
                         target = self.mw.data_store.current_string_idx
-                        if target in displayed_indices:
-                            current_preview_idx = displayed_indices.index(target)
+                    current_preview_idx = self.mw.list_selection_handler._get_relative_index(target)
                             
                     from utils.utils import get_line_words_and_visible_tags
                     

@@ -93,13 +93,20 @@ def test_JsonTagHighlighter_highlightBlock_colors(highlighter):
     hl, doc = highlighter
 
     # Test WW colors
+    hl.setFormat.reset_mock()
     text_ww = "[Red]Test[/C]"
     hl.highlightBlock(text_ww)
-    # Should set red state, then back to default
+    # Should set red state for "Test" (index 5, length 4)
+    red_calls = [args for args, _ in hl.setFormat.call_args_list if args[0] == 5 and args[1] == 4 and args[2] == hl.red_text_format]
+    assert len(red_calls) == 1
 
     # Test MC colors
+    hl.setFormat.reset_mock()
     text_mc = "{Color:Blue}Test"
     hl.highlightBlock(text_mc)
+    # Should set blue state for "Test" (index 12, length 4)
+    blue_calls = [args for args, _ in hl.setFormat.call_args_list if args[0] == 12 and args[1] == 4 and args[2] == hl.blue_text_format]
+    assert len(blue_calls) == 1
 
 def test_JsonTagHighlighter_highlightBlock_rules(highlighter):
     hl, doc = highlighter

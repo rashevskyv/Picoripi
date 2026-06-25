@@ -176,11 +176,8 @@ class ListSelectionHandler(BaseHandler):
         self.ui_updater.populate_strings_for_block(-2)
 
         # Find relative index for preview
-        rel_idx = -1
-        displayed_indices = self._get_displayed_indices()
         target_tuple = (b_idx, s_idx)
-        if target_tuple in displayed_indices:
-            rel_idx = displayed_indices.index(target_tuple)
+        rel_idx = self._get_relative_index(target_tuple)
 
         if rel_idx != -1:
             if not getattr(self.mw, '_restoring_session_state', False):
@@ -339,10 +336,7 @@ class ListSelectionHandler(BaseHandler):
             self.ui_updater.populate_strings_for_block(block_index, category_name)
 
             if target_string_idx != -1:
-                rel_idx = -1
-                displayed_indices = self._get_displayed_indices()
-                if target_string_idx in displayed_indices:
-                    rel_idx = displayed_indices.index(target_string_idx)
+                rel_idx = self._get_relative_index(target_string_idx)
 
                 if rel_idx != -1:
                     # Schedule selection to avoid recursion issues
@@ -556,21 +550,19 @@ class ListSelectionHandler(BaseHandler):
         if absolute_idx == -1: return
 
         rel_idx: int = -1
-        displayed_indices = self._get_displayed_indices()
-
         is_chapter = getattr(self.mw.data_store, 'current_block_idx', -1) == -2
         if is_chapter:
             target_tuple = None
+            displayed_indices = self._get_displayed_indices()
             for item in displayed_indices:
                 if isinstance(item, tuple) and len(item) == 2 and item[1] == absolute_idx:
                     target_tuple = item
                     break
             if target_tuple is not None:
-                rel_idx = displayed_indices.index(target_tuple)
+                rel_idx = self._get_relative_index(target_tuple)
         else:
-            if absolute_idx in displayed_indices:
-                rel_idx = displayed_indices.index(absolute_idx)
-            else:
+            rel_idx = self._get_relative_index(absolute_idx)
+            if rel_idx == -1:
                 rel_idx = absolute_idx # Fallback if no mapping exists
 
         # If strings are not yet populated (e.g. initial load), displayed_string_indices might be empty.
@@ -683,18 +675,12 @@ class ListSelectionHandler(BaseHandler):
             0 <= self.mw.data_store.current_string_idx < len(self.mw.data_store.data[_phys_b_idx]))):
 
             # Find relative index for preview
-            rel_idx = -1
             displayed_indices = self._get_displayed_indices()
-
-            # Virtual mode (speaker/chapter): displayed_indices contain (b_idx, s_idx) tuples
-            # Use physical_block_idx to form the lookup tuple, NOT current_block_idx (-2/-3)
             if _is_virtual_mode or (displayed_indices and isinstance(displayed_indices[0], tuple)):
                 target_tuple = (_phys_b_idx, self.mw.data_store.current_string_idx)
-                if target_tuple in displayed_indices:
-                    rel_idx = displayed_indices.index(target_tuple)
+                rel_idx = self._get_relative_index(target_tuple)
             else:
-                if self.mw.data_store.current_string_idx in displayed_indices:
-                    rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
+                rel_idx = self._get_relative_index(self.mw.data_store.current_string_idx)
 
             if rel_idx != -1 and hasattr(preview_edit, 'set_selected_lines'):
                 preview_edit.set_selected_lines([rel_idx])
@@ -1011,16 +997,13 @@ class ListSelectionHandler(BaseHandler):
                 if self.mw.data_store.current_string_idx != -1:
                     if hasattr(preview_edit, 'set_selected_lines'):
                         # Find the relative index for the current string to highlight it
-                        rel_idx = -1
                         displayed_indices = self._get_displayed_indices()
                         is_virtual = self.mw.data_store.current_block_idx < 0
                         if is_virtual or (displayed_indices and isinstance(displayed_indices[0], tuple)):
                             target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
-                            if target_tuple in displayed_indices:
-                                rel_idx = displayed_indices.index(target_tuple)
+                            rel_idx = self._get_relative_index(target_tuple)
                         else:
-                            if self.mw.data_store.current_string_idx in displayed_indices:
-                                rel_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
+                            rel_idx = self._get_relative_index(self.mw.data_store.current_string_idx)
                         if rel_idx != -1:
                             preview_edit.set_selected_lines([rel_idx])
                 return
@@ -1241,9 +1224,8 @@ class ListSelectionHandler(BaseHandler):
         if current_string_idx == -1:
             return
 
-        displayed_indices = self._get_displayed_indices()
-        if current_string_idx in displayed_indices:
-            rel_idx = displayed_indices.index(current_string_idx)
+        rel_idx = self._get_relative_index(current_string_idx)
+        if rel_idx != -1:
             if 0 <= rel_idx < preview_edit.document().blockCount():
                 block_to_show = preview_edit.document().findBlockByNumber(rel_idx)
                 if block_to_show.isValid():
@@ -1259,6 +1241,22 @@ class ListSelectionHandler(BaseHandler):
         if not indices and hasattr(self.mw, 'displayed_string_indices'):
             indices = self.mw.displayed_string_indices
         return indices
+
+    def _get_relative_index(self, target: Any) -> int:
+        """O(1) lookup of target in displayed_string_indices.
+        Returns the relative index of the target or -1 if not found.
+        """
+        if hasattr(self.mw, 'data_store') and self.mw.data_store:
+            if hasattr(self.mw.data_store, 'get_displayed_index_pos'):
+                res = self.mw.data_store.get_displayed_index_pos(target)
+                if isinstance(res, int) and not isinstance(res, bool):
+                    return res
+        # Fallback to O(n) index
+        indices = self._get_displayed_indices()
+        try:
+            return indices.index(target)
+        except ValueError:
+            return -1
 
     @property
     def _pending_speaker_retention(self) -> Optional[Tuple[str, Tuple[int, int], int]]:

@@ -1,7 +1,7 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.060-dev
-> **Дата оновлення:** 2026-06-21
+> **Остання версія проекту:** v0.3.062-dev
+> **Дата оновлення:** 2026-06-25
 > **Об'єм проекту (поточний workspace, без gitignored копій):** 412 Python-файлів загалом; 253 продуктових Python-файли, 159 тестових Python-файлів; ~67 375 LOC продуктового Python-коду (не-тестового), ~26 273 LOC тестів; 1 290 pytest items (`1280 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`). Цифри попередніх проходів (~66 741 LOC / 248 файлів / ~25 391 LOC тестів) застаріли і перераховані під час аудиту 2026-06-21.
 > **Примітка:** каталоги `gemini/` (~25k LOC, стара повна копія коду) і `scratch/` — gitignored, нетраковані, у продукт не входять і в обсяг не зараховуються.
 
@@ -635,6 +635,32 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 **Висновок:** `AUD-P2` закрито. Скасування streaming AI тепер має реальний шлях до закриття активного HTTP-stream, а не лише логічну перевірку між токенами.
 - **Agent-3 незалежний full-gate QA (2026-06-23):** **15 повних** `pytest -n auto tests/` — **0 падінь / 15** (1373 passed, 1 skipped); ruff clean. Окремо підтверджено: (1) AUD-A4 production-safe за побудовою — видалений guard `not hasattr(..., 'assert_called_with')` у проді завжди True, тож прод-поведінка не змінилась; (2) re-exports цілі — тести імпортують `AliasUpdateWorker`/`TagAliasDialog` зі старого `ui.main_window.main_window_actions`, який реекспортує з `dialogs.tag_alias_dialog`; (3) `AliasUpdateWorker` перенесено структурно ідентично HEAD; (4) `singleShot` у `search_review_dialog`/`tag_alias_dialog` — передіснуючі dialog-level, не регресії; (5) тихого відкату завершеної роботи (як AUD-P4a в AUD-A1) **немає**. **AUD-A3 та AUD-A4 — QA-verified.**
 
+### 8.18. Закриття AUD-P7 (2026-06-25, displayed_indices O(1) map)
+
+**Проблема:** Метод `.index(...)` та оператор `in` над списком `displayed_string_indices` у `handlers/list_selection_handler.py`, `ui/updaters/preview_updater.py`, `handlers/search_handler.py` та `ui/ui_event_filters.py` робили O(n) лінійний скан. На великих блоках (понад 5000 рядків) це призводило до затримок та дублювання логіки пошуку відносного індексу.
+
+**Рішення:**
+- `AppDataStore.displayed_string_indices` перетворено на властивість (`property`), яка при кожному встановленні (в `preview_updater.py`) автоматично будує зворотну мапу `{value: position}` в `_displayed_string_indices_map`.
+- Зворотна мапа зберігає першу позицію для дубльованих значень, тобто не змінює стару семантику `list.index(...)`.
+- Створено метод `AppDataStore.get_displayed_index_pos(value) -> int`, що забезпечує O(1) пошук.
+- Реалізовано мок-безпечний хелпер `_get_relative_index(target)` у `ListSelectionHandler`, який робить fallback на лінійний пошук, якщо об'єкт мокований (запобігає `TypeError` у тестах із `MagicMock`).
+- Оптимізовано 10 викликів пошуку в `list_selection_handler.py`, `preview_updater.py`, `search_handler.py` та `ui_event_filters.py`.
+
+**QA-результати:**
+- Додано тести `test_AppDataStore_displayed_string_indices_properties` та `test_AppDataStore_displayed_string_indices_preserves_list_index_semantics` у `tests/test_core/test_data_store.py`.
+- Повний тестовий сьют (`1397 passed, 1 skipped`) та перформанс-тести (`9 passed`) успішно пройдено.
+
+### 8.19. Закриття AUD-W1 (2026-06-25, theater tests fix)
+
+**Проблема:** Два тести-театри (`test_empty_font_map` у `tests/test_utils/test_utils.py` та `test_JsonTagHighlighter_highlightBlock_colors` у `tests/test_utils/test_syntax_highlighter.py`) виконували логічні обчислення та виклики методів, але не містили жодних асертів (`assert`) або перевірок викликів, створюючи ілюзію успішного тестування.
+
+**Рішення:**
+- У `test_empty_font_map` додано `assert width == 21` для верифікації ширини за замовчуванням.
+- У `test_JsonTagHighlighter_highlightBlock_colors` додано перевірки через `call_args_list` для підсвічування кольорів WW та MC, що гарантує коректність застосування кольорових форматів.
+
+**QA-результати:**
+- Змінені тести успішно проходять локально та в загальному сьюті.
+
 ## 9. Новий аудит — 2026-06-23 (повторне використання та продуктивність)
 
 Фокус цього проходу за запитом: **дублювання коду / reuse** і **продуктивність**. База на HEAD `a416d94`, дерево чисте, `1375 passed, 1 skipped`, ruff clean. Знахідки нижче — нові, не перетинаються з §8.
@@ -675,11 +701,12 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - `[ ]` **AUD-P6** (низька) — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
 - `[ ]` **AUD-A5** (опційно) — декомпозиція `mempalace_builder_dialog`/`settings_ui_setup`.
 
-Рекомендований порядок: **AUD-R1+R2+R3 разом** (виконано в цьому комміті) → **AUD-P5** (виконано) → **AUD-P7** → **AUD-P6** → опційно AUD-A5.
+Рекомендований порядок оновлено після виконання **AUD-R1+R2+R3**, **AUD-P5**, **AUD-P7** та **AUD-W1**: наступними найбільш корисними лишаються **AUD-P6** → **AUD-P8** → **AUD-R4** → опційно AUD-A5.
 
 ### 9.6. Друга ітерація пошуку (2026-06-23)
 
-- **AUD-P7 (середня, reuse+perf). `displayed_indices.index(...)` повторюється 10× і робить O(n) скан.** У [handlers/list_selection_handler.py](handlers/list_selection_handler.py) виклики `displayed_indices.index(target)` зустрічаються на рядках 183, 216, 269, 345, 569, 572, 694, 697, 1020, 1023. `displayed_string_indices` — звичайний список (встановлюється у `preview_updater.py:314`), тож кожен `.index()` — лінійний скан; на великих блоках (5000+ рядків) це відчутно при навігації/виборі. Це і **дублювання** (10 однакових патернів), і **продуктивність**. *Пропозиція:* будувати зворотну мапу `{value: rel_pos}` один раз при встановленні `displayed_string_indices` і єдиний хелпер `_relative_index(target)` з O(1)-пошуком. *Складність:* Низька-середня. *Файли:* `handlers/list_selection_handler.py`, `ui/updaters/preview_updater.py`, `core/data_store.py`.
+- **AUD-P7 (середня, reuse+perf). `displayed_indices.index(...)` повторюється 10× і робить O(n) скан. ✅ Done (2026-06-25, this commit)**
+  У [handlers/list_selection_handler.py](handlers/list_selection_handler.py) виклики `displayed_indices.index(target)` зустрічаються на рядках 183, 216, 269, 345, 569, 572, 694, 697, 1020, 1023. `displayed_string_indices` — звичайний список (встановлюється у `preview_updater.py:314`), тож кожен `.index()` — лінійний скан; на великих блоках (5000+ рядків) це відчутно при навігації/виборі. Це і **дублювання** (10 однакових патернів), і **продуктивність**. *Пропозиція:* будувати зворотну мапу `{value: rel_pos}` один раз при встановленні `displayed_string_indices` і єдиний хелпер `_relative_index(target)` з O(1)-пошуком. *Складність:* Низька-середня. *Файли:* `handlers/list_selection_handler.py`, `ui/updaters/preview_updater.py`, `core/data_store.py`.
 - **AUD-R4 (низька, reuse). Немає спільного ітератора по всіх рядках.** Патерн `for block in data: for s_idx in range(len(block))` дублюється у 10+ файлах (`data_state_processor`, `set_calculator`, `revert_manager`, `filter_query_api`, `glossary_manager`, `mempalace/*`, `search_review_dialog` тощо). *Пропозиція:* єдиний генератор `iter_all_strings(data) -> (block_idx, string_idx, text)` у `core/` і поступовий перехід на нього. *Складність:* Низька (але багато сайтів — робити поступово з тестами).
 - **AUD-P8 (низька, perf). Сортування у paint-шляху редактора.** [components/editor/line_number_area_paint_logic.py:297](components/editor/line_number_area_paint_logic.py:297) робить `sorted(list(filtered_problems), key=lambda pid: problem_definitions[pid]['priority'])` **усередині циклу по видимих рядках у `execute_paint_event`** — тобто на кожен рядок при кожному перемальовуванні. `k` (проблем на рядок) малий, тож severity низька, але ключ сортування (`priority`) статичний. *Пропозиція:* передобчислити `priority_rank` мапу один раз (config статичний) і сортувати дешевим lookup, або тримати проблеми вже впорядкованими. *Складність:* Низька. *Файли:* `components/editor/line_number_area_paint_logic.py`.
 
@@ -690,7 +717,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - **AUD-P9 (низька-середня, perf). Аллокація `QColor` у paint-шляху делегата списку.** [components/custom_list_item_delegate.py](components/custom_list_item_delegate.py) у `paint()` (рядок 88) конструює ~15-20 **статичних** `QColor` inline на кожне перемальовування кожного item (рядки 101, 118-129, 295, 368, 401, 460-461, 555, 570 тощо) — теми/стани, що не залежать від рантайму. `__init__` уже кешує частину (`self._colors`), тож є прецедент. *Пропозиція:* винести статичні кольори у class/instance-константи (по темі), залишивши inline лише справді динамічні (`QColor(problem_def["color"])`). Severity низька (QColor дешевий), але це alloc-churn у найгарячішому списковому шляху при скролі. *Складність:* Низька. *Файли:* `components/custom_list_item_delegate.py`.
 - **AUD-R5 (низька, reuse). Дублювання констант у конфігах плагінів.** `plugins/*/config.py` спільно використовують `generate_base_config`, але повторюють однакові константи (`PRIORITY_DEFAULT = 99`, `COLOR_WARNING_TAG = QColor(200, 200, 200, 150)`, мапінг `"TAG_WARNING": ...`). Частина дублювання прийнятна (config як шаблон під кастомізацію), тож пріоритет низький; можна винести спільні дефолти у `plugins/common/`. *Складність:* Низька.
 
-**Примітка про спадну віддачу:** після виконання AUD-R1/R2/R3 та AUD-P5 найбільша віддача лишається за **AUD-P7** (index→мапа: −10 дублів + O(n)→O(1)) та подальшими задачами.
+**Примітка про спадну віддачу:** після виконання AUD-R1/R2/R3, AUD-P5, AUD-P7 та AUD-W1 найбільша віддача лишається за **AUD-P6**, **AUD-P8** та поступовим **AUD-R4**.
 
 ### 9.8. Глибокий аудит логіки, промптів і тестів (2026-06-23)
 
@@ -699,7 +726,7 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - **AUD-L1 (СЕРЕДНЯ-ВИСОКА, logic). Цільова мова жорстко зашита як «Ukrainian».** [ВИРІШЕНО] (2026-06-25) — повністю реалізовано динамічну підтримку цільової мови (Target Language) у налаштуваннях програми, промптах та сесіях, з перекладом усіх дефолтних промптів на нейтральну англійську мову з плейсхолдерами `{target_lang}`.
 - **AUD-L2 (низька-середня, prompt vs code). Промпт інструктує зберігати `\n`, якого AI не бачить.** У batch-перекладі `compose_batch_request` стрипить переноси перед відправкою (`current_text_clean = current_text_for_ai.replace('\n', ' ')`, `ai_prompt_composer.py:~209`), а системний промпт містить розгорнуті правила #1 і #3 про збереження `\n` у тій самій позиції. Тобто для batch-шляху ці правила — мертві інструкції (модель не отримує жодного `\n`), що марнують токени й можуть плутати модель; реальну структуру рядків відновлює вже `_format_and_wrap_translation` пост-фактум. *Пропозиція:* розділити системні промпти для batch (без `\n`-правил) і single-line, або явно зазначити, що рядки прийдуть «розгорнутими». *Складність:* Низька. *Файли:* `translation_prompts/prompts.json`, `handlers/translation/ai_prompt_composer.py`.
 - **AUD-X1 (низька, dead code). `_prepare_glossary_for_prompt` — no-op заглушка.** `ai_prompt_composer.py` має метод, що лише повертає `(system_prompt or '').strip()` (глосарій тепер інжектиться per-item, що ефективно), але метод досі викликається у кількох місцях як значущий крок. Прибрати або задокументувати як свідому заглушку. *Складність:* Тривіальна.
-- **AUD-W1 (середня, test theater). Тести, що нічого не перевіряють попри назву.** Конкретні приклади:
+- **AUD-W1 (середня, test theater). Тести, що нічого не перевіряють попри назву.** [ВИРІШЕНО] (2026-06-25) — додано асерти у `test_empty_font_map` та перевірки викликів `hl.setFormat` у `test_JsonTagHighlighter_highlightBlock_colors`. Конкретні приклади:
   - `tests/test_utils/test_utils.py::test_empty_font_map` — docstring «all chars use default_char_width», обчислює `width = calculate_string_width("abc", empty_font_map, default_char_width=7)` і **не асертить** (мав би `== 21`). Це тест **гарячої функції ширини** — пройде навіть якщо вона поверне 0.
   - `tests/test_utils/test_syntax_highlighter.py::test_JsonTagHighlighter_highlightBlock_colors` — назва обіцяє перевірку кольорів WW/MC, викликає `highlightBlock(...)`, але **жодного assert** (сусідній `_rules` асертить `setFormat.call_count >= 4`, а цей — ні).
   - Загалом у suite ~25 assertion-free тест-функцій; частина — легітимні «no-crash» smoke (paint fallback), але перелічені вище **обіцяють перевірку поведінки і не роблять її**. *Пропозиція:* додати реальні асерти (очікувана ширина; перевірка переданих кольорів через `setFormat.call_args_list`); провести ревізію решти 23. *Складність:* Низька. *Файли:* `tests/test_utils/test_utils.py`, `tests/test_utils/test_syntax_highlighter.py`, аудит решти.
@@ -710,15 +737,16 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 1. **AUD-L1** (середня-висока) — ✅ Done (2026-06-25, this commit).
 2. **AUD-R1/R2/R3** — ✅ Done (2026-06-25, this commit).
-3. **AUD-P7** (середня) — `displayed_indices` зворотна мапа.
-4. **AUD-W1** (середня) — полагодити тести-театр (особливо ширина — це гарячий шлях без реальної перевірки).
+3. **AUD-P7** (середня) — ✅ Done (2026-06-25, this commit) — `displayed_indices` зворотна мапа.
+4. **AUD-W1** (середня) — ✅ Done (2026-06-25, this commit) — полагодити тести-театр (особливо ширина — це гарячий шлях без реальної перевірки).
 5. **AUD-P5** — ✅ Done (bounded LRU).
 
 ### 9.7. Оновлений пріоритетний список
 
 - `[x]` **AUD-R1/R2/R3** — консолідація tag-патерну (один рефактор).
 - `[x]` **AUD-P5** — bounded LRU для `_STRING_WIDTH_CACHE`.
-- `[ ]` **AUD-P7** — зворотна мапа для `displayed_indices` (прибирає 10 дублів + O(n)→O(1)).
+- `[x]` **AUD-P7** — зворотна мапа для `displayed_indices` (прибирає 10 дублів + O(n)→O(1)).
+- `[x]` **AUD-W1** — полагодити тести-театр (додано реальні асерти).
 - `[ ]` **AUD-P6** — інкрементальне вимірювання ширини в `ShortLineRule.fix`.
 - `[ ]` **AUD-P8** — передобчислення сортування проблем у paint-шляху.
 - `[ ]` **AUD-R4** — спільний `iter_all_strings()` (поступово).

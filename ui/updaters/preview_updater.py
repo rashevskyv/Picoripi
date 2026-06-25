@@ -336,10 +336,18 @@ class PreviewUpdater(BaseUIUpdater):
             preview_idx_to_select = -1
             if is_virtual:
                 target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
-                if target_tuple in target_indices:
+                if hasattr(self.mw.data_store, 'get_displayed_index_pos'):
+                    res = self.mw.data_store.get_displayed_index_pos(target_tuple)
+                    if isinstance(res, int) and not isinstance(res, bool):
+                        preview_idx_to_select = res
+                if preview_idx_to_select == -1 and target_tuple in target_indices:
                     preview_idx_to_select = target_indices.index(target_tuple)
             else:
-                if self.mw.data_store.current_string_idx in target_indices:
+                if hasattr(self.mw.data_store, 'get_displayed_index_pos'):
+                    res = self.mw.data_store.get_displayed_index_pos(self.mw.data_store.current_string_idx)
+                    if isinstance(res, int) and not isinstance(res, bool):
+                        preview_idx_to_select = res
+                if preview_idx_to_select == -1 and self.mw.data_store.current_string_idx in target_indices:
                     preview_idx_to_select = target_indices.index(self.mw.data_store.current_string_idx)
 
             # Set override_total_lines to prevent dynamic width change
@@ -541,10 +549,18 @@ class PreviewUpdater(BaseUIUpdater):
                 preview_idx = -1
                 if is_virtual:
                     target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
-                    if target_tuple in displayed_indices:
+                    if hasattr(self.mw.data_store, 'get_displayed_index_pos'):
+                        res = self.mw.data_store.get_displayed_index_pos(target_tuple)
+                        if isinstance(res, int) and not isinstance(res, bool):
+                            preview_idx = res
+                    if preview_idx == -1 and target_tuple in displayed_indices:
                         preview_idx = displayed_indices.index(target_tuple)
                 else:
-                    if self.mw.data_store.current_string_idx in displayed_indices:
+                    if hasattr(self.mw.data_store, 'get_displayed_index_pos'):
+                        res = self.mw.data_store.get_displayed_index_pos(self.mw.data_store.current_string_idx)
+                        if isinstance(res, int) and not isinstance(res, bool):
+                            preview_idx = res
+                    if preview_idx == -1 and self.mw.data_store.current_string_idx in displayed_indices:
                         preview_idx = displayed_indices.index(self.mw.data_store.current_string_idx)
 
                 if preview_idx != -1:

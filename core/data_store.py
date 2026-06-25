@@ -65,7 +65,8 @@ class AppDataStore:
     _physical_block_idx: int = -1
     current_string_idx: int = -1
     selected_string_indices: List[int] = field(default_factory=list)
-    displayed_string_indices: List[Tuple[int, int]] = field(default_factory=list) # Absolute indices/tuples of strings shown in preview
+    _displayed_string_indices: List[Any] = field(default_factory=list, init=False, repr=False)
+    _displayed_string_indices_map: Dict[Any, int] = field(default_factory=dict, init=False, repr=False)
     current_category_name: Optional[str] = None
     current_chapter_id: Optional[int] = None
     chapter_mappings: List[Tuple[int, int]] = field(default_factory=list) # List of (block_idx, string_idx) for selected chapter
@@ -192,6 +193,30 @@ class AppDataStore:
     def virtual_mappings(self, value: List[Tuple[int, int]]) -> None:
         """Alias setter for chapter_mappings."""
         self.chapter_mappings = value
+
+    @property
+    def displayed_string_indices(self) -> List[Any]:
+        if not hasattr(self, '_displayed_string_indices'):
+            self._displayed_string_indices = []
+        return self._displayed_string_indices
+
+    @displayed_string_indices.setter
+    def displayed_string_indices(self, value: List[Any]) -> None:
+        self._displayed_string_indices = value
+        self._rebuild_displayed_string_indices_map()
+
+    def _rebuild_displayed_string_indices_map(self) -> None:
+        self._displayed_string_indices_map = {}
+        for idx, val in enumerate(self.displayed_string_indices):
+            self._displayed_string_indices_map.setdefault(val, idx)
+
+    def get_displayed_index_pos(self, value: Any) -> int:
+        """Get the 0-based relative index position of a physical string index in the preview list.
+        O(1) lookup using the cached reverse map.
+        """
+        if not hasattr(self, '_displayed_string_indices_map'):
+            self._rebuild_displayed_string_indices_map()
+        return self._displayed_string_indices_map.get(value, -1)
 
     def get_session_snapshot(self) -> dict:
         """Returns a compact dictionary representing the current session state."""

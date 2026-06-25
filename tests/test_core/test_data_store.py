@@ -85,3 +85,27 @@ def test_AppDataStore_mark_clean_nonexistent_block(store):
     # Should not raise an error when block isn't in the set
     store.mark_clean(999)
     assert store.unsaved_changes is False
+
+
+def test_AppDataStore_displayed_string_indices_properties(store):
+    # Test default
+    assert store.displayed_string_indices == []
+
+    # Test setting and O(1) map generation
+    test_indices = [0, 5, (1, 2), 10]
+    store.displayed_string_indices = test_indices
+    assert store.displayed_string_indices == test_indices
+
+    # Verify positions
+    assert store.get_displayed_index_pos(0) == 0
+    assert store.get_displayed_index_pos(5) == 1
+    assert store.get_displayed_index_pos((1, 2)) == 2
+    assert store.get_displayed_index_pos(10) == 3
+    assert store.get_displayed_index_pos(99) == -1  # Not found
+
+
+def test_AppDataStore_displayed_string_indices_preserves_list_index_semantics(store):
+    store.displayed_string_indices = [5, 7, 5]
+
+    assert store.displayed_string_indices.index(5) == 0
+    assert store.get_displayed_index_pos(5) == 0

@@ -1,5 +1,19 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.062-dev] - 2026-06-25
+
+### ⚡ Optimized
+- **O(1) Displayed Indices Map (AUD-P7)**:
+  - Replaced the linear O(n) search over `displayed_string_indices` via `.index()` and `in` with an O(1) reverse lookup map `_displayed_string_indices_map` generated inside the `AppDataStore.displayed_string_indices` setter.
+  - Implemented a mock-safe `_get_relative_index(target)` helper in `ListSelectionHandler` to prevent `MagicMock` type errors in unit tests by falling back to O(n) lookup when mock instances are detected.
+  - Optimized index mapping paths in `list_selection_handler.py`, `preview_updater.py`, `search_handler.py`, and `ui_event_filters.py`.
+  - Added unit test `test_AppDataStore_displayed_string_indices_properties` to verify map population, and ensured correct first-match index resolution semantics using `dict.setdefault()`.
+
+### 🐛 Fixed
+- **Theater Tests Assertion Fixes (AUD-W1)**:
+  - Added a missing width assert verification inside `test_empty_font_map` in `test_utils.py`.
+  - Added call-args check assertions inside `test_JsonTagHighlighter_highlightBlock_colors` in `test_syntax_highlighter.py` to ensure proper syntax highlighter coloring formats are applied under WW and MC plugin formats.
+
 ## [0.3.061-dev] - 2026-06-25
 
 ### 🚀 Added

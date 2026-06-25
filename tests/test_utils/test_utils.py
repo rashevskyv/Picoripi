@@ -94,6 +94,8 @@ class TestCalculateStringWidth:
     def test_empty_font_map(self, empty_font_map):
         """With empty font_map, all chars use default_char_width."""
         width = calculate_string_width("abc", empty_font_map, default_char_width=7)
+        assert width == 21
+
     def test_with_icon_sequences(self, sample_font_map):
         """Testing icon_sequences being passed."""
         width = calculate_string_width("abc", sample_font_map, icon_sequences=["[Custom]"])

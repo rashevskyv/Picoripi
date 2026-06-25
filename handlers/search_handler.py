@@ -271,10 +271,14 @@ class SearchHandler(BaseHandler):
             self.mw.list_selection_handler._target_string_idx = None
 
         # Get relative index for preview_text_edit highlights
-        displayed_indices = self.mw.list_selection_handler._get_displayed_indices()
-        rel_idx = string_idx_match_in_data
-        if displayed_indices and string_idx_match_in_data in displayed_indices:
-            rel_idx = displayed_indices.index(string_idx_match_in_data)
+        rel_idx = -1
+        if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
+            if hasattr(self.mw.list_selection_handler, '_get_relative_index'):
+                res = self.mw.list_selection_handler._get_relative_index(string_idx_match_in_data)
+                if isinstance(res, int) and not isinstance(res, bool):
+                    rel_idx = res
+        if rel_idx == -1:
+            rel_idx = string_idx_match_in_data
 
 
         if was_search_tagless_and_newline_agnostic:
