@@ -59,3 +59,32 @@ def test_text_formatter_with_visible_tags():
     # So "bbbb" should wrap to the next line.
     assert res == "aaaa {(btn)}\nbbbb"
 
+
+def test_text_formatter_preserves_deliberate_newlines():
+    mw = MagicMock()
+    mw.game_dialog_max_width_pixels = 200
+    mw.line_width_warning_threshold_pixels = 100
+    mw.lines_per_page = 4
+    mw.current_font_map = {"a": {"width": 10}, " ": {"width": 5}}
+    mw.font_map = {}
+    mw.icon_sequences = []
+    mw.default_tag_mappings = {}
+    mw.string_metadata = {}
+
+    mock_rules = MagicMock()
+    mock_rules.get_shift_enter_char.return_value = "\n"
+    mock_rules.convert_editor_text_to_data.side_effect = lambda x: x
+    mw.current_game_rules = mock_rules
+
+    formatter = TextFormatter(mw)
+
+    # Each line "aaaaa" is 50px (5 * 10). Both are <= 100px warning_threshold.
+    # Deliberate newline should be preserved.
+    res = formatter.format_and_wrap_translation("aaaaa\naaaaa", 0, 0)
+    assert res == "aaaaa\naaaaa"
+
+    # Line 1: "aaaaa aaaaa aaaaa" = 15 chars * 10 + 2 * 5 = 160px.
+    # Exceeds 100px. So it should wrap.
+    # Line 2: "aaaaa" = 50px. Fits <= 100px.
+    res_wrapped = formatter.format_and_wrap_translation("aaaaa aaaaa aaaaa\naaaaa", 0, 0)
+    assert "aaaaa aaaaa\naaaaa\naaaaa" in res_wrapped

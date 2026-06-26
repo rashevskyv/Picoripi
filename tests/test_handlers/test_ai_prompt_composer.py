@@ -508,3 +508,49 @@ def test_resolved_defaults_prompts_have_no_cyrillic(composer):
             mc_prompts = json.load(f)
         resolved_mc_sys = resolve_target_language_prompt(mc_prompts["translation"]["system_prompt"], "Spanish")
         assert not cyrillic_pattern.search(resolved_mc_sys), f"Cyrillic characters found in resolved Minish Cap system prompt: {cyrillic_pattern.findall(resolved_mc_sys)}"
+
+
+def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
+    # Setup tag mappings
+    composer.mw.default_tag_mappings = {
+        "{Color:Red}": "{0}",
+        "{f:dummy}": "forced"
+    }
+
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+
+    # Test compose_batch_request preserves newlines and collects tag_alias_legend
+    source_items = [{"id": 0, "text": "Line1\nLine2"}]
+    all_items = [{"id": 0, "text": "Line1\nLine2"}]
+
+    system, user, pmap = composer.compose_batch_request(
+        "SysPrompt", source_items, all_items, block_idx=0, mode_description="TestMode"
+    )
+
+    # Check that newlines are preserved in the JSON payload sent to AI
+    assert "Line1\\nLine2" in user or "Line1\nLine2" in user
+
+    # Check that forced alias {f:dummy} was excluded but {Color:Red} was included
+    assert "tag_alias_legend" in user
+    assert "{Color:Red}" in user
+    assert "{f:dummy}" not in user
+    assert "TAG ALIAS LEGEND" in user
+    assert "ANCHORED TAGS" in user
+
+    # Test compose_messages collects tag_alias_legend
+    system_msg, user_msg = composer.compose_messages(
+        "SysPrompt",
+        "Line1\nLine2",
+        block_idx=0,
+        string_idx=0,
+        expected_lines=2,
+        mode_description="TestMode",
+        request_type="translation"
+    )
+
+    assert "TAG ALIAS LEGEND" in user_msg
+    assert "{Color:Red}" in user_msg
+    assert "{f:dummy}" not in user_msg

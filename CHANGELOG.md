@@ -1,9 +1,22 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.065-dev] - 2026-06-26
+
+### ⚙️ Changed
+- **Line Break and Tag Preservation in AI Translation (AUD-L2, AUD-L3)**:
+  - Preserved structured deliberate newlines and normalized spaces inside each line during prompt preparation instead of stripping all line breaks.
+  - Added conversion to editor representation for input text before prompt preparation to unify page/line breaks (e.g. from plugin-specific `\\n` to `\n`).
+  - Added tag alias legend to JSON payloads for batch translation and a dedicated section for single-string prompts, filtering out forced aliases.
+  - Added instructions for AI to identify and lock anchored system tags (e.g. `{0}`, `{1}`) to prevent deletion or relocation.
+  - Refactored `TextFormatter.format_and_wrap_translation` to process segments individually when split by page breaks, preserving deliberate line breaks and wrapping only lines exceeding thresholds.
+  - Added comprehensive test suites to verify tag alias legends, newline preservation, formatting, and anchored tags.
+- **Version Updates**: Bumped version to `0.3.065-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.064-dev] - 2026-06-25
 
 ### ⚙️ Changed
 - **Version Updates**: Bumped version to `0.3.064-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 
 ## [0.3.063-dev] - 2026-06-25
 

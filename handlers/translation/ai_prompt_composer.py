@@ -210,6 +210,12 @@ class AIPromptComposer(BaseTranslationHandler):
                 item_id = 0
                 current_text = str(item)
 
+            # Convert to editor representation to unify page/line breaks (e.g. \\n to \n)
+            if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
+                converted = self.mw.current_game_rules.get_text_representation_for_editor(current_text)
+                if isinstance(converted, str):
+                    current_text = converted
+
             # Apply force-aliases
             from utils.force_alias import prepare_text_for_ai
             tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
@@ -217,9 +223,13 @@ class AIPromptComposer(BaseTranslationHandler):
             if force_maps:
                 placeholder_map[item_id] = force_maps
 
-            # Remove line breaks inside sentences for AI translation
-            current_text_clean = current_text_for_ai.replace('\n', ' ')
-            current_text_clean = re.sub(r' +', ' ', current_text_clean).strip()
+            # Preserve structured deliberate newlines, normalising spaces inside each line
+            lines = current_text_for_ai.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                cleaned_line = re.sub(r' +', ' ', line).strip()
+                cleaned_lines.append(cleaned_line)
+            current_text_clean = '\n'.join(cleaned_lines)
 
             # Resolve speaker
             speaker = None
@@ -496,6 +506,14 @@ class AIPromptComposer(BaseTranslationHandler):
         glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
         # 4. Build JSON payload
+        tag_alias_legend = {}
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        if default_tag_mappings:
+            for alias, orig in default_tag_mappings.items():
+                if alias.lower().startswith('{f:') or alias.lower().startswith('[f:'):
+                    continue
+                tag_alias_legend[alias] = orig
+
         json_payload_for_ai = {
             'strings_to_translate': items_with_context
         }
@@ -503,6 +521,8 @@ class AIPromptComposer(BaseTranslationHandler):
             json_payload_for_ai['scene_context'] = scene_context
         if glossary_text:
             json_payload_for_ai['glossary'] = glossary_text
+        if tag_alias_legend:
+            json_payload_for_ai['tag_alias_legend'] = tag_alias_legend
 
         target_lang = self._get_target_lang()
         if not is_retry:
@@ -533,6 +553,10 @@ class AIPromptComposer(BaseTranslationHandler):
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
+
+        if tag_alias_legend:
+            instructions.append('TAG ALIAS LEGEND: Use the "tag_alias_legend" field in the JSON payload to understand the meaning of tag aliases (e.g. colors, speed). Place these tag aliases correctly around the corresponding translated words.')
+        instructions.append('ANCHORED TAGS: Any tags not present in the "tag_alias_legend" are anchored system tags (e.g. {0}, {1}, [PLAYER]). Do NOT translate, modify, or delete them. Keep them exactly in their correct relative positions in the translation.')
 
         # Add a note about text unity to the system prompt
         system_prompt_addition = (
@@ -610,6 +634,15 @@ class AIPromptComposer(BaseTranslationHandler):
         selected_text: Optional[str] = None,
     ) -> Tuple[str, str]:
         """Compose messages."""
+        if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
+            converted = self.mw.current_game_rules.get_text_representation_for_editor(source_text)
+            if isinstance(converted, str):
+                source_text = converted
+            if selected_text:
+                converted_sel = self.mw.current_game_rules.get_text_representation_for_editor(selected_text)
+                if isinstance(converted_sel, str):
+                    selected_text = converted_sel
+
         target_lang = self._get_target_lang()
         glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
@@ -657,6 +690,18 @@ class AIPromptComposer(BaseTranslationHandler):
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
             if relevant_glossary_entries:
                 glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
+
+        tag_alias_legend = {}
+        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
+        if default_tag_mappings:
+            for alias, orig in default_tag_mappings.items():
+                if alias.lower().startswith('{f:') or alias.lower().startswith('[f:'):
+                    continue
+                tag_alias_legend[alias] = orig
+
+        tag_alias_legend_text = ""
+        if tag_alias_legend:
+            tag_alias_legend_text = "TAG ALIAS LEGEND:\n" + "\n".join(f"- {alias} -> {orig}" for alias, orig in tag_alias_legend.items())
 
         combined_system = resolve_target_language_prompt(system_prompt, target_lang)
 
@@ -746,9 +791,16 @@ class AIPromptComposer(BaseTranslationHandler):
                 'Do not add explanations or meta text; return only the translation.',
             ]
 
+        if request_type not in ('glossary_notes_variation',):
+            if tag_alias_legend:
+                instructions.append('TAG ALIAS LEGEND: Refer to the "TAG ALIAS LEGEND" section below to understand what tag aliases mean. Place them correctly in the translated text.')
+            instructions.append('ANCHORED TAGS: Any tags not present in the legend (e.g. {0}, {1}, [PLAYER]) are anchored system tags. Do NOT translate, modify, or delete them. Maintain them in their correct positions.')
+
         user_sections: List[str] = ['\n'.join(context_lines), '\n'.join(instructions)]
         if glossary_text:
             user_sections.append(f"GLOSSARY (use with absolute priority):\n{glossary_text}")
+        if tag_alias_legend_text:
+            user_sections.append(tag_alias_legend_text)
 
         if request_type == 'variation_list' and current_translation:
             if selected_text:
