@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.066-dev] - 2026-06-26
+
+### ⚙️ Changed
+- **Monolithic GUI Modules Decomposition (AUD-A5)**:
+  - Decomposed the massive settings dialog layout builder `ui/settings/settings_ui_setup.py` (~1236 LOC) into four specialized mixins: `general_spelling_mixin.py` (Global & Spelling), `plugin_mixin.py` (Project/Plugin tables and paths), `ai_mixin.py` (AI translation and glossary configurations), and `logging_mixin.py` (Logging settings and plugin scan helpers). SettingsDialogUiMixin now acts as a compact facade class.
+  - Decomposed the MemePalace Context Builder dialog `ui/mempalace_builder_dialog.py` (~1380 LOC) into a package structure `ui/mempalace/` with three submodules: `mempalace_sleep.py` (Windows API sleep prevention), `mempalace_ui.py` (widget construction and styling), and `mempalace_pipeline.py` (orchestration of steps 1-4).
+  - Restored the missing `_clear_database` slot in `MemePalaceBuilderDialog` to prevent test and database cleaning failures.
+  - Added QPushButton to `PyQt6.QtWidgets` imports in `plugin_mixin.py` to fix runtime NameErrors.
+  - Standardized git ignores by adding `.tmp_test_run/` and `pytest-of-Administrator/` test artifact directories to `.gitignore`.
+- **Version Updates**: Bumped version to `0.3.066-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.065-dev] - 2026-06-26
 
 ### ⚙️ Changed

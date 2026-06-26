@@ -1,62 +1,102 @@
-# Walkthrough — Збереження структури рядків та керування тегами в AI-перекладі (v0.3.065-dev)
+# Walkthrough — Декомпозиція монолітних GUI-модулів (AUD-A5)
 
-Цей документ описує зміни, внесені у кодову базу в межах поточної ітерації (версія **v0.3.065-dev**), спрямовані на збереження навмисних переносів рядків при AI-перекладі (AUD-L2) та передачу легенди аліасів разом із правилами закріплених тегів для AI (AUD-L3).
-
----
-
-## 1. Внесені зміни
-
-### 1.1. Збереження структури та переносів рядків при AI-перекладі (AUD-L2)
-* **Файли:**
-  * [ai_prompt_composer.py](file:///d:/git/dev/Picoripi/handlers/translation/ai_prompt_composer.py)
-  * [text_formatter.py](file:///d:/git/dev/Picoripi/handlers/translation/text_formatter.py)
-* **Зміна:**
-  * Перед очищенням промптів вхідні дані конвертуються у представлення редактора через плагін (наприклад, перетворюючи специфічні плагінні нотації кшталт `\\n` у стандартний `\n`), завдяки чому модель отримує коректну структуру.
-  * Очищення промптів тепер зберігає структуру рядків (`\n`), нормалізуючи та очищуючи пробіли окремо для кожного рядка, замість повного сплющування тексту.
-  * `TextFormatter.format_and_wrap_translation` зберігає та враховує навмисні переноси рядків перед перерозбиттям за шириною.
-
-### 1.2. Легенда аліасів та правила закріплених тегів (AUD-L3)
-* **Файл:**
-  * [ai_prompt_composer.py](file:///d:/git/dev/Picoripi/handlers/translation/ai_prompt_composer.py)
-* **Зміна:**
-  * Для групових запитів додано динамічно побудовану мапу `tag_alias_legend` в JSON-payload, а для поодиноких запитів — розділ `TAG ALIAS LEGEND`, що містить опис аліасів тегів (наприклад, кольори, швидкість виводу тощо). Примусові `{f:...}` / `[f:...]` аліаси автоматично фільтруються з цієї легенди.
-  * Додано чіткі інструкції для AI щодо закріплених (anchored) системних тегів (наприклад, `{0}`, `{1}`, `[PLAYER]`), які відсутні в легенді: модель зобов'язана не змінювати, не перекладати та не видаляти їх, зберігаючи their відносну позицію.
+Цей документ описує архітектурні зміни, внесені у межах задачі **AUD-A5**, які полягають у декомпозиції великих монолітних GUI-модулів `ui/settings/settings_ui_setup.py` (~1236 LOC) та `ui/mempalace_builder_dialog.py` (~1380 LOC) на менші, спеціалізовані міксини та підмодулі. Це значно покращує підтримуваність коду без порушення його функціональності.
 
 ---
 
-## 2. Результати тестування
+## 1. Декомпозиція налаштувань (`ui/settings/`)
 
-Всі зміни були ретельно протестовані та перевірені локально:
+Модуль `ui/settings/settings_ui_setup.py` було перетворено на легковагий фасад, що успадковує 4 нових Mixin-класи:
 
-1. **Unit-тести**:
-   * Додано нові тести `test_AIPromptComposer_tag_alias_legend_and_newlines` та `test_text_formatter_preserves_deliberate_newlines` для перевірки збереження структуры рядків та легенди тегів.
-   * Запуск повної серії тестів: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/`
-   * Результат: **1400 passed, 1 skipped** (100% успішно).
-2. **Performance-тести**:
-   * Запуск: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto -m performance tests/test_performance.py`
-   * Результат: **9 passed** (успішно в межах визначеного ліміту часу).
-3. **Linter (ruff)**:
-   * Запуск: `.\venv\Scripts\python.exe -m ruff check .`
-   * Результат: **All checks passed!** (код чистий).
-4. **Git diff check**:
-   * Перевірено відсутність зайвих пробілів наприкінці рядків та інших проблем форматування.
+1. **[general_spelling_mixin.py](file:///d:/git/dev/Picoripi/ui/settings/general_spelling_mixin.py)**
+   * **Scope:** Вкладки `Global Settings` та `Spelling`.
+   * **Логіка:** Ініціалізація віджетів вибору тем, мови, розмірів шрифтів та налаштувань Hunspell-словників. Також містить слоти обробки подій зміни теми та плагінів (`on_theme_changed`, `on_plugin_changed`).
+
+2. **[plugin_mixin.py](file:///d:/git/dev/Picoripi/ui/settings/plugin_mixin.py)**
+   * **Scope:** Вкладка `Project/Plugin Settings` (File Paths, Display, Rules, Detection, Auto-fix, Context Tags, Tag Aliases, Font Map).
+   * **Логіка:** Побудова внутрішньої системи вкладок для налаштування активного ігрового плагіна, зокрема інтерактивних таблиць редагування тегів та символів шрифту. Додано імпорт `QPushButton` для запобігання помилкам виконання.
+
+3. **[ai_mixin.py](file:///d:/git/dev/Picoripi/ui/settings/ai_mixin.py)**
+   * **Scope:** Вкладки `AI Translation` та `AI Glossary`.
+   * **Логіка:** Елементи вибору провайдерів AI (OpenAI, Gemini, Ollama, DeepL), введення API-ключів, лімітів токенів та редагування кастомних системних промптів.
+
+4. **[logging_mixin.py](file:///d:/git/dev/Picoripi/ui/settings/logging_mixin.py)**
+   * **Scope:** Вкладка `Logging` та загальні хелпери пошуку плагінів на диску.
+   * **Логіка:** Відображення логів, рівні логування та сканування теки `plugins/`.
 
 ---
 
-## 3. Agent 3 Final Approval — AUD-L2 / AUD-L3
+## 2. Декомпозиція MemePalace Context Builder (`ui/mempalace/`)
 
-**Verdict: APPROVED — ready to commit.**
+Діалог `ui/mempalace_builder_dialog.py` було очищено від прямого кодування UI-компонентів та логіки кроків конвеєра шляхом виділення підмодулів у новий пакет `ui/mempalace/`:
 
-All blockers from the previous two review rounds are resolved:
-* **Code** — unchanged from the validated state (diff stat identical: `ai_prompt_composer.py` +58, `text_formatter.py` +258, tests +46/+29). Equivalence re-derived from source in rounds 1-2 still holds.
-* **AUDIT.md** — AUD-L2/L3 now recorded: §2 archive entries (lines 47-49), §9.8 AUD-L2 `✅ Done (2026-06-26)` with the stale `replace('\n',' ')` claim corrected, §9.9 summary items 9/10, §10.2 `[ВИРІШЕНО]`, §10.5 updated.
-* **CHANGELOG.md** — the `[0.3.064-dev]` section now documents the L2/L3 work (no longer an empty placeholder).
-* **walkthrough.md** — reset to a clean L2/L3 writeup.
+1. **[mempalace_sleep.py](file:///d:/git/dev/Picoripi/ui/mempalace/mempalace_sleep.py)**
+   * **Scope:** Запобігання сну операційної системи.
+   * **Логіка:** Кросплатформне використання Windows API (`ctypes.windll.kernel32.SetThreadExecutionState`) для блокування переходу комп'ютера в сплячий режим під час AI-аналізу.
 
-My re-validation this round: focused suite (`test_text_formatter` + `test_ai_prompt_composer` + `test_translation_handler`) = **51 passed**; `ruff check` on the 4 touched files = **All checks passed!**; `git diff --check` = clean. Full suite (1400 passed, 1 skipped) and performance lane (9 passed) from round 1 still stand because no code changed.
+2. **[mempalace_ui.py](file:///d:/git/dev/Picoripi/ui/mempalace/mempalace_ui.py)**
+   * **Scope:** Створення графічного інтерфейсу діалогу.
+   * **Логіка:** Побудова віджетів вибору файлу скрипта, списку глав (QTableWidget), панелі логів, прогрес-бару та кнопок керування.
 
-**Commit hygiene:** stage only the 7 tracked modified files (`AUDIT.md`, `CHANGELOG.md`, `ai_prompt_composer.py`, `text_formatter.py`, the two test files, `walkthrough.md`). Do **not** stage the untracked `.tmp_test_run/` or `pytest-of-Administrator/` env artifacts.
+3. **[mempalace_pipeline.py](file:///d:/git/dev/Picoripi/ui/mempalace/mempalace_pipeline.py)**
+   * **Scope:** Оркестрація кроків конвеєра MemePalace (1-4).
+   * **Логіка:** Послідовний запуск воркерів (майнінг персонажів, мапінг глав, AI-аналіз глав, профілювання мовлення) та збереження стану конвеєра в сесії.
 
-Non-blocking nit (optional): the CHANGELOG `[0.3.064-dev]` header is dated `2026-06-25` (when the version was bumped standalone) while the L2/L3 work is dated `2026-06-26`. Harmless; fix only if you want perfect date consistency.
+У самому `ui/mempalace_builder_dialog.py` було відновлено пропущений при першій ітерації метод `_clear_database` для очищення локальної бази даних SQLite.
 
-Agent 1 may commit and proceed to the next task.
+---
+
+## 3. Результати верифікації
+
+Усі зміни пройшли повний цикл автоматизованого та ручного тестування:
+
+1. **Локальні тести компонентів:**
+   * Запуск тестів для діалогу Settings та MemePalace:
+     ```powershell
+     $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_ui/test_settings/test_settings_dialog_presets.py tests/test_ui/test_mempalace_builder.py
+     ```
+   * **Результат:** `8 passed` (100% успішно).
+
+2. **Повний тестовий набір:**
+   * Запуск скрипту `test_all.ps1`:
+     ```powershell
+     powershell -ExecutionPolicy Bypass -File .\test_all.ps1
+     ```
+   * **Результат:**
+     * **1400 passed, 1 skipped** (default lane) за 27.16 с.
+     * **9 passed** (performance lane) за 3.80 с.
+     * **Ruff check** успішно пройдено (0 помилок).
+
+---
+
+## 4. Оцінка ризиків
+
+* **Зворотна сумісність:** 100% збережена. Всі публічні контракти класів `SettingsDialog` та `MemePalaceBuilderDialog` залишилися незмінними.
+* **Поведінка UI:** Повністю відповідає оригінальній реалізації. Тести пресетів та конвеєра підтверджують коректність зв'язків сигналів/слотів.
+
+---
+
+## 5. Agent 3 — Final Review (verdict)
+
+Independent verification performed by Agent 3. Reviewed against the original `HEAD` versions of both monoliths, not just the new files.
+
+### Verified — implementation is correct and complete
+* **No method loss (settings):** all **52** methods from the original `SettingsDialogUiMixin` are present across the 4 new mixins (set diff is empty).
+* **No method loss (mempalace):** all **40** methods from the original `MemePalaceBuilderDialog` are present across the dialog + 3 submodules (set diff is empty), including the previously-dropped `_clear_database`.
+* **Facade wiring:** `ui/settings_dialog.py` still imports `SettingsDialogUiMixin` from `ui.settings.settings_ui_setup`; the facade aggregates the 4 mixins via inheritance. `MemePalaceBuilderDialog` inherits `MemePalaceBuilderUiMixin` + `MemePalacePipelineMixin`. MRO resolves all aggregated methods (`hasattr` checks pass).
+* **Imports:** all 10 new/changed modules import cleanly (no import-time errors in paths not covered by tests). `QPushButton` import confirmed present in `plugin_mixin.py`.
+* **Tests (re-run by Agent 3, serial, isolated TMPDIR):**
+  * Targeted: `test_settings_dialog_presets.py` + `test_mempalace_builder.py` → **8 passed**.
+  * Full default lane: **1400 passed, 1 skipped, 9 deselected** (309.90s).
+  * Performance lane: **9 passed**.
+  * `ruff check .` → **All checks passed**.
+* **Package convention:** missing `ui/mempalace/__init__.py` is **not** a defect — it matches sibling namespace packages `ui/settings/` and `ui/components/` (also without `__init__.py`); imports work.
+
+### Required before commit (commit hygiene — the only outstanding item)
+* Two untracked test-artifact directories are **NOT** gitignored and will be committed if a blanket `git add -A`/`git add .` is used:
+  * `.tmp_test_run/`
+  * `pytest-of-Administrator/`
+* **Action for Agent 1:** add both directories to `.gitignore` (preferred, durable fix), or stage only the AUD-A5 files explicitly. Do not include these in the commit. (`__pycache__` is already ignored — fine.)
+
+### Verdict
+The AUD-A5 decomposition itself is **APPROVED** — correct, complete, fully tested, ruff-clean, backward-compatible. Once the test artifacts are excluded from the commit (gitignore step above), this is **ready to commit**, together with the `AUDIT.md` archive entry which is already updated.

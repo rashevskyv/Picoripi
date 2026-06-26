@@ -41,3 +41,7 @@ resources/spellchecker/spell_cache.json
 
 # Graphify output
 graphify-out/
+
+# Test artifacts
+.tmp_test_run/
+pytest-of-Administrator/
