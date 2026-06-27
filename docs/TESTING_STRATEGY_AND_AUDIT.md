@@ -162,7 +162,7 @@ Recommended direction:
   - Complexity: Medium
   - Files: `tests/conftest.py`, `tests/test_ui/`, `tests/test_handlers/`
 
-- `[ ]` **T02. Add real Qt lifecycle smoke tests for each worker family**
+- `[x]` **T02. Add real Qt lifecycle smoke tests for each worker family**
   - Description: ensure every long-running `QThread` path has one real-thread cancel/finish/close test.
   - Complexity: Medium
   - Files: `tests/test_handlers/`, `tests/test_ui/`, `utils/thread_utils.py`
@@ -172,7 +172,7 @@ Recommended direction:
   - Complexity: Low
   - Files: CI config or release checklist, `docs/TESTING_STRATEGY_AND_AUDIT.md`
 
-- `[ ]` **T04. Add scenario tests for complete user journeys**
+- `[x]` **T04. Add scenario tests for complete user journeys**
   - Description: cover plugin switch, project restore, virtual navigation, preview refresh, save, and undo/redo in combined flows.
   - Complexity: High
   - Files: `tests/test_integration/` or focused feature directories

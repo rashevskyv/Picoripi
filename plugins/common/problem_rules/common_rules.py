@@ -298,6 +298,12 @@ class ShortLineRule(ProblemRule):
         if self._ends_with_sentence_punctuation(current_no_tags):
             return False
 
+        # Custom punctuation check for lists and phrase ends (colon, semicolon, dashes)
+        if current_no_tags:
+            last_char = current_no_tags[-1]
+            if last_char in (':', ';', '—', '–', ')', ']', '}'):
+                return False
+
         first_word_next, remaining_next = extract_first_word_with_tags(next_line)
         if not first_word_next:
             return False
@@ -320,11 +326,26 @@ class ShortLineRule(ProblemRule):
         next_words = get_line_words_and_visible_tags(next_line, mw_ref)
         threshold = context.width_threshold
 
+        # Protect headers and standalone lines: if the current line is significantly shorter
+        # than the warning threshold (less than 50%), starts with an uppercase letter,
+        # and the next line begins with an uppercase letter, treat it as a header or separate block.
+        if width_current < threshold * 0.50:
+            clean_current = remove_all_tags(current).strip()
+            if clean_current:
+                first_letter_curr_match = re.search(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ]', clean_current)
+                if first_letter_curr_match and first_letter_curr_match.group(0).isupper():
+                    clean_next_text = remove_all_tags(next_line).strip()
+                    if clean_next_text:
+                        first_letter_next_match = re.search(r'[a-zA-Zа-яА-ЯіїІїЄєґҐ]', clean_next_text)
+                        if first_letter_next_match and first_letter_next_match.group(0).isupper():
+                            return False
+
         if len(next_words) == 2:
             width_next_full = _get_string_width(next_line.strip(), context)
             return (threshold - width_current) >= (width_next_full + space_width)
 
         return (threshold - width_current) >= (width_first_word_next + space_width)
+
 
     def detect(self, context: RuleContext) -> List[ProblemMatch]:
         sublines = context.text.split('\n')

@@ -723,12 +723,12 @@ def test_autofix_page_local(mc_rules):
 
     # 4. Test that if we merge lines (e.g. short lines), non-last pages are padded back to their original line count, but the last page is not.
     mc_rules.mw.autofix_enabled[PROBLEM_SHORT_LINE] = True
-    text_short = "Line 1\nLine 2\nLine 3.\n\nLine 4\nLine 5\nLine 6."
-    # Local: Page 1 merges to "Line 1 Line 2 Line 3.", padded to 4 lines.
-    # Page 2 merges to "Line 4 Line 5 Line 6.", not padded because it is the last page.
+    text_short = "Line 1\nline 2\nline 3.\n\nLine 4\nline 5\nline 6."
+    # Local: Page 1 merges to "Line 1 line 2 line 3.", padded to 4 lines.
+    # Page 2 merges to "Line 4 line 5 line 6.", not padded because it is the last page.
     fixed_local_short, changed_local_short = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
     assert changed_local_short is True
-    assert fixed_local_short == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
+    assert fixed_local_short == "Line 1 line 2 line 3.\n\n\n\nLine 4 line 5 line 6."
 
 
 
@@ -753,17 +753,17 @@ def test_zelda_mc_autofix_page_local_prevent_empty(mc_rules):
     
     # 1. With prevent_empty_lines_in_autofix = True, local autofix should STILL pad intermediate pages to keep page boundaries
     mc_rules.mw.prevent_empty_lines_in_autofix = True
-    text_short = "Line 1\nLine 2\nLine 3.\n\nLine 4\nLine 5\nLine 6."
+    text_short = "Line 1\nline 2\nline 3.\n\nLine 4\nline 5\nline 6."
     fixed, changed = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
     assert changed is True
     # Should STILL pad intermediate page, but NOT the last page
-    assert fixed == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
+    assert fixed == "Line 1 line 2 line 3.\n\n\n\nLine 4 line 5 line 6."
 
     # 2. Reset prevent_empty_lines_in_autofix to False (should have same behavior)
     mc_rules.mw.prevent_empty_lines_in_autofix = False
     fixed_padded, changed_padded = mc_rules.autofix_data_string(text_short, {}, 1000, page_local=True)
     assert changed_padded is True
-    assert fixed_padded == "Line 1 Line 2 Line 3.\n\n\n\nLine 4 Line 5 Line 6."
+    assert fixed_padded == "Line 1 line 2 line 3.\n\n\n\nLine 4 line 5 line 6."
 
 
 def test_non_breaking_spaces_handling(bmg_rules):

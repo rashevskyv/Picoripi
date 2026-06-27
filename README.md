@@ -1,6 +1,6 @@
-# Picoripi v0.3.066-dev
+# Picoripi v0.3.067-dev
 
-The **Picoripi** (v0.3.066-dev) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.067-dev) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 
 ---
@@ -350,6 +350,8 @@ Picoripi includes a comprehensive, real-time Text Analysis and Auto-Fix engine. 
    - *Rule*: Triggers when the first word of the next subline (including any preceding visible button/icon tags) can physically fit onto the current subline without violating warning width thresholds.
    - *Lookahead Optimization*: If the next subline contains **exactly two words**, the warning will only trigger if **both** words can fit together on the current line, preventing a single word from being left isolated ("orphaned").
    - *Single-Letter Lookahead*: If the first word of the next subline is a single-letter word (e.g., "в", "й", "і", "а", "з", "у" in Cyrillic, or any single-character alphabetical word), it will only trigger a warning if **both** the single-letter word **and** the word following it can fit together on the current line. This prevents creating orphaned single-letter hanging words/prepositions at the end of lines.
+   - *List and Phrase End Protection*: Prevents merging if the current line ends with a colon (`:`), semicolon (`;`), dash (`—`, `–`), or a closing bracket/parenthesis (`)`, `]`, `}`) preceding one of these punctuation marks, protecting itemized lists and line endings from aggressive compaction.
+   - *Header & Standalone Line Protection*: Prevents merging if the current line is significantly shorter than the line width threshold (less than 50% of the threshold), starts with an uppercase letter, and the next line also begins with an uppercase letter. This keeps distinct titles, standalone labels, and menu items separated.
    - *Auto-Fix*: Merges the qualifying words from the next subline into the current subline, maintaining correct spacing.
 
 4. **Empty Odd Subline (`ZWW_EMPTY_ODD_SUBLINE_DISPLAY`) — Orange Marker (`rgba(255, 165, 0, 180)`)**

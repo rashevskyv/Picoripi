@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.067-dev] - 2026-06-27
+
+### ⚙️ Changed
+- **Line Wrapping and Merging Heuristics in ShortLineRule (AUD-L4)**:
+  - Added custom punctuation checks to prevent merging short lines that end with colons (`:`), semicolons (`;`), dashes (`—`, `–`), or closing brackets/parentheses (`]`, `}`, `)`) preceding punctuation, protecting lists and distinct phrase ends.
+  - Implemented a conservative header and standalone line protection: blocks merging of a line that is shorter than 50% of the line width threshold, starts with an uppercase letter, and the next line also starts with an uppercase letter. This keeps distinct titles, menu items, and standalone labels from being aggressively compacted.
+  - Corrected test cases in `test_spacing_rules.py` (`test_autofix_page_local` and `test_zelda_mc_autofix_page_local_prevent_empty`) to use lowercase letters for next-line continuations, avoiding false header-protection triggers in page-local padding tests.
+  - Added new test contracts `test_short_line_rule_header_protection` and `test_short_line_rule_punctuation_protection` to `test_rule_engine_contract.py`.
+- **Version Updates**: Bumped version to `0.3.067-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `AUDIT.md`.
+
 ## [0.3.066-dev] - 2026-06-26
 
 ### ⚙️ Changed

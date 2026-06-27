@@ -33,6 +33,30 @@ class CustomListItemDelegate(QStyledItemDelegate):
             "blue": QColor(Qt.GlobalColor.blue),
         }
 
+        # Cached QColors for performance optimization (AUD-P9)
+        self._color_selected_default = QColor("#0078D7")
+        self._color_dark_selected_bg = QColor("#0078D7").darker(110)
+        self._color_dark_normal_bg = QColor("#383838")
+        self._color_dark_normal_text = QColor("#B0B0B0")
+        self._color_light_selected_bg = QColor("#0078D7").darker(105)
+        self._color_light_normal_bg = QColor("#F0F0F0")
+        self._color_white = QColor(Qt.GlobalColor.white)
+        self._color_dark_gray = QColor(Qt.GlobalColor.darkGray)
+        
+        self._color_metadata_indicator = QColor(148, 0, 211)
+        self._color_metadata_indicator_dark = QColor(148, 0, 211)
+        self._color_metadata_indicator_dark.setAlpha(180)
+        
+        self._color_progress_bg = QColor(46, 139, 87, 25)
+        
+        self._color_cloud_light = QColor("#FFFFFF")
+        self._color_cloud_dark = QColor("#E0E0E0")
+        self._color_cloud_border_light = QColor("#44AADD")
+        self._color_cloud_border_dark = QColor("#2288CC")
+        
+        self._color_text_gray_light = QColor(140, 140, 140)
+        self._color_text_gray_dark = QColor(160, 160, 160)
+
     def _get_current_number_area_width(self, option: QStyleOptionViewItem) -> int:
         """Internal helper to get the current number area width."""
         font_to_use = option.font
@@ -98,7 +122,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 is_drag_hover = True
         
         if is_selected or is_drag_hover:
-            highlight_color = option.palette.highlight().color() if is_selected else QColor("#0078D7")
+            highlight_color = option.palette.highlight().color() if is_selected else self._color_selected_default
             painter.fillRect(option.rect, highlight_color)
         else:
             is_alternate = option.features & QStyleOptionViewItem.ViewItemFeature.Alternate
@@ -115,18 +139,18 @@ class CustomListItemDelegate(QStyledItemDelegate):
 
         if theme == 'dark':
             if is_selected or is_drag_hover:
-                number_area_bg = QColor("#0078D7").darker(110)
+                number_area_bg = self._color_dark_selected_bg
                 number_text_color = option.palette.color(QPalette.HighlightedText)
             else:
-                number_area_bg = QColor("#383838")
-                number_text_color = QColor("#B0B0B0")
+                number_area_bg = self._color_dark_normal_bg
+                number_text_color = self._color_dark_normal_text
         else:
             if is_selected or is_drag_hover:
-                number_area_bg = QColor("#0078D7").darker(105)
-                number_text_color = QColor(Qt.GlobalColor.white)
+                number_area_bg = self._color_light_selected_bg
+                number_text_color = self._color_white
             else:
-                number_area_bg = QColor("#F0F0F0")
-                number_text_color = QColor(Qt.GlobalColor.darkGray)
+                number_area_bg = self._color_light_normal_bg
+                number_text_color = self._color_dark_gray
         
         active_color_markers_for_block = set()
         block_idx_data = index.data(Qt.ItemDataRole.UserRole)
@@ -292,9 +316,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
         
         # Add metadata custom indicator strip (purple) first if has_metadata_changes is True
         if has_metadata_changes:
-            metadata_color = QColor(148, 0, 211)
-            if theme == 'dark':
-                metadata_color.setAlpha(180)
+            metadata_color = self._color_metadata_indicator_dark if theme == 'dark' else self._color_metadata_indicator
             problem_indicator_colors_to_draw.append(metadata_color)
 
         # Progress bar fill (Progress Visualisation)
@@ -365,8 +387,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
             if fill_w > 0:
                 progress_rect = QRect(x_start, item_rect.top(), fill_w, item_rect.height())
                 # Soft pastel-green background with 25 alpha (SeaGreen color)
-                progress_color = QColor(46, 139, 87, 25)
-                painter.fillRect(progress_rect, progress_color)
+                painter.fillRect(progress_rect, self._color_progress_bg)
         if problem_definitions and block_problem_counts:
             sorted_block_problem_ids = sorted(
                 block_problem_counts.keys(),
@@ -457,8 +478,8 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 if category_name:
                     painter.save()
                     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-                    cloud_color = QColor("#FFFFFF") if theme == "light" else QColor("#E0E0E0")
-                    cloud_border = QColor("#44AADD") if theme == "light" else QColor("#2288CC")
+                    cloud_color = self._color_cloud_light if theme == "light" else self._color_cloud_dark
+                    cloud_border = self._color_cloud_border_light if theme == "light" else self._color_cloud_border_dark
                     painter.setPen(cloud_border)
                     painter.setBrush(cloud_color)
                     
@@ -552,7 +573,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                 name_actual_w = metrics.horizontalAdvance(name_str)
                 meta_rect = text_rect.adjusted(name_actual_w, 0, 0, 0)
                 if not (is_selected or is_drag_hover):
-                    painter.setPen(QColor(140, 140, 140) if theme == 'light' else QColor(160, 160, 160))
+                    painter.setPen(self._color_text_gray_light if theme == 'light' else self._color_text_gray_dark)
                 painter.drawText(meta_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, meta_str)
             else:
                 # Still prioritize name. 
@@ -567,7 +588,7 @@ class CustomListItemDelegate(QStyledItemDelegate):
                     meta_rect = text_rect.adjusted(name_disp_w, 0, 0, 0)
                     elided_meta = metrics.elidedText(meta_str, Qt.TextElideMode.ElideRight, total_w - name_disp_w)
                     if not (is_selected or is_drag_hover):
-                        painter.setPen(QColor(140, 140, 140) if theme == 'light' else QColor(160, 160, 160))
+                        painter.setPen(self._color_text_gray_light if theme == 'light' else self._color_text_gray_dark)
                     painter.drawText(meta_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided_meta)
         else:
             # No metadata

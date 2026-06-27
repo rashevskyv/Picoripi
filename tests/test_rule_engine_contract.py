@@ -130,6 +130,32 @@ def test_short_line_rule_contract(base_profile):
     fixed_context = build_context(res.text, base_profile)
     assert len(rule.detect(fixed_context)) == 0
 
+def test_short_line_rule_header_protection(base_profile):
+    rule = ShortLineRule()
+    # "Abc" is short (width < 50% of threshold=100), but next line starts with uppercase "Def"
+    dirty_text = "Abc\nDef"
+    context = build_context(dirty_text, base_profile)
+
+    matches = rule.detect(context)
+    # Header should not be flagged as a short line (no merge expected)
+    assert len(matches) == 0
+
+def test_short_line_rule_punctuation_protection(base_profile):
+    rule = ShortLineRule()
+    # "abc:" ends with colon, which is a list indicator, so it should not be merged
+    dirty_text = "abc:\ndef"
+    context = build_context(dirty_text, base_profile)
+
+    matches = rule.detect(context)
+    assert len(matches) == 0
+
+    # "abc;" ends with semicolon, should not be merged
+    dirty_text = "abc;\ndef"
+    context = build_context(dirty_text, base_profile)
+
+    matches = rule.detect(context)
+    assert len(matches) == 0
+
 def test_single_word_subline_rule_contract(base_profile):
     rule = SingleWordSublineRule()
     # A single word on the second line (index 1) which is lowercase, not starting sentence
