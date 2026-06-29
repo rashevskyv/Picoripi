@@ -215,7 +215,7 @@ class NewProjectDialog(QDialog):
             self,
             "Select Project Location",
             self._get_start_dir(self.dir_edit.text()),
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
         )
 
         if directory:
@@ -228,7 +228,7 @@ class NewProjectDialog(QDialog):
         if self.radio_folders.isChecked():
             directory = QFileDialog.getExistingDirectory(
                 self, "Select Source Directory", start_dir,
-                QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+                QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
             )
             if directory: 
                 self.source_edit.setText(directory)
@@ -248,7 +248,7 @@ class NewProjectDialog(QDialog):
         if self.radio_folders.isChecked():
             directory = QFileDialog.getExistingDirectory(
                 self, "Select Translation Directory", start_dir,
-                QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+                QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
             )
             if directory: 
                 self.trans_edit.setText(directory)
