@@ -55,8 +55,12 @@ class StoryContextManager:
                         break
                     # Also check immediately adjacent sibling folders
                     parent_dir = os.path.dirname(curr)
-                    if parent_dir and parent_dir != curr:
-                        for sibling in os.listdir(parent_dir):
+                    if parent_dir and parent_dir != curr and os.path.isdir(parent_dir):
+                        try:
+                            siblings = os.listdir(parent_dir)
+                        except OSError:
+                            siblings = []
+                        for sibling in siblings:
                             sibling_path = os.path.join(parent_dir, sibling)
                             if os.path.isdir(sibling_path):
                                 test_path_sib = os.path.join(sibling_path, db_file)
