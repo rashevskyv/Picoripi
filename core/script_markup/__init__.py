@@ -6,10 +6,23 @@ reused across plugins. The Qt dialog lives in ui/script_markup_studio_dialog.py.
 """
 from .markup_recipe import MarkupRecipe, default_recipe, LineKind
 from .markup_engine import classify_lines, render_psm, convert, ConversionResult, ClassifiedLine
+from .hierarchy_markup import (
+    BREAKER_LINE,
+    HierarchyMark,
+    HierarchyNode,
+    HierarchyType,
+    HierarchyTypeDefinition,
+    build_hierarchy_tree,
+    default_type_definitions,
+    line_styles_for_marks,
+    mark_text,
+    render_hierarchy_markdown,
+)
 from .picoripi_rules import (
     parse_with_rules,
     transcript_to_psm,
     summarize_transcript,
+    annotate_source_lines,
     highlight_kinds_from_transcript,
 )
 from .line_map import build_line_map, nearest_output
@@ -23,9 +36,20 @@ __all__ = [
     "convert",
     "ConversionResult",
     "ClassifiedLine",
+    "BREAKER_LINE",
+    "HierarchyMark",
+    "HierarchyNode",
+    "HierarchyType",
+    "HierarchyTypeDefinition",
+    "build_hierarchy_tree",
+    "default_type_definitions",
+    "line_styles_for_marks",
+    "mark_text",
+    "render_hierarchy_markdown",
     "parse_with_rules",
     "transcript_to_psm",
     "summarize_transcript",
+    "annotate_source_lines",
     "highlight_kinds_from_transcript",
     "build_line_map",
     "nearest_output",

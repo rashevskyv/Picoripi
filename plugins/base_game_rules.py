@@ -296,10 +296,23 @@ class BaseGameRules:
                 current_chapter = "Foreword"
                 last_speaker = "Dialogue/Narrator"
                 last_brackets = ""
+                open_bracket_action = None
 
                 for idx, line in enumerate(lines):
                     line = line.strip()
                     if not line:
+                        if open_bracket_action:
+                            last_brackets = " ".join(open_bracket_action).strip()
+                            open_bracket_action = None
+                        continue
+
+                    if open_bracket_action is not None:
+                        if line.endswith("]"):
+                            open_bracket_action.append(line[:-1].strip())
+                            last_brackets = " ".join(open_bracket_action).strip()
+                            open_bracket_action = None
+                        else:
+                            open_bracket_action.append(line)
                         continue
                     
                     # 1. Detect Wave separators (e.g. ~~~~~~~~~~~~~~~~~~~~~~~~) to split micro-scenes
@@ -336,6 +349,9 @@ class BaseGameRules:
                     # 5. Fallback: Detect classic action descriptions in brackets [...]
                     if line.startswith("[") and line.endswith("]"):
                         last_brackets = line[1:-1].strip()
+                        continue
+                    if line.startswith("["):
+                        open_bracket_action = [line[1:].strip()]
                         continue
 
                     # 6. Detect Standard Inline Speaker dialogue (e.g. "ZELDA: I must find Link.")

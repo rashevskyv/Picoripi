@@ -2,6 +2,15 @@ import os
 import re
 from typing import Dict, List, Any, Optional
 
+
+def _clean_action_text(text: str) -> str:
+    action = (text or "").strip()
+    italic = re.fullmatch(r"(?:\*(?P<star>.*?)\*|_(?P<under>.*?)_)", action)
+    if italic:
+        action = (italic.group("star") or italic.group("under") or "").strip()
+    return action
+
+
 def parse_markdown_script(file_path: str) -> Dict[str, Any]:
     """
     Parse a standardized Markdown game script file into structured data.
@@ -49,10 +58,13 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
     
     sub_bullet_regex = re.compile(r'^\s+[\-\*]\s*\*\*(?P<key>[a-zA-Z0-9_\s]+)\*\*:\s*`?(?P<val>.*?)`?$', re.IGNORECASE)
     
-    chapter_regex = re.compile(r'^(?:#|##)\s+(Chapter\s+[IVXLCDM\d]+|Act\s+[A-Za-z\d]+|Prologue|Epilogue)\s*[:\-–—]?\s*(.*)', re.IGNORECASE)
+    chapter_regex = re.compile(r'^(?:#{1,6})\s+(Chapter\s+[^:\-–—]+|Act\s+[^:\-–—]+|Prologue|Epilogue)\s*[:\-–—]?\s*(.*)', re.IGNORECASE)
     location_regex = re.compile(r'^###\s*Location:\s*(.*)', re.IGNORECASE)
-    action_regex = re.compile(r'^\{(?:Action|Context):\s*(.*)\}', re.IGNORECASE)
-    dialogue_regex = re.compile(r'^([A-Z0-9_\s\-#]{2,}):\s*(.*)$')
+    action_regex = re.compile(
+        r'^(?:\{(?:Action|Context):\s*(?P<braced>.*)\}|\[(?P<bracketed>.*)\])$',
+        re.IGNORECASE,
+    )
+    dialogue_regex = re.compile(r'^(?:\*\*(?P<bold>[^*]+)\*\*|(?P<plain>[A-Z0-9_\s\-#]{2,})):\s*(?P<text>.*)$')
 
     for idx, raw_line in enumerate(lines):
         line_num = idx + 1
@@ -197,14 +209,16 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
             # Detect Action
             act_match = action_regex.match(line)
             if act_match:
-                current_action = act_match.group(1).strip()
+                current_action = _clean_action_text(
+                    act_match.group("braced") or act_match.group("bracketed") or ""
+                )
                 continue
 
             # Detect Dialogue line
             dia_match = dialogue_regex.match(line)
             if dia_match:
-                speaker = dia_match.group(1).strip()
-                text = dia_match.group(2).strip()
+                speaker = (dia_match.group("bold") or dia_match.group("plain") or "").strip()
+                text = dia_match.group("text").strip()
                 
                 # Check for standard Markdown links or other false positives
                 # If speaker has spaces/punctuation that are not in character names, check

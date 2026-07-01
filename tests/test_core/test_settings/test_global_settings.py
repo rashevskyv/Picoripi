@@ -189,3 +189,21 @@ def test_GlobalSettings_saves_and_loads_tooltip_font_size(mock_mw, tmp_path):
     s.load(d)
     assert d["tooltip_font_size"] == 18
     assert mock_mw.tooltip_font_size == 18
+
+
+def test_GlobalSettings_saves_and_loads_script_markup_studio_geometry(mock_mw, tmp_path):
+    f = tmp_path / "settings.json"
+    s = GlobalSettings(mock_mw, f)
+
+    geom = {"x": 50, "y": 60, "width": 900, "height": 720}
+    mock_mw.script_markup_studio_geometry = geom
+    s.save({})
+
+    saved = json.loads(f.read_text())
+    assert saved["script_markup_studio_geometry"] == geom
+
+    mock_mw.script_markup_studio_geometry = None
+    d = {}
+    s.load(d)
+    assert d["script_markup_studio_geometry"] == geom
+    assert mock_mw.script_markup_studio_geometry == geom

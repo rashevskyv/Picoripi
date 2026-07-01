@@ -65,23 +65,31 @@ Example:
 ---
 
 ## 4. Chronological Dialogue Timeline
-Organize dialogues into Chapters, Locations, and Actions. 
-- Use Level 1 headers (`#`) or Level 2 headers (`##`) starting with `Chapter` or `Act` to define chapters.
-- Use Level 3 headers (`###`) starting with `Location:` to define room/area boundaries.
-- Use curly braces `{Action: ...}` to define visual context.
-- Use `SPEAKER_ID: Dialogue text` format for dialogues.
+Organize dialogues as a hierarchy of Structures, Speakers, Text, Actions, Notes,
+Breakers, and Narrator lines.
+- Use Markdown headings (`#`, `##`, `###`, etc.) for Structure nodes such as acts,
+  chapters, scenes, and locations. Heading depth reflects hierarchy depth.
+- Mark speakers and spoken text separately in Script Markup Studio; in Markdown
+  they render together as `**SPEAKER_ID**: Dialogue text`.
+- Use square brackets `[Action text]` for standalone action/context nodes.
+- Use inline notes in parentheses, e.g. `(whispering)`.
+- Use `~~~~~~~~~~~~~~~~~~~~~~~~` as a logical breaker between scene parts.
+- Use bold standalone text for narrator lines, e.g. `**The forest goes quiet.**`.
 
-# Chapter I: The Forest Encounter
-This chapter covers Link's first meeting with Midna in the Faron Woods.
+# Act I: The Twilight Encounter
 
-### Location: Ordon Woods - Pathway
+## Chapter I: Ordon Woods - Pathway
 
-{Action: Link is walking along the path when Midna suddenly drops down from a tree branch}
+[Link is walking along the path when Midna suddenly drops down from a tree branch]
 
-MIDNA: Well, look what we have here!
-ZELDA: Midna, please, we must be careful.
+**MIDNA**: Well, look what we have here!
+**ZELDA**: Midna, please, we must be careful.
 
-{Action: Zelda steps forward, pointing to a strange dark portal appearing in the distance}
+[Zelda steps forward, pointing to a strange dark portal appearing in the distance]
 
-ZELDA: Do you see that purple fog ahead?
-MIDNA: Yeah, looks like trouble. Link, get your sword ready!
+**ZELDA**: Do you see that purple fog ahead?
+**MIDNA**: Yeah, looks like trouble. Link, get your sword ready!
+
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**The wind stops, and the path ahead darkens.**

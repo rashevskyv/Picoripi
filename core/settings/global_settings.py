@@ -96,6 +96,7 @@ class GlobalSettings:
             "log_ai_traffic": False,
             "show_force_alias_warning": True,
             "variations_window_geometry": None,
+            "script_markup_studio_geometry": None,
             "variations_splitter_state": None,
             "hide_empty_strings": False,
             "last_advanced_search_query": ""
@@ -250,6 +251,7 @@ class GlobalSettings:
             "log_ai_traffic": bool(getattr(self.mw, 'log_ai_traffic', False)) if isinstance(getattr(self.mw, 'log_ai_traffic', False), bool) else False,
             "show_force_alias_warning": bool(getattr(self.mw, 'show_force_alias_warning', True)) if isinstance(getattr(self.mw, 'show_force_alias_warning', True), bool) else True,
             "variations_window_geometry": getattr(self.mw, 'variations_window_geometry', None) if isinstance(getattr(self.mw, 'variations_window_geometry', None), dict) else None,
+            "script_markup_studio_geometry": getattr(self.mw, 'script_markup_studio_geometry', None) if isinstance(getattr(self.mw, 'script_markup_studio_geometry', None), dict) else None,
             "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None,
             "hide_empty_strings": bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)) if isinstance(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False), bool) else False,
             "last_advanced_search_query": getattr(self.mw, 'last_advanced_search_query', "") if isinstance(getattr(self.mw, 'last_advanced_search_query', None), str) else ""

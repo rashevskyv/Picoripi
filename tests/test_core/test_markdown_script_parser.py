@@ -122,6 +122,34 @@ ZELDA: But the danger is too great.
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+
+def test_parse_hierarchy_markdown_speaker_and_square_action():
+    md_content = """# Act I: Opening
+
+[*Midna drops from a branch*]
+**MIDNA**: Well, look what we have here.
+~~~~~~~~~~~~~~~~~~~~~~~~
+**The forest goes quiet.**
+"""
+
+    temp_path = "temp_test_hierarchy_markdown_script.md"
+    try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            f.write(md_content)
+
+        data = parse_markdown_script(temp_path)
+
+        assert len(data["chapters"]) == 1
+        assert data["chapters"][0]["num"] == "Act I"
+        assert data["chapters"][0]["title"] == "Opening"
+        assert len(data["dialogues"]) == 1
+        assert data["dialogues"][0]["speaker"] == "MIDNA"
+        assert data["dialogues"][0]["text"] == "Well, look what we have here."
+        assert data["dialogues"][0]["timestamp"] == "Action: Midna drops from a branch"
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
 if __name__ == "__main__":
     print("Running markdown parser tests...")
     test_parse_markdown_script()
