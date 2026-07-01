@@ -30,6 +30,7 @@ from PyQt6.QtGui import (
     QShortcut, QKeySequence, QTextFormat, QTextBlockFormat, QPainter, QPen,
 )
 from PyQt6.QtCore import Qt, QTimer, QEvent, QPoint, QRect, QSize, QItemSelectionModel
+from PyQt6.QtCore import QThread, QObject, pyqtSignal
 from core.script_markup import (
     convert, default_recipe, LineKind,
     parse_with_rules, transcript_to_psm, summarize_transcript,
@@ -37,6 +38,8 @@ from core.script_markup import (
     HierarchyMark, HierarchyType, HierarchyTypeDefinition,
     default_type_definitions, line_styles_for_marks, mark_text,
     render_hierarchy_markdown,
+    HierarchyAIPromptTooLarge, build_hierarchy_auto_markup_messages,
+    parse_hierarchy_auto_markup_response,
 )
 from core.script_markup.markup_engine import render_psm
 from core.script_markup.markup_recipe import MarkupRecipe
@@ -44,6 +47,9 @@ from core.script_markup.learn import (
     learn_speaker_pattern, learn_speaker_pattern_from_parts,
     learn_ignore_pattern, learn_header_pattern,
 )
+from core.translation.config import build_default_translation_config, merge_translation_config
+from core.translation.providers import TranslationProviderError, create_translation_provider
+from components.ai_status_dialog import AIStatusDialog
 from utils.logging_utils import log_info, log_error
 from utils.constants import SETTINGS_DIR
 
@@ -211,6 +217,8 @@ grey for lines that are dropped. There is no second pane to keep in sync; press
   <li><b>Note</b> renders inline in parentheses, <b>Breaker</b> renders as
       <code>~~~~~~~~~~~~~~~~~~~~~~~~</code>, and <b>Narrator</b> renders as bold
       standalone text.</li>
+  <li><b>AI mark unmarked</b> sends your approved hierarchy marks as examples
+      and asks the configured AI provider to add only missing nodes.</li>
 </ul>
 
 <h3>&ldquo;Mark current line as&hellip;&rdquo; <span style="font-weight:normal;color:#777;">(Custom recipe)</span></h3>
@@ -473,6 +481,58 @@ class _ScriptTreeWidget(QTreeWidget):
         event.ignore()
 
 
+class _HierarchyAIWorker(QObject):
+    """Background worker for one-shot hierarchy auto-markup."""
+
+    success = pyqtSignal(list, list, str)
+    error = pyqtSignal(str)
+    finished = pyqtSignal()
+
+    def __init__(
+        self,
+        provider,
+        messages: list[dict[str, str]],
+        raw_line_count: int,
+        type_definitions: dict[str, HierarchyTypeDefinition],
+    ):
+        super().__init__()
+        self.provider = provider
+        self.messages = messages
+        self.raw_line_count = raw_line_count
+        self.type_definitions = type_definitions
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True
+        cancel_stream = getattr(self.provider, "cancel_active_stream", None)
+        if callable(cancel_stream):
+            cancel_stream()
+
+    def run(self):
+        try:
+            response = self.provider.translate(
+                self.messages,
+                session=None,
+                settings_override={"temperature": 0.0},
+            )
+            if self.is_cancelled:
+                return
+            response_text = response.text or ""
+            marks, warnings = parse_hierarchy_auto_markup_response(
+                response_text,
+                raw_line_count=self.raw_line_count,
+                type_definitions=self.type_definitions,
+            )
+            if self.is_cancelled:
+                return
+            self.success.emit(marks, warnings, response_text)
+        except Exception as exc:
+            if not self.is_cancelled:
+                self.error.emit(str(exc))
+        finally:
+            self.finished.emit()
+
+
 class ScriptMarkupStudioDialog(QDialog):
     """Single-view studio for marking up raw game scripts."""
 
@@ -514,6 +574,10 @@ class ScriptMarkupStudioDialog(QDialog):
         self._history_text_dirty = False
         self._preview_dialog: QDialog | None = None
         self._preview_view: QPlainTextEdit | None = None
+        self._hierarchy_ai_thread: QThread | None = None
+        self._hierarchy_ai_worker: _HierarchyAIWorker | None = None
+        self._hierarchy_ai_status: AIStatusDialog | None = None
+        self._hierarchy_ai_last_response = ""
 
         self.setWindowTitle("Script Markup Studio")
         self.resize(900, 720)
@@ -585,6 +649,13 @@ class ScriptMarkupStudioDialog(QDialog):
         self.save_template_btn.setToolTip("Save type definitions and marked examples for AI reuse.")
         self.save_template_btn.clicked.connect(self._save_hierarchy_template)
         top.addWidget(self.save_template_btn)
+
+        self.ai_markup_btn = QPushButton("AI mark unmarked...")
+        self.ai_markup_btn.setToolTip(
+            "Send the current manual hierarchy examples and unmarked ranges to the configured AI provider."
+        )
+        self.ai_markup_btn.clicked.connect(self._run_hierarchy_ai_markup)
+        top.addWidget(self.ai_markup_btn)
 
         self.path_label = QLabel("No file loaded")
         self.path_label.setStyleSheet("color:#666;")
@@ -2185,6 +2256,7 @@ class ScriptMarkupStudioDialog(QDialog):
             return False
 
     def closeEvent(self, event):
+        self._cancel_hierarchy_ai_markup()
         self._save_autosaved_session()
         self._save_window_geometry()
         if self.mw is not None and hasattr(self.mw, "script_markup_studio_dialog"):
@@ -2488,7 +2560,10 @@ class ScriptMarkupStudioDialog(QDialog):
     def _covered_hierarchy_lines(self) -> set[int]:
         covered: set[int] = set()
         for mark in self.hierarchy_marks:
-            covered.update(range(mark.start_line, mark.end_line + 1))
+            if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.SPEAKER):
+                covered.add(mark.start_line)
+            else:
+                covered.update(range(mark.start_line, mark.end_line + 1))
         return covered
 
     def _unmarked_ranges(self, raw_lines: list[str]) -> list[tuple[int, int]]:
@@ -2926,6 +3001,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self.save_markup_btn.setVisible(hierarchy)
         self.load_template_btn.setVisible(hierarchy)
         self.save_template_btn.setVisible(hierarchy)
+        self.ai_markup_btn.setVisible(hierarchy)
         self.range_panel.setVisible(not hierarchy)
         if not hierarchy and self._is_hierarchy_editing():
             self._stop_range_edit()
@@ -2992,7 +3068,7 @@ class ScriptMarkupStudioDialog(QDialog):
         if unmarked_line_count <= _MAX_UNMARKED_HIGHLIGHT_LINES:
             for start, end in unmarked_ranges:
                 for idx in range(start, end + 1):
-                    styles.setdefault(idx, (HierarchyType.UNMARKED, unmarked_def.color))
+                    styles[idx] = (HierarchyType.UNMARKED, unmarked_def.color)
         line_kinds = {idx: type_id for idx, (type_id, _color) in styles.items()}
         line_colors = {idx: color for idx, (_type_id, color) in styles.items()}
         self.highlighter.set_line_kinds(line_kinds, line_colors=line_colors)
@@ -4136,6 +4212,179 @@ class ScriptMarkupStudioDialog(QDialog):
             "rendered_example_markdown": self._psm_text,
             "ai_instructions": self._hierarchy_ai_instructions(),
         }
+
+    def _hierarchy_ai_is_running(self) -> bool:
+        return self._hierarchy_ai_thread is not None
+
+    def _create_hierarchy_ai_provider(self):
+        config = getattr(self.mw, "translation_config", None)
+        if not isinstance(config, dict):
+            config = {}
+        config = merge_translation_config(build_default_translation_config(), config)
+        provider_key = config.get("provider", "disabled")
+        if not provider_key or provider_key == "disabled":
+            QMessageBox.information(
+                self,
+                "AI markup",
+                "AI provider is disabled. Configure it in AI Translation settings first.",
+            )
+            return None, "", ""
+        provider_settings = config.get("providers", {}).get(provider_key, {})
+        if not isinstance(provider_settings, dict) or not provider_settings:
+            QMessageBox.warning(
+                self,
+                "AI markup",
+                f"No AI provider settings found for '{provider_key}'.",
+            )
+            return None, "", ""
+        try:
+            provider = create_translation_provider(provider_key, provider_settings)
+            model_name = str(provider_settings.get("model") or provider_key)
+            return provider, str(provider_key), model_name
+        except TranslationProviderError as exc:
+            QMessageBox.critical(self, "AI markup", str(exc))
+            return None, "", ""
+
+    def _run_hierarchy_ai_markup(self):
+        if self._hierarchy_ai_is_running():
+            return
+        if self.mode != "hierarchy":
+            self._switch_to_hierarchy_mode()
+        self._flush_pending_history()
+        raw_text = self.raw_edit.toPlainText()
+        raw_lines = raw_text.splitlines()
+        if not raw_text.strip():
+            QMessageBox.information(self, "AI markup", "Load a raw script first.")
+            return
+        unmarked_ranges = self._unmarked_ranges(raw_lines)
+        if not unmarked_ranges:
+            QMessageBox.information(self, "AI markup", "There are no unmarked lines left.")
+            return
+        try:
+            prepared = build_hierarchy_auto_markup_messages(self._hierarchy_project_payload())
+        except HierarchyAIPromptTooLarge as exc:
+            QMessageBox.warning(
+                self,
+                "AI markup request is too large",
+                f"{exc}\n\nMark a smaller section first, then run AI markup again.",
+            )
+            return
+
+        provider, _provider_key, model_name = self._create_hierarchy_ai_provider()
+        if provider is None:
+            return
+
+        self.ai_markup_btn.setEnabled(False)
+        status = AIStatusDialog(self)
+        status.start("AI hierarchy markup", model_name=model_name)
+        status.update_step(0, "Prepared hierarchy examples and unmarked ranges", AIStatusDialog.STATUS_DONE)
+        status.update_step(
+            1,
+            f"Sending {prepared.unmarked_range_count} unmarked ranges to AI",
+            AIStatusDialog.STATUS_IN_PROGRESS,
+        )
+        self._hierarchy_ai_status = status
+
+        thread = QThread(self)
+        worker = _HierarchyAIWorker(
+            provider,
+            prepared.messages,
+            len(raw_lines),
+            dict(self.hierarchy_type_definitions),
+        )
+        self._hierarchy_ai_thread = thread
+        self._hierarchy_ai_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.success.connect(self._on_hierarchy_ai_success)
+        worker.error.connect(self._on_hierarchy_ai_error)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._on_hierarchy_ai_thread_finished)
+        status.cancelled.connect(self._cancel_hierarchy_ai_markup)
+        thread.start()
+
+    def _mark_inside_ranges(self, mark: HierarchyMark, ranges: list[tuple[int, int]]) -> bool:
+        return any(start <= mark.start_line and mark.end_line <= end for start, end in ranges)
+
+    def _apply_hierarchy_ai_marks(self, marks: list[HierarchyMark]) -> tuple[int, int]:
+        raw_lines = self.raw_edit.toPlainText().splitlines()
+        unmarked_ranges = self._unmarked_ranges(raw_lines)
+        existing_keys = {
+            (mark.start_line, mark.end_line, mark.depth, mark.type_id)
+            for mark in self.hierarchy_marks
+        }
+        added: list[HierarchyMark] = []
+        skipped = 0
+        for mark in marks:
+            key = (mark.start_line, mark.end_line, mark.depth, mark.type_id)
+            if key in existing_keys or not self._mark_inside_ranges(mark, unmarked_ranges):
+                skipped += 1
+                continue
+            existing_keys.add(key)
+            added.append(HierarchyMark(
+                start_line=mark.start_line,
+                end_line=mark.end_line,
+                depth=mark.depth,
+                type_id=mark.type_id,
+                text=mark.text,
+                label=mark.label,
+                description=mark.description,
+                color=mark.color,
+                order=self._next_hierarchy_order(),
+            ))
+        if not added:
+            return 0, skipped
+        self.hierarchy_marks.extend(added)
+        self._outline_reveal_keys.update(self._hierarchy_mark_key(mark) for mark in added)
+        self._refresh()
+        self._record_history()
+        return len(added), skipped
+
+    def _on_hierarchy_ai_success(self, marks: list, warnings: list, response_text: str):
+        self._hierarchy_ai_last_response = response_text
+        status = self._hierarchy_ai_status
+        if status is not None:
+            status.update_step(1, "AI response received", AIStatusDialog.STATUS_DONE)
+            status.update_step(2, "Validated returned JSON", AIStatusDialog.STATUS_DONE)
+            status.update_step(3, "Applying hierarchy marks", AIStatusDialog.STATUS_IN_PROGRESS)
+        added, skipped = self._apply_hierarchy_ai_marks(marks)
+        if status is not None:
+            status.update_step(3, "Applied hierarchy marks", AIStatusDialog.STATUS_DONE)
+            status.update_step(4, "Updated script tree and preview", AIStatusDialog.STATUS_DONE)
+            status.finish(success=True, show_popup=False)
+
+        details = [f"Added {added} hierarchy marks."]
+        if skipped:
+            details.append(f"Skipped {skipped} marks outside unmarked ranges or duplicates.")
+        if warnings:
+            details.append("")
+            details.append("Warnings:")
+            details.extend(f"- {warning}" for warning in warnings[:8])
+            if len(warnings) > 8:
+                details.append(f"- ...and {len(warnings) - 8} more.")
+        QMessageBox.information(self, "AI markup finished", "\n".join(details))
+
+    def _on_hierarchy_ai_error(self, message: str):
+        status = self._hierarchy_ai_status
+        if status is not None:
+            status.update_step(2, "AI response could not be used", AIStatusDialog.STATUS_ERROR)
+            status.finish(success=False, show_popup=False)
+        QMessageBox.warning(self, "AI markup failed", message or "AI markup failed.")
+
+    def _cancel_hierarchy_ai_markup(self):
+        if self._hierarchy_ai_worker is not None:
+            self._hierarchy_ai_worker.cancel()
+
+    def _on_hierarchy_ai_thread_finished(self):
+        if self._hierarchy_ai_status is not None and self._hierarchy_ai_status.is_running:
+            self._hierarchy_ai_status.finish(success=False, show_popup=False)
+        self._hierarchy_ai_thread = None
+        self._hierarchy_ai_worker = None
+        self._hierarchy_ai_status = None
+        if hasattr(self, "ai_markup_btn"):
+            self.ai_markup_btn.setEnabled(True)
 
     def _write_json_payload(self, title: str, default_name: str, payload: dict) -> bool:
         path, _ = QFileDialog.getSaveFileName(self, title, default_name, "JSON (*.json)")

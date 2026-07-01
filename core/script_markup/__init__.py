@@ -18,6 +18,13 @@ from .hierarchy_markup import (
     mark_text,
     render_hierarchy_markdown,
 )
+from .hierarchy_ai import (
+    MAX_AUTO_MARKUP_PROMPT_CHARS,
+    HierarchyAIMessages,
+    HierarchyAIPromptTooLarge,
+    build_hierarchy_auto_markup_messages,
+    parse_hierarchy_auto_markup_response,
+)
 from .picoripi_rules import (
     parse_with_rules,
     transcript_to_psm,
@@ -46,6 +53,11 @@ __all__ = [
     "line_styles_for_marks",
     "mark_text",
     "render_hierarchy_markdown",
+    "MAX_AUTO_MARKUP_PROMPT_CHARS",
+    "HierarchyAIMessages",
+    "HierarchyAIPromptTooLarge",
+    "build_hierarchy_auto_markup_messages",
+    "parse_hierarchy_auto_markup_response",
     "parse_with_rules",
     "transcript_to_psm",
     "summarize_transcript",

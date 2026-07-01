@@ -2,9 +2,12 @@ from core.script_markup import (
     BREAKER_LINE,
     HierarchyMark,
     HierarchyType,
+    HierarchyAIPromptTooLarge,
     build_hierarchy_tree,
+    build_hierarchy_auto_markup_messages,
     default_type_definitions,
     line_styles_for_marks,
+    parse_hierarchy_auto_markup_response,
     render_hierarchy_markdown,
 )
 
@@ -218,4 +221,88 @@ def test_ignored_and_unmarked_types_do_not_render_to_markdown():
     assert "Legal notice" not in rendered
     assert "Needs work" not in rendered
     assert "# Act I" in rendered
+
+
+def test_build_hierarchy_auto_markup_messages_uses_unmarked_source_blocks():
+    payload = {
+        "raw_text": "Act One\nScene One\nRUSL\nHello.\n",
+        "type_definitions": [
+            {"type_id": "structure", "label": "Structure"},
+            {"type_id": "speaker", "label": "Speaker"},
+            {"type_id": "text", "label": "Text"},
+        ],
+        "hierarchy_marks": [
+            {"start_line": 0, "end_line": 1, "depth": 0, "type_id": "structure"},
+        ],
+        "unmarked_ranges": [
+            {"start_line": 2, "end_line": 3},
+        ],
+        "ai_instructions": ["Depth 1 is inside depth 0."],
+    }
+
+    prepared = build_hierarchy_auto_markup_messages(payload)
+    user_text = prepared.messages[1]["content"]
+
+    assert prepared.unmarked_range_count == 1
+    assert '"line_number": 3' in user_text
+    assert '"text": "RUSL"' in user_text
+    assert "approved_hierarchy_marks" in user_text
+    assert "Return only valid JSON" in prepared.messages[0]["content"]
+
+
+def test_build_hierarchy_auto_markup_messages_rejects_huge_prompt():
+    payload = {
+        "raw_text": "A very long line\n",
+        "type_definitions": [],
+        "hierarchy_marks": [],
+        "unmarked_ranges": [{"start_line": 0, "end_line": 0}],
+    }
+
+    try:
+        build_hierarchy_auto_markup_messages(payload, max_prompt_chars=10)
+    except HierarchyAIPromptTooLarge:
+        pass
+    else:
+        raise AssertionError("Expected prompt size guard to fire.")
+
+
+def test_parse_hierarchy_auto_markup_response_accepts_fenced_json_and_labels():
+    defs = default_type_definitions()
+    response = """```json
+{
+  "marks": [
+    {
+      "start_line_number": 3,
+      "end_line_number": 3,
+      "depth": 2,
+      "type_label": "Speaker",
+      "text": "RUSL"
+    },
+    {
+      "start_line_number": 4,
+      "end_line_number": 4,
+      "depth": 3,
+      "type_id": "text"
+    },
+    {
+      "start_line_number": 10,
+      "end_line_number": 10,
+      "depth": 3,
+      "type_id": "text"
+    }
+  ]
+}
+```"""
+
+    marks, warnings = parse_hierarchy_auto_markup_response(
+        response,
+        raw_line_count=4,
+        type_definitions=defs,
+    )
+
+    assert [(mark.start_line, mark.end_line, mark.depth, mark.type_id, mark.text) for mark in marks] == [
+        (2, 2, 2, HierarchyType.SPEAKER, "RUSL"),
+        (3, 3, 3, HierarchyType.TEXT, ""),
+    ]
+    assert warnings == ["Skipped mark 3: start line is outside the file."]
 

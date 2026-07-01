@@ -82,6 +82,23 @@ def _tree_item_count(tree):
     return sum(count_item(tree.topLevelItem(i)) for i in range(tree.topLevelItemCount()))
 
 
+def _find_tree_item(tree, text):
+    def walk(item):
+        if text in item.text(0):
+            return item
+        for idx in range(item.childCount()):
+            found = walk(item.child(idx))
+            if found is not None:
+                return found
+        return None
+
+    for idx in range(tree.topLevelItemCount()):
+        found = walk(tree.topLevelItem(idx))
+        if found is not None:
+            return found
+    raise AssertionError(f"Missing tree item containing {text!r}")
+
+
 class _FakeSettingsManager:
     def __init__(self, initial=None):
         self.values = dict(initial or {})
@@ -120,6 +137,7 @@ def test_studio_constructs(qapp):
     assert not dialog.save_markup_btn.isHidden()
     assert not dialog.load_template_btn.isHidden()
     assert not dialog.save_template_btn.isHidden()
+    assert not dialog.ai_markup_btn.isHidden()
     assert dialog.legend_label.isHidden()
     assert dialog.main_splitter.orientation() == Qt.Orientation.Horizontal
     assert dialog.flags_list.selectionMode() == QAbstractItemView.SelectionMode.ExtendedSelection
@@ -236,6 +254,7 @@ def test_studio_mode_toggle_shows_only_relevant_controls(qapp):
     assert dialog.save_markup_btn.isHidden()
     assert dialog.load_template_btn.isHidden()
     assert dialog.save_template_btn.isHidden()
+    assert dialog.ai_markup_btn.isHidden()
 
     _use_picoripi_mode(dialog)
     assert dialog.hierarchy_box.isHidden()
@@ -244,6 +263,7 @@ def test_studio_mode_toggle_shows_only_relevant_controls(qapp):
     assert dialog.teach_box.isHidden()
     assert dialog.load_markup_btn.isHidden()
     assert dialog.save_markup_btn.isHidden()
+    assert dialog.ai_markup_btn.isHidden()
 
 
 def test_studio_search_preserves_raw_cursor_and_selection(qapp):
@@ -588,6 +608,49 @@ def test_studio_hierarchy_project_payload_roundtrips_markup(qapp):
     assert "rendered_markdown" in payload
     assert payload["unmarked_ranges"]
     assert "Chapter One" in restored.flags_list.topLevelItem(0).child(0).text(0)
+
+
+def test_studio_unmarked_ranges_remain_inside_structure_container(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act One\nRUSL\nHello.\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 2, 0, HierarchyType.STRUCTURE, text="Act One", order=1),
+    ]
+
+    dialog._refresh()
+
+    assert dialog._unmarked_ranges(dialog.raw_edit.toPlainText().splitlines()) == [(1, 2)]
+    assert "Unmarked" in dialog.flags_list.topLevelItem(1).text(0)
+
+
+def test_studio_applies_ai_marks_without_touching_manual_marks(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act One\nRUSL\nHello.\nFADO\nHey!\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 4, 0, HierarchyType.STRUCTURE, text="Act One", order=1),
+        HierarchyMark(1, 1, 1, HierarchyType.SPEAKER, text="RUSL", order=2),
+    ]
+    dialog._hierarchy_mark_order = 3
+    dialog._refresh()
+
+    added, skipped = dialog._apply_hierarchy_ai_marks([
+        HierarchyMark(2, 2, 2, HierarchyType.TEXT),
+        HierarchyMark(3, 3, 1, HierarchyType.SPEAKER, text="FADO"),
+        HierarchyMark(4, 4, 2, HierarchyType.TEXT),
+        HierarchyMark(0, 0, 0, HierarchyType.STRUCTURE, text="Duplicate"),
+    ])
+
+    assert added == 3
+    assert skipped == 1
+    assert {mark.text for mark in dialog.hierarchy_marks if mark.type_id == HierarchyType.SPEAKER} == {
+        "RUSL",
+        "FADO",
+    }
+    assert "# Act One" in dialog._psm_text
+    assert "**RUSL**: Hello." in dialog._psm_text
+    assert "**FADO**: Hey!" in dialog._psm_text
 
 
 def test_studio_hierarchy_template_payload_loads_type_definitions_only(qapp):
@@ -944,8 +1007,8 @@ def test_studio_dragging_same_depth_action_onto_speaker_nests_action(qapp):
         HierarchyMark(2, 2, 4, HierarchyType.ACTION, text="Link waves", order=2),
     ]
     dialog._refresh()
-    speaker_item = dialog.flags_list.topLevelItem(0)
-    action_item = dialog.flags_list.topLevelItem(1)
+    speaker_item = _find_tree_item(dialog.flags_list, "ILIA")
+    action_item = _find_tree_item(dialog.flags_list, "Link waves")
 
     moved = dialog._handle_outline_drop(
         [action_item],
@@ -957,7 +1020,7 @@ def test_studio_dragging_same_depth_action_onto_speaker_nests_action(qapp):
     depths = {mark.text: mark.depth for mark in dialog.hierarchy_marks}
     assert depths["ILIA"] == 4
     assert depths["Link waves"] == 5
-    assert "Link waves" in dialog.flags_list.topLevelItem(0).child(0).text(0)
+    assert "Link waves" in _find_tree_item(dialog.flags_list, "ILIA").child(0).text(0)
 
 
 def test_studio_tree_multi_selection_delete_collects_selected_nodes(qapp):
@@ -1091,9 +1154,9 @@ def test_studio_tree_multi_selection_drag_moves_all_selected_branches(qapp):
         HierarchyMark(2, 2, 4, HierarchyType.ACTION, text="Epona snorts", order=3),
     ]
     dialog._refresh()
-    speaker_item = dialog.flags_list.topLevelItem(0)
-    action_one = dialog.flags_list.topLevelItem(1)
-    action_two = dialog.flags_list.topLevelItem(2)
+    speaker_item = _find_tree_item(dialog.flags_list, "ILIA")
+    action_one = _find_tree_item(dialog.flags_list, "Link waves")
+    action_two = _find_tree_item(dialog.flags_list, "Epona snorts")
     action_one.setSelected(True)
     action_two.setSelected(True)
 
@@ -1108,7 +1171,7 @@ def test_studio_tree_multi_selection_drag_moves_all_selected_branches(qapp):
     assert depths["ILIA"] == 4
     assert depths["Link waves"] == 5
     assert depths["Epona snorts"] == 5
-    speaker = dialog.flags_list.topLevelItem(0)
+    speaker = _find_tree_item(dialog.flags_list, "ILIA")
     assert speaker.childCount() == 2
     assert "Link waves" in speaker.child(0).text(0)
     assert "Epona snorts" in speaker.child(1).text(0)
