@@ -9,6 +9,34 @@ from utils.logging_utils import log_error, log_ai_traffic
 from .weaver_worker import robust_json_loads
 
 
+_OBJECT_TYPE_SECTIONS = {
+    "item": "Items",
+    "items": "Items",
+    "object": "Items",
+    "objects": "Items",
+    "location": "Locations",
+    "locations": "Locations",
+    "place": "Locations",
+    "places": "Locations",
+    "term": "Terms",
+    "terms": "Terms",
+    "terminology": "Terms",
+}
+
+
+def _section_or_default(value: Any, default: str) -> str:
+    text = str(value or "").strip()
+    return text or default
+
+
+def _object_section(item: dict) -> str:
+    section = item.get("section") or item.get("category")
+    if section:
+        return _section_or_default(section, "Terms")
+    item_type = str(item.get("type") or "").strip().casefold()
+    return _OBJECT_TYPE_SECTIONS.get(item_type, "Terms")
+
+
 class MemePalaceScriptAnalyzerWorker(QThread):
     """Meme palace script analyzer worker implementation."""
     # Signals for UI communication
@@ -70,6 +98,15 @@ class MemePalaceScriptAnalyzerWorker(QThread):
         if p_sys and p_usr:
             return p_sys.format(target_lang=self.target_lang), p_usr.format(script_segment=script_segment, target_lang=self.target_lang)
 
+        glossary_guidance = """
+
+GLOSSARY CONTEXT RULES:
+- If the script contains a Markdown heading named "Glossary", treat that section as source-of-truth context, not dialogue.
+- Headings directly under "Glossary" are semantic categories. Use their names as hints, for example Characters, Items, Locations, Terms, or any custom category name.
+- Entries under a character-like category belong in "characters". Entries under every other category belong in "objects_and_terms".
+- For every object/term extracted from a Glossary category, include "category" with the exact category heading text.
+"""
+
         # Fallback built-in prompts
         if self.target_lang.strip().lower() == "ukrainian":
             system_prompt = (
@@ -96,6 +133,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
 
 ВСТУПНИЙ СЕГМЕНТ СКРИПТУ:
 {script_segment}
+{glossary_guidance}
 
 У відповідь поверніть ВИКЛЮЧНО валідний об'єкт JSON. Не додавайте блоки markdown чи будь-які інші пояснення.
 Структура JSON:
@@ -113,6 +151,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
   "objects_and_terms": [
     {{
       "name": "Ordon Shield",
+      "category": "Items",
       "description": "Дерев'яний щит з шкіряними елементами, виготовлений Руслем для того, щоб Лінк доставив його до замку Хайрул."
     }}
   ],
@@ -147,6 +186,7 @@ Extract:
    
 INTRO TEXT SEGMENT:
 {script_segment}
+{glossary_guidance}
 
 Respond ONLY with a valid JSON object. Do not include markdown blocks or any other explanation.
 JSON structure:
@@ -164,6 +204,7 @@ JSON structure:
   "objects_and_terms": [
     {{
       "name": "Ordon Shield",
+      "category": "Items",
       "description": "Wooden shield crafted by Rusl..."
     }}
   ],
@@ -306,7 +347,8 @@ JSON structure:
                 for t in terms:
                     objects_and_terms.append({
                         "name": t.get("original", t.get("name")),
-                        "description": t.get("description", "")
+                        "description": t.get("description", ""),
+                        "section": t.get("section") or "Terms",
                     })
 
                 self.progress.emit(50, 100, "Processing character profiles and writing to Glossary...")
@@ -314,6 +356,7 @@ JSON structure:
                     # process characters
                     for char in characters:
                         term_name = char["name"]
+                        target_section = char.get("section") or "Characters"
                         if self.target_lang.strip().lower() == "ukrainian":
                             notes = f"Стать: {char['gender']}. Вік: {char['age_group']}. Зв'язки: {char['relationship_summary']}. Звертання: {char['address_type']}. Опис: {char['description']}"
                         else:
@@ -324,33 +367,36 @@ JSON structure:
                             self.glossary_manager.update_entry(
                                 original=existing.original,
                                 translation=char.get("translation", existing.translation),
-                                notes=notes
+                                notes=notes,
+                                section=getattr(existing, "section", None) or target_section
                             )
                         else:
                             self.glossary_manager.add_entry(
                                 original=term_name,
                                 translation=char.get("translation", term_name),
                                 notes=notes,
-                                section="Characters"
+                                section=target_section
                             )
 
                     # process terms
                     for t in terms:
                         term_name = t["original"]
                         notes = t.get("description", "")
+                        target_section = t.get("section") or "Terms"
                         existing = self.glossary_manager.get_entry(term_name)
                         if existing:
                             self.glossary_manager.update_entry(
                                 original=existing.original,
                                 translation=t.get("translation", existing.translation),
-                                notes=notes
+                                notes=notes,
+                                section=getattr(existing, "section", None) or target_section
                             )
                         else:
                             self.glossary_manager.add_entry(
                                 original=term_name,
                                 translation=t.get("translation", term_name),
                                 notes=notes,
-                                section="Terms"
+                                section=target_section
                             )
                     
                     try:
@@ -474,13 +520,15 @@ JSON structure:
                         "age_group": char.get("age_group", "unknown"),
                         "relationship_summary": char.get("relationship_summary", ""),
                         "address_type": char.get("address_type", ""),
-                        "description": char.get("description", "")
+                        "description": char.get("description", ""),
+                        "section": char.get("section") or "Characters",
                     })
                 for obj in objects_and_terms:
                     items_to_process.append({
                         "name": obj.get("name", "").strip(),
                         "type": "object",
-                        "description": obj.get("description", "")
+                        "description": obj.get("description", ""),
+                        "section": _object_section(obj),
                     })
 
                 total_items = len(items_to_process)
@@ -555,7 +603,8 @@ JSON structure:
                             self.glossary_manager.update_entry(
                                 original=existing_entry.original,
                                 translation=existing_entry.translation,
-                                notes=synthesized_notes
+                                notes=synthesized_notes,
+                                section=getattr(existing_entry, "section", None) or item["section"],
                             )
                             self.log.emit(f"SUCCESS: Synthesized entry for '{term_name}' (notes updated in {self.target_lang}, translation '{existing_entry.translation}' kept).")
                         except Exception as e_synth:
@@ -616,7 +665,7 @@ JSON structure:
                             synthesized_notes = term_data.get("notes", "").strip()
                             
                             # Add new entry to the glossary
-                            section = "Characters" if item["type"] == "character" else "Terms"
+                            section = item["section"]
                             self.glossary_manager.add_entry(
                                 original=term_name,
                                 translation=translated_name,

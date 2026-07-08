@@ -209,6 +209,7 @@ class AIStatusDialog(QDialog):
         self.user_cancelled = False
         self.is_running = True
         self.operation_title = title
+        self.setWindowTitle(title)
         self.cancel_button.setEnabled(True)
         self.title_label.setText(title)
         self._set_model_name(model_name)
@@ -332,6 +333,10 @@ class AIStatusDialog(QDialog):
         else:
             self.subtitle_label.clear()
             self.subtitle_label.setVisible(False)
+
+    def set_model_name(self, model_name: Optional[str]) -> None:
+        """Set or clear the visible model name."""
+        self._set_model_name(model_name)
 
     def update_step(self, step_index: int, text: str, status: int):
         """Update the step."""

@@ -25,6 +25,7 @@ from .hierarchy_ai import (
     build_hierarchy_auto_markup_messages,
     parse_hierarchy_auto_markup_response,
 )
+from .local_autofill import LocalAutofillResult, infer_hierarchy_marks_from_examples
 from .picoripi_rules import (
     parse_with_rules,
     transcript_to_psm,
@@ -58,6 +59,8 @@ __all__ = [
     "HierarchyAIPromptTooLarge",
     "build_hierarchy_auto_markup_messages",
     "parse_hierarchy_auto_markup_response",
+    "LocalAutofillResult",
+    "infer_hierarchy_marks_from_examples",
     "parse_with_rules",
     "transcript_to_psm",
     "summarize_transcript",

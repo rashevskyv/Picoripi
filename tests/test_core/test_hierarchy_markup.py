@@ -74,6 +74,36 @@ def test_render_hierarchy_markdown_uses_canonical_syntax():
     assert "**Nobody speaks this line.**" in rendered
 
 
+def test_render_hierarchy_markdown_emits_glossary_categories_for_mempalace():
+    raw = "\n".join([
+        "Glossary",
+        "Characters",
+        "RUSL",
+        "Link's mentor from Ordon Village.",
+        "Items",
+        "Ordon Shield",
+        "A wooden shield crafted for Link.",
+    ])
+
+    rendered = render_hierarchy_markdown([
+        HierarchyMark(0, 6, 0, HierarchyType.GLOSSARY),
+        HierarchyMark(1, 3, 1, HierarchyType.STRUCTURE, text="Characters"),
+        HierarchyMark(2, 2, 2, HierarchyType.SPEAKER),
+        HierarchyMark(3, 3, 3, HierarchyType.TEXT),
+        HierarchyMark(4, 6, 1, HierarchyType.STRUCTURE, text="Items"),
+        HierarchyMark(5, 5, 2, HierarchyType.STRUCTURE),
+        HierarchyMark(6, 6, 3, HierarchyType.TEXT),
+    ], raw)
+
+    assert "# Glossary" in rendered
+    assert "## Characters" in rendered
+    assert "- **RUSL**" in rendered
+    assert "  - **Description**: Link's mentor from Ordon Village." in rendered
+    assert "## Items" in rendered
+    assert "- **Ordon Shield**" in rendered
+    assert "  - **Description**: A wooden shield crafted for Link." in rendered
+
+
 def test_speaker_and_text_are_separate_marks_but_one_line():
     rendered = render_hierarchy_markdown([
         HierarchyMark(0, 0, 0, HierarchyType.SPEAKER, text="RUSL"),
@@ -211,6 +241,18 @@ def test_line_styles_use_type_default_color_then_mark_override():
     assert styles[2] == (HierarchyType.SPEAKER, "#123456")
 
 
+def test_line_styles_let_ignored_override_other_marks():
+    defs = default_type_definitions()
+    styles = line_styles_for_marks([
+        HierarchyMark(0, 2, 0, HierarchyType.ACTION),
+        HierarchyMark(1, 1, 0, HierarchyType.IGNORE),
+    ], defs)
+
+    assert styles[0] == (HierarchyType.ACTION, defs[HierarchyType.ACTION].color)
+    assert styles[1] == (HierarchyType.IGNORE, defs[HierarchyType.IGNORE].color)
+    assert styles[2] == (HierarchyType.ACTION, defs[HierarchyType.ACTION].color)
+
+
 def test_ignored_and_unmarked_types_do_not_render_to_markdown():
     rendered = render_hierarchy_markdown([
         HierarchyMark(0, 0, 0, HierarchyType.IGNORE, text="Legal notice"),
@@ -221,6 +263,16 @@ def test_ignored_and_unmarked_types_do_not_render_to_markdown():
     assert "Legal notice" not in rendered
     assert "Needs work" not in rendered
     assert "# Act I" in rendered
+
+
+def test_ignored_lines_do_not_render_as_structure_raw_gaps():
+    rendered = render_hierarchy_markdown([
+        HierarchyMark(0, 2, 0, HierarchyType.STRUCTURE, text="Act I"),
+        HierarchyMark(1, 1, 0, HierarchyType.IGNORE),
+    ], "Act I\nLegal notice\nStory line\n")
+
+    assert "Legal notice" not in rendered
+    assert "> [RAW] Story line" in rendered
 
 
 def test_build_hierarchy_auto_markup_messages_uses_unmarked_source_blocks():
@@ -244,10 +296,39 @@ def test_build_hierarchy_auto_markup_messages_uses_unmarked_source_blocks():
     user_text = prepared.messages[1]["content"]
 
     assert prepared.unmarked_range_count == 1
+    assert prepared.scope_label == "full script"
     assert '"line_number": 3' in user_text
     assert '"text": "RUSL"' in user_text
     assert "approved_hierarchy_marks" in user_text
+    assert "infer the recurring markup pattern" in user_text
     assert "Return only valid JSON" in prepared.messages[0]["content"]
+
+
+def test_build_hierarchy_auto_markup_messages_compacts_huge_approved_examples():
+    huge = "A" * 5000
+    payload = {
+        "raw_text": "Act One\nRUSL\nHello.\n",
+        "type_definitions": [{"type_id": "structure", "label": "Structure"}],
+        "hierarchy_marks": [
+            {
+                "start_line_number": 1,
+                "end_line_number": 300,
+                "depth": 0,
+                "type_id": "structure",
+                "type_label": "Structure",
+                "text": "Act One",
+                "source_excerpt": huge,
+            },
+        ],
+        "unmarked_ranges": [{"start_line": 1, "end_line": 2}],
+        "scope": {"label": "Act One", "start_line_number": 1, "end_line_number": 300},
+    }
+
+    prepared = build_hierarchy_auto_markup_messages(payload, max_prompt_chars=4000)
+
+    assert prepared.scope_label == "Act One"
+    assert huge not in prepared.messages[1]["content"]
+    assert "AAA..." in prepared.messages[1]["content"]
 
 
 def test_build_hierarchy_auto_markup_messages_rejects_huge_prompt():
@@ -305,4 +386,3 @@ def test_parse_hierarchy_auto_markup_response_accepts_fenced_json_and_labels():
         (3, 3, 3, HierarchyType.TEXT, ""),
     ]
     assert warnings == ["Skipped mark 3: start line is outside the file."]
-

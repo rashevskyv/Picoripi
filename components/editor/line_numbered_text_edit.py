@@ -6,6 +6,7 @@ from typing import Optional, List, Tuple
 from pathlib import Path
 
 from .line_number_area import LineNumberArea
+from .minimap import TextMinimap
 from .text_highlight_manager import TextHighlightManager
 from utils.logging_utils import log_debug, log_error
 from utils.syntax_highlighter import JsonTagHighlighter
@@ -74,7 +75,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
             self._show_width_guideline = getattr(parent, 'show_width_guideline', True)
             self.character_limit_line_position = getattr(parent, 'editor_char_limit_line_pos', CHARACTER_LIMIT_LINE_POSITION)
 
+        self.show_minimap = False
         self.lineNumberArea = LineNumberArea(self)
+        self.minimap = TextMinimap(self)
         
         main_window_ref = parent if isinstance(parent, QMainWindow) else (self.window() if isinstance(self.window(), QMainWindow) else None)
         lnet_editor_setup.set_theme_colors(self, main_window_ref)
@@ -466,6 +469,8 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.highlightManager.set_background_for_lines(lines_to_highlight, lines_to_clear)
         
         self._previously_selected_lines = self._selected_lines.copy()
+        if hasattr(self, 'minimap'):
+            self.minimap.update()
 
     def _emit_selection_changed(self):
         """Internal helper to emit selection changed."""
@@ -596,29 +601,70 @@ class LineNumberedTextEdit(QPlainTextEdit):
             additional_width = self.preview_indicator_area_width
         return base_width + additional_width
 
+    def minimapAreaWidth(self):
+        """Return the right-side minimap margin width."""
+        if hasattr(self, 'minimap'):
+            return self.minimap.effective_width()
+        return 0
+
     def updateLineNumberAreaWidth(self, _):
         """Updatelinenumberareawidth."""
         new_width = self.lineNumberAreaWidth()
-        if self.viewportMargins().left() != new_width:
-            self.setViewportMargins(new_width, 0, 0, 0)
+        minimap_width = self.minimapAreaWidth()
+        margins = self.viewportMargins()
+        if margins.left() != new_width or margins.right() != minimap_width:
+            self.setViewportMargins(new_width, 0, minimap_width, 0)
         if hasattr(self, 'lineNumberArea'): 
             self.lineNumberArea.updateGeometry()
             self.lineNumberArea.update()
+        if hasattr(self, 'minimap'):
+            self.minimap.sync_visibility()
+            self._update_minimap_geometry()
+            self.minimap.update()
 
     def updateLineNumberArea(self, rect: QRectF, dy: int):
         """Updatelinenumberarea."""
         if hasattr(self, 'lineNumberArea'): 
             if dy: self.lineNumberArea.scroll(0, dy)
             else: self.lineNumberArea.update(0, 0, self.lineNumberArea.width(), self.lineNumberArea.height())
+        if hasattr(self, 'minimap'):
+            self._update_minimap_geometry()
+            self.minimap.update()
+
+    def _update_minimap_geometry(self):
+        """Position the minimap in the right margin before the scrollbar."""
+        if not hasattr(self, 'minimap'):
+            return
+
+        minimap_width = self.minimapAreaWidth()
+        if minimap_width <= 0:
+            self.minimap.hide()
+            return
+
+        cr = self.contentsRect()
+        vbar = self.verticalScrollBar()
+        hbar = self.horizontalScrollBar()
+        vbar_width = vbar.width() if vbar.isVisible() else 0
+        hbar_height = hbar.height() if hbar.isVisible() else 0
+        minimap_right = cr.right() - vbar_width
+        minimap_height = max(0, cr.height() - hbar_height)
+        self.minimap.setGeometry(
+            QRect(minimap_right - minimap_width + 1, cr.top(), minimap_width, minimap_height)
+        )
+        self.minimap.show()
 
     def resizeEvent(self, event):
         """Resizeevent."""
         super().resizeEvent(event)
+        self.updateLineNumberAreaWidth(0)
         cr = self.contentsRect()
         if hasattr(self, 'lineNumberArea'): 
             self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(), self.lineNumberAreaWidth(), cr.height()))
+        self._update_minimap_geometry()
         if self.isVisible():
             self.viewport().update()
+            if hasattr(self, 'minimap'):
+                self.minimap.update()
 
     def paintEvent(self, event: QPaintEvent):
         """Paintevent."""

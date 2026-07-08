@@ -1,5 +1,30 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.068-dev] - 2026-07-08
+
+### 🐛 Fixed
+- **MemePalace Startup Crash on Stale Temp Path (contributed by @Mnkach)**:
+  - Fixed a `FileNotFoundError [WinError 3]` crash that occurred at startup in `get_mempalace_client()` (`core/translation/story_context_manager.py`).
+  - The root cause was the sibling-scan walk-up calling `os.listdir()` on directories (e.g. cleaned-up temp extraction paths like `...Temp\picoripi\...\extracted\sources\Fontus`) without first verifying they exist.
+  - Fix adds an `os.path.isdir(parent_dir)` guard to the condition and wraps `os.listdir()` in `try/except OSError`, falling back to an empty list so the walk-up skips missing or inaccessible directories and keeps climbing instead of crashing.
+
+### 🚀 Added
+- **Script Markup Studio — major enhancements**:
+  - **Glossary node type**: New `HierarchyType.GLOSSARY` that renders as a MemPalace source section. Its direct children become named categories (Characters, Items, Locations, or custom). The type appears in the type picker and is fully supported in colour coding, tree rendering, and Markdown export.
+  - **Minimap** (`components/editor/minimap.py`): A new `TextMinimap` widget provides a scrollable document overview on the right side of the raw script pane. Drag the viewport handle to jump quickly through long scripts. Auto-hides when the editor is too narrow or the document has only one block.
+  - **Search bar**: `_SearchLineEdit` widget with `Enter` / `Shift+Enter` for next/previous match, plus **Aa** (case-sensitive), **Word** (whole-word), and **.\*** (regex) toggles. `Ctrl+F` focuses the search field from anywhere in the dialog.
+  - **Continue from marked examples** (`core/script_markup/local_autofill.py`): Studies your approved hierarchy marks and locally fills matching unmarked lines without any AI call. The action is undoable with `Ctrl+Z`.
+  - **Keyboard shortcuts**: `Ctrl+S` Structure, `Ctrl+P` Speaker, `Ctrl+T` Text, `Ctrl+B` Breaker, `Ctrl+I` Ignore, `Ctrl+M` mark/save. **F2** renames the selected tree node; clicking an already-selected node also opens rename without jumping to source.
+  - **AI mark missing**: Renamed from "AI mark unmarked" to clarify it is a separate explicit action.
+  - **IGNORE rendering fix**: IGNORE marks now override all other mark colours correctly in `line_styles_for_marks`, and IGNORE lines are excluded from the Markdown export body.
+- **`AIStatusDialog.set_model_name()`**: New public method to update the visible model name after a dialog has started, used by the Script Markup Studio when switching AI operations.
+- **Adaptive scrollbars** (`ui/adaptive_scrollbars.py`): Refined dark/light-theme scrollbar style — slimmer 8 px tracks, hover background tint, pressed handle state, and no dead-zone pages.
+
+### ⚙️ Changed
+- **`render_hierarchy_markdown`** now skips IGNORE-marked lines in the body text output and sorts child nodes by `(start_line, depth, order)` for deterministic export.
+- **`mark_text`** and **`line_styles_for_marks`** updated to handle `HierarchyType.GLOSSARY` the same way as `STRUCTURE` (use explicit label, scan heading lines).
+- **Version Updates**: Bumped version to `0.3.068-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, and `CHANGELOG.md`.
+
 ## [0.3.067-dev] - 2026-06-27
 
 ### ⚙️ Changed

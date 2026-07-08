@@ -15,6 +15,7 @@ class HierarchyType:
     """Markdown-facing type of a marked hierarchy node."""
 
     STRUCTURE = "structure"
+    GLOSSARY = "glossary"
     SPEAKER = "speaker"
     TEXT = "text"
     ACTION = "action"
@@ -75,6 +76,12 @@ def default_type_definitions() -> Dict[str, HierarchyTypeDefinition]:
             "Structure",
             "Acts, chapters, scenes, locations, and other heading-like blocks.",
             "#d9ecff",
+        ),
+        HierarchyType.GLOSSARY: HierarchyTypeDefinition(
+            HierarchyType.GLOSSARY,
+            "Glossary",
+            "A source-of-truth glossary context block for MemPalace and AI-assisted term mining.",
+            "#e7f3ff",
         ),
         HierarchyType.SPEAKER: HierarchyTypeDefinition(
             HierarchyType.SPEAKER,
@@ -144,13 +151,13 @@ def mark_text(mark: HierarchyMark, raw_lines: List[str]) -> str:
     """
 
     explicit = clean_mark_text(mark.text or mark.label)
-    if mark.type_id == HierarchyType.STRUCTURE and explicit:
+    if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.GLOSSARY) and explicit:
         return explicit
     if not raw_lines:
         return explicit
     start = max(0, min(mark.start_line, len(raw_lines) - 1))
     end = max(start, min(mark.end_line, len(raw_lines) - 1))
-    if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.SPEAKER):
+    if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.GLOSSARY, HierarchyType.SPEAKER):
         for idx in range(start, end + 1):
             line = clean_mark_text(raw_lines[idx])
             if line:
@@ -212,7 +219,12 @@ def line_styles_for_marks(
 
     defs = type_definitions or default_type_definitions()
     styles: Dict[int, Tuple[str, str]] = {}
-    for mark in sorted_marks(marks):
+    sorted_items = sorted_marks(marks)
+    ordered = [
+        *[mark for mark in sorted_items if mark.type_id != HierarchyType.IGNORE],
+        *[mark for mark in sorted_items if mark.type_id == HierarchyType.IGNORE],
+    ]
+    for mark in ordered:
         default = defs.get(mark.type_id)
         color = mark.color or (default.color if default else "#ffffff")
         for idx in range(mark.start_line, mark.end_line + 1):
@@ -262,7 +274,15 @@ def render_hierarchy_markdown(
     """
 
     raw_lines = (raw_text or "").splitlines()
-    root = build_hierarchy_tree(marks)
+    normalized_marks = sorted_marks(marks)
+    ignored_lines = {
+        idx
+        for mark in normalized_marks
+        if mark.type_id == HierarchyType.IGNORE
+        for idx in range(mark.start_line, mark.end_line + 1)
+    }
+    root = build_hierarchy_tree(normalized_marks)
+    defs = type_definitions or default_type_definitions()
     lines: List[str] = []
 
     def text_for(mark: HierarchyMark) -> str:
@@ -273,7 +293,11 @@ def render_hierarchy_markdown(
             return
         start = max(0, min(start, len(raw_lines) - 1))
         end = max(start, min(end, len(raw_lines) - 1))
-        raw = [line.rstrip() for line in raw_lines[start:end + 1] if line.strip()]
+        raw = [
+            line.rstrip()
+            for idx, line in enumerate(raw_lines[start:end + 1], start=start)
+            if idx not in ignored_lines and line.strip()
+        ]
         if not raw:
             return
         _append_blank(lines)
@@ -282,15 +306,132 @@ def render_hierarchy_markdown(
             lines.append(f"{prefix}{line}")
         _append_blank(lines)
 
+    def append_plain_raw_range(start: int, end: int):
+        if not raw_lines or end < start:
+            return
+        start = max(0, min(start, len(raw_lines) - 1))
+        end = max(start, min(end, len(raw_lines) - 1))
+        raw = [
+            line.rstrip()
+            for idx, line in enumerate(raw_lines[start:end + 1], start=start)
+            if idx not in ignored_lines and line.strip()
+        ]
+        if not raw:
+            return
+        _append_blank(lines)
+        lines.extend(raw)
+        _append_blank(lines)
+
     def node_end_line(node: HierarchyNode) -> int:
         end = node.mark.end_line if node.mark else -1
         for child in node.children:
             end = max(end, node_end_line(child))
         return end
 
+    def node_sort_key(node: HierarchyNode):
+        return (
+            node.mark.start_line,
+            node.mark.depth,
+            node.mark.order,
+        ) if node.mark else (0, 0, 0)
+
+    def glossary_title(mark: HierarchyMark, fallback: str) -> str:
+        explicit = clean_mark_text(mark.text or mark.label)
+        if explicit:
+            return explicit
+        source = text_for(mark)
+        if source:
+            return source
+        type_def = defs.get(mark.type_id)
+        return type_def.label if type_def else fallback
+
+    def glossary_note_text(node: HierarchyNode) -> str:
+        pieces: List[str] = []
+        if node.mark and node.mark.type_id not in (
+            HierarchyType.IGNORE,
+            HierarchyType.UNMARKED,
+        ):
+            value = text_for(node.mark)
+            if node.mark.type_id == HierarchyType.ACTION:
+                value = _clean_action_text(value)
+            if value:
+                pieces.append(value)
+        for child in sorted(node.children, key=node_sort_key):
+            child_text = glossary_note_text(child)
+            if child_text:
+                pieces.append(child_text)
+        return clean_mark_text(" ".join(pieces))
+
+    def render_glossary_entry(node: HierarchyNode):
+        if node.mark is None:
+            return
+        mark = node.mark
+        if mark.type_id in (HierarchyType.IGNORE, HierarchyType.UNMARKED):
+            return
+        if mark.type_id in (
+            HierarchyType.TEXT,
+            HierarchyType.ACTION,
+            HierarchyType.NOTE,
+            HierarchyType.NARRATOR,
+            HierarchyType.BREAKER,
+        ):
+            append_plain_raw_range(mark.start_line, mark.end_line)
+            for child in sorted(node.children, key=node_sort_key):
+                render_glossary_entry(child)
+            return
+
+        title = glossary_title(mark, "Entry")
+        notes = [
+            glossary_note_text(child)
+            for child in sorted(node.children, key=node_sort_key)
+        ]
+        notes = [note for note in notes if note]
+
+        _append_blank(lines)
+        lines.append(f"- **{title}**")
+        if notes:
+            lines.append(f"  - **Description**: {' '.join(notes)}")
+        _append_blank(lines)
+
+    def render_glossary_category(node: HierarchyNode, heading_depth: int):
+        if node.mark is None:
+            return
+        mark = node.mark
+        title = glossary_title(mark, "Terms")
+        _append_blank(lines)
+        lines.append(f"{'#' * max(1, min(heading_depth, 6))} {title}".rstrip())
+        _append_blank(lines)
+
+        cursor = mark.start_line + 1
+        for child in sorted(node.children, key=node_sort_key):
+            if child.mark:
+                append_plain_raw_range(cursor, child.mark.start_line - 1)
+                render_glossary_entry(child)
+                cursor = max(cursor, node_end_line(child) + 1)
+            else:
+                render_glossary_entry(child)
+        append_plain_raw_range(cursor, mark.end_line)
+
+    def render_glossary_node(node: HierarchyNode, mark: HierarchyMark):
+        title = glossary_title(mark, "Glossary") or "Glossary"
+        heading_depth = max(1, min(mark.depth + 1, 6))
+        _append_blank(lines)
+        lines.append(f"{'#' * heading_depth} {title}".rstrip())
+        _append_blank(lines)
+
+        cursor = mark.start_line + 1
+        for child in sorted(node.children, key=node_sort_key):
+            if child.mark:
+                append_plain_raw_range(cursor, child.mark.start_line - 1)
+                render_glossary_category(child, heading_depth + 1)
+                cursor = max(cursor, node_end_line(child) + 1)
+            else:
+                render_glossary_entry(child)
+        append_plain_raw_range(cursor, mark.end_line)
+
     def render_structure_children(node: HierarchyNode, mark: HierarchyMark):
         cursor = mark.start_line + 1
-        for child in sorted(node.children, key=lambda n: (n.mark.start_line, n.mark.depth, n.mark.order) if n.mark else (0, 0, 0)):
+        for child in sorted(node.children, key=node_sort_key):
             if child.mark:
                 append_raw_range(cursor, child.mark.start_line - 1)
                 render_node(child)
@@ -315,6 +456,10 @@ def render_hierarchy_markdown(
             lines.append(f"{'#' * heading_depth} {text}".rstrip())
             _append_blank(lines)
             render_structure_children(node, mark)
+            return
+
+        if type_id == HierarchyType.GLOSSARY:
+            render_glossary_node(node, mark)
             return
 
         if type_id == HierarchyType.SPEAKER:

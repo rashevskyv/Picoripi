@@ -15,6 +15,7 @@ import os
 import json
 import re
 import copy
+import time
 from pathlib import Path
 
 from PyQt6 import sip
@@ -23,7 +24,7 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit, QCheckBox, QMessageBox, QGroupBox, QComboBox,
     QTextBrowser, QLineEdit, QToolTip, QApplication, QSpinBox, QColorDialog,
     QSplitter, QTreeWidget, QTreeWidgetItem, QWidget, QTextEdit, QMenu,
-    QAbstractItemView,
+    QAbstractItemView, QSizePolicy, QInputDialog,
 )
 from PyQt6.QtGui import (
     QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QTextCursor,
@@ -38,8 +39,10 @@ from core.script_markup import (
     HierarchyMark, HierarchyType, HierarchyTypeDefinition,
     default_type_definitions, line_styles_for_marks, mark_text,
     render_hierarchy_markdown,
+    MAX_AUTO_MARKUP_PROMPT_CHARS,
     HierarchyAIPromptTooLarge, build_hierarchy_auto_markup_messages,
     parse_hierarchy_auto_markup_response,
+    infer_hierarchy_marks_from_examples,
 )
 from core.script_markup.markup_engine import render_psm
 from core.script_markup.markup_recipe import MarkupRecipe
@@ -50,6 +53,7 @@ from core.script_markup.learn import (
 from core.translation.config import build_default_translation_config, merge_translation_config
 from core.translation.providers import TranslationProviderError, create_translation_provider
 from components.ai_status_dialog import AIStatusDialog
+from components.editor.minimap import TextMinimap
 from utils.logging_utils import log_info, log_error
 from utils.constants import SETTINGS_DIR
 
@@ -183,33 +187,69 @@ becomes</b> &mdash; green for speech, amber for actions, blue for locations,
 grey for lines that are dropped. There is no second pane to keep in sync; press
 <b>Preview result…</b> any time to see the finished file, then <b>Export</b>.</p>
 
-<h3>Two engines</h3>
+<h3>Three modes</h3>
 <ul>
-  <li><b>Picoripi rules</b> (default) &mdash; uses the program's own walkthrough
+  <li><b>Hierarchy markup</b> (default) &mdash; manual depth-indexed tree marks.
+      Each mark has a depth, type, label/text and type colour, then exports
+      canonical Markdown.</li>
+  <li><b>Picoripi rules</b> &mdash; uses the program's own walkthrough
       parser, the same rules it already uses to mark speakers and scenes. Best
       for already-structured scripts.</li>
   <li><b>Custom recipe</b> &mdash; tunable rules plus teach-by-example, for messy
       raw walkthroughs.</li>
-  <li><b>Hierarchy markup</b> &mdash; manual depth-indexed tree marks. Each mark
-      has a depth, type, label/text and type colour, then exports canonical
-      Markdown.</li>
 </ul>
 
 <h3>Workflow</h3>
 <ol>
-  <li>Load the raw walkthrough.</li>
-  <li>Use <b>Set start / end here</b> to cut off the table of contents, cast list
-      and legal front/back matter, so only the real story remains.</li>
+  <li>Use <b>Script &gt; Open script...</b> to load the raw walkthrough.</li>
+  <li><i>(Hierarchy markup)</i> Mark selections, review the script tree, then use
+      <b>Project</b>, <b>Template</b>, and <b>Auto-fill</b> when you need reusable
+      marks or assisted fill-in.</li>
+  <li><i>(Picoripi rules / Custom recipe)</i> Use <b>Start from cursor</b> and
+      <b>End at cursor</b> to cut off the table of contents, cast list and legal
+      front/back matter, so only the real story remains.</li>
   <li><i>(Custom recipe)</i> Tune with the checkboxes, or teach by example.</li>
   <li>Watch the colours and the Review queue; press <b>Preview result…</b> to
       check the finished file.</li>
   <li><b>Export</b> the standardized script.</li>
 </ol>
 
+<h3>Navigation and search</h3>
+<ul>
+  <li><b>Find</b>: type in the search box, press <b>Enter</b> for the next match,
+      or <b>Shift+Enter</b> for the previous match. Use <b>Aa</b>, <b>Word</b>,
+      and <b>.*</b> to refine matching.</li>
+  <li><b>Minimap</b>: drag the right-side overview marker to move quickly through
+      long raw scripts.</li>
+  <li><b>Script tree</b>: double-click a node or review item to jump to its source
+      line.</li>
+</ul>
+
+<h3>Keyboard shortcuts</h3>
+<ul>
+  <li><b>Ctrl+F</b> focuses Find. In the Find box, <b>Enter</b> jumps to the next
+      match and <b>Shift+Enter</b> jumps to the previous match.</li>
+  <li><b>Ctrl+M</b> marks the current selection with the chosen Type. While editing
+      an existing hierarchy node, it saves the edit. In Picoripi rules or Custom
+      recipe, it marks selected/current lines as Action.</li>
+  <li><b>Ctrl+I</b> selects Ignore in Hierarchy markup; if raw text is selected, it
+      marks that selection as ignored. In Picoripi rules or Custom recipe, it
+      marks selected/current lines as Ignore.</li>
+  <li><b>Ctrl+S</b> Structure, <b>Ctrl+P</b> Speaker, <b>Ctrl+T</b> Text, and
+      <b>Ctrl+B</b> Breaker in Hierarchy markup. With raw text selected, the
+      shortcut marks that selection; without selection, it only changes the Type
+      picker.</li>
+  <li><b>F2</b> renames the selected script tree node. Clicking an already
+      selected tree node also opens rename; double-click still jumps to source.</li>
+  <li><b>Ctrl+Z</b> undoes the last Studio change. <b>Ctrl+Y</b> redoes it.</li>
+</ul>
+
 <h3>Hierarchy Markdown</h3>
 <ul>
   <li><b>Structure</b> depth 0/1/2 becomes <code>#</code>, <code>##</code>,
       <code>###</code> headings.</li>
+  <li><b>Glossary</b> becomes a MemPalace source section. Its direct children
+      become categories such as Characters, Items, Locations, or custom names.</li>
   <li><b>Speaker</b> and <b>Text</b> are marked separately, then render together:
       <code>**MIDNA**: dialogue</code>.</li>
   <li><b>Action</b> renders as a standalone square-bracket line:
@@ -217,8 +257,12 @@ grey for lines that are dropped. There is no second pane to keep in sync; press
   <li><b>Note</b> renders inline in parentheses, <b>Breaker</b> renders as
       <code>~~~~~~~~~~~~~~~~~~~~~~~~</code>, and <b>Narrator</b> renders as bold
       standalone text.</li>
-  <li><b>AI mark unmarked</b> sends your approved hierarchy marks as examples
-      and asks the configured AI provider to add only missing nodes.</li>
+  <li><b>AI mark missing</b> is a separate explicit action: it sends your
+      approved hierarchy marks as examples and asks the configured AI provider
+      to add missing nodes.</li>
+  <li><b>Continue from marked examples</b> studies your approved marks and
+      locally fills matching unmarked lines without AI. Use <b>Ctrl+Z</b> if
+      the result needs to be rolled back.</li>
 </ul>
 
 <h3>&ldquo;Mark current line as&hellip;&rdquo; <span style="font-weight:normal;color:#777;">(Custom recipe)</span></h3>
@@ -314,15 +358,84 @@ class _RawHierarchyGutter(QWidget):
         super().mousePressEvent(event)
 
 
+class _SearchLineEdit(QLineEdit):
+    """Search field that keeps Return/Enter navigation inside the search flow."""
+
+    findNextRequested = pyqtSignal()
+    findPreviousRequested = pyqtSignal()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                self.findPreviousRequested.emit()
+            else:
+                self.findNextRequested.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
 class _ScriptMarkupRawEdit(QPlainTextEdit):
     """Raw script editor with Studio-specific marking actions and tooltips."""
 
     def __init__(self, studio):
         super().__init__()
         self.studio = studio
+        self.show_minimap = True
         self.hierarchy_gutter = _RawHierarchyGutter(self)
-        self.setViewportMargins(_RAW_HIERARCHY_GUTTER_WIDTH, 0, 0, 0)
+        self.minimap = TextMinimap(self)
+        self._sync_viewport_margins()
         self.updateRequest.connect(self._update_hierarchy_gutter)
+        self.textChanged.connect(self._sync_viewport_margins)
+
+    def minimapAreaWidth(self):
+        return self.minimap.effective_width() if hasattr(self, "minimap") else 0
+
+    def minimap_line_color_for_block(self, block_number: int):
+        highlighter = getattr(self.studio, "highlighter", None)
+        if highlighter is None:
+            return None
+
+        color = highlighter.line_colors.get(block_number)
+        if color:
+            return QColor(color)
+
+        kind = highlighter.line_kinds.get(block_number)
+        if kind in (LineKind.SPEAKER, LineKind.GUTTER_SPEAKER):
+            return QColor(_BLOCK_HEAD[highlighter.line_blocks.get(block_number, 0)])
+        if kind == LineKind.DIALOGUE_CONT:
+            return QColor(_BLOCK_BODY[highlighter.line_blocks.get(block_number, 0)])
+        if kind:
+            raw_color = _KIND_COLORS.get(kind)
+            return QColor(raw_color) if raw_color else None
+        return None
+
+    def _sync_viewport_margins(self):
+        minimap_width = self.minimapAreaWidth()
+        margins = self.viewportMargins()
+        if margins.left() != _RAW_HIERARCHY_GUTTER_WIDTH or margins.right() != minimap_width:
+            self.setViewportMargins(_RAW_HIERARCHY_GUTTER_WIDTH, 0, minimap_width, 0)
+        self._update_minimap_geometry()
+        self.minimap.sync_visibility()
+        self.minimap.update()
+
+    def _update_minimap_geometry(self):
+        minimap_width = self.minimapAreaWidth()
+        if minimap_width <= 0:
+            self.minimap.hide()
+            return
+
+        cr = self.contentsRect()
+        vbar = self.verticalScrollBar()
+        hbar = self.horizontalScrollBar()
+        vbar_width = vbar.width() if vbar.isVisible() else 0
+        hbar_height = hbar.height() if hbar.isVisible() else 0
+        minimap_right = cr.right() - vbar_width
+        minimap_height = max(0, cr.height() - hbar_height)
+        self.minimap.setGeometry(
+            QRect(minimap_right - minimap_width + 1, cr.top(), minimap_width, minimap_height)
+        )
+        self.minimap.show()
 
     def contextMenuEvent(self, event):
         menu = self.createStandardContextMenu(event.pos())
@@ -334,6 +447,7 @@ class _ScriptMarkupRawEdit(QPlainTextEdit):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        self._sync_viewport_margins()
         cr = self.contentsRect()
         self.hierarchy_gutter.setGeometry(
             QRect(cr.left(), cr.top(), _RAW_HIERARCHY_GUTTER_WIDTH, cr.height())
@@ -346,6 +460,8 @@ class _ScriptMarkupRawEdit(QPlainTextEdit):
             self.hierarchy_gutter.update(0, rect.y(), _RAW_HIERARCHY_GUTTER_WIDTH, rect.height())
         if rect.contains(self.viewport().rect()):
             self.hierarchy_gutter.update()
+        self._update_minimap_geometry()
+        self.minimap.update()
 
     def _show_studio_tooltip(self, event) -> bool:
         tip = self.studio._tooltip_for_raw_position(event.pos())
@@ -394,6 +510,11 @@ class _ScriptTreeWidget(QTreeWidget):
         super().__init__()
         self.studio = studio
         self._selection_anchor_item: QTreeWidgetItem | None = None
+        self._pending_rename_item: QTreeWidgetItem | None = None
+        self._pending_rename_timer = QTimer(self)
+        self._pending_rename_timer.setSingleShot(True)
+        self._pending_rename_timer.setInterval(450)
+        self._pending_rename_timer.timeout.connect(self._open_pending_rename)
 
     def _item_is_alive(self, item: QTreeWidgetItem | None) -> bool:
         try:
@@ -420,6 +541,36 @@ class _ScriptTreeWidget(QTreeWidget):
         index = self.indexFromItem(item, 0)
         self.selectionModel().setCurrentIndex(index, QItemSelectionModel.SelectionFlag.NoUpdate)
 
+    def _event_pos(self, event) -> QPoint:
+        try:
+            return event.position().toPoint()
+        except AttributeError:
+            return event.pos()
+
+    def _item_at_row(self, pos: QPoint) -> QTreeWidgetItem | None:
+        item = self.itemAt(pos)
+        if item is not None:
+            return item
+        for visible_item in self._visible_items():
+            rect = self.visualItemRect(visible_item)
+            if rect.isValid() and rect.top() <= pos.y() <= rect.bottom():
+                return visible_item
+        return None
+
+    def _cancel_pending_rename(self):
+        self._pending_rename_timer.stop()
+        self._pending_rename_item = None
+
+    def _schedule_pending_rename(self, item: QTreeWidgetItem):
+        self._pending_rename_item = item
+        self._pending_rename_timer.start()
+
+    def _open_pending_rename(self):
+        item = self._pending_rename_item
+        self._pending_rename_item = None
+        if self._item_is_alive(item):
+            self.studio._rename_outline_item(item)
+
     def _select_range_to_item(self, item: QTreeWidgetItem) -> bool:
         anchor = self._selection_anchor_item
         if not self._item_is_alive(anchor):
@@ -439,40 +590,79 @@ class _ScriptTreeWidget(QTreeWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            try:
-                pos = event.position().toPoint()
-            except AttributeError:
-                pos = event.pos()
+            pos = self._event_pos(event)
             item = self.itemAt(pos)
+            row_item = item or self._item_at_row(pos)
             modifiers = event.modifiers()
-            if item is not None and modifiers & Qt.KeyboardModifier.ShiftModifier:
-                if self._select_range_to_item(item):
+            if row_item is not None and modifiers & Qt.KeyboardModifier.ShiftModifier:
+                self._cancel_pending_rename()
+                if self._select_range_to_item(row_item):
                     event.accept()
                     return
-            if item is not None and modifiers & Qt.KeyboardModifier.ControlModifier:
-                item.setSelected(not item.isSelected())
-                self._selection_anchor_item = item
-                self._set_current_without_selection_change(item)
+            if row_item is not None and modifiers & Qt.KeyboardModifier.ControlModifier:
+                self._cancel_pending_rename()
+                row_item.setSelected(not row_item.isSelected())
+                self._selection_anchor_item = row_item
+                self._set_current_without_selection_change(row_item)
                 event.accept()
                 return
+            if (
+                row_item is not None
+                and item is None
+                and modifiers == Qt.KeyboardModifier.NoModifier
+            ):
+                self._cancel_pending_rename()
+                self.clearSelection()
+                row_item.setSelected(True)
+                self.setCurrentItem(row_item)
+                self._selection_anchor_item = row_item
+                event.accept()
+                return
+            if (
+                item is not None
+                and modifiers == Qt.KeyboardModifier.NoModifier
+                and item is self.currentItem()
+                and item.isSelected()
+            ):
+                self._schedule_pending_rename(item)
+            else:
+                self._cancel_pending_rename()
         super().mousePressEvent(event)
         if event.button() == Qt.MouseButton.LeftButton:
-            try:
-                pos = event.position().toPoint()
-            except AttributeError:
-                pos = event.pos()
-            item = self.itemAt(pos)
+            pos = self._event_pos(event)
+            item = self._item_at_row(pos)
             if item is not None and not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
                 self._selection_anchor_item = item
 
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            self._cancel_pending_rename()
+        super().mouseMoveEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        self._cancel_pending_rename()
+        if event.button() == Qt.MouseButton.LeftButton:
+            item = self._item_at_row(self._event_pos(event))
+            if item is not None and self.studio._jump_to_flag(item):
+                self._selection_anchor_item = item
+                event.accept()
+                return
+        super().mouseDoubleClickEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F2:
+            self._cancel_pending_rename()
+            if self.studio._rename_outline_item(self.currentItem()):
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
     def dropEvent(self, event):
-        try:
-            pos = event.position().toPoint()
-        except AttributeError:
-            pos = event.pos()
+        self._cancel_pending_rename()
+        pos = self._event_pos(event)
         moved = self.studio._handle_outline_drop(
             self.selectedItems(),
-            self.itemAt(pos),
+            self._item_at_row(pos),
             self.dropIndicatorPosition(),
         )
         if moved:
@@ -481,23 +671,401 @@ class _ScriptTreeWidget(QTreeWidget):
         event.ignore()
 
 
+def _clean_hierarchy_mark_text_value(text: str) -> str:
+    s = (text or "").replace(chr(0x2029), "\n").strip()
+    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r"^\[\s*(?:Chapter|Location)\s*:\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"^\{\s*(?:Action|Context)\s*:\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"^[\[\{]\s*", "", s)
+    s = re.sub(r"\s*[\]\}]\s*$", "", s)
+    return s.strip()
+
+
+def _source_text_for_lines_value(start: int, end: int, lines: list[str]) -> str:
+    if not lines:
+        return ""
+    start = max(0, min(start, len(lines) - 1))
+    end = max(start, min(end, len(lines) - 1))
+    return _clean_hierarchy_mark_text_value(" ".join(lines[start:end + 1]))
+
+
+def _format_raw_line_range_value(start_line: int, end_line: int) -> str:
+    start = start_line + 1
+    end = end_line + 1
+    if start == end:
+        return f"raw script line {start}"
+    return f"raw script lines {start}-{end}"
+
+
+def _hierarchy_mark_display_text_value(
+    mark: HierarchyMark,
+    raw_lines: list[str],
+    limit: int = 96,
+) -> str:
+    text = mark_text(mark, raw_lines)
+    if len(text) <= limit:
+        return text
+    return text[:limit - 1].rstrip() + "..."
+
+
+def _hierarchy_mark_payload_value(
+    mark: HierarchyMark,
+    raw_lines: list[str],
+    type_definitions: dict[str, HierarchyTypeDefinition],
+) -> dict:
+    type_def = type_definitions.get(mark.type_id)
+    return {
+        "start_line": mark.start_line,
+        "end_line": mark.end_line,
+        "start_line_number": mark.start_line + 1,
+        "end_line_number": mark.end_line + 1,
+        "depth": mark.depth,
+        "type_id": mark.type_id,
+        "type_label": type_def.label if type_def else mark.type_id,
+        "text": mark.text,
+        "label": mark.label,
+        "description": mark.description or (type_def.description if type_def else ""),
+        "color": mark.color or (type_def.color if type_def else ""),
+        "order": mark.order,
+        "source_excerpt": _source_text_for_lines_value(mark.start_line, mark.end_line, raw_lines),
+    }
+
+
+def _hierarchy_type_definitions_payload_value(
+    type_definitions: dict[str, HierarchyTypeDefinition],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "type_id": type_def.type_id,
+            "label": type_def.label,
+            "description": type_def.description,
+            "color": type_def.color,
+        }
+        for type_def in type_definitions.values()
+    ]
+
+
+def _hierarchy_ai_base_payload(snapshot: dict) -> dict:
+    raw_lines = snapshot["raw_lines"]
+    type_definitions = snapshot["type_definitions"]
+    return {
+        "format": _HIERARCHY_PROJECT_FORMAT,
+        "version": _HIERARCHY_FORMAT_VERSION,
+        "source_path": snapshot.get("source_path", ""),
+        "raw_text": snapshot["raw_text"],
+        "type_definitions": _hierarchy_type_definitions_payload_value(type_definitions),
+        "hierarchy_marks": [
+            _hierarchy_mark_payload_value(mark, raw_lines, type_definitions)
+            for mark in sorted(snapshot["hierarchy_marks"], key=lambda m: (m.start_line, m.depth, m.order))
+        ],
+        "rendered_markdown": snapshot.get("rendered_markdown", ""),
+        "ai_instructions": snapshot["ai_instructions"],
+    }
+
+
+def _hierarchy_scope_payload_from_snapshot(
+    snapshot: dict,
+    unmarked_ranges: list[tuple[int, int]],
+    *,
+    label: str,
+    start_line: int,
+    end_line: int,
+) -> dict:
+    raw_lines = snapshot["raw_lines"]
+    payload = _hierarchy_ai_base_payload(snapshot)
+    payload["unmarked_ranges"] = [
+        {
+            "start_line": start,
+            "end_line": end,
+            "start_line_number": start + 1,
+            "end_line_number": end + 1,
+            "source_excerpt": _source_text_for_lines_value(start, end, raw_lines),
+        }
+        for start, end in unmarked_ranges
+    ]
+    payload["scope"] = {
+        "label": label,
+        "start_line_number": start_line + 1,
+        "end_line_number": end_line + 1,
+    }
+    return payload
+
+
+def _build_hierarchy_ai_job_for_ranges_from_snapshot(
+    snapshot: dict,
+    ranges: list[tuple[int, int]],
+    *,
+    label_prefix: str,
+):
+    start_line = min(start for start, _end in ranges)
+    end_line = max(end for _start, end in ranges)
+    payload = _hierarchy_scope_payload_from_snapshot(
+        snapshot,
+        ranges,
+        label=f"{label_prefix} ({_format_raw_line_range_value(start_line, end_line)})",
+        start_line=start_line,
+        end_line=end_line,
+    )
+    return build_hierarchy_auto_markup_messages(
+        payload,
+        max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
+    )
+
+
+def _split_hierarchy_raw_range_jobs_from_snapshot(
+    snapshot: dict,
+    start_line: int,
+    end_line: int,
+    *,
+    label_prefix: str,
+) -> list:
+    jobs = []
+    chunk_start = start_line
+    while chunk_start <= end_line:
+        best_end = None
+        best_job = None
+        low = chunk_start
+        high = end_line
+        while low <= high:
+            mid = (low + high) // 2
+            try:
+                candidate = _build_hierarchy_ai_job_for_ranges_from_snapshot(
+                    snapshot,
+                    [(chunk_start, mid)],
+                    label_prefix=label_prefix,
+                )
+                best_end = mid
+                best_job = candidate
+                low = mid + 1
+            except HierarchyAIPromptTooLarge:
+                high = mid - 1
+        if best_job is None or best_end is None:
+            raise HierarchyAIPromptTooLarge(
+                "A raw script section is too large for one AI markup request.\n\n"
+                f"Split {_format_raw_line_range_value(chunk_start, chunk_start)} manually, "
+                "then run AI mark missing again."
+            )
+        jobs.append(best_job)
+        chunk_start = best_end + 1
+    return jobs
+
+
+def _prepare_hierarchy_raw_scope_jobs_from_snapshot(
+    snapshot: dict,
+    ranges: list[tuple[int, int]],
+    *,
+    label_prefix: str = "Unstructured source",
+) -> list:
+    jobs = []
+    pending_ranges: list[tuple[int, int]] = []
+    pending_job = None
+
+    for item in ranges:
+        candidate_ranges = [*pending_ranges, item]
+        try:
+            candidate_job = _build_hierarchy_ai_job_for_ranges_from_snapshot(
+                snapshot,
+                candidate_ranges,
+                label_prefix=label_prefix,
+            )
+            pending_ranges = candidate_ranges
+            pending_job = candidate_job
+            continue
+        except HierarchyAIPromptTooLarge:
+            if pending_job is not None:
+                jobs.append(pending_job)
+                pending_ranges = []
+                pending_job = None
+            try:
+                pending_job = _build_hierarchy_ai_job_for_ranges_from_snapshot(
+                    snapshot,
+                    [item],
+                    label_prefix=label_prefix,
+                )
+                pending_ranges = [item]
+            except HierarchyAIPromptTooLarge:
+                jobs.extend(_split_hierarchy_raw_range_jobs_from_snapshot(
+                    snapshot,
+                    item[0],
+                    item[1],
+                    label_prefix=label_prefix,
+                ))
+
+    if pending_job is not None:
+        jobs.append(pending_job)
+    return jobs
+
+
+def _prepare_hierarchy_ai_jobs_from_snapshot(
+    snapshot: dict,
+    unmarked_ranges: list[tuple[int, int]],
+) -> list:
+    raw_lines = snapshot["raw_lines"]
+    full_payload = _hierarchy_scope_payload_from_snapshot(
+        snapshot,
+        unmarked_ranges,
+        label="full script",
+        start_line=0,
+        end_line=max(0, len(raw_lines) - 1),
+    )
+    try:
+        return [build_hierarchy_auto_markup_messages(
+            full_payload,
+            max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
+        )]
+    except HierarchyAIPromptTooLarge:
+        pass
+
+    structures = sorted(
+        [mark for mark in snapshot["hierarchy_marks"] if mark.type_id == HierarchyType.STRUCTURE],
+        key=lambda mark: (mark.start_line, mark.depth, -mark.end_line, mark.order),
+    )
+    if not structures:
+        return _prepare_hierarchy_raw_scope_jobs_from_snapshot(
+            snapshot,
+            unmarked_ranges,
+            label_prefix="Unstructured source",
+        )
+
+    uncovered = list(unmarked_ranges)
+    jobs = []
+    while uncovered:
+        current_start, current_end = uncovered[0]
+        enclosing = [
+            mark for mark in structures
+            if mark.start_line <= current_start and current_end <= mark.end_line
+        ]
+        enclosing.sort(key=lambda mark: (mark.depth, mark.start_line, -mark.end_line))
+        if not enclosing:
+            outside_ranges = []
+            for item in uncovered:
+                has_structure = any(
+                    mark.start_line <= item[0] and item[1] <= mark.end_line
+                    for mark in structures
+                )
+                if has_structure:
+                    break
+                outside_ranges.append(item)
+            jobs.extend(_prepare_hierarchy_raw_scope_jobs_from_snapshot(
+                snapshot,
+                outside_ranges or [(current_start, current_end)],
+                label_prefix="Unstructured source",
+            ))
+            outside_set = set(outside_ranges or [(current_start, current_end)])
+            uncovered = [item for item in uncovered if item not in outside_set]
+            continue
+
+        selected = None
+        last_too_large = None
+        for structure in enclosing:
+            scoped_ranges = [
+                item for item in uncovered
+                if structure.start_line <= item[0] and item[1] <= structure.end_line
+            ]
+            if not scoped_ranges:
+                continue
+            text = _hierarchy_mark_display_text_value(structure, raw_lines)
+            label = f"{text or 'Structure'} ({_format_raw_line_range_value(structure.start_line, structure.end_line)})"
+            payload = _hierarchy_scope_payload_from_snapshot(
+                snapshot,
+                scoped_ranges,
+                label=label,
+                start_line=structure.start_line,
+                end_line=structure.end_line,
+            )
+            try:
+                selected = (
+                    structure,
+                    scoped_ranges,
+                    build_hierarchy_auto_markup_messages(
+                        payload,
+                        max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
+                    ),
+                )
+                break
+            except HierarchyAIPromptTooLarge as exc:
+                last_too_large = (structure, exc)
+
+        if selected is None:
+            structure, exc = last_too_large or (enclosing[-1], None)
+            text = _hierarchy_mark_display_text_value(structure, raw_lines)
+            label = f"{text or 'Structure'} ({_format_raw_line_range_value(structure.start_line, structure.end_line)})"
+            scoped_ranges = [
+                item for item in uncovered
+                if structure.start_line <= item[0] and item[1] <= structure.end_line
+            ]
+            try:
+                jobs.extend(_prepare_hierarchy_raw_scope_jobs_from_snapshot(
+                    snapshot,
+                    scoped_ranges,
+                    label_prefix=label,
+                ))
+            except HierarchyAIPromptTooLarge as split_exc:
+                detail = f"\n\nTechnical detail: {split_exc or exc}" if (split_exc or exc) else ""
+                raise HierarchyAIPromptTooLarge(
+                    "The smallest available Structure node is still too large for one AI markup request.\n\n"
+                    f"Split `{label}` into smaller Structure nodes, such as chapters or scenes, "
+                    "then run AI mark missing again."
+                    f"{detail}"
+                ) from split_exc
+            scoped_set = set(scoped_ranges)
+            uncovered = [item for item in uncovered if item not in scoped_set]
+            continue
+
+        _structure, scoped_ranges, prepared = selected
+        jobs.append(prepared)
+        scoped_set = set(scoped_ranges)
+        uncovered = [item for item in uncovered if item not in scoped_set]
+
+    return jobs
+
+
+class _HierarchyAIPrepareWorker(QObject):
+    """Background worker for prompt/job preparation before an AI call."""
+
+    success = pyqtSignal(list)
+    error = pyqtSignal(str)
+    finished = pyqtSignal()
+
+    def __init__(self, snapshot: dict, unmarked_ranges: list[tuple[int, int]]):
+        super().__init__()
+        self.snapshot = snapshot
+        self.unmarked_ranges = list(unmarked_ranges)
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True
+
+    def run(self):
+        try:
+            jobs = _prepare_hierarchy_ai_jobs_from_snapshot(self.snapshot, self.unmarked_ranges)
+            if not self.is_cancelled:
+                self.success.emit(jobs)
+        except Exception as exc:
+            if not self.is_cancelled:
+                self.error.emit(str(exc))
+        finally:
+            self.finished.emit()
+
+
 class _HierarchyAIWorker(QObject):
     """Background worker for one-shot hierarchy auto-markup."""
 
     success = pyqtSignal(list, list, str)
     error = pyqtSignal(str)
+    progress = pyqtSignal(int, int, str)
     finished = pyqtSignal()
 
     def __init__(
         self,
         provider,
-        messages: list[dict[str, str]],
+        jobs: list,
         raw_line_count: int,
         type_definitions: dict[str, HierarchyTypeDefinition],
     ):
         super().__init__()
         self.provider = provider
-        self.messages = messages
+        self.jobs = jobs
         self.raw_line_count = raw_line_count
         self.type_definitions = type_definitions
         self.is_cancelled = False
@@ -510,22 +1078,33 @@ class _HierarchyAIWorker(QObject):
 
     def run(self):
         try:
-            response = self.provider.translate(
-                self.messages,
-                session=None,
-                settings_override={"temperature": 0.0},
-            )
+            all_marks: list[HierarchyMark] = []
+            all_warnings: list[str] = []
+            responses: list[str] = []
+            total = len(self.jobs)
+            for index, job in enumerate(self.jobs, start=1):
+                if self.is_cancelled:
+                    return
+                self.progress.emit(index, total, job.scope_label)
+                response = self.provider.translate(
+                    job.messages,
+                    session=None,
+                    settings_override={"temperature": 0.0},
+                )
+                if self.is_cancelled:
+                    return
+                response_text = response.text or ""
+                marks, warnings = parse_hierarchy_auto_markup_response(
+                    response_text,
+                    raw_line_count=self.raw_line_count,
+                    type_definitions=self.type_definitions,
+                )
+                all_marks.extend(marks)
+                all_warnings.extend(f"{job.scope_label}: {warning}" for warning in warnings)
+                responses.append(f"--- {job.scope_label} ---\n{response_text}")
             if self.is_cancelled:
                 return
-            response_text = response.text or ""
-            marks, warnings = parse_hierarchy_auto_markup_response(
-                response_text,
-                raw_line_count=self.raw_line_count,
-                type_definitions=self.type_definitions,
-            )
-            if self.is_cancelled:
-                return
-            self.success.emit(marks, warnings, response_text)
+            self.success.emit(all_marks, all_warnings, "\n\n".join(responses))
         except Exception as exc:
             if not self.is_cancelled:
                 self.error.emit(str(exc))
@@ -563,9 +1142,13 @@ class ScriptMarkupStudioDialog(QDialog):
         self._bulk_edit_mark_keys: list[str] = []
         self._bulk_edit_initial_controls: dict[str, object] = {}
         self._outline_reveal_keys: set[str] = set()
+        self._outline_expansion_overrides: dict[str, bool] = {}
+        self._outline_expansion_signal_suspended = 0
         self._collapsed_hierarchy_keys: set[str] = set()
         self._raw_line_depths: dict[int, int] = {}
         self._raw_fold_headers: dict[int, str] = {}
+        self._raw_hierarchy_view_signature: tuple[tuple[tuple[int, int], ...], tuple[int, ...]] | None = None
+        self._hierarchy_mark_by_key_cache: dict[str, HierarchyMark] | None = None
         self._history_stack: list[dict] = []
         self._history_index = -1
         self._history_ready = False
@@ -574,10 +1157,19 @@ class ScriptMarkupStudioDialog(QDialog):
         self._history_text_dirty = False
         self._preview_dialog: QDialog | None = None
         self._preview_view: QPlainTextEdit | None = None
+        self._hierarchy_ai_prepare_thread: QThread | None = None
+        self._hierarchy_ai_prepare_worker: _HierarchyAIPrepareWorker | None = None
         self._hierarchy_ai_thread: QThread | None = None
         self._hierarchy_ai_worker: _HierarchyAIWorker | None = None
         self._hierarchy_ai_status: AIStatusDialog | None = None
         self._hierarchy_ai_last_response = ""
+        self._hierarchy_ai_provider = None
+        self._hierarchy_ai_model_name = ""
+        self._hierarchy_ai_started_at: float | None = None
+        self._hierarchy_ai_progress_state: tuple[int, int, str] | None = None
+        self._hierarchy_ai_elapsed_timer = QTimer(self)
+        self._hierarchy_ai_elapsed_timer.setInterval(1000)
+        self._hierarchy_ai_elapsed_timer.timeout.connect(self._update_hierarchy_ai_elapsed_detail)
 
         self.setWindowTitle("Script Markup Studio")
         self.resize(900, 720)
@@ -603,19 +1195,50 @@ class ScriptMarkupStudioDialog(QDialog):
         self._record_history(force=True)
 
     # ------------------------------------------------------------------ UI
+    def _add_menu_action(self, menu: QMenu, text: str, callback, tooltip: str = ""):
+        action = menu.addAction(text)
+        if tooltip:
+            action.setToolTip(tooltip)
+            action.setStatusTip(tooltip)
+        action.triggered.connect(lambda _checked=False, cb=callback: cb())
+        return action
+
+    def _create_menu_button(self, text: str, tooltip: str) -> tuple[QPushButton, QMenu]:
+        button = QPushButton(text)
+        button.setAutoDefault(False)
+        button.setToolTip(tooltip)
+        menu = QMenu(button)
+        button.setMenu(menu)
+        return button, menu
+
+    def _disable_default_buttons(self):
+        for button in self.findChildren(QPushButton):
+            button.setAutoDefault(False)
+            button.setDefault(False)
+
     def _setup_ui(self):
         root = QVBoxLayout(self)
         self._apply_studio_style()
 
         # Top bar
         top = QHBoxLayout()
+        top.setSpacing(6)
         self.help_btn = QPushButton("?  Help")
+        self.help_btn.setToolTip("Open a short guide that explains how Script Markup Studio works.")
         self.help_btn.clicked.connect(self._show_help)
         top.addWidget(self.help_btn)
 
-        self.load_btn = QPushButton("Load raw script…")
-        self.load_btn.clicked.connect(self._load_file)
-        top.addWidget(self.load_btn)
+        self.script_menu_btn, self.script_menu = self._create_menu_button(
+            "Script",
+            "Open script-related actions, such as loading the raw walkthrough text.",
+        )
+        self.load_btn = self._add_menu_action(
+            self.script_menu,
+            "Open script...",
+            self._load_file,
+            "Open a raw walkthrough/script file.",
+        )
+        top.addWidget(self.script_menu_btn)
 
         top.addWidget(QLabel("Rules:"))
         self.mode_combo = QComboBox()
@@ -630,43 +1253,96 @@ class ScriptMarkupStudioDialog(QDialog):
         self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         top.addWidget(self.mode_combo)
 
-        self.load_markup_btn = QPushButton("Load markup...")
-        self.load_markup_btn.setToolTip("Load a saved hierarchy markup project.")
-        self.load_markup_btn.clicked.connect(self._load_hierarchy_project)
-        top.addWidget(self.load_markup_btn)
-
-        self.save_markup_btn = QPushButton("Save markup...")
-        self.save_markup_btn.setToolTip("Save the raw text, tree marks, type names, and colors.")
-        self.save_markup_btn.clicked.connect(self._save_hierarchy_project)
-        top.addWidget(self.save_markup_btn)
-
-        self.load_template_btn = QPushButton("Load template...")
-        self.load_template_btn.setToolTip("Load hierarchy type names and colors from a template.")
-        self.load_template_btn.clicked.connect(self._load_hierarchy_template)
-        top.addWidget(self.load_template_btn)
-
-        self.save_template_btn = QPushButton("Save template...")
-        self.save_template_btn.setToolTip("Save type definitions and marked examples for AI reuse.")
-        self.save_template_btn.clicked.connect(self._save_hierarchy_template)
-        top.addWidget(self.save_template_btn)
-
-        self.ai_markup_btn = QPushButton("AI mark unmarked...")
-        self.ai_markup_btn.setToolTip(
-            "Send the current manual hierarchy examples and unmarked ranges to the configured AI provider."
+        self.project_menu_btn, self.project_menu = self._create_menu_button(
+            "Project",
+            "Open, save, or reset the current markup project.",
         )
-        self.ai_markup_btn.clicked.connect(self._run_hierarchy_ai_markup)
-        top.addWidget(self.ai_markup_btn)
+        self.load_markup_btn = self._add_menu_action(
+            self.project_menu,
+            "Open project...",
+            self._load_hierarchy_project,
+            "Open a saved markup project with the raw script, marks, type names, and colors.",
+        )
+        self.save_markup_btn = self._add_menu_action(
+            self.project_menu,
+            "Save project...",
+            self._save_hierarchy_project,
+            "Save the raw script, tree marks, type names, and colors.",
+        )
+        self.project_menu.addSeparator()
+        self.reset_markup_btn = self._add_menu_action(
+            self.project_menu,
+            "Reset marks...",
+            self._reset_current_markup,
+            "Clear all hierarchy marks from the current script.",
+        )
+        top.addWidget(self.project_menu_btn)
+
+        self.template_menu_btn, self.template_menu = self._create_menu_button(
+            "Template",
+            "Open or save reusable hierarchy type names, colors, and examples.",
+        )
+        self.load_template_btn = self._add_menu_action(
+            self.template_menu,
+            "Open template...",
+            self._load_hierarchy_template,
+            "Open hierarchy type names and colors from a template.",
+        )
+        self.save_template_btn = self._add_menu_action(
+            self.template_menu,
+            "Save template...",
+            self._save_hierarchy_template,
+            "Save type definitions and approved examples for reuse.",
+        )
+        top.addWidget(self.template_menu_btn)
+
+        self.auto_markup_menu_btn, self.auto_markup_menu = self._create_menu_button(
+            "Auto-fill",
+            "Fill missing hierarchy marks locally, run an explicit AI pass, or merge selected structures.",
+        )
+        self.join_structures_btn = self._add_menu_action(
+            self.auto_markup_menu,
+            "Join selected structures",
+            self._join_selected_structures,
+            "Merge selected Structure nodes with the same label and depth into one container.",
+        )
+        self.continue_examples_btn = self._add_menu_action(
+            self.auto_markup_menu,
+            "Continue from marked examples...",
+            self._continue_hierarchy_from_examples,
+            "Locally infer repeated hierarchy patterns from approved marks and apply them to unmarked lines.",
+        )
+        self.ai_markup_btn = self._add_menu_action(
+            self.auto_markup_menu,
+            "AI mark missing...",
+            self._run_hierarchy_ai_markup,
+            "Explicitly send approved hierarchy examples and unmarked ranges to the configured AI provider.",
+        )
+        top.addWidget(self.auto_markup_menu_btn)
 
         self.path_label = QLabel("No file loaded")
         self.path_label.setStyleSheet("color:#666;")
+        self.path_label.setMinimumWidth(0)
+        self.path_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         top.addWidget(self.path_label, 1)
 
-        self.load_recipe_btn = QPushButton("Load recipe…")
-        self.load_recipe_btn.clicked.connect(self._load_recipe)
-        top.addWidget(self.load_recipe_btn)
-        self.save_recipe_btn = QPushButton("Save recipe…")
-        self.save_recipe_btn.clicked.connect(self._save_recipe)
-        top.addWidget(self.save_recipe_btn)
+        self.recipe_menu_btn, self.recipe_menu = self._create_menu_button(
+            "Recipe",
+            "Open or save the custom rule recipe used by Custom recipe mode.",
+        )
+        self.load_recipe_btn = self._add_menu_action(
+            self.recipe_menu,
+            "Open recipe...",
+            self._load_recipe,
+            "Open a custom classification recipe.",
+        )
+        self.save_recipe_btn = self._add_menu_action(
+            self.recipe_menu,
+            "Save recipe...",
+            self._save_recipe,
+            "Save the current custom classification recipe.",
+        )
+        top.addWidget(self.recipe_menu_btn)
         root.addLayout(top)
 
         # Recipe flags + teach (custom engine only)
@@ -674,10 +1350,16 @@ class ScriptMarkupStudioDialog(QDialog):
         self.recipe_box = QGroupBox("Recipe")
         flags_layout = QHBoxLayout(self.recipe_box)
         self.cb_gutter = QCheckBox("Gutter speakers (Format B)")
+        self.cb_gutter.setToolTip(
+            "Treat a standalone speaker name line as the speaker for the dialogue lines below it."
+        )
         self.cb_gutter.setChecked(self.recipe.gutter_speakers)
         self.cb_gutter.toggled.connect(self._on_flag_changed)
         flags_layout.addWidget(self.cb_gutter)
         self.cb_continuation = QCheckBox("Join wrapped lines")
+        self.cb_continuation.setToolTip(
+            "Join wrapped dialogue lines before previewing or exporting the standardized script."
+        )
         self.cb_continuation.setChecked(self.recipe.continuation)
         self.cb_continuation.toggled.connect(self._on_flag_changed)
         flags_layout.addWidget(self.cb_continuation)
@@ -690,7 +1372,7 @@ class ScriptMarkupStudioDialog(QDialog):
                        "separately — works for any separator.",
             "chapter": "Cursor on a chapter header with delimiters (=== Act One ===).",
             "location": "Cursor on a location header with delimiters (--- Ordon ---).",
-            "ignore": "Cursor on a recurring noise line to drop every identical line.",
+            "ignore": "Cursor on a recurring noise line to drop every identical line (Ctrl+I).",
         }
         for label, kind in (("Speaker", "speaker"), ("Chapter", "chapter"),
                             ("Location", "location"), ("Ignore", "ignore")):
@@ -717,9 +1399,14 @@ class ScriptMarkupStudioDialog(QDialog):
         self.hierarchy_type_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.hierarchy_type_combo.setMinimumWidth(170)
         self.hierarchy_type_combo.setMinimumContentsLength(14)
+        self.hierarchy_type_combo.setToolTip(
+            "Choose the hierarchy mark type. Shortcuts: Ctrl+S Structure, Ctrl+P Speaker, "
+            "Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore."
+        )
         for type_def in self.hierarchy_type_definitions.values():
             self._add_hierarchy_type_item(type_def)
         self.hierarchy_type_combo.lineEdit().setPlaceholderText("Type or choose")
+        self.hierarchy_type_combo.lineEdit().setToolTip(self.hierarchy_type_combo.toolTip())
         self.hierarchy_type_combo.lineEdit().editingFinished.connect(
             self._finalize_hierarchy_type_text
         )
@@ -737,7 +1424,10 @@ class ScriptMarkupStudioDialog(QDialog):
 
         self.hierarchy_mark_btn = QPushButton("Mark selection")
         self.hierarchy_mark_btn.setMinimumWidth(118)
-        self.hierarchy_mark_btn.setToolTip("Mark the current selection (Ctrl+M).")
+        self.hierarchy_mark_btn.setToolTip(
+            "Mark the current selection with the chosen Type (Ctrl+M). Quick types: Ctrl+S Structure, "
+            "Ctrl+P Speaker, Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore."
+        )
         self.hierarchy_mark_btn.clicked.connect(self._mark_selection_as_hierarchy)
         hierarchy_layout.addWidget(self.hierarchy_mark_btn)
 
@@ -789,29 +1479,39 @@ class ScriptMarkupStudioDialog(QDialog):
         raw_header.addWidget(self.raw_label)
         raw_header.addStretch(1)
         raw_header.addWidget(QLabel("Find:"))
-        self.search_edit = QLineEdit()
+        self.search_edit = _SearchLineEdit()
         self.search_edit.setPlaceholderText("Search raw script")
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.setMinimumWidth(220)
+        self.search_edit.setToolTip(
+            "Search raw script (Ctrl+F). Press Enter for the next match or Shift+Enter for the previous match."
+        )
         self.search_edit.textChanged.connect(self._on_search_text_changed)
-        self.search_edit.returnPressed.connect(self._find_next_search_match)
+        self.search_edit.findNextRequested.connect(self._find_next_search_match)
+        self.search_edit.findPreviousRequested.connect(self._find_previous_search_match)
         raw_header.addWidget(self.search_edit)
         self.search_prev_btn = QPushButton("Prev")
+        self.search_prev_btn.setToolTip(
+            "Jump to the previous search match in the raw script (Shift+Enter in Find)."
+        )
         self.search_prev_btn.clicked.connect(self._find_previous_search_match)
         raw_header.addWidget(self.search_prev_btn)
         self.search_next_btn = QPushButton("Next")
+        self.search_next_btn.setToolTip(
+            "Jump to the next search match in the raw script (Enter in Find)."
+        )
         self.search_next_btn.clicked.connect(self._find_next_search_match)
         raw_header.addWidget(self.search_next_btn)
         self.search_case_cb = QCheckBox("Aa")
-        self.search_case_cb.setToolTip("Match case")
+        self.search_case_cb.setToolTip("Only match text with the same uppercase/lowercase letters.")
         self.search_case_cb.toggled.connect(self._on_search_options_changed)
         raw_header.addWidget(self.search_case_cb)
         self.search_word_cb = QCheckBox("Word")
-        self.search_word_cb.setToolTip("Match whole word")
+        self.search_word_cb.setToolTip("Only match complete words, not text inside longer words.")
         self.search_word_cb.toggled.connect(self._on_search_options_changed)
         raw_header.addWidget(self.search_word_cb)
         self.search_regex_cb = QCheckBox(".*")
-        self.search_regex_cb.setToolTip("Use regular expression")
+        self.search_regex_cb.setToolTip("Interpret the search text as a regular expression pattern.")
         self.search_regex_cb.toggled.connect(self._on_search_options_changed)
         raw_header.addWidget(self.search_regex_cb)
         self.search_status_label = QLabel("")
@@ -835,6 +1535,9 @@ class ScriptMarkupStudioDialog(QDialog):
         outline_header = QHBoxLayout()
         outline_header.setContentsMargins(0, 0, 0, 0)
         self.outline_label = QLabel("Script tree (double-click to jump):")
+        self.outline_label.setToolTip(
+            "Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename."
+        )
         outline_header.addWidget(self.outline_label)
         outline_header.addStretch(1)
         self.expand_tree_btn = QPushButton("Expand all")
@@ -847,16 +1550,22 @@ class ScriptMarkupStudioDialog(QDialog):
         outline_header.addWidget(self.collapse_tree_btn)
         outline_layout.addLayout(outline_header)
         self.flags_list = _ScriptTreeWidget(self)
+        self.flags_list.setToolTip(
+            "Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename."
+        )
         self.flags_list.setHeaderHidden(True)
         self.flags_list.setAlternatingRowColors(True)
         self.flags_list.setUniformRowHeights(True)
         self.flags_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.flags_list.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.flags_list.setDragEnabled(True)
         self.flags_list.setAcceptDrops(True)
         self.flags_list.setDropIndicatorShown(True)
         self.flags_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.flags_list.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.flags_list.itemDoubleClicked.connect(self._jump_to_flag)
+        self.flags_list.itemExpanded.connect(self._on_outline_item_expanded)
+        self.flags_list.itemCollapsed.connect(self._on_outline_item_collapsed)
         self.flags_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.flags_list.customContextMenuRequested.connect(self._show_outline_context_menu)
         outline_layout.addWidget(self.flags_list)
@@ -879,12 +1588,15 @@ class ScriptMarkupStudioDialog(QDialog):
         actions = QHBoxLayout()
         actions.addStretch(1)
         self.preview_btn = QPushButton("Preview result…")
+        self.preview_btn.setToolTip("Show the standardized script that would be exported right now.")
         self.preview_btn.clicked.connect(self._open_preview)
         actions.addWidget(self.preview_btn)
         self.export_btn = QPushButton("Export game_script.md…")
+        self.export_btn.setToolTip("Write the current standardized script to a Markdown file.")
         self.export_btn.clicked.connect(self._export)
         actions.addWidget(self.export_btn)
         close_btn = QPushButton("Close")
+        close_btn.setToolTip("Close Script Markup Studio.")
         close_btn.clicked.connect(self.close)
         actions.addWidget(close_btn)
         root.addLayout(actions)
@@ -897,12 +1609,33 @@ class ScriptMarkupStudioDialog(QDialog):
         self.ignore_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
         self.ignore_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.ignore_shortcut.activated.connect(self._activate_ignore_shortcut)
+        self.structure_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        self.structure_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.structure_shortcut.activated.connect(
+            lambda: self._activate_hierarchy_type_shortcut(HierarchyType.STRUCTURE)
+        )
+        self.speaker_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
+        self.speaker_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.speaker_shortcut.activated.connect(
+            lambda: self._activate_hierarchy_type_shortcut(HierarchyType.SPEAKER)
+        )
+        self.text_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
+        self.text_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.text_shortcut.activated.connect(
+            lambda: self._activate_hierarchy_type_shortcut(HierarchyType.TEXT)
+        )
+        self.breaker_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
+        self.breaker_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.breaker_shortcut.activated.connect(
+            lambda: self._activate_hierarchy_type_shortcut(HierarchyType.BREAKER)
+        )
         self.undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         self.undo_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.undo_shortcut.activated.connect(self._undo_history)
         self.redo_shortcut = QShortcut(QKeySequence.StandardKey.Redo, self)
         self.redo_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.redo_shortcut.activated.connect(self._redo_history)
+        self._disable_default_buttons()
 
     def _apply_studio_style(self):
         arrow_path = os.path.abspath(
@@ -998,6 +1731,12 @@ class ScriptMarkupStudioDialog(QDialog):
         html = self._hierarchy_legend_html() if self.mode == "hierarchy" else ""
         self.legend_label.setText(html)
         self.legend_label.setVisible(bool(html))
+
+    def _update_raw_minimap(self):
+        if hasattr(self, "raw_edit") and hasattr(self.raw_edit, "_sync_viewport_margins"):
+            if hasattr(self.raw_edit, "minimap"):
+                self.raw_edit.minimap.invalidate()
+            self.raw_edit._sync_viewport_margins()
 
     # -------------------------------------------------------------- history
     def _mark_history_payload(self, mark: HierarchyMark) -> dict:
@@ -1220,10 +1959,20 @@ class ScriptMarkupStudioDialog(QDialog):
         else:
             self._mark_selection_as(LineKind.ACTION)
 
+    def _raw_editor_has_selection(self) -> bool:
+        cursor = self.raw_edit.textCursor()
+        return cursor.hasSelection() and cursor.selectionStart() != cursor.selectionEnd()
+
+    def _activate_hierarchy_type_shortcut(self, type_id: str):
+        if self.mode != "hierarchy":
+            return
+        self._select_hierarchy_type_id(type_id)
+        if self._raw_editor_has_selection():
+            self._mark_selection_as_hierarchy()
+
     def _activate_ignore_shortcut(self):
         if self.mode == "hierarchy":
-            self._select_hierarchy_type_id(HierarchyType.IGNORE)
-            self._mark_selection_as_hierarchy()
+            self._activate_hierarchy_type_shortcut(HierarchyType.IGNORE)
         else:
             self._mark_selection_as(LineKind.IGNORE)
 
@@ -1453,10 +2202,15 @@ class ScriptMarkupStudioDialog(QDialog):
         doc = self.raw_edit.document()
         old_blocked = self.raw_edit.blockSignals(True)
         old_undo = doc.isUndoRedoEnabled()
+        cursor = self.raw_edit.textCursor()
+        cursor_anchor = cursor.anchor()
+        cursor_position = cursor.position()
+        vertical_scroll = self.raw_edit.verticalScrollBar().value()
+        horizontal_scroll = self.raw_edit.horizontalScrollBar().value()
         doc.setUndoRedoEnabled(False)
         try:
-            cursor = QTextCursor(doc)
-            cursor.beginEditBlock()
+            edit_cursor = QTextCursor(doc)
+            edit_cursor.beginEditBlock()
             for line_no in range(doc.blockCount()):
                 block = doc.findBlockByNumber(line_no)
                 if not block.isValid():
@@ -1469,12 +2223,19 @@ class ScriptMarkupStudioDialog(QDialog):
                     pass
                 fmt = block.blockFormat()
                 fmt.setLeftMargin(0)
-                cursor.setPosition(block.position())
-                cursor.mergeBlockFormat(fmt)
-            cursor.endEditBlock()
+                edit_cursor.setPosition(block.position())
+                edit_cursor.mergeBlockFormat(fmt)
+            edit_cursor.endEditBlock()
         finally:
             doc.setUndoRedoEnabled(old_undo)
             self.raw_edit.blockSignals(old_blocked)
+        restored = self.raw_edit.textCursor()
+        text_len = len(self.raw_edit.toPlainText())
+        restored.setPosition(max(0, min(cursor_anchor, text_len)))
+        restored.setPosition(max(0, min(cursor_position, text_len)), QTextCursor.MoveMode.KeepAnchor)
+        self.raw_edit.setTextCursor(restored)
+        self.raw_edit.verticalScrollBar().setValue(min(vertical_scroll, self.raw_edit.verticalScrollBar().maximum()))
+        self.raw_edit.horizontalScrollBar().setValue(min(horizontal_scroll, self.raw_edit.horizontalScrollBar().maximum()))
         doc.markContentsDirty(0, doc.characterCount())
         self.raw_edit.viewport().update()
         self.raw_edit.hierarchy_gutter.update()
@@ -1482,13 +2243,19 @@ class ScriptMarkupStudioDialog(QDialog):
     def _reset_raw_hierarchy_view(self):
         self._raw_line_depths = {}
         self._raw_fold_headers = {}
+        self._raw_hierarchy_view_signature = None
         self._set_raw_hierarchy_block_format({}, set())
 
     def _hierarchy_mark_by_key_map(self) -> dict[str, HierarchyMark]:
-        return {
-            self._hierarchy_mark_key(mark): mark
-            for mark in self.hierarchy_marks
-        }
+        if self._hierarchy_mark_by_key_cache is None:
+            self._hierarchy_mark_by_key_cache = {
+                self._hierarchy_mark_key(mark): mark
+                for mark in self.hierarchy_marks
+            }
+        return self._hierarchy_mark_by_key_cache
+
+    def _invalidate_hierarchy_mark_caches(self):
+        self._hierarchy_mark_by_key_cache = None
 
     def _raw_hierarchy_view_data(self, raw_lines: list[str]) -> tuple[dict[int, int], dict[int, str], set[int]]:
         mark_by_key = self._hierarchy_mark_by_key_map()
@@ -1536,11 +2303,12 @@ class ScriptMarkupStudioDialog(QDialog):
             self._reset_raw_hierarchy_view()
             return
         line_depths, fold_headers, hidden_lines = self._raw_hierarchy_view_data(raw_lines)
+        signature = (tuple(sorted(line_depths.items())), tuple(sorted(hidden_lines)))
         self._raw_line_depths = line_depths
         self._raw_fold_headers = fold_headers
-        self._set_raw_hierarchy_block_format(line_depths, hidden_lines)
-        if self.raw_edit.horizontalScrollBar().value() != 0:
-            self.raw_edit.horizontalScrollBar().setValue(0)
+        if signature != self._raw_hierarchy_view_signature:
+            self._raw_hierarchy_view_signature = signature
+            self._set_raw_hierarchy_block_format(line_depths, hidden_lines)
 
     def _raw_fold_key_at_pos(self, pos: QPoint, *, require_gutter: bool = True) -> str | None:
         if self.mode != "hierarchy":
@@ -1686,7 +2454,8 @@ class ScriptMarkupStudioDialog(QDialog):
             if bulk else
             "Save the edited node type, label, depth, and range."
             if editing else
-            "Mark the current selection as a new hierarchy node (Ctrl+M)."
+            "Mark the current selection as a new hierarchy node (Ctrl+M). Quick types: "
+            "Ctrl+S Structure, Ctrl+P Speaker, Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore."
         )
         self.hierarchy_mark_btn.setStyleSheet(_SAVE_EDIT_BUTTON_STYLE if editing else "")
         self.hierarchy_clear_btn.setText("Stop edit" if editing else "Clear")
@@ -1924,6 +2693,8 @@ class ScriptMarkupStudioDialog(QDialog):
         if old_key in self._collapsed_hierarchy_keys:
             self._collapsed_hierarchy_keys.remove(old_key)
             self._collapsed_hierarchy_keys.add(new_key)
+        if old_key in self._outline_expansion_overrides:
+            self._outline_expansion_overrides[new_key] = self._outline_expansion_overrides.pop(old_key)
         self._bulk_edit_mark_keys = [
             new_key if key == old_key else key
             for key in self._bulk_edit_mark_keys
@@ -1975,6 +2746,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
         self._stop_range_edit()
         if changed:
+            self._apply_ignore_precedence()
             self._queue_outline_reveal(*reveal_keys)
             self._refresh()
             self._record_history()
@@ -1999,6 +2771,11 @@ class ScriptMarkupStudioDialog(QDialog):
         mark.description = type_def.description
         new_key = self._hierarchy_mark_key(mark)
         self._replace_active_edit_key(old_key, new_key)
+        if mark.type_id == HierarchyType.IGNORE:
+            self._apply_ignore_precedence()
+            reveal_keys = self._ignore_mark_keys_for_range(mark.start_line, mark.end_line)
+        else:
+            reveal_keys = [new_key]
 
         self._range_edit_mark_key = None
         self._range_edit_start_line = None
@@ -2006,7 +2783,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self._range_edit_drag_handle = None
         self._update_range_edit_label()
         self._update_hierarchy_edit_controls()
-        self._queue_outline_reveal(new_key)
+        self._queue_outline_reveal(*reveal_keys)
         self._refresh()
         self._record_history()
         return True
@@ -2530,7 +3307,8 @@ class ScriptMarkupStudioDialog(QDialog):
             "}"
         )
         self.hierarchy_color_btn.setToolTip(
-            f"{type_def.label}: {type_def.description}\nDefault colour for this type."
+            f"Choose the default highlight color for {type_def.label} marks.\n"
+            f"{type_def.description}"
         )
         self._reset_hierarchy_type_edit_view()
 
@@ -2617,6 +3395,101 @@ class ScriptMarkupStudioDialog(QDialog):
             order=order,
         )
 
+    def _fragment_from_mark(self, mark: HierarchyMark, start: int, end: int, order: int) -> HierarchyMark:
+        return HierarchyMark(
+            start_line=start,
+            end_line=end,
+            depth=mark.depth,
+            type_id=mark.type_id,
+            text=mark.text,
+            label=mark.label,
+            description=mark.description,
+            color=mark.color,
+            order=order,
+        )
+
+    def _mark_segments_after_ignore_ranges(
+        self,
+        mark: HierarchyMark,
+        ignore_ranges: list[tuple[int, int]],
+    ) -> list[tuple[int, int]]:
+        if mark.type_id == HierarchyType.IGNORE:
+            return [(mark.start_line, mark.end_line)]
+
+        for start, end in ignore_ranges:
+            if start <= mark.start_line and mark.end_line <= end:
+                return []
+
+        if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.SPEAKER):
+            return [(mark.start_line, mark.end_line)]
+
+        segments = [(mark.start_line, mark.end_line)]
+        for ignore_start, ignore_end in ignore_ranges:
+            next_segments: list[tuple[int, int]] = []
+            for start, end in segments:
+                if not self._ranges_overlap(start, end, ignore_start, ignore_end):
+                    next_segments.append((start, end))
+                    continue
+                if start < ignore_start:
+                    next_segments.append((start, ignore_start - 1))
+                if ignore_end < end:
+                    next_segments.append((ignore_end + 1, end))
+            segments = next_segments
+            if not segments:
+                break
+        return segments
+
+    def _apply_ignore_precedence(self, raw_lines: list[str] | None = None) -> bool:
+        ignore_ranges = sorted(
+            (mark.start_line, mark.end_line)
+            for mark in self.hierarchy_marks
+            if mark.type_id == HierarchyType.IGNORE
+        )
+        if not ignore_ranges:
+            return False
+
+        updated: list[HierarchyMark] = []
+        changed = False
+        removed_keys: set[str] = set()
+        for mark in self.hierarchy_marks:
+            old_key = self._hierarchy_mark_key(mark)
+            if mark.type_id == HierarchyType.IGNORE:
+                if mark.depth != 0:
+                    mark.depth = 0
+                    changed = True
+                updated.append(mark)
+                continue
+
+            segments = self._mark_segments_after_ignore_ranges(mark, ignore_ranges)
+            if not segments:
+                removed_keys.add(old_key)
+                changed = True
+                continue
+            if segments == [(mark.start_line, mark.end_line)]:
+                updated.append(mark)
+                continue
+
+            changed = True
+            removed_keys.add(old_key)
+            for idx, (start, end) in enumerate(segments):
+                updated.append(
+                    self._fragment_from_mark(
+                        mark,
+                        start,
+                        end,
+                        mark.order if idx == 0 else self._next_hierarchy_order(),
+                    )
+                )
+
+        if changed:
+            self.hierarchy_marks = updated
+            self._collapsed_hierarchy_keys.difference_update(removed_keys)
+            for key in removed_keys:
+                self._outline_expansion_overrides.pop(key, None)
+            if self._range_edit_mark_key in removed_keys or removed_keys.intersection(self._bulk_edit_mark_keys):
+                self._stop_range_edit()
+        return self._merge_adjacent_ignore_marks(raw_lines) or changed
+
     def _split_text_marks_around_mark(self, new_mark: HierarchyMark) -> bool:
         if new_mark.type_id not in _TEXT_SPLITTING_TYPES:
             return False
@@ -2688,7 +3561,11 @@ class ScriptMarkupStudioDialog(QDialog):
             )
         ]
         self.hierarchy_marks.append(mark)
-        self._queue_outline_reveal(self._hierarchy_mark_key(mark))
+        if mark.type_id == HierarchyType.IGNORE:
+            self._apply_ignore_precedence()
+            self._queue_outline_reveal(*self._ignore_mark_keys_for_range(start, end))
+        else:
+            self._queue_outline_reveal(self._hierarchy_mark_key(mark))
         self._refresh()
         self._record_history()
 
@@ -2709,6 +3586,39 @@ class ScriptMarkupStudioDialog(QDialog):
             self.hierarchy_marks = kept
             self._refresh()
             self._record_history()
+
+    def _reset_current_markup(self):
+        if self.mode != "hierarchy":
+            return
+
+        if not self.hierarchy_marks:
+            QMessageBox.information(
+                self,
+                "Reset marks",
+                "There are no hierarchy marks to reset.",
+            )
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Reset marks?",
+            "Clear all hierarchy marks from the current script?\n\n"
+            "The raw script and hierarchy templates will stay unchanged.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self.hierarchy_marks = []
+        self._hierarchy_mark_order = 0
+        self._outline_reveal_keys.clear()
+        self._outline_expansion_overrides.clear()
+        self._collapsed_hierarchy_keys.clear()
+        self._stop_range_edit()
+        self._reset_raw_hierarchy_view()
+        self._refresh()
+        self._record_history()
 
     def _tooltip_for_raw_position(self, pos) -> str:
         block = self.raw_edit.cursorForPosition(pos).block()
@@ -2995,12 +3905,19 @@ class ScriptMarkupStudioDialog(QDialog):
         self.teach_box.setEnabled(custom)
         self.hierarchy_box.setVisible(hierarchy)
         self.hierarchy_box.setEnabled(hierarchy)
+        self.project_menu_btn.setVisible(hierarchy)
+        self.template_menu_btn.setVisible(hierarchy)
+        self.auto_markup_menu_btn.setVisible(hierarchy)
+        self.recipe_menu_btn.setVisible(custom)
         self.load_recipe_btn.setVisible(custom)
         self.save_recipe_btn.setVisible(custom)
         self.load_markup_btn.setVisible(hierarchy)
         self.save_markup_btn.setVisible(hierarchy)
+        self.reset_markup_btn.setVisible(hierarchy)
         self.load_template_btn.setVisible(hierarchy)
         self.save_template_btn.setVisible(hierarchy)
+        self.join_structures_btn.setVisible(hierarchy)
+        self.continue_examples_btn.setVisible(hierarchy)
         self.ai_markup_btn.setVisible(hierarchy)
         self.range_panel.setVisible(not hierarchy)
         if not hierarchy and self._is_hierarchy_editing():
@@ -3042,6 +3959,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
     # ------------------------------------------------------------- refresh
     def _refresh(self):
+        self._invalidate_hierarchy_mark_caches()
         if self.mode == "picoripi":
             self._refresh_picoripi()
         elif self.mode == "hierarchy":
@@ -3054,6 +3972,7 @@ class ScriptMarkupStudioDialog(QDialog):
     def _refresh_hierarchy(self):
         text = self.raw_edit.toPlainText()
         raw_lines = text.splitlines()
+        self._apply_ignore_precedence(raw_lines)
         self._psm_text = render_hierarchy_markdown(
             self.hierarchy_marks,
             text,
@@ -3072,6 +3991,7 @@ class ScriptMarkupStudioDialog(QDialog):
         line_kinds = {idx: type_id for idx, (type_id, _color) in styles.items()}
         line_colors = {idx: color for idx, (_type_id, color) in styles.items()}
         self.highlighter.set_line_kinds(line_kinds, line_colors=line_colors)
+        self._update_raw_minimap()
         self._apply_raw_hierarchy_view(raw_lines)
 
         max_depth = max((mark.depth for mark in self.hierarchy_marks), default=0)
@@ -3140,13 +4060,35 @@ class ScriptMarkupStudioDialog(QDialog):
                 walk(item)
         return state
 
+    def _set_outline_expansion_signals_suspended(self, suspended: bool):
+        self._outline_expansion_signal_suspended += 1 if suspended else -1
+        self._outline_expansion_signal_suspended = max(0, self._outline_expansion_signal_suspended)
+
+    def _on_outline_item_expanded(self, item: QTreeWidgetItem):
+        if self._outline_expansion_signal_suspended:
+            return
+        key = self._outline_item_data(item, _OUTLINE_ENTRY_KEY_ROLE)
+        if key:
+            self._outline_expansion_overrides[str(key)] = True
+
+    def _on_outline_item_collapsed(self, item: QTreeWidgetItem):
+        if self._outline_expansion_signal_suspended:
+            return
+        key = self._outline_item_data(item, _OUTLINE_ENTRY_KEY_ROLE)
+        if key:
+            self._outline_expansion_overrides[str(key)] = False
+            self._outline_reveal_keys.clear()
+
     def _restore_outline_expansion_state(self, state: dict[str, bool]):
         def walk(item: QTreeWidgetItem):
             if sip.isdeleted(item):
                 return
             key = item.data(0, _OUTLINE_ENTRY_KEY_ROLE)
-            if key in state:
-                item.setExpanded(state[str(key)])
+            key_text = str(key) if key else ""
+            if key_text in self._outline_expansion_overrides:
+                item.setExpanded(self._outline_expansion_overrides[key_text])
+            elif key_text in state:
+                item.setExpanded(state[key_text])
             elif item.parent() is None and not item.text(0).startswith("Unmarked:"):
                 item.setExpanded(True)
             for idx in range(item.childCount()):
@@ -3162,14 +4104,11 @@ class ScriptMarkupStudioDialog(QDialog):
     def _collect_outline_selection_state(self) -> dict[str, object]:
         selected_keys = []
         for item in self.flags_list.selectedItems():
-            key = self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
+            key = self._outline_selection_key(item)
             if key:
                 selected_keys.append(str(key))
-        current_key = self._outline_item_data(self.flags_list.currentItem(), _OUTLINE_MARK_KEY_ROLE)
-        anchor_key = self._outline_item_data(
-            self.flags_list._selection_anchor_item,
-            _OUTLINE_MARK_KEY_ROLE,
-        )
+        current_key = self._outline_selection_key(self.flags_list.currentItem())
+        anchor_key = self._outline_selection_key(self.flags_list._selection_anchor_item)
         return {
             "selected": selected_keys,
             "current": str(current_key) if current_key else "",
@@ -3188,7 +4127,7 @@ class ScriptMarkupStudioDialog(QDialog):
         def walk(item: QTreeWidgetItem):
             if sip.isdeleted(item):
                 return
-            key = self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
+            key = self._outline_selection_key(item)
             if key:
                 items_by_key[str(key)] = item
             for idx in range(item.childCount()):
@@ -3281,6 +4220,9 @@ class ScriptMarkupStudioDialog(QDialog):
     ):
         expansion_state = self._collect_outline_expansion_state()
         selection_state = self._collect_outline_selection_state()
+        vertical_scroll = self.flags_list.verticalScrollBar().value()
+        horizontal_scroll = self.flags_list.horizontalScrollBar().value()
+        reveal_requested = bool(self._outline_reveal_keys)
         self.flags_list.setUpdatesEnabled(False)
         self.flags_list._selection_anchor_item = None
         self.flags_list.clear()
@@ -3370,11 +4312,26 @@ class ScriptMarkupStudioDialog(QDialog):
                     more.setBackground(0, QColor(unmarked_def.color))
                     unmarked_root.addChild(more)
 
-            self._restore_outline_expansion_state(expansion_state)
+            self._set_outline_expansion_signals_suspended(True)
+            try:
+                self._restore_outline_expansion_state(expansion_state)
+            finally:
+                self._set_outline_expansion_signals_suspended(False)
             self._restore_outline_selection_state(selection_state)
-            self._reveal_queued_outline_items()
+            self._set_outline_expansion_signals_suspended(True)
+            try:
+                self._reveal_queued_outline_items()
+            finally:
+                self._set_outline_expansion_signals_suspended(False)
         finally:
             self.flags_list.setUpdatesEnabled(True)
+            if not reveal_requested:
+                self.flags_list.verticalScrollBar().setValue(
+                    min(vertical_scroll, self.flags_list.verticalScrollBar().maximum())
+                )
+                self.flags_list.horizontalScrollBar().setValue(
+                    min(horizontal_scroll, self.flags_list.horizontalScrollBar().maximum())
+                )
 
     def _refresh_custom(self):
         self._reset_raw_hierarchy_view()
@@ -3390,6 +4347,7 @@ class ScriptMarkupStudioDialog(QDialog):
             self._block_parity(line_speakers),
             line_speakers,
         )
+        self._update_raw_minimap()
 
         speakers, s = self._classified_summary(result.classified)
         self.stats_label.setText(
@@ -3429,6 +4387,7 @@ class ScriptMarkupStudioDialog(QDialog):
             self._block_parity(line_speakers),
             line_speakers,
         )
+        self._update_raw_minimap()
 
         speakers, stats = summarize_transcript(transcript)
         self.stats_label.setText(
@@ -3470,6 +4429,12 @@ class ScriptMarkupStudioDialog(QDialog):
         except RuntimeError:
             return None
 
+    def _outline_selection_key(self, item: QTreeWidgetItem | None):
+        return (
+            self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
+            or self._outline_item_data(item, _OUTLINE_ENTRY_KEY_ROLE)
+        )
+
     def _outline_item_children(self, item: QTreeWidgetItem | None) -> list[QTreeWidgetItem]:
         try:
             if item is None or sip.isdeleted(item):
@@ -3478,19 +4443,62 @@ class ScriptMarkupStudioDialog(QDialog):
         except RuntimeError:
             return []
 
-    def _jump_to_line_no(self, line_no):
-        if not line_no:
-            return
-        block = self.raw_edit.document().findBlockByNumber(int(line_no) - 1)
+    def _jump_to_line_no(self, line_no) -> bool:
+        if line_no is None or line_no == "":
+            return False
+        try:
+            raw_line_no = int(line_no)
+        except (TypeError, ValueError):
+            return False
+        if raw_line_no <= 0:
+            return False
+        block = self.raw_edit.document().findBlockByNumber(raw_line_no - 1)
         if block.isValid():
             cursor = self.raw_edit.textCursor()
             cursor.setPosition(block.position())
             self.raw_edit.setTextCursor(cursor)
-            self.raw_edit.centerCursor()
+            self._scroll_raw_to_position(block.position())
             self.raw_edit.setFocus()
+            return True
+        return False
 
     def _jump_to_flag(self, item: QTreeWidgetItem, _column: int = 0):
-        self._jump_to_line_no(self._outline_item_data(item, _OUTLINE_LINE_ROLE))
+        return self._jump_to_line_no(self._outline_item_data(item, _OUTLINE_LINE_ROLE))
+
+    def _rename_outline_item(self, item: QTreeWidgetItem | None) -> bool:
+        if self.mode != "hierarchy":
+            return False
+        key = self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
+        mark = self._hierarchy_mark_for_key(key)
+        if mark is None:
+            return False
+
+        raw_lines = self.raw_edit.toPlainText().splitlines()
+        current = self._hierarchy_mark_display_text(mark, limit=240, raw_lines=raw_lines)
+        type_def = self.hierarchy_type_definitions.get(mark.type_id)
+        label = type_def.label if type_def else str(mark.type_id).title()
+        new_text, accepted = QInputDialog.getText(
+            self,
+            "Rename node",
+            f"{label} name:",
+            QLineEdit.EchoMode.Normal,
+            current,
+        )
+        if not accepted:
+            return False
+
+        cleaned = self._clean_mark_text(new_text)
+        if cleaned == (mark.text or ""):
+            return False
+
+        old_key = self._hierarchy_mark_key(mark)
+        mark.text = cleaned
+        new_key = self._hierarchy_mark_key(mark)
+        self._replace_active_edit_key(old_key, new_key)
+        self._queue_outline_reveal(new_key)
+        self._refresh()
+        self._record_history()
+        return True
 
     def _outline_mark_keys(self, item: QTreeWidgetItem, include_children: bool) -> list[str]:
         keys = []
@@ -3536,9 +4544,12 @@ class ScriptMarkupStudioDialog(QDialog):
         items: list[QTreeWidgetItem],
         include_children: bool,
     ) -> list[list[str]]:
-        roots = self._outline_root_items(items)
+        roots = self._outline_root_items(items) if include_children else items
         return [
-            self._outline_mark_keys(item, include_children=include_children)
+            self._outline_mark_keys(
+                item,
+                include_children=include_children or not item.isExpanded(),
+            )
             for item in roots
         ]
 
@@ -3552,6 +4563,239 @@ class ScriptMarkupStudioDialog(QDialog):
                     seen.add(key)
         return keys
 
+    def _outline_direct_mark_keys(self, items: list[QTreeWidgetItem]) -> list[str]:
+        keys = []
+        seen = set()
+        for item in items:
+            key = self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
+            if key and str(key) not in seen:
+                keys.append(str(key))
+                seen.add(str(key))
+        return keys
+
+    def _structure_join_label_key(self, mark: HierarchyMark, raw_lines: list[str]) -> str:
+        return self._clean_mark_text(mark_text(mark, raw_lines)).casefold()
+
+    def _structure_explicit_join_label_key(self, mark: HierarchyMark, raw_lines: list[str]) -> str:
+        explicit = self._clean_mark_text(mark.text or mark.label)
+        if explicit:
+            return explicit.casefold()
+        return self._structure_join_label_key(mark, raw_lines)
+
+    def _structure_start_line_is_label(self, mark: HierarchyMark, raw_lines: list[str]) -> bool:
+        if not (0 <= mark.start_line < len(raw_lines)):
+            return False
+        label = self._clean_mark_text(mark.text or mark.label)
+        source = self._clean_mark_text(raw_lines[mark.start_line])
+        return bool(label and source and label.casefold() == source.casefold())
+
+    def _joinable_structure_marks_for_keys(self, keys) -> list[HierarchyMark]:
+        key_list = [str(key) for key in keys if key]
+        if len(key_list) < 2:
+            return []
+        raw_lines = self.raw_edit.toPlainText().splitlines()
+        selected: list[tuple[str, HierarchyMark]] = []
+        seen = set()
+        for key in key_list:
+            if key in seen:
+                continue
+            mark = self._hierarchy_mark_for_key(key)
+            if mark is None:
+                continue
+            selected.append((key, mark))
+            seen.add(key)
+        marks = [mark for _key, mark in selected]
+        if len(marks) < 2 or any(mark.type_id != HierarchyType.STRUCTURE for mark in marks):
+            return []
+        depth = marks[0].depth
+        if any(mark.depth != depth for mark in marks):
+            return []
+        labels = {
+            self._structure_join_label_key(mark, raw_lines)
+            for mark in marks
+        }
+        if len(labels) != 1 or not next(iter(labels)):
+            return []
+
+        selected_keys = {key for key, _mark in selected}
+        first_start = min(mark.start_line for mark in marks)
+        last_start = max(mark.start_line for mark in marks)
+        for mark in self.hierarchy_marks:
+            key = self._hierarchy_mark_key(mark)
+            if key in selected_keys or mark.type_id == HierarchyType.IGNORE:
+                continue
+            if mark.depth <= depth and first_start < mark.start_line < last_start:
+                return []
+        return sorted(marks, key=lambda mark: (mark.start_line, mark.end_line, mark.order))
+
+    def _join_structure_mark_keys(self, keys) -> int:
+        marks = self._joinable_structure_marks_for_keys(keys)
+        if len(marks) < 2:
+            return 0
+
+        primary = marks[0]
+        raw_lines = self.raw_edit.toPlainText().splitlines()
+        old_primary_key = self._hierarchy_mark_key(primary)
+        removed = marks[1:]
+        removed_ids = {id(mark) for mark in removed}
+        removed_keys = {self._hierarchy_mark_key(mark) for mark in removed}
+        ignored_duplicate_labels = [
+            HierarchyMark(
+                start_line=mark.start_line,
+                end_line=mark.start_line,
+                depth=0,
+                type_id=HierarchyType.IGNORE,
+                order=mark.order,
+            )
+            for mark in removed
+            if self._structure_start_line_is_label(mark, raw_lines)
+        ]
+
+        primary.start_line = min(mark.start_line for mark in marks)
+        primary.end_line = max(mark.end_line for mark in marks)
+        primary.order = min(mark.order for mark in marks)
+        for mark in marks[1:]:
+            if not primary.text and mark.text:
+                primary.text = mark.text
+            if not primary.label and mark.label:
+                primary.label = mark.label
+            if not primary.description and mark.description:
+                primary.description = mark.description
+            if not primary.color and mark.color:
+                primary.color = mark.color
+
+        self.hierarchy_marks = [
+            mark for mark in self.hierarchy_marks
+            if id(mark) not in removed_ids
+        ]
+        self.hierarchy_marks.extend(ignored_duplicate_labels)
+        new_primary_key = self._hierarchy_mark_key(primary)
+        if (
+            self._range_edit_mark_key in removed_keys
+            or removed_keys.intersection(self._bulk_edit_mark_keys)
+        ):
+            self._stop_range_edit()
+        else:
+            self._replace_active_edit_key(old_primary_key, new_primary_key)
+        self._collapsed_hierarchy_keys.difference_update(removed_keys)
+        for key in removed_keys:
+            self._outline_expansion_overrides.pop(key, None)
+        self._queue_outline_reveal(new_primary_key)
+        self._refresh()
+        self._record_history()
+        return len(marks)
+
+    def _has_breaker_between(self, start: int, end: int) -> bool:
+        if start > end:
+            return False
+        return any(
+            mark.type_id == HierarchyType.BREAKER
+            and self._ranges_overlap(mark.start_line, mark.end_line, start, end)
+            for mark in self.hierarchy_marks
+        )
+
+    def _structure_join_group_end(
+        self,
+        first: HierarchyMark,
+        group: list[HierarchyMark],
+        raw_lines: list[str],
+    ) -> int:
+        group_ids = {id(mark) for mark in group}
+        boundary = None
+        for mark in self.hierarchy_marks:
+            if (
+                id(mark) not in group_ids
+                and mark.type_id == HierarchyType.STRUCTURE
+                and mark.depth <= first.depth
+                and mark.start_line > first.start_line
+            ):
+                boundary = mark.start_line - 1 if boundary is None else min(boundary, mark.start_line - 1)
+        return boundary if boundary is not None else max(0, len(raw_lines) - 1)
+
+    def _auto_join_adjacent_duplicate_structures(self) -> int:
+        raw_lines = self.raw_edit.toPlainText().splitlines()
+        candidates = sorted(
+            [
+                mark for mark in self.hierarchy_marks
+                if mark.type_id == HierarchyType.STRUCTURE
+                and self._structure_explicit_join_label_key(mark, raw_lines)
+            ],
+            key=lambda mark: (mark.depth, mark.start_line, mark.order),
+        )
+        changed = 0
+        by_depth: dict[int, list[HierarchyMark]] = {}
+        for mark in candidates:
+            by_depth.setdefault(mark.depth, []).append(mark)
+
+        for depth, marks in by_depth.items():
+            index = 0
+            while index < len(marks):
+                first = marks[index]
+                label = self._structure_explicit_join_label_key(first, raw_lines)
+                group = [first]
+                next_index = index + 1
+                while next_index < len(marks):
+                    current = marks[next_index]
+                    if self._structure_explicit_join_label_key(current, raw_lines) != label:
+                        break
+                    if self._has_breaker_between(group[-1].end_line + 1, current.start_line - 1):
+                        break
+                    crosses_parent = any(
+                        mark.type_id == HierarchyType.STRUCTURE
+                        and mark.depth < depth
+                        and group[-1].start_line < mark.start_line <= current.start_line
+                        for mark in self.hierarchy_marks
+                    )
+                    if crosses_parent:
+                        break
+                    group.append(current)
+                    next_index += 1
+
+                if len(group) < 2:
+                    index += 1
+                    continue
+
+                primary = group[0]
+                removed = group[1:]
+                removed_ids = {id(mark) for mark in removed}
+                primary.end_line = max(
+                    primary.end_line,
+                    self._structure_join_group_end(primary, group, raw_lines),
+                )
+                duplicate_ignores = [
+                    HierarchyMark(
+                        start_line=mark.start_line,
+                        end_line=mark.start_line,
+                        depth=0,
+                        type_id=HierarchyType.IGNORE,
+                        order=mark.order,
+                    )
+                    for mark in removed
+                    if self._structure_start_line_is_label(mark, raw_lines)
+                ]
+                self.hierarchy_marks = [
+                    mark for mark in self.hierarchy_marks
+                    if id(mark) not in removed_ids
+                ]
+                self.hierarchy_marks.extend(duplicate_ignores)
+                changed += len(removed)
+                index = next_index
+
+        return changed
+
+    def _join_selected_structures(self) -> int:
+        if self.mode != "hierarchy":
+            self._switch_to_hierarchy_mode()
+        keys = self._outline_direct_mark_keys(self.flags_list.selectedItems())
+        joined = self._join_structure_mark_keys(keys)
+        if not joined:
+            QMessageBox.information(
+                self,
+                "Join structures",
+                "Select two or more Structure nodes with the same label and depth.",
+            )
+        return joined
+
     def _delete_outline_mark_keys(self, keys) -> int:
         key_set = {str(key) for key in keys if key}
         if not key_set:
@@ -3564,11 +4808,86 @@ class ScriptMarkupStudioDialog(QDialog):
         removed = before - len(self.hierarchy_marks)
         if removed:
             self._collapsed_hierarchy_keys.difference_update(key_set)
+            for key in key_set:
+                self._outline_expansion_overrides.pop(key, None)
             if self._range_edit_mark_key in key_set or key_set.intersection(self._bulk_edit_mark_keys):
                 self._stop_range_edit()
             self._refresh()
             self._record_history()
         return removed
+
+    def _ignore_mark_keys_for_range(self, start: int, end: int) -> list[str]:
+        return [
+            self._hierarchy_mark_key(mark)
+            for mark in self.hierarchy_marks
+            if mark.type_id == HierarchyType.IGNORE
+            and self._ranges_overlap(mark.start_line, mark.end_line, start, end)
+        ]
+
+    def _ignore_gap_can_merge(
+        self,
+        start_line: int,
+        end_line: int,
+        raw_lines: list[str],
+        non_ignore_marks: list[HierarchyMark],
+    ) -> bool:
+        if start_line > end_line:
+            return True
+        for mark in non_ignore_marks:
+            if (
+                self._ranges_overlap(mark.start_line, mark.end_line, start_line, end_line)
+                and not (mark.start_line < start_line and end_line < mark.end_line)
+            ):
+                return False
+        for line_no in range(start_line, end_line + 1):
+            if 0 <= line_no < len(raw_lines) and raw_lines[line_no].strip():
+                return False
+        return True
+
+    def _merge_adjacent_ignore_marks(self, raw_lines: list[str] | None = None) -> bool:
+        raw_lines = raw_lines if raw_lines is not None else self.raw_edit.toPlainText().splitlines()
+        ignore_marks = sorted(
+            [mark for mark in self.hierarchy_marks if mark.type_id == HierarchyType.IGNORE],
+            key=lambda mark: (mark.start_line, mark.end_line, mark.order),
+        )
+        if not ignore_marks:
+            return False
+
+        old_keys = {self._hierarchy_mark_key(mark) for mark in ignore_marks}
+        others = [mark for mark in self.hierarchy_marks if mark.type_id != HierarchyType.IGNORE]
+        merged: list[HierarchyMark] = []
+        changed = False
+        for mark in ignore_marks:
+            if mark.depth != 0:
+                mark.depth = 0
+                changed = True
+            if merged and self._ignore_gap_can_merge(
+                merged[-1].end_line + 1,
+                mark.start_line - 1,
+                raw_lines,
+                others,
+            ):
+                target = merged[-1]
+                target.end_line = max(target.end_line, mark.end_line)
+                target.start_line = min(target.start_line, mark.start_line)
+                target.order = min(target.order, mark.order)
+                if not target.text and mark.text:
+                    target.text = mark.text
+                changed = True
+            else:
+                merged.append(mark)
+
+        new_keys = {self._hierarchy_mark_key(mark) for mark in merged}
+        removed_keys = old_keys - new_keys
+        if removed_keys:
+            self._collapsed_hierarchy_keys.difference_update(removed_keys)
+            for key in removed_keys:
+                self._outline_expansion_overrides.pop(key, None)
+            if self._range_edit_mark_key in removed_keys or removed_keys.intersection(self._bulk_edit_mark_keys):
+                self._stop_range_edit()
+        if changed:
+            self.hierarchy_marks = others + merged
+        return changed
 
     def _hierarchy_mark_for_key(self, key: str | None) -> HierarchyMark | None:
         if not key:
@@ -3626,6 +4945,7 @@ class ScriptMarkupStudioDialog(QDialog):
             reveal_keys.append(new_key)
             changed += 1
         if changed:
+            self._apply_ignore_precedence()
             self._queue_outline_reveal(*reveal_keys)
             self._refresh()
             self._record_history()
@@ -3703,7 +5023,7 @@ class ScriptMarkupStudioDialog(QDialog):
             item for item in selected_items
             if self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
         ]
-        branch_groups = self._outline_key_groups(source_items, include_children=True)
+        branch_groups = self._outline_key_groups(source_items, include_children=False)
         if not branch_groups:
             return False
 
@@ -3723,7 +5043,9 @@ class ScriptMarkupStudioDialog(QDialog):
             return
         line_no = self._outline_item_data(item, _OUTLINE_LINE_ROLE)
         action_items = self._outline_action_items(item)
-        mark_keys = self._flatten_key_groups(self._outline_key_groups(action_items, include_children=False))
+        selected_groups = self._outline_key_groups(action_items, include_children=False)
+        mark_keys = self._flatten_key_groups(selected_groups)
+        direct_mark_keys = self._outline_direct_mark_keys(action_items)
         branch_groups = self._outline_key_groups(action_items, include_children=True)
         branch_keys = self._flatten_key_groups(branch_groups)
         primary_key = mark_keys[0] if mark_keys else None
@@ -3734,13 +5056,16 @@ class ScriptMarkupStudioDialog(QDialog):
         jump_action = menu.addAction("Jump to source")
         delete_action = None
         delete_branch_action = None
+        rename_action = None
         edit_range_action = None
         stop_range_action = None
+        join_structures_action = None
         depth_up_action = None
         depth_down_action = None
         depth_actions = {}
         if self.mode == "hierarchy" and mark_keys:
             if selected_count == 1:
+                rename_action = menu.addAction("Rename node...")
                 edit_range_action = menu.addAction("Edit node")
             else:
                 edit_range_action = menu.addAction(f"Edit {selected_count} selected nodes")
@@ -3749,9 +5074,11 @@ class ScriptMarkupStudioDialog(QDialog):
                 or set(mark_keys).intersection(self._bulk_edit_mark_keys)
             ):
                 stop_range_action = menu.addAction("Stop editing")
+            if len(self._joinable_structure_marks_for_keys(direct_mark_keys)) >= 2:
+                join_structures_action = menu.addAction("Join selected structures")
             movable_marks = [
                 self._hierarchy_mark_for_key(key)
-                for key in branch_keys
+                for key in mark_keys
             ]
             movable_marks = [
                 mark for mark in movable_marks
@@ -3759,7 +5086,7 @@ class ScriptMarkupStudioDialog(QDialog):
             ]
             if movable_marks:
                 branch_label = "selection" if selected_count > 1 else (
-                    "branch" if len(branch_keys) > 1 else "node"
+                    "branch" if len(mark_keys) > 1 else "node"
                 )
                 depth_title = "Depth" if selected_count > 1 else f"Depth ({primary_mark.depth})"
                 depth_menu = menu.addMenu(depth_title)
@@ -3779,7 +5106,7 @@ class ScriptMarkupStudioDialog(QDialog):
             menu.addSeparator()
             delete_label = "Delete selected nodes" if selected_count > 1 else "Delete node"
             delete_action = menu.addAction(delete_label)
-            if selected_count > 1 or len(branch_keys) > len(mark_keys):
+            if len(branch_keys) > len(mark_keys):
                 delete_branch_action = menu.addAction(
                     "Delete selected nodes and children"
                     if selected_count > 1 else
@@ -3789,6 +5116,8 @@ class ScriptMarkupStudioDialog(QDialog):
         chosen = menu.exec(self.flags_list.viewport().mapToGlobal(pos))
         if chosen == jump_action:
             self._jump_to_line_no(line_no)
+        elif rename_action is not None and chosen == rename_action:
+            self._rename_outline_item(item)
         elif edit_range_action is not None and chosen == edit_range_action:
             if selected_count == 1:
                 self._start_range_edit(primary_key)
@@ -3796,12 +5125,14 @@ class ScriptMarkupStudioDialog(QDialog):
                 self._start_bulk_hierarchy_edit(mark_keys)
         elif stop_range_action is not None and chosen == stop_range_action:
             self._stop_range_edit()
+        elif join_structures_action is not None and chosen == join_structures_action:
+            self._join_structure_mark_keys(direct_mark_keys)
         elif depth_up_action is not None and chosen == depth_up_action:
-            self._change_outline_depth_keys(branch_keys, -1)
+            self._change_outline_depth_keys(mark_keys, -1)
         elif depth_down_action is not None and chosen == depth_down_action:
-            self._change_outline_depth_keys(branch_keys, 1)
+            self._change_outline_depth_keys(mark_keys, 1)
         elif chosen in depth_actions:
-            self._set_outline_branch_groups_depth(branch_groups, depth_actions[chosen])
+            self._set_outline_branch_groups_depth(selected_groups, depth_actions[chosen])
         elif delete_action is not None and chosen == delete_action:
             self._delete_outline_mark_keys(mark_keys)
         elif delete_branch_action is not None and chosen == delete_branch_action:
@@ -3903,11 +5234,13 @@ class ScriptMarkupStudioDialog(QDialog):
 
         name_edit = QLineEdit(); name_edit.setReadOnly(True); name_edit.setPlaceholderText("(speaker name)")
         name_btn = QPushButton("Use selection as name")
+        name_btn.setToolTip("Use the selected text as the speaker-name part of this example.")
         nrow = QHBoxLayout(); nrow.addWidget(QLabel("Name:")); nrow.addWidget(name_edit, 1); nrow.addWidget(name_btn)
         v.addLayout(nrow)
 
         text_edit = QLineEdit(); text_edit.setReadOnly(True); text_edit.setPlaceholderText("(spoken text)")
         text_btn = QPushButton("Use selection as dialogue")
+        text_btn.setToolTip("Use the selected text as the spoken-dialogue part of this example.")
         trow = QHBoxLayout(); trow.addWidget(QLabel("Dialogue:")); trow.addWidget(text_edit, 1); trow.addWidget(text_btn)
         v.addLayout(trow)
 
@@ -3916,6 +5249,8 @@ class ScriptMarkupStudioDialog(QDialog):
 
         brow = QHBoxLayout(); brow.addStretch(1)
         cancel_btn = QPushButton("Cancel"); ok_btn = QPushButton("Add rule"); ok_btn.setDefault(True)
+        cancel_btn.setToolTip("Close this teacher without adding a new speaker rule.")
+        ok_btn.setToolTip("Add the inferred speaker rule to the current custom recipe.")
         brow.addWidget(cancel_btn); brow.addWidget(ok_btn)
         v.addLayout(brow)
 
@@ -4018,6 +5353,7 @@ class ScriptMarkupStudioDialog(QDialog):
         v.addWidget(view)
         row = QHBoxLayout(); row.addStretch(1)
         ok = QPushButton("Close"); ok.clicked.connect(dlg.close)
+        ok.setToolTip("Close the preview window.")
         row.addWidget(ok)
         v.addLayout(row)
         dlg._view = view
@@ -4047,6 +5383,7 @@ class ScriptMarkupStudioDialog(QDialog):
         layout.addWidget(browser)
         row = QHBoxLayout(); row.addStretch(1)
         ok = QPushButton("OK"); ok.setDefault(True); ok.clicked.connect(dlg.accept)
+        ok.setToolTip("Close the help window.")
         row.addWidget(ok)
         layout.addLayout(row)
         self._help_browser = browser
@@ -4163,9 +5500,14 @@ class ScriptMarkupStudioDialog(QDialog):
             "depth and have different type_id values.",
             "Use the hierarchy_marks as user-approved examples, infer the same pattern, "
             "and produce equivalent marks for the unmarked_ranges.",
+            "Mirror the observed type, depth, range, and label conventions when the source "
+            "shape repeats. Do not invent a different taxonomy.",
             "Canonical Markdown renders structure as # headings, speaker+text as "
             "**SPEAKER**: text, actions as [*action*], notes as (note), breakers as "
             "~~~~~~~~~~~~~~~~~~~~~~~~, and narrator as bold text.",
+            "Glossary nodes render as a Markdown # Glossary section. Direct children "
+            "of Glossary are categories; use their labels as semantic hints such as "
+            "Characters, Items, Locations, Terms, or a custom category.",
         ]
 
     def _hierarchy_unmarked_payload(self, raw_lines: list[str]) -> list[dict]:
@@ -4214,7 +5556,59 @@ class ScriptMarkupStudioDialog(QDialog):
         }
 
     def _hierarchy_ai_is_running(self) -> bool:
-        return self._hierarchy_ai_thread is not None
+        return self._hierarchy_ai_prepare_thread is not None or self._hierarchy_ai_thread is not None
+
+    def _hierarchy_ai_snapshot(self, raw_text: str, raw_lines: list[str]) -> dict:
+        return {
+            "raw_text": raw_text,
+            "raw_lines": list(raw_lines),
+            "source_path": self.current_raw_path,
+            "rendered_markdown": self._psm_text,
+            "type_definitions": dict(self.hierarchy_type_definitions),
+            "hierarchy_marks": [
+                HierarchyMark(
+                    start_line=mark.start_line,
+                    end_line=mark.end_line,
+                    depth=mark.depth,
+                    type_id=mark.type_id,
+                    text=mark.text,
+                    label=mark.label,
+                    description=mark.description,
+                    color=mark.color,
+                    order=mark.order,
+                )
+                for mark in self.hierarchy_marks
+            ],
+            "ai_instructions": self._hierarchy_ai_instructions(),
+        }
+
+    def _set_hierarchy_ai_actions_enabled(self, enabled: bool):
+        for action_name in ("continue_examples_btn", "ai_markup_btn"):
+            action = getattr(self, action_name, None)
+            if action is not None:
+                action.setEnabled(enabled)
+
+    def _format_elapsed_time(self, started_at: float | None) -> str:
+        if started_at is None:
+            return "00:00"
+        elapsed = max(0, int(time.monotonic() - started_at))
+        minutes, seconds = divmod(elapsed, 60)
+        return f"{minutes:02d}:{seconds:02d}"
+
+    def _hierarchy_ai_detail_text(self) -> str:
+        elapsed = self._format_elapsed_time(self._hierarchy_ai_started_at)
+        if self._hierarchy_ai_progress_state is None:
+            return f"Preparing examples and unmarked ranges... elapsed {elapsed}"
+        current, total, scope_label = self._hierarchy_ai_progress_state
+        if current <= 0:
+            return f"Preparing {total} structure scope(s)... elapsed {elapsed}"
+        return f"Scope {current}/{total}: {scope_label}\nWaiting for AI response... elapsed {elapsed}"
+
+    def _update_hierarchy_ai_elapsed_detail(self):
+        status = self._hierarchy_ai_status
+        if status is None or not status.is_running:
+            return
+        status.set_detail_text(self._hierarchy_ai_detail_text())
 
     def _create_hierarchy_ai_provider(self):
         config = getattr(self.mw, "translation_config", None)
@@ -4245,7 +5639,321 @@ class ScriptMarkupStudioDialog(QDialog):
             QMessageBox.critical(self, "AI markup", str(exc))
             return None, "", ""
 
-    def _run_hierarchy_ai_markup(self):
+    def _hierarchy_scope_payload(
+        self,
+        unmarked_ranges: list[tuple[int, int]],
+        *,
+        label: str,
+        start_line: int,
+        end_line: int,
+    ) -> dict:
+        payload = self._hierarchy_project_payload()
+        raw_lines = self.raw_edit.toPlainText().splitlines()
+        payload["unmarked_ranges"] = [
+            {
+                "start_line": start,
+                "end_line": end,
+                "start_line_number": start + 1,
+                "end_line_number": end + 1,
+                "source_excerpt": self._source_text_for_lines(start, end, raw_lines),
+            }
+            for start, end in unmarked_ranges
+        ]
+        payload["scope"] = {
+            "label": label,
+            "start_line_number": start_line + 1,
+            "end_line_number": end_line + 1,
+        }
+        return payload
+
+    def _structure_scope_label(self, mark: HierarchyMark, raw_lines: list[str]) -> str:
+        text = self._hierarchy_mark_display_text(mark, raw_lines=raw_lines)
+        return f"{text or 'Structure'} ({self._format_raw_line_range(mark.start_line, mark.end_line)})"
+
+    def _format_raw_line_range(self, start_line: int, end_line: int) -> str:
+        start = start_line + 1
+        end = end_line + 1
+        if start == end:
+            return f"raw script line {start}"
+        return f"raw script lines {start}-{end}"
+
+    def _build_hierarchy_ai_job_for_ranges(
+        self,
+        raw_lines: list[str],
+        ranges: list[tuple[int, int]],
+        *,
+        label_prefix: str,
+    ):
+        start_line = min(start for start, _end in ranges)
+        end_line = max(end for _start, end in ranges)
+        payload = self._hierarchy_scope_payload(
+            ranges,
+            label=f"{label_prefix} ({self._format_raw_line_range(start_line, end_line)})",
+            start_line=start_line,
+            end_line=end_line,
+        )
+        return build_hierarchy_auto_markup_messages(
+            payload,
+            max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
+        )
+
+    def _split_hierarchy_raw_range_jobs(
+        self,
+        raw_lines: list[str],
+        start_line: int,
+        end_line: int,
+        *,
+        label_prefix: str,
+    ) -> list:
+        jobs = []
+        chunk_start = start_line
+        while chunk_start <= end_line:
+            best_end = None
+            best_job = None
+            low = chunk_start
+            high = end_line
+            while low <= high:
+                mid = (low + high) // 2
+                try:
+                    candidate = self._build_hierarchy_ai_job_for_ranges(
+                        raw_lines,
+                        [(chunk_start, mid)],
+                        label_prefix=label_prefix,
+                    )
+                    best_end = mid
+                    best_job = candidate
+                    low = mid + 1
+                except HierarchyAIPromptTooLarge:
+                    high = mid - 1
+            if best_job is None or best_end is None:
+                raise HierarchyAIPromptTooLarge(
+                    "A raw script section is too large for one AI markup request.\n\n"
+                    f"Split {self._format_raw_line_range(chunk_start, chunk_start)} manually, "
+                    "then run AI mark missing again."
+                )
+            jobs.append(best_job)
+            chunk_start = best_end + 1
+        return jobs
+
+    def _prepare_hierarchy_raw_scope_jobs(
+        self,
+        raw_lines: list[str],
+        ranges: list[tuple[int, int]],
+        *,
+        label_prefix: str = "Unstructured source",
+    ) -> list:
+        jobs = []
+        pending_ranges: list[tuple[int, int]] = []
+        pending_job = None
+
+        for item in ranges:
+            candidate_ranges = [*pending_ranges, item]
+            try:
+                candidate_job = self._build_hierarchy_ai_job_for_ranges(
+                    raw_lines,
+                    candidate_ranges,
+                    label_prefix=label_prefix,
+                )
+                pending_ranges = candidate_ranges
+                pending_job = candidate_job
+                continue
+            except HierarchyAIPromptTooLarge:
+                if pending_job is not None:
+                    jobs.append(pending_job)
+                    pending_ranges = []
+                    pending_job = None
+                try:
+                    pending_job = self._build_hierarchy_ai_job_for_ranges(
+                        raw_lines,
+                        [item],
+                        label_prefix=label_prefix,
+                    )
+                    pending_ranges = [item]
+                except HierarchyAIPromptTooLarge:
+                    jobs.extend(self._split_hierarchy_raw_range_jobs(
+                        raw_lines,
+                        item[0],
+                        item[1],
+                        label_prefix=label_prefix,
+                    ))
+
+        if pending_job is not None:
+            jobs.append(pending_job)
+        return jobs
+
+    def _prepare_hierarchy_ai_jobs(self, raw_lines: list[str], unmarked_ranges: list[tuple[int, int]]):
+        full_payload = self._hierarchy_scope_payload(
+            unmarked_ranges,
+            label="full script",
+            start_line=0,
+            end_line=max(0, len(raw_lines) - 1),
+        )
+        try:
+            return [build_hierarchy_auto_markup_messages(
+                full_payload,
+                max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
+            )]
+        except HierarchyAIPromptTooLarge:
+            pass
+
+        structures = sorted(
+            [mark for mark in self.hierarchy_marks if mark.type_id == HierarchyType.STRUCTURE],
+            key=lambda mark: (mark.start_line, mark.depth, -mark.end_line, mark.order),
+        )
+        if not structures:
+            return self._prepare_hierarchy_raw_scope_jobs(
+                raw_lines,
+                unmarked_ranges,
+                label_prefix="Unstructured source",
+            )
+
+        uncovered = list(unmarked_ranges)
+        jobs = []
+        while uncovered:
+            current_start, current_end = uncovered[0]
+            enclosing = [
+                mark for mark in structures
+                if mark.start_line <= current_start and current_end <= mark.end_line
+            ]
+            enclosing.sort(key=lambda mark: (mark.depth, mark.start_line, -mark.end_line))
+            if not enclosing:
+                outside_ranges = []
+                for item in uncovered:
+                    has_structure = any(
+                        mark.start_line <= item[0] and item[1] <= mark.end_line
+                        for mark in structures
+                    )
+                    if has_structure:
+                        break
+                    outside_ranges.append(item)
+                jobs.extend(self._prepare_hierarchy_raw_scope_jobs(
+                    raw_lines,
+                    outside_ranges or [(current_start, current_end)],
+                    label_prefix="Unstructured source",
+                ))
+                outside_set = set(outside_ranges or [(current_start, current_end)])
+                uncovered = [item for item in uncovered if item not in outside_set]
+                continue
+
+            selected = None
+            last_too_large = None
+            for structure in enclosing:
+                scoped_ranges = [
+                    item for item in uncovered
+                    if structure.start_line <= item[0] and item[1] <= structure.end_line
+                ]
+                if not scoped_ranges:
+                    continue
+                label = self._structure_scope_label(structure, raw_lines)
+                payload = self._hierarchy_scope_payload(
+                    scoped_ranges,
+                    label=label,
+                    start_line=structure.start_line,
+                    end_line=structure.end_line,
+                )
+                try:
+                    selected = (
+                        structure,
+                        scoped_ranges,
+                        build_hierarchy_auto_markup_messages(
+                            payload,
+                            max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
+                        ),
+                    )
+                    break
+                except HierarchyAIPromptTooLarge as exc:
+                    last_too_large = (structure, exc)
+
+            if selected is None:
+                structure, exc = last_too_large or (enclosing[-1], None)
+                label = self._structure_scope_label(structure, raw_lines)
+                scoped_ranges = [
+                    item for item in uncovered
+                    if structure.start_line <= item[0] and item[1] <= structure.end_line
+                ]
+                try:
+                    jobs.extend(self._prepare_hierarchy_raw_scope_jobs(
+                        raw_lines,
+                        scoped_ranges,
+                        label_prefix=label,
+                    ))
+                except HierarchyAIPromptTooLarge as split_exc:
+                    detail = f"\n\nTechnical detail: {split_exc or exc}" if (split_exc or exc) else ""
+                    raise HierarchyAIPromptTooLarge(
+                        "The smallest available Structure node is still too large for one AI markup request.\n\n"
+                        f"Split `{label}` into smaller Structure nodes, such as chapters or scenes, "
+                        "then run AI mark missing again."
+                        f"{detail}"
+                    ) from split_exc
+                scoped_set = set(scoped_ranges)
+                uncovered = [item for item in uncovered if item not in scoped_set]
+                continue
+
+            _structure, scoped_ranges, prepared = selected
+            jobs.append(prepared)
+            scoped_set = set(scoped_ranges)
+            uncovered = [item for item in uncovered if item not in scoped_set]
+
+        return jobs
+
+    def _continue_hierarchy_from_examples(self):
+        if self.mode != "hierarchy":
+            self._switch_to_hierarchy_mode()
+        self._flush_pending_history()
+        raw_text = self.raw_edit.toPlainText()
+        if not raw_text.strip():
+            QMessageBox.information(self, "Continue from marked examples", "Load a raw script first.")
+            return
+        if not self.hierarchy_marks:
+            QMessageBox.information(
+                self,
+                "Continue from marked examples",
+                "Mark at least one hierarchy example first, then run this auto-fill again.",
+            )
+            return
+        raw_lines = raw_text.splitlines()
+        if not self._unmarked_ranges(raw_lines):
+            QMessageBox.information(
+                self,
+                "Continue from marked examples",
+                "There are no unmarked lines left.",
+            )
+            return
+
+        result = infer_hierarchy_marks_from_examples(raw_text, self.hierarchy_marks)
+        added, skipped = self._apply_hierarchy_candidate_marks(result.marks)
+        if added <= 0:
+            QMessageBox.information(
+                self,
+                "Continue from marked examples",
+                "No confident local patterns were found.\n\n"
+                "Mark one complete block first, such as one act with chapters, "
+                "one chapter with scenes, or a speaker/text sequence, then run this again.",
+            )
+            return
+
+        details = [
+            f"Added {added} local hierarchy marks.",
+            "",
+            f"Structures: {result.structures}",
+            f"Speakers: {result.speakers}",
+            f"Text blocks: {result.texts}",
+            f"Actions: {result.actions}",
+            f"Breakers: {result.breakers}",
+            f"Ignored: {result.ignored}",
+        ]
+        if skipped:
+            details.append("")
+            details.append(f"Skipped {skipped} duplicate or unsafe marks.")
+        QMessageBox.information(self, "Continue from marked examples", "\n".join(details))
+
+    def _run_hierarchy_ai_markup(
+        self,
+        *,
+        title: str = "AI markup",
+        status_title: str = "AI hierarchy markup",
+        require_examples: bool = False,
+    ):
         if self._hierarchy_ai_is_running():
             return
         if self.mode != "hierarchy":
@@ -4254,61 +5962,147 @@ class ScriptMarkupStudioDialog(QDialog):
         raw_text = self.raw_edit.toPlainText()
         raw_lines = raw_text.splitlines()
         if not raw_text.strip():
-            QMessageBox.information(self, "AI markup", "Load a raw script first.")
+            QMessageBox.information(self, title, "Load a raw script first.")
+            return
+        if require_examples and not self.hierarchy_marks:
+            QMessageBox.information(
+                self,
+                title,
+                "Mark at least one hierarchy example first, then run this auto-fill again.",
+            )
             return
         unmarked_ranges = self._unmarked_ranges(raw_lines)
         if not unmarked_ranges:
-            QMessageBox.information(self, "AI markup", "There are no unmarked lines left.")
-            return
-        try:
-            prepared = build_hierarchy_auto_markup_messages(self._hierarchy_project_payload())
-        except HierarchyAIPromptTooLarge as exc:
-            QMessageBox.warning(
-                self,
-                "AI markup request is too large",
-                f"{exc}\n\nMark a smaller section first, then run AI markup again.",
-            )
+            QMessageBox.information(self, title, "There are no unmarked lines left.")
             return
 
         provider, _provider_key, model_name = self._create_hierarchy_ai_provider()
         if provider is None:
             return
 
-        self.ai_markup_btn.setEnabled(False)
+        self._hierarchy_ai_provider = provider
+        self._hierarchy_ai_model_name = model_name
+        self._set_hierarchy_ai_actions_enabled(False)
+        self._hierarchy_ai_started_at = time.monotonic()
+        self._hierarchy_ai_progress_state = None
         status = AIStatusDialog(self)
-        status.start("AI hierarchy markup", model_name=model_name)
-        status.update_step(0, "Prepared hierarchy examples and unmarked ranges", AIStatusDialog.STATUS_DONE)
+        self._hierarchy_ai_status = status
+        status.start(status_title)
+        status.update_step(0, "Preparing examples and unmarked ranges", AIStatusDialog.STATUS_IN_PROGRESS)
+        status.set_detail_text(self._hierarchy_ai_detail_text())
+        self._hierarchy_ai_elapsed_timer.start()
+        QApplication.processEvents()
+
+        snapshot = self._hierarchy_ai_snapshot(raw_text, raw_lines)
+        thread = QThread(self)
+        worker = _HierarchyAIPrepareWorker(snapshot, unmarked_ranges)
+        self._hierarchy_ai_prepare_thread = thread
+        self._hierarchy_ai_prepare_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.success.connect(self._on_hierarchy_ai_prepare_success)
+        worker.error.connect(self._on_hierarchy_ai_prepare_error)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._on_hierarchy_ai_prepare_thread_finished)
+        status.cancelled.connect(self._cancel_hierarchy_ai_markup)
+        thread.start()
+
+    def _on_hierarchy_ai_prepare_success(self, jobs: list):
+        status = self._hierarchy_ai_status
+        if status is None or getattr(status, "user_cancelled", False):
+            return
+        if not jobs:
+            self._on_hierarchy_ai_prepare_error("No AI markup jobs were prepared.")
+            return
+
+        self._hierarchy_ai_progress_state = (0, len(jobs), "")
+        status.set_detail_text(self._hierarchy_ai_detail_text())
+        status.update_step(0, "Prepared current unmarked ranges for AI", AIStatusDialog.STATUS_DONE)
+        status.set_model_name(self._hierarchy_ai_model_name)
+        if len(jobs) > 1:
+            status.setup_progress_bar(len(jobs), 0)
         status.update_step(
             1,
-            f"Sending {prepared.unmarked_range_count} unmarked ranges to AI",
+            f"Sending {len(jobs)} structure scope(s) to AI",
             AIStatusDialog.STATUS_IN_PROGRESS,
         )
-        self._hierarchy_ai_status = status
 
+        provider = self._hierarchy_ai_provider
+        if provider is None:
+            self._on_hierarchy_ai_prepare_error("AI provider is no longer available.")
+            return
+
+        raw_line_count = len(self.raw_edit.toPlainText().splitlines())
         thread = QThread(self)
         worker = _HierarchyAIWorker(
             provider,
-            prepared.messages,
-            len(raw_lines),
+            jobs,
+            raw_line_count,
             dict(self.hierarchy_type_definitions),
         )
         self._hierarchy_ai_thread = thread
         self._hierarchy_ai_worker = worker
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
+        worker.progress.connect(self._on_hierarchy_ai_progress)
         worker.success.connect(self._on_hierarchy_ai_success)
         worker.error.connect(self._on_hierarchy_ai_error)
         worker.finished.connect(thread.quit)
         worker.finished.connect(worker.deleteLater)
         thread.finished.connect(thread.deleteLater)
         thread.finished.connect(self._on_hierarchy_ai_thread_finished)
-        status.cancelled.connect(self._cancel_hierarchy_ai_markup)
         thread.start()
 
+    def _on_hierarchy_ai_prepare_error(self, message: str):
+        status = self._hierarchy_ai_status
+        if status is not None:
+            status.update_step(0, "Could not prepare AI markup request", AIStatusDialog.STATUS_ERROR)
+            status.finish(success=False, show_popup=False)
+        self._hierarchy_ai_elapsed_timer.stop()
+        self._hierarchy_ai_status = None
+        self._hierarchy_ai_started_at = None
+        self._hierarchy_ai_progress_state = None
+        self._hierarchy_ai_provider = None
+        self._hierarchy_ai_model_name = ""
+        self._set_hierarchy_ai_actions_enabled(True)
+        QMessageBox.warning(
+            self,
+            "AI markup request is too large" if "too large" in (message or "").lower() else "AI markup",
+            message or "Could not prepare AI markup request.",
+        )
+
+    def _on_hierarchy_ai_prepare_thread_finished(self):
+        self._hierarchy_ai_prepare_thread = None
+        self._hierarchy_ai_prepare_worker = None
+        status = self._hierarchy_ai_status
+        if status is not None and status.is_running and getattr(status, "user_cancelled", False) and self._hierarchy_ai_thread is None:
+            status.finish(success=False, show_popup=False)
+            self._hierarchy_ai_elapsed_timer.stop()
+            self._hierarchy_ai_status = None
+            self._hierarchy_ai_started_at = None
+            self._hierarchy_ai_progress_state = None
+            self._hierarchy_ai_provider = None
+            self._hierarchy_ai_model_name = ""
+            self._set_hierarchy_ai_actions_enabled(True)
+
     def _mark_inside_ranges(self, mark: HierarchyMark, ranges: list[tuple[int, int]]) -> bool:
+        if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.GLOSSARY):
+            return not any(
+                existing.type_id == mark.type_id
+                and existing.depth == mark.depth
+                and self._ranges_overlap(
+                    existing.start_line,
+                    existing.end_line,
+                    mark.start_line,
+                    mark.end_line,
+                )
+                for existing in self.hierarchy_marks
+            )
         return any(start <= mark.start_line and mark.end_line <= end for start, end in ranges)
 
-    def _apply_hierarchy_ai_marks(self, marks: list[HierarchyMark]) -> tuple[int, int]:
+    def _apply_hierarchy_candidate_marks(self, marks: list[HierarchyMark]) -> tuple[int, int]:
         raw_lines = self.raw_edit.toPlainText().splitlines()
         unmarked_ranges = self._unmarked_ranges(raw_lines)
         existing_keys = {
@@ -4318,6 +6112,14 @@ class ScriptMarkupStudioDialog(QDialog):
         added: list[HierarchyMark] = []
         skipped = 0
         for mark in marks:
+            if (
+                mark.start_line < 0
+                or mark.end_line < mark.start_line
+                or mark.start_line >= len(raw_lines)
+                or mark.end_line >= len(raw_lines)
+            ):
+                skipped += 1
+                continue
             key = (mark.start_line, mark.end_line, mark.depth, mark.type_id)
             if key in existing_keys or not self._mark_inside_ranges(mark, unmarked_ranges):
                 skipped += 1
@@ -4337,15 +6139,42 @@ class ScriptMarkupStudioDialog(QDialog):
         if not added:
             return 0, skipped
         self.hierarchy_marks.extend(added)
-        self._outline_reveal_keys.update(self._hierarchy_mark_key(mark) for mark in added)
+        self._auto_join_adjacent_duplicate_structures()
+        self._apply_ignore_precedence()
+        for mark in added:
+            if mark.type_id == HierarchyType.IGNORE:
+                self._outline_reveal_keys.update(
+                    self._ignore_mark_keys_for_range(mark.start_line, mark.end_line)
+                )
+            else:
+                self._outline_reveal_keys.add(self._hierarchy_mark_key(mark))
         self._refresh()
         self._record_history()
         return len(added), skipped
+
+    def _apply_hierarchy_ai_marks(self, marks: list[HierarchyMark]) -> tuple[int, int]:
+        return self._apply_hierarchy_candidate_marks(marks)
+
+    def _on_hierarchy_ai_progress(self, current: int, total: int, scope_label: str):
+        status = self._hierarchy_ai_status
+        if status is None:
+            return
+        self._hierarchy_ai_progress_state = (current, total, scope_label)
+        if total > 1:
+            status.update_progress(max(0, current - 1))
+        status.set_detail_text(self._hierarchy_ai_detail_text())
+        status.update_step(
+            1,
+            f"Processing structure {current}/{total}",
+            AIStatusDialog.STATUS_IN_PROGRESS,
+        )
 
     def _on_hierarchy_ai_success(self, marks: list, warnings: list, response_text: str):
         self._hierarchy_ai_last_response = response_text
         status = self._hierarchy_ai_status
         if status is not None:
+            if status.progress_bar.isVisible():
+                status.update_progress(status.progress_bar.maximum())
             status.update_step(1, "AI response received", AIStatusDialog.STATUS_DONE)
             status.update_step(2, "Validated returned JSON", AIStatusDialog.STATUS_DONE)
             status.update_step(3, "Applying hierarchy marks", AIStatusDialog.STATUS_IN_PROGRESS)
@@ -4374,17 +6203,23 @@ class ScriptMarkupStudioDialog(QDialog):
         QMessageBox.warning(self, "AI markup failed", message or "AI markup failed.")
 
     def _cancel_hierarchy_ai_markup(self):
+        if self._hierarchy_ai_prepare_worker is not None:
+            self._hierarchy_ai_prepare_worker.cancel()
         if self._hierarchy_ai_worker is not None:
             self._hierarchy_ai_worker.cancel()
 
     def _on_hierarchy_ai_thread_finished(self):
+        self._hierarchy_ai_elapsed_timer.stop()
         if self._hierarchy_ai_status is not None and self._hierarchy_ai_status.is_running:
             self._hierarchy_ai_status.finish(success=False, show_popup=False)
         self._hierarchy_ai_thread = None
         self._hierarchy_ai_worker = None
         self._hierarchy_ai_status = None
-        if hasattr(self, "ai_markup_btn"):
-            self.ai_markup_btn.setEnabled(True)
+        self._hierarchy_ai_started_at = None
+        self._hierarchy_ai_progress_state = None
+        self._hierarchy_ai_provider = None
+        self._hierarchy_ai_model_name = ""
+        self._set_hierarchy_ai_actions_enabled(True)
 
     def _write_json_payload(self, title: str, default_name: str, payload: dict) -> bool:
         path, _ = QFileDialog.getSaveFileName(self, title, default_name, "JSON (*.json)")
@@ -4403,7 +6238,7 @@ class ScriptMarkupStudioDialog(QDialog):
     def _save_hierarchy_project(self):
         self._refresh()
         return self._write_json_payload(
-            "Save hierarchy markup",
+            "Save markup project",
             "script_markup_project.json",
             self._hierarchy_project_payload(),
         )
@@ -4411,7 +6246,7 @@ class ScriptMarkupStudioDialog(QDialog):
     def _save_hierarchy_template(self):
         self._refresh()
         return self._write_json_payload(
-            "Save hierarchy template",
+            "Save template",
             "script_markup_template.json",
             self._hierarchy_template_payload(),
         )
@@ -4450,7 +6285,7 @@ class ScriptMarkupStudioDialog(QDialog):
             self._hierarchy_mark_order = max((mark.order for mark in marks), default=0)
             self.manual_marks = {}
             self.current_raw_path = str(data.get("source_path") or "")
-            self.path_label.setText(self.current_raw_path or "Loaded markup project")
+            self.path_label.setText(self.current_raw_path or "Opened markup project")
             self._stop_range_edit()
             self.raw_edit.setUpdatesEnabled(False)
             self.raw_edit.setPlainText(str(data.get("raw_text") or ""))
@@ -4465,7 +6300,7 @@ class ScriptMarkupStudioDialog(QDialog):
         return True
 
     def _load_hierarchy_project(self):
-        data = self._read_json_payload("Load hierarchy markup")
+        data = self._read_json_payload("Open markup project")
         if data is None:
             return False
         return self._apply_hierarchy_project_payload(data)
@@ -4485,7 +6320,7 @@ class ScriptMarkupStudioDialog(QDialog):
         return True
 
     def _load_hierarchy_template(self):
-        data = self._read_json_payload("Load hierarchy template")
+        data = self._read_json_payload("Open template")
         if data is None:
             return False
         return self._apply_hierarchy_template_payload(data)

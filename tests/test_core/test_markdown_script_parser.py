@@ -150,6 +150,57 @@ def test_parse_hierarchy_markdown_speaker_and_square_action():
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+
+def test_parse_markup_studio_glossary_categories():
+    md_content = """# Glossary
+
+## Characters
+
+- **RUSL** (Name in Game: `Rusl`)
+  - **Translation**: `Русл`
+  - **Gender**: `male`
+  - **Description**: `Link's mentor from Ordon Village.`
+
+## Items
+
+- **Ordon Shield**
+  - **Translation**: `Ордонський щит`
+  - **Description**: `A wooden shield crafted for Link.`
+
+## Locations
+
+Eldin Bridge: A large stone bridge in Hyrule Field.
+
+# Act I: Opening
+
+**RUSL**: Take this shield with you.
+"""
+
+    temp_path = "temp_test_markup_studio_glossary.md"
+    try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            f.write(md_content)
+
+        data = parse_markdown_script(temp_path)
+
+        assert len(data["characters"]) == 1
+        assert data["characters"][0]["name"] == "RUSL"
+        assert data["characters"][0]["translation"] == "Русл"
+        assert data["characters"][0]["description"] == "Link's mentor from Ordon Village."
+        assert data["characters"][0]["section"] == "Characters"
+
+        assert [(term["original"], term["section"]) for term in data["terms"]] == [
+            ("Ordon Shield", "Items"),
+            ("Eldin Bridge", "Locations"),
+        ]
+        assert data["terms"][0]["translation"] == "Ордонський щит"
+        assert data["terms"][1]["description"] == "A large stone bridge in Hyrule Field."
+        assert len(data["dialogues"]) == 1
+        assert data["dialogues"][0]["speaker"] == "RUSL"
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
 if __name__ == "__main__":
     print("Running markdown parser tests...")
     test_parse_markdown_script()

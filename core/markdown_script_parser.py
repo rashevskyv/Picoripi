@@ -3,12 +3,37 @@ import re
 from typing import Dict, List, Any, Optional
 
 
+def _clean_heading_title(text: str) -> str:
+    title = re.sub(r"^\s*\d+(?:\.\d+)*\.?\s*", "", text or "").strip()
+    return title.strip(":-–— ").strip()
+
+
 def _clean_action_text(text: str) -> str:
     action = (text or "").strip()
     italic = re.fullmatch(r"(?:\*(?P<star>.*?)\*|_(?P<under>.*?)_)", action)
     if italic:
         action = (italic.group("star") or italic.group("under") or "").strip()
     return action
+
+
+def _is_glossary_root_title(title: str) -> bool:
+    lowered = _clean_heading_title(title).casefold()
+    return lowered in {
+        "glossary",
+        "script glossary",
+        "glossary context",
+        "mempalace glossary",
+    }
+
+
+def _is_character_category(title: str) -> bool:
+    lowered = _clean_heading_title(title).casefold()
+    hints = ("character", "characters", "speaker", "speakers", "cast", "npc", "npcs", "people")
+    return any(hint in lowered for hint in hints)
+
+
+def _clean_inline_value(text: str) -> str:
+    return (text or "").strip().strip("`").strip()
 
 
 def parse_markdown_script(file_path: str) -> Dict[str, Any]:
@@ -41,6 +66,9 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
     # State tracking
     current_section = "NONE"
     synopsis_paragraphs = []
+    in_glossary = False
+    glossary_root_level: Optional[int] = None
+    current_glossary_category: Optional[str] = None
     
     # Character parsing states
     current_char = None
@@ -53,8 +81,22 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
     current_action = ""
     
     # Regexes for parsing
-    char_header_regex = re.compile(r'^\s{0,1}[\-\*]\s*\*\*(?P<id>[a-zA-Z0-9_\s]+)\*\*(?:\s*\((?:Name in Game:\s*)?`?(?P<display>[^`\)]+)`?\))?', re.IGNORECASE)
-    term_header_regex = re.compile(r'^\s{0,1}[\-\*]\s*\*\*(?P<id>[a-zA-Z0-9_\s]+)\*\*(?:\s*\((?:Original:\s*)?`?(?P<orig>[^`\)]+)`?\))?', re.IGNORECASE)
+    heading_regex = re.compile(r'^(?P<marks>#{1,6})\s+(?P<title>.+?)\s*$')
+    char_header_regex = re.compile(
+        r'^\s{0,1}[\-\*]\s*\*\*(?P<id>[^*]+?)\*\*'
+        r'(?:\s*\((?:Name in Game:\s*)?`?(?P<display>[^`\)]+)`?\))?'
+        r'(?:\s*[:\-]\s*(?P<desc>.*))?\s*$',
+        re.IGNORECASE,
+    )
+    term_header_regex = re.compile(
+        r'^\s{0,1}[\-\*]\s*\*\*(?P<id>[^*]+?)\*\*'
+        r'(?:\s*\((?:Original:\s*)?`?(?P<orig>[^`\)]+)`?\))?'
+        r'(?:\s*[:\-]\s*(?P<desc>.*))?\s*$',
+        re.IGNORECASE,
+    )
+    inline_entry_regex = re.compile(
+        r'^\s*(?:[\-\*]\s*)?(?:\*\*(?P<bold>[^*]+?)\*\*|(?P<plain>[^:]+?))\s*:\s*(?P<desc>.+?)\s*$'
+    )
     
     sub_bullet_regex = re.compile(r'^\s+[\-\*]\s*\*\*(?P<key>[a-zA-Z0-9_\s]+)\*\*:\s*`?(?P<val>.*?)`?$', re.IGNORECASE)
     
@@ -66,42 +108,88 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
     )
     dialogue_regex = re.compile(r'^(?:\*\*(?P<bold>[^*]+)\*\*|(?P<plain>[A-Z0-9_\s\-#]{2,})):\s*(?P<text>.*)$')
 
+    def flush_glossary_entry():
+        nonlocal current_char, current_term
+        if current_char:
+            data["characters"].append(current_char)
+            current_char = None
+        if current_term:
+            data["terms"].append(current_term)
+            current_term = None
+
+    def new_character(name: str, display_name: str, description: str = "") -> Dict[str, Any]:
+        return {
+            "name": name,
+            "display_name": display_name,
+            "translation": display_name,
+            "gender": "unknown",
+            "age_group": "unknown",
+            "relationship_summary": "",
+            "address_type": "",
+            "description": description,
+            "section": current_glossary_category or "Characters",
+        }
+
+    def new_term(name: str, original: str, description: str = "") -> Dict[str, Any]:
+        return {
+            "name": name,
+            "original": original,
+            "translation": original,
+            "description": description,
+            "section": current_glossary_category or "Terms",
+        }
+
     for idx, raw_line in enumerate(lines):
         line_num = idx + 1
         line = raw_line.strip()
         if not line:
             continue
 
-        # Section detection based on top-level headers
-        if line.startswith("# ") or line.startswith("## "):
+        # Section detection based on headers
+        heading_match = heading_regex.match(line)
+        if heading_match:
+            heading_level = len(heading_match.group("marks"))
+            heading_title = _clean_heading_title(heading_match.group("title"))
+
+            if in_glossary and glossary_root_level is not None and heading_level > glossary_root_level:
+                flush_glossary_entry()
+                current_glossary_category = heading_title or "Terms"
+                current_section = "CHARACTERS" if _is_character_category(heading_title) else "TERMS"
+                continue
+
+            if in_glossary and glossary_root_level is not None and heading_level <= glossary_root_level:
+                flush_glossary_entry()
+                in_glossary = False
+                glossary_root_level = None
+                current_glossary_category = None
+
             # Check for section transitions
             lower_line = line.lower()
             if "synopsis" in lower_line or "plot" in lower_line:
+                flush_glossary_entry()
                 current_section = "SYNOPSIS"
+                continue
+            elif _is_glossary_root_title(heading_title):
+                flush_glossary_entry()
+                current_section = "GLOSSARY"
+                in_glossary = True
+                glossary_root_level = heading_level
+                current_glossary_category = None
                 continue
             elif "character" in lower_line or "cast" in lower_line:
                 # Save previous if any
-                if current_char:
-                    data["characters"].append(current_char)
-                    current_char = None
+                flush_glossary_entry()
+                current_glossary_category = "Characters"
                 current_section = "CHARACTERS"
                 continue
             elif "term" in lower_line or "glossary" in lower_line:
-                if current_char:
-                    data["characters"].append(current_char)
-                    current_char = None
-                if current_term:
-                    data["terms"].append(current_term)
-                    current_term = None
+                flush_glossary_entry()
+                current_glossary_category = "Terms"
                 current_section = "TERMS"
                 continue
             elif chapter_regex.match(line):
-                if current_char:
-                    data["characters"].append(current_char)
-                    current_char = None
-                if current_term:
-                    data["terms"].append(current_term)
-                    current_term = None
+                flush_glossary_entry()
+                current_glossary_category = None
                 current_section = "TIMELINE"
                 # Do not 'continue' so TIMELINE section can process the chapter match below
 
@@ -117,19 +205,11 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
             if char_match:
                 if current_char:
                     data["characters"].append(current_char)
-                char_id = char_match.group("id").strip()
+                char_id = _clean_inline_value(char_match.group("id"))
                 disp = char_match.group("display")
-                disp_name = disp.strip() if disp else char_id
-                current_char = {
-                    "name": char_id,
-                    "display_name": disp_name,
-                    "translation": disp_name,
-                    "gender": "unknown",
-                    "age_group": "unknown",
-                    "relationship_summary": "",
-                    "address_type": "",
-                    "description": ""
-                }
+                disp_name = _clean_inline_value(disp) if disp else char_id
+                desc = _clean_inline_value(char_match.group("desc") or "")
+                current_char = new_character(char_id, disp_name, desc)
             elif current_char:
                 # Detect sub-bullet properties
                 sub_match = sub_bullet_regex.match(raw_line)
@@ -148,6 +228,13 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
                         current_char["relationship_summary"] = val
                     elif key in ("description", "notes"):
                         current_char["description"] = val
+            else:
+                inline_match = inline_entry_regex.match(raw_line)
+                if inline_match:
+                    name = _clean_inline_value(inline_match.group("bold") or inline_match.group("plain"))
+                    desc = _clean_inline_value(inline_match.group("desc"))
+                    if name and desc:
+                        data["characters"].append(new_character(name, name, desc))
 
         elif current_section == "TERMS":
             # Detect term item
@@ -155,15 +242,11 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
             if term_match:
                 if current_term:
                     data["terms"].append(current_term)
-                term_id = term_match.group("id").strip()
+                term_id = _clean_inline_value(term_match.group("id"))
                 orig = term_match.group("orig")
-                orig_name = orig.strip() if orig else term_id
-                current_term = {
-                    "name": term_id,
-                    "original": orig_name,
-                    "translation": orig_name,
-                    "description": ""
-                }
+                orig_name = _clean_inline_value(orig) if orig else term_id
+                desc = _clean_inline_value(term_match.group("desc") or "")
+                current_term = new_term(term_id, orig_name, desc)
             elif current_term:
                 sub_match = sub_bullet_regex.match(raw_line)
                 if sub_match:
@@ -173,6 +256,13 @@ def parse_markdown_script(file_path: str) -> Dict[str, Any]:
                         current_term["translation"] = val
                     elif key in ("description", "notes", "definition"):
                         current_term["description"] = val
+            else:
+                inline_match = inline_entry_regex.match(raw_line)
+                if inline_match:
+                    name = _clean_inline_value(inline_match.group("bold") or inline_match.group("plain"))
+                    desc = _clean_inline_value(inline_match.group("desc"))
+                    if name and desc:
+                        data["terms"].append(new_term(name, name, desc))
 
         elif current_section == "TIMELINE":
             # Detect Chapter header

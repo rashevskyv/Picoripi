@@ -384,8 +384,16 @@ def apply_theme_by_settings(widget):
 
     if theme_name == "dark":
         apply_premium_dark_theme(widget)
-        return True
+        is_dark = True
     else:
         apply_premium_light_theme(widget)
-        return False
+        is_dark = False
+
+    try:
+        from ui.adaptive_scrollbars import install_adaptive_scrollbars
+        install_adaptive_scrollbars()
+    except Exception:
+        pass
+
+    return is_dark
 

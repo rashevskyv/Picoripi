@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QWidget, QApplication, QLabel
 from PyQt6.QtGui import QFont, QPalette, QColor, QTextOption
 from PyQt6.QtCore import Qt
 from ui.themes import DARK_THEME_STYLESHEET, LIGHT_THEME_STYLESHEET
+from ui.adaptive_scrollbars import install_adaptive_scrollbars
 from utils.constants import DT_PREVIEW_SELECTED_LINE_COLOR, LT_PREVIEW_SELECTED_LINE_COLOR
 from typing import List
 from utils.logging_utils import log_info
@@ -213,6 +214,7 @@ class MainWindowUIHandler:
             palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
             app.setPalette(palette)
             app.setStyleSheet(DARK_THEME_STYLESHEET)
+            install_adaptive_scrollbars(app)
             log_info("Applied Dark Theme.")
         else: # 'auto' or 'light'
             palette = QPalette()
@@ -231,4 +233,5 @@ class MainWindowUIHandler:
             palette.setColor(QPalette.ColorRole.HighlightedText, QColor(Qt.GlobalColor.black))
             app.setPalette(palette)
             app.setStyleSheet(LIGHT_THEME_STYLESHEET)
+            install_adaptive_scrollbars(app)
             log_info("Applied Light Theme.")

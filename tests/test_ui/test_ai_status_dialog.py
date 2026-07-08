@@ -43,6 +43,7 @@ def test_AIStatusDialog_start_and_finish(qapp):
     
     # Start operation (should clear and hide detail label)
     dialog.start("AI Translate Block", is_chunked=True)
+    assert dialog.windowTitle() == "AI Translate Block"
     assert dialog.detail_label.isHidden() is True
     assert dialog.detail_label.text() == ""
     assert dialog.progress_bar.format() == "%p% (%v/%m chunks)"
@@ -55,6 +56,18 @@ def test_AIStatusDialog_start_and_finish(qapp):
     dialog.finish()
     assert dialog.detail_label.isHidden() is True
     assert dialog.detail_label.text() == ""
+
+
+def test_AIStatusDialog_model_name_can_be_set_after_start(qapp):
+    dialog = AIStatusDialog()
+
+    dialog.start("Continue from marked examples")
+    assert dialog.subtitle_label.isHidden() is True
+
+    dialog.set_model_name("gemini-3.5-flash")
+
+    assert dialog.subtitle_label.isHidden() is False
+    assert dialog.subtitle_label.text() == "Model: gemini-3.5-flash"
 
 
 def test_AIStatusDialog_modeless_and_sleep_checkboxes(qapp):

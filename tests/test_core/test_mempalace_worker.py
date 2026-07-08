@@ -493,6 +493,75 @@ def test_mempalace_character_profiler_worker():
     assert glossary_manager.save_to_disk.called
 
 
+def test_mempalace_script_analyzer_syncs_markup_glossary_sections(tmp_path):
+    from core.mempalace.script_analyzer import MemePalaceScriptAnalyzerWorker
+
+    script_path = tmp_path / "script.md"
+    script_path.write_text(
+        """# Glossary
+
+## Characters
+
+- **RUSL** (Name in Game: `Rusl`)
+  - **Translation**: `Русл`
+  - **Description**: `Link's mentor.`
+
+## Items
+
+- **Ordon Shield**
+  - **Translation**: `Ордонський щит`
+  - **Description**: `A wooden shield.`
+
+## Factions
+
+Resistance: A loose group opposing the twilight.
+
+# Act I: Opening
+
+**RUSL**: Take this shield.
+""",
+        encoding="utf-8",
+    )
+
+    client = MagicMock()
+    glossary_manager = MagicMock()
+    glossary_manager.get_entry.return_value = None
+
+    worker = MemePalaceScriptAnalyzerWorker(
+        client=client,
+        file_path=str(script_path),
+        ai_provider=MagicMock(),
+        wing_name="Zelda_TP",
+        glossary_manager=glossary_manager,
+        target_lang="English",
+    )
+
+    worker.run()
+
+    glossary_manager.add_entry.assert_any_call(
+        original="RUSL",
+        translation="Русл",
+        notes=(
+            "Gender: unknown. Age: unknown. Relations: . "
+            "Address Style: . Description: Link's mentor."
+        ),
+        section="Characters",
+    )
+    glossary_manager.add_entry.assert_any_call(
+        original="Ordon Shield",
+        translation="Ордонський щит",
+        notes="A wooden shield.",
+        section="Items",
+    )
+    glossary_manager.add_entry.assert_any_call(
+        original="Resistance",
+        translation="Resistance",
+        notes="A loose group opposing the twilight.",
+        section="Factions",
+    )
+    assert glossary_manager.save_to_disk.called
+
+
 def test_mempalace_character_profiler_worker_consecutive_failures():
     from core.mempalace_worker import MemePalaceCharacterProfilerWorker
     

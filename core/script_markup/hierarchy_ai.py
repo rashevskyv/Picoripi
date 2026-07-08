@@ -23,6 +23,9 @@ class HierarchyAIMessages:
     messages: list[dict[str, str]]
     prompt_chars: int
     unmarked_range_count: int
+    scope_label: str = "full script"
+    start_line_number: int = 1
+    end_line_number: int = 1
 
 
 def _json_dumps(data: Any) -> str:
@@ -53,6 +56,30 @@ def _source_blocks(raw_lines: list[str], unmarked_ranges: Iterable[dict]) -> lis
     return blocks
 
 
+def _shorten_text(text: Any, limit: int = 320) -> str:
+    value = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(value) <= limit:
+        return value
+    return f"{value[:limit].rstrip()}..."
+
+
+def _compact_approved_marks(hierarchy_marks: Iterable[Any]) -> list[dict]:
+    compact: list[dict] = []
+    for item in hierarchy_marks:
+        if not isinstance(item, dict):
+            continue
+        compact.append({
+            "start_line_number": item.get("start_line_number"),
+            "end_line_number": item.get("end_line_number"),
+            "depth": item.get("depth"),
+            "type_id": item.get("type_id"),
+            "type_label": item.get("type_label"),
+            "text": _shorten_text(item.get("text") or item.get("label") or ""),
+            "source_excerpt": _shorten_text(item.get("source_excerpt") or ""),
+        })
+    return compact
+
+
 def build_hierarchy_auto_markup_messages(
     project_payload: dict,
     *,
@@ -68,8 +95,12 @@ def build_hierarchy_auto_markup_messages(
     ]
     source_blocks = _source_blocks(raw_lines, unmarked_ranges)
     type_definitions = project_payload.get("type_definitions", [])
-    hierarchy_marks = project_payload.get("hierarchy_marks", [])
+    hierarchy_marks = _compact_approved_marks(project_payload.get("hierarchy_marks", []))
     ai_instructions = project_payload.get("ai_instructions", [])
+    scope = project_payload.get("scope") if isinstance(project_payload.get("scope"), dict) else {}
+    scope_label = str(scope.get("label") or "full script")
+    start_line_number = int(scope.get("start_line_number") or 1)
+    end_line_number = int(scope.get("end_line_number") or max(1, len(raw_lines)))
 
     system_prompt = (
         "You are Script Markup Studio's hierarchy annotator. "
@@ -88,14 +119,28 @@ def build_hierarchy_auto_markup_messages(
     }
     user_payload = {
         "task": (
-            "Continue the user's manual hierarchy markup by annotating only the "
+            "Study the user's approved hierarchy marks, infer the recurring "
+            "markup pattern, and continue that pattern by annotating only the "
             "provided unmarked source blocks."
         ),
+        "scope": {
+            "label": scope_label,
+            "start_line_number": start_line_number,
+            "end_line_number": end_line_number,
+        },
         "rules": [
             *ai_instructions,
             "Use 1-based start_line_number/end_line_number values from source_blocks.",
             "Do not return marks for already approved hierarchy_marks.",
             "Use only type_id values present in type_definitions.",
+            "Treat approved_hierarchy_marks as compact examples of the user's pattern, "
+            "not as source blocks to re-annotate.",
+            "Unmarked source blocks may include structural headings; create Structure "
+            "marks when a source line looks like a heading in the learned pattern.",
+            "If source text introduces a glossary/reference section, use the Glossary "
+            "type for that container and mark its direct children as category nodes.",
+            "Inside a Glossary container, category names such as Characters, Items, "
+            "Locations, or Terms are semantic hints for MemPalace.",
             "For Structure and Speaker nodes, put the human-readable label in text.",
             "For Text, Action, Note, Breaker, and Narrator nodes, leave text empty "
             "unless the source line has no usable text.",
@@ -124,6 +169,9 @@ def build_hierarchy_auto_markup_messages(
         messages=messages,
         prompt_chars=prompt_chars,
         unmarked_range_count=len(source_blocks),
+        scope_label=scope_label,
+        start_line_number=start_line_number,
+        end_line_number=end_line_number,
     )
 
 

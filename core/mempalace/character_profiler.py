@@ -183,6 +183,45 @@ Return ONLY the translated text. Do not add any introduction or meta comments.
                     log_error(f"Failed to load prompts.json for plugin {self.plugin_name}: {e_load}")
         return prompts_data
 
+    def _get_glossary_context_for_character(self, char_name: str) -> tuple[Optional[Any], str]:
+        """Return an existing glossary entry and a compact context block for a character."""
+        if not self.glossary_manager or not char_name:
+            return None, ""
+
+        entry = None
+        try:
+            entry = self.glossary_manager.get_entry(char_name)
+        except Exception:
+            entry = None
+
+        if entry is None:
+            try:
+                normalize = getattr(self.glossary_manager, "normalize_term", None)
+                normalize = normalize if callable(normalize) else (lambda value: str(value or "").casefold().strip())
+                target = normalize(char_name)
+                for candidate in self.glossary_manager.get_entries():
+                    if normalize(getattr(candidate, "translation", "")) == target:
+                        entry = candidate
+                        break
+            except Exception:
+                entry = None
+
+        if entry is None:
+            return None, ""
+
+        notes = str(getattr(entry, "notes", "") or "").strip()
+        translation = str(getattr(entry, "translation", "") or "").strip()
+        section = str(getattr(entry, "section", "") or "").strip()
+        parts = [
+            f"Original: {getattr(entry, 'original', char_name)}",
+            f"Translation: {translation or char_name}",
+        ]
+        if section:
+            parts.append(f"Category: {section}")
+        if notes:
+            parts.append(f"Notes: {notes}")
+        return entry, "\n".join(parts)
+
     def _get_synthesis_prompts(self, term_name: str, existing_notes: str, details: str, prompts_data: dict) -> Tuple[str, str]:
         """Resolve Synthesis prompts with per-plugin customizations and fallbacks."""
         m_section = prompts_data.get("mempalace", {})
@@ -331,9 +370,12 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 if self.is_cancelled:
                     break
 
+                existing_entry = None
+                script_glossary_context = ""
+
                 # Skip already profiled characters to support incremental resumption
                 if self.glossary_manager:
-                    existing_entry = self.glossary_manager.get_entry(char_name)
+                    existing_entry, script_glossary_context = self._get_glossary_context_for_character(char_name)
                     if existing_entry:
                         has_marker = bool(existing_entry.profiled)
                         has_profile = False
@@ -425,6 +467,8 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 )
 
                 self.log.emit(f"Processing character '{char_name}' with {len(lines)} total lines...")
+                if script_glossary_context:
+                    self.log.emit(f"AI Speech Profiler: Using script Glossary context for '{char_name}'.")
 
                 # 1. Fetch Wiki context from Zelda Wiki to secure factual grounding
                 self.log.emit(f"AI Speech Profiler: Searching Zelda Wiki context for '{char_name}'...")
@@ -474,8 +518,10 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 # Formulate user prompt
                 if self.target_lang.strip().lower() == "ukrainian":
                     wiki_section = ""
+                    if script_glossary_context:
+                        wiki_section += f"\n--- Script Glossary Context (source from Markup Studio) ---\n{script_glossary_context}\n"
                     if wiki_context:
-                        wiki_section = f"\n--- Wiki Context (Джерело істини з Zelda Wiki) ---\n{wiki_context}\n"
+                        wiki_section += f"\n--- Wiki Context (Джерело істини з Zelda Wiki) ---\n{wiki_context}\n"
                         
                     user_prompt = f"""
 Проаналізуйте наступну інформацію для персонажа '{char_name}':
@@ -518,8 +564,10 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
 """
                 else:
                     wiki_section = ""
+                    if script_glossary_context:
+                        wiki_section += f"\n--- Script Glossary Context (source from Markup Studio) ---\n{script_glossary_context}\n"
                     if wiki_context:
-                        wiki_section = f"\n--- Wiki Context (Source of Truth) ---\n{wiki_context}\n"
+                        wiki_section += f"\n--- Wiki Context (Source of Truth) ---\n{wiki_context}\n"
                         
                     user_prompt = f"""
 Analyze the following information for the character '{char_name}':
