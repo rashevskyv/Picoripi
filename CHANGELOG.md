@@ -1,5 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.069-dev] - Unreleased
+
 ## [0.3.068-dev] - 2026-07-08
 
 ### 🐛 Fixed
