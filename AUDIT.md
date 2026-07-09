@@ -1,8 +1,8 @@
 # Аудит кодової бази та план рефакторингу — Picoripi
 
-> **Остання версія проекту:** v0.3.067-dev
-> **Дата оновлення:** 2026-06-27
-> **Об'єм проекту (поточний workspace, без gitignored копій):** 412 Python-файлів загалом; 253 продуктових Python-файли, 159 тестових Python-файлів; ~67 375 LOC продуктового Python-коду (не-тестового), ~26 273 LOC тестів; 1 410 pytest items (`1400 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`). Цифри попередніх проходів (~66 741 LOC / 248 файлів / ~25 391 LOC тестів) застаріли і перераховані під час аудиту 2026-06-21.
+> **Остання версія проекту:** v0.3.070-dev
+> **Дата оновлення:** 2026-07-09
+> **Об'єм проекту (поточний workspace, без gitignored копій):** 454 Python-файли загалом; 279 продуктових Python-файлів, 175 тестових Python-файлів; ~85 229 LOC продуктового Python-коду (не-тестового), ~34 888 LOC тестів; 1 525 pytest items collected (`1 515` default-lane selected + `10` performance deselected by default). Цифри попередніх проходів (~67 375 LOC / 253 продуктових файлів / ~26 273 LOC тестів) застаріли і перераховані під час SMS-аудиту 2026-07-09.
 > **Примітка:** каталоги `gemini/` (~25k LOC, стара повна копія коду) і `scratch/` — gitignored, нетраковані, у продукт не входять і в обсяг не зараховуються.
 
 Цей документ є консолідованим аудитом архітектури, продуктивності, життєвого циклу PyQt-об'єктів та UX-ризиків Picoripi. Звіт оновлено у валідному UTF-8; пункти, які вже позначені або підтверджені як виконані, перенесено до архіву виконаного.
@@ -11,30 +11,30 @@
 
 | Показник | Значення |
 |---|---:|
-| Продуктові Python-файли | 253 |
-| Тестові Python-файли | 159 |
-| LOC продуктового Python-коду | ~67 375 |
-| LOC тестів | ~26 273 |
-| Pytest items | 1 410 (`1400 passed, 1 skipped` default lane + `9 passed` performance lane у `test_all.ps1`) |
+| Продуктові Python-файли | 279 |
+| Тестові Python-файли | 175 |
+| LOC продуктового Python-коду | ~85 229 |
+| LOC тестів | ~34 888 |
+| Pytest items | 1 525 collected (`1 515` default-lane selected + `10` performance deselected by default) |
 | Основний стек | Python 3.10+, PyQt6, SQLite, requests/urllib, Pillow, markdown, numpy, pyahocorasick, spylls |
 | Тестовий стек | pytest, pytest-qt, pytest-timeout, pytest-xdist, ruff |
 | Тип застосунку | Desktop GUI для перекладу, локалізації, аналізу ширини рядків, AI-перекладу, глосаріїв та game/plugin rules |
 
 Архітектура вже має корисне розділення на `core/`, `handlers/`, `ui/`, `components/`, `dialogs/`, `plugins/` і `tests/`. Найбільші ризики зосереджені не в одному модулі, а в місцях перетину GUI, довгих обчислень, фонових потоків, disk/network I/O та AI-пайплайнів.
 
-Найбільші координуючі файли (перерахровано 2026-06-21, `git ls-files`):
+Найбільші координуючі файли (перераховано 2026-07-09, tracked + untracked workspace files, excluding gitignored copies):
 
-- `handlers/translation_handler.py` — **1 770** рядків (виріс із ~1 591).
-- `dialogs/search_review_dialog.py` — **1 571** рядок.
-- `ui/main_window/main_window_actions.py` — **1 552** рядки.
-- `utils/utils.py` — **1 510** рядків.
+- `ui/script_markup_studio_dialog.py` — **5 747** рядків (після першого SMS-A1 винесення job-prep/workers у `core/script_markup/hierarchy_ai_jobs.py`).
+- `utils/utils.py` — **1 569** рядків.
 - `tools/bfn_editor/bfn_widgets.py` — **1 499** рядків.
-- `ui/mempalace_builder_dialog.py` — **1 380** рядків.
-- `handlers/list_selection_handler.py` — **1 250** рядків.
-- `ui/settings/settings_ui_setup.py` — **1 231** рядок.
-- `core/mempalace_client.py` — **1 107** рядків.
-- `handlers/text_operation_handler.py` — **1 106** рядків.
-- `core/data_state_processor.py` — **992** рядки (успішно зменшено після декомпозиції в `core/data_processor/`).
+- `tools/bfn_editor/bfn_navigation.py` — **1 356** рядків.
+- `handlers/list_selection_handler.py` — **1 317** рядків.
+- `dialogs/search_review_dialog.py` — **1 213** рядків.
+- `handlers/text_operation_handler.py` — **1 112** рядків.
+- `handlers/translation_handler.py` — **1 108** рядків.
+- `core/mempalace_client.py` — **1 106** рядків.
+- `handlers/project_action_handler.py` — **1 074** рядки.
+- `ui/updaters/block_list_updater.py` — **1 073** рядки.
 
 Команди перевірки:
 
@@ -821,3 +821,53 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - **Linter Checks (Ruff):** `All checks passed` — повна відповідність вимогам стилю та відсутність невикористовуваного коду/помилок типізації.
 - **Стабільність QThread:** Жодних таймаутів, SegFaults або race conditions під паралельним навантаженням xdist (`pytest -n auto`).
 - **Висновок:** Поточна кодова база повністю стабільна, відповідає AI Development Manifesto та готова до подальшого розвитку.
+
+## 11. New audit pass — 2026-07-08 (Script Markup Studio wave, v0.3.068–069)
+
+**Scope.** Everything merged after the previous audit (v0.3.067): Script Markup Studio hierarchy workflow, AI hierarchy auto-markup, minimap, adaptive scrollbars, local autofill, glossary type, MemePalace stale-path crash fix. Audit performed by agent-2 against a clean tree at `bb3e642a`.
+
+**Baseline verified during this pass:** `ruff check .` — clean; targeted new-code suites (`test_script_markup_studio.py`, `test_hierarchy_markup.py`, `test_local_autofill.py`, `test_minimap.py`, `test_adaptive_scrollbars.py`) — **122 passed** serially. Working tree clean; all root-level junk files (`ai_traffic.log`, `app_debug.txt`, `session_state.json`, `mempalace_local.db`, etc.) confirmed gitignored.
+
+**Confirmed healthy (do not touch):** `core/script_markup/` package (hierarchy_markup, local_autofill, markup_engine, hierarchy_ai) is pure-Python, UI-free, well-factored and test-covered; hierarchy AI worker wiring uses correct `moveToThread` + `finished→quit→deleteLater` chains; studio autosave writes atomically via a `.tmp` sibling file; minimap paints from a cached pixmap and mark-color changes do invalidate it via `_update_raw_minimap()`.
+
+### 11.1. Findings
+
+- **SMS-A1 (HIGH, architecture). `ui/script_markup_studio_dialog.py` is a 5 815-line monolith.** The single class `ScriptMarkupStudioDialog` spans ~4 700 lines (L1115–end) — 3–4× larger than any coordinator this audit previously flagged (the old record holder, `translation_handler.py`, was 1 770 lines *before* its mandated decomposition). This directly violates the AI Development Manifesto's architecture rules. The good news: the file already contains cleanly separable, UI-free material — the pure snapshot/job-preparation functions (L674–L1020: `_hierarchy_mark_payload_value`, `_prepare_hierarchy_ai_jobs_from_snapshot`, etc.) and the two `QObject` workers (`_HierarchyAIPrepareWorker`, `_HierarchyAIWorker`) have no dialog dependency and belong in `core/script_markup/` (e.g. `hierarchy_ai_jobs.py`). The UI class should then be split into mixins along its existing comment-section boundaries (manual marking / hierarchy tree / AI markup / session-persistence / search-minimap), following the proven AUD-A5 pattern (`settings_ui_setup`, `mempalace_builder_dialog`). Keep re-exports for backward compatibility. The companion test file `tests/test_ui/test_script_markup_studio.py` (2 400+ new lines) should be split along the same boundaries. *Effort:* High. *Files:* `ui/script_markup_studio_dialog.py`, `core/script_markup/`, `tests/test_ui/test_script_markup_studio.py`.
+
+- **SMS-P1 (MEDIUM, manifesto regression). `QApplication.processEvents()` reintroduced.** `_start_hierarchy_ai_markup` (ui/script_markup_studio_dialog.py:5994) calls `QApplication.processEvents()` right after showing `AIStatusDialog`. Project-wide elimination of `processEvents()` was completed in A01/B01 and §8.6 recorded the product as free of it; this is the first regression. The call is also unnecessary: the very next statements only build a snapshot and start a background thread — the event loop resumes immediately. Fix: delete the call (or, if the status dialog visibly lags, use `status.repaint()`). Add a regression guard (grep-style test or ruff/CI check) so `processEvents` cannot silently return to product code. *Effort:* Trivial. *Files:* `ui/script_markup_studio_dialog.py`.
+
+- **SMS-L1 (MEDIUM, Qt lifecycle). Studio `closeEvent` does not wait for running AI threads.** `closeEvent` calls `_cancel_hierarchy_ai_markup()`, which only sets `is_cancelled` and closes an active *streaming* response — but `_HierarchyAIWorker.run()` calls the **non-streaming** `provider.translate(...)`, which `cancel()` cannot interrupt; the worker keeps blocking on HTTP until timeout. Both threads are created as `QThread(self)` (parented to the dialog), and `closeEvent` neither `wait()`s nor uses `safe_shutdown_thread()` (the B02 contract applied to `SettingsDialog` and `MemePalaceBuilderDialog`). If the dialog is destroyed while the request is in flight, Qt aborts with "QThread: Destroyed while thread is still running". Fix: in `closeEvent` (and `reject()`), after cancelling, run `safe_shutdown_thread()` on `_hierarchy_ai_prepare_thread` and `_hierarchy_ai_thread`; additionally consider passing `settings_override` with a shorter timeout or exposing a provider-level abort for non-streaming calls. Add a real-Qt lifecycle test (close-during-AI-markup) in `tests/test_dialogs/test_real_workers_lifecycle.py` per the T02 policy. *Effort:* Low-Medium. *Files:* `ui/script_markup_studio_dialog.py`, `utils/thread_utils.py` (no change expected), `tests/test_dialogs/test_real_workers_lifecycle.py`.
+
+- **SMS-P2 (MEDIUM, performance). Minimap rebuilds an O(N) document map on every keystroke.** `TextMinimap` connects `editor.textChanged → invalidate` (components/editor/minimap.py:28), and the next `paintEvent` walks **every block** of the document (`_draw_document_map`, L110–150) to rebuild the pixmap. On the scripts this studio targets (tens of thousands of lines), each keystroke pays a full-document walk plus pixmap repaint — typing latency will scale with document size. Fix: debounce the rebuild with an instance-owned single-shot timer (~150–250 ms, per the AUD-P4 timer rules), so rapid typing coalesces into one rebuild; optionally sample blocks (e.g. one bucket per minimap pixel row via `lines_by_y`, iterating `block_count/height` stride) instead of visiting every block. Add a deterministic performance-lane budget test. *Effort:* Low-Medium. *Files:* `components/editor/minimap.py`, `tests/test_components/test_editor/test_minimap.py`, `tests/test_performance.py`.
+
+- **SMS-M1 (LOW, hygiene). Tracked but unreferenced fixture at repo root.** `test_settings_dump.json` is tracked in git yet no code or test references it (verified via `git grep`) — delete it. `dummy.json` at the root *is* referenced by 3 test files; optionally relocate it under `tests/` fixtures and update those references in the same commit (or explicitly leave in place — decide once, document in commit message). *Effort:* Trivial. *Files:* `test_settings_dump.json`, `dummy.json`, referencing tests.
+
+- **SMS-D1 (LOW, docs). AUDIT.md header metrics are stale.** The header still says v0.3.067-dev / 2026-06-27 and pre-markup-wave LOC/test counts (`ui/script_markup_studio_dialog.py` alone added ~6 500 lines). Refresh version, date, file/LOC/test-count metrics via `git ls-files` after the SMS wave lands. *Effort:* Trivial. *Files:* `AUDIT.md`, `GEMINI.md`, `README.md` (if they repeat metrics).
+
+### 11.2. Prioritized TODO (for agent-1)
+
+Recommended execution order — smallest, self-verifiable steps first; each step updates `walkthrough.md` (English) and this file, and runs the focused suites plus `ruff`:
+
+- `[x]` **SMS-P1** (trivial) — removed `processEvents()` from hierarchy AI startup and added `tests/test_architecture/test_no_process_events.py`, an AST-based product-code regression guard.
+- `[x]` **SMS-M1** (trivial) — deleted tracked-but-unreferenced `test_settings_dump.json`; explicitly left `dummy.json` at repo root because `test_app_action_handler.py`, `test_saved_translations_handler.py`, and `test_session_state_manager.py` reference that path directly.
+- `[x]` **SMS-L1** (low-medium) — hierarchy-AI prepare/AI threads now go through `safe_shutdown_thread()` during `closeEvent()` and `reject()`; added a real-Qt close-during-AI lifecycle test.
+- `[x]` **SMS-P2** (low-medium) — minimap text changes are debounced, large document map drawing samples by minimap height, and deterministic unit/performance coverage was added.
+- `[ ]` **SMS-A1** (high) — phase 1 completed: pure hierarchy AI job-prep helpers and both workers moved to `core/script_markup/hierarchy_ai_jobs.py` with UI compatibility re-exports, reducing `ui/script_markup_studio_dialog.py` to 5 747 lines. Remaining work: split the dialog into mixins one contract at a time and split `tests/test_ui/test_script_markup_studio.py` along the same boundaries. Do **not** combine with behavior changes.
+- `[x]` **SMS-D1** (trivial, last) — refreshed audit header metrics to v0.3.070-dev / 2026-07-09 using tracked + untracked workspace Python files.
+
+### 11.3. Agent-1 implementation update — 2026-07-09
+
+- **SMS-P1:** Removed the only product-code `QApplication.processEvents()` call; the new AST guard ignores comments/tests but fails on real `processEvents()` calls in product Python modules.
+- **SMS-M1:** Removed `test_settings_dump.json`; `dummy.json` remains intentionally because current tests still use it as a root-level fixture path.
+- **SMS-L1:** Added `_prepare_for_close()` / `_shutdown_hierarchy_ai_threads()` so close and reject paths cancel and wait for hierarchy-AI threads before the dialog is destroyed.
+- **SMS-P2:** `TextMinimap` now debounces text-change invalidation and samples large documents by visible minimap rows, with unit and performance tests.
+- **SMS-A1 phase 1:** Added `core/script_markup/hierarchy_ai_jobs.py`; `ui/script_markup_studio_dialog.py` imports the old private helper/worker names from core for compatibility and delegates `_prepare_hierarchy_ai_jobs()` to the core snapshot function.
+- **Verification:** SMS audit suite — **137 passed**; minimap performance test — **1 passed**; `ruff check .` — clean; collect-only — **1 525 items** (`1 515` default-lane selected + `10` performance deselected).
+
+**Verification commands for this wave** (serial lane is the reliable one in this environment; xdist may hang against the system Temp dir):
+
+```powershell
+$env:PYTHONPATH = "."; $env:TMPDIR = "$PWD\.tmp_test_run"; $env:TEMP = $env:TMPDIR; $env:TMP = $env:TMPDIR
+.\venv\Scripts\python.exe -m pytest -p no:xdist --timeout=120 tests/test_ui/test_script_markup_studio.py tests/test_core/test_hierarchy_markup.py tests/test_core/test_local_autofill.py tests/test_components/test_editor/test_minimap.py tests/test_ui/test_adaptive_scrollbars.py tests/test_dialogs/test_real_workers_lifecycle.py
+.\venv\Scripts\python.exe -m ruff check .
+```

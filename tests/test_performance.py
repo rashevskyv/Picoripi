@@ -360,6 +360,36 @@ def test_preview_pre_cache_time_slice_performance(qapp):
 
 
 @pytest.mark.performance
+def test_minimap_large_document_map_sampling_performance(qapp):
+    """Measures minimap document-map painting on 10000 lines (budget: < 50ms)."""
+    from PyQt6.QtGui import QPainter, QPixmap
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from components.editor.minimap import TextMinimap
+
+    editor = LineNumberedTextEdit(None)
+    try:
+        editor.show_minimap = True
+        editor.resize(520, 720)
+        editor.setPlainText("\n".join(f"Minimap performance line {i}" for i in range(10000)))
+        editor.minimap.resize(TextMinimap.WIDTH, 720)
+        pixmap = QPixmap(TextMinimap.WIDTH, 720)
+        painter = QPainter(pixmap)
+        try:
+            t0 = time.perf_counter()
+            editor.minimap._draw_document_map(painter)
+            duration = time.perf_counter() - t0
+        finally:
+            painter.end()
+
+        sampled_blocks = list(editor.minimap._iter_sampled_blocks(editor.document()))
+        print(f"\nMinimap large-document map draw duration: {duration*1000:.2f}ms")
+        assert len(sampled_blocks) <= editor.minimap.height() * 3
+        assert duration < 0.050, f"Minimap map draw took too long: {duration*1000:.2f}ms (budget: 50ms)"
+    finally:
+        editor.close()
+
+
+@pytest.mark.performance
 def test_warning_filter_toggle_performance():
     """Measures performance of warning filter queries on 5000 lines (budget: < 50ms)."""
     from core.filter_query_api import FilterQueryAPI

@@ -1,19 +1,27 @@
 # tests/test_dialogs/test_real_workers_lifecycle.py
+import threading
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
 import pytest
 pytestmark = pytest.mark.serial
+from PyQt6.QtCore import QThread
+from PyQt6.QtWidgets import QWidget
+
+from core.script_markup import default_type_definitions
 from core.spellchecker_manager import SpellcheckWorker
 from handlers.width_calculation_worker import WidthCalculationWorker
 from handlers.project_action_handler import ProjectLoadWorker
 from ui.settings_dialog import ProviderTestWorker
 from ui.main_window.main_window_actions import AliasUpdateWorker
 from handlers.app_action_handler import SaveWorker
-from unittest.mock import patch
 from core.mempalace.weaver_worker import MemePalaceWorker
 from core.mempalace.script_analyzer import MemePalaceScriptAnalyzerWorker
 from core.mempalace.chapter_mapper import MemePalaceChapterMapperWorker
 from core.mempalace.chapter_ai_analyzer import MemePalaceChapterAIAnalyzerWorker
 from core.mempalace.character_profiler import MemePalaceCharacterProfilerWorker
 from core.mempalace_client import MemePalaceClient
+from ui.script_markup_studio_dialog import ScriptMarkupStudioDialog, _HierarchyAIWorker
 
 
 # Stub-класи для усунення MagicMock з QThread фонових потоків (запобігає Segmentation Fault)
@@ -92,6 +100,24 @@ class StubAIProvider:
     def translate(self, messages, session=None, **kwargs):
         self.calls.append((messages, session, kwargs))
         return StubResponse(self.text)
+
+
+class SlowHierarchyProvider:
+    def __init__(self):
+        self.started = threading.Event()
+        self.released = threading.Event()
+        self.cancelled = False
+        self.calls = []
+
+    def cancel_active_stream(self):
+        self.cancelled = True
+        self.released.set()
+
+    def translate(self, messages, session=None, settings_override=None):
+        self.calls.append((messages, session, settings_override))
+        self.started.set()
+        self.released.wait(timeout=2)
+        return StubResponse('{"marks": []}')
 
 class StubSaveDataProcessor:
     def _perform_save_impl(self, output_data, progress_callback=None, edited_data_for_transaction=None):
@@ -362,3 +388,36 @@ def test_real_mempalace_character_profiler_worker_lifecycle(qtbot, tmp_path):
                 worker.start()
         finally:
             _cleanup_worker(worker)
+
+
+def test_script_markup_studio_close_waits_for_running_hierarchy_ai_thread(qtbot, tmp_path):
+    mw = MagicMock()
+    mw.current_game_rules = None
+    mw.script_markup_studio_autosave_path = tmp_path / "sms_autosave.json"
+    parent = QWidget()
+    dialog = ScriptMarkupStudioDialog(mw, parent=parent)
+    provider = SlowHierarchyProvider()
+    job = SimpleNamespace(messages=[], scope_label="test scope")
+    thread = QThread(dialog)
+    worker = _HierarchyAIWorker(provider, [job], 1, default_type_definitions())
+
+    dialog._test_parent = parent
+    dialog._hierarchy_ai_thread = thread
+    dialog._hierarchy_ai_worker = worker
+    worker.moveToThread(thread)
+    thread.started.connect(worker.run)
+    worker.finished.connect(thread.quit)
+    thread.start()
+
+    try:
+        assert provider.started.wait(timeout=5)
+        dialog.close()
+
+        assert provider.cancelled is True
+        assert provider.calls[0][2]["timeout"] > 0
+        assert not thread.isRunning()
+    finally:
+        if thread.isRunning():
+            provider.released.set()
+        _cleanup_worker(thread)
+        parent.close()

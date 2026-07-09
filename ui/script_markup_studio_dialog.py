@@ -31,7 +31,7 @@ from PyQt6.QtGui import (
     QShortcut, QKeySequence, QTextFormat, QTextBlockFormat, QPainter, QPen,
 )
 from PyQt6.QtCore import Qt, QTimer, QEvent, QPoint, QRect, QSize, QItemSelectionModel
-from PyQt6.QtCore import QThread, QObject, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from core.script_markup import (
     convert, default_recipe, LineKind,
     parse_with_rules, transcript_to_psm, summarize_transcript,
@@ -46,6 +46,25 @@ from core.script_markup import (
 )
 from core.script_markup.markup_engine import render_psm
 from core.script_markup.markup_recipe import MarkupRecipe
+from core.script_markup.hierarchy_ai_jobs import (
+    HIERARCHY_AI_REQUEST_TIMEOUT_SECONDS as _HIERARCHY_AI_REQUEST_TIMEOUT_SECONDS,
+    HIERARCHY_FORMAT_VERSION as _HIERARCHY_FORMAT_VERSION,
+    HIERARCHY_PROJECT_FORMAT as _HIERARCHY_PROJECT_FORMAT,
+    HierarchyAIPrepareWorker as _HierarchyAIPrepareWorker,
+    HierarchyAIWorker as _HierarchyAIWorker,
+    build_hierarchy_ai_job_for_ranges_from_snapshot as _build_hierarchy_ai_job_for_ranges_from_snapshot,
+    clean_hierarchy_mark_text_value as _clean_hierarchy_mark_text_value,
+    format_raw_line_range_value as _format_raw_line_range_value,
+    hierarchy_ai_base_payload as _hierarchy_ai_base_payload,
+    hierarchy_mark_display_text_value as _hierarchy_mark_display_text_value,
+    hierarchy_mark_payload_value as _hierarchy_mark_payload_value,
+    hierarchy_scope_payload_from_snapshot as _hierarchy_scope_payload_from_snapshot,
+    hierarchy_type_definitions_payload_value as _hierarchy_type_definitions_payload_value,
+    prepare_hierarchy_ai_jobs_from_snapshot as _prepare_hierarchy_ai_jobs_from_snapshot,
+    prepare_hierarchy_raw_scope_jobs_from_snapshot as _prepare_hierarchy_raw_scope_jobs_from_snapshot,
+    source_text_for_lines_value as _source_text_for_lines_value,
+    split_hierarchy_raw_range_jobs_from_snapshot as _split_hierarchy_raw_range_jobs_from_snapshot,
+)
 from core.script_markup.learn import (
     learn_speaker_pattern, learn_speaker_pattern_from_parts,
     learn_ignore_pattern, learn_header_pattern,
@@ -56,6 +75,7 @@ from components.ai_status_dialog import AIStatusDialog
 from components.editor.minimap import TextMinimap
 from utils.logging_utils import log_info, log_error
 from utils.constants import SETTINGS_DIR
+from utils.thread_utils import safe_shutdown_thread
 
 
 # Background tint per classification, shared by the highlighter and the legend.
@@ -112,10 +132,8 @@ _MAX_SEARCH_EXTRA_HIGHLIGHTS = 800
 _OUTLINE_LINE_ROLE = Qt.ItemDataRole.UserRole
 _OUTLINE_ENTRY_KEY_ROLE = Qt.ItemDataRole.UserRole + 1
 _OUTLINE_MARK_KEY_ROLE = Qt.ItemDataRole.UserRole + 2
-_HIERARCHY_PROJECT_FORMAT = "picoripi.script_markup_studio.hierarchy_project"
 _HIERARCHY_TEMPLATE_FORMAT = "picoripi.script_markup_studio.hierarchy_template"
 _STUDIO_SESSION_FORMAT = "picoripi.script_markup_studio.autosave_session"
-_HIERARCHY_FORMAT_VERSION = 1
 _HISTORY_LIMIT = 200
 _TEXT_SPLITTING_TYPES = {
     HierarchyType.ACTION,
@@ -669,447 +687,6 @@ class _ScriptTreeWidget(QTreeWidget):
             event.acceptProposedAction()
             return
         event.ignore()
-
-
-def _clean_hierarchy_mark_text_value(text: str) -> str:
-    s = (text or "").replace(chr(0x2029), "\n").strip()
-    s = re.sub(r"\s+", " ", s)
-    s = re.sub(r"^\[\s*(?:Chapter|Location)\s*:\s*", "", s, flags=re.IGNORECASE)
-    s = re.sub(r"^\{\s*(?:Action|Context)\s*:\s*", "", s, flags=re.IGNORECASE)
-    s = re.sub(r"^[\[\{]\s*", "", s)
-    s = re.sub(r"\s*[\]\}]\s*$", "", s)
-    return s.strip()
-
-
-def _source_text_for_lines_value(start: int, end: int, lines: list[str]) -> str:
-    if not lines:
-        return ""
-    start = max(0, min(start, len(lines) - 1))
-    end = max(start, min(end, len(lines) - 1))
-    return _clean_hierarchy_mark_text_value(" ".join(lines[start:end + 1]))
-
-
-def _format_raw_line_range_value(start_line: int, end_line: int) -> str:
-    start = start_line + 1
-    end = end_line + 1
-    if start == end:
-        return f"raw script line {start}"
-    return f"raw script lines {start}-{end}"
-
-
-def _hierarchy_mark_display_text_value(
-    mark: HierarchyMark,
-    raw_lines: list[str],
-    limit: int = 96,
-) -> str:
-    text = mark_text(mark, raw_lines)
-    if len(text) <= limit:
-        return text
-    return text[:limit - 1].rstrip() + "..."
-
-
-def _hierarchy_mark_payload_value(
-    mark: HierarchyMark,
-    raw_lines: list[str],
-    type_definitions: dict[str, HierarchyTypeDefinition],
-) -> dict:
-    type_def = type_definitions.get(mark.type_id)
-    return {
-        "start_line": mark.start_line,
-        "end_line": mark.end_line,
-        "start_line_number": mark.start_line + 1,
-        "end_line_number": mark.end_line + 1,
-        "depth": mark.depth,
-        "type_id": mark.type_id,
-        "type_label": type_def.label if type_def else mark.type_id,
-        "text": mark.text,
-        "label": mark.label,
-        "description": mark.description or (type_def.description if type_def else ""),
-        "color": mark.color or (type_def.color if type_def else ""),
-        "order": mark.order,
-        "source_excerpt": _source_text_for_lines_value(mark.start_line, mark.end_line, raw_lines),
-    }
-
-
-def _hierarchy_type_definitions_payload_value(
-    type_definitions: dict[str, HierarchyTypeDefinition],
-) -> list[dict[str, str]]:
-    return [
-        {
-            "type_id": type_def.type_id,
-            "label": type_def.label,
-            "description": type_def.description,
-            "color": type_def.color,
-        }
-        for type_def in type_definitions.values()
-    ]
-
-
-def _hierarchy_ai_base_payload(snapshot: dict) -> dict:
-    raw_lines = snapshot["raw_lines"]
-    type_definitions = snapshot["type_definitions"]
-    return {
-        "format": _HIERARCHY_PROJECT_FORMAT,
-        "version": _HIERARCHY_FORMAT_VERSION,
-        "source_path": snapshot.get("source_path", ""),
-        "raw_text": snapshot["raw_text"],
-        "type_definitions": _hierarchy_type_definitions_payload_value(type_definitions),
-        "hierarchy_marks": [
-            _hierarchy_mark_payload_value(mark, raw_lines, type_definitions)
-            for mark in sorted(snapshot["hierarchy_marks"], key=lambda m: (m.start_line, m.depth, m.order))
-        ],
-        "rendered_markdown": snapshot.get("rendered_markdown", ""),
-        "ai_instructions": snapshot["ai_instructions"],
-    }
-
-
-def _hierarchy_scope_payload_from_snapshot(
-    snapshot: dict,
-    unmarked_ranges: list[tuple[int, int]],
-    *,
-    label: str,
-    start_line: int,
-    end_line: int,
-) -> dict:
-    raw_lines = snapshot["raw_lines"]
-    payload = _hierarchy_ai_base_payload(snapshot)
-    payload["unmarked_ranges"] = [
-        {
-            "start_line": start,
-            "end_line": end,
-            "start_line_number": start + 1,
-            "end_line_number": end + 1,
-            "source_excerpt": _source_text_for_lines_value(start, end, raw_lines),
-        }
-        for start, end in unmarked_ranges
-    ]
-    payload["scope"] = {
-        "label": label,
-        "start_line_number": start_line + 1,
-        "end_line_number": end_line + 1,
-    }
-    return payload
-
-
-def _build_hierarchy_ai_job_for_ranges_from_snapshot(
-    snapshot: dict,
-    ranges: list[tuple[int, int]],
-    *,
-    label_prefix: str,
-):
-    start_line = min(start for start, _end in ranges)
-    end_line = max(end for _start, end in ranges)
-    payload = _hierarchy_scope_payload_from_snapshot(
-        snapshot,
-        ranges,
-        label=f"{label_prefix} ({_format_raw_line_range_value(start_line, end_line)})",
-        start_line=start_line,
-        end_line=end_line,
-    )
-    return build_hierarchy_auto_markup_messages(
-        payload,
-        max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
-    )
-
-
-def _split_hierarchy_raw_range_jobs_from_snapshot(
-    snapshot: dict,
-    start_line: int,
-    end_line: int,
-    *,
-    label_prefix: str,
-) -> list:
-    jobs = []
-    chunk_start = start_line
-    while chunk_start <= end_line:
-        best_end = None
-        best_job = None
-        low = chunk_start
-        high = end_line
-        while low <= high:
-            mid = (low + high) // 2
-            try:
-                candidate = _build_hierarchy_ai_job_for_ranges_from_snapshot(
-                    snapshot,
-                    [(chunk_start, mid)],
-                    label_prefix=label_prefix,
-                )
-                best_end = mid
-                best_job = candidate
-                low = mid + 1
-            except HierarchyAIPromptTooLarge:
-                high = mid - 1
-        if best_job is None or best_end is None:
-            raise HierarchyAIPromptTooLarge(
-                "A raw script section is too large for one AI markup request.\n\n"
-                f"Split {_format_raw_line_range_value(chunk_start, chunk_start)} manually, "
-                "then run AI mark missing again."
-            )
-        jobs.append(best_job)
-        chunk_start = best_end + 1
-    return jobs
-
-
-def _prepare_hierarchy_raw_scope_jobs_from_snapshot(
-    snapshot: dict,
-    ranges: list[tuple[int, int]],
-    *,
-    label_prefix: str = "Unstructured source",
-) -> list:
-    jobs = []
-    pending_ranges: list[tuple[int, int]] = []
-    pending_job = None
-
-    for item in ranges:
-        candidate_ranges = [*pending_ranges, item]
-        try:
-            candidate_job = _build_hierarchy_ai_job_for_ranges_from_snapshot(
-                snapshot,
-                candidate_ranges,
-                label_prefix=label_prefix,
-            )
-            pending_ranges = candidate_ranges
-            pending_job = candidate_job
-            continue
-        except HierarchyAIPromptTooLarge:
-            if pending_job is not None:
-                jobs.append(pending_job)
-                pending_ranges = []
-                pending_job = None
-            try:
-                pending_job = _build_hierarchy_ai_job_for_ranges_from_snapshot(
-                    snapshot,
-                    [item],
-                    label_prefix=label_prefix,
-                )
-                pending_ranges = [item]
-            except HierarchyAIPromptTooLarge:
-                jobs.extend(_split_hierarchy_raw_range_jobs_from_snapshot(
-                    snapshot,
-                    item[0],
-                    item[1],
-                    label_prefix=label_prefix,
-                ))
-
-    if pending_job is not None:
-        jobs.append(pending_job)
-    return jobs
-
-
-def _prepare_hierarchy_ai_jobs_from_snapshot(
-    snapshot: dict,
-    unmarked_ranges: list[tuple[int, int]],
-) -> list:
-    raw_lines = snapshot["raw_lines"]
-    full_payload = _hierarchy_scope_payload_from_snapshot(
-        snapshot,
-        unmarked_ranges,
-        label="full script",
-        start_line=0,
-        end_line=max(0, len(raw_lines) - 1),
-    )
-    try:
-        return [build_hierarchy_auto_markup_messages(
-            full_payload,
-            max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
-        )]
-    except HierarchyAIPromptTooLarge:
-        pass
-
-    structures = sorted(
-        [mark for mark in snapshot["hierarchy_marks"] if mark.type_id == HierarchyType.STRUCTURE],
-        key=lambda mark: (mark.start_line, mark.depth, -mark.end_line, mark.order),
-    )
-    if not structures:
-        return _prepare_hierarchy_raw_scope_jobs_from_snapshot(
-            snapshot,
-            unmarked_ranges,
-            label_prefix="Unstructured source",
-        )
-
-    uncovered = list(unmarked_ranges)
-    jobs = []
-    while uncovered:
-        current_start, current_end = uncovered[0]
-        enclosing = [
-            mark for mark in structures
-            if mark.start_line <= current_start and current_end <= mark.end_line
-        ]
-        enclosing.sort(key=lambda mark: (mark.depth, mark.start_line, -mark.end_line))
-        if not enclosing:
-            outside_ranges = []
-            for item in uncovered:
-                has_structure = any(
-                    mark.start_line <= item[0] and item[1] <= mark.end_line
-                    for mark in structures
-                )
-                if has_structure:
-                    break
-                outside_ranges.append(item)
-            jobs.extend(_prepare_hierarchy_raw_scope_jobs_from_snapshot(
-                snapshot,
-                outside_ranges or [(current_start, current_end)],
-                label_prefix="Unstructured source",
-            ))
-            outside_set = set(outside_ranges or [(current_start, current_end)])
-            uncovered = [item for item in uncovered if item not in outside_set]
-            continue
-
-        selected = None
-        last_too_large = None
-        for structure in enclosing:
-            scoped_ranges = [
-                item for item in uncovered
-                if structure.start_line <= item[0] and item[1] <= structure.end_line
-            ]
-            if not scoped_ranges:
-                continue
-            text = _hierarchy_mark_display_text_value(structure, raw_lines)
-            label = f"{text or 'Structure'} ({_format_raw_line_range_value(structure.start_line, structure.end_line)})"
-            payload = _hierarchy_scope_payload_from_snapshot(
-                snapshot,
-                scoped_ranges,
-                label=label,
-                start_line=structure.start_line,
-                end_line=structure.end_line,
-            )
-            try:
-                selected = (
-                    structure,
-                    scoped_ranges,
-                    build_hierarchy_auto_markup_messages(
-                        payload,
-                        max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
-                    ),
-                )
-                break
-            except HierarchyAIPromptTooLarge as exc:
-                last_too_large = (structure, exc)
-
-        if selected is None:
-            structure, exc = last_too_large or (enclosing[-1], None)
-            text = _hierarchy_mark_display_text_value(structure, raw_lines)
-            label = f"{text or 'Structure'} ({_format_raw_line_range_value(structure.start_line, structure.end_line)})"
-            scoped_ranges = [
-                item for item in uncovered
-                if structure.start_line <= item[0] and item[1] <= structure.end_line
-            ]
-            try:
-                jobs.extend(_prepare_hierarchy_raw_scope_jobs_from_snapshot(
-                    snapshot,
-                    scoped_ranges,
-                    label_prefix=label,
-                ))
-            except HierarchyAIPromptTooLarge as split_exc:
-                detail = f"\n\nTechnical detail: {split_exc or exc}" if (split_exc or exc) else ""
-                raise HierarchyAIPromptTooLarge(
-                    "The smallest available Structure node is still too large for one AI markup request.\n\n"
-                    f"Split `{label}` into smaller Structure nodes, such as chapters or scenes, "
-                    "then run AI mark missing again."
-                    f"{detail}"
-                ) from split_exc
-            scoped_set = set(scoped_ranges)
-            uncovered = [item for item in uncovered if item not in scoped_set]
-            continue
-
-        _structure, scoped_ranges, prepared = selected
-        jobs.append(prepared)
-        scoped_set = set(scoped_ranges)
-        uncovered = [item for item in uncovered if item not in scoped_set]
-
-    return jobs
-
-
-class _HierarchyAIPrepareWorker(QObject):
-    """Background worker for prompt/job preparation before an AI call."""
-
-    success = pyqtSignal(list)
-    error = pyqtSignal(str)
-    finished = pyqtSignal()
-
-    def __init__(self, snapshot: dict, unmarked_ranges: list[tuple[int, int]]):
-        super().__init__()
-        self.snapshot = snapshot
-        self.unmarked_ranges = list(unmarked_ranges)
-        self.is_cancelled = False
-
-    def cancel(self):
-        self.is_cancelled = True
-
-    def run(self):
-        try:
-            jobs = _prepare_hierarchy_ai_jobs_from_snapshot(self.snapshot, self.unmarked_ranges)
-            if not self.is_cancelled:
-                self.success.emit(jobs)
-        except Exception as exc:
-            if not self.is_cancelled:
-                self.error.emit(str(exc))
-        finally:
-            self.finished.emit()
-
-
-class _HierarchyAIWorker(QObject):
-    """Background worker for one-shot hierarchy auto-markup."""
-
-    success = pyqtSignal(list, list, str)
-    error = pyqtSignal(str)
-    progress = pyqtSignal(int, int, str)
-    finished = pyqtSignal()
-
-    def __init__(
-        self,
-        provider,
-        jobs: list,
-        raw_line_count: int,
-        type_definitions: dict[str, HierarchyTypeDefinition],
-    ):
-        super().__init__()
-        self.provider = provider
-        self.jobs = jobs
-        self.raw_line_count = raw_line_count
-        self.type_definitions = type_definitions
-        self.is_cancelled = False
-
-    def cancel(self):
-        self.is_cancelled = True
-        cancel_stream = getattr(self.provider, "cancel_active_stream", None)
-        if callable(cancel_stream):
-            cancel_stream()
-
-    def run(self):
-        try:
-            all_marks: list[HierarchyMark] = []
-            all_warnings: list[str] = []
-            responses: list[str] = []
-            total = len(self.jobs)
-            for index, job in enumerate(self.jobs, start=1):
-                if self.is_cancelled:
-                    return
-                self.progress.emit(index, total, job.scope_label)
-                response = self.provider.translate(
-                    job.messages,
-                    session=None,
-                    settings_override={"temperature": 0.0},
-                )
-                if self.is_cancelled:
-                    return
-                response_text = response.text or ""
-                marks, warnings = parse_hierarchy_auto_markup_response(
-                    response_text,
-                    raw_line_count=self.raw_line_count,
-                    type_definitions=self.type_definitions,
-                )
-                all_marks.extend(marks)
-                all_warnings.extend(f"{job.scope_label}: {warning}" for warning in warnings)
-                responses.append(f"--- {job.scope_label} ---\n{response_text}")
-            if self.is_cancelled:
-                return
-            self.success.emit(all_marks, all_warnings, "\n\n".join(responses))
-        except Exception as exc:
-            if not self.is_cancelled:
-                self.error.emit(str(exc))
-        finally:
-            self.finished.emit()
 
 
 class ScriptMarkupStudioDialog(QDialog):
@@ -3032,12 +2609,49 @@ class ScriptMarkupStudioDialog(QDialog):
             log_error(f"ScriptMarkupStudio: failed to restore autosaved session: {e}")
             return False
 
-    def closeEvent(self, event):
+    def _shutdown_hierarchy_ai_threads(self) -> None:
         self._cancel_hierarchy_ai_markup()
+        if self._hierarchy_ai_prepare_thread is not None:
+            safe_shutdown_thread(
+                self._hierarchy_ai_prepare_thread,
+                self._hierarchy_ai_prepare_worker,
+                timeout_ms=5000,
+            )
+            self._hierarchy_ai_prepare_thread = None
+            self._hierarchy_ai_prepare_worker = None
+        if self._hierarchy_ai_thread is not None:
+            safe_shutdown_thread(
+                self._hierarchy_ai_thread,
+                self._hierarchy_ai_worker,
+                timeout_ms=(_HIERARCHY_AI_REQUEST_TIMEOUT_SECONDS + 5) * 1000,
+            )
+            self._hierarchy_ai_thread = None
+            self._hierarchy_ai_worker = None
+        self._hierarchy_ai_elapsed_timer.stop()
+        if self._hierarchy_ai_status is not None and getattr(self._hierarchy_ai_status, "is_running", False):
+            finish = getattr(self._hierarchy_ai_status, "finish", None)
+            if callable(finish):
+                finish(success=False, show_popup=False)
+        self._hierarchy_ai_status = None
+        self._hierarchy_ai_started_at = None
+        self._hierarchy_ai_progress_state = None
+        self._hierarchy_ai_provider = None
+        self._hierarchy_ai_model_name = ""
+        self._set_hierarchy_ai_actions_enabled(True)
+
+    def _prepare_for_close(self) -> None:
+        self._shutdown_hierarchy_ai_threads()
         self._save_autosaved_session()
         self._save_window_geometry()
         if self.mw is not None and hasattr(self.mw, "script_markup_studio_dialog"):
             self.mw.script_markup_studio_dialog = None
+
+    def reject(self):
+        self._prepare_for_close()
+        super().reject()
+
+    def closeEvent(self, event):
+        self._prepare_for_close()
         super().closeEvent(event)
 
     # -------------------------------------------------------- manual marking
@@ -5639,262 +5253,13 @@ class ScriptMarkupStudioDialog(QDialog):
             QMessageBox.critical(self, "AI markup", str(exc))
             return None, "", ""
 
-    def _hierarchy_scope_payload(
-        self,
-        unmarked_ranges: list[tuple[int, int]],
-        *,
-        label: str,
-        start_line: int,
-        end_line: int,
-    ) -> dict:
-        payload = self._hierarchy_project_payload()
-        raw_lines = self.raw_edit.toPlainText().splitlines()
-        payload["unmarked_ranges"] = [
-            {
-                "start_line": start,
-                "end_line": end,
-                "start_line_number": start + 1,
-                "end_line_number": end + 1,
-                "source_excerpt": self._source_text_for_lines(start, end, raw_lines),
-            }
-            for start, end in unmarked_ranges
-        ]
-        payload["scope"] = {
-            "label": label,
-            "start_line_number": start_line + 1,
-            "end_line_number": end_line + 1,
-        }
-        return payload
-
-    def _structure_scope_label(self, mark: HierarchyMark, raw_lines: list[str]) -> str:
-        text = self._hierarchy_mark_display_text(mark, raw_lines=raw_lines)
-        return f"{text or 'Structure'} ({self._format_raw_line_range(mark.start_line, mark.end_line)})"
-
-    def _format_raw_line_range(self, start_line: int, end_line: int) -> str:
-        start = start_line + 1
-        end = end_line + 1
-        if start == end:
-            return f"raw script line {start}"
-        return f"raw script lines {start}-{end}"
-
-    def _build_hierarchy_ai_job_for_ranges(
-        self,
-        raw_lines: list[str],
-        ranges: list[tuple[int, int]],
-        *,
-        label_prefix: str,
-    ):
-        start_line = min(start for start, _end in ranges)
-        end_line = max(end for _start, end in ranges)
-        payload = self._hierarchy_scope_payload(
-            ranges,
-            label=f"{label_prefix} ({self._format_raw_line_range(start_line, end_line)})",
-            start_line=start_line,
-            end_line=end_line,
-        )
-        return build_hierarchy_auto_markup_messages(
-            payload,
-            max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
-        )
-
-    def _split_hierarchy_raw_range_jobs(
-        self,
-        raw_lines: list[str],
-        start_line: int,
-        end_line: int,
-        *,
-        label_prefix: str,
-    ) -> list:
-        jobs = []
-        chunk_start = start_line
-        while chunk_start <= end_line:
-            best_end = None
-            best_job = None
-            low = chunk_start
-            high = end_line
-            while low <= high:
-                mid = (low + high) // 2
-                try:
-                    candidate = self._build_hierarchy_ai_job_for_ranges(
-                        raw_lines,
-                        [(chunk_start, mid)],
-                        label_prefix=label_prefix,
-                    )
-                    best_end = mid
-                    best_job = candidate
-                    low = mid + 1
-                except HierarchyAIPromptTooLarge:
-                    high = mid - 1
-            if best_job is None or best_end is None:
-                raise HierarchyAIPromptTooLarge(
-                    "A raw script section is too large for one AI markup request.\n\n"
-                    f"Split {self._format_raw_line_range(chunk_start, chunk_start)} manually, "
-                    "then run AI mark missing again."
-                )
-            jobs.append(best_job)
-            chunk_start = best_end + 1
-        return jobs
-
-    def _prepare_hierarchy_raw_scope_jobs(
-        self,
-        raw_lines: list[str],
-        ranges: list[tuple[int, int]],
-        *,
-        label_prefix: str = "Unstructured source",
-    ) -> list:
-        jobs = []
-        pending_ranges: list[tuple[int, int]] = []
-        pending_job = None
-
-        for item in ranges:
-            candidate_ranges = [*pending_ranges, item]
-            try:
-                candidate_job = self._build_hierarchy_ai_job_for_ranges(
-                    raw_lines,
-                    candidate_ranges,
-                    label_prefix=label_prefix,
-                )
-                pending_ranges = candidate_ranges
-                pending_job = candidate_job
-                continue
-            except HierarchyAIPromptTooLarge:
-                if pending_job is not None:
-                    jobs.append(pending_job)
-                    pending_ranges = []
-                    pending_job = None
-                try:
-                    pending_job = self._build_hierarchy_ai_job_for_ranges(
-                        raw_lines,
-                        [item],
-                        label_prefix=label_prefix,
-                    )
-                    pending_ranges = [item]
-                except HierarchyAIPromptTooLarge:
-                    jobs.extend(self._split_hierarchy_raw_range_jobs(
-                        raw_lines,
-                        item[0],
-                        item[1],
-                        label_prefix=label_prefix,
-                    ))
-
-        if pending_job is not None:
-            jobs.append(pending_job)
-        return jobs
-
     def _prepare_hierarchy_ai_jobs(self, raw_lines: list[str], unmarked_ranges: list[tuple[int, int]]):
-        full_payload = self._hierarchy_scope_payload(
+        snapshot = self._hierarchy_ai_snapshot(self.raw_edit.toPlainText(), raw_lines)
+        return _prepare_hierarchy_ai_jobs_from_snapshot(
+            snapshot,
             unmarked_ranges,
-            label="full script",
-            start_line=0,
-            end_line=max(0, len(raw_lines) - 1),
+            message_builder=build_hierarchy_auto_markup_messages,
         )
-        try:
-            return [build_hierarchy_auto_markup_messages(
-                full_payload,
-                max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
-            )]
-        except HierarchyAIPromptTooLarge:
-            pass
-
-        structures = sorted(
-            [mark for mark in self.hierarchy_marks if mark.type_id == HierarchyType.STRUCTURE],
-            key=lambda mark: (mark.start_line, mark.depth, -mark.end_line, mark.order),
-        )
-        if not structures:
-            return self._prepare_hierarchy_raw_scope_jobs(
-                raw_lines,
-                unmarked_ranges,
-                label_prefix="Unstructured source",
-            )
-
-        uncovered = list(unmarked_ranges)
-        jobs = []
-        while uncovered:
-            current_start, current_end = uncovered[0]
-            enclosing = [
-                mark for mark in structures
-                if mark.start_line <= current_start and current_end <= mark.end_line
-            ]
-            enclosing.sort(key=lambda mark: (mark.depth, mark.start_line, -mark.end_line))
-            if not enclosing:
-                outside_ranges = []
-                for item in uncovered:
-                    has_structure = any(
-                        mark.start_line <= item[0] and item[1] <= mark.end_line
-                        for mark in structures
-                    )
-                    if has_structure:
-                        break
-                    outside_ranges.append(item)
-                jobs.extend(self._prepare_hierarchy_raw_scope_jobs(
-                    raw_lines,
-                    outside_ranges or [(current_start, current_end)],
-                    label_prefix="Unstructured source",
-                ))
-                outside_set = set(outside_ranges or [(current_start, current_end)])
-                uncovered = [item for item in uncovered if item not in outside_set]
-                continue
-
-            selected = None
-            last_too_large = None
-            for structure in enclosing:
-                scoped_ranges = [
-                    item for item in uncovered
-                    if structure.start_line <= item[0] and item[1] <= structure.end_line
-                ]
-                if not scoped_ranges:
-                    continue
-                label = self._structure_scope_label(structure, raw_lines)
-                payload = self._hierarchy_scope_payload(
-                    scoped_ranges,
-                    label=label,
-                    start_line=structure.start_line,
-                    end_line=structure.end_line,
-                )
-                try:
-                    selected = (
-                        structure,
-                        scoped_ranges,
-                        build_hierarchy_auto_markup_messages(
-                            payload,
-                            max_prompt_chars=MAX_AUTO_MARKUP_PROMPT_CHARS,
-                        ),
-                    )
-                    break
-                except HierarchyAIPromptTooLarge as exc:
-                    last_too_large = (structure, exc)
-
-            if selected is None:
-                structure, exc = last_too_large or (enclosing[-1], None)
-                label = self._structure_scope_label(structure, raw_lines)
-                scoped_ranges = [
-                    item for item in uncovered
-                    if structure.start_line <= item[0] and item[1] <= structure.end_line
-                ]
-                try:
-                    jobs.extend(self._prepare_hierarchy_raw_scope_jobs(
-                        raw_lines,
-                        scoped_ranges,
-                        label_prefix=label,
-                    ))
-                except HierarchyAIPromptTooLarge as split_exc:
-                    detail = f"\n\nTechnical detail: {split_exc or exc}" if (split_exc or exc) else ""
-                    raise HierarchyAIPromptTooLarge(
-                        "The smallest available Structure node is still too large for one AI markup request.\n\n"
-                        f"Split `{label}` into smaller Structure nodes, such as chapters or scenes, "
-                        "then run AI mark missing again."
-                        f"{detail}"
-                    ) from split_exc
-                scoped_set = set(scoped_ranges)
-                uncovered = [item for item in uncovered if item not in scoped_set]
-                continue
-
-            _structure, scoped_ranges, prepared = selected
-            jobs.append(prepared)
-            scoped_set = set(scoped_ranges)
-            uncovered = [item for item in uncovered if item not in scoped_set]
-
-        return jobs
 
     def _continue_hierarchy_from_examples(self):
         if self.mode != "hierarchy":
@@ -5991,7 +5356,6 @@ class ScriptMarkupStudioDialog(QDialog):
         status.update_step(0, "Preparing examples and unmarked ranges", AIStatusDialog.STATUS_IN_PROGRESS)
         status.set_detail_text(self._hierarchy_ai_detail_text())
         self._hierarchy_ai_elapsed_timer.start()
-        QApplication.processEvents()
 
         snapshot = self._hierarchy_ai_snapshot(raw_text, raw_lines)
         thread = QThread(self)

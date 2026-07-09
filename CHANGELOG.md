@@ -1,6 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.3.069-dev] - Unreleased
+## [0.3.070-dev] - Unreleased
+
+### Changed
+- **Script Markup Studio SMS Audit Follow-ups**:
+  - Removed the hierarchy AI startup `QApplication.processEvents()` regression and added an AST-based product-code guard to prevent future `processEvents()` calls outside tests.
+  - Moved hierarchy AI job-preparation helpers and hierarchy AI worker classes into `core/script_markup/hierarchy_ai_jobs.py`, keeping UI compatibility aliases while reducing `ui/script_markup_studio_dialog.py`.
+  - Added safe shutdown for hierarchy AI prepare/request threads during Script Markup Studio close/reject paths.
+  - Debounced and sampled `TextMinimap` document-map rebuilding for large scripts, with unit and performance coverage.
+  - Deleted the unused tracked `test_settings_dump.json` root fixture.
+  - Refreshed audit/test metrics in `AUDIT.md`, `README.md`, `GEMINI.md`, and `walkthrough.md`.
+- **Version Updates**: Bumped version to `0.3.070-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`, and `CHANGELOG.md`.
+
+## [0.3.069-dev] - 2026-07-09
 
 ## [0.3.068-dev] - 2026-07-08
 

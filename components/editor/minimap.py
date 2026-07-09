@@ -11,6 +11,7 @@ class TextMinimap(QWidget):
     WIDTH = 72
     MIN_EDITOR_WIDTH = 360
     MIN_HANDLE_HEIGHT = 24
+    REBUILD_DEBOUNCE_MS = 180
 
     def __init__(self, editor):
         super().__init__(editor)
@@ -19,13 +20,18 @@ class TextMinimap(QWidget):
         self._drag_offset_y = 0
         self._map_cache = None
         self._map_cache_key = None
+        self._content_dirty = False
+        self._rebuild_timer = QTimer(self)
+        self._rebuild_timer.setSingleShot(True)
+        self._rebuild_timer.setInterval(self.REBUILD_DEBOUNCE_MS)
+        self._rebuild_timer.timeout.connect(self.invalidate)
 
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self.setToolTip("Document minimap")
         self.hide()
 
-        editor.textChanged.connect(self.invalidate)
+        editor.textChanged.connect(self.schedule_invalidate)
         editor.cursorPositionChanged.connect(self.update)
 
     def sizeHint(self):
@@ -45,8 +51,15 @@ class TextMinimap(QWidget):
         self.setVisible(width > 0)
 
     def invalidate(self) -> None:
+        self._rebuild_timer.stop()
+        self._content_dirty = False
         self._map_cache = None
         self._map_cache_key = None
+        self.update()
+
+    def schedule_invalidate(self) -> None:
+        self._content_dirty = True
+        self._rebuild_timer.start()
         self.update()
 
     def _color_with_alpha(self, color: QColor, alpha: int) -> QColor:
@@ -107,18 +120,40 @@ class TextMinimap(QWidget):
             palette.color(QPalette.ColorRole.Text).rgba(),
         )
 
+    def _iter_sampled_blocks(self, doc):
+        block_count = max(1, doc.blockCount())
+        height = max(1, self.height())
+        if block_count <= height * 2:
+            block = doc.firstBlock()
+            while block.isValid():
+                yield block
+                block = block.next()
+            return
+
+        seen: set[int] = set()
+        for y in range(height):
+            start = int(y * block_count / height)
+            end = max(start, int((y + 1) * block_count / height) - 1)
+            middle = (start + end) // 2
+            for block_number in (start, middle, end):
+                if block_number in seen:
+                    continue
+                seen.add(block_number)
+                block = doc.findBlockByNumber(block_number)
+                if block.isValid():
+                    yield block
+
     def _draw_document_map(self, painter: QPainter) -> None:
         palette = self.editor.palette()
         text = palette.color(QPalette.ColorRole.Text)
         doc = self.editor.document()
-        block = doc.firstBlock()
         line_color = self._color_with_alpha(text, 90)
         blank_color = self._color_with_alpha(text, 35)
         line_color_provider = getattr(self.editor, "minimap_line_color_for_block", None)
         max_text_width = max(8, self.width() - 10)
 
         lines_by_y: dict[int, tuple[int, int, QColor]] = {}
-        while block.isValid():
+        for block in self._iter_sampled_blocks(doc):
             block_number = block.blockNumber()
             y = self._block_y(block_number)
             raw = block.text()
@@ -142,7 +177,6 @@ class TextMinimap(QWidget):
             current = lines_by_y.get(y)
             if current is None or width > current[1]:
                 lines_by_y[y] = (x, max(1, width), color)
-            block = block.next()
 
         painter.setPen(Qt.PenStyle.NoPen)
         for y, (x, width, color) in lines_by_y.items():
@@ -152,6 +186,8 @@ class TextMinimap(QWidget):
     def _ensure_map_cache(self) -> None:
         key = self._cache_key()
         if self._map_cache is not None and self._map_cache_key == key:
+            return
+        if self._content_dirty and self._map_cache is not None:
             return
 
         palette = self.editor.palette()
@@ -170,6 +206,8 @@ class TextMinimap(QWidget):
 
         self._map_cache = pixmap
         self._map_cache_key = key
+        self._content_dirty = False
+        self._rebuild_timer.stop()
 
     def _draw_block_marker(self, painter: QPainter, block_number: int, color: QColor) -> None:
         if block_number < 0 or block_number >= self.editor.document().blockCount():

@@ -25,6 +25,14 @@ from .hierarchy_ai import (
     build_hierarchy_auto_markup_messages,
     parse_hierarchy_auto_markup_response,
 )
+from .hierarchy_ai_jobs import (
+    HIERARCHY_AI_REQUEST_TIMEOUT_SECONDS,
+    HIERARCHY_FORMAT_VERSION,
+    HIERARCHY_PROJECT_FORMAT,
+    HierarchyAIPrepareWorker,
+    HierarchyAIWorker,
+    prepare_hierarchy_ai_jobs_from_snapshot,
+)
 from .local_autofill import LocalAutofillResult, infer_hierarchy_marks_from_examples
 from .picoripi_rules import (
     parse_with_rules,
@@ -59,6 +67,12 @@ __all__ = [
     "HierarchyAIPromptTooLarge",
     "build_hierarchy_auto_markup_messages",
     "parse_hierarchy_auto_markup_response",
+    "HIERARCHY_AI_REQUEST_TIMEOUT_SECONDS",
+    "HIERARCHY_FORMAT_VERSION",
+    "HIERARCHY_PROJECT_FORMAT",
+    "HierarchyAIPrepareWorker",
+    "HierarchyAIWorker",
+    "prepare_hierarchy_ai_jobs_from_snapshot",
     "LocalAutofillResult",
     "infer_hierarchy_marks_from_examples",
     "parse_with_rules",

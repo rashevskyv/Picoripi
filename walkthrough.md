@@ -1,5 +1,61 @@
 # Walkthrough — Покращення евристики злиття/розбиття рядків (AUD-L4)
 
+## SMS audit implementation pass — 2026-07-09
+
+This pass implements the small and medium follow-ups from the Script Markup Studio
+audit and completes the first mechanical step of the large architecture item.
+
+### Changes
+
+1. **SMS-P1: processEvents regression**
+   - Removed the only product-code `QApplication.processEvents()` call from the
+     hierarchy AI startup path.
+   - Added `tests/test_architecture/test_no_process_events.py`, which parses
+     product Python modules with `ast` and fails on real `processEvents()` calls.
+
+2. **SMS-M1: root fixture hygiene**
+   - Deleted the tracked but unreferenced `test_settings_dump.json`.
+   - Left `dummy.json` at the repository root because three existing tests still
+     reference that exact path. Moving it should be a separate fixture-path cleanup.
+
+3. **SMS-L1: hierarchy AI thread shutdown**
+   - Added a shared close preparation path for `ScriptMarkupStudioDialog.closeEvent()`
+     and `reject()`.
+   - The hierarchy AI prepare and request threads now go through
+     `safe_shutdown_thread()` before the dialog is destroyed.
+   - Added a real Qt lifecycle test that closes the studio while a hierarchy AI
+     worker is running.
+
+4. **SMS-P2: minimap rebuild cost**
+   - `TextMinimap` now debounces text-change invalidation, so rapid typing does
+     not rebuild the full document map on every paint.
+   - Large documents are sampled by minimap pixel rows instead of walking every
+     text block.
+   - Added deterministic unit tests and a performance-lane budget test.
+
+5. **SMS-A1 phase 1: hierarchy AI extraction**
+   - Moved hierarchy AI job-preparation helpers and the two hierarchy AI workers
+     into `core/script_markup/hierarchy_ai_jobs.py`.
+   - Kept UI-module private-name re-exports for compatibility.
+   - Replaced the duplicated dialog job-preparation body with a call into the
+     core snapshot helper.
+   - Remaining A1 work is still open: split the dialog and its large test file
+     into focused mixins/modules without behavior changes.
+
+6. **SMS-D1: metrics**
+   - Refreshed `AUDIT.md` header metrics and synchronized README/GEMINI test
+     counts with current collect-only output.
+
+### Verification
+
+- SMS audit suite: `137 passed`.
+- Minimap performance budget test: `1 passed`.
+- Ruff: `All checks passed`.
+- Collect-only: `1,525 items` total (`1,515` default-lane selected + `10`
+  performance deselected by default).
+
+---
+
 Цей документ описує архітектурні та функціональні зміни, внесені у межах задачі **AUD-L4**, для покращення логіки об'єднання коротких рядків у `ShortLineRule`. Нові евристики захищають списки, заголовки та самостійні текстові блоки від некоректного агресивного злиття.
 
 ---

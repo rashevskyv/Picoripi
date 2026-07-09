@@ -79,3 +79,32 @@ def test_minimap_reuses_cached_document_map_while_scrolling(qapp):
     editor.minimap._ensure_map_cache()
 
     assert editor.minimap._map_cache is not first_cache
+
+
+def test_minimap_text_changes_are_debounced(qapp):
+    editor = _make_editor_with_text(qapp)
+    editor.minimap._ensure_map_cache()
+    first_cache = editor.minimap._map_cache
+
+    editor.setPlainText("\n".join(f"Edited line {i}" for i in range(120)))
+    editor.minimap._ensure_map_cache()
+
+    assert editor.minimap._content_dirty is True
+    assert editor.minimap._map_cache is first_cache
+
+    editor.minimap.invalidate()
+    editor.minimap._ensure_map_cache()
+
+    assert editor.minimap._content_dirty is False
+    assert editor.minimap._map_cache is not first_cache
+
+
+def test_minimap_samples_large_documents_by_visible_height(qapp):
+    editor = _make_editor_with_text(qapp)
+    editor.setPlainText("\n".join(f"Long document line {i}" for i in range(5000)))
+    editor.minimap.resize(TextMinimap.WIDTH, 200)
+
+    sampled_blocks = list(editor.minimap._iter_sampled_blocks(editor.document()))
+
+    assert len(sampled_blocks) < editor.document().blockCount()
+    assert len(sampled_blocks) <= editor.minimap.height() * 3
