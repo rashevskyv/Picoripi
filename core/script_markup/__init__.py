@@ -17,6 +17,7 @@ from .hierarchy_markup import (
     line_styles_for_marks,
     mark_text,
     render_hierarchy_markdown,
+    resolve_structure_name_iterator,
 )
 from .hierarchy_ai import (
     MAX_AUTO_MARKUP_PROMPT_CHARS,
@@ -62,6 +63,7 @@ __all__ = [
     "line_styles_for_marks",
     "mark_text",
     "render_hierarchy_markdown",
+    "resolve_structure_name_iterator",
     "MAX_AUTO_MARKUP_PROMPT_CHARS",
     "HierarchyAIMessages",
     "HierarchyAIPromptTooLarge",

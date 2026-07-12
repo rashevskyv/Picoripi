@@ -9,6 +9,7 @@ from core.script_markup import (
     line_styles_for_marks,
     parse_hierarchy_auto_markup_response,
     render_hierarchy_markdown,
+    resolve_structure_name_iterator,
 )
 
 
@@ -39,6 +40,62 @@ def test_hierarchy_parent_can_share_start_line_with_child():
     act = root.children[0]
     assert act.mark.text == "Act 1"
     assert act.children[0].mark.text == "Chapter 1"
+
+
+def test_structure_name_iterator_counts_siblings_and_resets_per_parent():
+    marks = [
+        HierarchyMark(0, 5, 0, HierarchyType.STRUCTURE, text="Chapter 1"),
+        HierarchyMark(1, 2, 1, HierarchyType.STRUCTURE, text="Scene 1"),
+        HierarchyMark(3, 4, 1, HierarchyType.STRUCTURE, text="Scene 2"),
+        HierarchyMark(6, 9, 0, HierarchyType.STRUCTURE, text="Chapter 2"),
+    ]
+
+    assert resolve_structure_name_iterator(
+        "Scene $", marks, start_line=5, end_line=5, depth=1
+    ) == "Scene 3"
+    assert resolve_structure_name_iterator(
+        "Scene $", marks, start_line=7, end_line=8, depth=1
+    ) == "Scene 1"
+    assert resolve_structure_name_iterator(
+        "Scene $4", marks, start_line=7, end_line=8, depth=1
+    ) == "Scene 4"
+    assert resolve_structure_name_iterator(
+        "Scene", marks, start_line=7, end_line=8, depth=1
+    ) == "Scene"
+
+
+def test_inline_context_uses_character_ranges_and_renders_under_speaker():
+    raw = "MIDNA (If other people are around)\nDo not transform here."
+    marks = [
+        HierarchyMark(
+            0, 0, 3, HierarchyType.SPEAKER,
+            start_col=0, end_col=5, order=1,
+        ),
+        HierarchyMark(
+            0, 0, 4, HierarchyType.CONTEXT,
+            start_col=7, end_col=33, order=2,
+        ),
+        HierarchyMark(1, 1, 5, HierarchyType.TEXT, order=3),
+    ]
+
+    assert render_hierarchy_markdown(marks, raw) == (
+        "{Context: If other people are around}\n\n"
+        "**MIDNA**: Do not transform here.\n"
+    )
+
+
+def test_choice_context_groups_following_text_under_same_speaker():
+    raw = "GREAT FAIRY\nWould you like to return?\n(Yes)\nI will take you."
+    rendered = render_hierarchy_markdown([
+        HierarchyMark(0, 0, 3, HierarchyType.SPEAKER, order=1),
+        HierarchyMark(1, 1, 4, HierarchyType.TEXT, order=2),
+        HierarchyMark(2, 2, 4, HierarchyType.CONTEXT, start_col=1, end_col=4, order=3),
+        HierarchyMark(3, 3, 5, HierarchyType.TEXT, order=4),
+    ], raw)
+
+    assert "**GREAT FAIRY**: Would you like to return?" in rendered
+    assert "{Context: Yes}" in rendered
+    assert "**GREAT FAIRY**: I will take you." in rendered
 
 
 def test_render_hierarchy_markdown_uses_canonical_syntax():

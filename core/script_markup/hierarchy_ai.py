@@ -111,6 +111,8 @@ def build_hierarchy_auto_markup_messages(
             {
                 "start_line_number": 1,
                 "end_line_number": 1,
+                "start_col": None,
+                "end_col": None,
                 "depth": 0,
                 "type_id": "structure",
                 "text": "optional label for structure/speaker",
@@ -131,6 +133,8 @@ def build_hierarchy_auto_markup_messages(
         "rules": [
             *ai_instructions,
             "Use 1-based start_line_number/end_line_number values from source_blocks.",
+            "start_col/end_col are optional zero-based, end-exclusive character offsets "
+            "for marks that cover only part of one source line.",
             "Do not return marks for already approved hierarchy_marks.",
             "Use only type_id values present in type_definitions.",
             "Treat approved_hierarchy_marks as compact examples of the user's pattern, "
@@ -142,10 +146,13 @@ def build_hierarchy_auto_markup_messages(
             "Inside a Glossary container, category names such as Characters, Items, "
             "Locations, or Terms are semantic hints for MemPalace.",
             "For Structure and Speaker nodes, put the human-readable label in text.",
-            "For Text, Action, Note, Breaker, and Narrator nodes, leave text empty "
+            "For Text, Action, Note, Context, Breaker, and Narrator nodes, leave text empty "
             "unless the source line has no usable text.",
             "If an Action appears inside a dialogue, split the surrounding Text into "
             "separate sibling Text ranges around that Action.",
+            "Split NAME (condition) into a partial-line Speaker and a Context child. "
+            "A standalone parenthesized choice such as (Yes) is a Context child of the "
+            "current Speaker; its following Text is nested one depth below Context.",
             "Prefer covering every meaningful unmarked line. Skip junk only when it "
             "should remain unmarked for human review.",
         ],
@@ -264,5 +271,21 @@ def parse_hierarchy_auto_markup_response(
         end = max(start, min(end, raw_line_count - 1))
         text = str(item.get("text") or item.get("label") or "").strip()
         color = str(item.get("color") or "").strip()
-        marks.append(HierarchyMark(start, end, depth, type_id, text=text, color=color))
+        try:
+            start_col = None if item.get("start_col") is None else max(0, int(item["start_col"]))
+            end_col = None if item.get("end_col") is None else max(0, int(item["end_col"]))
+        except (TypeError, ValueError):
+            start_col = end_col = None
+        marks.append(HierarchyMark(
+            start,
+            end,
+            depth,
+            type_id,
+            text=text,
+            color=color,
+            start_col=start_col,
+            end_col=end_col,
+            origin="ai",
+            approved=False,
+        ))
     return marks, warnings

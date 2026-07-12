@@ -43,6 +43,7 @@ from core.script_markup import (
     HierarchyAIPromptTooLarge, build_hierarchy_auto_markup_messages,
     parse_hierarchy_auto_markup_response,
     infer_hierarchy_marks_from_examples,
+    resolve_structure_name_iterator,
 )
 from core.script_markup.markup_engine import render_psm
 from core.script_markup.markup_recipe import MarkupRecipe
@@ -138,6 +139,7 @@ _HISTORY_LIMIT = 200
 _TEXT_SPLITTING_TYPES = {
     HierarchyType.ACTION,
     HierarchyType.NOTE,
+    HierarchyType.CONTEXT,
     HierarchyType.BREAKER,
     HierarchyType.NARRATOR,
 }
@@ -272,6 +274,8 @@ grey for lines that are dropped. There is no second pane to keep in sync; press
       <code>**MIDNA**: dialogue</code>.</li>
   <li><b>Action</b> renders as a standalone square-bracket line:
       <code>[*Midna drops from a branch*]</code>.</li>
+  <li><b>Context</b> marks dialogue conditions and choices in parentheses. It is
+      nested under Speaker; the affected Text is nested under Context.</li>
   <li><b>Note</b> renders inline in parentheses, <b>Breaker</b> renders as
       <code>~~~~~~~~~~~~~~~~~~~~~~~~</code>, and <b>Narrator</b> renders as bold
       standalone text.</li>
@@ -327,10 +331,21 @@ class _ClassificationHighlighter(QSyntaxHighlighter):
         line_speakers: dict[int, str] | None = None,
         line_colors: dict[int, str] | None = None,
     ):
+        line_kinds = dict(line_kinds)
+        line_blocks = dict(line_blocks or {})
+        line_speakers = dict(line_speakers or {})
+        line_colors = dict(line_colors or {})
+        if (
+            self.line_kinds == line_kinds
+            and self.line_blocks == line_blocks
+            and self.line_speakers == line_speakers
+            and self.line_colors == line_colors
+        ):
+            return
         self.line_kinds = line_kinds
-        self.line_blocks = line_blocks or {}
-        self.line_speakers = line_speakers or {}
-        self.line_colors = line_colors or {}
+        self.line_blocks = line_blocks
+        self.line_speakers = line_speakers
+        self.line_colors = line_colors
         self.rehighlight()
 
     def highlightBlock(self, text: str):
@@ -462,6 +477,7 @@ class _ScriptMarkupRawEdit(QPlainTextEdit):
 
     def paintEvent(self, event):
         super().paintEvent(event)
+        self.studio._paint_raw_edit_overlays(self.viewport(), event.rect())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -519,6 +535,18 @@ class _ScriptMarkupRawEdit(QPlainTextEdit):
         if self.studio._handle_history_key(event):
             return
         super().keyPressEvent(event)
+
+    def wheelEvent(self, event):
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            steps = int(event.angleDelta().y() / 120)
+            if steps > 0:
+                self.zoomIn(steps)
+            elif steps < 0:
+                self.zoomOut(-steps)
+            event.accept()
+            self._sync_viewport_margins()
+            return
+        super().wheelEvent(event)
 
 
 class _ScriptTreeWidget(QTreeWidget):
@@ -583,6 +611,12 @@ class _ScriptTreeWidget(QTreeWidget):
         self._pending_rename_item = item
         self._pending_rename_timer.start()
 
+    def _position_is_disclosure(self, item: QTreeWidgetItem, pos: QPoint) -> bool:
+        if item.childCount() <= 0:
+            return False
+        rect = self.visualItemRect(item)
+        return rect.isValid() and pos.x() < rect.left()
+
     def _open_pending_rename(self):
         item = self._pending_rename_item
         self._pending_rename_item = None
@@ -641,6 +675,7 @@ class _ScriptTreeWidget(QTreeWidget):
                 and modifiers == Qt.KeyboardModifier.NoModifier
                 and item is self.currentItem()
                 and item.isSelected()
+                and not self._position_is_disclosure(item, pos)
             ):
                 self._schedule_pending_rename(item)
             else:
@@ -660,7 +695,11 @@ class _ScriptTreeWidget(QTreeWidget):
     def mouseDoubleClickEvent(self, event):
         self._cancel_pending_rename()
         if event.button() == Qt.MouseButton.LeftButton:
-            item = self._item_at_row(self._event_pos(event))
+            pos = self._event_pos(event)
+            item = self._item_at_row(pos)
+            if item is not None and self._position_is_disclosure(item, pos):
+                super().mouseDoubleClickEvent(event)
+                return
             if item is not None and self.studio._jump_to_flag(item):
                 self._selection_anchor_item = item
                 event.accept()
@@ -712,19 +751,26 @@ class ScriptMarkupStudioDialog(QDialog):
         self._search_error = ""
         self._search_document_revision: int | None = None
         self._search_text_fingerprint: tuple[int, int] | None = None
+        self._raw_text_revision = 0
         self._range_edit_mark_key: str | None = None
         self._range_edit_start_line: int | None = None
         self._range_edit_end_line: int | None = None
         self._range_edit_drag_handle: str | None = None
+        self._raw_navigation_line: int | None = None
         self._bulk_edit_mark_keys: list[str] = []
         self._bulk_edit_initial_controls: dict[str, object] = {}
         self._outline_reveal_keys: set[str] = set()
         self._outline_expansion_overrides: dict[str, bool] = {}
         self._outline_expansion_signal_suspended = 0
+        self._hierarchy_outline_signature = None
         self._collapsed_hierarchy_keys: set[str] = set()
         self._raw_line_depths: dict[int, int] = {}
         self._raw_fold_headers: dict[int, str] = {}
         self._raw_hierarchy_view_signature: tuple[tuple[tuple[int, int], ...], tuple[int, ...]] | None = None
+        self._hierarchy_line_styles_cache_key = None
+        self._hierarchy_line_styles_cache = None
+        self._raw_hierarchy_view_data_cache_key = None
+        self._raw_hierarchy_view_data_cache = None
         self._hierarchy_mark_by_key_cache: dict[str, HierarchyMark] | None = None
         self._history_stack: list[dict] = []
         self._history_index = -1
@@ -1100,6 +1146,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self.raw_edit = _ScriptMarkupRawEdit(self)
         self.raw_edit.setFont(QFont("Consolas", 10))
         self.raw_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.raw_edit.document().contentsChange.connect(self._on_raw_contents_change)
         self.raw_edit.textChanged.connect(self._on_raw_text_changed)
         self.highlighter = _ClassificationHighlighter(self.raw_edit.document())
         raw_layout.addWidget(self.raw_edit, 1)
@@ -1327,6 +1374,10 @@ class ScriptMarkupStudioDialog(QDialog):
             "description": mark.description,
             "color": mark.color,
             "order": mark.order,
+            "start_col": mark.start_col,
+            "end_col": mark.end_col,
+            "origin": mark.origin,
+            "approved": mark.approved,
         }
 
     def _history_controls_payload(self) -> dict:
@@ -1525,6 +1576,10 @@ class ScriptMarkupStudioDialog(QDialog):
         return False
 
     # ------------------------------------------------------------ raw search
+    def _on_raw_contents_change(self, _position: int, chars_removed: int, chars_added: int):
+        if chars_removed or chars_added:
+            self._raw_text_revision += 1
+
     def _on_raw_text_changed(self):
         self._debounce.start()
         self._invalidate_search_matches()
@@ -1581,12 +1636,11 @@ class ScriptMarkupStudioDialog(QDialog):
         return (len(text), hash(text))
 
     def _invalidate_search_matches(self):
-        fingerprint = self._raw_search_fingerprint()
-        if self._search_text_fingerprint == fingerprint:
+        revision = self._raw_text_revision
+        if self._search_document_revision == revision:
             return
-        revision = self.raw_edit.document().revision()
         self._search_document_revision = revision
-        self._search_text_fingerprint = fingerprint
+        self._search_text_fingerprint = None
         self._reset_search_state(clear_highlight=True)
         if self.search_edit.text().strip():
             self.search_status_label.setText("")
@@ -1640,7 +1694,7 @@ class ScriptMarkupStudioDialog(QDialog):
             for match in pattern.finditer(text)
             if match.end() > match.start()
         ]
-        self._search_document_revision = self.raw_edit.document().revision()
+        self._search_document_revision = self._raw_text_revision
         self._search_text_fingerprint = self._raw_search_fingerprint(text)
 
     def _search_index_after(self, position: int) -> int:
@@ -1750,6 +1804,42 @@ class ScriptMarkupStudioDialog(QDialog):
             selections.append(end_sel)
         return selections
 
+    def _navigation_extra_selections(self) -> list[QTextEdit.ExtraSelection]:
+        if self._raw_navigation_line is None:
+            return []
+        selection = self._range_line_extra_selection(self._raw_navigation_line, "#fff3a3")
+        if selection is None:
+            return []
+        fmt = selection.format
+        fmt.setForeground(QColor("#111111"))
+        selection.format = fmt
+        return [selection]
+
+    def _partial_mark_extra_selections(self) -> list[QTextEdit.ExtraSelection]:
+        selections = []
+        doc = self.raw_edit.document()
+        for mark in self.hierarchy_marks:
+            if mark.start_line != mark.end_line or mark.start_col is None:
+                continue
+            block = doc.findBlockByNumber(mark.start_line)
+            if not block.isValid():
+                continue
+            start_col = max(0, min(mark.start_col, len(block.text())))
+            end_col = len(block.text()) if mark.end_col is None else max(
+                start_col, min(mark.end_col, len(block.text()))
+            )
+            cursor = QTextCursor(doc)
+            cursor.setPosition(block.position() + start_col)
+            cursor.setPosition(block.position() + end_col, QTextCursor.MoveMode.KeepAnchor)
+            selection = QTextEdit.ExtraSelection()
+            type_def = self.hierarchy_type_definitions.get(mark.type_id)
+            fmt = QTextCharFormat()
+            fmt.setBackground(QColor(mark.color or (type_def.color if type_def else "#e0e7ff")))
+            selection.format = fmt
+            selection.cursor = cursor
+            selections.append(selection)
+        return selections
+
     def _raw_fold_extra_selections(self) -> list[QTextEdit.ExtraSelection]:
         if not self._collapsed_hierarchy_keys:
             return []
@@ -1771,9 +1861,13 @@ class ScriptMarkupStudioDialog(QDialog):
     def _apply_raw_extra_selections(self):
         self.raw_edit.setExtraSelections(
             self._raw_fold_extra_selections()
+            + self._navigation_extra_selections()
+            + self._partial_mark_extra_selections()
             + self._search_extra_selections()
             + self._range_edit_extra_selections()
         )
+        self.raw_edit.viewport().update()
+        self.raw_edit.hierarchy_gutter.update()
 
     def _set_raw_hierarchy_block_format(self, line_depths: dict[int, int], hidden_lines: set[int]):
         doc = self.raw_edit.document()
@@ -1818,6 +1912,12 @@ class ScriptMarkupStudioDialog(QDialog):
         self.raw_edit.hierarchy_gutter.update()
 
     def _reset_raw_hierarchy_view(self):
+        if (
+            not self._raw_line_depths
+            and not self._raw_fold_headers
+            and self._raw_hierarchy_view_signature is None
+        ):
+            return
         self._raw_line_depths = {}
         self._raw_fold_headers = {}
         self._raw_hierarchy_view_signature = None
@@ -1834,6 +1934,47 @@ class ScriptMarkupStudioDialog(QDialog):
     def _invalidate_hierarchy_mark_caches(self):
         self._hierarchy_mark_by_key_cache = None
 
+    def _hierarchy_marks_signature(self) -> tuple:
+        marks = tuple(
+            (
+                int(mark.start_line),
+                int(mark.end_line),
+                int(mark.depth),
+                str(mark.type_id),
+                str(mark.text),
+                str(mark.label),
+                str(mark.color),
+                int(mark.order),
+                mark.start_col,
+                mark.end_col,
+                str(mark.origin),
+                bool(mark.approved),
+            )
+            for mark in self.hierarchy_marks
+        )
+        type_defs = tuple(
+            sorted(
+                (
+                    str(type_id),
+                    str(definition.label),
+                    str(definition.color),
+                )
+                for type_id, definition in self.hierarchy_type_definitions.items()
+            )
+        )
+        return marks, type_defs
+
+    def _hierarchy_base_line_styles(self) -> dict[int, tuple[str, str]]:
+        key = self._hierarchy_marks_signature()
+        if self._hierarchy_line_styles_cache_key != key:
+            styles = line_styles_for_marks(
+                self.hierarchy_marks,
+                self.hierarchy_type_definitions,
+            )
+            self._hierarchy_line_styles_cache_key = key
+            self._hierarchy_line_styles_cache = styles
+        return self._hierarchy_line_styles_cache or {}
+
     def _raw_hierarchy_view_data(self, raw_lines: list[str]) -> tuple[dict[int, int], dict[int, str], set[int]]:
         mark_by_key = self._hierarchy_mark_by_key_map()
         self._collapsed_hierarchy_keys = {
@@ -1841,6 +1982,15 @@ class ScriptMarkupStudioDialog(QDialog):
             if key in mark_by_key
         }
         line_count = len(raw_lines)
+        cache_key = (
+            line_count,
+            self._hierarchy_marks_signature(),
+            tuple(sorted(self._collapsed_hierarchy_keys)),
+        )
+        if self._raw_hierarchy_view_data_cache_key == cache_key and self._raw_hierarchy_view_data_cache is not None:
+            line_depths, fold_headers, hidden_lines = self._raw_hierarchy_view_data_cache
+            return dict(line_depths), dict(fold_headers), set(hidden_lines)
+
         line_depths: dict[int, int] = {}
         fold_candidates: dict[int, tuple[int, int, str]] = {}
         hidden_lines: set[int] = set()
@@ -1873,6 +2023,12 @@ class ScriptMarkupStudioDialog(QDialog):
             for line_no, (_depth, _span, key) in fold_candidates.items()
             if line_no not in hidden_lines
         }
+        self._raw_hierarchy_view_data_cache_key = cache_key
+        self._raw_hierarchy_view_data_cache = (
+            dict(line_depths),
+            dict(fold_headers),
+            set(hidden_lines),
+        )
         return line_depths, fold_headers, hidden_lines
 
     def _apply_raw_hierarchy_view(self, raw_lines: list[str]):
@@ -1955,6 +2111,14 @@ class ScriptMarkupStudioDialog(QDialog):
                     x = 6 + level * 5
                     painter.drawLine(x, top, x, bottom)
 
+                if line_no == self._raw_navigation_line:
+                    marker = QRect(1, top + max(1, (bottom - top - 14) // 2), 27, 14)
+                    painter.setPen(QPen(QColor("#9a6700"), 1))
+                    painter.setBrush(QColor("#ffd33d"))
+                    painter.drawRoundedRect(marker, 3, 3)
+                    painter.setPen(QPen(QColor("#111111"), 1))
+                    painter.drawText(marker, Qt.AlignmentFlag.AlignCenter, "➜")
+
                 key = self._raw_fold_headers.get(line_no)
                 if key:
                     collapsed = key in self._collapsed_hierarchy_keys
@@ -1975,6 +2139,39 @@ class ScriptMarkupStudioDialog(QDialog):
                         if collapsed:
                             painter.drawText(62, center_y + 4, str(hidden_count))
             block = block.next()
+
+    def _range_handle_geometry(self, line_no: int, *, edge: str) -> tuple[int, int] | None:
+        block = self.raw_edit.document().findBlockByNumber(line_no)
+        if not block.isValid() or not block.isVisible():
+            return None
+        geom = self.raw_edit.blockBoundingGeometry(block).translated(self.raw_edit.contentOffset())
+        y = int(geom.top()) if edge == "start" else int(geom.bottom()) - 1
+        leading = len(block.text()) - len(block.text().lstrip())
+        cursor = QTextCursor(block)
+        cursor.setPosition(block.position() + leading)
+        x = max(2, self.raw_edit.cursorRect(cursor).left())
+        return x, y
+
+    def _paint_raw_edit_overlays(self, viewport, rect):
+        if self._range_edit_start_line is None or self._range_edit_end_line is None:
+            return
+        painter = QPainter(viewport)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        specs = (
+            (self._range_edit_start_line, "start", QColor("#0969da")),
+            (self._range_edit_end_line, "end", QColor("#cf5c00")),
+        )
+        for line_no, edge, color in specs:
+            geometry = self._range_handle_geometry(line_no, edge=edge)
+            if geometry is None:
+                continue
+            x, y = geometry
+            if y < rect.top() - 6 or y > rect.bottom() + 6:
+                continue
+            painter.setPen(QPen(color, 2))
+            painter.drawLine(x, y, max(x, viewport.width() - 3), y)
+            painter.setBrush(color)
+            painter.drawEllipse(QPoint(x, y), 4, 4)
 
     def _restore_search_highlight(self):
         if self._search_index is None or not self._search_matches:
@@ -2216,17 +2413,18 @@ class ScriptMarkupStudioDialog(QDialog):
     def _range_edit_handle_at_pos(self, pos: QPoint) -> str | None:
         if self._range_edit_start_line is None or self._range_edit_end_line is None:
             return None
-        line_no = self._raw_line_at_pos(pos)
-        if line_no is None:
-            return None
         start = self._range_edit_start_line
         end = self._range_edit_end_line
-        if start == end and line_no == start:
-            return "start" if pos.x() < self.raw_edit.viewport().width() // 2 else "end"
-        if line_no == start:
-            return "start"
-        if line_no == end:
-            return "end"
+        handles = []
+        for handle, line_no in (("start", start), ("end", end)):
+            geometry = self._range_handle_geometry(line_no, edge=handle)
+            if geometry is None:
+                continue
+            x, y = geometry
+            if pos.x() >= x - 7 and abs(pos.y() - y) <= 6:
+                handles.append((abs(pos.y() - y), handle))
+        if handles:
+            return min(handles)[1]
         return None
 
     def _update_range_edit_preview(self, handle: str, line_no: int) -> bool:
@@ -2276,6 +2474,67 @@ class ScriptMarkupStudioDialog(QDialog):
             new_key if key == old_key else key
             for key in self._bulk_edit_mark_keys
         ]
+
+    def _constrain_descendants_to_edited_range(
+        self,
+        parent: HierarchyMark,
+        *,
+        old_start: int,
+        old_end: int,
+        old_depth: int,
+    ) -> tuple[int, int]:
+        """Clamp former descendants to an edited parent's new line range.
+
+        Descendants that no longer intersect the parent cannot retain a valid
+        nested range, so they and their nested children are removed.
+        """
+
+        if parent.type_id != HierarchyType.STRUCTURE:
+            return 0, 0
+        if parent.start_line <= old_start and parent.end_line >= old_end:
+            return 0, 0
+
+        descendants = [
+            mark for mark in self.hierarchy_marks
+            if mark is not parent
+            and mark.depth > old_depth
+            and old_start <= mark.start_line
+            and mark.end_line <= old_end
+        ]
+        if not descendants:
+            return 0, 0
+
+        removed_ids: set[int] = set()
+        adjusted = 0
+        for mark in descendants:
+            new_start = max(mark.start_line, parent.start_line)
+            new_end = min(mark.end_line, parent.end_line)
+            if new_start > new_end:
+                removed_ids.add(id(mark))
+                continue
+            if new_start == mark.start_line and new_end == mark.end_line:
+                continue
+            old_key = self._hierarchy_mark_key(mark)
+            mark.start_line = new_start
+            mark.end_line = new_end
+            self._replace_active_edit_key(old_key, self._hierarchy_mark_key(mark))
+            adjusted += 1
+
+        if removed_ids:
+            removed_keys = {
+                self._hierarchy_mark_key(mark)
+                for mark in descendants
+                if id(mark) in removed_ids
+            }
+            self.hierarchy_marks = [
+                mark for mark in self.hierarchy_marks if id(mark) not in removed_ids
+            ]
+            self._collapsed_hierarchy_keys.difference_update(removed_keys)
+            self._outline_reveal_keys.difference_update(removed_keys)
+            for key in removed_keys:
+                self._outline_expansion_overrides.pop(key, None)
+
+        return adjusted, len(removed_ids)
 
     def _save_bulk_hierarchy_edit(self) -> bool:
         marks = self._bulk_edit_marks()
@@ -2339,6 +2598,9 @@ class ScriptMarkupStudioDialog(QDialog):
             return False
 
         old_key = self._hierarchy_mark_key(mark)
+        old_start = mark.start_line
+        old_end = mark.end_line
+        old_depth = mark.depth
         type_def = self._current_hierarchy_type_def()
         mark.start_line = min(self._range_edit_start_line, self._range_edit_end_line)
         mark.end_line = max(self._range_edit_start_line, self._range_edit_end_line)
@@ -2346,6 +2608,12 @@ class ScriptMarkupStudioDialog(QDialog):
         mark.type_id = type_def.type_id
         mark.text = self.hierarchy_label_edit.text().strip()
         mark.description = type_def.description
+        self._constrain_descendants_to_edited_range(
+            mark,
+            old_start=old_start,
+            old_end=old_end,
+            old_depth=old_depth,
+        )
         new_key = self._hierarchy_mark_key(mark)
         self._replace_active_edit_key(old_key, new_key)
         if mark.type_id == HierarchyType.IGNORE:
@@ -2658,6 +2926,23 @@ class ScriptMarkupStudioDialog(QDialog):
     def _add_mark_context_actions(self, menu, pos: QPoint | None = None):
         menu.addSeparator()
         if self.mode == "hierarchy":
+            line_no = None
+            if pos is not None:
+                block = self.raw_edit.cursorForPosition(pos).block()
+                line_no = block.blockNumber() if block.isValid() else None
+                source_col = (
+                    self.raw_edit.cursorForPosition(pos).positionInBlock()
+                    if block.isValid() else None
+                )
+            else:
+                source_col = None
+            source_mark = self._hierarchy_mark_at_line(line_no, source_col) if line_no is not None else None
+            if source_mark is not None:
+                jump_tree_action = menu.addAction("Jump to this text in tree")
+                jump_tree_action.triggered.connect(
+                    lambda _checked=False, line=line_no, col=source_col: self._jump_raw_line_to_outline(line, col)
+                )
+                menu.addSeparator()
             fold_key = self._raw_fold_key_at_pos(pos, require_gutter=False) if pos is not None else None
             if fold_key:
                 collapsed = fold_key in self._collapsed_hierarchy_keys
@@ -2996,17 +3281,31 @@ class ScriptMarkupStudioDialog(QDialog):
         self._hierarchy_mark_order += 1
         return order
 
-    def _text_fragment_from_mark(self, mark: HierarchyMark, start: int, end: int, order: int) -> HierarchyMark:
+    def _text_fragment_from_mark(
+        self,
+        mark: HierarchyMark,
+        start: int,
+        end: int,
+        order: int,
+        *,
+        start_col: int | None = None,
+        end_col: int | None = None,
+        depth: int | None = None,
+    ) -> HierarchyMark:
         return HierarchyMark(
             start_line=start,
             end_line=end,
-            depth=mark.depth,
+            depth=mark.depth if depth is None else depth,
             type_id=HierarchyType.TEXT,
             text="",
             label=mark.label,
             description=mark.description,
             color=mark.color,
             order=order,
+            start_col=start_col,
+            end_col=end_col,
+            origin=mark.origin,
+            approved=mark.approved,
         )
 
     def _fragment_from_mark(self, mark: HierarchyMark, start: int, end: int, order: int) -> HierarchyMark:
@@ -3020,6 +3319,10 @@ class ScriptMarkupStudioDialog(QDialog):
             description=mark.description,
             color=mark.color,
             order=order,
+            start_col=mark.start_col,
+            end_col=mark.end_col,
+            origin=mark.origin,
+            approved=mark.approved,
         )
 
     def _mark_segments_after_ignore_ranges(
@@ -3113,6 +3416,39 @@ class ScriptMarkupStudioDialog(QDialog):
         for existing in self.hierarchy_marks:
             if (
                 existing.type_id == HierarchyType.TEXT
+                and existing.start_line == existing.end_line == new_mark.start_line == new_mark.end_line
+                and new_mark.start_col is not None
+            ):
+                block = self.raw_edit.document().findBlockByNumber(existing.start_line)
+                line_length = len(block.text()) if block.isValid() else 0
+                existing_start = existing.start_col or 0
+                existing_end = line_length if existing.end_col is None else existing.end_col
+                new_start = max(existing_start, new_mark.start_col)
+                new_end = min(existing_end, new_mark.end_col or line_length)
+                if new_start < new_end:
+                    if existing_start < new_start:
+                        updated.append(self._text_fragment_from_mark(
+                            existing,
+                            existing.start_line,
+                            existing.end_line,
+                            existing.order,
+                            start_col=existing_start,
+                            end_col=new_start,
+                        ))
+                    if new_end < existing_end:
+                        updated.append(self._text_fragment_from_mark(
+                            existing,
+                            existing.start_line,
+                            existing.end_line,
+                            self._next_hierarchy_order(),
+                            start_col=new_end,
+                            end_col=existing_end,
+                            depth=(new_mark.depth + 1 if new_mark.type_id == HierarchyType.CONTEXT else existing.depth),
+                        ))
+                    changed = True
+                    continue
+            if (
+                existing.type_id == HierarchyType.TEXT
                 and existing.start_line <= new_mark.start_line
                 and new_mark.end_line <= existing.end_line
                 and new_mark.depth >= existing.depth
@@ -3153,9 +3489,30 @@ class ScriptMarkupStudioDialog(QDialog):
         if not span:
             return
         start, end = span
+        start_col = None
+        end_col = None
+        cursor = self.raw_edit.textCursor()
+        if cursor.hasSelection() and start == end:
+            block = self.raw_edit.document().findBlockByNumber(start)
+            if block.isValid():
+                selection_start = min(cursor.selectionStart(), cursor.selectionEnd())
+                selection_end = max(cursor.selectionStart(), cursor.selectionEnd())
+                start_col = max(0, selection_start - block.position())
+                end_col = max(start_col, selection_end - block.position())
+                if start_col == 0 and end_col >= len(block.text()):
+                    start_col = None
+                    end_col = None
         type_def = self._current_hierarchy_type_def()
         explicit_text = self.hierarchy_label_edit.text().strip()
         depth = 0 if type_def.type_id == HierarchyType.IGNORE else self.hierarchy_depth_spin.value()
+        if type_def.type_id == HierarchyType.STRUCTURE:
+            explicit_text = resolve_structure_name_iterator(
+                explicit_text,
+                self.hierarchy_marks,
+                start_line=start,
+                end_line=end,
+                depth=depth,
+            )
         mark = HierarchyMark(
             start_line=start,
             end_line=end,
@@ -3164,6 +3521,8 @@ class ScriptMarkupStudioDialog(QDialog):
             text=explicit_text,
             description=type_def.description,
             order=self._next_hierarchy_order(),
+            start_col=start_col,
+            end_col=end_col,
         )
         self._split_text_marks_around_mark(mark)
         self.hierarchy_marks = [
@@ -3172,6 +3531,8 @@ class ScriptMarkupStudioDialog(QDialog):
                 existing.start_line == start
                 and existing.end_line == end
                 and existing.depth == depth
+                and existing.start_col == start_col
+                and existing.end_col == end_col
             )
         ]
         self.hierarchy_marks.append(mark)
@@ -3205,7 +3566,7 @@ class ScriptMarkupStudioDialog(QDialog):
         if self.mode != "hierarchy":
             return
 
-        if not self.hierarchy_marks:
+        if not any(mark.approved for mark in self.hierarchy_marks):
             QMessageBox.information(
                 self,
                 "Reset marks",
@@ -3593,7 +3954,7 @@ class ScriptMarkupStudioDialog(QDialog):
             self.hierarchy_type_definitions,
         )
 
-        styles = line_styles_for_marks(self.hierarchy_marks, self.hierarchy_type_definitions)
+        styles = dict(self._hierarchy_base_line_styles())
         unmarked_def = self.hierarchy_type_definitions[HierarchyType.UNMARKED]
         unmarked_ranges = self._unmarked_ranges(raw_lines)
         self._has_unmarked_hierarchy_lines = bool(unmarked_ranges)
@@ -3651,7 +4012,7 @@ class ScriptMarkupStudioDialog(QDialog):
     def _hierarchy_mark_key(self, mark: HierarchyMark) -> str:
         return (
             f"mark:{mark.order}:{mark.start_line}:{mark.end_line}:"
-            f"{mark.depth}:{mark.type_id}:{mark.text}"
+            f"{mark.depth}:{mark.type_id}:{mark.start_col}:{mark.end_col}:{mark.text}"
         )
 
     def _collect_outline_expansion_state(self) -> dict[str, bool]:
@@ -3818,6 +4179,10 @@ class ScriptMarkupStudioDialog(QDialog):
         type_def = self.hierarchy_type_definitions.get(type_id)
         label = type_def.label if type_def else str(type_id).title()
         prefix = f"[{depth}] " if type_id not in (HierarchyType.UNMARKED, HierarchyType.IGNORE) else ""
+        mark = self._hierarchy_mark_for_key(mark_key) if mark_key else None
+        if mark is not None and mark.origin != "manual":
+            source = "AI" if mark.origin == "ai" else "Auto"
+            prefix = f"[{source}{'✓' if mark.approved else ''}] {prefix}"
         item = QTreeWidgetItem([f"{prefix}{label}: {text}".rstrip()])
         item.setData(0, _OUTLINE_LINE_ROLE, line_no)
         item.setData(0, _OUTLINE_ENTRY_KEY_ROLE, entry_key)
@@ -3827,58 +4192,120 @@ class ScriptMarkupStudioDialog(QDialog):
         item.setBackground(0, QColor(color))
         return item
 
+    def _hierarchy_outline_signature_for_entries(
+        self,
+        entries: list[dict[str, object]],
+        unmarked_ranges: list[tuple[int, int]],
+        grouped_unmarked_previews: tuple[tuple[int, int, str], ...],
+    ) -> tuple:
+        type_defs = tuple(
+            sorted(
+                (
+                    type_id,
+                    definition.label,
+                    definition.color,
+                )
+                for type_id, definition in self.hierarchy_type_definitions.items()
+            )
+        )
+        entry_signature = tuple(
+            (
+                int(entry["start"]),
+                int(entry["end"]),
+                int(entry["depth"]),
+                str(entry["type_id"]),
+                str(entry["text"]),
+                int(entry["order"]),
+                str(entry["entry_key"]),
+                str(entry["mark_key"]),
+            )
+            for entry in entries
+        )
+        return (
+            self.mode,
+            type_defs,
+            entry_signature,
+            tuple(unmarked_ranges),
+            grouped_unmarked_previews,
+            self._has_unmarked_hierarchy_lines,
+        )
+
     def _fill_hierarchy_outline(
         self,
         raw_lines: list[str] | None = None,
         unmarked_ranges: list[tuple[int, int]] | None = None,
     ):
+        raw_lines = raw_lines if raw_lines is not None else self.raw_edit.toPlainText().splitlines()
+        unmarked_ranges = unmarked_ranges if unmarked_ranges is not None else self._unmarked_ranges(raw_lines)
+        entries: list[dict[str, object]] = []
+        for mark in sorted(self.hierarchy_marks, key=lambda m: (m.start_line, m.depth, -m.end_line, m.order)):
+            mark_key = self._hierarchy_mark_key(mark)
+            text = self._hierarchy_mark_display_text(mark, raw_lines=raw_lines)
+            entries.append({
+                "start": mark.start_line,
+                "end": mark.end_line,
+                "depth": 0 if mark.type_id == HierarchyType.IGNORE else mark.depth,
+                "type_id": mark.type_id,
+                "text": text,
+                "order": mark.order,
+                "entry_key": mark_key,
+                "mark_key": mark_key,
+            })
+        if len(unmarked_ranges) <= _UNMARKED_GROUP_THRESHOLD:
+            for start, end in unmarked_ranges:
+                entries.append({
+                    "start": start,
+                    "end": end,
+                    "depth": 0,
+                    "type_id": HierarchyType.UNMARKED,
+                    "text": self._short_source_text(start, end, raw_lines=raw_lines),
+                    "order": -1,
+                    "entry_key": f"unmarked:{start}:{end}",
+                    "mark_key": "",
+                })
+
+        entries.sort(
+            key=lambda e: (
+                int(e["start"]),
+                int(e["depth"]),
+                -int(e["end"]),
+                int(e["order"]),
+            )
+        )
+        grouped_unmarked_previews = (
+            tuple(
+                (
+                    start,
+                    end,
+                    self._short_source_text(start, end, raw_lines=raw_lines),
+                )
+                for start, end in unmarked_ranges[:_MAX_UNMARKED_TREE_CHILDREN]
+            )
+            if len(unmarked_ranges) > _UNMARKED_GROUP_THRESHOLD
+            else ()
+        )
+        signature = self._hierarchy_outline_signature_for_entries(
+            entries,
+            unmarked_ranges,
+            grouped_unmarked_previews,
+        )
+        reveal_requested = bool(self._outline_reveal_keys)
+        if (
+            not reveal_requested
+            and self.flags_list.topLevelItemCount() > 0
+            and self._hierarchy_outline_signature == signature
+        ):
+            return
+
         expansion_state = self._collect_outline_expansion_state()
         selection_state = self._collect_outline_selection_state()
         vertical_scroll = self.flags_list.verticalScrollBar().value()
         horizontal_scroll = self.flags_list.horizontalScrollBar().value()
-        reveal_requested = bool(self._outline_reveal_keys)
         self.flags_list.setUpdatesEnabled(False)
         self.flags_list._selection_anchor_item = None
         self.flags_list.clear()
-        raw_lines = raw_lines if raw_lines is not None else self.raw_edit.toPlainText().splitlines()
-        unmarked_ranges = unmarked_ranges if unmarked_ranges is not None else self._unmarked_ranges(raw_lines)
 
         try:
-            entries: list[dict[str, object]] = []
-            for mark in sorted(self.hierarchy_marks, key=lambda m: (m.start_line, m.depth, -m.end_line, m.order)):
-                mark_key = self._hierarchy_mark_key(mark)
-                text = self._hierarchy_mark_display_text(mark, raw_lines=raw_lines)
-                entries.append({
-                    "start": mark.start_line,
-                    "end": mark.end_line,
-                    "depth": 0 if mark.type_id == HierarchyType.IGNORE else mark.depth,
-                    "type_id": mark.type_id,
-                    "text": text,
-                    "order": mark.order,
-                    "entry_key": mark_key,
-                    "mark_key": mark_key,
-                })
-            if len(unmarked_ranges) <= _UNMARKED_GROUP_THRESHOLD:
-                for start, end in unmarked_ranges:
-                    entries.append({
-                        "start": start,
-                        "end": end,
-                        "depth": 0,
-                        "type_id": HierarchyType.UNMARKED,
-                        "text": self._short_source_text(start, end, raw_lines=raw_lines),
-                        "order": -1,
-                        "entry_key": f"unmarked:{start}:{end}",
-                        "mark_key": "",
-                    })
-
-            entries.sort(
-                key=lambda e: (
-                    int(e["start"]),
-                    int(e["depth"]),
-                    -int(e["end"]),
-                    int(e["order"]),
-                )
-            )
             stack: list[tuple[int, QTreeWidgetItem]] = []
             for entry in entries:
                 type_id = str(entry["type_id"])
@@ -3946,6 +4373,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 self.flags_list.horizontalScrollBar().setValue(
                     min(horizontal_scroll, self.flags_list.horizontalScrollBar().maximum())
                 )
+        self._hierarchy_outline_signature = signature
 
     def _refresh_custom(self):
         self._reset_raw_hierarchy_view()
@@ -4043,6 +4471,90 @@ class ScriptMarkupStudioDialog(QDialog):
         except RuntimeError:
             return None
 
+    def _hierarchy_mark_at_line(
+        self,
+        line_no: int | None,
+        column: int | None = None,
+    ) -> HierarchyMark | None:
+        if line_no is None:
+            return None
+        candidates = [
+            mark for mark in self.hierarchy_marks
+            if mark.start_line <= line_no <= mark.end_line
+            and mark.type_id not in (HierarchyType.IGNORE, HierarchyType.UNMARKED)
+            and (
+                column is None
+                or mark.start_col is None
+                or mark.start_line != mark.end_line
+                or mark.start_col <= column < (mark.end_col if mark.end_col is not None else 10**9)
+            )
+        ]
+        if not candidates:
+            return None
+        type_priority = {
+            HierarchyType.TEXT: 4,
+            HierarchyType.CONTEXT: 5,
+            HierarchyType.SPEAKER: 3,
+            HierarchyType.ACTION: 3,
+            HierarchyType.NARRATOR: 3,
+            HierarchyType.BREAKER: 3,
+            HierarchyType.STRUCTURE: 1,
+        }
+        return max(
+            candidates,
+            key=lambda mark: (
+                type_priority.get(mark.type_id, 2),
+                mark.depth,
+                -(mark.end_line - mark.start_line),
+                mark.order,
+            ),
+        )
+
+    def _outline_item_for_mark_key(self, mark_key: str) -> QTreeWidgetItem | None:
+        matched = None
+
+        def walk(item: QTreeWidgetItem):
+            nonlocal matched
+            if matched is not None or sip.isdeleted(item):
+                return
+            if self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE) == mark_key:
+                matched = item
+                return
+            for idx in range(item.childCount()):
+                walk(item.child(idx))
+
+        for idx in range(self.flags_list.topLevelItemCount()):
+            walk(self.flags_list.topLevelItem(idx))
+        return matched
+
+    def _jump_raw_line_to_outline(
+        self,
+        line_no: int | None,
+        column: int | None = None,
+    ) -> bool:
+        mark = self._hierarchy_mark_at_line(line_no, column)
+        if mark is None:
+            return False
+        key = self._hierarchy_mark_key(mark)
+        item = self._outline_item_for_mark_key(key)
+        if item is None:
+            self._queue_outline_reveal(key)
+            self._refresh_hierarchy()
+            item = self._outline_item_for_mark_key(key)
+        if item is None:
+            return False
+        parent = item.parent()
+        while parent is not None:
+            parent.setExpanded(True)
+            parent = parent.parent()
+        self.flags_list.clearSelection()
+        self.flags_list.setCurrentItem(item)
+        item.setSelected(True)
+        self.flags_list._selection_anchor_item = item
+        self.flags_list.scrollToItem(item)
+        self.flags_list.setFocus()
+        return True
+
     def _outline_selection_key(self, item: QTreeWidgetItem | None):
         return (
             self._outline_item_data(item, _OUTLINE_MARK_KEY_ROLE)
@@ -4068,10 +4580,12 @@ class ScriptMarkupStudioDialog(QDialog):
             return False
         block = self.raw_edit.document().findBlockByNumber(raw_line_no - 1)
         if block.isValid():
+            self._raw_navigation_line = raw_line_no - 1
             cursor = self.raw_edit.textCursor()
             cursor.setPosition(block.position())
             self.raw_edit.setTextCursor(cursor)
             self._scroll_raw_to_position(block.position())
+            self._apply_raw_extra_selections()
             self.raw_edit.setFocus()
             return True
         return False
@@ -4113,6 +4627,25 @@ class ScriptMarkupStudioDialog(QDialog):
         self._refresh()
         self._record_history()
         return True
+
+    def _approve_hierarchy_mark_keys(self, keys) -> int:
+        approved = 0
+        reveal_keys = []
+        for key in dict.fromkeys(str(key) for key in keys if key):
+            mark = self._hierarchy_mark_for_key(key)
+            if mark is None or mark.approved:
+                continue
+            old_key = self._hierarchy_mark_key(mark)
+            mark.approved = True
+            new_key = self._hierarchy_mark_key(mark)
+            self._replace_active_edit_key(old_key, new_key)
+            reveal_keys.append(new_key)
+            approved += 1
+        if approved:
+            self._queue_outline_reveal(*reveal_keys)
+            self._refresh()
+            self._record_history()
+        return approved
 
     def _outline_mark_keys(self, item: QTreeWidgetItem, include_children: bool) -> list[str]:
         keys = []
@@ -4260,6 +4793,8 @@ class ScriptMarkupStudioDialog(QDialog):
                 depth=0,
                 type_id=HierarchyType.IGNORE,
                 order=mark.order,
+                origin=mark.origin,
+                approved=mark.approved,
             )
             for mark in removed
             if self._structure_start_line_is_label(mark, raw_lines)
@@ -4383,6 +4918,8 @@ class ScriptMarkupStudioDialog(QDialog):
                         depth=0,
                         type_id=HierarchyType.IGNORE,
                         order=mark.order,
+                        origin=mark.origin,
+                        approved=mark.approved,
                     )
                     for mark in removed
                     if self._structure_start_line_is_label(mark, raw_lines)
@@ -4671,6 +5208,7 @@ class ScriptMarkupStudioDialog(QDialog):
         delete_action = None
         delete_branch_action = None
         rename_action = None
+        approve_action = None
         edit_range_action = None
         stop_range_action = None
         join_structures_action = None
@@ -4678,6 +5216,15 @@ class ScriptMarkupStudioDialog(QDialog):
         depth_down_action = None
         depth_actions = {}
         if self.mode == "hierarchy" and mark_keys:
+            if any(
+                (mark := self._hierarchy_mark_for_key(key)) is not None and not mark.approved
+                for key in mark_keys
+            ):
+                approve_action = menu.addAction(
+                    "Approve as Auto-fill example"
+                    if selected_count == 1 else
+                    f"Approve {selected_count} as Auto-fill examples"
+                )
             if selected_count == 1:
                 rename_action = menu.addAction("Rename node...")
                 edit_range_action = menu.addAction("Edit node")
@@ -4730,6 +5277,8 @@ class ScriptMarkupStudioDialog(QDialog):
         chosen = menu.exec(self.flags_list.viewport().mapToGlobal(pos))
         if chosen == jump_action:
             self._jump_to_line_no(line_no)
+        elif approve_action is not None and chosen == approve_action:
+            self._approve_hierarchy_mark_keys(mark_keys)
         elif rename_action is not None and chosen == rename_action:
             self._rename_outline_item(item)
         elif edit_range_action is not None and chosen == edit_range_action:
@@ -5082,6 +5631,10 @@ class ScriptMarkupStudioDialog(QDialog):
             description=str(data.get("description") or ""),
             color=str(data.get("color") or ""),
             order=int(data.get("order", 0)),
+            start_col=(None if data.get("start_col") is None else max(0, int(data["start_col"]))),
+            end_col=(None if data.get("end_col") is None else max(0, int(data["end_col"]))),
+            origin=str(data.get("origin") or "manual"),
+            approved=bool(data.get("approved", True)),
         )
 
     def _hierarchy_mark_payload(self, mark: HierarchyMark, raw_lines: list[str]) -> dict:
@@ -5091,6 +5644,10 @@ class ScriptMarkupStudioDialog(QDialog):
             "end_line": mark.end_line,
             "start_line_number": mark.start_line + 1,
             "end_line_number": mark.end_line + 1,
+            "start_col": mark.start_col,
+            "end_col": mark.end_col,
+            "origin": mark.origin,
+            "approved": mark.approved,
             "depth": mark.depth,
             "type_id": mark.type_id,
             "type_label": type_def.label if type_def else mark.type_id,
@@ -5099,11 +5656,7 @@ class ScriptMarkupStudioDialog(QDialog):
             "description": mark.description or (type_def.description if type_def else ""),
             "color": mark.color or (type_def.color if type_def else ""),
             "order": mark.order,
-            "source_excerpt": self._source_text_for_lines(
-                mark.start_line,
-                mark.end_line,
-                raw_lines,
-            ),
+            "source_excerpt": mark_text(mark, raw_lines),
         }
 
     def _hierarchy_ai_instructions(self) -> list[str]:
@@ -5117,7 +5670,8 @@ class ScriptMarkupStudioDialog(QDialog):
             "Mirror the observed type, depth, range, and label conventions when the source "
             "shape repeats. Do not invent a different taxonomy.",
             "Canonical Markdown renders structure as # headings, speaker+text as "
-            "**SPEAKER**: text, actions as [*action*], notes as (note), breakers as "
+            "**SPEAKER**: text, dialogue contexts as speaker-nested conditions, "
+            "actions as [*action*], notes as (note), breakers as "
             "~~~~~~~~~~~~~~~~~~~~~~~~, and narrator as bold text.",
             "Glossary nodes render as a Markdown # Glossary section. Direct children "
             "of Glossary are categories; use their labels as semantic hints such as "
@@ -5164,6 +5718,7 @@ class ScriptMarkupStudioDialog(QDialog):
             "examples": [
                 self._hierarchy_mark_payload(mark, raw_lines)
                 for mark in sorted(self.hierarchy_marks, key=lambda m: (m.depth, m.type_id, m.order))
+                if mark.approved
             ],
             "rendered_example_markdown": self._psm_text,
             "ai_instructions": self._hierarchy_ai_instructions(),
@@ -5190,8 +5745,13 @@ class ScriptMarkupStudioDialog(QDialog):
                     description=mark.description,
                     color=mark.color,
                     order=mark.order,
+                    start_col=mark.start_col,
+                    end_col=mark.end_col,
+                    origin=mark.origin,
+                    approved=mark.approved,
                 )
                 for mark in self.hierarchy_marks
+                if mark.approved
             ],
             "ai_instructions": self._hierarchy_ai_instructions(),
         }
@@ -5269,11 +5829,11 @@ class ScriptMarkupStudioDialog(QDialog):
         if not raw_text.strip():
             QMessageBox.information(self, "Continue from marked examples", "Load a raw script first.")
             return
-        if not self.hierarchy_marks:
+        if not any(mark.approved for mark in self.hierarchy_marks):
             QMessageBox.information(
                 self,
                 "Continue from marked examples",
-                "Mark at least one hierarchy example first, then run this auto-fill again.",
+                "Mark or approve at least one hierarchy example first, then run this auto-fill again.",
             )
             return
         raw_lines = raw_text.splitlines()
@@ -5304,6 +5864,7 @@ class ScriptMarkupStudioDialog(QDialog):
             f"Speakers: {result.speakers}",
             f"Text blocks: {result.texts}",
             f"Actions: {result.actions}",
+            f"Contexts: {result.contexts}",
             f"Breakers: {result.breakers}",
             f"Ignored: {result.ignored}",
         ]
@@ -5329,11 +5890,11 @@ class ScriptMarkupStudioDialog(QDialog):
         if not raw_text.strip():
             QMessageBox.information(self, title, "Load a raw script first.")
             return
-        if require_examples and not self.hierarchy_marks:
+        if require_examples and not any(mark.approved for mark in self.hierarchy_marks):
             QMessageBox.information(
                 self,
                 title,
-                "Mark at least one hierarchy example first, then run this auto-fill again.",
+                "Mark or approve at least one hierarchy example first, then run this auto-fill again.",
             )
             return
         unmarked_ranges = self._unmarked_ranges(raw_lines)
@@ -5470,7 +6031,10 @@ class ScriptMarkupStudioDialog(QDialog):
         raw_lines = self.raw_edit.toPlainText().splitlines()
         unmarked_ranges = self._unmarked_ranges(raw_lines)
         existing_keys = {
-            (mark.start_line, mark.end_line, mark.depth, mark.type_id)
+            (
+                mark.start_line, mark.end_line, mark.depth, mark.type_id,
+                mark.start_col, mark.end_col,
+            )
             for mark in self.hierarchy_marks
         }
         added: list[HierarchyMark] = []
@@ -5484,7 +6048,10 @@ class ScriptMarkupStudioDialog(QDialog):
             ):
                 skipped += 1
                 continue
-            key = (mark.start_line, mark.end_line, mark.depth, mark.type_id)
+            key = (
+                mark.start_line, mark.end_line, mark.depth, mark.type_id,
+                mark.start_col, mark.end_col,
+            )
             if key in existing_keys or not self._mark_inside_ranges(mark, unmarked_ranges):
                 skipped += 1
                 continue
@@ -5499,6 +6066,10 @@ class ScriptMarkupStudioDialog(QDialog):
                 description=mark.description,
                 color=mark.color,
                 order=self._next_hierarchy_order(),
+                start_col=mark.start_col,
+                end_col=mark.end_col,
+                origin=mark.origin,
+                approved=mark.approved,
             ))
         if not added:
             return 0, skipped

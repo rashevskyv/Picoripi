@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 from unittest.mock import MagicMock
-from PyQt6.QtWidgets import QApplication, QWidget, QAbstractItemView, QMessageBox, QPushButton
+from PyQt6.QtWidgets import QApplication, QWidget, QAbstractItemView, QMessageBox, QPushButton, QPlainTextEdit
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtGui import QCloseEvent, QTextCursor
 from PyQt6.QtTest import QTest
@@ -16,9 +16,11 @@ from core.script_markup import (
     HierarchyType,
     HierarchyTypeDefinition,
     LineKind,
+    mark_text,
 )
 from ui.script_markup_studio_dialog import (
     ScriptMarkupStudioDialog,
+    _ClassificationHighlighter,
     _RAW_HIERARCHY_GUTTER_WIDTH,
     _HELP_HTML,
 )
@@ -106,6 +108,66 @@ def _find_tree_item(tree, text):
         if found is not None:
             return found
     raise AssertionError(f"Missing tree item containing {text!r}")
+
+
+def _large_hierarchy_script(line_count=1200):
+    lines = []
+    marks = []
+    order = 1
+
+    for section in range((line_count + 11) // 12):
+        base = len(lines)
+        if base >= line_count:
+            break
+
+        lines.append(f"Scene {section}")
+        scene_end = min(base + 11, line_count - 1)
+        marks.append(
+            HierarchyMark(
+                base,
+                scene_end,
+                0,
+                HierarchyType.STRUCTURE,
+                text=f"Scene {section}",
+                order=order,
+            )
+        )
+        order += 1
+
+        if len(lines) >= line_count:
+            break
+
+        speaker_line = len(lines)
+        lines.append(f"Speaker {section}")
+        marks.append(
+            HierarchyMark(
+                speaker_line,
+                speaker_line,
+                1,
+                HierarchyType.SPEAKER,
+                text=f"Speaker {section}",
+                order=order,
+            )
+        )
+        order += 1
+
+        for offset in range(2, 12):
+            if len(lines) >= line_count:
+                break
+            line_no = len(lines)
+            lines.append(f"Dialogue line {section}-{offset}")
+            marks.append(
+                HierarchyMark(
+                    line_no,
+                    line_no,
+                    2,
+                    HierarchyType.TEXT,
+                    order=order,
+                )
+            )
+            order += 1
+
+    return "\n".join(lines), marks
 
 
 def test_studio_raw_editor_has_minimap(qapp):
@@ -516,6 +578,255 @@ def test_studio_search_options_case_word_and_regex(qapp):
     assert dialog.raw_edit.extraSelections() == []
 
 
+def test_studio_text_change_invalidates_search_without_reading_full_document(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    dialog.raw_edit.setPlainText("Act One\nAct Two\n")
+    dialog._search_document_revision = -1
+
+    def fail_to_plain_text():
+        raise AssertionError("textChanged should not read the full raw document")
+
+    monkeypatch.setattr(dialog.raw_edit, "toPlainText", fail_to_plain_text)
+
+    dialog._invalidate_search_matches()
+
+    assert dialog._search_document_revision == dialog._raw_text_revision
+    assert dialog._search_text_fingerprint is None
+
+
+def test_studio_reset_raw_hierarchy_view_is_noop_when_already_reset(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    calls = []
+    monkeypatch.setattr(
+        dialog,
+        "_set_raw_hierarchy_block_format",
+        lambda line_depths, hidden_lines: calls.append((line_depths, hidden_lines)),
+    )
+
+    dialog._reset_raw_hierarchy_view()
+
+    assert calls == []
+
+    dialog._raw_line_depths = {0: 1}
+    dialog._reset_raw_hierarchy_view()
+
+    assert calls == [({}, set())]
+
+
+def test_classification_highlighter_skips_unchanged_rehighlight(qapp, monkeypatch):
+    edit = QPlainTextEdit()
+    highlighter = _ClassificationHighlighter(edit.document())
+    calls = []
+    monkeypatch.setattr(highlighter, "rehighlight", lambda: calls.append(True))
+
+    highlighter.set_line_kinds({0: LineKind.ACTION})
+    highlighter.set_line_kinds({0: LineKind.ACTION})
+    highlighter.set_line_kinds({0: LineKind.IGNORE})
+
+    assert calls == [True, True]
+
+
+def test_studio_hierarchy_outline_skips_unchanged_rebuild(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act One\nMIDNA\nHello there\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 0, 0, HierarchyType.STRUCTURE, text="Act One", order=1),
+    ]
+
+    dialog._refresh_hierarchy()
+    calls = []
+    original_make_tree_item = dialog._make_tree_item
+
+    def counting_make_tree_item(*args, **kwargs):
+        calls.append(args)
+        return original_make_tree_item(*args, **kwargs)
+
+    monkeypatch.setattr(dialog, "_make_tree_item", counting_make_tree_item)
+
+    dialog._refresh_hierarchy()
+
+    assert calls == []
+
+    dialog.hierarchy_marks.append(
+        HierarchyMark(1, 2, 1, HierarchyType.SPEAKER, text="MIDNA", order=2)
+    )
+    dialog._refresh_hierarchy()
+
+    assert calls
+
+
+def test_studio_grouped_unmarked_outline_rebuilds_when_preview_text_changes(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    lines = []
+    for idx in range(81):
+        lines.extend([f"Unmarked line {idx}", ""])
+    dialog.raw_edit.setPlainText("\n".join(lines))
+
+    dialog._refresh_hierarchy()
+    calls = []
+    original_make_tree_item = dialog._make_tree_item
+
+    def counting_make_tree_item(*args, **kwargs):
+        calls.append(args)
+        return original_make_tree_item(*args, **kwargs)
+
+    monkeypatch.setattr(dialog, "_make_tree_item", counting_make_tree_item)
+
+    edited_lines = list(lines)
+    edited_lines[0] = "Changed unmarked line"
+    dialog.raw_edit.setPlainText("\n".join(edited_lines))
+    dialog._refresh_hierarchy()
+
+    assert calls
+
+
+def test_studio_hierarchy_line_styles_are_cached_until_marks_change(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act One\nMIDNA\nHello there\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 0, 0, HierarchyType.STRUCTURE, text="Act One", order=1),
+    ]
+    calls = []
+
+    def fake_line_styles_for_marks(marks, type_definitions):
+        calls.append(tuple((mark.start_line, mark.end_line, mark.type_id) for mark in marks))
+        return {mark.start_line: (mark.type_id, "#ffffff") for mark in marks}
+
+    monkeypatch.setattr(
+        "ui.script_markup_studio_dialog.line_styles_for_marks",
+        fake_line_styles_for_marks,
+    )
+
+    dialog._refresh_hierarchy()
+    dialog._refresh_hierarchy()
+
+    assert len(calls) == 1
+
+    dialog.hierarchy_marks.append(
+        HierarchyMark(1, 2, 1, HierarchyType.SPEAKER, text="MIDNA", order=2)
+    )
+    dialog._refresh_hierarchy()
+
+    assert len(calls) == 2
+
+    dialog.hierarchy_type_definitions[HierarchyType.STRUCTURE] = HierarchyTypeDefinition(
+        HierarchyType.STRUCTURE,
+        "Structure",
+        "Changed color for cache invalidation",
+        "#123456",
+    )
+    dialog._refresh_hierarchy()
+
+    assert len(calls) == 3
+
+
+def test_studio_large_hierarchy_second_refresh_reuses_caches(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    script, marks = _large_hierarchy_script()
+    dialog.raw_edit.setPlainText(script)
+    dialog.hierarchy_marks = marks
+    line_style_calls = []
+    tree_item_calls = []
+
+    def fake_line_styles_for_marks(marks, type_definitions):
+        line_style_calls.append(len(marks))
+        return {mark.start_line: (mark.type_id, "#ffffff") for mark in marks}
+
+    original_make_tree_item = dialog._make_tree_item
+
+    def counting_make_tree_item(*args, **kwargs):
+        tree_item_calls.append(args)
+        return original_make_tree_item(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "ui.script_markup_studio_dialog.line_styles_for_marks",
+        fake_line_styles_for_marks,
+    )
+    monkeypatch.setattr(dialog, "_make_tree_item", counting_make_tree_item)
+
+    dialog._refresh_hierarchy()
+
+    assert line_style_calls
+    assert tree_item_calls
+
+    line_style_calls.clear()
+    tree_item_calls.clear()
+    dialog._refresh_hierarchy()
+
+    assert line_style_calls == []
+    assert tree_item_calls == []
+    assert dialog._psm_text
+    assert dialog.flags_list.topLevelItemCount() > 0
+
+
+def test_studio_large_hierarchy_text_change_keeps_mark_dependent_caches(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    script, marks = _large_hierarchy_script()
+    dialog.raw_edit.setPlainText(script)
+    dialog.hierarchy_marks = marks
+
+    dialog._refresh_hierarchy()
+
+    calls = []
+
+    def fake_line_styles_for_marks(marks, type_definitions):
+        calls.append(len(marks))
+        return {mark.start_line: (mark.type_id, "#ffffff") for mark in marks}
+
+    monkeypatch.setattr(
+        "ui.script_markup_studio_dialog.line_styles_for_marks",
+        fake_line_styles_for_marks,
+    )
+
+    edited_lines = script.splitlines()
+    edited_lines[2] = "Changed dialogue line for cache smoke"
+    dialog.raw_edit.setPlainText("\n".join(edited_lines))
+    dialog._refresh_hierarchy()
+
+    assert calls == []
+    assert "Changed dialogue line for cache smoke" in dialog._psm_text
+
+
+def test_studio_raw_hierarchy_view_cache_updates_when_fold_state_changes(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    raw_lines = ["Act One", "MIDNA", "Hello there"]
+    mark = HierarchyMark(0, 2, 0, HierarchyType.STRUCTURE, text="Act One", order=1)
+    dialog.hierarchy_marks = [mark]
+
+    _depths, _headers, hidden_lines = dialog._raw_hierarchy_view_data(raw_lines)
+    assert hidden_lines == set()
+
+    dialog._collapsed_hierarchy_keys.add(dialog._hierarchy_mark_key(mark))
+    _depths, _headers, hidden_lines = dialog._raw_hierarchy_view_data(raw_lines)
+
+    assert hidden_lines == {1, 2}
+
+
+def test_studio_large_hierarchy_fold_cache_hit_returns_copies(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    script, marks = _large_hierarchy_script(line_count=48)
+    raw_lines = script.splitlines()
+    dialog.hierarchy_marks = marks
+
+    line_depths, fold_headers, hidden_lines = dialog._raw_hierarchy_view_data(raw_lines)
+    line_depths[999] = 999
+    fold_headers[999] = "mutated"
+    hidden_lines.add(999)
+
+    line_depths, fold_headers, hidden_lines = dialog._raw_hierarchy_view_data(raw_lines)
+
+    assert 999 not in line_depths
+    assert 999 not in fold_headers
+    assert 999 not in hidden_lines
+
+
 # ------------------------------------------------------------- Picoripi engine
 def test_studio_picoripi_mode_uses_existing_rules(qapp):
     dialog = _make_dialog(qapp)
@@ -903,7 +1214,7 @@ def test_studio_continue_from_examples_requires_existing_marks(qapp, monkeypatch
     assert messages == [
         (
             "Continue from marked examples",
-            "Mark at least one hierarchy example first, then run this auto-fill again.",
+            "Mark or approve at least one hierarchy example first, then run this auto-fill again.",
         )
     ]
 
@@ -1287,6 +1598,116 @@ def test_studio_marks_selection_as_hierarchy_node(qapp):
     assert mark.depth == 0
     assert mark.type_id == HierarchyType.STRUCTURE
     assert "# Act One" in dialog._psm_text
+
+
+def test_studio_manual_structure_iterator_advances_and_resets_by_parent(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Chapter 1\nA\nB\nChapter 2\nC\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 2, 0, HierarchyType.STRUCTURE, text="Chapter 1", order=1),
+        HierarchyMark(3, 4, 0, HierarchyType.STRUCTURE, text="Chapter 2", order=2),
+    ]
+    dialog._hierarchy_mark_order = 2
+    _set_hierarchy_type(dialog, HierarchyType.STRUCTURE)
+    dialog.hierarchy_depth_spin.setValue(1)
+
+    for line in (1, 2, 4):
+        dialog.hierarchy_label_edit.setText("Scene $4")
+        _select_lines(dialog, line, line)
+        dialog._mark_selection_as_hierarchy()
+
+    scenes = [
+        mark.text for mark in dialog.hierarchy_marks
+        if mark.type_id == HierarchyType.STRUCTURE and mark.depth == 1
+    ]
+    assert scenes == ["Scene 4", "Scene 5", "Scene 4"]
+
+
+def test_studio_manual_inline_context_preserves_character_ranges_and_roundtrips(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    raw = "MIDNA (If other people are around)\nDo not transform here.\n"
+    dialog.raw_edit.setPlainText(raw)
+
+    def select_chars(start: int, end: int):
+        cursor = dialog.raw_edit.textCursor()
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+        dialog.raw_edit.setTextCursor(cursor)
+
+    _set_hierarchy_type(dialog, HierarchyType.SPEAKER)
+    dialog.hierarchy_depth_spin.setValue(3)
+    select_chars(0, 5)
+    dialog._mark_selection_as_hierarchy()
+
+    _set_hierarchy_type(dialog, HierarchyType.CONTEXT)
+    dialog.hierarchy_depth_spin.setValue(4)
+    select_chars(7, 33)
+    dialog._mark_selection_as_hierarchy()
+
+    _set_hierarchy_type(dialog, HierarchyType.TEXT)
+    dialog.hierarchy_depth_spin.setValue(5)
+    _select_lines(dialog, 1, 1)
+    dialog._mark_selection_as_hierarchy()
+
+    speaker = next(mark for mark in dialog.hierarchy_marks if mark.type_id == HierarchyType.SPEAKER)
+    context = next(mark for mark in dialog.hierarchy_marks if mark.type_id == HierarchyType.CONTEXT)
+    assert (speaker.start_col, speaker.end_col, mark_text(speaker, raw.splitlines())) == (0, 5, "MIDNA")
+    assert (context.start_col, context.end_col, mark_text(context, raw.splitlines())) == (
+        7, 33, "If other people are around",
+    )
+    assert dialog._hierarchy_mark_at_line(0, 2).type_id == HierarchyType.SPEAKER
+    assert dialog._hierarchy_mark_at_line(0, 10).type_id == HierarchyType.CONTEXT
+    assert "{Context: If other people are around}" in dialog._psm_text
+    assert "**MIDNA**: Do not transform here." in dialog._psm_text
+
+    payload = dialog._hierarchy_project_payload()
+    restored = _make_dialog(qapp)
+    assert restored._apply_hierarchy_project_payload(payload)
+    restored_context = next(
+        mark for mark in restored.hierarchy_marks if mark.type_id == HierarchyType.CONTEXT
+    )
+    assert (restored_context.start_col, restored_context.end_col) == (7, 33)
+
+
+def test_studio_auto_marks_are_visible_and_can_be_approved_as_examples(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("MIDNA\nHello.\n")
+    automatic = HierarchyMark(
+        0, 0, 3, HierarchyType.SPEAKER,
+        text="MIDNA", order=1, origin="local_autofill", approved=False,
+    )
+    dialog.hierarchy_marks = [automatic]
+    dialog._refresh()
+
+    item = dialog.flags_list.topLevelItem(0)
+    assert "[Auto]" in item.text(0)
+    assert dialog._approve_hierarchy_mark_keys([dialog._hierarchy_mark_key(automatic)]) == 1
+    assert automatic.approved
+    assert "[Auto✓]" in dialog.flags_list.topLevelItem(0).text(0)
+
+    payload = dialog._hierarchy_project_payload()
+    restored = _make_dialog(qapp)
+    assert restored._apply_hierarchy_project_payload(payload)
+    assert restored.hierarchy_marks[0].origin == "local_autofill"
+    assert restored.hierarchy_marks[0].approved
+
+
+def test_studio_legacy_mark_payload_defaults_to_manual_and_approved(qapp):
+    dialog = _make_dialog(qapp)
+
+    mark = dialog._hierarchy_mark_from_dict({
+        "start_line": 0,
+        "end_line": 0,
+        "depth": 0,
+        "type_id": HierarchyType.STRUCTURE,
+        "text": "Act One",
+    })
+
+    assert mark.origin == "manual"
+    assert mark.approved
 
 
 def test_studio_nested_hierarchy_mark_does_not_replace_parent(qapp):
@@ -1987,6 +2408,79 @@ def test_studio_tree_double_click_jump_scrolls_to_source_line(qapp):
 
     assert dialog.raw_edit.textCursor().blockNumber() == 120
     assert dialog.raw_edit.verticalScrollBar().value() > 0
+    assert dialog._raw_navigation_line == 120
+
+
+def test_studio_raw_text_can_jump_to_exact_text_node_in_tree(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act\nMIDNA\nFirst line\nSecond line\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 3, 0, HierarchyType.STRUCTURE, text="Act", order=1),
+        HierarchyMark(1, 1, 1, HierarchyType.SPEAKER, text="MIDNA", order=2),
+        HierarchyMark(2, 3, 2, HierarchyType.TEXT, order=3),
+    ]
+    dialog._refresh()
+
+    assert dialog._jump_raw_line_to_outline(3)
+
+    current = dialog.flags_list.currentItem()
+    assert current is not None
+    assert "Text:" in current.text(0)
+    assert current.isSelected()
+
+
+def test_studio_tree_disclosure_click_never_schedules_rename(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act\nScene\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 1, 0, HierarchyType.STRUCTURE, text="Act", order=1),
+        HierarchyMark(1, 1, 1, HierarchyType.STRUCTURE, text="Scene", order=2),
+    ]
+    dialog._refresh()
+    dialog.show()
+    qapp.processEvents()
+    item = dialog.flags_list.topLevelItem(0)
+    dialog.flags_list.setCurrentItem(item)
+    item.setSelected(True)
+    calls = []
+    monkeypatch.setattr(dialog, "_rename_outline_item", lambda selected: calls.append(selected))
+    rect = dialog.flags_list.visualItemRect(item)
+    disclosure_pos = QPoint(max(1, rect.left() - 8), rect.center().y())
+
+    assert dialog.flags_list._position_is_disclosure(item, disclosure_pos)
+    QTest.mouseClick(
+        dialog.flags_list.viewport(),
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        disclosure_pos,
+    )
+    QTest.qWait(500)
+    qapp.processEvents()
+
+    assert calls == []
+
+
+def test_studio_ctrl_wheel_zooms_raw_text(qapp, monkeypatch):
+    dialog = _make_dialog(qapp)
+    calls = []
+    monkeypatch.setattr(dialog.raw_edit, "zoomIn", lambda steps=1: calls.append(("in", steps)))
+    monkeypatch.setattr(dialog.raw_edit, "_sync_viewport_margins", lambda: None)
+
+    class WheelEvent:
+        def modifiers(self):
+            return Qt.KeyboardModifier.ControlModifier
+
+        def angleDelta(self):
+            return QPoint(0, 120)
+
+        def accept(self):
+            calls.append(("accepted", 0))
+
+    dialog.raw_edit.wheelEvent(WheelEvent())
+
+    assert calls == [("in", 1), ("accepted", 0)]
 
 
 def test_studio_tree_f2_renames_selected_node(qapp, monkeypatch):
@@ -2272,6 +2766,44 @@ def test_studio_can_edit_hierarchy_node_range_from_tree(qapp):
     assert dialog.hierarchy_clear_btn.text() == "Clear"
     assert dialog.hierarchy_mark_btn.styleSheet() == ""
     assert dialog.hierarchy_clear_btn.styleSheet() == ""
+
+
+def test_studio_shrinking_structure_clamps_and_removes_descendants(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText(
+        "Act\nChapter\nScene 1\nILIA\nHello\nBreaker\nScene 2\nMALO\nBye\nEnd\n"
+    )
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 9, 0, HierarchyType.STRUCTURE, text="Act", order=1),
+        HierarchyMark(1, 8, 1, HierarchyType.STRUCTURE, text="Chapter", order=2),
+        HierarchyMark(2, 5, 2, HierarchyType.STRUCTURE, text="Scene 1", order=3),
+        HierarchyMark(3, 5, 3, HierarchyType.SPEAKER, text="ILIA", order=4),
+        HierarchyMark(4, 4, 4, HierarchyType.TEXT, order=5),
+        HierarchyMark(5, 5, 3, HierarchyType.BREAKER, order=6),
+        HierarchyMark(6, 8, 2, HierarchyType.STRUCTURE, text="Scene 2", order=7),
+        HierarchyMark(7, 8, 3, HierarchyType.SPEAKER, text="MALO", order=8),
+        HierarchyMark(8, 8, 4, HierarchyType.TEXT, order=9),
+    ]
+    dialog._hierarchy_mark_order = 9
+    dialog._refresh()
+    act = next(mark for mark in dialog.hierarchy_marks if mark.text == "Act")
+
+    assert dialog._start_range_edit(dialog._hierarchy_mark_key(act))
+    assert dialog._update_range_edit_preview("start", 2)
+    assert dialog._update_range_edit_preview("end", 5)
+    dialog._mark_selection_as_hierarchy()
+
+    act = next(mark for mark in dialog.hierarchy_marks if mark.text == "Act")
+    chapter = next(mark for mark in dialog.hierarchy_marks if mark.text == "Chapter")
+    assert (act.start_line, act.end_line) == (2, 5)
+    assert (chapter.start_line, chapter.end_line) == (2, 5)
+    assert all(
+        act.start_line <= mark.start_line <= mark.end_line <= act.end_line
+        for mark in dialog.hierarchy_marks
+        if mark.depth > act.depth
+    )
+    assert not any(mark.text in {"Scene 2", "MALO"} for mark in dialog.hierarchy_marks)
 
 
 def test_studio_editor_saves_type_label_and_depth(qapp):

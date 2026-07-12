@@ -75,6 +75,10 @@ def hierarchy_mark_payload_value(
         "end_line": mark.end_line,
         "start_line_number": mark.start_line + 1,
         "end_line_number": mark.end_line + 1,
+        "start_col": mark.start_col,
+        "end_col": mark.end_col,
+        "origin": mark.origin,
+        "approved": mark.approved,
         "depth": mark.depth,
         "type_id": mark.type_id,
         "type_label": type_def.label if type_def else mark.type_id,
@@ -83,7 +87,7 @@ def hierarchy_mark_payload_value(
         "description": mark.description or (type_def.description if type_def else ""),
         "color": mark.color or (type_def.color if type_def else ""),
         "order": mark.order,
-        "source_excerpt": source_text_for_lines_value(mark.start_line, mark.end_line, raw_lines),
+        "source_excerpt": mark_text(mark, raw_lines),
     }
 
 

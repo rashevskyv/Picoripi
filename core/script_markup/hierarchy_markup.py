@@ -20,6 +20,7 @@ class HierarchyType:
     TEXT = "text"
     ACTION = "action"
     NOTE = "note"
+    CONTEXT = "context"
     BREAKER = "breaker"
     NARRATOR = "narrator"
     IGNORE = "ignore"
@@ -57,6 +58,10 @@ class HierarchyMark:
     description: str = ""
     color: str = ""
     order: int = 0
+    start_col: int | None = None
+    end_col: int | None = None
+    origin: str = "manual"
+    approved: bool = True
 
 
 @dataclass
@@ -106,6 +111,12 @@ def default_type_definitions() -> Dict[str, HierarchyTypeDefinition]:
             "Note",
             "Inline note rendered in parentheses after the nearest element.",
             "#ede7f6",
+        ),
+        HierarchyType.CONTEXT: HierarchyTypeDefinition(
+            HierarchyType.CONTEXT,
+            "Context",
+            "Dialogue condition or choice context nested under a speaker.",
+            "#e0e7ff",
         ),
         HierarchyType.BREAKER: HierarchyTypeDefinition(
             HierarchyType.BREAKER,
@@ -157,6 +168,14 @@ def mark_text(mark: HierarchyMark, raw_lines: List[str]) -> str:
         return explicit
     start = max(0, min(mark.start_line, len(raw_lines) - 1))
     end = max(start, min(mark.end_line, len(raw_lines) - 1))
+    if start == end and mark.start_col is not None:
+        line = raw_lines[start]
+        start_col = max(0, min(int(mark.start_col), len(line)))
+        end_col = len(line) if mark.end_col is None else max(
+            start_col, min(int(mark.end_col), len(line))
+        )
+        sliced = clean_mark_text(line[start_col:end_col])
+        return sliced or explicit
     if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.GLOSSARY, HierarchyType.SPEAKER):
         for idx in range(start, end + 1):
             line = clean_mark_text(raw_lines[idx])
@@ -181,6 +200,10 @@ def normalize_mark(mark: HierarchyMark) -> HierarchyMark:
         description=mark.description,
         color=mark.color,
         order=int(mark.order),
+        start_col=None if mark.start_col is None else max(0, int(mark.start_col)),
+        end_col=None if mark.end_col is None else max(0, int(mark.end_col)),
+        origin=str(mark.origin or "manual"),
+        approved=bool(mark.approved),
     )
 
 
@@ -189,8 +212,71 @@ def sorted_marks(marks: Iterable[HierarchyMark]) -> List[HierarchyMark]:
 
     return sorted(
         (normalize_mark(mark) for mark in marks),
-        key=lambda mark: (mark.start_line, mark.depth, -mark.end_line, mark.order),
+        key=lambda mark: (
+            mark.start_line,
+            mark.start_col if mark.start_col is not None else -1,
+            mark.depth,
+            -mark.end_line,
+            mark.order,
+        ),
     )
+
+
+_STRUCTURE_ITERATOR_RE = re.compile(r"\$(?P<start>\d+)?")
+
+
+def resolve_structure_name_iterator(
+    template: str,
+    marks: Iterable[HierarchyMark],
+    *,
+    start_line: int,
+    end_line: int,
+    depth: int,
+) -> str:
+    """Resolve one ``$``/``$N`` iterator among sibling structures.
+
+    The nearest containing structure at a smaller depth defines the scope. A
+    different parent therefore starts the same template from its initial value.
+    Existing node names are never changed.
+    """
+
+    match = _STRUCTURE_ITERATOR_RE.search(template or "")
+    if match is None:
+        return template
+
+    items = list(marks)
+
+    def parent_for(line: int, child_depth: int) -> HierarchyMark | None:
+        candidates = [
+            mark for mark in items
+            if mark.type_id == HierarchyType.STRUCTURE
+            and mark.depth < child_depth
+            and mark.start_line <= line <= mark.end_line
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda mark: (mark.depth, mark.start_line, -mark.end_line))
+
+    parent = parent_for(start_line, depth)
+    siblings = 0
+    for mark in items:
+        if mark.type_id != HierarchyType.STRUCTURE or mark.depth != depth:
+            continue
+        if mark.start_line == start_line and mark.end_line == end_line:
+            continue
+        sibling_parent = parent_for(mark.start_line, mark.depth)
+        if sibling_parent is parent:
+            siblings += 1
+        elif parent is not None and sibling_parent is not None:
+            siblings += int(
+                sibling_parent.start_line == parent.start_line
+                and sibling_parent.end_line == parent.end_line
+                and sibling_parent.depth == parent.depth
+            )
+
+    initial = int(match.group("start") or 1)
+    number = initial + siblings
+    return f"{template[:match.start()]}{number}{template[match.end():]}"
 
 
 def build_hierarchy_tree(marks: Iterable[HierarchyMark]) -> HierarchyNode:
@@ -225,6 +311,8 @@ def line_styles_for_marks(
         *[mark for mark in sorted_items if mark.type_id == HierarchyType.IGNORE],
     ]
     for mark in ordered:
+        if mark.start_col is not None:
+            continue
         default = defs.get(mark.type_id)
         color = mark.color or (default.color if default else "#ffffff")
         for idx in range(mark.start_line, mark.end_line + 1):
@@ -478,6 +566,23 @@ def render_hierarchy_markdown(
                         render_node(grandchild)
                 elif child_type == HierarchyType.NOTE:
                     _append_note(lines, text_for(child.mark))
+                elif child_type == HierarchyType.CONTEXT:
+                    context = text_for(child.mark).strip()
+                    context_emitted = False
+                    for grandchild in child.children:
+                        if grandchild.mark and grandchild.mark.type_id == HierarchyType.TEXT:
+                            body = text_for(grandchild.mark).strip()
+                            if body:
+                                _append_block(lines, f"{{Context: {context}}}")
+                                _append_block(lines, f"**{text}**: {body}".rstrip())
+                                emitted_text = True
+                                context_emitted = True
+                            for descendant in grandchild.children:
+                                render_node(descendant)
+                        else:
+                            render_node(grandchild)
+                    if not context_emitted and context:
+                        _append_block(lines, f"{{Context: {context}}}")
                 else:
                     render_node(child)
             if not emitted_text and not node.children:
@@ -517,6 +622,13 @@ def render_hierarchy_markdown(
         if type_id == HierarchyType.NARRATOR:
             if text:
                 _append_block(lines, f"**{text}**")
+            for child in node.children:
+                render_node(child)
+            return
+
+        if type_id == HierarchyType.CONTEXT:
+            if text:
+                _append_block(lines, f"{{Context: {text}}}")
             for child in node.children:
                 render_node(child)
             return
