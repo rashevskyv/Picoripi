@@ -5,7 +5,8 @@ from collections import OrderedDict
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
                              QColorDialog, QVBoxLayout, QPushButton, QFrame, QDialog)
-from PyQt6.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics
+from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics,
+                         QRadialGradient, QBrush)
 from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
 
 
@@ -904,6 +905,66 @@ class BfnPreviewWidget(QWidget):
         cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
         return cleaned_text, None, None
 
+    def _get_game_window_style(self):
+        """Fetch the in-game message window style from the active plugin, if any."""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules and hasattr(rules, 'get_preview_window_style'):
+            try:
+                style = rules.get_preview_window_style()
+                if isinstance(style, dict):
+                    return style
+            except Exception:
+                pass
+        return None
+
+    @staticmethod
+    def _scaled_color(color_hex: str, brightness: float) -> str:
+        """Multiply a color's RGB channels by brightness (game TEV white modulation)."""
+        if brightness >= 1.0:
+            return color_hex
+        c = QColor(color_hex)
+        c.setRed(int(c.red() * brightness))
+        c.setGreen(int(c.green() * brightness))
+        c.setBlue(int(c.blue() * brightness))
+        return c.name()
+
+    def _render_halo_to_image(self, glyphs, cell_w, cell_h, halo_style,
+                              scale_factor, img_size: QSize) -> QImage:
+        """Render the per-character glow ("moya" light) behind the text, like
+        dMsgScrnLight_c: a soft radial sprite at every character's center."""
+        img = QImage(img_size, QImage.Format.Format_ARGB32_Premultiplied)
+        img.fill(Qt.GlobalColor.transparent)
+        base = QColor(halo_style.get("color", "#e1d26e"))
+        alpha = int(halo_style.get("alpha", 160))
+        radius_ratio = float(halo_style.get("radius_ratio", 0.9))
+        p = QPainter(img)
+        try:
+            p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            p.scale(scale_factor, scale_factor)
+            p.translate(-15, -15)
+            p.setPen(Qt.PenStyle.NoPen)
+            for g in glyphs:
+                if g["is_fallback"] or g["char"].isspace():
+                    continue
+                g_scale = g.get("scale", 1.0) or 1.0
+                cw = cell_w * g_scale
+                ch = cell_h * g_scale
+                cx = g["draw_x"] + cw / 2.0
+                cy = g["draw_y"] + ch / 2.0
+                radius = max(cw, ch) * radius_ratio
+                grad = QRadialGradient(cx, cy, radius)
+                c0 = QColor(base)
+                c0.setAlpha(alpha)
+                c1 = QColor(base)
+                c1.setAlpha(0)
+                grad.setColorAt(0.0, c0)
+                grad.setColorAt(1.0, c1)
+                p.setBrush(QBrush(grad))
+                p.drawEllipse(QRectF(cx - radius, cy - radius, radius * 2, radius * 2))
+        finally:
+            p.end()
+        return img
+
     # ── paintEvent ────────────────────────────────────────────────────────────
 
     def paintEvent(self, event):
@@ -1035,6 +1096,44 @@ class BfnPreviewWidget(QWidget):
         # Offscreen image size: same as abs_rect
         img_size = QSize(abs_rect.width(), abs_rect.height())
 
+        # In-game window style provided by the plugin (TP talk box look)
+        game_style = self._get_game_window_style()
+
+        # Text offset inside the window (game: HIO mTextPosX/mTextPosY)
+        text_dx = text_dy = 0
+        if game_style and game_style.get("text_offset"):
+            try:
+                off = game_style["text_offset"]
+                text_dx = int(round(float(off[0]) * scale_factor))
+                text_dy = int(round(float(off[1]) * scale_factor))
+            except (TypeError, ValueError, IndexError):
+                text_dx = text_dy = 0
+
+        # ── 2-frame. Message window frame around the text area ───────────────
+        if game_style and isinstance(game_style.get("frame"), dict):
+            fr = game_style["frame"]
+            pad_x = float(fr.get("pad_x", 20)) * scale_factor
+            pad_y = float(fr.get("pad_y", 10)) * scale_factor
+            radius = float(fr.get("radius", 14)) * scale_factor
+            frame_rect = QRectF(abs_rect).adjusted(-pad_x, -pad_y, pad_x, pad_y)
+            fill = QColor(fr.get("fill", "#0a0c14"))
+            fill.setAlpha(int(fr.get("fill_alpha", 216)))
+            border = QColor(fr.get("border", "#ffffff"))
+            border.setAlpha(int(fr.get("border_alpha", 40)))
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            painter.setPen(QPen(border, 1.5))
+            painter.setBrush(fill)
+            painter.drawRoundedRect(frame_rect, radius, radius)
+            painter.restore()
+
+        # ── 2-halo. Per-character golden glow (game "moya" light) ────────────
+        if game_style and isinstance(game_style.get("halo"), dict) and not self.glow_enabled:
+            halo_img = self._render_halo_to_image(
+                glyphs, cell_w, cell_h, game_style["halo"], scale_factor, img_size
+            )
+            painter.drawImage(abs_rect.x() + text_dx, abs_rect.y() + text_dy, halo_img)
+
         # ── 2a. Outer Glow pass ───────────────────────────────────────────────
         if self.glow_enabled and self.glow_spread > 0 and self.glow_alpha > 0:
             glow_img = self._render_glyphs_to_image(
@@ -1073,10 +1172,32 @@ class BfnPreviewWidget(QWidget):
             sdy = int(round(math.sin(rad) * self.shadow_distance))
 
             painter.drawImage(abs_rect.x() + sdx, abs_rect.y() + sdy, tinted_shadow)
+        elif game_style and isinstance(game_style.get("shadow"), dict):
+            # Game shadow: a black copy of the text offset by +2,+2 game pixels
+            # (TP shadow pane 't4_s' / COutFont icon shadows), scaled with text
+            sh = game_style["shadow"]
+            shadow_img = self._render_glyphs_to_image(
+                glyphs, sheets, cell_w, cell_h, fallback_font, fallback_fm,
+                total_width, total_height, scale_factor, img_size
+            )
+            tinted_shadow = self._tint_image(shadow_img, sh.get("color", "#000000"),
+                                             int(sh.get("alpha", 255)))
+            sdx = max(1, int(round(float(sh.get("dx", 2.0)) * scale_factor)))
+            sdy = max(1, int(round(float(sh.get("dy", 2.0)) * scale_factor)))
+            painter.drawImage(abs_rect.x() + text_dx + sdx, abs_rect.y() + text_dy + sdy, tinted_shadow)
 
         # ── 2c. Main glyphs pass ──────────────────────────────────────────────
         # Glyphs are grouped by their color (set by in-game color tags via the
-        # plugin hook); each group is rendered and tinted separately.
+        # plugin hook); each group is rendered and tinted separately. The game
+        # modulates the main text pane by TEV white (200,200,200), so with a
+        # game style active all text is slightly dimmed like on console.
+        brightness = 1.0
+        if game_style:
+            try:
+                brightness = float(game_style.get("text_brightness", 1.0))
+            except (TypeError, ValueError):
+                brightness = 1.0
+
         color_groups = OrderedDict()
         for g in glyphs:
             color_groups.setdefault(g.get("color") or self.text_color, []).append(g)
@@ -1088,8 +1209,8 @@ class BfnPreviewWidget(QWidget):
                 group_glyphs, sheets, cell_w, cell_h, fallback_font, fallback_fm,
                 total_width, total_height, scale_factor, img_size
             )
-            tinted_group = self._tint_image(group_img, group_color, 255)
-            painter.drawImage(abs_rect.x(), abs_rect.y(), tinted_group)
+            tinted_group = self._tint_image(group_img, self._scaled_color(group_color, brightness), 255)
+            painter.drawImage(abs_rect.x() + text_dx, abs_rect.y() + text_dy, tinted_group)
 
         # ── 3. Bounding box overlay ───────────────────────────────────────────
         self.draw_bounding_box(painter)

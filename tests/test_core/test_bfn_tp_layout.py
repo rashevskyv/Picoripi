@@ -287,23 +287,38 @@ def test_preview_widget_renders_color_tags_end_to_end(qapp):
     assert clean == "AB CD EF"
     assert colors[3:5] == ["#f07878"] * 2
 
+    # With the game window style active, text is modulated by TEV white
+    # (200,200,200), so red is ~(188,94,94) and "white" is ~(200,200,200).
     red_pixels = 0
     white_pixels = 0
-    tag_chars_absent = True
     for y in range(image.height()):
         for x in range(image.width()):
             c = image.pixelColor(x, y)
             if c.alpha() < 200:
                 continue
             r, g, b = c.red(), c.green(), c.blue()
-            if abs(r - 0xf0) < 12 and abs(g - 0x78) < 12 and abs(b - 0x78) < 12:
+            if r > 150 and (r - g) > 60 and abs(g - b) < 25:
                 red_pixels += 1
-            elif r > 240 and g > 240 and b > 240:
+            elif r > 180 and abs(r - g) < 15 and abs(g - b) < 15:
                 white_pixels += 1
 
-    assert red_pixels > 20, "colored segment was not rendered in TP red (#f07878)"
+    assert red_pixels > 20, "colored segment was not rendered in TP red"
     assert white_pixels > 20, "default-colored glyphs missing"
-    assert tag_chars_absent
+
+
+def test_zelda_bmg_window_style_matches_game_sources(bmg_rules):
+    style = bmg_rules.get_preview_window_style()
+    # shadow: black +2,+2 (TP shadow pane / COutFont icon shadows)
+    assert style["shadow"]["dx"] == 2.0 and style["shadow"]["dy"] == 2.0
+    assert style["shadow"]["color"] == "#000000"
+    # halo: golden moya light, TEV white (225,210,110) alpha 160 for the talk box
+    assert style["halo"]["color"] == "#e1d26e"
+    assert style["halo"]["alpha"] == 160
+    # main text modulated by TEV white (200,200,200)
+    assert abs(style["text_brightness"] - 200 / 255) < 1e-6
+    # text offset inside the box: HIO mTextPosX = 4.5
+    assert style["text_offset"] == (4.5, 0.0)
+    assert isinstance(style["frame"], dict)
 
 
 def test_zelda_bmg_font_map_covers_icon_aliases():

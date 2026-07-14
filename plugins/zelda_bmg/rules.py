@@ -508,6 +508,38 @@ class GameRules(BaseGameRules):
                 (out_colors if has_color else None),
                 (out_scales if has_scale else None))
 
+    def get_preview_window_style(self) -> Dict[str, Any]:
+        """Visual style of the TP talk window for the game-like preview.
+
+        Values extracted from dusklight sources:
+          - frame: talk box alpha 0.9 (dMsgObject_HIO_c.mBoxTalkAlphaP), the box
+            pane is a dark translucent rounded window widened 1.2x;
+          - text is drawn inside the box with a (+4.5, 0) offset (mTextPosX/Y);
+          - shadow: a pure black copy of the text (the 't4_s' shadow pane gets
+            TEV white (0,0,0,255) via mBoxStartWhite[1]); icon shadows in
+            COutFont_c::draw all use a +2,+2 px offset;
+          - halo: an animated golden glow sprite behind every character
+            (d_msg_scrn_light.cpp, color type 0: white TEV (225,210,110) with
+            alpha 160), drawn with mBoxTalkHaloAlpha = 1.0 for the talk box;
+          - text brightness: the main text pane is modulated by TEV white
+            (200,200,200) (mBoxStartWhite[0]), so "white" game text is #c8c8c8.
+        """
+        return {
+            "frame": {
+                "fill": "#0a0c14",
+                "fill_alpha": 216,       # ~ mBoxTalkAlphaP (0.9) over dark box art
+                "border": "#f0e6c8",
+                "border_alpha": 40,
+                "radius": 14.0,          # game px, scaled with text
+                "pad_x": 22.0,
+                "pad_y": 10.0,
+            },
+            "text_offset": (4.5, 0.0),   # mTextPosX / mTextPosY
+            "text_brightness": 200.0 / 255.0,
+            "shadow": {"color": "#000000", "alpha": 255, "dx": 2.0, "dy": 2.0},
+            "halo": {"color": "#e1d26e", "alpha": 160, "radius_ratio": 0.9},
+        }
+
     def get_text_representation_for_preview(self, data_string: str) -> str:
         """Get the text representation for preview."""
         newline_symbol = "↵"
