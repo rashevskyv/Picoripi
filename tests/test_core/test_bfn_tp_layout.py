@@ -112,7 +112,7 @@ def bmg_rules(qapp):
 
 def test_zelda_bmg_preview_color_tags(bmg_rules):
     text = "Hi {COLOR_RED}Wolf{COLOR_DEFAULT} ok"
-    clean, colors, _ = bmg_rules.prepare_preview_glyph_text(text)
+    clean, colors, _, _ = bmg_rules.prepare_preview_glyph_text(text)
     assert clean == "Hi Wolf ok"
     assert colors is not None
     assert colors[:3] == [None, None, None]
@@ -122,19 +122,19 @@ def test_zelda_bmg_preview_color_tags(bmg_rules):
 
 
 def test_zelda_bmg_preview_lowercase_color_tags(bmg_rules):
-    clean, colors, _ = bmg_rules.prepare_preview_glyph_text("{color:yellow}Rupee")
+    clean, colors, _, _ = bmg_rules.prepare_preview_glyph_text("{color:yellow}Rupee")
     assert clean == "Rupee"
     assert colors == ["#dcdc82"] * 5
 
 
 def test_zelda_bmg_preview_dynamic_names_substituted(bmg_rules):
-    clean, colors, _ = bmg_rules.prepare_preview_glyph_text("Hey {PLAYER} and {escape:0:0022}!")
+    clean, colors, _, _ = bmg_rules.prepare_preview_glyph_text("Hey {PLAYER} and {escape:0:0022}!")
     assert clean == "Hey Link and Epona!"
     assert colors is None
 
 
 def test_zelda_bmg_preview_unknown_tags_stripped(bmg_rules):
-    clean, colors, _ = bmg_rules.prepare_preview_glyph_text("A{escape:1:02}B")
+    clean, colors, _, _ = bmg_rules.prepare_preview_glyph_text("A{escape:1:02}B")
     assert clean == "AB"
     assert colors is None
 
@@ -142,7 +142,7 @@ def test_zelda_bmg_preview_unknown_tags_stripped(bmg_rules):
 def test_zelda_bmg_preview_raw_escape_color_tags(bmg_rules):
     # raw BMG form as stored in data: {escape:255:0000XX}
     text = "Go {escape:255:000003}north{escape:255:000000} now"
-    clean, colors, _ = bmg_rules.prepare_preview_glyph_text(text)
+    clean, colors, _, _ = bmg_rules.prepare_preview_glyph_text(text)
     assert clean == "Go north now"
     assert colors[3:8] == ["#a0b4dc"] * 5  # blue (index 3)
     assert colors[8:] == [None] * 4
@@ -150,31 +150,60 @@ def test_zelda_bmg_preview_raw_escape_color_tags(bmg_rules):
 
 def test_zelda_bmg_preview_escape_color_index7_is_white(bmg_rules):
     # game color table index 7 is white, not gray (getFontCCColorTable)
-    clean, colors, _ = bmg_rules.prepare_preview_glyph_text("{escape:255:000007}Hi")
+    clean, colors, _, _ = bmg_rules.prepare_preview_glyph_text("{escape:255:000007}Hi")
     assert clean == "Hi"
     assert colors is None
 
 
 def test_zelda_bmg_preview_scale_tags_raw_and_friendly(bmg_rules):
     # MSGTAG_SCALE raw form: u16 percent (0x0096 = 150%)
-    clean, _, scales = bmg_rules.prepare_preview_glyph_text("A{escape:255:00010096}B")
+    clean, _, scales, _ = bmg_rules.prepare_preview_glyph_text("A{escape:255:00010096}B")
     assert clean == "AB"
     assert scales == [1.0, 1.5]
 
-    clean, _, scales = bmg_rules.prepare_preview_glyph_text("A{scale:50}B")
+    clean, _, scales, _ = bmg_rules.prepare_preview_glyph_text("A{scale:50}B")
     assert clean == "AB"
     assert scales == [1.0, 0.5]
 
 
 def test_zelda_bmg_preview_scale_resets_on_newline(bmg_rules):
     # game rule: enlarged text (scale > 1.0) reverts to 1.0 at end of line
-    clean, _, scales = bmg_rules.prepare_preview_glyph_text("{scale:150}A\nB")
+    clean, _, scales, _ = bmg_rules.prepare_preview_glyph_text("{scale:150}A\nB")
     assert clean == "A\nB"
     assert scales == [1.5, 1.5, 1.0]
 
     # but shrunk text (< 1.0) persists across lines
-    clean, _, scales = bmg_rules.prepare_preview_glyph_text("{scale:50}A\nB")
+    clean, _, scales, _ = bmg_rules.prepare_preview_glyph_text("{scale:50}A\nB")
     assert scales == [0.5, 0.5, 0.5]
+
+
+def test_zelda_bmg_preview_icon_tags(bmg_rules):
+    # {escape:0:000a} = MSGTAG_ABTN -> inline icon placeholder + drawing spec
+    clean, _, _, icons = bmg_rules.prepare_preview_glyph_text("Press {escape:0:000a} now")
+    assert clean == "Press ￼ now"
+    assert icons is not None and 6 in icons
+    spec = icons[6]
+    assert spec["kind"] == "circle"
+    assert spec["label"] == "A"
+    assert spec["width"] == 24  # game do_outfont icon size
+
+
+def test_zelda_bmg_preview_icon_via_alias(bmg_rules):
+    # aliases resolve through mw.default_tag_mappings before parsing
+    bmg_rules.mw.default_tag_mappings = {"{(A)}": "{escape:0:000a}"}
+    clean, _, _, icons = bmg_rules.prepare_preview_glyph_text("{(A)}!")
+    assert clean == "￼!"
+    assert icons and icons[0]["label"] == "A"
+
+
+def test_layout_icon_advance_is_game_24px():
+    bfn = _build_bfn(widths=[(0, 6), (0, 20)] + [(0, 10)] * 8)
+    icons = {1: {"kind": "circle", "label": "A", "color": "#62a32e", "width": 24}}
+    glyphs, total_w, _ = bfn.layout_text("!￼!", line_spacing=0, icons=icons)
+    assert glyphs[1].get("icon") and glyphs[1]["icon"]["label"] == "A"
+    # icon advances the cursor by its 24px width
+    assert glyphs[2]["draw_x"] - glyphs[1]["draw_x"] == 24
+    assert total_w == 20 + 24 + 20
 
 
 def test_layout_scale_affects_advance_and_size():
@@ -283,7 +312,7 @@ def test_preview_widget_renders_color_tags_end_to_end(qapp):
         widget.hide()
 
     # verify the plugin hook produced colored spans
-    clean, colors, _ = widget._prepare_render_text()
+    clean, colors, _, _ = widget._prepare_render_text()
     assert clean == "AB CD EF"
     assert colors[3:5] == ["#f07878"] * 2
 

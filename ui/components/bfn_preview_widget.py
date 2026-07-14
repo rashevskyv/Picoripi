@@ -833,6 +833,8 @@ class BfnPreviewWidget(QWidget):
             p.translate(-15, -15)
 
             for g in glyphs:
+                if g.get("icon"):
+                    continue
                 g_scale = g.get("scale", 1.0) or 1.0
                 if g["is_fallback"]:
                     p.save()
@@ -877,9 +879,10 @@ class BfnPreviewWidget(QWidget):
     def _prepare_render_text(self):
         """Clean tags from the current text via the active plugin hook.
 
-        Returns (clean_text, per_char_colors|None, per_char_scales|None).
-        Plugins (e.g. zelda_bmg) substitute dynamic names and translate
-        in-game color/scale tags here; the hook may return a 2- or 3-tuple.
+        Returns (clean_text, per_char_colors|None, per_char_scales|None,
+        per_char_icons|None). Plugins (e.g. zelda_bmg) substitute dynamic
+        names and translate in-game color/scale/icon tags here; the hook may
+        return a 2-, 3- or 4-tuple.
         """
         rules = getattr(self.mw, 'current_game_rules', None)
         if rules and hasattr(rules, 'prepare_preview_glyph_text'):
@@ -889,7 +892,8 @@ class BfnPreviewWidget(QWidget):
                     clean = result[0]
                     colors = result[1]
                     scales = result[2] if len(result) >= 3 else None
-                    return clean, colors, scales
+                    icons = result[3] if len(result) >= 4 else None
+                    return clean, colors, scales, icons
             except Exception:
                 pass
 
@@ -903,7 +907,7 @@ class BfnPreviewWidget(QWidget):
                     pass
         cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
         cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
-        return cleaned_text, None, None
+        return cleaned_text, None, None, None
 
     def _get_game_window_style(self):
         """Fetch the in-game message window style from the active plugin, if any."""
@@ -1015,7 +1019,7 @@ class BfnPreviewWidget(QWidget):
                 font.setPointSize(12)
                 painter.setFont(font)
 
-                cleaned_text, _, _ = self._prepare_render_text()
+                cleaned_text, _, _, _ = self._prepare_render_text()
 
                 painter.drawText(abs_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap, cleaned_text)
             else:
@@ -1042,7 +1046,7 @@ class BfnPreviewWidget(QWidget):
 
         # Clean tags from text before rendering (plugin hook may also
         # substitute dynamic names and produce per-character colors/scales)
-        cleaned_text, char_colors, char_scales = self._prepare_render_text()
+        cleaned_text, char_colors, char_scales, char_icons = self._prepare_render_text()
 
         # Extract glyph metrics
         gly = bfn.gly1[0]
@@ -1060,7 +1064,8 @@ class BfnPreviewWidget(QWidget):
             bfn, cleaned_text, self.translation_map, self.line_spacing,
             char_spacing=getattr(self.mw, 'preview_char_spacing', 0),
             colors=char_colors,
-            scales=char_scales
+            scales=char_scales,
+            icons=char_icons
         )
 
         if not glyphs:
@@ -1200,6 +1205,8 @@ class BfnPreviewWidget(QWidget):
 
         color_groups = OrderedDict()
         for g in glyphs:
+            if g.get("icon"):
+                continue
             color_groups.setdefault(g.get("color") or self.text_color, []).append(g)
         if not color_groups:
             color_groups[self.text_color] = []
@@ -1212,5 +1219,67 @@ class BfnPreviewWidget(QWidget):
             tinted_group = self._tint_image(group_img, self._scaled_color(group_color, brightness), 255)
             painter.drawImage(abs_rect.x() + text_dx, abs_rect.y() + text_dy, tinted_group)
 
+        # ── 2d. Inline icons (buttons etc., game do_outfont) ─────────────────
+        icon_glyphs = [g for g in glyphs if g.get("icon")]
+        if icon_glyphs:
+            icon_img = QImage(img_size, QImage.Format.Format_ARGB32_Premultiplied)
+            icon_img.fill(Qt.GlobalColor.transparent)
+            ip = QPainter(icon_img)
+            try:
+                ip.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+                ip.scale(scale_factor, scale_factor)
+                ip.translate(-15, -15)
+                for g in icon_glyphs:
+                    spec = g["icon"]
+                    g_scale = g.get("scale", 1.0) or 1.0
+                    size = float(spec.get("width", 24)) * g_scale
+                    # like COutFont: black silhouette at +2,+2, then the icon
+                    self._draw_icon(ip, spec, g["draw_x"] + 2, g["draw_y"] + 2, size, shadow=True)
+                    self._draw_icon(ip, spec, g["draw_x"], g["draw_y"], size)
+            finally:
+                ip.end()
+            painter.drawImage(abs_rect.x() + text_dx, abs_rect.y() + text_dy, icon_img)
+
         # ── 3. Bounding box overlay ───────────────────────────────────────────
         self.draw_bounding_box(painter)
+
+    @staticmethod
+    def _draw_icon(p: QPainter, spec: dict, x: float, y: float, size: float, shadow: bool = False):
+        """Draw a vector placeholder for an in-game inline icon.
+
+        spec: {"kind": "circle"|"rect"|"char"|"blank", "label": str,
+               "color": "#rrggbb", "fg": optional label color}
+        """
+        kind = spec.get("kind", "char")
+        if kind == "blank" or size <= 0:
+            return
+
+        body = QColor("#000000") if shadow else QColor(spec.get("color", "#c8c8c8"))
+        fg = QColor("#000000") if shadow else QColor(spec.get("fg", "#ffffff"))
+        rect = QRectF(x + size * 0.05, y + size * 0.05, size * 0.9, size * 0.9)
+
+        if kind in ("circle", "rect"):
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(body)
+            if kind == "circle":
+                p.drawEllipse(rect)
+            else:
+                p.drawRoundedRect(rect, size * 0.2, size * 0.2)
+            label = spec.get("label", "")
+            if label and not shadow:
+                f = p.font()
+                f.setBold(True)
+                f.setPixelSize(max(4, int(size * 0.62)))
+                p.setFont(f)
+                p.setPen(QPen(fg))
+                p.drawText(rect, Qt.AlignmentFlag.AlignCenter, label)
+        else:  # "char": a single glyph drawn directly in the icon color
+            label = spec.get("label", "")
+            if not label:
+                return
+            f = p.font()
+            f.setBold(True)
+            f.setPixelSize(max(4, int(size * 0.9)))
+            p.setFont(f)
+            p.setPen(QPen(body))
+            p.drawText(QRectF(x, y, size, size), Qt.AlignmentFlag.AlignCenter, label)

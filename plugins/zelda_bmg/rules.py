@@ -70,6 +70,72 @@ _ESCAPE_COLOR_RE = re.compile(r'\{escape:255:0000([0-9a-fA-F]{2})\}')
 _ESCAPE_SCALE_RE = re.compile(r'\{escape:255:0001([0-9a-fA-F]{4})\}')
 # Friendly editor form of the scale tag: {scale:150} (percent)
 _SCALE_TAG_RE = re.compile(r'\{scale:(\d{1,4})\}')
+# Any escape tag: group + at least the 2-byte tag code
+_ESCAPE_ANY_RE = re.compile(r'\{escape:(\d+):([0-9a-fA-F]{4,})\}')
+
+# All in-game icons are drawn by do_outfont at 24x24 px (times the active text
+# scale) and advance the cursor by 24*scale + charSpace (d_msg_class.cpp).
+ICON_TAG_WIDTH = 24
+
+# (group, tag_code) -> preview drawing spec for every do_outfont icon tag.
+# Colors come from COutFont_c::createPane (d_msg_out_font.cpp).
+_ICON_SPECS: Dict[Tuple[int, int], Dict[str, Any]] = {
+    # Group 0: GameCube buttons and icons
+    (0, 0x0A): {"kind": "circle", "label": "A", "color": "#62a32e"},
+    (0, 0x0B): {"kind": "circle", "label": "B", "color": "#c82727"},
+    (0, 0x0C): {"kind": "circle", "label": "C", "color": "#c8a032"},
+    (0, 0x0D): {"kind": "rect", "label": "L", "color": "#8c8c8c"},
+    (0, 0x0E): {"kind": "rect", "label": "R", "color": "#8c8c8c"},
+    (0, 0x0F): {"kind": "circle", "label": "X", "color": "#8c8c8c"},
+    (0, 0x10): {"kind": "circle", "label": "Y", "color": "#8c8c8c"},
+    (0, 0x11): {"kind": "circle", "label": "Z", "color": "#5046a5"},
+    (0, 0x12): {"kind": "char", "label": "✚", "color": "#c8c8c8"},
+    (0, 0x13): {"kind": "char", "label": "◉", "color": "#c8c8c8"},
+    (0, 0x14): {"kind": "char", "label": "◄", "color": "#c8c8c8"},
+    (0, 0x15): {"kind": "char", "label": "►", "color": "#c8c8c8"},
+    (0, 0x16): {"kind": "char", "label": "▲", "color": "#c8c8c8"},
+    (0, 0x17): {"kind": "char", "label": "▼", "color": "#c8c8c8"},
+    (0, 0x18): {"kind": "char", "label": "↑", "color": "#c8c8c8"},
+    (0, 0x19): {"kind": "char", "label": "↓", "color": "#c8c8c8"},
+    (0, 0x1A): {"kind": "char", "label": "←", "color": "#c8c8c8"},
+    (0, 0x1B): {"kind": "char", "label": "→", "color": "#c8c8c8"},
+    (0, 0x1C): {"kind": "char", "label": "↕", "color": "#c8c8c8"},
+    (0, 0x1D): {"kind": "char", "label": "↔", "color": "#c8c8c8"},
+    (0, 0x23): {"kind": "char", "label": "◎", "color": "#dc3232"},
+    (0, 0x24): {"kind": "char", "label": "◎", "color": "#ffc832"},
+    (0, 0x27): {"kind": "circle", "label": "A", "color": "#62a32e"},
+    (0, 0x2A): {"kind": "char", "label": "◎", "color": "#ffffff"},
+    (0, 0x2C): {"kind": "char", "label": "◆", "color": "#00ffb4"},
+    (0, 0x2E): {"kind": "circle", "label": "X", "color": "#8c8c8c"},
+    (0, 0x2F): {"kind": "circle", "label": "Y", "color": "#8c8c8c"},
+    (0, 0x30): {"kind": "circle", "label": "●", "color": "#464646"},
+    (0, 0x39): {"kind": "char", "label": "♥", "color": "#ff3232"},
+    (0, 0x3A): {"kind": "char", "label": "♪", "color": "#ffc832"},
+    # Group 3: Wii buttons
+    (3, 0x01): {"kind": "circle", "label": "A", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x02): {"kind": "circle", "label": "B", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x03): {"kind": "rect", "label": "⌂", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x04): {"kind": "circle", "label": "−", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x05): {"kind": "circle", "label": "+", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x06): {"kind": "circle", "label": "1", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x07): {"kind": "circle", "label": "2", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x08): {"kind": "char", "label": "✚", "color": "#c8c8c8"},
+    (3, 0x09): {"kind": "char", "label": "↑", "color": "#c8c8c8"},
+    (3, 0x0A): {"kind": "char", "label": "↓", "color": "#c8c8c8"},
+    (3, 0x0B): {"kind": "char", "label": "↔", "color": "#c8c8c8"},
+    (3, 0x0C): {"kind": "char", "label": "→", "color": "#c8c8c8"},
+    (3, 0x0D): {"kind": "char", "label": "←", "color": "#c8c8c8"},
+    (3, 0x0E): {"kind": "rect", "label": "▭", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x0F): {"kind": "char", "label": "◎", "color": "#78d2ff"},
+    (3, 0x10): {"kind": "rect", "label": "N", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x11): {"kind": "rect", "label": "▭", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x12): {"kind": "char", "label": "✦", "color": "#ffffff"},
+    (3, 0x13): {"kind": "circle", "label": "C", "color": "#e8e8e8", "fg": "#222222"},
+    (3, 0x14): {"kind": "circle", "label": "Z", "color": "#e8e8e8", "fg": "#222222"},
+    # Group 6: bullet marker and its indent
+    (6, 0x0A): {"kind": "char", "label": "▪", "color": "#ffffff"},
+    (6, 0x0B): {"kind": "blank", "label": "", "color": "#000000"},
+}
 
 
 class ProblemIDs:
@@ -433,7 +499,7 @@ class GameRules(BaseGameRules):
         from utils.utils import calculate_string_width
         return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
 
-    def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]], Optional[List[float]]]:
+    def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]], Optional[List[float]], Optional[Dict[int, Dict[str, Any]]]]:
         """Convert editor text into renderable text + per-char colors and scales
         for the visual preview, mimicking the TP message processor:
           - dynamic name escape tags are substituted with their runtime names
@@ -444,15 +510,25 @@ class GameRules(BaseGameRules):
           - scale tags ({escape:255:0001XXXX} / {scale:NNN}, percent) switch the
             active text scale (do_scale); like in game, a scale above 1.0 resets
             back to 1.0 at the end of the line (do_character newline handling);
+          - icon tags (buttons, arrows, targets, hearts... — everything drawn by
+            do_outfont) are replaced with a U+FFFC placeholder plus a drawing
+            spec so the preview can render them at the game's 24px icon size;
           - all remaining {...} tags are dropped from the rendered text.
+
+        Returns (clean_text, colors|None, scales|None, icons|None) where icons
+        maps character index in clean_text -> icon drawing spec dict.
         """
         raw = str(text)
+        # Convert user aliases ({(A)}, {pause}, ...) to raw escape form first so
+        # a single parsing path handles both alias and raw tags
+        raw = self.replace_aliases_with_tags(raw)
         for tag, name in self.get_dynamic_name_tags().items():
             raw = raw.replace(tag, name)
 
         out_chars: List[str] = []
         out_colors: List[Optional[str]] = []
         out_scales: List[float] = []
+        out_icons: Dict[int, Dict[str, Any]] = {}
         current_color: Optional[str] = None
         current_scale = 1.0
         has_color = False
@@ -490,6 +566,25 @@ class GameRules(BaseGameRules):
                     current_scale = percent / 100.0
                     if current_scale != 1.0:
                         has_scale = True
+                    pos = m.end()
+                    continue
+
+                # Icon tags (do_outfont): replace with a placeholder character
+                # carrying a drawing spec; advance = 24px like in game
+                any_m = _ESCAPE_ANY_RE.fullmatch(tag)
+                if any_m:
+                    group = int(any_m.group(1))
+                    code = int(any_m.group(2)[:4], 16)
+                    spec = _ICON_SPECS.get((group, code))
+                    if spec is not None:
+                        out_chars.append('￼')
+                        out_colors.append(current_color)
+                        out_scales.append(current_scale)
+                        icon_spec = dict(spec)
+                        icon_spec.setdefault("width", ICON_TAG_WIDTH)
+                        out_icons[len(out_chars) - 1] = icon_spec
+                        pos = m.end()
+                        continue
 
                 # any other tag is just dropped from the rendered text
                 pos = m.end()
@@ -506,7 +601,8 @@ class GameRules(BaseGameRules):
 
         return ("".join(out_chars),
                 (out_colors if has_color else None),
-                (out_scales if has_scale else None))
+                (out_scales if has_scale else None),
+                (out_icons if out_icons else None))
 
     def get_preview_window_style(self) -> Dict[str, Any]:
         """Visual style of the TP talk window for the game-like preview.

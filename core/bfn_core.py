@@ -418,7 +418,8 @@ class BfnCore:
 
     def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: int = 10,
                     char_spacing: float = 0, colors: Optional[List[Optional[str]]] = None,
-                    scales: Optional[List[float]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
+                    scales: Optional[List[float]] = None,
+                    icons: Optional[Dict[int, Dict[str, Any]]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
         """
         Compute layout positions for each character in text based on current BFN font metrics.
 
@@ -440,6 +441,9 @@ class BfnCore:
         newline positions); each entry is a "#rrggbb" string or None for default.
         scales: optional per-character scale list aligned like colors; each entry
         is a float (1.0 = normal size, from the game's scale tag percent/100).
+        icons: optional dict mapping character index in `text` to an inline icon
+        drawing spec; such characters become icon glyphs advancing by the spec's
+        "width" (default 24 px, the game's do_outfont icon size) times scale.
 
         Returns:
             - List of dictionaries representing laid out glyphs.
@@ -534,7 +538,37 @@ class BfnCore:
                         scale = 1.0
                     if scale <= 0:
                         scale = 1.0
+                icon_spec = icons.get(abs_idx) if icons else None
                 abs_idx += 1
+
+                if icon_spec is not None:
+                    # Inline icon (game do_outfont): 24x24 px box (times scale),
+                    # vertically centered on the line, advance = width*scale
+                    try:
+                        icon_w = float(icon_spec.get("width", 24))
+                    except (TypeError, ValueError):
+                        icon_w = 24.0
+                    size = icon_w * scale
+                    center_y = (baseline - ascent) + cell_h / 2.0
+                    glyphs_layout.append({
+                        "char": char,
+                        "glyph_idx": -1,
+                        "sheet_idx": -1,
+                        "cell_x": 0,
+                        "cell_y": 0,
+                        "draw_x": current_x,
+                        "draw_y": center_y - size / 2.0,
+                        "width": icon_w,
+                        "kerning": 0,
+                        "color": color,
+                        "scale": scale,
+                        "icon": icon_spec,
+                        "is_fallback": False,
+                        "char_pos_idx": char_pos_idx
+                    })
+                    current_x += size + char_spacing
+                    char_pos_idx += 1
+                    continue
 
                 if char == '\t':
                     # J2DPrint tab: advance to the next tab stop relative to line origin
