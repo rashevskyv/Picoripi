@@ -216,6 +216,27 @@ class BaseGameRules:
         aliased = self.replace_tags_with_aliases(str(data_string))
         return aliased.replace('\n', newline_symbol)
 
+    def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]]]:
+        """Prepare raw string text for the visual (BFN) preview renderer.
+
+        Returns (clean_text, per_char_colors). clean_text has all control tags
+        removed; per_char_colors is either None (single default color) or a list
+        aligned with clean_text where each entry is a "#rrggbb" string or None.
+        Plugins override this to substitute dynamic names and map in-game color
+        tags to real text colors.
+        """
+        import re
+        cleaned = str(text)
+        pattern = self.get_spellcheck_ignore_pattern()
+        if pattern:
+            try:
+                cleaned = re.sub(pattern, "", cleaned)
+            except Exception:
+                pass
+        cleaned = re.sub(r'\{[^}]*\}', "", cleaned)
+        cleaned = re.sub(r'\[[^\]]*\]', "", cleaned)
+        return cleaned, None
+
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         """Get the syntax highlighting rules."""
         return []

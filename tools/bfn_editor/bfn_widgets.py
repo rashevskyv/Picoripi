@@ -349,22 +349,8 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
         self.setPos(x_offset, y_offset)
         self.setAcceptHoverEvents(True)
 
-    def boundingRect(self) -> QtCore.QRectF:
-        width = self.viewer.cell_w
-        wid = self.viewer.metadata.get("WID1", [{}])[0]
-        packets = wid.get("packets", [])
-        wid_idx = self.glyph_idx - self.viewer.first_code
-        if 0 <= wid_idx < len(packets):
-            width = packets[wid_idx]["width"]
-            
-        return QtCore.QRectF(-2, -2, width + 4, self.viewer.cell_h + 4)
-
-    def paint(self, painter: QtGui.QPainter, option, widget=None):
-        if self.sheet_idx < 0 or self.sheet_idx >= len(self.viewer.sheet_images):
-            return
-            
-        sheet_img = self.viewer.sheet_images[self.sheet_idx]
-        
+    def _wid_entry(self):
+        """Return (kerning, width) for this glyph from WID1."""
         kerning = 0
         width = self.viewer.cell_w
         wid = self.viewer.metadata.get("WID1", [{}])[0]
@@ -373,31 +359,43 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
         if 0 <= wid_idx < len(packets):
             kerning = packets[wid_idx]["kerning"]
             width = packets[wid_idx]["width"]
-            
-        crop_x = self.cell_x + kerning
-        crop_w = width
-        if crop_w <= 0:
-            crop_w = 1
-            
-        glyph_crop = sheet_img.copy(crop_x, self.cell_y, crop_w, self.viewer.cell_h)
+        return kerning, width
+
+    def boundingRect(self) -> QtCore.QRectF:
+        # The whole font cell is drawn (game-accurate), so cover all of it
+        return QtCore.QRectF(-2, -2, self.viewer.cell_w + 4, self.viewer.cell_h + 4)
+
+    def paint(self, painter: QtGui.QPainter, option, widget=None):
+        if self.sheet_idx < 0 or self.sheet_idx >= len(self.viewer.sheet_images):
+            return
+
+        sheet_img = self.viewer.sheet_images[self.sheet_idx]
+
+        # Draw the full font cell. The layout already shifted this item's
+        # position left by kerning (JUTResFont::drawChar_scale semantics),
+        # so the inked part of the glyph lands exactly on the text cursor.
+        glyph_crop = sheet_img.copy(self.cell_x, self.cell_y,
+                                    self.viewer.cell_w, self.viewer.cell_h)
         painter.drawImage(0, 0, glyph_crop)
-        
+
         if getattr(self.viewer, 'selected_sim_item', None) == self:
+            kerning, width = self._wid_entry()
             pen_border = QtGui.QPen(QtGui.QColor('#00b4d8'))
             pen_border.setWidth(1)
             pen_border.setStyle(QtCore.Qt.PenStyle.DashLine)
             pen_border.setCosmetic(True)
             painter.setPen(pen_border)
-            painter.drawRect(0, 0, width, self.viewer.cell_h)
-            
-            left_x = 0
+            # The advance region starts kerning px into the cell
+            painter.drawRect(kerning, 0, width, self.viewer.cell_h)
+
+            left_x = kerning
             pen_k = QtGui.QPen(QtGui.QColor('#3a86c8'))
             pen_k.setWidth(1)
             pen_k.setCosmetic(True)
             painter.setPen(pen_k)
             painter.drawLine(left_x, 0, left_x, self.viewer.cell_h)
-            
-            right_x = width
+
+            right_x = kerning + width
             pen_w = QtGui.QPen(QtGui.QColor('#e63946'))
             pen_w.setWidth(1)
             pen_w.setCosmetic(True)
@@ -409,17 +407,11 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
             self.viewer.select_sim_glyph(self)
             
             p = event.pos()
-            kerning = 0
-            width = self.viewer.cell_w
-            wid = self.viewer.metadata.get("WID1", [{}])[0]
-            packets = wid.get("packets", [])
-            wid_idx = self.glyph_idx - self.viewer.first_code
-            if 0 <= wid_idx < len(packets):
-                kerning = packets[wid_idx]["kerning"]
-                width = packets[wid_idx]["width"]
-                
-            left_x = 0
-            right_x = width
+            kerning, width = self._wid_entry()
+
+            # Advance region in item coordinates: [kerning, kerning + width]
+            left_x = kerning
+            right_x = kerning + width
             
             scale = self.viewer.sim_view._scale
             tolerance = max(2.0, 8.0 / scale)

@@ -416,9 +416,31 @@ class BfnCore:
 
         return self._qimages_cache
 
-    def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: int = 10) -> Tuple[List[Dict[str, Any]], int, int]:
+    def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: int = 10,
+                    char_spacing: float = 0, colors: Optional[List[Optional[str]]] = None,
+                    scales: Optional[List[float]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
         """
         Compute layout positions for each character in text based on current BFN font metrics.
+
+        The placement algorithm is ported from the Twilight Princess message renderer
+        (dusklight: J2DPrint::parse + JUTResFont::drawChar_scale/getWidthEntry,
+        jmessage_tRenderingProcessor::do_character/do_scale):
+          - the horizontal advance of a glyph is its WID1 width (times the active
+            scale) plus char_spacing; char_spacing itself is NOT scaled, exactly
+            like the game's charSpace;
+          - a glyph quad is a full font cell drawn at (cursor - kerning*scale), so
+            wide glyphs may overhang their advance exactly like in game;
+          - lines are baseline-aligned: the first baseline sits at ascent below the
+            origin and each newline advances by INF1 leading plus line_spacing;
+          - a scaled glyph is vertically centered on the normal line box, matching
+            the game's do_scale/do_transY half-height adjustment;
+          - tab stops every (default_width * 4) pixels, as in J2DPrint.
+
+        colors: optional per-character color list aligned with `text` (including
+        newline positions); each entry is a "#rrggbb" string or None for default.
+        scales: optional per-character scale list aligned like colors; each entry
+        is a float (1.0 = normal size, from the game's scale tag percent/100).
+
         Returns:
             - List of dictionaries representing laid out glyphs.
             - total width of text block
@@ -428,6 +450,10 @@ class BfnCore:
             line_spacing = int(line_spacing)
         except (TypeError, ValueError):
             line_spacing = 10
+        try:
+            char_spacing = float(char_spacing)
+        except (TypeError, ValueError):
+            char_spacing = 0.0
 
         glyphs_layout = []
         if not self.gly1 or not self.map1 or not self.wid1:
@@ -440,6 +466,16 @@ class BfnCore:
         rows = gly["glyph_vertical_count"]
         start_glyph = gly["start_glyph"]
         end_glyph = gly["end_glyph"]
+
+        # Font metrics from INF1 (JUTFont ascent/descent/leading semantics)
+        inf = self.inf1[0] if self.inf1 else {}
+        ascent = inf.get("ascent", 0) or cell_h
+        descent = inf.get("descent", 0)
+        leading = inf.get("leading", 0)
+        default_width = inf.get("width", 0) or cell_w
+        if leading <= 0:
+            leading = cell_h
+        tab_size = default_width * 4
 
         wid = self.wid1[0]
         first_code = wid["first_code_included"]
@@ -459,7 +495,7 @@ class BfnCore:
         m_first = m1["first_char"]
         m_last = m1["last_char"]
         entries = m1["entries"]
-        
+
         if m_type == 0:
             for idx in range(m_first, m_last + 1):
                 char_to_glyph[code_to_char(idx)] = idx - m_first
@@ -474,19 +510,36 @@ class BfnCore:
                 g_idx = entries[half + k]
                 char_to_glyph[code_to_char(code)] = g_idx
 
-        lines = text.split('\n')
-        current_y = 15 # Match simulator's padding of 15px
+        pad = 15  # Match simulator's padding of 15px
+        line_advance = leading + line_spacing
+        baseline = pad + ascent
         total_width = 0
         char_pos_idx = 0
+        abs_idx = 0  # index into `text` for color lookup
 
-        for line in lines:
-            current_x = 15 # Match simulator's padding of 15px
+        lines = text.split('\n')
+        for line_no, line in enumerate(lines):
+            if line_no > 0:
+                abs_idx += 1  # the '\n' consumed by split
+            current_x = float(pad)
             for char in line:
-                if char == ' ':
-                    current_x += cell_w // 2
-                    continue
-                elif char == '\t':
-                    current_x += cell_w * 2
+                color = None
+                if colors and abs_idx < len(colors):
+                    color = colors[abs_idx]
+                scale = 1.0
+                if scales and abs_idx < len(scales):
+                    try:
+                        scale = float(scales[abs_idx])
+                    except (TypeError, ValueError):
+                        scale = 1.0
+                    if scale <= 0:
+                        scale = 1.0
+                abs_idx += 1
+
+                if char == '\t':
+                    # J2DPrint tab: advance to the next tab stop relative to line origin
+                    rel = current_x - pad
+                    current_x = pad + tab_size * (int(rel / tab_size) + 1)
                     continue
 
                 glyph_idx = char_to_glyph.get(char, -1)
@@ -495,25 +548,31 @@ class BfnCore:
                     if fallback_char:
                         glyph_idx = char_to_glyph.get(fallback_char, -1)
 
-                is_fallback = False
+                # A scaled glyph is vertically centered on the normal line box
+                # (game: do_scale shifts by half the font height difference)
+                draw_y = (baseline - ascent) + (1.0 - scale) * cell_h / 2.0
+
                 if glyph_idx == -1 or glyph_idx > end_glyph:
-                    is_fallback = True
-                    # Let's assign fallback size
-                    width = cell_w // 2
-                    glyphs_layout.append({
-                        "char": char,
-                        "glyph_idx": -1,
-                        "sheet_idx": -1,
-                        "cell_x": 0,
-                        "cell_y": 0,
-                        "draw_x": current_x,
-                        "draw_y": current_y,
-                        "width": width,
-                        "kerning": 0,
-                        "is_fallback": True,
-                        "char_pos_idx": char_pos_idx
-                    })
-                    current_x += width
+                    # Unmapped character: advance by the INF1 default width like
+                    # the game's fallback glyph. Space just advances silently.
+                    width = default_width
+                    if char != ' ':
+                        glyphs_layout.append({
+                            "char": char,
+                            "glyph_idx": -1,
+                            "sheet_idx": -1,
+                            "cell_x": 0,
+                            "cell_y": 0,
+                            "draw_x": current_x,
+                            "draw_y": draw_y,
+                            "width": width,
+                            "kerning": 0,
+                            "color": color,
+                            "scale": scale,
+                            "is_fallback": True,
+                            "char_pos_idx": char_pos_idx
+                        })
+                    current_x += width * scale + char_spacing
                     char_pos_idx += 1
                     continue
 
@@ -540,23 +599,28 @@ class BfnCore:
                     "sheet_idx": sheet_idx,
                     "cell_x": cell_x,
                     "cell_y": cell_y,
-                    "draw_x": current_x,
-                    "draw_y": current_y,
+                    # JUTResFont::drawChar_scale shifts the full-cell quad left by kerning
+                    "draw_x": current_x - kerning * scale,
+                    "draw_y": draw_y,
                     "width": width,
                     "kerning": kerning,
+                    "color": color,
+                    "scale": scale,
                     "is_fallback": False,
                     "char_pos_idx": char_pos_idx
                 })
 
-                current_x += width
+                # game: advance = charSpace + width * scale (charSpace unscaled)
+                current_x += width * scale + char_spacing
                 char_pos_idx += 1
 
-            if current_x - 15 > total_width:
-                total_width = current_x - 15
-            current_y += cell_h + line_spacing
+            if current_x - pad > total_width:
+                total_width = current_x - pad
+            if line_no < len(lines) - 1:
+                baseline += line_advance
 
-        total_height = current_y - line_spacing - 15
+        total_height = (baseline + max(descent, cell_h - ascent)) - pad
         if total_height < 0:
             total_height = 0
 
-        return glyphs_layout, total_width, total_height
+        return glyphs_layout, int(round(total_width)), int(round(total_height))

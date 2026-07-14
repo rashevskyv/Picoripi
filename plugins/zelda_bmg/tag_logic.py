@@ -10,7 +10,9 @@ TAG_STATUS_WARNING = "WARNING"
 
 ANY_TAG_PATTERN_BMG = re.compile(r'\{[^}]*\}')
 PLAYER_TAG_BMG = "{PLAYER}"
-COLOR_TAG_PATTERN_BMG = re.compile(r"\{COLOR_[^}]+\}", re.IGNORECASE)
+# Matches all forms a TP color switch can take in editor text:
+# raw escape ({escape:255:000001}), alias ({color:red}) and legacy ({COLOR_RED})
+COLOR_TAG_PATTERN_BMG = re.compile(r"\{COLOR[_:][^}]+\}|\{escape:255:[0-9a-fA-F]+\}", re.IGNORECASE)
 
 def _analyze_tags_for_issues_zbmg(processed_text: str, original_text: str) -> Tuple[str, str]:
     """Internal helper to analyze tags for issues zbmg."""

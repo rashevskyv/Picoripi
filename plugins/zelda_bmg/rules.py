@@ -29,6 +29,49 @@ from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from .tag_logic import process_segment_tags_aggressively_zbmg
 
+# In-game text color table from the Twilight Princess message renderer
+# (dusklight src/d/d_msg_class.cpp, getFontCCColorTable). Index is the byte
+# argument of the {escape:255:0000XX} color tag; None = default (white).
+TP_COLOR_TABLE = {
+    0: None,        # white (default)
+    1: "#f07878",   # red
+    2: "#aadc8c",   # green
+    3: "#a0b4dc",   # blue
+    4: "#dcdc82",   # yellow
+    5: "#b4c8e6",   # light blue
+    6: "#c8a0dc",   # purple
+    7: None,        # white
+    8: "#dcaa78",   # orange
+}
+
+# Friendly color names for alias/legacy tags -> color index in TP_COLOR_TABLE
+TP_COLOR_NAMES = {
+    "white": 0,
+    "default": 0,
+    "red": 1,
+    "green": 2,
+    "blue": 3,
+    "yellow": 4,
+    "light_blue": 5,
+    "purple": 6,
+    "white2": 7,
+    "orange": 8,
+    # legacy names from earlier plugin versions
+    "grey": 5,
+    "gray": 5,
+}
+
+# {COLOR_RED}/{color:red} style tags (alias/legacy forms)
+_COLOR_TAG_RE = re.compile(r'\{(?:COLOR_|color:)([A-Za-z_0-9]+)\}')
+# Raw BMG escape form of a color switch: group 255, data = 2-byte code + index byte
+_ESCAPE_COLOR_RE = re.compile(r'\{escape:255:0000([0-9a-fA-F]{2})\}')
+# Raw BMG escape form of the text scale tag (MSGTAG_SCALE): group 255, code 1,
+# argument = u16 scale in percent (e.g. 0096 = 150%)
+_ESCAPE_SCALE_RE = re.compile(r'\{escape:255:0001([0-9a-fA-F]{4})\}')
+# Friendly editor form of the scale tag: {scale:150} (percent)
+_SCALE_TAG_RE = re.compile(r'\{scale:(\d{1,4})\}')
+
+
 class ProblemIDs:
     """Problem i ds implementation."""
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
@@ -389,6 +432,81 @@ class GameRules(BaseGameRules):
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
         from utils.utils import calculate_string_width
         return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
+
+    def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]], Optional[List[float]]]:
+        """Convert editor text into renderable text + per-char colors and scales
+        for the visual preview, mimicking the TP message processor:
+          - dynamic name escape tags are substituted with their runtime names
+            (Link / Epona), like the game does when building a message;
+          - color tags ({escape:255:0000XX} / {color:*} / {COLOR_*}) switch the
+            active text color using the original game's color table
+            (d_msg_class.cpp, getFontCCColorTable);
+          - scale tags ({escape:255:0001XXXX} / {scale:NNN}, percent) switch the
+            active text scale (do_scale); like in game, a scale above 1.0 resets
+            back to 1.0 at the end of the line (do_character newline handling);
+          - all remaining {...} tags are dropped from the rendered text.
+        """
+        raw = str(text)
+        for tag, name in self.get_dynamic_name_tags().items():
+            raw = raw.replace(tag, name)
+
+        out_chars: List[str] = []
+        out_colors: List[Optional[str]] = []
+        out_scales: List[float] = []
+        current_color: Optional[str] = None
+        current_scale = 1.0
+        has_color = False
+        has_scale = False
+        pos = 0
+        tag_re = re.compile(r'\{[^}]*\}')
+        while pos < len(raw):
+            m = tag_re.match(raw, pos)
+            if m:
+                tag = m.group(0)
+                color_idx = None
+                esc_m = _ESCAPE_COLOR_RE.fullmatch(tag)
+                if esc_m:
+                    color_idx = int(esc_m.group(1), 16)
+                else:
+                    name_m = _COLOR_TAG_RE.fullmatch(tag)
+                    if name_m:
+                        color_idx = TP_COLOR_NAMES.get(name_m.group(1).lower())
+                if color_idx is not None:
+                    current_color = TP_COLOR_TABLE.get(color_idx)
+                    if current_color:
+                        has_color = True
+                    pos = m.end()
+                    continue
+
+                scale_m = _ESCAPE_SCALE_RE.fullmatch(tag)
+                percent = None
+                if scale_m:
+                    percent = int(scale_m.group(1), 16)
+                else:
+                    friendly_m = _SCALE_TAG_RE.fullmatch(tag)
+                    if friendly_m:
+                        percent = int(friendly_m.group(1))
+                if percent is not None and percent > 0:
+                    current_scale = percent / 100.0
+                    if current_scale != 1.0:
+                        has_scale = True
+
+                # any other tag is just dropped from the rendered text
+                pos = m.end()
+                continue
+
+            char = raw[pos]
+            out_chars.append(char)
+            out_colors.append(current_color)
+            out_scales.append(current_scale)
+            if char == '\n' and current_scale > 1.0:
+                # game rule: enlarged text reverts to normal size on newline
+                current_scale = 1.0
+            pos += 1
+
+        return ("".join(out_chars),
+                (out_colors if has_color else None),
+                (out_scales if has_scale else None))
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
         """Get the text representation for preview."""

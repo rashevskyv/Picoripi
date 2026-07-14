@@ -15,10 +15,24 @@ class BfnSimMixin:
         text = self.sim_input.toPlainText()
         self.sim_scene.clear()
         self.selected_sim_item = None
-        
+
         if not text:
             return
-            
+
+        # Strip game control tags via the active plugin (same as the preview),
+        # so raw {escape:...} tags are not rendered as literal glyphs
+        parent_mw = self.parent() if hasattr(self, 'parent') else None
+        rules = getattr(parent_mw, 'current_game_rules', None) if parent_mw else None
+        if rules is not None and hasattr(rules, 'prepare_preview_glyph_text'):
+            try:
+                result = rules.prepare_preview_glyph_text(text)
+                if isinstance(result, tuple) and result and isinstance(result[0], str):
+                    text = result[0]
+            except Exception:
+                pass
+        if not text:
+            return
+
         from core.bfn_core import BfnCore
         # Construct temporary BfnCore to execute layout calculations
         bfn_temp = BfnCore()
@@ -91,28 +105,30 @@ class BfnSimMixin:
 
     def reposition_simulation_items(self):
         items = [item for item in self.sim_scene.items() if isinstance(item, SimGlyphItem)]
-        items.sort(key=lambda x: (x.y_offset, x.x_offset))
+        items.sort(key=lambda x: (x.y_offset, x.char_pos_idx))
         
         wid = self.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
         
         current_y = -1
         current_x = 15
-        
+
         for item in items:
             if current_y == -1 or item.y_offset != current_y:
                 current_y = item.y_offset
                 current_x = 15
-                
-            item.setPos(current_x, current_y)
-            
+
+            kerning = 0
             width = self.cell_w
             wid_idx = item.glyph_idx - self.first_code
             if 0 <= wid_idx < len(packets):
+                kerning = packets[wid_idx]["kerning"]
                 width = packets[wid_idx]["width"]
-                
+
+            # Full cell is drawn shifted left by kerning; cursor advances by width
+            item.setPos(current_x - kerning, current_y)
             current_x += width
-            
+
         self.sim_scene.setSceneRect(self.sim_scene.itemsBoundingRect())
 
     def show_sim_input_context_menu(self, pos):

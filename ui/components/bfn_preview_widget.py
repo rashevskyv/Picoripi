@@ -1,6 +1,7 @@
 import json
 import math
 import re
+from collections import OrderedDict
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
                              QColorDialog, QVBoxLayout, QPushButton, QFrame, QDialog)
@@ -257,10 +258,10 @@ class BfnEditorAdapter:
         """Get the sheets qimages."""
         return self.editor.sheet_images
 
-    def layout_text(self, text: str, translation_map = None, line_spacing: int = 10):
+    def layout_text(self, text: str, translation_map = None, line_spacing: int = 10, **kwargs):
         """Layout text."""
         from core.bfn_core import BfnCore
-        return BfnCore.layout_text(self, text, translation_map, line_spacing)
+        return BfnCore.layout_text(self, text, translation_map, line_spacing, **kwargs)
 
 class BfnPreviewWidget(QWidget):
     """Widget component for bfn preview."""
@@ -811,12 +812,15 @@ class BfnPreviewWidget(QWidget):
 
     # ── Offscreen glyph rendering ─────────────────────────────────────────────
 
-    def _render_glyphs_to_image(self, glyphs, sheets, cell_h, fallback_font,
+    def _render_glyphs_to_image(self, glyphs, sheets, cell_w, cell_h, fallback_font,
                                 fallback_fm, total_width, total_height,
                                 scale_factor, img_size: QSize) -> QImage:
         """
         Render all glyphs onto a transparent QImage of img_size.
         The painter transform (translate + scale) is applied identically to paintEvent.
+        Glyphs are blitted as full font cells at their kerning-adjusted position,
+        matching the in-game renderer (JUTResFont::drawChar_scale) instead of
+        cropping the cell to the advance width.
         Returns a QImage with Format_ARGB32_Premultiplied for composition.
         """
         img = QImage(img_size, QImage.Format.Format_ARGB32_Premultiplied)
@@ -828,11 +832,12 @@ class BfnPreviewWidget(QWidget):
             p.translate(-15, -15)
 
             for g in glyphs:
+                g_scale = g.get("scale", 1.0) or 1.0
                 if g["is_fallback"]:
                     p.save()
                     p.setPen(QPen(QColor("#ffffff"), 1))
-                    box_w = g["width"] - 2 if g["width"] > 2 else 10
-                    p.drawRect(QRectF(g["draw_x"] + 1, g["draw_y"] + 1, box_w, cell_h - 2))
+                    box_w = g["width"] * g_scale - 2 if g["width"] * g_scale > 2 else 10
+                    p.drawRect(QRectF(g["draw_x"] + 1, g["draw_y"] + 1, box_w, cell_h * g_scale - 2))
                     p.restore()
                     continue
 
@@ -840,12 +845,9 @@ class BfnPreviewWidget(QWidget):
                     continue
 
                 sheet_img = sheets[g["sheet_idx"]]
-                crop_x = g["cell_x"] + g["kerning"]
-                crop_w = g["width"]
-                if crop_w <= 0:
-                    crop_w = 1
-                p.drawImage(g["draw_x"], g["draw_y"], sheet_img,
-                            crop_x, g["cell_y"], crop_w, cell_h)
+                p.drawImage(QRectF(g["draw_x"], g["draw_y"], cell_w * g_scale, cell_h * g_scale),
+                            sheet_img,
+                            QRectF(g["cell_x"], g["cell_y"], cell_w, cell_h))
         finally:
             p.end()
         return img
@@ -870,6 +872,37 @@ class BfnPreviewWidget(QWidget):
         finally:
             tp.end()
         return tint
+
+    def _prepare_render_text(self):
+        """Clean tags from the current text via the active plugin hook.
+
+        Returns (clean_text, per_char_colors|None, per_char_scales|None).
+        Plugins (e.g. zelda_bmg) substitute dynamic names and translate
+        in-game color/scale tags here; the hook may return a 2- or 3-tuple.
+        """
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules and hasattr(rules, 'prepare_preview_glyph_text'):
+            try:
+                result = rules.prepare_preview_glyph_text(self.text)
+                if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[0], str):
+                    clean = result[0]
+                    colors = result[1]
+                    scales = result[2] if len(result) >= 3 else None
+                    return clean, colors, scales
+            except Exception:
+                pass
+
+        cleaned_text = self.text
+        if rules and hasattr(rules, 'get_spellcheck_ignore_pattern'):
+            pattern = rules.get_spellcheck_ignore_pattern()
+            if pattern:
+                try:
+                    cleaned_text = re.sub(pattern, "", cleaned_text)
+                except Exception:
+                    pass
+        cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
+        cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
+        return cleaned_text, None, None
 
     # ── paintEvent ────────────────────────────────────────────────────────────
 
@@ -920,20 +953,9 @@ class BfnPreviewWidget(QWidget):
                 font = painter.font()
                 font.setPointSize(12)
                 painter.setFont(font)
-                
-                cleaned_text = self.text
-                rules = getattr(self.mw, 'current_game_rules', None)
-                if rules:
-                    if hasattr(rules, 'get_spellcheck_ignore_pattern'):
-                        pattern = rules.get_spellcheck_ignore_pattern()
-                        if pattern:
-                            try:
-                                cleaned_text = re.sub(pattern, "", cleaned_text)
-                            except Exception:
-                                pass
-                cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
-                cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
-                
+
+                cleaned_text, _, _ = self._prepare_render_text()
+
                 painter.drawText(abs_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap, cleaned_text)
             else:
                 painter.setPen(QColor("#777777"))
@@ -957,21 +979,9 @@ class BfnPreviewWidget(QWidget):
         # Reload translation map to ensure dynamic updates
         self.load_translation_map()
 
-        # Clean tags from text before rendering
-        cleaned_text = self.text
-        rules = getattr(self.mw, 'current_game_rules', None)
-        if rules:
-            if hasattr(rules, 'get_spellcheck_ignore_pattern'):
-                pattern = rules.get_spellcheck_ignore_pattern()
-                if pattern:
-                    try:
-                        cleaned_text = re.sub(pattern, "", cleaned_text)
-                    except Exception:
-                        pass
-        cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
-        cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
-
-        encoded_text = cleaned_text
+        # Clean tags from text before rendering (plugin hook may also
+        # substitute dynamic names and produce per-character colors/scales)
+        cleaned_text, char_colors, char_scales = self._prepare_render_text()
 
         # Extract glyph metrics
         gly = bfn.gly1[0]
@@ -986,7 +996,10 @@ class BfnPreviewWidget(QWidget):
         # Call unified layout engine via the BfnCore implementation.
         from core.bfn_core import BfnCore
         glyphs, total_width, total_height = BfnCore.layout_text(
-            bfn, encoded_text, self.translation_map, self.line_spacing
+            bfn, cleaned_text, self.translation_map, self.line_spacing,
+            char_spacing=getattr(self.mw, 'preview_char_spacing', 0),
+            colors=char_colors,
+            scales=char_scales
         )
 
         if not glyphs:
@@ -995,17 +1008,29 @@ class BfnPreviewWidget(QWidget):
             self.draw_bounding_box(painter)
             return
 
-        # Determine scaling factor to fit text within text_rect preserving aspect ratio
-        scale_factor = 1.0
-        if total_width > 0 and total_height > 0:
-            if self.fix_font_scale:
-                scale_factor = self.fixed_font_scale
+        # Determine scaling factor. Like the game, text has a FIXED size that
+        # does not depend on how much text there is: the text area represents a
+        # message box of lines_per_page lines (TP talk box: 4), so one page of
+        # text exactly fills the box height. Short/long strings no longer jump
+        # between huge and tiny.
+        if self.fix_font_scale:
+            scale_factor = self.fixed_font_scale
+        else:
+            inf = bfn.inf1[0] if getattr(bfn, 'inf1', None) else {}
+            leading = inf.get("leading", 0) or cell_h
+            line_advance = leading + self.line_spacing
+            lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+            if not isinstance(lines_per_page, (int, float)) or lines_per_page <= 0:
+                lines_per_page = 4
+            page_height = lines_per_page * line_advance
+            if page_height > 0:
+                scale_factor = abs_rect.height() / page_height
+            elif total_width > 0 and total_height > 0:
+                scale_factor = min(abs_rect.width() / total_width,
+                                   abs_rect.height() / total_height)
             else:
-                scale_x = abs_rect.width() / total_width
-                scale_y = abs_rect.height() / total_height
-                scale_factor = min(scale_x, scale_y)
-            
-            self._last_computed_scale_factor = scale_factor
+                scale_factor = 1.0
+        self._last_computed_scale_factor = scale_factor
 
         # Offscreen image size: same as abs_rect
         img_size = QSize(abs_rect.width(), abs_rect.height())
@@ -1013,7 +1038,7 @@ class BfnPreviewWidget(QWidget):
         # ── 2a. Outer Glow pass ───────────────────────────────────────────────
         if self.glow_enabled and self.glow_spread > 0 and self.glow_alpha > 0:
             glow_img = self._render_glyphs_to_image(
-                glyphs, sheets, cell_h, fallback_font, fallback_fm,
+                glyphs, sheets, cell_w, cell_h, fallback_font, fallback_fm,
                 total_width, total_height, scale_factor, img_size
             )
             tinted_glow = self._tint_image(glow_img, self.glow_color, self.glow_alpha)
@@ -1037,7 +1062,7 @@ class BfnPreviewWidget(QWidget):
         # ── 2b. Drop Shadow pass ──────────────────────────────────────────────
         if self.shadow_enabled and self.shadow_alpha > 0:
             shadow_img = self._render_glyphs_to_image(
-                glyphs, sheets, cell_h, fallback_font, fallback_fm,
+                glyphs, sheets, cell_w, cell_h, fallback_font, fallback_fm,
                 total_width, total_height, scale_factor, img_size
             )
             tinted_shadow = self._tint_image(shadow_img, self.shadow_color, self.shadow_alpha)
@@ -1049,13 +1074,22 @@ class BfnPreviewWidget(QWidget):
 
             painter.drawImage(abs_rect.x() + sdx, abs_rect.y() + sdy, tinted_shadow)
 
-        # ── 2c. Main glyphs pass (tinted with text_color) ────────────────────
-        main_img = self._render_glyphs_to_image(
-            glyphs, sheets, cell_h, fallback_font, fallback_fm,
-            total_width, total_height, scale_factor, img_size
-        )
-        tinted_main = self._tint_image(main_img, self.text_color, 255)
-        painter.drawImage(abs_rect.x(), abs_rect.y(), tinted_main)
+        # ── 2c. Main glyphs pass ──────────────────────────────────────────────
+        # Glyphs are grouped by their color (set by in-game color tags via the
+        # plugin hook); each group is rendered and tinted separately.
+        color_groups = OrderedDict()
+        for g in glyphs:
+            color_groups.setdefault(g.get("color") or self.text_color, []).append(g)
+        if not color_groups:
+            color_groups[self.text_color] = []
+
+        for group_color, group_glyphs in color_groups.items():
+            group_img = self._render_glyphs_to_image(
+                group_glyphs, sheets, cell_w, cell_h, fallback_font, fallback_fm,
+                total_width, total_height, scale_factor, img_size
+            )
+            tinted_group = self._tint_image(group_img, group_color, 255)
+            painter.drawImage(abs_rect.x(), abs_rect.y(), tinted_group)
 
         # ── 3. Bounding box overlay ───────────────────────────────────────────
         self.draw_bounding_box(painter)
