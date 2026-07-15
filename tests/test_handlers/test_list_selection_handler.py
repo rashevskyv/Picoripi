@@ -413,40 +413,30 @@ def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_different_str
 
 
 def test_ListSelectionHandler_toggle_hide_tags_global(handler):
-    # Setup checkbox mocks
+    # The single visible checkbox controls all text panels.
     mock_orig_checkbox = MagicMock()
-    mock_trans_checkbox = MagicMock()
     handler.mw.hide_original_tags_checkbox = mock_orig_checkbox
-    handler.mw.hide_translation_tags_checkbox = mock_trans_checkbox
 
-    # Scenario 1: Both unchecked -> should turn BOTH checked (True)
+    # Scenario 1: unchecked -> checked
     mock_orig_checkbox.isChecked.return_value = False
-    mock_trans_checkbox.isChecked.return_value = False
-    
+
     handler.toggle_hide_tags_global()
-    
+
     mock_orig_checkbox.setChecked.assert_called_with(True)
-    mock_trans_checkbox.setChecked.assert_called_with(True)
 
-    # Reset mocks
+    # Scenario 2: checked -> unchecked
     mock_orig_checkbox.setChecked.reset_mock()
-    mock_trans_checkbox.setChecked.reset_mock()
-
-    # Scenario 2: At least one checked (original checked) -> should turn BOTH unchecked (False)
     mock_orig_checkbox.isChecked.return_value = True
-    mock_trans_checkbox.isChecked.return_value = False
-    
-    handler.toggle_hide_tags_global()
-    
-    mock_orig_checkbox.setChecked.assert_called_with(False)
-    mock_trans_checkbox.setChecked.assert_called_with(False)
 
-    # Scenario 3: Checkboxes are not present (tests direct datastore updates)
+    handler.toggle_hide_tags_global()
+
+    mock_orig_checkbox.setChecked.assert_called_with(False)
+
+    # Scenario 3: no checkbox present -> update both settings directly
     del handler.mw.hide_original_tags_checkbox
-    del handler.mw.hide_translation_tags_checkbox
     handler.mw.data_store.hide_original_tags = False
     handler.mw.data_store.hide_translation_tags = False
-    
+
     handler.mw.helper = MagicMock()
     handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.current_category_name = "test_cat"
@@ -457,6 +447,22 @@ def test_ListSelectionHandler_toggle_hide_tags_global(handler):
     assert handler.mw.data_store.hide_translation_tags is True
     handler.mw.helper.reconfigure_all_highlighters.assert_called_once()
     handler.ui_updater.populate_strings_for_block.assert_called_with(0, "test_cat")
+
+
+def test_ListSelectionHandler_hide_tags_checkbox_updates_all_panels(handler):
+    handler.mw.data_store.hide_original_tags = False
+    handler.mw.data_store.hide_translation_tags = False
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.current_category_name = "test_cat"
+    handler.mw.helper = MagicMock()
+
+    handler.toggle_hide_original_tags(True)
+
+    assert handler.mw.data_store.hide_original_tags is True
+    assert handler.mw.data_store.hide_translation_tags is True
+    handler.mw.helper.reconfigure_all_highlighters.assert_called_once()
+    handler.ui_updater.populate_strings_for_block.assert_called_once_with(0, "test_cat")
+    handler.data_processor.schedule_autosave.assert_called_once()
 
 
 def test_ListSelectionHandler_handle_virtual_row_selection(handler):

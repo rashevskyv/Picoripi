@@ -196,6 +196,17 @@ class LayoutBuilder:
         left_header_layout.setSpacing(0)
 
         original_tools_layout = QHBoxLayout()
+        original_tools_layout.setContentsMargins(0, 0, 0, 0)
+        original_tools_layout.setSpacing(6)
+
+        original_tools_layout.addWidget(QLabel("Max-width:"))
+        self.mw.original_width_label = QLabel("")
+        self.mw.original_width_label.setObjectName("original_width_value")
+        self.mw.original_width_label.setStyleSheet(
+            "QLabel#original_width_value { font-weight: bold; padding: 1px 6px; "
+            "border: 1px solid palette(mid); border-radius: 3px; }"
+        )
+        original_tools_layout.addWidget(self.mw.original_width_label)
         original_tools_layout.addStretch(1)
 
         self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
@@ -206,16 +217,8 @@ class LayoutBuilder:
         left_header_layout.addStretch(1)
 
         original_header_layout = QHBoxLayout()
-        original_header_layout.addWidget(QLabel("Original (Read-Only):"))
-        original_header_layout.addSpacing(12)
-        original_header_layout.addWidget(QLabel("Max-width:"))
-        self.mw.original_width_label = QLabel("")
-        self.mw.original_width_label.setObjectName("original_width_value")
-        self.mw.original_width_label.setStyleSheet(
-            "QLabel#original_width_value { font-weight: bold; padding: 1px 6px; "
-            "border: 1px solid palette(mid); border-radius: 3px; }"
-        )
-        original_header_layout.addWidget(self.mw.original_width_label)
+        original_header_layout.setContentsMargins(0, 0, 0, 0)
+        original_header_layout.addWidget(self._create_editor_title_label("Original"))
         original_header_layout.addStretch(1)
 
         left_header_layout.addLayout(original_header_layout)
@@ -354,8 +357,20 @@ class LayoutBuilder:
 
         control_height = 30
 
-        # Tools Header
+        # Action row: message-window context and actions for the current string.
         editable_text_header_layout = QHBoxLayout()
+        editable_text_header_layout.setContentsMargins(0, 0, 0, 0)
+        editable_text_header_layout.setSpacing(4)
+
+        # Current message window type (derived from game data by the plugin)
+        self.mw.window_kind_label = QLabel("")
+        self.mw.window_kind_label.setObjectName("window_kind_label")
+        self.mw.window_kind_label.setStyleSheet(
+            "QLabel#window_kind_label { color: #8a63d2; font-weight: bold; padding-left: 5px; }")
+        self.mw.window_kind_label.setToolTip(
+            "Message window type from the game data (drives width limits, font and pagination)")
+        self.mw.window_kind_label.setVisible(False)
+        editable_text_header_layout.addWidget(self.mw.window_kind_label)
         editable_text_header_layout.addStretch(1)
 
         self.mw.navigate_down_button = QPushButton()
@@ -390,25 +405,11 @@ class LayoutBuilder:
         string_settings_layout = QHBoxLayout(string_settings_panel)
         string_settings_layout.setContentsMargins(0, 4, 0, 4)
 
-        message_context_layout = QVBoxLayout()
-        message_context_layout.setContentsMargins(0, 0, 0, 0)
-        message_context_layout.setSpacing(2)
-
         self.mw.speaker_label = QLabel("")
         self.mw.speaker_label.setObjectName("speaker_label")
         self.mw.speaker_label.setStyleSheet("QLabel#speaker_label { font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px; }")
         self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
         self.mw.speaker_label.setVisible(False)
-
-        # Current message window type (derived from game data by the plugin)
-        self.mw.window_kind_label = QLabel("")
-        self.mw.window_kind_label.setObjectName("window_kind_label")
-        self.mw.window_kind_label.setStyleSheet(
-            "QLabel#window_kind_label { color: #8a63d2; font-weight: bold; padding-left: 5px; }")
-        self.mw.window_kind_label.setToolTip(
-            "Message window type from the game data (drives width limits, font and pagination)")
-        self.mw.window_kind_label.setVisible(False)
-        message_context_layout.addWidget(self.mw.window_kind_label)
 
         # Speaker Assignment ComboBox
         speaker_layout = QHBoxLayout()
@@ -424,8 +425,7 @@ class LayoutBuilder:
         self.mw.speaker_combobox.setFixedHeight(control_height)
         self.mw.speaker_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         speaker_layout.addWidget(self.mw.speaker_combobox, 1)
-        message_context_layout.addLayout(speaker_layout)
-        string_settings_layout.addLayout(message_context_layout, 1)
+        string_settings_layout.addLayout(speaker_layout, 1)
 
         string_settings_layout.addSpacing(16)
         string_settings_layout.addWidget(QLabel("Font:"))
@@ -449,7 +449,14 @@ class LayoutBuilder:
             set_from_original_action = menu.addAction("Set Width from Original")
             action = menu.exec(self.mw.width_spinbox.mapToGlobal(pos))
             if action == reset_action:
-                self.mw.width_spinbox.setValue(getattr(self.mw, 'game_dialog_max_width_pixels', 300))
+                block_idx = self.mw.data_store.physical_block_idx
+                string_idx = self.mw.data_store.current_string_idx
+                handler = getattr(self.mw, "string_settings_handler", None)
+                if handler is not None and block_idx != -1 and string_idx != -1:
+                    default_width = handler.get_default_width_for_string(block_idx, string_idx)
+                else:
+                    default_width = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
+                self.mw.width_spinbox.setValue(default_width)
             elif action == set_from_original_action:
                 block_idx = self.mw.data_store.current_block_idx
                 string_idx = self.mw.data_store.current_string_idx
@@ -483,7 +490,8 @@ class LayoutBuilder:
         right_header_layout.addWidget(string_settings_panel)
 
         editable_title_layout = QHBoxLayout()
-        editable_title_layout.addWidget(QLabel("Editable Text:"))
+        editable_title_layout.setContentsMargins(0, 0, 0, 0)
+        editable_title_layout.addWidget(self._create_editor_title_label("Editable"))
         editable_title_layout.addStretch(1)
         right_header_layout.addLayout(editable_title_layout)
         bottom_right_layout.addWidget(self.mw.right_header_container)
@@ -534,6 +542,12 @@ class LayoutBuilder:
         btn.setToolTip(tooltip)
         btn.setFixedSize(28, 28)
         return btn
+
+    def _create_editor_title_label(self, text):
+        """Create the lightweight standalone title used immediately above an editor."""
+        label = QLabel(text)
+        label.setStyleSheet("QLabel { color: #000000; font-size: 11px; padding: 1px 0; }")
+        return label
 
     def _create_toolbar_button(self, text, tooltip):
         """Internal helper to create toolbar button."""

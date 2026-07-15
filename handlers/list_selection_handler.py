@@ -1158,10 +1158,16 @@ class ListSelectionHandler(BaseHandler):
 
 
     def toggle_hide_original_tags(self, checked: bool) -> None:
-        """Toggle hiding of tags in the original text edit."""
+        """Toggle hiding of tags in every text panel from the single UI control."""
         self.mw.data_store.hide_original_tags = checked
+        self.mw.data_store.hide_translation_tags = checked
         if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
             self.mw.helper.reconfigure_all_highlighters()
+        if self.mw.data_store.current_block_idx != -1:
+            self.ui_updater.populate_strings_for_block(
+                self.mw.data_store.current_block_idx,
+                self.mw.data_store.current_category_name,
+            )
         self.data_processor.schedule_autosave()
 
     def toggle_hide_translation_tags(self, checked: bool) -> None:
@@ -1175,25 +1181,15 @@ class ListSelectionHandler(BaseHandler):
 
     def toggle_hide_tags_global(self) -> None:
         """Toggle hiding of tags globally for both original and translation."""
-        orig_checked = self.mw.hide_original_tags_checkbox.isChecked() if getattr(self.mw, 'hide_original_tags_checkbox', None) else self.mw.data_store.hide_original_tags
-        trans_checked = self.mw.hide_translation_tags_checkbox.isChecked() if getattr(self.mw, 'hide_translation_tags_checkbox', None) else self.mw.data_store.hide_translation_tags
+        checkbox = getattr(self.mw, 'hide_original_tags_checkbox', None)
+        current_state = checkbox.isChecked() if checkbox else self.mw.data_store.hide_original_tags
+        target_state = not current_state
 
-        target_state = not (orig_checked or trans_checked)
-
-        checkbox_triggered = False
-        if getattr(self.mw, 'hide_original_tags_checkbox', None):
-            self.mw.hide_original_tags_checkbox.setChecked(target_state)
-            checkbox_triggered = True
+        if checkbox:
+            checkbox.setChecked(target_state)
         else:
             self.mw.data_store.hide_original_tags = target_state
-
-        if getattr(self.mw, 'hide_translation_tags_checkbox', None):
-            self.mw.hide_translation_tags_checkbox.setChecked(target_state)
-            checkbox_triggered = True
-        else:
             self.mw.data_store.hide_translation_tags = target_state
-
-        if not checkbox_triggered:
             if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
                 self.mw.helper.reconfigure_all_highlighters()
             if self.mw.data_store.current_block_idx != -1:

@@ -660,7 +660,7 @@ class PreviewUpdater(BaseUIUpdater):
                 strict_width = max(widths) if widths is not None and widths else None
 
                 if strict_width is not None:
-                    self.mw.original_width_label.setText(f"Width: {strict_width}px")
+                    self.mw.original_width_label.setText(f"{strict_width} px")
                     self.mw.original_width_label.show()
                 else:
                     self.mw.original_width_label.setText("")

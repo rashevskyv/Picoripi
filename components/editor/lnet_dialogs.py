@@ -45,8 +45,14 @@ class MassWidthDialog(QDialog):
         self.setWindowTitle("Set Width for Multiple Lines")
         layout = QVBoxLayout(self)
         
-        self.default_width = getattr(parent, 'game_dialog_max_width_pixels', 0) if parent else 0
-        layout.addWidget(QLabel(f"Enter a new width for the selected lines.\nEnter 0 or {self.default_width} to reset to plugin default ({self.default_width})."))
+        # A multi-selection may contain several window kinds with different
+        # defaults. Zero means "remove each string's override", allowing the
+        # plugin to resolve the correct default independently for every line.
+        self.default_width = 0
+        layout.addWidget(QLabel(
+            "Enter a new width for the selected lines.\n"
+            "Enter 0 or click Default to use each line's window-type default."
+        ))
         
         controls_layout = QHBoxLayout()
         self.width_spinbox = QSpinBox(self)

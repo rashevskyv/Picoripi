@@ -43,6 +43,15 @@ class MainWindowUIHandler:
 
         if target in ['all', 'general']:
             QApplication.setFont(general_font)
+            # QComboBox creates its popup lazily, outside the normal widget tree.
+            # Keep the Font selector's list in step with the application font size.
+            font_combobox = getattr(self.mw, 'font_combobox', None)
+            if font_combobox:
+                try:
+                    font_combobox.view().setFont(general_font)
+                    font_combobox.view().viewport().update()
+                except Exception:
+                    pass
 
         editor_widgets = [self.mw.preview_text_edit, self.mw.original_text_edit, self.mw.edited_text_edit]
         general_ui_widgets = [
@@ -122,6 +131,7 @@ class MainWindowUIHandler:
                         widget.viewport().update()
                 except Exception:
                     pass
+
 
         if self.mw.block_list_widget and self.mw.block_list_widget.itemDelegate():
             self.mw.block_list_widget.itemDelegate().deleteLater()

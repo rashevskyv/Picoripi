@@ -531,7 +531,7 @@ def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     with patch('ui.updaters.preview_updater.calculate_strict_string_width', return_value=42):
         updater.update_text_views()
 
-    mock_mw.original_width_label.setText.assert_called_with("Width: 42px")
+    mock_mw.original_width_label.setText.assert_called_with("42 px")
     mock_mw.original_width_label.show.assert_called()
 
 
