@@ -166,5 +166,38 @@
     },
     "{(btn10)}": {
         "width": 24
+    },
+    "{(Wii −)}": {
+        "width": 24
+    },
+    "{(Wii B)}": {
+        "width": 24
+    },
+    "{(Wii A)}": {
+        "width": 24
+    },
+    "{(Wii 2)}": {
+        "width": 24
+    },
+    "{(Wii D-pad)}": {
+        "width": 24
+    },
+    "{(Wii Remote)}": {
+        "width": 24
+    },
+    "{(Wii Remote 2)}": {
+        "width": 24
+    },
+    "{(Stick down)}": {
+        "width": 24
+    },
+    "{(Stick horizontal)}": {
+        "width": 24
+    },
+    "{(GameCube D-pad)}": {
+        "width": 24
+    },
+    "{(Nunchuk Z)}": {
+        "width": 24
     }
 }

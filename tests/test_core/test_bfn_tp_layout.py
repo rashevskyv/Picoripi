@@ -367,3 +367,84 @@ def test_zelda_bmg_font_map_covers_icon_aliases():
     icon_aliases = [a for a in aliases if a.startswith("{(") and a not in text_glyph_aliases]
     missing = [a for a in icon_aliases if a not in font_map]
     assert not missing, f"Icon aliases without width in font_map.json: {missing}"
+
+
+def test_tp_escape_catalog_covers_every_documented_tag():
+    from plugins.zelda_bmg.tag_catalog import ESCAPE_TAGS
+
+    assert {code for (group, code) in ESCAPE_TAGS if group == 0} == set(range(0x40))
+    assert {code for (group, code) in ESCAPE_TAGS if group == 3} == set(range(0x15))
+    assert {code for (group, code) in ESCAPE_TAGS if group == 4} == set(range(0x0E))
+    assert {code for (group, code) in ESCAPE_TAGS if group == 5} == {
+        0x00, 0x03, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
+    }
+    assert {code for (group, code) in ESCAPE_TAGS if group == 6} == set(range(0x0C))
+    assert {code for (group, code) in ESCAPE_TAGS if group == 255} == {0, 1, 2}
+
+
+def test_tp_preview_renders_literal_and_runtime_value_tags(bmg_rules):
+    clean, colors, scales, icons = bmg_rules.prepare_preview_glyph_text(
+        "Cost {escape:4:0000}{escape:5:0009}"
+    )
+
+    assert clean == "Cost $⟨Rupees remaining⟩"
+    assert colors is None
+    assert scales is None
+    assert icons is None
+
+
+def test_tp_preview_understands_controls_and_genitive_names(bmg_rules):
+    clean, _, _, _ = bmg_rules.prepare_preview_glyph_text(
+        "{escape:0:0001}{escape:6:0000} horse is {escape:6:0001}."
+    )
+
+    assert clean == "Link's horse is Epona's."
+
+
+def test_tp_preview_uses_controller_icons_for_wii_tags(bmg_rules):
+    clean, _, _, icons = bmg_rules.prepare_preview_glyph_text(
+        "{escape:3:000e}{escape:3:0010}{escape:3:0013}"
+    )
+
+    assert clean == "\ufffc\ufffc\ufffc"
+    assert [icons[index]["kind"] for index in range(3)] == [
+        "wiimote", "nunchuk", "nunchuk_button",
+    ]
+    assert all(icons[index]["width"] == 24 for index in range(3))
+
+
+def test_tp_escape_descriptions_decode_arguments(bmg_rules):
+    assert "45 frames" in bmg_rules.get_escape_tag_description("{escape:0:0007002d}")
+    assert "150%" in bmg_rules.get_escape_tag_description("{escape:255:00010096}")
+
+
+def test_tp_every_controller_icon_spec_can_be_drawn(qapp):
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtGui import QImage, QPainter
+    from plugins.zelda_bmg.tag_catalog import ESCAPE_ICON_SPECS
+    from ui.components.bfn_preview_widget import BfnPreviewWidget
+
+    image = QImage(32, 32, QImage.Format.Format_ARGB32_Premultiplied)
+    for spec in ESCAPE_ICON_SPECS.values():
+        image.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(image)
+        try:
+            BfnPreviewWidget._draw_icon(painter, spec, 4, 4, 24)
+        finally:
+            painter.end()
+
+        if spec["kind"] != "blank":
+            assert any(
+                image.pixelColor(x, y).alpha() > 0
+                for y in range(image.height())
+                for x in range(image.width())
+            ), spec
+
+
+def test_tp_width_measurement_uses_semantic_tag_output(bmg_rules):
+    font_map = {"A": {"width": 9}, "L": {"width": 7}, "i": {"width": 3},
+                "n": {"width": 6}, "k": {"width": 6}}
+
+    assert bmg_rules.calculate_string_width_override("{escape:0:000a}", font_map) == 24
+    assert bmg_rules.calculate_string_width_override("{escape:0:0001}", font_map) == 0
+    assert bmg_rules.calculate_string_width_override("{escape:0:0000}", font_map) == 22

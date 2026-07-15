@@ -1247,8 +1247,9 @@ class BfnPreviewWidget(QWidget):
     def _draw_icon(p: QPainter, spec: dict, x: float, y: float, size: float, shadow: bool = False):
         """Draw a vector placeholder for an in-game inline icon.
 
-        spec: {"kind": "circle"|"rect"|"char"|"blank", "label": str,
-               "color": "#rrggbb", "fg": optional label color}
+        Specs come from the Zelda BMG tag catalogue.  Controller silhouettes
+        are intentionally vector-drawn so the preview does not depend on the
+        editor font having private-use button glyphs.
         """
         kind = spec.get("kind", "char")
         if kind == "blank" or size <= 0:
@@ -1258,21 +1259,113 @@ class BfnPreviewWidget(QWidget):
         fg = QColor("#000000") if shadow else QColor(spec.get("fg", "#ffffff"))
         rect = QRectF(x + size * 0.05, y + size * 0.05, size * 0.9, size * 0.9)
 
-        if kind in ("circle", "rect"):
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(body)
+        def draw_label(label_rect: QRectF, ratio: float = 0.62):
+            label = spec.get("label", "")
+            if not label or shadow:
+                return
+            f = p.font()
+            f.setBold(True)
+            f.setPixelSize(max(4, int(size * ratio)))
+            p.setFont(f)
+            p.setPen(QPen(fg))
+            p.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, label)
+
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(body)
+
+        if kind in ("circle", "rect", "wii_button", "nunchuk_button"):
             if kind == "circle":
                 p.drawEllipse(rect)
             else:
-                p.drawRoundedRect(rect, size * 0.2, size * 0.2)
-            label = spec.get("label", "")
-            if label and not shadow:
+                radius = size * (0.35 if kind in ("wii_button", "nunchuk_button") else 0.2)
+                p.drawRoundedRect(rect, radius, radius)
+            draw_label(rect)
+        elif kind in ("trigger", "wii_trigger"):
+            trigger = QRectF(x + size * 0.05, y + size * 0.22, size * 0.9, size * 0.58)
+            p.drawRoundedRect(trigger, size * 0.16, size * 0.16)
+            draw_label(trigger, 0.5)
+        elif kind in ("dpad", "dpad_direction"):
+            p.drawRoundedRect(QRectF(x + size * 0.36, y + size * 0.08,
+                                     size * 0.28, size * 0.84), size * 0.05, size * 0.05)
+            p.drawRoundedRect(QRectF(x + size * 0.08, y + size * 0.36,
+                                     size * 0.84, size * 0.28), size * 0.05, size * 0.05)
+            if kind == "dpad_direction" and not shadow:
+                draw_label(QRectF(x, y, size, size), 0.46)
+        elif kind in ("stick", "stick_direction"):
+            p.drawEllipse(QRectF(x + size * 0.14, y + size * 0.14, size * 0.72, size * 0.72))
+            if not shadow:
+                p.setBrush(fg)
+                p.drawEllipse(QRectF(x + size * 0.34, y + size * 0.34,
+                                     size * 0.32, size * 0.32))
+                draw_label(QRectF(x, y, size, size), 0.38)
+        elif kind == "reticle":
+            pen = QPen(body, max(1.0, size * 0.1))
+            p.setPen(pen)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(QRectF(x + size * 0.23, y + size * 0.23, size * 0.54, size * 0.54))
+            p.drawLine(QPoint(int(x + size * 0.5), int(y + size * 0.02)),
+                       QPoint(int(x + size * 0.5), int(y + size * 0.3)))
+            p.drawLine(QPoint(int(x + size * 0.5), int(y + size * 0.7)),
+                       QPoint(int(x + size * 0.5), int(y + size * 0.98)))
+            p.drawLine(QPoint(int(x + size * 0.02), int(y + size * 0.5)),
+                       QPoint(int(x + size * 0.3), int(y + size * 0.5)))
+            p.drawLine(QPoint(int(x + size * 0.7), int(y + size * 0.5)),
+                       QPoint(int(x + size * 0.98), int(y + size * 0.5)))
+        elif kind == "wiimote":
+            remote = QRectF(x + size * 0.28, y + size * 0.03, size * 0.44, size * 0.94)
+            p.drawRoundedRect(remote, size * 0.16, size * 0.16)
+            if not shadow:
+                p.setBrush(fg)
+                p.drawEllipse(QRectF(x + size * 0.43, y + size * 0.19,
+                                     size * 0.14, size * 0.14))
+                p.drawRect(QRectF(x + size * 0.39, y + size * 0.43,
+                                  size * 0.22, size * 0.06))
+        elif kind == "nunchuk":
+            path = QPainterPath()
+            path.moveTo(x + size * 0.35, y + size * 0.05)
+            path.cubicTo(x + size * 0.12, y + size * 0.2,
+                         x + size * 0.18, y + size * 0.86,
+                         x + size * 0.5, y + size * 0.96)
+            path.cubicTo(x + size * 0.82, y + size * 0.86,
+                         x + size * 0.88, y + size * 0.2,
+                         x + size * 0.65, y + size * 0.05)
+            path.closeSubpath()
+            p.drawPath(path)
+            if not shadow:
+                p.setBrush(fg)
+                p.drawEllipse(QRectF(x + size * 0.36, y + size * 0.18,
+                                     size * 0.28, size * 0.2))
+        elif kind == "button_star":
+            p.drawEllipse(rect)
+            draw_label(rect)
+            if not shadow:
+                p.setPen(QPen(QColor("#fff2a0")))
                 f = p.font()
-                f.setBold(True)
-                f.setPixelSize(max(4, int(size * 0.62)))
+                f.setPixelSize(max(4, int(size * 0.32)))
                 p.setFont(f)
-                p.setPen(QPen(fg))
-                p.drawText(rect, Qt.AlignmentFlag.AlignCenter, label)
+                p.drawText(QRectF(x + size * 0.58, y, size * 0.4, size * 0.4),
+                           Qt.AlignmentFlag.AlignCenter, "★")
+        elif kind in ("diamond", "split_button", "bag"):
+            # Compact symbolic forms for special game controls.
+            if kind == "diamond":
+                path = QPainterPath()
+                path.moveTo(x + size * 0.5, y + size * 0.04)
+                path.lineTo(x + size * 0.96, y + size * 0.5)
+                path.lineTo(x + size * 0.5, y + size * 0.96)
+                path.lineTo(x + size * 0.04, y + size * 0.5)
+                path.closeSubpath()
+                p.drawPath(path)
+            elif kind == "bag":
+                p.drawRoundedRect(QRectF(x + size * 0.16, y + size * 0.3,
+                                         size * 0.68, size * 0.62), size * 0.18, size * 0.18)
+                p.drawEllipse(QRectF(x + size * 0.32, y + size * 0.05,
+                                     size * 0.36, size * 0.36))
+            else:
+                p.drawRoundedRect(rect, size * 0.2, size * 0.2)
+                p.setPen(QPen(fg if not shadow else body, max(1.0, size * 0.06)))
+                p.drawLine(QPoint(int(x + size * 0.5), int(y + size * 0.12)),
+                           QPoint(int(x + size * 0.5), int(y + size * 0.88)))
+                draw_label(rect, 0.42)
         else:  # "char": a single glyph drawn directly in the icon color
             label = spec.get("label", "")
             if not label:

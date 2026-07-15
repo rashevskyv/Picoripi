@@ -28,6 +28,13 @@ from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from .tag_logic import process_segment_tags_aggressively_zbmg
+from .tag_catalog import (
+    ESCAPE_ICON_SPECS,
+    ESCAPE_TAGS,
+    ICON_TAG_WIDTH as CATALOG_ICON_TAG_WIDTH,
+    describe_escape_tag,
+    get_escape_tag_spec,
+)
 
 # In-game text color table from the Twilight Princess message renderer
 # (dusklight src/d/d_msg_class.cpp, getFontCCColorTable). Index is the byte
@@ -137,6 +144,11 @@ _ICON_SPECS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (6, 0x0B): {"kind": "blank", "label": "", "color": "#000000"},
 }
 
+# TAGS.md is the authoritative source.  Keep all preview semantics in the
+# catalogue so parsing, descriptions, and icon rendering cannot drift apart.
+ICON_TAG_WIDTH = CATALOG_ICON_TAG_WIDTH
+_ICON_SPECS = ESCAPE_ICON_SPECS
+
 
 class ProblemIDs:
     """Problem i ds implementation."""
@@ -180,15 +192,25 @@ class GameRules(BaseGameRules):
         that contain these tags by treating them as plain text.
 
         Tag format in editor: {escape:<type>:<hex_data>}
-          - Link  -> {escape:0:0000} or {escape:0:0001}
+          - Link  -> {escape:0:0000}
           - Epona -> {escape:0:0022}
         """
         return {
             "{PLAYER}": "Link",
             "{escape:0:0000}": "Link",
-            "{escape:0:0001}": "Link",
             "{escape:0:0022}": "Epona",
         }
+
+    def get_escape_tag_description(self, tag: str) -> str:
+        """Return a human-readable explanation for a raw BMG escape tag."""
+        match = _ESCAPE_ANY_RE.fullmatch(str(tag))
+        if not match:
+            return ""
+        return describe_escape_tag(int(match.group(1)), match.group(2))
+
+    def get_escape_tag_catalog(self) -> Dict[Tuple[int, int], Any]:
+        """Expose a copy of the documented Zelda BMG tag catalogue to UI tools."""
+        return dict(ESCAPE_TAGS)
 
 
 
@@ -492,12 +514,24 @@ class GameRules(BaseGameRules):
         )
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
-        """Calculate string width override."""
+        """Measure the visible result of BMG tags, including 24px icons."""
         if not font_map:
             default_char_width = 10
         icon_sequences = getattr(self.mw, 'icon_sequences', [])
         from utils.utils import calculate_string_width
-        return calculate_string_width(text, font_map, default_char_width, icon_sequences=icon_sequences)
+        clean_text, _, scales, icons = self.prepare_preview_glyph_text(text)
+        icons = icons or {}
+        scales = scales or [1.0] * len(clean_text)
+        total = 0.0
+        for index, char in enumerate(clean_text):
+            scale = scales[index] if index < len(scales) else 1.0
+            if index in icons:
+                total += float(icons[index].get("width", ICON_TAG_WIDTH)) * scale
+            else:
+                total += calculate_string_width(
+                    char, font_map, default_char_width, icon_sequences=icon_sequences
+                ) * scale
+        return int(round(total))
 
     def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]], Optional[List[float]], Optional[Dict[int, Dict[str, Any]]]]:
         """Convert editor text into renderable text + per-char colors and scales
@@ -535,6 +569,17 @@ class GameRules(BaseGameRules):
         has_scale = False
         pos = 0
         tag_re = re.compile(r'\{[^}]*\}')
+
+        def append_preview_text(value: str) -> None:
+            """Append a semantic runtime/literal substitution with active styling."""
+            nonlocal current_scale
+            for preview_char in value:
+                out_chars.append(preview_char)
+                out_colors.append(current_color)
+                out_scales.append(current_scale)
+                if preview_char == '\n' and current_scale > 1.0:
+                    current_scale = 1.0
+
         while pos < len(raw):
             m = tag_re.match(raw, pos)
             if m:
@@ -574,15 +619,25 @@ class GameRules(BaseGameRules):
                 any_m = _ESCAPE_ANY_RE.fullmatch(tag)
                 if any_m:
                     group = int(any_m.group(1))
-                    code = int(any_m.group(2)[:4], 16)
+                    data = any_m.group(2)
+                    code = int(data[:4], 16)
                     spec = _ICON_SPECS.get((group, code))
                     if spec is not None:
-                        out_chars.append('￼')
+                        out_chars.append('\ufffc')
                         out_colors.append(current_color)
                         out_scales.append(current_scale)
                         icon_spec = dict(spec)
                         icon_spec.setdefault("width", ICON_TAG_WIDTH)
                         out_icons[len(out_chars) - 1] = icon_spec
+                        pos = m.end()
+                        continue
+
+                    tag_spec = get_escape_tag_spec(group, data)
+                    if tag_spec is not None:
+                        if tag_spec.render in {"text", "dynamic"}:
+                            append_preview_text(tag_spec.preview_text)
+                        # Control and ruby tags affect game state/layout but do
+                        # not produce a standalone visible glyph here.
                         pos = m.end()
                         continue
 
