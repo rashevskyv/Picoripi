@@ -592,7 +592,9 @@ class GameRules(BaseGameRules):
                 resource_name = None
 
         block_cache[block_idx] = (now, bmg, cache_key, resource_name)
-        if len(block_cache) > 64:
+        # one entry per data block; must hold the whole project or startup
+        # (which walks every block) thrashes into constant re-parsing
+        if len(block_cache) > 8192:
             block_cache.pop(next(iter(block_cache)))
         return bmg, cache_key, resource_name
 
@@ -615,7 +617,10 @@ class GameRules(BaseGameRules):
         except Exception:
             return None
         bmg_cache[cache_key] = bmg
-        if len(bmg_cache) > 16:
+        # parsed BMGs are small (KBs); the cache must fit every file of the
+        # project at once, otherwise per-string window-kind lookups evict and
+        # re-read/re-parse files in a loop during startup
+        if len(bmg_cache) > 1024:
             bmg_cache.pop(next(iter(bmg_cache)))
         return bmg
 
@@ -932,6 +937,9 @@ class GameRules(BaseGameRules):
         # window_layouts.json drives pagination and lets users name/describe
         # window kinds the catalog doesn't know yet
         layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
+        if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
+            layout = dict(layout)
+            layout["lines_per_page"] = getattr(self.mw, "lines_per_page", 4)
         return window_style_for_kind(fuki_kind, layout)
 
     def _get_window_layouts(self):
@@ -946,11 +954,9 @@ class GameRules(BaseGameRules):
         """Window-kind layout defaults for one string (widths, font,
         lines-per-page), from window_layouts.json keyed by the message's
         fuki_kind. Used by the app's width checks / autofix / AI wrapping
-        unless the string has an explicit override.
-
-        Width values may be the string "auto": then the limit is calibrated
-        from the project's ORIGINAL text — the longest original line of the
-        same window kind (originals always fit the real game box)."""
+        unless the string has an explicit override."""
+        if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
+            return None
         attrs = self.get_message_attributes(block_idx, string_idx)
         if attrs is None:
             return None
@@ -1013,8 +1019,7 @@ class GameRules(BaseGameRules):
         log_info(f"zelda_bmg: restored calibrated window-kind widths from session: {widths}")
 
     def _resolve_auto_widths(self, layout: Dict[str, Any], fuki_kind) -> Dict[str, Any]:
-        """Replace "auto" width values with limits measured from the original
-        text of the same window kind; drop them if calibration is impossible."""
+        """Resolve automatic limits from persisted or freshly measured widths."""
         if not layout:
             return layout
         wants_auto = layout.get("max_width") == "auto" or layout.get("warn_width") == "auto"
@@ -1028,19 +1033,13 @@ class GameRules(BaseGameRules):
             if layout.get("warn_width") == "auto":
                 layout["warn_width"] = max(1, auto_max - 20)
         else:
-            # calibration unavailable -> fall back to the global settings
             for key in ("max_width", "warn_width"):
                 if layout.get(key) == "auto":
                     layout.pop(key)
         return layout
 
     def _get_auto_kind_widths(self) -> Dict[int, int]:
-        """Per-window-kind width limits measured from the project's original
-        text: for every fuki_kind, the widest original line (in font px).
-
-        Computed once per loaded dataset and cached; a few thousand strings
-        take well under a second and every later lookup is a dict hit.
-        """
+        """Measure widest original line per window kind, once per dataset."""
         ds = getattr(self.mw, 'data_store', None) if self.mw else None
         data = getattr(ds, 'data', None) if ds is not None else None
         if not isinstance(data, list) or not data:
@@ -1074,11 +1073,11 @@ class GameRules(BaseGameRules):
                     for line in str(text).split('\n'):
                         if not line:
                             continue
-                        w = calculate_string_width(
+                        width = calculate_string_width(
                             line, font_map, icon_sequences=icon_sequences,
                             default_tag_mappings=tag_mappings)
-                        if w > result.get(kind, 0):
-                            result[kind] = w
+                        if width > result.get(kind, 0):
+                            result[kind] = width
         except Exception as e:
             log_debug(f"zelda_bmg: auto width calibration failed: {e}")
 

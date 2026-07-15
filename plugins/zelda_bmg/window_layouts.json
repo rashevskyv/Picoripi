@@ -2,75 +2,87 @@
     "_comment": [
         "Per-window-kind layout for TP messages. The kind is the fuki_kind byte",
         "of each message's INF1 attributes (see window_kinds.py / TAGS.md).",
-        "warn_width / max_width limit line width in font px. The value \"auto\"",
-        "calibrates the limit from the project's ORIGINAL text: the widest",
-        "original line of the same window kind (originals always fit the real",
-        "game box); warn is auto-max minus 20. null = use the global plugin",
-        "settings; a number = fixed limit. Explicit per-string overrides always",
-        "win. font_file picks the BFN font for the kind (empty = default font).",
+        "warn_width / max_width are the editable base .blo widths for each window",
+        "kind in font pixels, before regional or HIO scaling. The default entry",
+        "covers every talk variant; numeric",
+        "kind entries override it for other windows. Explicit per-string",
+        "overrides always win. font_file picks the BFN font for the kind",
+        "(empty = default font).",
         "lines_per_page drives preview pagination and the page-height scale.",
         "An optional 'name' labels the kind in the editor (preview badge and the",
         "Window: label). Unknown kinds show as 'Dialogue (kind N)' - to classify",
         "one (e.g. the ring-menu item info screen), add its number here."
     ],
     "default": {
-        "warn_width": "auto",
-        "max_width": "auto",
+        "warn_width": 410,
+        "max_width": 435,
         "font_file": "",
         "lines_per_page": 4
     },
     "kinds": {
         "1": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 460,
+            "max_width": 480,
             "lines_per_page": 2,
             "name": "Subtitles"
         },
         "5": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 460,
+            "max_width": 480,
             "lines_per_page": 2,
             "name": "Subtitles"
         },
         "2": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 340,
+            "max_width": 360,
+            "lines_per_page": 4,
             "name": "Wooden sign"
         },
         "15": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 340,
+            "max_width": 360,
+            "lines_per_page": 4,
             "name": "Wooden sign"
         },
         "6": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 340,
+            "max_width": 360,
+            "lines_per_page": 4,
             "name": "Stone sign"
         },
         "7": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 400,
+            "max_width": 420,
+            "lines_per_page": 4,
             "name": "Staff credits"
         },
         "9": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 340,
+            "max_width": 360,
+            "lines_per_page": 4,
             "name": "Item get"
         },
         "12": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 420,
+            "max_width": 440,
             "lines_per_page": 1,
             "name": "Location name"
         },
+        "16": {
+            "warn_width": 410,
+            "max_width": 435,
+            "lines_per_page": 4,
+            "name": "Descriptions / save"
+        },
         "17": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 300,
+            "max_width": 320,
+            "lines_per_page": 4,
             "name": "Howling stone"
         },
         "19": {
-            "warn_width": "auto",
-            "max_width": "auto",
+            "warn_width": 420,
+            "max_width": 440,
             "lines_per_page": 1,
             "name": "Boss name"
         }

@@ -46,6 +46,7 @@ class ProjectManager:
         'editors_wrap_lines',
         'game_dialog_max_width_pixels',
         'line_width_warning_threshold_pixels',
+        'use_per_window_layouts',
         'default_font_file',
         'fonts_dir_path',
         'orig_fonts_dir_path',

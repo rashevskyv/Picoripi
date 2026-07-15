@@ -323,6 +323,10 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.game_dialog_width_spinbox.setValue(self.mw.game_dialog_max_width_pixels); self.width_warning_spinbox.setValue(self.mw.line_width_warning_threshold_pixels)
         self.show_width_guideline_checkbox.setChecked(getattr(self.mw, 'show_width_guideline', True))
         self.lines_per_page_spinbox.setValue(getattr(self.mw, 'lines_per_page', 4))
+        if hasattr(self, 'use_per_window_layouts_checkbox'):
+            self.use_per_window_layouts_checkbox.setChecked(
+                getattr(self.mw, 'use_per_window_layouts', True)
+            )
 
         current_font_file = getattr(self.mw, 'default_font_file', ""); font_index = self.font_file_combo.findData(current_font_file)
         if font_index != -1: self.font_file_combo.setCurrentIndex(font_index)
@@ -511,6 +515,11 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'game_dialog_max_width_pixels': self.game_dialog_width_spinbox.value(), 'line_width_warning_threshold_pixels': self.width_warning_spinbox.value(),
             'show_width_guideline': self.show_width_guideline_checkbox.isChecked(),
             'lines_per_page': self.lines_per_page_spinbox.value(),
+            'use_per_window_layouts': (
+                self.use_per_window_layouts_checkbox.isChecked()
+                if hasattr(self, 'use_per_window_layouts_checkbox')
+                else getattr(self.mw, 'use_per_window_layouts', True)
+            ),
             'autofix_enabled': autofix_settings,
             'align_sentences_to_original_pages': self.align_sentences_checkbox.isChecked() if hasattr(self, 'align_sentences_checkbox') else False,
             'prevent_empty_lines_in_autofix': self.prevent_empty_lines_checkbox.isChecked() if hasattr(self, 'prevent_empty_lines_checkbox') else False,
@@ -803,6 +812,16 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             self.translation_preset_combo.blockSignals(False)
             
             self._apply_translation_config_to_ui(build_default_translation_config())
+
+    def accept(self):
+        """Validate and persist plugin-specific files only when OK is pressed."""
+        if (getattr(self.mw, "active_game_plugin", None) == "zelda_bmg"
+                and self.plugin_combo.currentData() == "zelda_bmg"):
+            success, error = self.persist_zelda_bmg_window_rules()
+            if not success:
+                QMessageBox.warning(self, "Invalid Window Layout", error)
+                return
+        super().accept()
 
     def reject(self):
         """Safely clean up worker thread on rejection/closure."""

@@ -32,7 +32,7 @@ from typing import Any, Dict, Optional
 #   17       dMsgScrnHowl_c    howling stone duet
 #   1, 5     dMsgScrnJimaku_c  cutscene subtitles
 #   default  dMsgScrnTalk_c    talk box (8 = light spirit window,
-#            13 = Midna window, 14 = green-text variant)
+#            13 = Midna window, 14 = green-text variant, 16 = save/explain)
 
 _TALK_FRAME = {
     "style": "talk",
@@ -147,8 +147,8 @@ WINDOW_KIND_STYLES: Dict[int, Dict[str, Any]] = {
     13: _talk("Midna", halo=_HALO_MIDNA, default_text_color="#82e6e6"),
     # green-text talk variant (getFontCCColorTable fukiKind 14)
     14: _talk("Dialogue (green)", halo=_HALO_GREEN, default_text_color="#96dc64"),
-    # save/continue window (dMsgObject isSaveMessage)
-    16: _talk("Save window"),
+    # descriptions / save window (dMsgObject isSaveMessage)
+    16: _talk("Descriptions / save"),
     # howling stone: bare text
     17: _style("Howling stone", None, halo=None),
     # boss name: bare centered caption

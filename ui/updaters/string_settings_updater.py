@@ -346,7 +346,6 @@ class StringSettingsUpdater(BaseUIUpdater):
         from utils.utils import resolve_string_layout
         rules = getattr(self.mw, 'current_game_rules', None)
         kind_layout = resolve_string_layout(rules, block_idx, string_idx)
-        kind_style = "color: #8a63d2;"  # game-derived value (not a manual override)
 
         # Window kind label near the editors
         kind_label = getattr(self.mw, 'window_kind_label', None)
@@ -384,7 +383,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             index = self.mw.font_combobox.findData(layout_font)
             if index != -1:
                 self.mw.font_combobox.setCurrentIndex(index)
-                self.mw.font_combobox.setStyleSheet(kind_style)
+                self.mw.font_combobox.setStyleSheet("")
             else:
                 self.mw.font_combobox.setCurrentIndex(0)
                 self.mw.font_combobox.setStyleSheet("")
@@ -396,7 +395,9 @@ class StringSettingsUpdater(BaseUIUpdater):
         width = string_meta.get("width")
         self.mw.width_spinbox.blockSignals(True)
 
-        if width and width != self.mw.game_dialog_max_width_pixels:
+        # Any stored positive value is an explicit override. A value equal to
+        # the old global setting can still be custom for this window kind.
+        if width:
             self.mw.width_spinbox.setValue(width)
             self.mw.width_spinbox.setStyleSheet(self.highlight_style)
         else:
@@ -406,10 +407,7 @@ class StringSettingsUpdater(BaseUIUpdater):
                 getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
                 self.mw.game_dialog_max_width_pixels)
             self.mw.width_spinbox.setValue(effective_max)
-            if effective_max != self.mw.game_dialog_max_width_pixels:
-                self.mw.width_spinbox.setStyleSheet(kind_style)
-            else:
-                self.mw.width_spinbox.setStyleSheet("")
+            self.mw.width_spinbox.setStyleSheet("")
         self.mw.width_spinbox.blockSignals(False)
         self.mw.apply_width_button.setEnabled(False)
 

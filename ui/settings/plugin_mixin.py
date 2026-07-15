@@ -3,7 +3,8 @@ import json
 from PyQt6.QtWidgets import (
     QVBoxLayout, QTabWidget, QWidget, QFormLayout, QComboBox, QCheckBox, 
     QLineEdit, QHBoxLayout, QLabel, QGroupBox, QTableWidget, QTableWidgetItem, 
-    QHeaderView, QMenu, QAbstractItemView, QPushButton
+    QHeaderView, QMenu, QAbstractItemView, QPushButton, QSpinBox, QStackedWidget,
+    QGridLayout, QRadioButton, QButtonGroup, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
@@ -13,6 +14,17 @@ from .settings_widgets import ColorPickerButton, TagDisplayWidget
 
 class SettingsPluginMixin:
     """Mixin class for project/plugin settings tab and subtabs."""
+
+    _ZELDA_BMG_WINDOW_GROUPS = (
+        ("dialog", "Dialogue (all talk variants)", None),
+        ("signs", "Wood / stone signs", ("2", "15", "6")),
+        ("item", "Item window", ("9",)),
+        ("explain", "Descriptions / save", ("16",)),
+        ("subtitles", "Subtitles", ("1", "5")),
+        ("titles", "Location / boss name", ("12", "19")),
+        ("howling", "Howling", ("17",)),
+        ("credits", "Staff credits", ("7",)),
+    )
 
     def setup_plugin_tab(self):
         """Setup plugin tab."""
@@ -146,24 +158,192 @@ class SettingsPluginMixin:
         layout = QFormLayout(tab)
         self.game_dialog_width_spinbox = LabeledSpinBox("Game Dialog Max Width (px):", 100, 10000, 240, parent=self)
         self.game_dialog_width_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
-        layout.addRow(self.game_dialog_width_spinbox)
-        
+
         self.width_warning_spinbox = LabeledSpinBox("Editor Line Width Warning (px):", 100, 10000, 208, parent=self)
         self.width_warning_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
-        
+
         self.show_width_guideline_checkbox = QCheckBox("Show guideline", self)
         self.show_width_guideline_checkbox.stateChanged.connect(self.on_rules_changed)
-        
-        spinbox_layout = self.width_warning_spinbox.layout()
-        if spinbox_layout:
-            spinbox_layout.insertSpacing(2, 20)
-            spinbox_layout.insertWidget(3, self.show_width_guideline_checkbox)
-            
-        layout.addRow(self.width_warning_spinbox)
 
         self.lines_per_page_spinbox = LabeledSpinBox("Lines Per Page:", 1, 20, 4, parent=self)
         self.lines_per_page_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
-        layout.addRow(self.lines_per_page_spinbox)
+
+        if getattr(self.mw, "active_game_plugin", None) == "zelda_bmg":
+            self._setup_zelda_bmg_window_rules(layout)
+        else:
+            layout.addRow(self.game_dialog_width_spinbox)
+            spinbox_layout = self.width_warning_spinbox.layout()
+            if spinbox_layout:
+                spinbox_layout.insertSpacing(2, 20)
+                spinbox_layout.insertWidget(3, self.show_width_guideline_checkbox)
+            layout.addRow(self.width_warning_spinbox)
+            layout.addRow(self.lines_per_page_spinbox)
+
+    def _setup_zelda_bmg_window_rules(self, layout):
+        """Build the global/per-window rule mode switch for TP BMG."""
+        self._zelda_window_layouts_path = Path("plugins") / "zelda_bmg" / "window_layouts.json"
+        try:
+            with self._zelda_window_layouts_path.open("r", encoding="utf-8") as stream:
+                document = json.load(stream)
+        except Exception as exc:
+            log_debug(f"SettingsDialog: Failed to load window_layouts.json: {exc}")
+            document = {"default": {}, "kinds": {}}
+
+        self._zelda_window_layouts_document = document
+        self._zelda_window_layout_controls = {}
+
+        use_per_type = getattr(self.mw, "use_per_window_layouts", True)
+
+        mode_group = QGroupBox("Window limit mode", self)
+        mode_layout = QHBoxLayout(mode_group)
+        mode_layout.setContentsMargins(12, 8, 12, 8)
+        self.shared_window_mode_radio = QRadioButton("Shared for all windows", mode_group)
+        self.per_window_mode_radio = QRadioButton("Separate by window type", mode_group)
+        self.window_mode_button_group = QButtonGroup(self)
+        self.window_mode_button_group.addButton(self.shared_window_mode_radio, 0)
+        self.window_mode_button_group.addButton(self.per_window_mode_radio, 1)
+        self.shared_window_mode_radio.setChecked(not use_per_type)
+        self.per_window_mode_radio.setChecked(use_per_type)
+        # Compatibility alias used by settings loading/saving.
+        self.use_per_window_layouts_checkbox = self.per_window_mode_radio
+        mode_layout.addWidget(self.shared_window_mode_radio)
+        mode_layout.addSpacing(24)
+        mode_layout.addWidget(self.per_window_mode_radio)
+        mode_layout.addStretch(1)
+        layout.addRow(mode_group)
+
+        self.window_rules_mode_stack = QStackedWidget(self)
+        self.window_rules_mode_stack.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        global_page = QWidget(self.window_rules_mode_stack)
+        global_group = QGroupBox("Shared defaults", global_page)
+        global_layout = QFormLayout(global_group)
+        global_layout.setContentsMargins(12, 10, 12, 10)
+        global_layout.addRow(self.game_dialog_width_spinbox)
+        global_layout.addRow(self.width_warning_spinbox)
+        global_layout.addRow(self.lines_per_page_spinbox)
+        global_page_layout = QVBoxLayout(global_page)
+        global_page_layout.setContentsMargins(0, 4, 0, 0)
+        global_page_layout.addWidget(global_group)
+        self.window_rules_mode_stack.addWidget(global_page)
+
+        per_type_page = QWidget(self.window_rules_mode_stack)
+        per_type_layout = QVBoxLayout(per_type_page)
+        per_type_layout.setContentsMargins(0, 4, 0, 0)
+        defaults_group = QGroupBox("Defaults by window type", per_type_page)
+        defaults_layout = QVBoxLayout(defaults_group)
+        defaults_layout.setContentsMargins(12, 10, 12, 12)
+        description = QLabel(
+            "The message's fuki_kind selects one of these default layouts automatically."
+        )
+        description.setWordWrap(True)
+        defaults_layout.addWidget(description)
+
+        grid = QGridLayout()
+        self.zelda_window_layouts_grid = grid
+        grid.setContentsMargins(0, 6, 0, 0)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(6)
+        headers = ("Window type", "Warning", "Maximum", "Lines")
+        for column, text in enumerate(headers):
+            header = QLabel(text, defaults_group)
+            header.setStyleSheet("font-weight: bold;")
+            grid.addWidget(header, 0, column)
+        grid.setColumnStretch(0, 1)
+
+        defaults = document.get("default") if isinstance(document.get("default"), dict) else {}
+        kinds = document.get("kinds") if isinstance(document.get("kinds"), dict) else {}
+        for row, (key, label, target_kinds) in enumerate(self._ZELDA_BMG_WINDOW_GROUPS):
+            source = defaults
+            if target_kinds:
+                candidate = kinds.get(target_kinds[0])
+                if isinstance(candidate, dict):
+                    source = {**defaults, **candidate}
+
+            name_label = QLabel(label, defaults_group)
+            controls = {
+                "warn_width": self._make_window_layout_spinbox(1, 10000, source.get("warn_width", 280), " px", 105),
+                "max_width": self._make_window_layout_spinbox(1, 10000, source.get("max_width", 300), " px", 105),
+                "lines_per_page": self._make_window_layout_spinbox(1, 20, source.get("lines_per_page", 4), "", 72),
+            }
+            grid_row = row + 1
+            grid.addWidget(name_label, grid_row, 0)
+            grid.addWidget(controls["warn_width"], grid_row, 1)
+            grid.addWidget(controls["max_width"], grid_row, 2)
+            grid.addWidget(controls["lines_per_page"], grid_row, 3)
+            self._zelda_window_layout_controls[key] = controls
+
+        defaults_layout.addLayout(grid)
+        per_type_layout.addWidget(defaults_group)
+        self.window_rules_mode_stack.addWidget(per_type_page)
+
+        self.window_rules_mode_stack.setCurrentIndex(1 if use_per_type else 0)
+        self.per_window_mode_radio.toggled.connect(
+            lambda checked: self.window_rules_mode_stack.setCurrentIndex(1 if checked else 0)
+        )
+        self.per_window_mode_radio.toggled.connect(self.on_rules_changed)
+        layout.addRow(self.window_rules_mode_stack)
+        layout.addRow(self.show_width_guideline_checkbox)
+
+    def _make_window_layout_spinbox(self, minimum, maximum, value, suffix="", width=95):
+        spinbox = QSpinBox(self)
+        spinbox.setRange(minimum, maximum)
+        spinbox.setSuffix(suffix)
+        spinbox.setFixedWidth(width)
+        spinbox.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        try:
+            spinbox.setValue(int(value))
+        except (TypeError, ValueError):
+            spinbox.setValue(minimum)
+        spinbox.valueChanged.connect(self.on_rules_changed)
+        return spinbox
+
+    def persist_zelda_bmg_window_rules(self):
+        """Persist TP per-window defaults after OK. Returns (success, error)."""
+        controls_by_group = getattr(self, "_zelda_window_layout_controls", None)
+        if not controls_by_group:
+            return True, ""
+
+        document = json.loads(json.dumps(self._zelda_window_layouts_document))
+        defaults = document.setdefault("default", {})
+        kinds = document.setdefault("kinds", {})
+
+        for key, _label, target_kinds in self._ZELDA_BMG_WINDOW_GROUPS:
+            controls = controls_by_group[key]
+            values = {
+                "warn_width": controls["warn_width"].value(),
+                "max_width": controls["max_width"].value(),
+                "lines_per_page": controls["lines_per_page"].value(),
+            }
+            if values["warn_width"] > values["max_width"]:
+                return False, f"{_label}: warning width cannot exceed maximum width."
+
+            targets = [defaults] if target_kinds is None else [kinds.setdefault(kind, {}) for kind in target_kinds]
+            for target in targets:
+                target.update(values)
+
+        if document == self._zelda_window_layouts_document:
+            return True, ""
+
+        try:
+            path = self._zelda_window_layouts_path
+            temporary_path = path.with_suffix(path.suffix + ".tmp")
+            temporary_path.write_text(
+                json.dumps(document, indent=4, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            temporary_path.replace(path)
+        except Exception as exc:
+            log_debug(f"SettingsDialog: Failed to save window_layouts.json: {exc}")
+            return False, str(exc)
+
+        self._zelda_window_layouts_document = document
+        rules = getattr(self.mw, "current_game_rules", None)
+        if rules is not None and hasattr(rules, "_window_layouts"):
+            rules._window_layouts = None
+        self.rules_changed_requires_rescan = True
+        return True, ""
 
     def _setup_context_tags_subtab(self, tab):
         """Internal helper to setup context tags subtab."""

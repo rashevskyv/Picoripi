@@ -242,6 +242,33 @@ class TestStringSettingsUpdater:
         updater.mw.width_spinbox.setValue.assert_called_with(150)
         updater.mw.width_spinbox.setStyleSheet.assert_called_with(updater.highlight_style)
 
+    def test_stored_width_equal_to_old_global_is_still_an_override(self, updater):
+        updater.mw.data_store.current_block_idx = 0
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.string_metadata = {(0, 0): {"width": 200}}
+        updater.mw.game_dialog_max_width_pixels = 200
+
+        updater.update_string_settings_panel()
+
+        updater.mw.width_spinbox.setValue.assert_called_with(200)
+        updater.mw.width_spinbox.setStyleSheet.assert_called_with(updater.highlight_style)
+
+    def test_window_kind_default_width_is_not_highlighted_as_override(self, updater):
+        class WindowKindRules:
+            def get_string_layout(self, _block_idx, _string_idx):
+                return {"warn_width": 230, "max_width": 250}
+
+        updater.mw.data_store.current_block_idx = 0
+        updater.mw.data_store.current_string_idx = 0
+        updater.mw.string_metadata = {}
+        updater.mw.game_dialog_max_width_pixels = 300
+        updater.mw.current_game_rules = WindowKindRules()
+
+        updater.update_string_settings_panel()
+
+        updater.mw.width_spinbox.setValue.assert_called_with(250)
+        updater.mw.width_spinbox.setStyleSheet.assert_called_with("")
+
 
 # ── PreviewUpdater ────────────────────────────────────────────────────────────
 

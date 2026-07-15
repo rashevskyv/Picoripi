@@ -144,60 +144,26 @@ def test_rules_message_attributes_and_style(bmg_rules):
     assert bmg_rules.get_message_attributes(0, "bad") is None
 
 
-def _setup_calibration(bmg_rules):
-    """Original data: talk (kind 0) and stone sign (kind 6) strings."""
-    from utils.utils import calculate_string_width
-    bmg_rules.last_loaded_bmg = _FakeBmg([
-        _FakeMsg(_info(fuki_kind=0)),    # talk
-        _FakeMsg(_info(fuki_kind=6)),    # stone sign
-        _FakeMsg(_info(fuki_kind=9)),    # item window
-        _FakeMsg(_info(fuki_kind=12)),   # location plate
-    ])
-    originals = [
-        "This is the longest talk line of them all!",
-        "Sign short\nSign line",
-        "Item text",
-        "Place",
-    ]
-    bmg_rules.mw.data = [originals]
-    bmg_rules.mw.font_map = {}
+@pytest.mark.parametrize("kind, warn, max_width, lines", [
+    (0, 410, 435, 4),    # all talk variants use the JSON default
+    (2, 340, 360, 4),    # wooden sign
+    (6, 340, 360, 4),    # stone sign
+    (9, 340, 360, 4),    # item window
+    (16, 410, 435, 4),   # descriptions / save
+    (1, 460, 480, 2),    # subtitles
+    (12, 420, 440, 1),   # location name
+    (19, 420, 440, 1),   # boss name
+    (17, 300, 320, 4),   # howling
+])
+def test_rules_string_layout_uses_json_defaults_per_window_kind(
+        bmg_rules, kind, warn, max_width, lines):
+    bmg_rules.last_loaded_bmg = _FakeBmg([_FakeMsg(_info(fuki_kind=kind))])
 
-    def widest(text):
-        return max(calculate_string_width(ln, {}) for ln in text.split('\n'))
-
-    return {0: widest(originals[0]), 6: widest(originals[1]),
-            9: widest(originals[2]), 12: widest(originals[3])}
-
-
-def test_rules_string_layout_auto_calibrates_from_originals(bmg_rules):
-    expected = _setup_calibration(bmg_rules)
-
-    talk = bmg_rules.get_string_layout(0, 0)
-    assert talk["max_width"] == expected[0]
-    assert talk["warn_width"] == expected[0] - 20
-    assert talk["lines_per_page"] == 4
-
-    sign = bmg_rules.get_string_layout(0, 1)
-    assert sign["max_width"] == expected[6]
-
-    plate = bmg_rules.get_string_layout(0, 3)
-    assert plate["lines_per_page"] == 1
-    assert plate["max_width"] == expected[12]
-
-    # preview style carries the pagination setting
-    assert bmg_rules.get_preview_window_style(0, 3)["lines_per_page"] == 1
-    assert bmg_rules.get_preview_window_style(0, 0)["lines_per_page"] == 4
-
-
-def test_rules_string_layout_auto_without_data_falls_back(bmg_rules):
-    # no project originals -> "auto" widths are dropped, globals apply
-    bmg_rules.last_loaded_bmg = _FakeBmg([_FakeMsg(_info(fuki_kind=6))])
     layout = bmg_rules.get_string_layout(0, 0)
-    assert "max_width" not in layout and "warn_width" not in layout
 
-    from utils.utils import resolve_width_limits
-    warn, max_w = resolve_width_limits({}, bmg_rules, 0, 0, 280, 300)
-    assert (warn, max_w) == (280, 300)
+    assert layout["warn_width"] == warn
+    assert layout["max_width"] == max_width
+    assert layout["lines_per_page"] == lines
 
 
 def test_unknown_kind_shows_number_and_json_can_name_it():
@@ -211,7 +177,7 @@ def test_unknown_kind_shows_number_and_json_can_name_it():
 
 
 def test_save_window_kind_16():
-    assert window_kind_name(16) == "Save window"
+    assert window_kind_name(16) == "Descriptions / save"
     assert window_style_for_kind(16)["frame"]["style"] == "talk"
 
 
@@ -234,14 +200,14 @@ def test_bmg_block_resolution_is_cached(bmg_rules):
 def test_resolve_width_limits_priority(bmg_rules):
     from utils.utils import resolve_width_limits
 
-    expected = _setup_calibration(bmg_rules)
+    bmg_rules.last_loaded_bmg = _FakeBmg([_FakeMsg(_info(fuki_kind=6))])
 
-    # plugin window-kind layout (auto-calibrated) beats globals
-    warn, max_w = resolve_width_limits({}, bmg_rules, 0, 1, 280, 300)
-    assert (warn, max_w) == (expected[6] - 20, expected[6])
+    # plugin window-kind JSON defaults beat globals
+    warn, max_w = resolve_width_limits({}, bmg_rules, 0, 0, 999, 999)
+    assert (warn, max_w) == (340, 360)
 
     # explicit per-string override beats everything
-    warn, max_w = resolve_width_limits({"width": 111}, bmg_rules, 0, 1, 280, 300)
+    warn, max_w = resolve_width_limits({"width": 111}, bmg_rules, 0, 0, 280, 300)
     assert (warn, max_w) == (111, 111)
 
     # no rules / no layout -> globals
@@ -254,6 +220,19 @@ def test_resolve_width_limits_priority(bmg_rules):
             return object()
     warn, max_w = resolve_width_limits({}, _Broken(), 0, 0, 280, 300)
     assert (warn, max_w) == (280, 300)
+
+
+def test_global_window_layout_mode_uses_legacy_shared_rules(bmg_rules):
+    from utils.utils import resolve_width_limits
+
+    bmg_rules.last_loaded_bmg = _FakeBmg([_FakeMsg(_info(fuki_kind=9))])
+    bmg_rules.mw.use_per_window_layouts = False
+    bmg_rules.mw.lines_per_page = 3
+
+    assert bmg_rules.get_string_layout(0, 0) is None
+    warn, max_width = resolve_width_limits({}, bmg_rules, 0, 0, 410, 435)
+    assert (warn, max_width) == (410, 435)
+    assert bmg_rules.get_preview_window_style(0, 0)["lines_per_page"] == 3
 
 
 def test_slice_page_splits_render_data():

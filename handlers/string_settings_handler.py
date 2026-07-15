@@ -8,6 +8,25 @@ class StringSettingsHandler(BaseHandler):
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
+
+    def get_default_width_for_string(self, block_idx: int, string_idx: int) -> int:
+        """Return the effective plugin default for this specific string.
+
+        Plugins such as zelda_bmg derive this from the message's window kind;
+        plugins without per-string layouts continue to use the global limit.
+        """
+        from utils.utils import resolve_width_limits
+
+        _, max_width = resolve_width_limits(
+            {}, getattr(self.mw, "current_game_rules", getattr(self.mw, "game_rules", None)),
+            block_idx, string_idx,
+            getattr(self.mw, "line_width_warning_threshold_pixels", 280),
+            getattr(self.mw, "game_dialog_max_width_pixels", 300),
+        )
+        return max_width
+
+    def _is_default_width(self, width: int, block_idx: int, string_idx: int) -> bool:
+        return width == 0 or width == self.get_default_width_for_string(block_idx, string_idx)
         
     def _apply_and_rescan(self) -> None:
         """Internal helper to apply and rescan."""
@@ -52,7 +71,8 @@ class StringSettingsHandler(BaseHandler):
             # If reverted to the same value as before, the button becomes inactive
             current_width: Optional[int] = current_meta.get("width")
             spinbox_width: int = self.mw.width_spinbox.value()
-            if (not current_width and spinbox_width == self.mw.game_dialog_max_width_pixels) or \
+            default_width = self.get_default_width_for_string(block_idx, key[1])
+            if (not current_width and spinbox_width == default_width) or \
                (current_width and spinbox_width == current_width):
                 self.mw.apply_width_button.setEnabled(False)
 
@@ -70,7 +90,7 @@ class StringSettingsHandler(BaseHandler):
         
         is_width_changed: bool = False
         if current_width is None: # Was default value
-            if new_width != self.mw.game_dialog_max_width_pixels:
+            if not self._is_default_width(new_width, block_idx, key[1]):
                 is_width_changed = True
         else: # Was custom value
             if new_width != current_width:
@@ -108,7 +128,7 @@ class StringSettingsHandler(BaseHandler):
 
         # Apply width
         new_width: int = self.mw.width_spinbox.value()
-        if new_width == 0 or new_width == self.mw.game_dialog_max_width_pixels:
+        if self._is_default_width(new_width, block_idx, key[1]):
             if "width" in self.mw.string_metadata[key]:
                 del self.mw.string_metadata[key]["width"]
         else:
@@ -221,10 +241,9 @@ class StringSettingsHandler(BaseHandler):
             return
 
         log_debug(f"Applying width '{width}' to lines {line_indices} in block {block_idx}")
-        is_default_width: bool = (width == 0 or width == self.mw.game_dialog_max_width_pixels)
-
         for line_idx in line_indices:
             key: Tuple[int, int] = (block_idx, line_idx)
+            is_default_width = self._is_default_width(width, block_idx, line_idx)
             if key not in self.mw.string_metadata:
                 if is_default_width: continue
                 self.mw.string_metadata[key] = {}
@@ -250,10 +269,9 @@ class StringSettingsHandler(BaseHandler):
             return
 
         log_debug(f"Applying width '{width}' to lines {start_line}-{end_line} in block {block_idx}")
-        is_default_width: bool = (width == 0 or width == self.mw.game_dialog_max_width_pixels)
-
         for line_idx in range(start_line, end_line + 1):
             key: Tuple[int, int] = (block_idx, line_idx)
+            is_default_width = self._is_default_width(width, block_idx, line_idx)
             if key not in self.mw.string_metadata:
                 if is_default_width: continue
                 self.mw.string_metadata[key] = {}
@@ -300,7 +318,7 @@ class StringSettingsHandler(BaseHandler):
                     max_w = w
 
             key: Tuple[int, int] = (block_idx, line_idx)
-            is_default_width = (max_w == 0 or max_w == self.mw.game_dialog_max_width_pixels)
+            is_default_width = self._is_default_width(max_w, block_idx, line_idx)
 
             if key not in self.mw.string_metadata:
                 if is_default_width:

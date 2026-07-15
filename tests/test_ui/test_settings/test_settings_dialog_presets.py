@@ -1,4 +1,6 @@
 import pytest
+import json
+from pathlib import Path
 from unittest.mock import MagicMock
 from ui.settings_dialog import SettingsDialog
 from core.translation.config import build_default_translation_config
@@ -153,3 +155,66 @@ def test_settings_dialog_delete_preset(qapp, monkeypatch):
     assert "PresetToDelete" not in dialog.translation_presets
     assert dialog.translation_preset_combo.count() == 1
     assert dialog.translation_preset_combo.currentIndex() == 0
+
+
+def test_zelda_bmg_rules_show_per_window_controls(qapp):
+    mw = MockMainWindow()
+    mw.active_game_plugin = "zelda_bmg"
+
+    dialog = SettingsDialog(mw)
+
+    assert dialog.zelda_window_layouts_grid.count() == 36
+    assert dialog.per_window_mode_radio.isChecked()
+    assert not dialog.shared_window_mode_radio.isChecked()
+    assert dialog.window_rules_mode_stack.currentIndex() == 1
+    assert dialog._zelda_window_layout_controls["dialog"]["max_width"].value() == 435
+    assert dialog._zelda_window_layout_controls["item"]["warn_width"].value() == 340
+    assert dialog._zelda_window_layout_controls["explain"]["max_width"].value() == 435
+    assert dialog._zelda_window_layout_controls["subtitles"]["lines_per_page"].value() == 2
+
+    dialog.shared_window_mode_radio.setChecked(True)
+    assert dialog.window_rules_mode_stack.currentIndex() == 0
+    del dialog.font_map_table
+    assert dialog.get_settings()["use_per_window_layouts"] is False
+
+
+def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path):
+    mw = MockMainWindow()
+    mw.active_game_plugin = "zelda_bmg"
+    dialog = SettingsDialog(mw)
+
+    source = Path("plugins/zelda_bmg/window_layouts.json")
+    document = json.loads(source.read_text(encoding="utf-8"))
+    target = tmp_path / "window_layouts.json"
+    target.write_text(json.dumps(document), encoding="utf-8")
+    dialog._zelda_window_layouts_path = target
+    dialog._zelda_window_layouts_document = document
+
+    sign_controls = dialog._zelda_window_layout_controls["signs"]
+    sign_controls["warn_width"].setValue(261)
+    sign_controls["max_width"].setValue(281)
+    sign_controls["lines_per_page"].setValue(5)
+    dialog.accept()
+
+    saved = json.loads(target.read_text(encoding="utf-8"))
+    for kind in ("2", "15", "6"):
+        assert saved["kinds"][kind]["warn_width"] == 261
+        assert saved["kinds"][kind]["max_width"] == 281
+        assert saved["kinds"][kind]["lines_per_page"] == 5
+    assert mw.current_game_rules._window_layouts is None
+
+
+def test_zelda_bmg_window_rules_cancel_does_not_write(qapp, tmp_path):
+    mw = MockMainWindow()
+    mw.active_game_plugin = "zelda_bmg"
+    dialog = SettingsDialog(mw)
+
+    target = tmp_path / "window_layouts.json"
+    target.write_text('{"default": {"warn_width": 1, "max_width": 2}}', encoding="utf-8")
+    before = target.read_text(encoding="utf-8")
+    dialog._zelda_window_layouts_path = target
+    dialog._zelda_window_layout_controls["dialog"]["max_width"].setValue(999)
+
+    dialog.reject()
+
+    assert target.read_text(encoding="utf-8") == before

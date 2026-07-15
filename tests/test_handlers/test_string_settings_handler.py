@@ -83,6 +83,36 @@ def test_StringSettingsHandler_delete_width_if_default(handler):
         handler.apply_width_to_lines([0], 200) # 200 is threshold (default)
     assert "width" not in handler.mw.string_metadata.get((0,0), {})
 
+def test_StringSettingsHandler_uses_per_string_plugin_default(handler):
+    class KindRules:
+        def get_string_layout(self, _block_idx, string_idx):
+            return {"warn_width": 260, "max_width": 280} if string_idx == 0 else {
+                "warn_width": 230, "max_width": 250
+            }
+
+    handler.mw.current_game_rules = KindRules()
+    handler.mw.string_metadata[(0, 0)] = {"width": 123}
+    handler.mw.string_metadata[(0, 1)] = {"width": 456}
+
+    with patch.object(handler, '_apply_and_rescan'):
+        handler.apply_width_to_lines([0], 280)
+        handler.apply_width_to_lines([1], 250)
+
+    assert "width" not in handler.mw.string_metadata.get((0, 0), {})
+    assert "width" not in handler.mw.string_metadata.get((0, 1), {})
+
+def test_StringSettingsHandler_global_width_is_custom_for_other_window_kind(handler):
+    class ItemRules:
+        def get_string_layout(self, _block_idx, _string_idx):
+            return {"warn_width": 230, "max_width": 250}
+
+    handler.mw.current_game_rules = ItemRules()
+
+    with patch.object(handler, '_apply_and_rescan'):
+        handler.apply_width_to_lines([0], 200)
+
+    assert handler.mw.string_metadata[(0, 0)]["width"] == 200
+
 def test_StringSettingsHandler_apply_auto_width_from_original_to_lines(handler):
     handler.mw.string_metadata = {}
     handler.data_processor._get_string_from_source.return_value = "Line1\nLongerLine2"
