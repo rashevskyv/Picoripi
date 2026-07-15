@@ -19,6 +19,13 @@ class MempalaceActions:
         if hasattr(self.mw, 'mempalace_builder_dialog') and self.mw.mempalace_builder_dialog:
             try:
                 if not sip.isdeleted(self.mw.mempalace_builder_dialog):
+                    refresh = getattr(
+                        self.mw.mempalace_builder_dialog,
+                        "_load_active_markup_studio_project",
+                        None,
+                    )
+                    if callable(refresh):
+                        refresh()
                     self.mw.mempalace_builder_dialog.show()
                     self.mw.mempalace_builder_dialog.raise_()
                     self.mw.mempalace_builder_dialog.activateWindow()

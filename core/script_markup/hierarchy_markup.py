@@ -16,6 +16,8 @@ class HierarchyType:
 
     STRUCTURE = "structure"
     GLOSSARY = "glossary"
+    ITEM = "item"
+    ITEM_DESCRIPTION = "item_description"
     SPEAKER = "speaker"
     TEXT = "text"
     ACTION = "action"
@@ -87,6 +89,18 @@ def default_type_definitions() -> Dict[str, HierarchyTypeDefinition]:
             "Glossary",
             "A source-of-truth glossary context block for MemPalace and AI-assisted term mining.",
             "#e7f3ff",
+        ),
+        HierarchyType.ITEM: HierarchyTypeDefinition(
+            HierarchyType.ITEM,
+            "Item",
+            "A named inventory, collection, equipment, or reference entry; never a speaker.",
+            "#d9f0ee",
+        ),
+        HierarchyType.ITEM_DESCRIPTION: HierarchyTypeDefinition(
+            HierarchyType.ITEM_DESCRIPTION,
+            "Item Description",
+            "Reference description nested directly under an Item; never dialogue.",
+            "#edf8f7",
         ),
         HierarchyType.SPEAKER: HierarchyTypeDefinition(
             HierarchyType.SPEAKER,
@@ -162,7 +176,17 @@ def mark_text(mark: HierarchyMark, raw_lines: List[str]) -> str:
     """
 
     explicit = clean_mark_text(mark.text or mark.label)
-    if mark.type_id in (HierarchyType.STRUCTURE, HierarchyType.GLOSSARY) and explicit:
+    if (
+        mark.type_id == HierarchyType.SPEAKER
+        and mark.origin == "speaker_assignment"
+        and explicit
+    ):
+        return explicit
+    if mark.type_id in (
+        HierarchyType.STRUCTURE,
+        HierarchyType.GLOSSARY,
+        HierarchyType.ITEM,
+    ) and explicit:
         return explicit
     if not raw_lines:
         return explicit
@@ -548,6 +572,28 @@ def render_hierarchy_markdown(
 
         if type_id == HierarchyType.GLOSSARY:
             render_glossary_node(node, mark)
+            return
+
+        if type_id == HierarchyType.ITEM:
+            descriptions = [
+                text_for(child.mark).strip()
+                for child in node.children
+                if child.mark
+                and child.mark.type_id == HierarchyType.ITEM_DESCRIPTION
+                and text_for(child.mark).strip()
+            ]
+            body = " ".join(descriptions)
+            _append_block(lines, f"- **{text}**" + (f": {body}" if body else ""))
+            for child in node.children:
+                if not child.mark or child.mark.type_id != HierarchyType.ITEM_DESCRIPTION:
+                    render_node(child)
+            return
+
+        if type_id == HierarchyType.ITEM_DESCRIPTION:
+            if text:
+                _append_block(lines, text)
+            for child in node.children:
+                render_node(child)
             return
 
         if type_id == HierarchyType.SPEAKER:

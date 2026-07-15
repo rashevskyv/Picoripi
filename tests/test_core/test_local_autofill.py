@@ -29,6 +29,40 @@ def test_local_autofill_continues_speaker_text_blocks_from_examples():
     assert result.texts == 1
 
 
+def test_local_autofill_recognizes_unicode_speaker_with_number_suffix():
+    raw = "\n".join([
+        "MIDNA",
+        "Known line.",
+        "CAFÉ MAN #1",
+        "Welcome to my shop.",
+        "MAÎTRE D’ #2",
+        "The second reply.",
+        "CAFE\u0301 MAN #3",
+        "The decomposed accent reply.",
+    ])
+    marks = [
+        HierarchyMark(0, 0, 1, HierarchyType.SPEAKER, text="MIDNA", order=1),
+        HierarchyMark(1, 1, 2, HierarchyType.TEXT, order=2),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert [
+        (mark.start_line, mark.text)
+        for mark in result.marks
+        if mark.type_id == HierarchyType.SPEAKER
+    ] == [
+        (2, "CAFÉ MAN #1"),
+        (4, "MAÎTRE D’ #2"),
+        (6, "CAFE\u0301 MAN #3"),
+    ]
+    assert [
+        (mark.start_line, mark.end_line)
+        for mark in result.marks
+        if mark.type_id == HierarchyType.TEXT
+    ] == [(3, 3), (5, 5), (7, 7)]
+
+
 def test_local_autofill_reuses_seen_structure_keyword_depths():
     raw = "\n".join([
         "Act One",
@@ -194,6 +228,37 @@ def test_local_autofill_splits_inline_and_choice_contexts_under_speaker():
     assert result.contexts == 3
 
 
+def test_local_autofill_learns_context_with_mismatched_closing_brace():
+    raw = "\n".join([
+        "MIDNA",
+        "Known line.",
+        "(Example condition}",
+        "Example reply.",
+        "(Another condition}",
+        "Another reply.",
+    ])
+    marks = [
+        HierarchyMark(0, 0, 3, HierarchyType.SPEAKER, text="MIDNA", order=1),
+        HierarchyMark(1, 1, 4, HierarchyType.TEXT, order=2),
+        HierarchyMark(2, 2, 4, HierarchyType.CONTEXT, start_col=1, end_col=18, order=3),
+        HierarchyMark(3, 3, 5, HierarchyType.TEXT, order=4),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    context = next(
+        mark
+        for mark in result.marks
+        if mark.type_id == HierarchyType.CONTEXT and mark.start_line == 4
+    )
+    assert (context.text, context.start_col, context.end_col, context.depth) == (
+        "Another condition",
+        1,
+        18,
+        4,
+    )
+
+
 def test_local_autofill_does_not_infer_context_without_approved_example():
     raw = "MIDNA\nKnown line.\nMIDNA (Condition)\nConditional line."
     marks = [
@@ -220,3 +285,229 @@ def test_local_autofill_marks_are_unapproved_and_cannot_become_examples():
     assert all(mark.origin == "local_autofill" and not mark.approved for mark in result.marks)
     only_automatic = infer_hierarchy_marks_from_examples(raw, result.marks)
     assert only_automatic.marks == []
+
+
+def test_local_autofill_learns_wrapper_for_custom_type_from_manual_example():
+    raw = "MIDNA\nKnown line.\n<Camera: close-up>\nReply.\n<Camera: wide shot>\nNext reply."
+    custom_type = "custom:camera"
+    marks = [
+        HierarchyMark(0, 0, 3, HierarchyType.SPEAKER, order=1),
+        HierarchyMark(1, 5, 4, HierarchyType.TEXT, order=2),
+        HierarchyMark(
+            2,
+            2,
+            4,
+            custom_type,
+            text="Camera: close-up",
+            start_col=1,
+            end_col=17,
+            order=3,
+        ),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    custom = next(
+        mark
+        for mark in result.marks
+        if mark.type_id == custom_type and mark.start_line == 4
+    )
+    assert (custom.text, custom.start_col, custom.end_col, custom.depth) == (
+        "Camera: wide shot",
+        1,
+        18,
+        4,
+    )
+    assert result.other_types == 1
+
+
+def test_local_autofill_learns_wrapper_for_builtin_note_type():
+    raw = "(Known note)\nDialogue.\n(New note)"
+    marks = [
+        HierarchyMark(
+            0,
+            0,
+            4,
+            HierarchyType.NOTE,
+            text="Known note",
+            start_col=1,
+            end_col=11,
+        ),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    note = next(
+        mark
+        for mark in result.marks
+        if mark.type_id == HierarchyType.NOTE and mark.start_line == 2
+    )
+    assert (note.text, note.start_col, note.end_col, note.depth) == (
+        "New note",
+        1,
+        9,
+        4,
+    )
+
+
+def test_local_autofill_supplements_builtin_action_with_learned_wrapper():
+    raw = "{Door opens}\nDialogue.\n{Door closes}"
+    marks = [
+        HierarchyMark(
+            0,
+            0,
+            4,
+            HierarchyType.ACTION,
+            text="Door opens",
+            start_col=1,
+            end_col=11,
+        ),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    action = next(
+        mark
+        for mark in result.marks
+        if mark.type_id == HierarchyType.ACTION and mark.start_line == 2
+    )
+    assert (action.text, action.start_col, action.end_col, action.depth) == (
+        "Door closes",
+        1,
+        12,
+        4,
+    )
+
+
+def test_local_autofill_never_learns_custom_pattern_from_automatic_mark():
+    raw = "<Camera: close-up>\n<Camera: wide shot>"
+    marks = [
+        HierarchyMark(
+            0,
+            0,
+            2,
+            "custom:camera",
+            start_col=1,
+            end_col=17,
+            origin="local_autofill",
+            approved=True,
+        ),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert result.marks == []
+
+
+def test_local_autofill_skips_wrapper_learned_as_two_different_types():
+    raw = "<Camera: close-up>\n<Weather: rain>\n<Camera: wide shot>"
+    marks = [
+        HierarchyMark(0, 0, 2, "custom:camera", start_col=1, end_col=17, order=1),
+        HierarchyMark(1, 1, 2, "custom:weather", start_col=1, end_col=14, order=2),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert result.marks == []
+
+
+def test_local_autofill_never_searches_or_marks_inside_ignored_ranges():
+    raw = "\n".join([
+        "MIDNA",
+        "Known line.",
+        "ZELDA",
+        "This whole block is ignored.",
+        "TALO",
+        "Outside the ignored block.",
+    ])
+    marks = [
+        HierarchyMark(0, 0, 1, HierarchyType.SPEAKER, text="MIDNA", order=1),
+        HierarchyMark(1, 1, 2, HierarchyType.TEXT, order=2),
+        HierarchyMark(2, 3, 0, HierarchyType.IGNORE, order=3),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert [(mark.start_line, mark.end_line, mark.type_id) for mark in result.marks] == [
+        (4, 4, HierarchyType.SPEAKER),
+        (5, 5, HierarchyType.TEXT),
+    ]
+    assert not any(
+        mark.start_line <= 3 and mark.end_line >= 2 for mark in result.marks
+    )
+
+
+def test_ignored_range_terminates_autofilled_speaker_text_block():
+    raw = "\n".join([
+        "MIDNA",
+        "Known line.",
+        "Do not inspect this.",
+        "Narrative after ignored block.",
+    ])
+    marks = [
+        HierarchyMark(0, 0, 1, HierarchyType.SPEAKER, text="MIDNA", order=1),
+        HierarchyMark(1, 1, 2, HierarchyType.TEXT, order=2),
+        HierarchyMark(2, 2, 0, HierarchyType.IGNORE, order=3),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert result.marks == []
+
+
+def test_synthetic_scene_start_does_not_hide_first_speaker_line():
+    raw = "\n".join([
+        "TALO",
+        "Time to practice!",
+        "~~~~~~~~~~~~~~~~",
+        "MALO",
+        "Known dialogue example.",
+    ])
+    marks = [
+        HierarchyMark(
+            0, 2, 2, HierarchyType.STRUCTURE, text="Scene 4", order=1
+        ),
+        HierarchyMark(3, 3, 3, HierarchyType.SPEAKER, text="MALO", order=2),
+        HierarchyMark(4, 4, 4, HierarchyType.TEXT, order=3),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert [
+        (mark.start_line, mark.end_line, mark.depth, mark.type_id, mark.text)
+        for mark in result.marks
+    ] == [
+        (0, 0, 3, HierarchyType.SPEAKER, "TALO"),
+        (1, 1, 4, HierarchyType.TEXT, ""),
+    ]
+
+
+def test_local_autofill_learns_item_description_pairs_only_inside_parent_structure():
+    raw = "\n".join([
+        "Collection Screen",
+        "",
+        "Wallet",
+        "A wallet from your childhood.",
+        "",
+        "Big Wallet",
+        "A wallet with greater capacity.",
+        "",
+        "Outside section",
+        "This paragraph must stay unmarked.",
+    ])
+    marks = [
+        HierarchyMark(0, 6, 1, HierarchyType.STRUCTURE, text="Collection Screen", order=1),
+        HierarchyMark(2, 2, 4, HierarchyType.ITEM, order=2),
+        HierarchyMark(3, 3, 5, HierarchyType.ITEM_DESCRIPTION, order=3),
+    ]
+
+    result = infer_hierarchy_marks_from_examples(raw, marks)
+
+    assert [
+        (mark.start_line, mark.end_line, mark.depth, mark.type_id)
+        for mark in result.marks
+    ] == [
+        (5, 5, 4, HierarchyType.ITEM),
+        (6, 6, 5, HierarchyType.ITEM_DESCRIPTION),
+    ]
+    assert (result.items, result.item_descriptions, result.speakers, result.texts) == (1, 1, 0, 0)

@@ -34,6 +34,14 @@ from .hierarchy_ai_jobs import (
     HierarchyAIWorker,
     prepare_hierarchy_ai_jobs_from_snapshot,
 )
+from .hierarchy_project import (
+    HierarchyImportStatus,
+    HierarchyProject,
+    HierarchyProjectError,
+    hierarchy_import_status,
+    load_hierarchy_project,
+    parse_hierarchy_project,
+)
 from .local_autofill import LocalAutofillResult, infer_hierarchy_marks_from_examples
 from .picoripi_rules import (
     parse_with_rules,
@@ -75,6 +83,12 @@ __all__ = [
     "HierarchyAIPrepareWorker",
     "HierarchyAIWorker",
     "prepare_hierarchy_ai_jobs_from_snapshot",
+    "HierarchyImportStatus",
+    "HierarchyProject",
+    "HierarchyProjectError",
+    "hierarchy_import_status",
+    "load_hierarchy_project",
+    "parse_hierarchy_project",
     "LocalAutofillResult",
     "infer_hierarchy_marks_from_examples",
     "parse_with_rules",

@@ -5,6 +5,38 @@ import urllib.request
 import urllib.error
 import re
 from core.tag_utils import ANY_TAG_PATTERN as tag_pattern
+from core.mempalace.schema import migrate_mempalace_schema
+from core.mempalace.dialogue_alignment import lock_relation_choice
+from core.mempalace.dialogue_mapping import (
+    DialogueMappingInput,
+    DialogueMatchSummary,
+    DialogueMappingRecord,
+    DialogueMappingUpsertResult,
+    get_dialogue_mappings,
+    GameString,
+    match_game_strings,
+    upsert_dialogue_mapping,
+)
+from core.mempalace.story_timeline import (
+    StoryNodeRecord,
+    StorySyncConflictRecord,
+    StoryTimelineConflictError,
+    StoryTimelinePosition,
+    StoryTimelineSyncResult,
+    ReferenceItemRecord,
+    get_reference_items,
+    get_story_ancestors,
+    get_story_descendants,
+    get_story_document_id,
+    get_story_neighbors,
+    get_story_node,
+    get_story_timeline,
+    get_story_timeline_position,
+    get_story_sync_conflicts,
+    record_story_sync_conflict,
+    resolve_story_sync_conflict,
+    sync_hierarchy_project,
+)
 import threading
 from typing import Dict, List, Any, Optional
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
@@ -249,6 +281,9 @@ class MemePalaceClient:
                     FOREIGN KEY(chapter_id) REFERENCES script_chapters(id) ON DELETE CASCADE
                 )
             """)
+
+            # Additive, versioned tables for the normalized story timeline.
+            migrate_mempalace_schema(conn)
             
             conn.commit()
             log_info(f"Initialized local MemePalace database at: {self.db_path}")
@@ -275,6 +310,146 @@ class MemePalaceClient:
             self._server_available_cached = False
             self._server_last_checked = time.time()
             return False
+
+    def sync_story_timeline(self, project) -> StoryTimelineSyncResult:
+        """Synchronize a validated Markup Studio project into the local story tree."""
+        conn = self._get_connection()
+        if conn is None:
+            raise RuntimeError("Local MemPalace database is unavailable.")
+        try:
+            result = sync_hierarchy_project(conn, project)
+        except StoryTimelineConflictError as exc:
+            exc.conflict_id = record_story_sync_conflict(conn, project, exc)
+            conn.commit()
+            raise
+        conn.commit()
+        return result
+
+    def get_reference_items(self, document_id: int) -> tuple[ReferenceItemRecord, ...]:
+        """Return imported non-dialogue item catalogue entries in source order."""
+        conn = self._get_connection()
+        return get_reference_items(conn, document_id) if conn else ()
+
+    def get_story_sync_conflicts(
+        self,
+        source_path: str,
+        *,
+        status: str = "open",
+    ) -> tuple[StorySyncConflictRecord, ...]:
+        conn = self._get_connection()
+        return get_story_sync_conflicts(conn, source_path, status=status) if conn else ()
+
+    def upsert_dialogue_mapping(
+        self,
+        item: DialogueMappingInput,
+        *,
+        allow_locked_override: bool = False,
+    ) -> DialogueMappingUpsertResult:
+        conn = self._get_connection()
+        if conn is None:
+            raise RuntimeError("Local MemPalace database is unavailable.")
+        result = upsert_dialogue_mapping(
+            conn,
+            item,
+            allow_locked_override=allow_locked_override,
+        )
+        conn.commit()
+        return result
+
+    def get_dialogue_mappings(
+        self,
+        document_id: int,
+        *,
+        review_status: str | None = None,
+    ) -> tuple[DialogueMappingRecord, ...]:
+        conn = self._get_connection()
+        return (
+            get_dialogue_mappings(conn, document_id, review_status=review_status)
+            if conn else ()
+        )
+
+    def match_game_strings(
+        self,
+        document_id: int,
+        game_strings: list[GameString],
+        *,
+        progress_callback=None,
+        cancel_check=None,
+    ) -> DialogueMatchSummary:
+        conn = self._get_connection()
+        if conn is None:
+            raise RuntimeError("Local MemPalace database is unavailable.")
+        result = match_game_strings(
+            conn,
+            document_id,
+            game_strings,
+            progress_callback=progress_callback,
+            cancel_check=cancel_check,
+        )
+        conn.commit()
+        return result
+
+    def lock_dialogue_relation_choice(
+        self,
+        document_id: int,
+        game_block_id: str,
+        string_index: int,
+        dialogue_node_id: int | None,
+    ) -> int:
+        conn = self._get_connection()
+        if conn is None:
+            raise RuntimeError("Local MemPalace database is unavailable.")
+        return lock_relation_choice(
+            conn,
+            document_id,
+            game_block_id,
+            string_index,
+            dialogue_node_id,
+        )
+
+    def resolve_story_sync_conflict(self, conflict_id: int) -> bool:
+        conn = self._get_connection()
+        if conn is None:
+            return False
+        resolved = resolve_story_sync_conflict(conn, conflict_id)
+        conn.commit()
+        return resolved
+
+    def get_story_node(self, document_id: int, stable_id: str) -> Optional[StoryNodeRecord]:
+        conn = self._get_connection()
+        return get_story_node(conn, document_id, stable_id) if conn else None
+
+    def get_story_document_id(self, source_path: str) -> Optional[int]:
+        conn = self._get_connection()
+        return get_story_document_id(conn, source_path) if conn else None
+
+    def get_story_timeline(self, document_id: int) -> tuple[StoryNodeRecord, ...]:
+        conn = self._get_connection()
+        return get_story_timeline(conn, document_id) if conn else ()
+
+    def get_story_ancestors(self, document_id: int, stable_id: str) -> tuple[StoryNodeRecord, ...]:
+        conn = self._get_connection()
+        return get_story_ancestors(conn, document_id, stable_id) if conn else ()
+
+    def get_story_descendants(self, document_id: int, stable_id: str) -> tuple[StoryNodeRecord, ...]:
+        conn = self._get_connection()
+        return get_story_descendants(conn, document_id, stable_id) if conn else ()
+
+    def get_story_neighbors(
+        self,
+        document_id: int,
+        stable_id: str,
+    ) -> tuple[Optional[StoryNodeRecord], Optional[StoryNodeRecord]]:
+        conn = self._get_connection()
+        return get_story_neighbors(conn, document_id, stable_id) if conn else (None, None)
+
+    def get_story_timeline_position(
+        self,
+        document_id: int,
+        stable_id: str,
+    ) -> Optional[StoryTimelinePosition]:
+        conn = self._get_connection()
+        return get_story_timeline_position(conn, document_id, stable_id) if conn else None
 
     def has_room(self, wing_name: str, room_name: str) -> bool:
         """Check if visual scene context drawer already exists for a room in local database."""
@@ -673,6 +848,9 @@ class MemePalaceClient:
                 cursor.execute("DELETE FROM drawers")
                 cursor.execute("DELETE FROM rooms")
                 cursor.execute("DELETE FROM knowledge_graph")
+                cursor.execute("DELETE FROM story_sync_conflicts")
+                cursor.execute("DELETE FROM story_dialogue_mappings")
+                cursor.execute("DELETE FROM story_documents")
                 cursor.execute("DELETE FROM wings")
                 conn.commit()
                 log_info(f"Completely cleared all local database tables at: {self.db_path}")

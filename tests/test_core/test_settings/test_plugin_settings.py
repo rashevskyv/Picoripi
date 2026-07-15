@@ -151,6 +151,41 @@ def test_PluginSettings_save(dummy_mw, tmp_path):
     assert saved["block_names"]["2"] == "Block2"
     assert "default_tag_mappings" in saved
 
+
+def test_PluginSettings_persists_mempalace_hierarchy_import_metadata(dummy_mw, tmp_path):
+    project_settings = tmp_path / "project_settings.json"
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = MagicMock(return_value=None)
+    ps._get_project_settings_path = MagicMock(return_value=project_settings)
+    dummy_mw.mempalace_hierarchy_project_path = "D:/scripts/script_markup_project.json"
+    dummy_mw.mempalace_hierarchy_project_hash = "abc123"
+    dummy_mw.mempalace_hierarchy_project_version = 1
+
+    ps.save()
+    saved = json.loads(project_settings.read_text())
+
+    assert saved["mempalace_hierarchy_project_path"] == dummy_mw.mempalace_hierarchy_project_path
+    assert saved["mempalace_hierarchy_project_hash"] == "abc123"
+    assert saved["mempalace_hierarchy_project_version"] == 1
+
+    restored_mw = type(dummy_mw)()
+    restored_mw.active_game_plugin = "test_plugin"
+    restored_mw.data_store = restored_mw
+    restored_mw.block_names = {}
+    restored_mw.block_color_markers = {}
+    restored_mw.default_tag_mappings = {}
+    restored_mw.string_metadata = {}
+    restored = PluginSettings(restored_mw)
+    restored._get_plugin_config_path = MagicMock(return_value=None)
+    restored._get_project_settings_path = MagicMock(return_value=project_settings)
+    settings = {}
+
+    restored.load(settings)
+
+    assert settings["mempalace_hierarchy_project_path"] == dummy_mw.mempalace_hierarchy_project_path
+    assert settings["mempalace_hierarchy_project_hash"] == "abc123"
+    assert settings["mempalace_hierarchy_project_version"] == 1
+
 def test_PluginSettings_save_block_names(dummy_mw, tmp_path):
     project_settings = tmp_path / "project_settings.json"
     project_settings.write_text(json.dumps({"some_key": "val"}))

@@ -8,6 +8,7 @@ import socket
 from unittest.mock import patch, MagicMock
 import pytest
 from core.mempalace_client import MemePalaceClient
+from core.mempalace.schema import LATEST_SCHEMA_VERSION, migrate_mempalace_schema
 
 @pytest.fixture
 def temp_project_dir(tmp_path):
@@ -32,6 +33,127 @@ def test_mempalace_client_get_connection(client):
     cursor.execute("PRAGMA foreign_keys;")
     fk = cursor.fetchone()[0]
     assert fk == 1
+
+
+def test_story_timeline_schema_is_created_and_versioned(client):
+    conn = client._get_connection()
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        )
+    }
+
+    assert {
+        "story_documents",
+        "story_nodes",
+        "story_sync_conflicts",
+        "story_dialogue_mappings",
+        "story_dialogue_relations",
+        "story_reference_items",
+    } <= tables
+    assert conn.execute(
+        "SELECT MAX(version) FROM mempalace_schema_migrations"
+    ).fetchone()[0] == LATEST_SCHEMA_VERSION
+
+    foreign_keys = conn.execute("PRAGMA foreign_key_list(story_nodes)").fetchall()
+    assert {(row[2], row[3], row[4], row[6]) for row in foreign_keys} == {
+        ("story_nodes", "parent_id", "id", "CASCADE"),
+        ("story_documents", "document_id", "id", "CASCADE"),
+    }
+
+
+def test_story_timeline_migration_preserves_populated_legacy_database(tmp_path):
+    db_path = tmp_path / "legacy.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "CREATE TABLE wings (id INTEGER PRIMARY KEY, name TEXT UNIQUE, description TEXT)"
+    )
+    conn.execute(
+        "INSERT INTO wings (id, name, description) VALUES (1, 'Legacy', 'Keep me')"
+    )
+    conn.commit()
+
+    migrate_mempalace_schema(conn)
+    migrate_mempalace_schema(conn)
+
+    assert conn.execute(
+        "SELECT name, description FROM wings WHERE id = 1"
+    ).fetchone() == ("Legacy", "Keep me")
+    assert conn.execute(
+        "SELECT COUNT(*) FROM mempalace_schema_migrations WHERE version = 1"
+    ).fetchone()[0] == 1
+    conn.close()
+
+
+def test_story_timeline_migration_rolls_back_partial_schema(tmp_path):
+    conn = sqlite3.connect(tmp_path / "conflicting.db")
+    conn.execute("CREATE TABLE story_nodes (legacy_value TEXT)")
+    conn.commit()
+
+    with pytest.raises(sqlite3.OperationalError, match="already exists"):
+        migrate_mempalace_schema(conn)
+
+    assert conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'story_documents'"
+    ).fetchone() is None
+    assert conn.execute("PRAGMA table_info(story_nodes)").fetchall()[0][1] == "legacy_value"
+    conn.close()
+
+
+def test_story_conflict_migration_upgrades_v1_database(tmp_path):
+    conn = sqlite3.connect(tmp_path / "v1.db")
+    conn.execute(
+        "CREATE TABLE mempalace_schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE story_documents (id INTEGER PRIMARY KEY, source_path TEXT UNIQUE)"
+    )
+    conn.execute("INSERT INTO mempalace_schema_migrations VALUES (1, 'earlier')")
+    conn.commit()
+
+    migrate_mempalace_schema(conn)
+
+    assert conn.execute(
+        "SELECT version FROM mempalace_schema_migrations ORDER BY version"
+    ).fetchall() == [(1,), (2,), (3,), (4,), (5,)]
+    assert conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'story_sync_conflicts'"
+    ).fetchone() == ("story_sync_conflicts",)
+    conn.close()
+
+
+def test_story_nodes_enforce_stable_ids_and_delete_with_document(client):
+    conn = client._get_connection()
+    document_id = conn.execute(
+        """
+        INSERT INTO story_documents (
+            source_path, source_hash, markup_format, markup_version
+        ) VALUES (?, ?, ?, ?)
+        """,
+        ("project.json", "abc123", "hierarchy_project", 1),
+    ).lastrowid
+    conn.execute(
+        """
+        INSERT INTO story_nodes (
+            stable_id, document_id, node_type, order_index, title
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        ("act:1", document_id, "act", 0, "Act 1"),
+    )
+
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            """
+            INSERT INTO story_nodes (
+                stable_id, document_id, node_type, order_index, title
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            ("act:1", document_id, "act", 1, "Duplicate"),
+        )
+
+    conn.execute("DELETE FROM story_documents WHERE id = ?", (document_id,))
+    assert conn.execute("SELECT COUNT(*) FROM story_nodes").fetchone()[0] == 0
 
 @patch("urllib.request.urlopen")
 def test_is_server_available_success(mock_urlopen, client):

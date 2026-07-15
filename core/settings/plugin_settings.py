@@ -63,6 +63,9 @@ class PluginSettings:
             "last_original_text_edit_scroll_value_v": 0, "last_original_text_edit_scroll_value_h": 0,
             "search_history": [],
             "translation_config": build_default_translation_config(),
+            "mempalace_hierarchy_project_path": "",
+            "mempalace_hierarchy_project_hash": "",
+            "mempalace_hierarchy_project_version": None,
             "autofix_enabled": {},
             "detection_enabled": {},
             "align_sentences_to_original_pages": False,
@@ -282,6 +285,15 @@ class PluginSettings:
             "autofix_enabled": self.mw.autofix_enabled,
             "detection_enabled": self.mw.detection_enabled,
             "translation_config": self.mw.translation_config,
+            "mempalace_hierarchy_project_path": getattr(
+                self.mw, "mempalace_hierarchy_project_path", ""
+            ),
+            "mempalace_hierarchy_project_hash": getattr(
+                self.mw, "mempalace_hierarchy_project_hash", ""
+            ),
+            "mempalace_hierarchy_project_version": getattr(
+                self.mw, "mempalace_hierarchy_project_version", None
+            ),
             "align_sentences_to_original_pages": getattr(self.mw, 'align_sentences_to_original_pages', False),
             "prevent_empty_lines_in_autofix": getattr(self.mw, 'prevent_empty_lines_in_autofix', False),
             "context_menu_tags": getattr(self.mw, 'context_menu_tags', {"single_tags": [], "wrap_tags": []})

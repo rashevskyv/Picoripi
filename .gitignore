@@ -5,6 +5,7 @@ __pycache__/
 /app_debug.log
 /venv/
 .venv/
+.venv-gpu/
 font_tool/
 build_gemini_dir.py
 /gemini/

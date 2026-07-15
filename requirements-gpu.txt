@@ -1,0 +1,8 @@
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+# Optional MemPalace candidate-retrieval accelerator for NVIDIA RTX GPUs.
+# Kept outside requirements.txt because the Windows application currently uses
+# Python 3.14 while PyTorch is hosted in a separate Python 3.11 environment.
+torch==2.11.0+cu128
+numpy>=2.3
+sentence-transformers==5.6.0

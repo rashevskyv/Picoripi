@@ -9,6 +9,7 @@ The **Picoripi** (v0.3.070-dev) is a visual translation and localization workben
 
 - [Feature Reference](docs/FEATURE_REFERENCE.md): detailed description of the main user-facing and engineering subsystems.
 - [AI Development Manifesto](docs/AI_DEVELOPMENT_MANIFESTO.md): rules for AI-assisted architecture, implementation, testing, documentation, and release work.
+- [MemPalace Context Manifesto](docs/MEMPALACE_CONTEXT_MANIFESTO.md): living roadmap and completion contract for Markup Studio, story timeline, character context, glossary, and context-aware AI translation integration.
 - [Testing Strategy And Test Audit](docs/TESTING_STRATEGY_AND_AUDIT.md): test-suite audit, risk register, and parallel test commands.
 - [Plugin Authoring Guide](docs/PLUGIN_AUTHORING_GUIDE.md): current guide for creating new plugins from `plugins/default_plugin/`.
 - [Default Plugin Template](plugins/default_plugin/README.md): copy-ready baseline plugin for new game/text formats.

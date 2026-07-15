@@ -443,3 +443,20 @@ def test_parse_hierarchy_auto_markup_response_accepts_fenced_json_and_labels():
         (3, 3, 3, HierarchyType.TEXT, ""),
     ]
     assert warnings == ["Skipped mark 3: start line is outside the file."]
+
+
+def test_item_types_render_as_reference_entry_not_speaker_dialogue():
+    raw = "Collection Screen\nWallet\nA wallet from your childhood.\n"
+    marks = [
+        HierarchyMark(0, 2, 0, HierarchyType.STRUCTURE, text="Collection Screen", order=1),
+        HierarchyMark(1, 1, 1, HierarchyType.ITEM, order=2),
+        HierarchyMark(2, 2, 2, HierarchyType.ITEM_DESCRIPTION, order=3),
+    ]
+
+    rendered = render_hierarchy_markdown(marks, raw)
+
+    definitions = default_type_definitions()
+    assert definitions[HierarchyType.ITEM].label == "Item"
+    assert definitions[HierarchyType.ITEM_DESCRIPTION].label == "Item Description"
+    assert "- **Wallet**: A wallet from your childhood." in rendered
+    assert "**Wallet**:" not in rendered.replace("- **Wallet**:", "")
