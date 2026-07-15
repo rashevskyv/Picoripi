@@ -4,7 +4,7 @@ import struct
 import pytest
 
 from plugins.zelda_bmg.msg_flow import (
-    parse_flow_sections, build_conversation, flow_context_from_bmg,
+    actor_map_for_bmg, parse_flow_sections, build_conversation, flow_context_from_bmg,
     MsgFlowContext, QUERY_LABELS, EVENT_LABELS,
     NODE_MESSAGE, NODE_BRANCH, NODE_EVENT,
 )
@@ -23,7 +23,7 @@ def _event_node(event_idx, next_idx):
 
 
 def _flw1(nodes, branch_table):
-    body = struct.pack(">H", len(nodes)) + b"\x00" * 6
+    body = struct.pack(">HH", len(nodes), len(branch_table)) + b"\x00" * 4
     body += b"".join(nodes)
     body += struct.pack(f">{len(branch_table)}H", *branch_table) if branch_table else b""
     return struct.pack(">4sI", b"FLW1", 8 + len(body)) + body
@@ -63,6 +63,14 @@ def test_parse_flow_sections():
     assert flow.nodes[4].arg == 17
 
 
+def test_parse_flow_sections_uses_branch_count_not_alignment_bytes():
+    flw1, fli1 = _sample_sections()
+    padded = flw1 + b"\xff\x00\x00\x00" * 16
+    flow = parse_flow_sections(padded, fli1)
+    assert flow is not None
+    assert flow.branch_table == [2, 3]
+
+
 def test_build_conversation_walks_branches_and_events():
     flw1, fli1 = _sample_sections()
     flow = parse_flow_sections(flw1, fli1)
@@ -99,9 +107,11 @@ def test_msg_flow_context_renders_per_line_and_overview():
 
 
 class _FakeBmg:
-    def __init__(self, other_sections, messages=()):
+    def __init__(self, other_sections, messages=(), trailing_data=b"", endianness=">"):
         self.other_sections = other_sections
         self.messages = list(messages)
+        self.trailing_data = trailing_data
+        self.endianness = endianness
 
 
 class _FakeMsg:
@@ -115,6 +125,16 @@ def test_flow_context_from_bmg_and_missing_sections():
     assert flow_context_from_bmg(_FakeBmg({"FLW1": flw1, "FLI1": fli1})) is not None
     assert flow_context_from_bmg(_FakeBmg({})) is None
     assert flow_context_from_bmg(object()) is None
+
+
+def test_flow_context_recovers_truncated_fli1_from_bmg_trailing_data():
+    flw1, fli1 = _sample_sections()
+    # Retail zel_00.bmg declares alignment bytes at the end of FLI1 which are
+    # not physically present. BMGFile therefore preserves the section here.
+    bmg = _FakeBmg({"FLW1": flw1}, trailing_data=fli1)
+    ctx = flow_context_from_bmg(bmg)
+    assert ctx is not None
+    assert "dialogue flow #338" in ctx.context_for_message(1)
 
 
 class _MockMW:
@@ -179,6 +199,19 @@ def test_actor_map_annotates_flow_context():
     assert "game actor: d_a_npc_kkri" in ctx2.context_for_message(0)
 
 
+def test_actor_map_requires_explicit_bmg_scope_before_runtime_use():
+    actor_map = {
+        4: {"actors": ["d_a_npc_kolin"], "character": "Colin"},
+        5: {
+            "actors": ["d_a_npc_talo"], "character": "Talo",
+            "bmg_files": ["zel_01.bmg"],
+        },
+    }
+    assert actor_map_for_bmg(actor_map, "zel_01.bmg") == {5: actor_map[5]}
+    assert actor_map_for_bmg(actor_map, "zel_02.bmg") == {}
+    assert actor_map_for_bmg(actor_map, None) == {}
+
+
 def test_flow_actors_json_loads_and_matches_sources():
     from plugins.zelda_bmg.msg_flow import load_flow_actor_map
     actor_map = load_flow_actor_map()
@@ -233,3 +266,47 @@ def test_flow_context_reaches_ai_translation_prompt(qapp):
     assert EVENT_LABELS[17] in user_content
     # the model is told how to use it
     assert "DIALOGUE FLOW" in user_content
+
+
+def test_flow_context_reaches_single_and_variation_prompts(qapp):
+    from unittest.mock import MagicMock
+    from handlers.translation.ai_prompt_composer import AIPromptComposer
+    from plugins.zelda_bmg.rules import GameRules
+
+    mw = MagicMock()
+    mw.data_store = mw
+    mw.data_store.data = [["Question?", "Yes, exactly.", "No way."]]
+    mw.default_tag_mappings = {}
+    mw.project_manager = None
+    mw.block_to_project_file_map = {}
+    main_handler = MagicMock()
+    main_handler.mw = mw
+    main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer = AIPromptComposer(main_handler)
+
+    rules = GameRules(None)
+    flw1, fli1 = _sample_sections()
+    rules.last_loaded_bmg = _FakeBmg({"FLW1": flw1, "FLI1": fli1}, [
+        _FakeMsg(402, "Question?"),
+        _FakeMsg(403, "Yes, exactly."),
+        _FakeMsg(404, "No way."),
+    ])
+    mw.current_game_rules = rules
+
+    _, single_user = composer.compose_messages(
+        "Translate into {target_lang}.", "Yes, exactly.",
+        block_idx=0, string_idx=1, expected_lines=1,
+        mode_description="translation", request_type="translation",
+    )
+    _, variation_user = composer.compose_messages(
+        "Translate into {target_lang}.", "Yes, exactly.",
+        block_idx=0, string_idx=1, expected_lines=1,
+        mode_description="variations", request_type="variation_list",
+        current_translation="Так, саме так.",
+    )
+
+    for prompt in (single_user, variation_user):
+        assert "Dialogue Flow (from game data)" in prompt
+        assert "line 2 of 3" in prompt
+        assert "[msg 402]" in prompt
+        assert "owning NPC/actor" in prompt

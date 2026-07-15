@@ -2,6 +2,7 @@
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QTextCursor
 from typing import Optional
+import re
 
 class LNETTooltipLogic:
     """L n e t tooltip logic implementation."""
@@ -93,4 +94,22 @@ class LNETTooltipLogic:
         if tooltip_lines:
             font_size = getattr(self.editor.window(), 'tooltip_font_size', 11)
             return f"<div style='font-size: {font_size}px;'>" + "<br><br>".join(tooltip_lines) + "</div>"
+        return None
+
+    def find_tag_tooltip_at(self, pos: QPoint) -> Optional[str]:
+        """Return the active game plugin's explanation for the tag under the cursor."""
+        cursor = self.editor.cursorForPosition(pos)
+        block = cursor.block()
+        if not block.isValid():
+            return None
+        position = cursor.positionInBlock()
+        block_text = block.text()
+        if not isinstance(block_text, str):
+            return None
+        for match in re.finditer(r"\{[^{}]+\}", block_text):
+            if match.start() <= position < match.end():
+                rules = getattr(self.editor.window(), "current_game_rules", None)
+                if rules and hasattr(rules, "get_tag_tooltip"):
+                    return rules.get_tag_tooltip(match.group(0)) or None
+                return None
         return None

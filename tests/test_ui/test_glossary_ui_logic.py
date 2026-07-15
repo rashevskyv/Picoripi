@@ -96,6 +96,22 @@ def test_glossary_tooltip_shows_correct_text(mock_show_text, qapp):
     assert "Hero of Time" in tooltip_text
 
 
+@patch('PyQt6.QtWidgets.QToolTip.showText')
+def test_game_tag_tooltip_shows_without_glossary(mock_show_text, qapp):
+    editor = LineNumberedTextEdit()
+    editor.setPlainText("Press {GC:A}")
+    editor._find_glossary_entry_at = MagicMock(return_value=None)
+    editor.tooltip_logic.find_tag_tooltip_at = MagicMock(return_value="ABTN: GameCube A button")
+    editor.cursorForPosition = MagicMock(return_value=editor.textCursor())
+
+    from PyQt6.QtGui import QMouseEvent
+    event = QMouseEvent(QEvent.Type.MouseMove, QPointF(5.0, 5.0), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+    editor.mouseMoveEvent(event)
+
+    assert mock_show_text.called
+    assert "GameCube A button" in mock_show_text.call_args[0][1]
+
+
 def test_glossary_highlighted_after_set_plain_text(qapp):
     """
     Regression test for the bug:

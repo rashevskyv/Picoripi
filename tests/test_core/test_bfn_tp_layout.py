@@ -418,6 +418,79 @@ def test_tp_escape_descriptions_decode_arguments(bmg_rules):
     assert "150%" in bmg_rules.get_escape_tag_description("{escape:255:00010096}")
 
 
+def test_tp_editor_aliases_are_readable_and_lossless(bmg_rules):
+    bmg_rules.mw.default_tag_mappings = bmg_rules.get_default_tag_mappings()
+    raw = (
+        "{escape:0:000a}{escape:3:0001}{escape:0:0007000a}"
+        "{escape:255:00010096}{escape:1:0014}"
+    )
+
+    editor = bmg_rules.get_text_representation_for_editor(raw)
+
+    assert editor == "{GC:A}{W:A}{pause:10f}{scale:150%}{sound:20}"
+    assert bmg_rules.get_text_representation_for_preview(raw) == editor
+    assert bmg_rules.mw.default_tag_mappings["{pause:10f}"] == "{escape:0:0007000a}"
+    assert bmg_rules.mw.default_tag_mappings["{scale:150%}"] == "{escape:255:00010096}"
+    assert bmg_rules.convert_editor_text_to_data(editor) == raw
+
+
+def test_tp_canonical_aliases_keep_preview_and_width_semantics(bmg_rules):
+    bmg_rules.mw.default_tag_mappings = bmg_rules.get_default_tag_mappings()
+    raw = (
+        "{escape:0:0000} {escape:0:003700} {escape:0:000a} "
+        "{escape:255:00010096}X"
+    )
+    editor = bmg_rules.get_text_representation_for_editor(raw)
+    clean, _, scales, icons = bmg_rules.prepare_preview_glyph_text(editor)
+
+    assert editor == "{F:Link} {value:bomb-max:00} {GC:A} {scale:150%}X"
+    assert clean == "Link ⟨max bombs⟩ \ufffc X"
+    assert icons and icons[len("Link ⟨max bombs⟩ ")]["width"] == 24
+    assert scales and scales[-1] == 1.5
+    assert bmg_rules.calculate_string_width_override("{GC:A}", {}) == 24
+
+
+def test_tp_runtime_names_use_forced_alias_width_and_visibility(bmg_rules):
+    from utils.utils import calculate_string_width
+
+    mappings = bmg_rules.get_default_tag_mappings()
+    bmg_rules.mw.default_tag_mappings = mappings
+    font_map = {"L": {"width": 7}, "i": {"width": 3}, "n": {"width": 6}, "k": {"width": 6}}
+
+    assert bmg_rules.get_text_representation_for_editor("{escape:0:0000}") == "{F:Link}"
+    assert bmg_rules.get_text_representation_for_editor("{escape:0:0022}") == "{F:Epona}"
+    assert calculate_string_width(
+        "{escape:0:0000}", font_map, default_tag_mappings=mappings
+    ) == 22
+
+
+def test_tp_editor_tag_tooltips_explain_known_and_unknown_tags(bmg_rules):
+    bmg_rules.mw.default_tag_mappings = bmg_rules.get_default_tag_mappings()
+    bmg_rules.get_text_representation_for_editor("{escape:0:0007000a}")
+
+    assert "GameCube A button" in bmg_rules.get_tag_tooltip("{GC:A}")
+    assert "10 frames" in bmg_rules.get_tag_tooltip("{pause:10f}")
+    assert "sound effect ID 20" in bmg_rules.get_tag_tooltip("{sound:20}")
+
+
+def test_tp_generated_aliases_and_width_json_cover_fixed_catalog_semantics():
+    import json
+    from pathlib import Path
+    from plugins.zelda_bmg.tag_catalog import build_static_escape_aliases, fixed_escape_widths
+
+    plugin_dir = Path("plugins") / "zelda_bmg"
+    widths = json.loads((plugin_dir / "font_map.json").read_text(encoding="utf-8"))
+    from plugins.zelda_bmg.rules import GameRules
+
+    assert GameRules().get_default_tag_mappings() == build_static_escape_aliases()
+    assert fixed_escape_widths().items() <= widths.items()
+    assert build_static_escape_aliases()["{GC:A}"] == "{escape:0:000a}"
+    assert build_static_escape_aliases()["{W:Nunchuk Z}"] == "{escape:3:0014}"
+    assert widths["{GC:A}"]["width"] == 24
+    assert widths["{ctrl:instant}"]["width"] == 0
+    assert "{escape:0:0007}" not in widths
+
+
 def test_tp_every_controller_icon_spec_can_be_drawn(qapp):
     from PyQt6.QtCore import Qt
     from PyQt6.QtGui import QImage, QPainter
@@ -448,6 +521,16 @@ def test_tp_width_measurement_uses_semantic_tag_output(bmg_rules):
     assert bmg_rules.calculate_string_width_override("{escape:0:000a}", font_map) == 24
     assert bmg_rules.calculate_string_width_override("{escape:0:0001}", font_map) == 0
     assert bmg_rules.calculate_string_width_override("{escape:0:0000}", font_map) == 22
+
+
+def test_tp_font_glyph_tags_use_font_width_not_icon_width(bmg_rules):
+    font_map = {"♂": {"width": 11}}
+
+    clean, _, _, icons = bmg_rules.prepare_preview_glyph_text("{escape:6:0002}")
+
+    assert clean == "♂"
+    assert icons is None
+    assert bmg_rules.calculate_string_width_override("{escape:6:0002}", font_map) == 11
 
 
 def test_tp_ai_runtime_names_are_explicit_and_instant_is_not_link(bmg_rules):

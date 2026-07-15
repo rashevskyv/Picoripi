@@ -65,6 +65,17 @@ def test_text_views_shows_alias_instead_of_tag(mock_mw):
     assert data_text == original_text
 
 
+def test_alias_replacement_matches_complete_tag_tokens(mock_mw):
+    mock_mw.default_tag_mappings = {
+        "{Short}": "{escape:0:0037}",
+        "{Full}": "{escape:0:003700}",
+    }
+    rules = BaseGameRules(main_window_ref=mock_mw)
+
+    assert rules.get_text_representation_for_editor("{escape:0:003700}") == "{Full}"
+    assert rules.convert_editor_text_to_data("{Full}") == "{escape:0:003700}"
+
+
 @patch('ui.main_window.main_window_actions.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes)
 def test_remove_tag_alias_replaces_alias_with_tag_in_edited_data(mock_question, mock_mw):
     # Setup default mappings and actual window actions

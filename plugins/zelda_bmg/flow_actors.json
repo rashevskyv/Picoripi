@@ -1,5 +1,5 @@
 {
- "_comment": "Flow ID -> game actor map for TP dialogue flows (FLW1/FLI1). Extracted from dusklight src/d/actor/*.cpp (hardcoded msg_flow.init/initTalk IDs). Many NPCs take their flow ID from map placement params instead and are not listed here. Fill 'character' with the human-readable speaker name to improve AI translation context.",
+ "_comment": "Research evidence: flow ID -> game actor class, extracted from dusklight src/d/actor/*.cpp. Flow IDs repeat across zel_XX BMG resources, so unscoped entries MUST NOT be sent to AI. Runtime actor labels require a bmg or bmg_files field established from stage/ACTR data; character may then hold a reviewed human-readable owner name.",
  "flows": {
   "2": {
    "actors": [

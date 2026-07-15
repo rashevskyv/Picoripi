@@ -171,6 +171,7 @@ class LineNumberedTextEdit(QPlainTextEdit):
         cursor = self.cursorForPosition(event.pos())
         block = cursor.block()
         entry = self._find_glossary_entry_at(event.pos())
+        tag_tooltip = self.tooltip_logic.find_tag_tooltip_at(event.pos())
         warning_tooltip = self._find_warning_tooltip_at(event.pos())
         
         tooltip_text = None
@@ -189,13 +190,21 @@ class LineNumberedTextEdit(QPlainTextEdit):
                 lines.append(notes_html)
             lines.append("</div>")
             tooltip_text = "".join(lines)
+        elif tag_tooltip:
+            import html
+            main_window = self.window()
+            font_size = getattr(main_window, 'tooltip_font_size', 11)
+            tooltip_text = (
+                f"<div style='font-size: {font_size}px;'>"
+                f"<b>Game tag</b><br>{html.escape(tag_tooltip)}</div>"
+            )
             
         # USER_REQUEST: Tooltips should be EXCLUSIVELY on the number area.
         # Warning tooltips from the main text area are now handled only by handle_line_number_area_mouse_move
         # for the LineNumberArea. We keep glossary tooltips here if needed, but remove warning_tooltip logic.
 
         # Tracking state to avoid flickering but allow position updates between lines
-        current_state = (tooltip_text, block.blockNumber()) if entry else None
+        current_state = (tooltip_text, block.blockNumber()) if tooltip_text else None
         last_state = getattr(self, '_last_tooltip_state', None)
 
         if tooltip_text:

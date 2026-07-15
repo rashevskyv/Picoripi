@@ -33,6 +33,8 @@ from .tag_catalog import (
     ESCAPE_TAGS,
     ICON_TAG_WIDTH as CATALOG_ICON_TAG_WIDTH,
     describe_escape_tag,
+    build_static_escape_aliases,
+    escape_tag_to_editor_alias,
     get_escape_tag_spec,
 )
 
@@ -231,6 +233,36 @@ class GameRules(BaseGameRules):
         if not match:
             return ""
         return describe_escape_tag(int(match.group(1)), match.group(2))
+
+    def get_tag_tooltip(self, tag: str) -> str:
+        """Explain a raw or aliased TP tag shown under the mouse cursor."""
+        raw = self.replace_aliases_with_tags(str(tag))
+        return self.get_escape_tag_description(raw)
+
+    def _ensure_escape_aliases(self, text: str) -> None:
+        """Register catalogue names as real, editable aliases for raw tags."""
+        if not self.mw:
+            return
+        mappings = getattr(self.mw, "default_tag_mappings", None)
+        if mappings is None:
+            mappings = {}
+            self.mw.default_tag_mappings = mappings
+        for match in _ESCAPE_ANY_RE.finditer(str(text)):
+            raw_tag = match.group(0)
+            # Existing project/user aliases win.  This is important because
+            # Edit Alias persists through project settings.
+            if any(original == raw_tag for original in mappings.values()):
+                continue
+            alias = escape_tag_to_editor_alias(raw_tag)
+            if alias in mappings and mappings[alias] != raw_tag:
+                group, data = match.group(1), match.group(2).lower()
+                alias = f"{alias[:-1]}:{group}-{data}}}"
+            mappings[alias] = raw_tag
+
+    def replace_tags_with_aliases(self, text: str) -> str:
+        """Register missing semantic aliases, then use the standard alias engine."""
+        self._ensure_escape_aliases(str(text))
+        return super().replace_tags_with_aliases(str(text))
 
     def get_escape_tag_catalog(self) -> Dict[Tuple[int, int], Any]:
         """Expose a copy of the documented Zelda BMG tag catalogue to UI tools."""
@@ -466,8 +498,8 @@ class GameRules(BaseGameRules):
             self._flow_actor_map = cached
         return cached
 
-    def _flow_context_from_bmg_cached(self, bmg, cache_key):
-        from .msg_flow import flow_context_from_bmg
+    def _flow_context_from_bmg_cached(self, bmg, cache_key, resource_name=None):
+        from .msg_flow import actor_map_for_bmg, flow_context_from_bmg
         cache = getattr(self, "_flow_ctx_cache", None)
         if cache is None:
             cache = {}
@@ -476,8 +508,12 @@ class GameRules(BaseGameRules):
             return cache[cache_key]
         ctx = None
         try:
-            ctx = flow_context_from_bmg(bmg, msg_label=self._make_flow_msg_label(bmg),
-                                        actor_map=self._get_flow_actor_map())
+            actor_map = actor_map_for_bmg(self._get_flow_actor_map(), resource_name)
+            ctx = flow_context_from_bmg(
+                bmg,
+                msg_label=self._make_flow_msg_label(bmg),
+                actor_map=actor_map,
+            )
         except Exception as e:
             log_debug(f"zelda_bmg: failed to build flow context: {e}")
         cache[cache_key] = ctx
@@ -485,13 +521,18 @@ class GameRules(BaseGameRules):
             cache.pop(next(iter(cache)))
         return ctx
 
-    def _get_flow_context_for_block(self, block_idx):
-        """Resolve the BMG file behind a data block and build its dialogue-flow
-        context (cached by file path + mtime)."""
+    def _get_bmg_for_block(self, block_idx):
+        """Resolve and parse the BMG file behind a data block.
+
+        Returns (bmg, cache_key, resource_name); falls back to the most
+        recently loaded BMG (single-file workflows, tests). Parsed files are
+        cached by path + mtime (or archive member + content digest).
+        """
         from bmg_tool import BMGFile
 
         raw = None
         cache_key = None
+        resource_name = None
         try:
             pm = getattr(self.mw, 'project_manager', None)
             block_map = getattr(self.mw, 'block_to_project_file_map', {}) or {}
@@ -505,31 +546,50 @@ class GameRules(BaseGameRules):
                     inner = meta.get('archive_file_name')
                     container = pm.get_archive_container(arc, is_translation=False)
                     raw = container.read_file(inner)
-                    cache_key = f"arc:{arc}:{inner}"
+                    resource_name = inner
+                    import hashlib
+                    digest = hashlib.sha256(raw).hexdigest()[:16]
+                    cache_key = f"arc:{arc}:{inner}:{digest}"
                 else:
                     path = pm.get_absolute_path(block.source_file)
                     if path and os.path.exists(path):
-                        raw = open(path, 'rb').read()
-                        cache_key = f"file:{path}:{os.path.getmtime(path)}"
+                        with open(path, 'rb') as source_file:
+                            raw = source_file.read()
+                        resource_name = os.path.basename(path)
+                        cache_key = f"file:{path}:{os.stat(path).st_mtime_ns}"
         except Exception as e:
-            log_debug(f"zelda_bmg: flow context file resolution failed for block {block_idx}: {e}")
+            log_debug(f"zelda_bmg: BMG file resolution failed for block {block_idx}: {e}")
 
         if raw is not None and cache_key is not None:
-            cache = getattr(self, "_flow_ctx_cache", {})
-            if cache_key in cache:
-                return cache[cache_key]
+            bmg_cache = getattr(self, "_bmg_block_cache", None)
+            if bmg_cache is None:
+                bmg_cache = {}
+                self._bmg_block_cache = bmg_cache
+            if cache_key in bmg_cache:
+                return bmg_cache[cache_key], cache_key, resource_name
             bmg = BMGFile()
             try:
                 bmg.load(raw)
             except Exception:
-                return None
-            return self._flow_context_from_bmg_cached(bmg, cache_key)
+                return None, None, None
+            bmg_cache[cache_key] = bmg
+            if len(bmg_cache) > 16:
+                bmg_cache.pop(next(iter(bmg_cache)))
+            return bmg, cache_key, resource_name
 
         # Fallback: the most recently loaded BMG (single-file workflows, tests)
         if self.last_loaded_bmg is not None:
-            return self._flow_context_from_bmg_cached(
-                self.last_loaded_bmg, f"last:{id(self.last_loaded_bmg)}")
-        return None
+            return (self.last_loaded_bmg,
+                    f"last:{id(self.last_loaded_bmg)}", None)
+        return None, None, None
+
+    def _get_flow_context_for_block(self, block_idx):
+        """Resolve the BMG file behind a data block and build its dialogue-flow
+        context (cached by file path + mtime)."""
+        bmg, cache_key, resource_name = self._get_bmg_for_block(block_idx)
+        if bmg is None:
+            return None
+        return self._flow_context_from_bmg_cached(bmg, cache_key, resource_name)
 
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """Per-line dialogue-flow context for the AI translation prompt."""
@@ -690,10 +750,10 @@ class GameRules(BaseGameRules):
         Returns (clean_text, colors|None, scales|None, icons|None) where icons
         maps character index in clean_text -> icon drawing spec dict.
         """
-        raw = str(text)
-        # Convert user aliases ({(A)}, {pause}, ...) to raw escape form first so
-        # a single parsing path handles both alias and raw tags
-        raw = self.replace_aliases_with_tags(raw)
+        # Convert both canonical aliases ({GC:A}, {pause:10f}, ...) and legacy
+        # project aliases ({(A)}, {pause}, ...) to raw escape form first so a
+        # single parsing path handles preview and width semantics losslessly.
+        raw = self.convert_editor_text_to_data(str(text))
         for tag, name in self.get_dynamic_name_tags().items():
             raw = raw.replace(tag, name)
 
@@ -797,37 +857,43 @@ class GameRules(BaseGameRules):
                 (out_scales if has_scale else None),
                 (out_icons if out_icons else None))
 
-    def get_preview_window_style(self) -> Dict[str, Any]:
-        """Visual style of the TP talk window for the game-like preview.
+    def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, int]]:
+        """Decoded INF1 attributes of a message (window kind, speaker SE,
+        camera, animations...), or None if the message can't be resolved."""
+        from .window_kinds import decode_message_attributes
+        try:
+            string_idx = int(string_idx)
+        except (TypeError, ValueError):
+            return None
+        bmg, _, _ = self._get_bmg_for_block(block_idx)
+        if bmg is None:
+            return None
+        messages = getattr(bmg, "messages", None) or []
+        if not (0 <= string_idx < len(messages)):
+            return None
+        return decode_message_attributes(getattr(messages[string_idx], "info", b""))
 
-        Values extracted from dusklight sources:
-          - frame: talk box alpha 0.9 (dMsgObject_HIO_c.mBoxTalkAlphaP), the box
-            pane is a dark translucent rounded window widened 1.2x;
-          - text is drawn inside the box with a (+4.5, 0) offset (mTextPosX/Y);
-          - shadow: a pure black copy of the text (the 't4_s' shadow pane gets
-            TEV white (0,0,0,255) via mBoxStartWhite[1]); icon shadows in
-            COutFont_c::draw all use a +2,+2 px offset;
-          - halo: an animated golden glow sprite behind every character
-            (d_msg_scrn_light.cpp, color type 0: white TEV (225,210,110) with
-            alpha 160), drawn with mBoxTalkHaloAlpha = 1.0 for the talk box;
-          - text brightness: the main text pane is modulated by TEV white
-            (200,200,200) (mBoxStartWhite[0]), so "white" game text is #c8c8c8.
+    def get_preview_window_style(self, block_idx: Optional[int] = None,
+                                 string_idx: Optional[int] = None) -> Dict[str, Any]:
+        """Visual style of the message window for the game-like preview.
+
+        The window TYPE comes from the message's own INF1 attributes
+        (fuki_kind byte, dusklight JMSMesgEntry_c): talk box, wooden/stone
+        sign, item-get window (item icon + indented text), cutscene
+        subtitles, location plate, Midna / light-spirit talk variants, etc.
+        Shared values extracted from dusklight sources:
+          - talk frame alpha 0.9 (mBoxTalkAlphaP), text offset +4.5,0
+            (mTextPosX/Y), black text shadow at +2,+2 (shadow pane TEV);
+          - per-character halo colors per window kind (dMsgScrnLight_c);
+          - text brightness: main text modulated by TEV white (200,200,200).
         """
-        return {
-            "frame": {
-                "fill": "#0a0c14",
-                "fill_alpha": 216,       # ~ mBoxTalkAlphaP (0.9) over dark box art
-                "border": "#f0e6c8",
-                "border_alpha": 40,
-                "radius": 14.0,          # game px, scaled with text
-                "pad_x": 22.0,
-                "pad_y": 10.0,
-            },
-            "text_offset": (4.5, 0.0),   # mTextPosX / mTextPosY
-            "text_brightness": 200.0 / 255.0,
-            "shadow": {"color": "#000000", "alpha": 255, "dx": 2.0, "dy": 2.0},
-            "halo": {"color": "#e1d26e", "alpha": 160, "radius_ratio": 0.9},
-        }
+        from .window_kinds import window_style_for_kind
+        fuki_kind = None
+        if block_idx is not None and string_idx is not None:
+            attrs = self.get_message_attributes(block_idx, string_idx)
+            if attrs:
+                fuki_kind = attrs.get("fuki_kind")
+        return window_style_for_kind(fuki_kind)
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
         """Get the text representation for preview."""
@@ -852,4 +918,8 @@ class GameRules(BaseGameRules):
 
     def convert_editor_text_to_data(self, text: str) -> str:
         """Convert editor text to data."""
-        return super().convert_editor_text_to_data(text)
+        return super().convert_editor_text_to_data(str(text))
+
+    def get_default_tag_mappings(self) -> Dict[str, str]:
+        """Canonical aliases generated from the authoritative escape catalogue."""
+        return build_static_escape_aliases()

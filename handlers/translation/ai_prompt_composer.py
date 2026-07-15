@@ -788,6 +788,29 @@ class AIPromptComposer(BaseTranslationHandler):
             if story_context:
                 context_lines.append(f"Story Context:\n{story_context}")
 
+        # Objective conversation structure from the game BMG itself. This is
+        # complementary to MemePalace: it supplies real order, branches,
+        # conditions and game actions, but does not override the per-line speaker.
+        dialogue_flow_context = ""
+        if block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
+            rules = getattr(self.mw, 'current_game_rules', None)
+            if rules is not None:
+                flow_parts = []
+                try:
+                    if hasattr(rules, 'get_ai_flow_context_for_string'):
+                        line_flow = rules.get_ai_flow_context_for_string(block_idx, string_idx)
+                        if isinstance(line_flow, str) and line_flow:
+                            flow_parts.append(f"Current line: {line_flow}")
+                    if hasattr(rules, 'get_ai_flow_overview'):
+                        overview = rules.get_ai_flow_overview(block_idx, [string_idx])
+                        if isinstance(overview, str) and overview:
+                            flow_parts.append(overview)
+                except Exception as e:
+                    log_debug(f"AIPromptComposer: single-string flow context failed: {e}")
+                if flow_parts:
+                    dialogue_flow_context = "\n\n".join(flow_parts)
+                    context_lines.append(f"Dialogue Flow (from game data):\n{dialogue_flow_context}")
+
         # Fetch surrounding dialogue context (Surrounding Translated Context)
         if block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
             try:
@@ -858,6 +881,12 @@ class AIPromptComposer(BaseTranslationHandler):
             ]
 
         if request_type not in ('glossary_notes_variation',):
+            if dialogue_flow_context:
+                instructions.append(
+                    'Use Dialogue Flow to keep this line coherent with the real in-game conversation order, '
+                    'choice branch, condition and following game action. It is structural context; do not treat '
+                    'the owning NPC/actor as proof that every line in the flow has that speaker.'
+                )
             if tag_alias_legend:
                 instructions.append('TAG ALIAS LEGEND: Refer to the "TAG ALIAS LEGEND" section below to understand what tag aliases mean. Place them correctly in the translated text.')
             instructions.append('ANCHORED TAGS: Any tags not present in the legend (e.g. {0}, {1}, [PLAYER]) are anchored system tags. Do NOT translate, modify, or delete them. Maintain them in their correct positions.')

@@ -910,11 +910,22 @@ class BfnPreviewWidget(QWidget):
         return cleaned_text, None, None, None
 
     def _get_game_window_style(self):
-        """Fetch the in-game message window style from the active plugin, if any."""
+        """Fetch the in-game message window style from the active plugin.
+
+        The current string's coordinates are passed so the plugin can pick the
+        window TYPE from the message's own attributes (talk box, sign, item-get
+        window, subtitles...).
+        """
         rules = getattr(self.mw, 'current_game_rules', None)
         if rules and hasattr(rules, 'get_preview_window_style'):
+            ds = getattr(self.mw, 'data_store', None)
+            b_idx = getattr(ds, 'physical_block_idx', None) if ds is not None else None
+            s_idx = getattr(ds, 'current_string_idx', None) if ds is not None else None
             try:
-                style = rules.get_preview_window_style()
+                try:
+                    style = rules.get_preview_window_style(block_idx=b_idx, string_idx=s_idx)
+                except TypeError:
+                    style = rules.get_preview_window_style()
                 if isinstance(style, dict):
                     return style
             except Exception:
@@ -1115,21 +1126,89 @@ class BfnPreviewWidget(QWidget):
                 text_dx = text_dy = 0
 
         # ── 2-frame. Message window frame around the text area ───────────────
+        # The frame kind follows the message's window type (talk box, wooden or
+        # stone sign, item-get window, location plate; subtitles have none).
+        frame_rect = QRectF(abs_rect)
         if game_style and isinstance(game_style.get("frame"), dict):
             fr = game_style["frame"]
+            fr_style = fr.get("style", "talk")
             pad_x = float(fr.get("pad_x", 20)) * scale_factor
             pad_y = float(fr.get("pad_y", 10)) * scale_factor
             radius = float(fr.get("radius", 14)) * scale_factor
             frame_rect = QRectF(abs_rect).adjusted(-pad_x, -pad_y, pad_x, pad_y)
-            fill = QColor(fr.get("fill", "#0a0c14"))
-            fill.setAlpha(int(fr.get("fill_alpha", 216)))
             border = QColor(fr.get("border", "#ffffff"))
             border.setAlpha(int(fr.get("border_alpha", 40)))
+
             painter.save()
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-            painter.setPen(QPen(border, 1.5))
-            painter.setBrush(fill)
+            if fr_style in ("wood", "stone"):
+                # signs: vertical material gradient with a solid dark border
+                from PyQt6.QtGui import QLinearGradient
+                grad = QLinearGradient(frame_rect.topLeft(), frame_rect.bottomLeft())
+                top = QColor(fr.get("fill", "#6b4a2b"))
+                bottom = QColor(fr.get("fill2", fr.get("fill", "#4a3018")))
+                alpha = int(fr.get("fill_alpha", 245))
+                top.setAlpha(alpha)
+                bottom.setAlpha(alpha)
+                grad.setColorAt(0.0, top)
+                grad.setColorAt(1.0, bottom)
+                painter.setPen(QPen(border, max(2.0, 3.0 * scale_factor)))
+                painter.setBrush(QBrush(grad))
+            else:
+                fill = QColor(fr.get("fill", "#0a0c14"))
+                fill.setAlpha(int(fr.get("fill_alpha", 216)))
+                painter.setPen(QPen(border, 1.5))
+                painter.setBrush(fill)
             painter.drawRoundedRect(frame_rect, radius, radius)
+            painter.restore()
+
+        # Item-get window: item icon slot on the left, text starts after it
+        if game_style and isinstance(game_style.get("item_icon"), dict):
+            ic = game_style["item_icon"]
+            icon_size = float(ic.get("size", 48)) * scale_factor
+            gap = float(ic.get("gap", 10)) * scale_factor
+            slot = QRectF(abs_rect.x(),
+                          abs_rect.y() + (abs_rect.height() - icon_size) / 2.0,
+                          icon_size, icon_size)
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            slot_fill = QColor("#000000")
+            slot_fill.setAlpha(90)
+            slot_border = QColor("#f0e6c8")
+            slot_border.setAlpha(90)
+            painter.setPen(QPen(slot_border, 1.5))
+            painter.setBrush(slot_fill)
+            painter.drawRoundedRect(slot, icon_size * 0.15, icon_size * 0.15)
+            # generic "item" placeholder: a diamond in the slot
+            painter.setPen(Qt.PenStyle.NoPen)
+            gem = QColor("#78d2b4")
+            gem.setAlpha(220)
+            painter.setBrush(gem)
+            path = QPainterPath()
+            cx, cy = slot.center().x(), slot.center().y()
+            r = icon_size * 0.28
+            path.moveTo(cx, cy - r)
+            path.lineTo(cx + r * 0.7, cy)
+            path.lineTo(cx, cy + r)
+            path.lineTo(cx - r * 0.7, cy)
+            path.closeSubpath()
+            painter.drawPath(path)
+            painter.restore()
+            # shift the text to the right of the item, like in game
+            text_dx += int(round(icon_size + gap))
+
+        # Window-kind badge (editor aid, not part of the game look)
+        if game_style and game_style.get("kind_name"):
+            painter.save()
+            badge_font = painter.font()
+            badge_font.setPixelSize(10)
+            badge_font.setBold(False)
+            painter.setFont(badge_font)
+            badge_color = QColor("#9aa0a6")
+            badge_color.setAlpha(200)
+            painter.setPen(badge_color)
+            painter.drawText(int(frame_rect.x() + 4), int(frame_rect.y()) - 4,
+                             str(game_style["kind_name"]))
             painter.restore()
 
         # ── 2-halo. Per-character golden glow (game "moya" light) ────────────
@@ -1203,13 +1282,19 @@ class BfnPreviewWidget(QWidget):
             except (TypeError, ValueError):
                 brightness = 1.0
 
+        # Some window kinds override the default text color (Midna's window is
+        # cyan, fukiKind 14 is green — getFontCCColorTable color index 0)
+        base_text_color = self.text_color
+        if game_style and game_style.get("default_text_color"):
+            base_text_color = str(game_style["default_text_color"])
+
         color_groups = OrderedDict()
         for g in glyphs:
             if g.get("icon"):
                 continue
-            color_groups.setdefault(g.get("color") or self.text_color, []).append(g)
+            color_groups.setdefault(g.get("color") or base_text_color, []).append(g)
         if not color_groups:
-            color_groups[self.text_color] = []
+            color_groups[base_text_color] = []
 
         for group_color, group_glyphs in color_groups.items():
             group_img = self._render_glyphs_to_image(

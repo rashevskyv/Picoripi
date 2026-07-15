@@ -152,13 +152,15 @@ class FlowData:
     flows: Dict[int, int] = field(default_factory=dict)  # flow_id -> entry node
 
 
-def parse_flow_sections(flw1: Optional[bytes], fli1: Optional[bytes]) -> Optional[FlowData]:
+def parse_flow_sections(flw1: Optional[bytes], fli1: Optional[bytes],
+                        endianness: str = ">") -> Optional[FlowData]:
     """Parse raw FLW1/FLI1 section bytes (including their 8-byte headers)."""
     if not flw1 or len(flw1) < 0x10:
         return None
+    se = endianness if endianness in (">", "<") else ">"
 
     data = FlowData()
-    num_nodes = struct.unpack_from(">H", flw1, 8)[0]
+    num_nodes, num_branches = struct.unpack_from(se + "HH", flw1, 8)
     nodes_start = 0x10
     nodes_end = nodes_start + num_nodes * 8
     if nodes_end > len(flw1):
@@ -168,28 +170,29 @@ def parse_flow_sections(flw1: Optional[bytes], fli1: Optional[bytes]) -> Optiona
         off = nodes_start + i * 8
         kind = flw1[off]
         if kind == NODE_BRANCH:
-            _, _, query_idx, param, nxt = struct.unpack_from(">BBHHH", flw1, off)
+            _, _, query_idx, param, nxt = struct.unpack_from(se + "BBHHH", flw1, off)
             data.nodes.append(FlowNode(kind=NODE_BRANCH, arg=query_idx, param=param, next_idx=nxt))
         elif kind == NODE_EVENT:
-            _, event_idx, nxt = struct.unpack_from(">BBH", flw1, off)
+            _, event_idx, nxt = struct.unpack_from(se + "BBH", flw1, off)
             data.nodes.append(FlowNode(kind=NODE_EVENT, arg=event_idx, next_idx=nxt))
         else:
-            _, _, msg_index, nxt, _ = struct.unpack_from(">BBHHH", flw1, off)
+            _, _, msg_index, nxt, _ = struct.unpack_from(se + "BBHHH", flw1, off)
             data.nodes.append(FlowNode(kind=kind, arg=msg_index, next_idx=nxt))
 
-    # The u16 branch-target table follows the node table until the section end
-    table_bytes = flw1[nodes_end:]
-    count = len(table_bytes) // 2
+    # The u16 branch-target table follows the node table. FLW1 often contains
+    # non-zero alignment bytes after it, so use the explicit header count.
+    table_bytes = flw1[nodes_end:nodes_end + num_branches * 2]
+    count = min(num_branches, len(table_bytes) // 2)
     if count:
-        data.branch_table = list(struct.unpack(f">{count}H", table_bytes[:count * 2]))
+        data.branch_table = list(struct.unpack(f"{se}{count}H", table_bytes[:count * 2]))
 
     if fli1 and len(fli1) >= 0x10:
-        num_flows = struct.unpack_from(">H", fli1, 8)[0]
+        num_flows = struct.unpack_from(se + "H", fli1, 8)[0]
         for i in range(num_flows):
             off = 0x10 + i * 8
             if off + 8 > len(fli1):
                 break
-            word, node_idx = struct.unpack_from(">IH", fli1, off)
+            word, node_idx = struct.unpack_from(se + "IH", fli1, off)
             data.flows[word >> 16] = node_idx
 
     return data
@@ -393,6 +396,38 @@ def load_flow_actor_map(plugin_dir: Optional[str] = None) -> Dict[int, Dict[str,
     return result
 
 
+def actor_map_for_bmg(actor_map: Dict[int, Dict[str, Any]],
+                      resource_name: Optional[str]) -> Dict[int, Dict[str, Any]]:
+    """Return only actor evidence explicitly scoped to one BMG resource.
+
+    Flow IDs are local to a BMG resource: the same numeric ID occurs in several
+    zel_XX files. Older extracted entries contain only a flow ID and actor class;
+    applying them globally can therefore name the wrong NPC. Such legacy entries
+    remain useful research evidence but are deliberately excluded from prompts
+    until a stage/ACTR source records ``bmg_files`` (or ``bmg``) explicitly.
+    """
+    if not resource_name:
+        return {}
+    wanted = str(resource_name).replace("\\", "/").rsplit("/", 1)[-1].casefold()
+    wanted_stem = wanted.rsplit(".", 1)[0]
+    scoped: Dict[int, Dict[str, Any]] = {}
+    for flow_id, entry in actor_map.items():
+        raw_scopes = entry.get("bmg_files")
+        if raw_scopes is None:
+            raw_scope = entry.get("bmg")
+            raw_scopes = [raw_scope] if raw_scope else []
+        if isinstance(raw_scopes, str):
+            raw_scopes = [raw_scopes]
+        scopes = {
+            str(scope).replace("\\", "/").rsplit("/", 1)[-1].casefold()
+            for scope in (raw_scopes or [])
+        }
+        stems = {scope.rsplit(".", 1)[0] for scope in scopes}
+        if wanted in scopes or wanted_stem in stems:
+            scoped[flow_id] = entry
+    return scoped
+
+
 def flow_context_from_bmg(bmg: Any, msg_label=None,
                           actor_map: Optional[Dict[int, Dict[str, Any]]] = None) -> Optional[MsgFlowContext]:
     """Build MsgFlowContext from a loaded bmg_tool.BMGFile (uses the raw
@@ -402,7 +437,17 @@ def flow_context_from_bmg(bmg: Any, msg_label=None,
         return None
     flw1 = sections.get("FLW1")
     fli1 = sections.get("FLI1")
-    flow = parse_flow_sections(flw1, fli1)
+    # Some retail TP files omit the final alignment bytes declared by FLI1.
+    # BMGFile intentionally preserves such a truncated last section as trailing
+    # data to keep binary round-trips exact, so recover it here for read-only
+    # flow analysis without changing the repacked file.
+    if not fli1:
+        trailing = getattr(bmg, "trailing_data", b"")
+        if isinstance(trailing, (bytes, bytearray)):
+            pos = trailing.find(b"FLI1")
+            if pos >= 0:
+                fli1 = bytes(trailing[pos:])
+    flow = parse_flow_sections(flw1, fli1, getattr(bmg, "endianness", ">"))
     if flow is None or not flow.flows:
         return None
     ctx = MsgFlowContext(flow, msg_label=msg_label, actor_map=actor_map)

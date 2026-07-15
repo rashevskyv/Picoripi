@@ -185,25 +185,55 @@ class BaseGameRules:
         return self.replace_tags_with_aliases(data_string_subline)
 
     def replace_tags_with_aliases(self, text: str) -> str:
-        """Replace tags with aliases."""
+        """Replace complete tag tokens with aliases.
+
+        Alias values are tags, not arbitrary substrings.  Exact token matching
+        prevents a mapping for ``{escape:0:0037}`` from corrupting the longer
+        ``{escape:0:003700}`` tag.
+        """
         if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
             return text
-        sorted_mappings = sorted(self.mw.default_tag_mappings.items(), key=lambda item: len(item[1]), reverse=True)
-        result = text
-        for alias, original_tag in sorted_mappings:
-            if original_tag:
-                result = result.replace(original_tag, alias)
+        mappings = self.mw.default_tag_mappings
+        reverse: Dict[str, str] = {}
+        non_tag_mappings = []
+        for alias, original_tag in mappings.items():
+            if not original_tag:
+                continue
+            if re.fullmatch(r'(?:\{[^{}]*\}|\[[^\[\]]*\])', original_tag):
+                reverse.setdefault(original_tag, alias)
+            else:
+                non_tag_mappings.append((alias, original_tag))
+        result = re.sub(
+            r'\{[^{}]*\}|\[[^\[\]]*\]',
+            lambda match: reverse.get(match.group(0), match.group(0)),
+            str(text),
+        )
+        for alias, original_tag in sorted(non_tag_mappings, key=lambda item: len(item[1]), reverse=True):
+            result = result.replace(original_tag, alias)
         return result
 
     def replace_aliases_with_tags(self, text: str) -> str:
-        """Replace aliases with tags."""
+        """Replace complete alias tokens with their stored tags."""
         if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
             return text
-        sorted_mappings = sorted(self.mw.default_tag_mappings.items(), key=lambda item: len(item[0]), reverse=True)
-        result = text
-        for alias, original_tag in sorted_mappings:
-            if alias:
-                result = result.replace(alias, original_tag)
+        mappings = self.mw.default_tag_mappings
+        tag_aliases = {
+            alias: original_tag
+            for alias, original_tag in mappings.items()
+            if alias and re.fullmatch(r'(?:\{[^{}]*\}|\[[^\[\]]*\])', alias)
+        }
+        result = re.sub(
+            r'\{[^{}]*\}|\[[^\[\]]*\]',
+            lambda match: tag_aliases.get(match.group(0), match.group(0)),
+            str(text),
+        )
+        non_tag_mappings = [
+            (alias, original_tag)
+            for alias, original_tag in mappings.items()
+            if alias and alias not in tag_aliases
+        ]
+        for alias, original_tag in sorted(non_tag_mappings, key=lambda item: len(item[0]), reverse=True):
+            result = result.replace(alias, original_tag)
         return result
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
@@ -259,6 +289,10 @@ class BaseGameRules:
     def get_legitimate_tags(self) -> Set[str]:
         """Get the legitimate tags."""
         return set()
+
+    def get_tag_tooltip(self, tag: str) -> str:
+        """Return an optional human-readable explanation for an editor tag."""
+        return ""
 
     def get_context_menu_actions(self, editor_widget, selected_text: Optional[str]) -> List[Dict[str, Any]]:
         """Get the context menu actions."""

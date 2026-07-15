@@ -9,10 +9,25 @@ produce vector icon specifications for the BFN preview.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any
 
 
 ICON_TAG_WIDTH = 24
+
+_ESCAPE_RE = re.compile(r"\{escape:(\d+):([0-9a-fA-F]{4,})\}")
+
+_COLOR_NAMES = {
+    0: "white",
+    1: "red",
+    2: "green",
+    3: "blue",
+    4: "yellow",
+    5: "light-blue",
+    6: "purple",
+    7: "white-2",
+    8: "orange",
+}
 
 
 @dataclass(frozen=True)
@@ -164,14 +179,16 @@ _GROUP_5 = {
 _GROUP_6 = [
     (0x00, "PLAYER_GENITIV", "Player name in the genitive form", "dynamic", "Link's", None),
     (0x01, "HORSE_GENITIV", "Horse name in the genitive form", "dynamic", "Epona's", None),
-    (0x02, "MALE_ICON", "Male symbol", "icon", "", _icon("char", "♂", GLYPH)),
-    (0x03, "FEMALE_ICON", "Female symbol", "icon", "", _icon("char", "♀", GLYPH)),
-    (0x04, "STAR_ICON", "Star symbol", "icon", "", _icon("char", "★", "#ffc832")),
-    (0x05, "REFMARK", "Reference mark", "icon", "", _icon("char", "※", GLYPH)),
-    (0x06, "THIN_LEFT_ARROW", "Thin left arrow", "icon", "", _icon("char", "←", GLYPH)),
-    (0x07, "THIN_RIGHT_ARROW", "Thin right arrow", "icon", "", _icon("char", "→", GLYPH)),
-    (0x08, "THIN_UP_ARROW", "Thin up arrow", "icon", "", _icon("char", "↑", GLYPH)),
-    (0x09, "THIN_DOWN_ARROW", "Thin down arrow", "icon", "", _icon("char", "↓", GLYPH)),
+    # These eight are pushed through the BFN font (push_word), not do_outfont.
+    # Their width therefore comes from the active font glyph, not a 24px icon.
+    (0x02, "MALE_ICON", "Male symbol", "text", "♂", None),
+    (0x03, "FEMALE_ICON", "Female symbol", "text", "♀", None),
+    (0x04, "STAR_ICON", "Star symbol", "text", "★", None),
+    (0x05, "REFMARK", "Reference mark", "text", "※", None),
+    (0x06, "THIN_LEFT_ARROW", "Thin left arrow", "text", "←", None),
+    (0x07, "THIN_RIGHT_ARROW", "Thin right arrow", "text", "→", None),
+    (0x08, "THIN_UP_ARROW", "Thin up arrow", "text", "↑", None),
+    (0x09, "THIN_DOWN_ARROW", "Thin down arrow", "text", "↓", None),
     (0x0A, "BULLET", "List bullet", "icon", "", _icon("char", "▪", "#ffffff")),
     (0x0B, "BULLET_SPACE", "Indent with the width of a list bullet", "icon", "", _icon("blank", "", "#000000")),
 ]
@@ -187,6 +204,14 @@ for code, (name, meaning, text) in _GROUP_4_TEXT.items():
     ESCAPE_TAGS[(4, code)] = EscapeTagSpec(4, code, name, meaning, "text", text)
 for code, (name, meaning, text) in _GROUP_5.items():
     ESCAPE_TAGS[(5, code)] = EscapeTagSpec(5, code, name, meaning, "dynamic", text)
+# Group 1 is a generic message-sound command.  ID 0x14 is the only value used
+# by the shipped North-American TP BMG resources (18 times, before Midna's
+# laugh).  Group 2 is likewise generic camera metadata; see the fallback in
+# get_escape_tag_spec() for arbitrary IDs.
+ESCAPE_TAGS[(1, 0x14)] = EscapeTagSpec(
+    1, 0x14, "MESSAGE_SOUND_20",
+    "Play message sound effect ID 20 (used before Midna's laugh)", "control"
+)
 ESCAPE_TAGS[(255, 0)] = EscapeTagSpec(255, 0, "COLOR", "Change text color", "color")
 ESCAPE_TAGS[(255, 1)] = EscapeTagSpec(255, 1, "SCALE", "Change text scale", "scale")
 ESCAPE_TAGS[(255, 2)] = EscapeTagSpec(255, 2, "RUBY", "Ruby/furigana annotation", "ruby")
@@ -207,7 +232,15 @@ def get_escape_tag_spec(group: int, data: str) -> EscapeTagSpec | None:
         code = int(data[:4], 16)
     except ValueError:
         return None
-    return ESCAPE_TAGS.get((int(group), code))
+    group = int(group)
+    spec = ESCAPE_TAGS.get((group, code))
+    if spec is not None:
+        return spec
+    if group == 1:
+        return EscapeTagSpec(group, code, f"MESSAGE_SOUND_{code}", f"Play message sound effect ID {code}")
+    if group == 2:
+        return EscapeTagSpec(group, code, f"CAMERA_TAG_{code}", f"Set message camera tag ID {code}")
+    return None
 
 
 def describe_escape_tag(group: int, data: str) -> str:
@@ -227,3 +260,126 @@ def describe_escape_tag(group: int, data: str) -> str:
         suffix = f" — {int(argument[:4], 16)}%"
     return f"{spec.name}: {spec.meaning}{suffix}"
 
+
+def canonical_escape_alias(spec: EscapeTagSpec) -> str:
+    """Return the stable, readable editor alias for a tag without arguments."""
+    if spec.group == 1:
+        return f"{{sound:{spec.code}}}"
+    if spec.group == 2:
+        return f"{{camera:{spec.code}}}"
+    if spec.render == "icon" and spec.icon:
+        label = str(spec.icon.get("label") or spec.name).strip()
+        if spec.group == 0:
+            controller_names = {
+                "CSTICK": "C-stick", "DPAD": "D-pad", "STICK_CROSS": "stick",
+                "STICK_UP": "stick ↑", "STICK_DOWN": "stick ↓",
+                "STICK_LEFT": "stick ←", "STICK_RIGHT": "stick →",
+                "STICK_VERTICAL": "stick ↕", "STICK_HORIZONTAL": "stick ↔",
+                "XYBTN": "X/Y", "YXBTN": "Y/X", "ABTN_STAR": "A★",
+            }
+            if spec.name in controller_names or spec.name.endswith("BTN"):
+                label = controller_names.get(spec.name, label)
+                return f"{{GC:{label}}}"
+        if spec.group == 3:
+            wii_names = {
+                "WII_HOMEBTN": "HOME", "WII_MINUSBTN": "−", "WII_PLUSBTN": "+",
+                "WII_DPAD_ITEM": "D-pad", "WII_DPAD_UP": "D-pad ↑",
+                "WII_DPAD_DOWN": "D-pad ↓", "WII_DPAD_HORIZONTAL": "D-pad ↔",
+                "WII_DPAD_RIGHT": "D-pad →", "WII_DPAD_LEFT": "D-pad ←",
+                "WII_WIIMOTE": "Remote", "WII_WIIMOTE2": "Remote 2",
+                "WII_NUNCHUK": "Nunchuk", "WII_RETICULE": "pointer",
+                "WII_FAIRY": "fairy pointer", "WII_CBTN": "Nunchuk C",
+                "WII_ZBTN": "Nunchuk Z",
+            }
+            return f"{{W:{wii_names.get(spec.name, label)}}}"
+        return f"{{icon:{spec.name.lower().replace('_', '-')}}}"
+    if spec.name == "PLAYER_NAME":
+        return "{F:Link}"
+    if spec.name == "HORSE_NAME":
+        return "{F:Epona}"
+    if spec.name == "PLAYER_GENITIV":
+        return "{F:Link's}"
+    if spec.name == "HORSE_GENITIV":
+        return "{F:Epona's}"
+    if spec.render == "dynamic":
+        return f"{{value:{spec.name.lower().replace('_', '-')}}}"
+    if spec.render == "text":
+        return f"{{glyph:{spec.name.lower().replace('_', '-')}}}"
+    return f"{{ctrl:{spec.name.lower().replace('_', '-')}}}"
+
+
+def build_static_escape_aliases() -> dict[str, str]:
+    """Build aliases for complete, argument-free escape tags.
+
+    Argument-bearing tags are formatted dynamically so a base-code replacement
+    can never corrupt a longer raw tag such as ``PAUSE + frame count``.
+    """
+    argument_tags = {
+        "TYPE", "AUTOBOX", "BOXATMOST", "PAUSE", "DEMOBOX", "LINE_DOWN",
+        "BOXATLEAST", "WII_MSGID_OVERRIDE", "COLOR", "SCALE", "RUBY",
+    }
+    aliases: dict[str, str] = {}
+    for (group, code), spec in ESCAPE_TAGS.items():
+        if spec.name in argument_tags:
+            continue
+        aliases[canonical_escape_alias(spec)] = f"{{escape:{group}:{code:04x}}}"
+    return aliases
+
+
+def escape_tag_to_editor_alias(tag: str) -> str:
+    """Convert one raw tag to a readable, lossless editor token."""
+    match = _ESCAPE_RE.fullmatch(str(tag))
+    if not match:
+        return str(tag)
+    group, data = int(match.group(1)), match.group(2).lower()
+    spec = get_escape_tag_spec(group, data)
+    if spec is None:
+        return f"{{unknown:{group}:{data}}}"
+    argument = data[4:]
+    if spec.name == "PAUSE" and len(argument) >= 4:
+        return f"{{pause:{int(argument[:4], 16)}f}}"
+    if spec.name in {"TYPE", "AUTOBOX", "BOXATMOST", "BOXATLEAST", "LINE_DOWN"} and len(argument) >= 4:
+        return f"{{{spec.name.lower().replace('_', '-')}:{int(argument[:4], 16)}}}"
+    if spec.name == "DEMOBOX" and len(argument) >= 8:
+        return f"{{demobox:{int(argument[:8], 16)}f}}"
+    if spec.name == "WII_MSGID_OVERRIDE" and len(argument) >= 8:
+        return f"{{wii-msgid:{int(argument[:8], 16)}}}"
+    if spec.render == "color" and len(argument) >= 2:
+        index = int(argument[:2], 16)
+        return f"{{color:{_COLOR_NAMES.get(index, index)}}}"
+    if spec.render == "scale" and len(argument) >= 4:
+        return f"{{scale:{int(argument[:4], 16)}%}}"
+    if spec.render == "ruby":
+        return f"{{ruby:{argument}}}"
+    alias = canonical_escape_alias(spec)
+    if argument:
+        # Preserve undocumented/unused payload bytes losslessly.  Several TP
+        # value tags carry a one-byte selector even though their visible
+        # meaning is defined by the tag code itself.
+        return f"{alias[:-1]}:{argument}}}"
+    return alias
+
+
+def fixed_escape_widths() -> dict[str, dict[str, int]]:
+    """Widths that are invariant across fonts, suitable for ``font_map.json``."""
+    result: dict[str, dict[str, int]] = {}
+    argument_tags = {
+        "TYPE", "AUTOBOX", "BOXATMOST", "PAUSE", "DEMOBOX", "LINE_DOWN",
+        "BOXATLEAST", "WII_MSGID_OVERRIDE", "COLOR", "SCALE", "RUBY",
+    }
+    for (group, code), spec in ESCAPE_TAGS.items():
+        # A JSON key is an exact string, not a tag pattern.  Adding only the
+        # four-byte prefix of an argument-bearing tag would make the width trie
+        # consume part of e.g. PAUSE and then measure its hex argument as text.
+        if spec.name in argument_tags:
+            continue
+        if spec.render == "icon":
+            width = int((spec.icon or {}).get("width", ICON_TAG_WIDTH))
+        elif spec.render in {"control", "color", "scale", "ruby"}:
+            width = 0
+        else:
+            continue
+        raw = f"{{escape:{group}:{code:04x}}}"
+        result[raw] = {"width": width}
+        result[canonical_escape_alias(spec)] = {"width": width}
+    return result
