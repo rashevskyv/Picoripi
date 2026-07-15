@@ -293,11 +293,17 @@ def build_conversation(flow: FlowData, flow_id: int, msg_label=None,
 
 
 class MsgFlowContext:
-    """Per-BMG-file flow context: conversations + per-message renderings."""
+    """Per-BMG-file flow context: conversations + per-message renderings.
 
-    def __init__(self, flow: Optional[FlowData], msg_label=None):
+    actor_map: optional dict flow_id -> {"actors": [...], "character": str}
+    (from flow_actors.json) naming the NPC that runs each conversation.
+    """
+
+    def __init__(self, flow: Optional[FlowData], msg_label=None,
+                 actor_map: Optional[Dict[int, Dict[str, Any]]] = None):
         self.conversations: List[Conversation] = []
         self._by_msg: Dict[int, List[Conversation]] = {}
+        self._actor_map = actor_map or {}
         if flow:
             for flow_id in sorted(flow.flows):
                 conv = build_conversation(flow, flow_id, msg_label=msg_label)
@@ -305,6 +311,18 @@ class MsgFlowContext:
                     self.conversations.append(conv)
                     for m in conv.msg_indices:
                         self._by_msg.setdefault(m, []).append(conv)
+
+    def _actor_note(self, flow_id: int) -> str:
+        entry = self._actor_map.get(flow_id)
+        if not entry:
+            return ""
+        character = str(entry.get("character") or "").strip()
+        if character:
+            return f", NPC: {character}"
+        actors = entry.get("actors") or []
+        if actors:
+            return f", game actor: {', '.join(str(a) for a in actors[:2])}"
+        return ""
 
     def context_for_message(self, msg_index: int) -> Optional[str]:
         """Compact per-line context for the AI prompt."""
@@ -314,7 +332,8 @@ class MsgFlowContext:
         parts: List[str] = []
         for conv in convs[:2]:
             pos = conv.msg_indices.index(msg_index) + 1
-            bits = [f"dialogue flow #{conv.flow_id}: line {pos} of {len(conv.msg_indices)}"]
+            bits = [f"dialogue flow #{conv.flow_id}{self._actor_note(conv.flow_id)}: "
+                    f"line {pos} of {len(conv.msg_indices)}"]
             conds = conv.msg_conditions.get(msg_index)
             if conds:
                 bits.append("shown when: " + "; ".join(conds[-2:]))
@@ -343,11 +362,39 @@ class MsgFlowContext:
             body = "\n".join("  " + ln for ln in lines)
             if len(conv.outline) > max_lines:
                 body += "\n  ..."
-            blocks.append(f"Dialogue flow #{conv.flow_id} (in-game conversation order):\n{body}")
+            blocks.append(f"Dialogue flow #{conv.flow_id}{self._actor_note(conv.flow_id)} "
+                          f"(in-game conversation order):\n{body}")
         return "\n\n".join(blocks)
 
 
-def flow_context_from_bmg(bmg: Any, msg_label=None) -> Optional[MsgFlowContext]:
+def load_flow_actor_map(plugin_dir: Optional[str] = None) -> Dict[int, Dict[str, Any]]:
+    """Load flow_actors.json (flow_id -> owning game actor / character name).
+
+    The file is generated from the game sources (hardcoded msg_flow.init IDs in
+    src/d/actor/*.cpp) and is user-editable: filling "character" gives the AI
+    a real speaker name for the whole conversation.
+    """
+    import json
+    import os
+    if plugin_dir is None:
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(plugin_dir, "flow_actors.json")
+    result: Dict[int, Dict[str, Any]] = {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+        for key, entry in (doc.get("flows") or {}).items():
+            try:
+                result[int(key, 0)] = entry
+            except (TypeError, ValueError):
+                continue
+    except Exception:
+        pass
+    return result
+
+
+def flow_context_from_bmg(bmg: Any, msg_label=None,
+                          actor_map: Optional[Dict[int, Dict[str, Any]]] = None) -> Optional[MsgFlowContext]:
     """Build MsgFlowContext from a loaded bmg_tool.BMGFile (uses the raw
     FLW1/FLI1 sections preserved in other_sections)."""
     sections = getattr(bmg, "other_sections", None)
@@ -358,5 +405,5 @@ def flow_context_from_bmg(bmg: Any, msg_label=None) -> Optional[MsgFlowContext]:
     flow = parse_flow_sections(flw1, fli1)
     if flow is None or not flow.flows:
         return None
-    ctx = MsgFlowContext(flow, msg_label=msg_label)
+    ctx = MsgFlowContext(flow, msg_label=msg_label, actor_map=actor_map)
     return ctx if ctx.conversations else None

@@ -1,0 +1,1073 @@
+{
+ "_comment": "Flow ID -> game actor map for TP dialogue flows (FLW1/FLI1). Extracted from dusklight src/d/actor/*.cpp (hardcoded msg_flow.init/initTalk IDs). Many NPCs take their flow ID from map placement params instead and are not listed here. Fill 'character' with the human-readable speaker name to improve AI translation context.",
+ "flows": {
+  "2": {
+   "actors": [
+    "d_a_npc_toby",
+    "d_a_obj_tks"
+   ],
+   "character": ""
+  },
+  "3": {
+   "actors": [
+    "d_a_npc_tks"
+   ],
+   "character": ""
+  },
+  "4": {
+   "actors": [
+    "d_a_npc_kolin"
+   ],
+   "character": ""
+  },
+  "5": {
+   "actors": [
+    "d_a_npc_impal"
+   ],
+   "character": ""
+  },
+  "6": {
+   "actors": [
+    "d_a_npc_bouS"
+   ],
+   "character": ""
+  },
+  "8": {
+   "actors": [
+    "d_a_npc_zrz"
+   ],
+   "character": ""
+  },
+  "9": {
+   "actors": [
+    "d_a_npc_bouS",
+    "d_a_npc_zrz"
+   ],
+   "character": ""
+  },
+  "12": {
+   "actors": [
+    "d_a_npc_bans",
+    "d_a_npc_gra"
+   ],
+   "character": ""
+  },
+  "13": {
+   "actors": [
+    "d_a_npc_zrz"
+   ],
+   "character": ""
+  },
+  "19": {
+   "actors": [
+    "d_a_npc_post",
+    "d_a_npc_uri"
+   ],
+   "character": ""
+  },
+  "20": {
+   "actors": [
+    "d_a_npc_post"
+   ],
+   "character": ""
+  },
+  "22": {
+   "actors": [
+    "d_a_npc_maro",
+    "d_a_npc_theB"
+   ],
+   "character": ""
+  },
+  "23": {
+   "actors": [
+    "d_a_npc_theB"
+   ],
+   "character": ""
+  },
+  "24": {
+   "actors": [
+    "d_a_npc_theB"
+   ],
+   "character": ""
+  },
+  "27": {
+   "actors": [
+    "d_a_npc_maro"
+   ],
+   "character": ""
+  },
+  "29": {
+   "actors": [
+    "d_a_npc_maro"
+   ],
+   "character": ""
+  },
+  "36": {
+   "actors": [
+    "d_a_npc_taro"
+   ],
+   "character": ""
+  },
+  "38": {
+   "actors": [
+    "d_a_npc_yelia"
+   ],
+   "character": ""
+  },
+  "40": {
+   "actors": [
+    "d_a_npc_len"
+   ],
+   "character": ""
+  },
+  "41": {
+   "actors": [
+    "d_a_npc_gra"
+   ],
+   "character": ""
+  },
+  "44": {
+   "actors": [
+    "d_a_npc_hanjo"
+   ],
+   "character": ""
+  },
+  "46": {
+   "actors": [
+    "d_a_npc_aru"
+   ],
+   "character": ""
+  },
+  "48": {
+   "actors": [
+    "d_a_npc_gra",
+    "d_a_npc_kolin"
+   ],
+   "character": ""
+  },
+  "54": {
+   "actors": [
+    "d_a_npc_aru"
+   ],
+   "character": ""
+  },
+  "64": {
+   "actors": [
+    "d_a_npc_kolin"
+   ],
+   "character": ""
+  },
+  "68": {
+   "actors": [
+    "d_a_npc_shad"
+   ],
+   "character": ""
+  },
+  "69": {
+   "actors": [
+    "d_a_npc_shad"
+   ],
+   "character": ""
+  },
+  "71": {
+   "actors": [
+    "d_a_npc_pachi_taro"
+   ],
+   "character": ""
+  },
+  "75": {
+   "actors": [
+    "d_a_npc_pachi_taro"
+   ],
+   "character": ""
+  },
+  "76": {
+   "actors": [
+    "d_a_npc_pachi_taro"
+   ],
+   "character": ""
+  },
+  "77": {
+   "actors": [
+    "d_a_npc_pachi_taro"
+   ],
+   "character": ""
+  },
+  "78": {
+   "actors": [
+    "d_a_npc_pachi_taro"
+   ],
+   "character": ""
+  },
+  "90": {
+   "actors": [
+    "d_a_npc_taro"
+   ],
+   "character": ""
+  },
+  "103": {
+   "actors": [
+    "d_a_npc_kkri"
+   ],
+   "character": ""
+  },
+  "110": {
+   "actors": [
+    "d_a_e_pm"
+   ],
+   "character": ""
+  },
+  "111": {
+   "actors": [
+    "d_a_e_pm"
+   ],
+   "character": ""
+  },
+  "113": {
+   "actors": [
+    "d_a_obj_sekizoa"
+   ],
+   "character": ""
+  },
+  "114": {
+   "actors": [
+    "d_a_obj_sekizoa"
+   ],
+   "character": ""
+  },
+  "115": {
+   "actors": [
+    "d_a_obj_sekizoa"
+   ],
+   "character": ""
+  },
+  "116": {
+   "actors": [
+    "d_a_npc_ks"
+   ],
+   "character": ""
+  },
+  "120": {
+   "actors": [
+    "d_a_npc_moi",
+    "d_a_npc_taro"
+   ],
+   "character": ""
+  },
+  "122": {
+   "actors": [
+    "d_a_npc_kkri"
+   ],
+   "character": ""
+  },
+  "201": {
+   "actors": [
+    "d_a_e_gob",
+    "d_a_myna"
+   ],
+   "character": ""
+  },
+  "202": {
+   "actors": [
+    "d_a_e_gob"
+   ],
+   "character": ""
+  },
+  "203": {
+   "actors": [
+    "d_a_e_gob"
+   ],
+   "character": ""
+  },
+  "206": {
+   "actors": [
+    "d_a_npc_uri"
+   ],
+   "character": ""
+  },
+  "207": {
+   "actors": [
+    "d_a_npc_hanjo"
+   ],
+   "character": ""
+  },
+  "208": {
+   "actors": [
+    "d_a_npc_hanjo"
+   ],
+   "character": ""
+  },
+  "212": {
+   "actors": [
+    "d_a_npc_bou"
+   ],
+   "character": ""
+  },
+  "213": {
+   "actors": [
+    "d_a_npc_bou",
+    "d_a_npc_jagar"
+   ],
+   "character": ""
+  },
+  "214": {
+   "actors": [
+    "d_a_npc_bou",
+    "d_a_npc_jagar"
+   ],
+   "character": ""
+  },
+  "215": {
+   "actors": [
+    "d_a_npc_jagar"
+   ],
+   "character": ""
+  },
+  "400": {
+   "actors": [
+    "d_a_npc_bou"
+   ],
+   "character": ""
+  },
+  "501": {
+   "actors": [
+    "d_a_npc_taro"
+   ],
+   "character": ""
+  },
+  "502": {
+   "actors": [
+    "d_a_npc_taro"
+   ],
+   "character": ""
+  },
+  "503": {
+   "actors": [
+    "d_a_npc_taro"
+   ],
+   "character": ""
+  },
+  "505": {
+   "actors": [
+    "d_a_npc_ykw"
+   ],
+   "character": ""
+  },
+  "513": {
+   "actors": [
+    "d_a_npc_ykw"
+   ],
+   "character": ""
+  },
+  "701": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "734": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "735": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "736": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "737": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "741": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "742": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "743": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "744": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "745": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "749": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "750": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "751": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "752": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "753": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "757": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "759": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "760": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "761": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "762": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "766": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "767": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "768": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "769": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "770": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "773": {
+   "actors": [
+    "d_a_npc_kn"
+   ],
+   "character": ""
+  },
+  "801": {
+   "actors": [
+    "d_a_npc_henna",
+    "d_a_npc_yamid",
+    "d_a_npc_yamis"
+   ],
+   "character": ""
+  },
+  "802": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "803": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "804": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "805": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "806": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "807": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "808": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "809": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "810": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "811": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "812": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "813": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "814": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "815": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "816": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "817": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "818": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "819": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "820": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "821": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "822": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "823": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "824": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "825": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "826": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "827": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "828": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "829": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "830": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "831": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "832": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "833": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "834": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "835": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "836": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "838": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "839": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "840": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "841": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "842": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "843": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "844": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "845": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "846": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "847": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "848": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "849": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "850": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "851": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "852": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "853": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "854": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "863": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "864": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "866": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "867": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "868": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "869": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "870": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "879": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "880": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "881": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "904": {
+   "actors": [
+    "d_a_e_rdb"
+   ],
+   "character": ""
+  },
+  "905": {
+   "actors": [
+    "d_a_e_rdb"
+   ],
+   "character": ""
+  },
+  "963": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "972": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "973": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "974": {
+   "actors": [
+    "d_a_npc_henna"
+   ],
+   "character": ""
+  },
+  "993": {
+   "actors": [
+    "d_a_npc_hoz"
+   ],
+   "character": ""
+  },
+  "1001": {
+   "actors": [
+    "d_a_npc_zrz"
+   ],
+   "character": ""
+  },
+  "1002": {
+   "actors": [
+    "d_a_npc_gra"
+   ],
+   "character": ""
+  },
+  "1064": {
+   "actors": [
+    "d_a_npc_gra"
+   ],
+   "character": ""
+  },
+  "1070": {
+   "actors": [
+    "d_a_npc_ash"
+   ],
+   "character": ""
+  },
+  "1087": {
+   "actors": [
+    "d_a_npc_doc"
+   ],
+   "character": ""
+  },
+  "1095": {
+   "actors": [
+    "d_a_npc_doc"
+   ],
+   "character": ""
+  },
+  "1111": {
+   "actors": [
+    "d_a_kago"
+   ],
+   "character": ""
+  },
+  "1906": {
+   "actors": [
+    "d_a_npc_shaman"
+   ],
+   "character": ""
+  },
+  "1907": {
+   "actors": [
+    "d_a_npc_shaman"
+   ],
+   "character": ""
+  },
+  "2001": {
+   "actors": [
+    "d_a_e_rdy"
+   ],
+   "character": ""
+  },
+  "2003": {
+   "actors": [
+    "d_a_kago"
+   ],
+   "character": ""
+  },
+  "2004": {
+   "actors": [
+    "d_a_tag_kago_fall"
+   ],
+   "character": ""
+  },
+  "2015": {
+   "actors": [
+    "d_a_npc_ks"
+   ],
+   "character": ""
+  },
+  "3001": {
+   "actors": [
+    "d_a_midna"
+   ],
+   "character": ""
+  },
+  "3007": {
+   "actors": [
+    "d_a_kago"
+   ],
+   "character": ""
+  },
+  "3008": {
+   "actors": [
+    "d_a_obj_bosswarp"
+   ],
+   "character": ""
+  },
+  "3009": {
+   "actors": [
+    "d_a_tag_TWgate"
+   ],
+   "character": ""
+  },
+  "3018": {
+   "actors": [
+    "d_a_b_gnd"
+   ],
+   "character": ""
+  },
+  "3019": {
+   "actors": [
+    "d_a_npc_gwolf"
+   ],
+   "character": ""
+  },
+  "3020": {
+   "actors": [
+    "d_a_npc_tk"
+   ],
+   "character": ""
+  },
+  "3021": {
+   "actors": [
+    "d_a_npc_tk"
+   ],
+   "character": ""
+  },
+  "3022": {
+   "actors": [
+    "d_a_npc_tk"
+   ],
+   "character": ""
+  }
+ }
+}

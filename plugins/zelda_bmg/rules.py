@@ -458,6 +458,14 @@ class GameRules(BaseGameRules):
             return f'[msg {msg_id}] "{text}"'
         return label
 
+    def _get_flow_actor_map(self):
+        cached = getattr(self, "_flow_actor_map", None)
+        if cached is None:
+            from .msg_flow import load_flow_actor_map
+            cached = load_flow_actor_map(plugin_dir)
+            self._flow_actor_map = cached
+        return cached
+
     def _flow_context_from_bmg_cached(self, bmg, cache_key):
         from .msg_flow import flow_context_from_bmg
         cache = getattr(self, "_flow_ctx_cache", None)
@@ -468,7 +476,8 @@ class GameRules(BaseGameRules):
             return cache[cache_key]
         ctx = None
         try:
-            ctx = flow_context_from_bmg(bmg, msg_label=self._make_flow_msg_label(bmg))
+            ctx = flow_context_from_bmg(bmg, msg_label=self._make_flow_msg_label(bmg),
+                                        actor_map=self._get_flow_actor_map())
         except Exception as e:
             log_debug(f"zelda_bmg: failed to build flow context: {e}")
         cache[cache_key] = ctx

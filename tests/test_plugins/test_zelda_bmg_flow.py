@@ -165,6 +165,31 @@ def test_base_rules_flow_hooks_default_none(qapp):
     assert rules.get_ai_flow_overview(0, [0]) is None
 
 
+def test_actor_map_annotates_flow_context():
+    flw1, fli1 = _sample_sections()
+    flow = parse_flow_sections(flw1, fli1)
+
+    # character name wins over the raw actor code
+    ctx = MsgFlowContext(flow, actor_map={0x152: {"actors": ["d_a_npc_kkri"], "character": "Kili"}})
+    assert "NPC: Kili" in ctx.context_for_message(0)
+    assert "NPC: Kili" in ctx.overview_for_messages([0])
+
+    # without a character name the game actor code is still shown
+    ctx2 = MsgFlowContext(flow, actor_map={0x152: {"actors": ["d_a_npc_kkri"], "character": ""}})
+    assert "game actor: d_a_npc_kkri" in ctx2.context_for_message(0)
+
+
+def test_flow_actors_json_loads_and_matches_sources():
+    from plugins.zelda_bmg.msg_flow import load_flow_actor_map
+    actor_map = load_flow_actor_map()
+    assert actor_map, "flow_actors.json missing or empty"
+    # spot-check IDs hardcoded in dusklight actor sources
+    assert "d_a_npc_ks" in actor_map[116]["actors"]      # msg_flow.init(actor, 116, ...)
+    assert "d_a_npc_ks" in actor_map[2015]["actors"]     # msg_flow.init(actor, 2015, ...)
+    for entry in actor_map.values():
+        assert isinstance(entry.get("actors"), list)
+
+
 def test_flow_context_reaches_ai_translation_prompt(qapp):
     """End to end: the FLW1 conversation graph must land in the AI prompt."""
     from unittest.mock import MagicMock
