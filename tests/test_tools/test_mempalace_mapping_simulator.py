@@ -130,6 +130,33 @@ def test_tag_inference_requires_repeated_consistent_evidence():
     assert infer_tag_equivalents(dialogues, messages) == {"{tag:name}": "link"}
 
 
+def test_inferred_control_tag_does_not_hide_exact_walkthrough_dialogue():
+    dialogues = [
+        MarkedDialogue(1, 0, "Move the analog stick now.", "SYSTEM", 1),
+        MarkedDialogue(2, 1, "Push the analog stick gently.", "SYSTEM", 2),
+        MarkedDialogue(
+            3, 2, "Frog Lure. The must-have lure for bass.", "HENA", 3
+        ),
+    ]
+    messages = [
+        GameMessage(0, "0", "zel_07", 0, "a", "Move the {control} now."),
+        GameMessage(1, "0", "zel_07", 1, "b", "Push the {control} gently."),
+        GameMessage(
+            2, "0", "zel_07", 2, "lure",
+            "Frog Lure. The must-have lure for bass. {control}",
+        ),
+    ]
+
+    report = simulate(dialogues, messages)
+
+    assert report["inferred_tag_equivalents"] == {"{control}": "analog stick"}
+    assert any(
+        relation["game_string_id"] == "lure"
+        and relation["dialogue_node_id"] == 3
+        for relation in report["relations"]
+    )
+
+
 def test_context_cannot_promote_a_different_financial_phrase_to_a_match():
     dialogues = [
         MarkedDialogue(1, 0, "Welcome to Kakariko Village.", "GORON", 10),

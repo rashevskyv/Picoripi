@@ -156,8 +156,22 @@ def simulate(
         dialogue.node_id: normalize_tokens(dialogue.text)
         for dialogue in dialogues
     }
-    game_tokens = [normalize_tokens(message.text, tag_equivalents) for message in messages]
-    features = [_features(tokens) for tokens in game_tokens]
+    game_token_variants = []
+    for message in messages:
+        expanded = normalize_tokens(message.text, tag_equivalents)
+        tags_omitted = normalize_tokens(message.text)
+        variants = [expanded]
+        if tags_omitted != expanded:
+            variants.append(tags_omitted)
+        game_token_variants.append(variants)
+    game_tokens = [variants[0] for variants in game_token_variants]
+    # Retrieve by either interpretation. A name placeholder can add essential
+    # semantic evidence (Link/Epona), while a trailing button/control tag may be
+    # absent from a prose walkthrough and must not become required dialogue.
+    features = [
+        set().union(*(_features(tokens) for tokens in variants))
+        for variants in game_token_variants
+    ]
     document_count = len(messages)
     document_frequency = Counter(
         feature for message_features in features for feature in message_features
@@ -211,11 +225,18 @@ def simulate(
             retrieval_score = raw_score / max(game_norm[message_index], 1e-9)
             if retrieval_score < 0.16 and message_index not in semantic_indices:
                 continue
-            proposal = _proposal(
-                dialogue,
-                tokens,
-                game_tokens[message_index],
-                retrieval_score,
+            variants = (
+                _proposal(dialogue, tokens, game_variant, retrieval_score)
+                for game_variant in game_token_variants[message_index]
+            )
+            proposal = max(
+                (candidate for candidate in variants if candidate is not None),
+                key=lambda candidate: (
+                    candidate.game_coverage,
+                    candidate.phrase_locality,
+                    candidate.score,
+                ),
+                default=None,
             )
             if proposal is not None:
                 proposals[message_index].append(proposal)
