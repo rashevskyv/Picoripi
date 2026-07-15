@@ -147,6 +147,8 @@ WINDOW_KIND_STYLES: Dict[int, Dict[str, Any]] = {
     13: _talk("Midna", halo=_HALO_MIDNA, default_text_color="#82e6e6"),
     # green-text talk variant (getFontCCColorTable fukiKind 14)
     14: _talk("Dialogue (green)", halo=_HALO_GREEN, default_text_color="#96dc64"),
+    # save/continue window (dMsgObject isSaveMessage)
+    16: _talk("Save window"),
     # howling stone: bare text
     17: _style("Howling stone", None, halo=None),
     # boss name: bare centered caption
@@ -226,15 +228,34 @@ def layout_for_kind(layouts: Dict[str, Any], fuki_kind: Optional[int]) -> Dict[s
     return merged
 
 
-def window_style_for_kind(fuki_kind: Optional[int]) -> Dict[str, Any]:
-    """Preview style for a fuki_kind; unknown/None -> normal talk box."""
-    if fuki_kind is None:
+def window_style_for_kind(fuki_kind: Optional[int],
+                          layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Preview style for a fuki_kind; unknown/None -> normal talk box.
+
+    layout (from window_layouts.json) may override "name" — this lets users
+    classify window kinds that the catalog doesn't know yet — and provides
+    lines_per_page for pagination.
+    """
+    kind = int(fuki_kind) if fuki_kind is not None else 0
+    style = WINDOW_KIND_STYLES.get(kind)
+    known = style is not None
+    if style is None:
         style = _DEFAULT_TALK
-    else:
-        style = WINDOW_KIND_STYLES.get(int(fuki_kind), _DEFAULT_TALK)
     # shallow copy so callers can annotate without mutating the catalog
     out = dict(style)
     if isinstance(out.get("frame"), dict):
         out["frame"] = dict(out["frame"])
-    out["fuki_kind"] = int(fuki_kind) if fuki_kind is not None else 0
+    out["fuki_kind"] = kind
+
+    custom_name = (layout or {}).get("name")
+    if isinstance(custom_name, str) and custom_name:
+        out["kind_name"] = custom_name
+    elif not known and kind != 0:
+        # surface the raw kind so unknown window types can be identified
+        # and then described in window_layouts.json
+        out["kind_name"] = f"Dialogue (kind {kind})"
+
+    lines = (layout or {}).get("lines_per_page")
+    if isinstance(lines, int) and lines > 0:
+        out["lines_per_page"] = lines
     return out

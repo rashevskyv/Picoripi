@@ -396,6 +396,16 @@ class LayoutBuilder:
         self.mw.speaker_combobox.setFixedWidth(150)
         string_settings_layout.addWidget(self.mw.speaker_combobox)
 
+        # Current message window type (derived from game data by the plugin)
+        self.mw.window_kind_label = QLabel("")
+        self.mw.window_kind_label.setObjectName("window_kind_label")
+        self.mw.window_kind_label.setStyleSheet(
+            "QLabel#window_kind_label { color: #8a63d2; font-weight: bold; padding-left: 10px; }")
+        self.mw.window_kind_label.setToolTip(
+            "Message window type from the game data (drives width limits, font and pagination)")
+        self.mw.window_kind_label.setVisible(False)
+        string_settings_layout.addWidget(self.mw.window_kind_label)
+
         string_settings_layout.addStretch(1)
         string_settings_layout.addWidget(QLabel("Font:"))
         self.mw.font_combobox = QComboBox()

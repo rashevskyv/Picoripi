@@ -170,6 +170,37 @@ def test_rules_string_layout_from_json(bmg_rules):
     assert bmg_rules.get_preview_window_style(0, 0)["lines_per_page"] == 4
 
 
+def test_unknown_kind_shows_number_and_json_can_name_it():
+    unknown = window_style_for_kind(42)
+    assert unknown["kind_name"] == "Dialogue (kind 42)"
+    assert unknown["frame"]["style"] == "talk"
+
+    named = window_style_for_kind(42, {"name": "Item info", "lines_per_page": 10})
+    assert named["kind_name"] == "Item info"
+    assert named["lines_per_page"] == 10
+
+
+def test_save_window_kind_16():
+    assert window_kind_name(16) == "Save window"
+    assert window_style_for_kind(16)["frame"]["style"] == "talk"
+
+
+def test_bmg_block_resolution_is_cached(bmg_rules):
+    """Hot-path safety: repeated layout lookups must not re-resolve the BMG."""
+    bmg_rules.last_loaded_bmg = _FakeBmg([_FakeMsg(_info(fuki_kind=6))])
+
+    first, _, _ = bmg_rules._get_bmg_for_block(0)
+    assert first is bmg_rules.last_loaded_bmg
+    # cached entry is reused (same object, no re-resolution inside TTL)
+    second, _, _ = bmg_rules._get_bmg_for_block(0)
+    assert second is first
+    assert 0 in bmg_rules._bmg_block_resolve_cache
+
+    # many repeated calls are cheap dict hits
+    for _ in range(200):
+        assert bmg_rules.get_string_layout(0, 0) is not None
+
+
 def test_resolve_width_limits_priority(bmg_rules):
     from utils.utils import resolve_width_limits
 

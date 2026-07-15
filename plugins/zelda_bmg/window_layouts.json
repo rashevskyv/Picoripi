@@ -5,7 +5,11 @@
         "warn_width / max_width are line width limits in font px; null means",
         "'use the global plugin settings'. font_file picks the BFN font for the",
         "kind (empty = default font). lines_per_page drives preview pagination",
-        "and the page-height scale. Explicit per-string overrides always win."
+        "and the page-height scale. Explicit per-string overrides always win.",
+        "An optional 'name' labels the kind in the editor (the preview badge and",
+        "the Window: label). Unknown kinds show as 'Dialogue (kind N)' - to",
+        "classify one (e.g. the ring-menu item info screen), add its number here",
+        "with a name, widths and lines_per_page."
     ],
     "default": {
         "warn_width": null,
@@ -14,15 +18,59 @@
         "lines_per_page": 4
     },
     "kinds": {
-        "1": {"warn_width": 400, "max_width": 420, "lines_per_page": 2},
-        "5": {"warn_width": 400, "max_width": 420, "lines_per_page": 2},
-        "2": {"warn_width": 260, "max_width": 280},
-        "15": {"warn_width": 260, "max_width": 280},
-        "6": {"warn_width": 260, "max_width": 280},
-        "7": {"warn_width": 400, "max_width": 420},
-        "9": {"warn_width": 230, "max_width": 250},
-        "12": {"warn_width": 420, "max_width": 440, "lines_per_page": 1},
-        "17": {"warn_width": 300, "max_width": 320},
-        "19": {"warn_width": 420, "max_width": 440, "lines_per_page": 1}
+        "1": {
+            "warn_width": 400,
+            "max_width": 420,
+            "lines_per_page": 2,
+            "name": "Subtitles"
+        },
+        "5": {
+            "warn_width": 400,
+            "max_width": 420,
+            "lines_per_page": 2,
+            "name": "Subtitles"
+        },
+        "2": {
+            "warn_width": 260,
+            "max_width": 280,
+            "name": "Wooden sign"
+        },
+        "15": {
+            "warn_width": 260,
+            "max_width": 280,
+            "name": "Wooden sign"
+        },
+        "6": {
+            "warn_width": 260,
+            "max_width": 280,
+            "name": "Stone sign"
+        },
+        "7": {
+            "warn_width": 400,
+            "max_width": 420,
+            "name": "Staff credits"
+        },
+        "9": {
+            "warn_width": 230,
+            "max_width": 250,
+            "name": "Item get"
+        },
+        "12": {
+            "warn_width": 420,
+            "max_width": 440,
+            "lines_per_page": 1,
+            "name": "Location name"
+        },
+        "17": {
+            "warn_width": 300,
+            "max_width": 320,
+            "name": "Howling stone"
+        },
+        "19": {
+            "warn_width": 420,
+            "max_width": 440,
+            "lines_per_page": 1,
+            "name": "Boss name"
+        }
     }
 }

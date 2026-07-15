@@ -521,16 +521,34 @@ class GameRules(BaseGameRules):
             cache.pop(next(iter(cache)))
         return ctx
 
+    # How long a resolved (block -> parsed BMG) entry is trusted before the
+    # file is re-checked on disk. Width checks and gutter painting hit this
+    # many times per frame, so the hot path must be dict-lookup cheap.
+    _BMG_CACHE_TTL_SECONDS = 2.0
+
     def _get_bmg_for_block(self, block_idx):
         """Resolve and parse the BMG file behind a data block.
 
         Returns (bmg, cache_key, resource_name); falls back to the most
-        recently loaded BMG (single-file workflows, tests). Parsed files are
-        cached by path + mtime (or archive member + content digest).
+        recently loaded BMG (single-file workflows, tests).
+
+        Hot-path safe: results are cached per block with a short TTL, and the
+        file is only read/parsed when its mtime (or archive member) changes.
         """
+        import time
         from bmg_tool import BMGFile
 
-        raw = None
+        block_cache = getattr(self, "_bmg_block_resolve_cache", None)
+        if block_cache is None:
+            block_cache = {}
+            self._bmg_block_resolve_cache = block_cache
+
+        now = time.monotonic()
+        cached = block_cache.get(block_idx)
+        if cached is not None and now - cached[0] < self._BMG_CACHE_TTL_SECONDS:
+            return cached[1], cached[2], cached[3]
+
+        bmg = None
         cache_key = None
         resource_name = None
         try:
@@ -544,44 +562,62 @@ class GameRules(BaseGameRules):
                 if meta.get('is_archive_member'):
                     arc = meta.get('archive_rel_path')
                     inner = meta.get('archive_file_name')
-                    container = pm.get_archive_container(arc, is_translation=False)
-                    raw = container.read_file(inner)
                     resource_name = inner
-                    import hashlib
-                    digest = hashlib.sha256(raw).hexdigest()[:16]
-                    cache_key = f"arc:{arc}:{inner}:{digest}"
+                    # archive members can't be cheaply revalidated; key by
+                    # member identity and rely on the TTL for freshness
+                    cache_key = f"arc:{arc}:{inner}"
+                    bmg = self._load_bmg_cached(
+                        cache_key,
+                        lambda: pm.get_archive_container(arc, is_translation=False).read_file(inner))
                 else:
                     path = pm.get_absolute_path(block.source_file)
                     if path and os.path.exists(path):
-                        with open(path, 'rb') as source_file:
-                            raw = source_file.read()
                         resource_name = os.path.basename(path)
+                        # stat only (no read) to build the cache key
                         cache_key = f"file:{path}:{os.stat(path).st_mtime_ns}"
+                        bmg = self._load_bmg_cached(
+                            cache_key,
+                            lambda: open(path, 'rb').read())
         except Exception as e:
             log_debug(f"zelda_bmg: BMG file resolution failed for block {block_idx}: {e}")
 
-        if raw is not None and cache_key is not None:
-            bmg_cache = getattr(self, "_bmg_block_cache", None)
-            if bmg_cache is None:
-                bmg_cache = {}
-                self._bmg_block_cache = bmg_cache
-            if cache_key in bmg_cache:
-                return bmg_cache[cache_key], cache_key, resource_name
-            bmg = BMGFile()
-            try:
-                bmg.load(raw)
-            except Exception:
-                return None, None, None
-            bmg_cache[cache_key] = bmg
-            if len(bmg_cache) > 16:
-                bmg_cache.pop(next(iter(bmg_cache)))
-            return bmg, cache_key, resource_name
+        if bmg is None:
+            # Fallback: the most recently loaded BMG (single-file workflows, tests)
+            if self.last_loaded_bmg is not None:
+                bmg = self.last_loaded_bmg
+                cache_key = f"last:{id(bmg)}"
+                resource_name = None
+            else:
+                cache_key = None
+                resource_name = None
 
-        # Fallback: the most recently loaded BMG (single-file workflows, tests)
-        if self.last_loaded_bmg is not None:
-            return (self.last_loaded_bmg,
-                    f"last:{id(self.last_loaded_bmg)}", None)
-        return None, None, None
+        block_cache[block_idx] = (now, bmg, cache_key, resource_name)
+        if len(block_cache) > 64:
+            block_cache.pop(next(iter(block_cache)))
+        return bmg, cache_key, resource_name
+
+    def _load_bmg_cached(self, cache_key, read_bytes):
+        """Parse a BMG only when the cache key is new; read lazily."""
+        from bmg_tool import BMGFile
+        bmg_cache = getattr(self, "_bmg_block_cache", None)
+        if bmg_cache is None:
+            bmg_cache = {}
+            self._bmg_block_cache = bmg_cache
+        if cache_key in bmg_cache:
+            return bmg_cache[cache_key]
+        try:
+            raw = read_bytes()
+        except Exception:
+            return None
+        bmg = BMGFile()
+        try:
+            bmg.load(raw)
+        except Exception:
+            return None
+        bmg_cache[cache_key] = bmg
+        if len(bmg_cache) > 16:
+            bmg_cache.pop(next(iter(bmg_cache)))
+        return bmg
 
     def _get_flow_context_for_block(self, block_idx):
         """Resolve the BMG file behind a data block and build its dialogue-flow
@@ -893,13 +929,10 @@ class GameRules(BaseGameRules):
             attrs = self.get_message_attributes(block_idx, string_idx)
             if attrs:
                 fuki_kind = attrs.get("fuki_kind")
-        style = window_style_for_kind(fuki_kind)
-        # window_layouts.json drives preview pagination / page-height scale
+        # window_layouts.json drives pagination and lets users name/describe
+        # window kinds the catalog doesn't know yet
         layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
-        lines = layout.get("lines_per_page")
-        if isinstance(lines, int) and lines > 0:
-            style["lines_per_page"] = lines
-        return style
+        return window_style_for_kind(fuki_kind, layout)
 
     def _get_window_layouts(self):
         cached = getattr(self, "_window_layouts", None)

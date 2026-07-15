@@ -342,8 +342,36 @@ class StringSettingsUpdater(BaseUIUpdater):
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})
 
-        # Update font
+        # Plugin window-kind layout for this string (widths/font/pagination)
+        from utils.utils import resolve_string_layout
+        rules = getattr(self.mw, 'current_game_rules', None)
+        kind_layout = resolve_string_layout(rules, block_idx, string_idx)
+        kind_style = "color: #8a63d2;"  # game-derived value (not a manual override)
+
+        # Window kind label near the editors
+        kind_label = getattr(self.mw, 'window_kind_label', None)
+        if kind_label is not None:
+            kind_name = None
+            if rules is not None and hasattr(rules, 'get_preview_window_style'):
+                try:
+                    style = rules.get_preview_window_style(block_idx=block_idx, string_idx=string_idx)
+                    if isinstance(style, dict):
+                        val = style.get('kind_name')
+                        if isinstance(val, str) and val:
+                            kind_name = val
+                except Exception:
+                    kind_name = None
+            if kind_name:
+                kind_label.setText(f"Window: {kind_name}")
+                kind_label.setVisible(True)
+            else:
+                kind_label.setVisible(False)
+
+        # Update font: explicit override > window-kind font > default
         font_file = string_meta.get("font_file")
+        layout_font = kind_layout.get("font_file")
+        if not isinstance(layout_font, str) or not layout_font:
+            layout_font = None
         if font_file and font_file != self.mw.default_font_file:
             index = self.mw.font_combobox.findData(font_file)
             if index != -1:
@@ -352,20 +380,36 @@ class StringSettingsUpdater(BaseUIUpdater):
             else:
                 self.mw.font_combobox.setCurrentIndex(0)
                 self.mw.font_combobox.setStyleSheet("")
+        elif layout_font:
+            index = self.mw.font_combobox.findData(layout_font)
+            if index != -1:
+                self.mw.font_combobox.setCurrentIndex(index)
+                self.mw.font_combobox.setStyleSheet(kind_style)
+            else:
+                self.mw.font_combobox.setCurrentIndex(0)
+                self.mw.font_combobox.setStyleSheet("")
         else:
             self.mw.font_combobox.setCurrentIndex(0)
             self.mw.font_combobox.setStyleSheet("")
 
-        # Update width
+        # Update width: explicit override > window-kind width > global setting
         width = string_meta.get("width")
         self.mw.width_spinbox.blockSignals(True)
-        
+
         if width and width != self.mw.game_dialog_max_width_pixels:
             self.mw.width_spinbox.setValue(width)
             self.mw.width_spinbox.setStyleSheet(self.highlight_style)
         else:
-            self.mw.width_spinbox.setValue(self.mw.game_dialog_max_width_pixels)
-            self.mw.width_spinbox.setStyleSheet("")
+            from utils.utils import resolve_width_limits
+            _, effective_max = resolve_width_limits(
+                string_meta, rules, block_idx, string_idx,
+                getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
+                self.mw.game_dialog_max_width_pixels)
+            self.mw.width_spinbox.setValue(effective_max)
+            if effective_max != self.mw.game_dialog_max_width_pixels:
+                self.mw.width_spinbox.setStyleSheet(kind_style)
+            else:
+                self.mw.width_spinbox.setStyleSheet("")
         self.mw.width_spinbox.blockSignals(False)
         self.mw.apply_width_button.setEnabled(False)
 
