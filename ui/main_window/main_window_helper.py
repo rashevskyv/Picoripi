@@ -17,18 +17,30 @@ class MainWindowHelper:
         self.mw = main_window
 
     def get_font_map_for_string(self, block_idx: int, string_idx: int) -> dict:
-        """Get the font map for string."""
+        """Get the font map for string.
+
+        Priority: explicit per-string override > plugin window-kind layout
+        (get_string_layout hook) > global default font.
+        """
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})
-        
+
         custom_font_file = string_meta.get("font_file")
-        if custom_font_file:
+        if not custom_font_file or custom_font_file == "default":
+            from utils.utils import resolve_string_layout
+            layout = resolve_string_layout(
+                getattr(self.mw, 'current_game_rules', None), block_idx, string_idx)
+            layout_font = layout.get("font_file")
+            if isinstance(layout_font, str) and layout_font:
+                custom_font_file = layout_font
+
+        if custom_font_file and custom_font_file != "default":
             if custom_font_file in self.mw.all_font_maps:
                 return self.mw.all_font_maps[custom_font_file]
             for key, font_map in self.mw.all_font_maps.items():
                 if key.endswith("/" + custom_font_file):
                     return font_map
-            
+
         return self.mw.font_map
 
     def restart_application(self):

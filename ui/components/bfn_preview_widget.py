@@ -334,6 +334,11 @@ class BfnPreviewWidget(QWidget):
         self.sidebar = BfnPreviewSideBar(self)
         self._position_sidebar()
 
+        # Message page switcher (multi-page messages show one window at a time)
+        self._preview_page = 0
+        self._page_count = 1
+        self._build_page_bar()
+
     def load_translation_map(self):
         """Load translation map."""
         project_dir = None
@@ -373,9 +378,12 @@ class BfnPreviewWidget(QWidget):
 
     def update_preview_text(self, text: str):
         """Update the text and request redraw."""
+        if text != self.text:
+            self._preview_page = 0
         self.text = text
         if self.isHidden():
             return
+        self._refresh_page_bar()
         self.update()
 
     def get_bg_top_left(self) -> QPoint:
@@ -480,6 +488,106 @@ class BfnPreviewWidget(QWidget):
             painter.setPen(QPen(QColor("#555555"), 1.0, Qt.PenStyle.DashLine))
             painter.drawRect(abs_rect)
 
+    # ── Message page switcher ─────────────────────────────────────────────────
+
+    def _build_page_bar(self):
+        """Small overlay with prev/next buttons for multi-page messages."""
+        from PyQt6.QtWidgets import QHBoxLayout, QLabel
+        self.page_bar = QFrame(self)
+        self.page_bar.setStyleSheet(
+            "QFrame { background: rgba(15, 15, 15, 200); border: 1px solid #3a3a3a;"
+            " border-radius: 5px; }"
+            "QPushButton { background: transparent; color: #cccccc; border: none;"
+            " font-size: 12px; }"
+            "QPushButton:hover { color: #ffffff; }"
+            "QLabel { color: #cccccc; font-size: 11px; border: none; }"
+        )
+        bar_layout = QHBoxLayout(self.page_bar)
+        bar_layout.setContentsMargins(6, 2, 6, 2)
+        bar_layout.setSpacing(4)
+        self.btn_page_prev = QPushButton("◀", self.page_bar)
+        self.btn_page_prev.setFixedSize(18, 18)
+        self.btn_page_prev.clicked.connect(lambda: self._change_page(-1))
+        self.page_label = QLabel("1/1", self.page_bar)
+        self.btn_page_next = QPushButton("▶", self.page_bar)
+        self.btn_page_next.setFixedSize(18, 18)
+        self.btn_page_next.clicked.connect(lambda: self._change_page(1))
+        bar_layout.addWidget(self.btn_page_prev)
+        bar_layout.addWidget(self.page_label)
+        bar_layout.addWidget(self.btn_page_next)
+        self.page_bar.hide()
+
+    def _position_page_bar(self):
+        if hasattr(self, 'page_bar'):
+            self.page_bar.adjustSize()
+            self.page_bar.move(self.width() - self.page_bar.width() - 8,
+                               self.height() - self.page_bar.height() - 8)
+            self.page_bar.raise_()
+
+    def _lines_per_page(self, game_style=None) -> int:
+        """Lines per message window: plugin style first, then the plugin's
+        global setting; 0 disables pagination."""
+        if game_style is None:
+            game_style = self._get_game_window_style()
+        if game_style:
+            val = game_style.get("lines_per_page")
+            if isinstance(val, int) and val > 0:
+                return val
+        val = getattr(self.mw, 'lines_per_page', 0)
+        if isinstance(val, int) and val > 0:
+            return val
+        return 0
+
+    def _change_page(self, delta: int):
+        new_page = max(0, min(self._page_count - 1, self._preview_page + delta))
+        if new_page != self._preview_page:
+            self._preview_page = new_page
+            self._refresh_page_bar()
+            self.update()
+
+    def _refresh_page_bar(self):
+        if not hasattr(self, 'page_bar'):
+            return
+        try:
+            clean_text, _, _, _ = self._prepare_render_text()
+            lpp = self._lines_per_page()
+            if lpp > 0 and clean_text:
+                self._page_count = max(1, -(-len(clean_text.split('\n')) // lpp))
+            else:
+                self._page_count = 1
+        except Exception:
+            self._page_count = 1
+        self._preview_page = max(0, min(self._page_count - 1, self._preview_page))
+        if self._page_count > 1:
+            self.page_label.setText(f"{self._preview_page + 1}/{self._page_count}")
+            self.btn_page_prev.setEnabled(self._preview_page > 0)
+            self.btn_page_next.setEnabled(self._preview_page < self._page_count - 1)
+            self.page_bar.show()
+            self._position_page_bar()
+        else:
+            self.page_bar.hide()
+
+    @staticmethod
+    def _slice_page(text, colors, scales, icons, lines_per_page, page):
+        """Cut one message page out of the per-char aligned render data."""
+        lines = text.split('\n')
+        total_pages = max(1, -(-len(lines) // lines_per_page))
+        page = max(0, min(total_pages - 1, page))
+        start_line = page * lines_per_page
+        page_lines = lines[start_line:start_line + lines_per_page]
+        start_char = sum(len(ln) + 1 for ln in lines[:start_line])
+        page_text = '\n'.join(page_lines)
+        end_char = start_char + len(page_text)
+
+        def cut(seq):
+            return seq[start_char:end_char] if seq else seq
+
+        page_icons = None
+        if icons:
+            page_icons = {k - start_char: v for k, v in icons.items()
+                          if start_char <= k < end_char}
+        return page_text, cut(colors), cut(scales), page_icons, total_pages
+
     def _position_sidebar(self):
         """Pin the sidebar to the left edge, full height."""
         if hasattr(self, 'sidebar'):
@@ -490,6 +598,7 @@ class BfnPreviewWidget(QWidget):
         """Resizeevent."""
         super().resizeEvent(event)
         self._position_sidebar()
+        self._position_page_bar()
 
     def enterEvent(self, event):
         """Enterevent."""
@@ -1059,6 +1168,22 @@ class BfnPreviewWidget(QWidget):
         # substitute dynamic names and produce per-character colors/scales)
         cleaned_text, char_colors, char_scales, char_icons = self._prepare_render_text()
 
+        # In-game window style provided by the plugin (window kind of the
+        # CURRENT message: talk box / sign / item window / subtitles...)
+        game_style = self._get_game_window_style()
+
+        # Multi-page messages: render one in-game window (page) at a time
+        page_lines = self._lines_per_page(game_style)
+        page_count = 1
+        if page_lines > 0 and cleaned_text:
+            cleaned_text, char_colors, char_scales, char_icons, page_count = self._slice_page(
+                cleaned_text, char_colors, char_scales, char_icons,
+                page_lines, self._preview_page)
+        if page_count != self._page_count:
+            self._page_count = page_count
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, self._refresh_page_bar)
+
         # Extract glyph metrics
         gly = bfn.gly1[0]
         cell_w = gly["cell_width"]
@@ -1096,7 +1221,7 @@ class BfnPreviewWidget(QWidget):
             inf = bfn.inf1[0] if getattr(bfn, 'inf1', None) else {}
             leading = inf.get("leading", 0) or cell_h
             line_advance = leading + self.line_spacing
-            lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+            lines_per_page = self._lines_per_page(game_style)
             if not isinstance(lines_per_page, (int, float)) or lines_per_page <= 0:
                 lines_per_page = 4
             page_height = lines_per_page * line_advance
@@ -1111,9 +1236,6 @@ class BfnPreviewWidget(QWidget):
 
         # Offscreen image size: same as abs_rect
         img_size = QSize(abs_rect.width(), abs_rect.height())
-
-        # In-game window style provided by the plugin (TP talk box look)
-        game_style = self._get_game_window_style()
 
         # Text offset inside the window (game: HIO mTextPosX/mTextPosY)
         text_dx = text_dy = 0

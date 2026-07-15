@@ -144,6 +144,81 @@ def test_rules_message_attributes_and_style(bmg_rules):
     assert bmg_rules.get_message_attributes(0, "bad") is None
 
 
+def test_rules_string_layout_from_json(bmg_rules):
+    bmg_rules.last_loaded_bmg = _FakeBmg([
+        _FakeMsg(_info(fuki_kind=0)),    # talk -> global widths
+        _FakeMsg(_info(fuki_kind=6)),    # stone sign
+        _FakeMsg(_info(fuki_kind=9)),    # item window
+        _FakeMsg(_info(fuki_kind=12)),   # location plate
+    ])
+
+    talk = bmg_rules.get_string_layout(0, 0)
+    assert talk.get("warn_width") is None  # null -> use globals
+    assert talk["lines_per_page"] == 4
+
+    sign = bmg_rules.get_string_layout(0, 1)
+    assert (sign["warn_width"], sign["max_width"]) == (260, 280)
+
+    item = bmg_rules.get_string_layout(0, 2)
+    assert (item["warn_width"], item["max_width"]) == (230, 250)
+
+    plate = bmg_rules.get_string_layout(0, 3)
+    assert plate["lines_per_page"] == 1
+
+    # preview style carries the pagination setting
+    assert bmg_rules.get_preview_window_style(0, 3)["lines_per_page"] == 1
+    assert bmg_rules.get_preview_window_style(0, 0)["lines_per_page"] == 4
+
+
+def test_resolve_width_limits_priority(bmg_rules):
+    from utils.utils import resolve_width_limits
+
+    bmg_rules.last_loaded_bmg = _FakeBmg([_FakeMsg(_info(fuki_kind=6))])
+
+    # plugin window-kind layout beats globals
+    warn, max_w = resolve_width_limits({}, bmg_rules, 0, 0, 280, 300)
+    assert (warn, max_w) == (260, 280)
+
+    # explicit per-string override beats everything
+    warn, max_w = resolve_width_limits({"width": 111}, bmg_rules, 0, 0, 280, 300)
+    assert (warn, max_w) == (111, 111)
+
+    # no rules / no layout -> globals
+    warn, max_w = resolve_width_limits({}, None, 0, 0, 280, 300)
+    assert (warn, max_w) == (280, 300)
+
+    # broken hook results (e.g. mocks) fall back to globals safely
+    class _Broken:
+        def get_string_layout(self, b, s):
+            return object()
+    warn, max_w = resolve_width_limits({}, _Broken(), 0, 0, 280, 300)
+    assert (warn, max_w) == (280, 300)
+
+
+def test_slice_page_splits_render_data():
+    from ui.components.bfn_preview_widget import BfnPreviewWidget
+
+    text = "L1\nL2\nL3\nL4\nL5\nL6"
+    colors = ["#f07878"] * len(text)
+    scales = [1.0] * len(text)
+    icons = {0: {"kind": "char"}, 9: {"kind": "circle"}}  # L1 and L4 positions
+
+    page0, c0, s0, i0, pages = BfnPreviewWidget._slice_page(text, colors, scales, icons, 3, 0)
+    assert pages == 2
+    assert page0 == "L1\nL2\nL3"
+    assert len(c0) == len(page0)
+    assert 0 in i0 and 9 not in i0
+
+    page1, c1, s1, i1, _ = BfnPreviewWidget._slice_page(text, colors, scales, icons, 3, 1)
+    assert page1 == "L4\nL5\nL6"
+    assert len(c1) == len(page1)
+    assert i1 == {0: {"kind": "circle"}}  # L4's icon re-keyed to page start
+
+    # page index out of range is clamped
+    last, _, _, _, _ = BfnPreviewWidget._slice_page(text, None, None, None, 3, 99)
+    assert last == "L4\nL5\nL6"
+
+
 @pytest.mark.parametrize("kind, expected_hue", [
     (2, "wood"),    # wooden sign: brownish frame pixels
     (6, "stone"),   # stone sign: gray frame pixels

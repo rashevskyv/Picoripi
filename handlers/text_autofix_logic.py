@@ -62,9 +62,13 @@ class TextAutofixLogic:
         current_text = str(current_text)
         edited_text_edit = self.mw.edited_text_edit
 
+        from utils.utils import resolve_width_limits
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-        width_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
-        logical_hard_limit = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+        width_threshold, logical_hard_limit = resolve_width_limits(
+            string_meta, getattr(self.mw, 'current_game_rules', None),
+            block_idx, string_idx,
+            self.mw.line_width_warning_threshold_pixels,
+            self.mw.game_dialog_max_width_pixels)
 
         rules = self.mw.current_game_rules
         if not rules or not hasattr(rules, 'autofix_data_string'):

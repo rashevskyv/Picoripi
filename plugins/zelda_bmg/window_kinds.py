@@ -187,6 +187,45 @@ def window_kind_name(fuki_kind: int) -> str:
     return "Dialogue"
 
 
+def load_window_layouts(plugin_dir: Optional[str] = None) -> Dict[str, Any]:
+    """Load window_layouts.json: per-fuki_kind width limits, font and
+    lines-per-page. Returns {"default": {...}, "kinds": {int: {...}}}."""
+    import json
+    import os
+    if plugin_dir is None:
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(plugin_dir, "window_layouts.json")
+    result = {"default": {}, "kinds": {}}
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+        if isinstance(doc.get("default"), dict):
+            result["default"] = doc["default"]
+        for key, entry in (doc.get("kinds") or {}).items():
+            if not isinstance(entry, dict):
+                continue
+            try:
+                result["kinds"][int(key, 0)] = entry
+            except (TypeError, ValueError):
+                continue
+    except Exception:
+        pass
+    return result
+
+
+def layout_for_kind(layouts: Dict[str, Any], fuki_kind: Optional[int]) -> Dict[str, Any]:
+    """Merged layout for a window kind: default entry overlaid with the
+    kind-specific one; None/empty values are dropped."""
+    merged: Dict[str, Any] = {}
+    for source in (layouts.get("default") or {},
+                   (layouts.get("kinds") or {}).get(int(fuki_kind or 0), {})):
+        for key, value in source.items():
+            if value is None or value == "":
+                continue
+            merged[key] = value
+    return merged
+
+
 def window_style_for_kind(fuki_kind: Optional[int]) -> Dict[str, Any]:
     """Preview style for a fuki_kind; unknown/None -> normal talk box."""
     if fuki_kind is None:

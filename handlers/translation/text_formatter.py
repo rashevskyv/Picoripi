@@ -33,8 +33,14 @@ class TextFormatter:
         # Retrieve thresholds
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
         
-        # Max allowed width (hard threshold, e.g. 460px)
-        max_width_raw = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+        # Max allowed width (hard threshold, e.g. 460px):
+        # per-string override > plugin window-kind layout > global setting
+        from utils.utils import resolve_width_limits
+        _, max_width_raw = resolve_width_limits(
+            string_meta, getattr(self.mw, 'current_game_rules', None),
+            block_idx, string_idx,
+            self.mw.line_width_warning_threshold_pixels,
+            self.mw.game_dialog_max_width_pixels)
         try:
             max_width = int(max_width_raw)
         except (TypeError, ValueError):

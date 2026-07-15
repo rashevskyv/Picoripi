@@ -19,9 +19,9 @@ class IssueScanHandler(BaseHandler):
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
         """Internal helper to get the string thresholds."""
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-        logical_limit = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
         if "width" in string_meta:
             custom_w = string_meta["width"]
+            logical_limit = custom_w
             global_max = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
             standard_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
             if global_max > 0:
@@ -29,7 +29,13 @@ class IssueScanHandler(BaseHandler):
             else:
                 threshold = custom_w
         else:
-            threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+            # No explicit override: plugin window-kind layout > global settings
+            from utils.utils import resolve_width_limits
+            threshold, logical_limit = resolve_width_limits(
+                string_meta, getattr(self.mw, 'current_game_rules', None),
+                block_idx, string_idx,
+                getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
+                getattr(self.mw, 'game_dialog_max_width_pixels', 300))
         return threshold, logical_limit
 
     def _get_block_file_for_mtime(self, block_idx: int) -> Optional[str]:

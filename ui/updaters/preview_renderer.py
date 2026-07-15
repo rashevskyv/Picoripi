@@ -131,8 +131,13 @@ class PreviewRenderer:
                 block = doc.findBlockByNumber(i)
                 q_block_text_raw_dots = block.text()
 
+                from utils.utils import resolve_width_limits
                 string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-                current_threshold_game_px = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+                _, current_threshold_game_px = resolve_width_limits(
+                    string_meta, getattr(self.mw, 'current_game_rules', None),
+                    block_idx, string_idx,
+                    self.mw.line_width_warning_threshold_pixels,
+                    self.mw.game_dialog_max_width_pixels)
 
                 line_text_with_spaces_and_tags = convert_dots_to_spaces_from_editor(q_block_text_raw_dots)
                 line_text_no_tags_for_width_calc = remove_all_tags(line_text_with_spaces_and_tags).rstrip()

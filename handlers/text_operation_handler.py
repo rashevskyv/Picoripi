@@ -40,9 +40,9 @@ class TextOperationHandler(BaseHandler):
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
         """Internal helper to get the string thresholds."""
         string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-        logical_limit = string_meta.get("width", getattr(self.mw, 'game_dialog_max_width_pixels', 300))
         if "width" in string_meta:
             custom_w = string_meta["width"]
+            logical_limit = custom_w
             global_max = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
             standard_threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
             if global_max > 0:
@@ -50,7 +50,13 @@ class TextOperationHandler(BaseHandler):
             else:
                 threshold = custom_w
         else:
-            threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
+            # No explicit override: plugin window-kind layout > global settings
+            from utils.utils import resolve_width_limits
+            threshold, logical_limit = resolve_width_limits(
+                string_meta, getattr(self.mw, 'current_game_rules', None),
+                block_idx, string_idx,
+                getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
+                getattr(self.mw, 'game_dialog_max_width_pixels', 300))
         return threshold, logical_limit
 
     def _rescan_issues_for_current_string(self, block_idx: int, string_idx: int, new_text: str) -> None:
@@ -698,9 +704,12 @@ class TextOperationHandler(BaseHandler):
             QMessageBox.warning(self.mw, "Calculate Width Error", "Game rules plugin not loaded.")
             return
 
+        from utils.utils import resolve_width_limits
         string_meta = self.mw.string_metadata.get((self.mw.data_store.physical_block_idx, data_line_idx), {})
-        warning_threshold = string_meta.get("width", self.mw.line_width_warning_threshold_pixels)
-        logical_hard_limit = string_meta.get("width", self.mw.game_dialog_max_width_pixels)
+        warning_threshold, logical_hard_limit = resolve_width_limits(
+            string_meta, getattr(self.mw, 'current_game_rules', None),
+            self.mw.data_store.physical_block_idx, data_line_idx,
+            self.mw.line_width_warning_threshold_pixels, self.mw.game_dialog_max_width_pixels)
         max_allowed_width = logical_hard_limit
 
         font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.physical_block_idx, data_line_idx)

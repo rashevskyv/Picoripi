@@ -121,8 +121,12 @@ class GenericTextFixer:
 
                 threshold = getattr(self.mw, 'line_width_warning_threshold_pixels', 200)
                 if hasattr(self.mw, 'string_metadata') and isinstance(self.mw.string_metadata, dict) and b_idx != -1 and s_idx != -1:
+                    from utils.utils import resolve_width_limits
                     string_meta = self.mw.string_metadata.get((b_idx, s_idx), {})
-                    threshold = string_meta.get("width", threshold)
+                    threshold, _ = resolve_width_limits(
+                        string_meta, getattr(self.mw, 'current_game_rules', None),
+                        b_idx, s_idx, threshold,
+                        getattr(self.mw, 'game_dialog_max_width_pixels', 300))
 
                 text, _ = self._fix_width_exceeded_generic(text, font_map, threshold)
 

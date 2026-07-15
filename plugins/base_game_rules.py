@@ -267,6 +267,16 @@ class BaseGameRules:
         cleaned = re.sub(r'\[[^\]]*\]', "", cleaned)
         return cleaned, None
 
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """Per-string layout defaults derived from game data (e.g. the message's
+        window type): {"warn_width": int, "max_width": int, "font_file": str,
+        "lines_per_page": int}. Any key may be omitted.
+
+        Resolution priority in the app: explicit per-string metadata override >
+        this hook > global plugin settings. Default: no game-derived layout.
+        """
+        return None
+
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """Per-line game-script flow context for the AI translation prompt.
 

@@ -58,7 +58,13 @@ class AutofixWorker(QThread):
         metadata_key = (block_idx, string_idx)
         string_meta = self.string_metadata.get(metadata_key, {})
         custom_font_file = string_meta.get("font_file")
-        if custom_font_file:
+        if not custom_font_file or custom_font_file == "default":
+            from utils.utils import resolve_string_layout
+            layout_font = resolve_string_layout(
+                getattr(self, 'game_rules_plugin', None), block_idx, string_idx).get("font_file")
+            if isinstance(layout_font, str) and layout_font:
+                custom_font_file = layout_font
+        if custom_font_file and custom_font_file != "default":
             if custom_font_file in self.all_font_maps:
                 return self.all_font_maps[custom_font_file]
             for key, f_map in self.all_font_maps.items():
@@ -68,15 +74,19 @@ class AutofixWorker(QThread):
 
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
         string_meta = self.string_metadata.get((block_idx, string_idx), {})
-        logical_limit = string_meta.get("width", self.logical_hard_limit)
         if "width" in string_meta:
             custom_w = string_meta["width"]
+            logical_limit = custom_w
             if self.logical_hard_limit > 0:
                 threshold = int(custom_w * (self.warning_threshold / self.logical_hard_limit))
             else:
                 threshold = custom_w
         else:
-            threshold = self.warning_threshold
+            # No explicit override: plugin window-kind layout > worker defaults
+            from utils.utils import resolve_width_limits
+            threshold, logical_limit = resolve_width_limits(
+                string_meta, getattr(self, 'game_rules_plugin', None),
+                block_idx, string_idx, self.warning_threshold, self.logical_hard_limit)
         return threshold, logical_limit
 
     def run(self):

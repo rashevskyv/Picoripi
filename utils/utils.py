@@ -809,6 +809,50 @@ def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Opt
     """Calculate strict string width."""
     return _calculate_string_width_impl(text, font_map, 8, icon_sequences, strict=True, default_tag_mappings=default_tag_mappings)
 
+def _positive_int(value) -> Optional[int]:
+    """Return value as a positive int, or None if it isn't one."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)) and value > 0:
+        return int(value)
+    return None
+
+
+def resolve_string_layout(game_rules, block_idx, string_idx) -> dict:
+    """Plugin-provided per-string layout (window-kind widths/font/pagination).
+
+    Safe against missing hooks, exceptions and non-dict results (e.g. mocks).
+    """
+    if game_rules is None or not hasattr(game_rules, 'get_string_layout'):
+        return {}
+    try:
+        layout = game_rules.get_string_layout(block_idx, string_idx)
+    except Exception:
+        return {}
+    return layout if isinstance(layout, dict) else {}
+
+
+def resolve_width_limits(string_meta, game_rules, block_idx, string_idx,
+                         default_warn, default_max) -> Tuple[int, int]:
+    """Resolve (warn_width, max_width) for one string.
+
+    Priority: explicit per-string metadata override ("width") >
+    plugin layout hook (window-kind defaults) > global settings.
+    """
+    meta = string_meta or {}
+    override = _positive_int(meta.get("width"))
+    if override is not None:
+        return override, override
+
+    layout = resolve_string_layout(game_rules, block_idx, string_idx)
+    warn = _positive_int(layout.get("warn_width"))
+    max_w = _positive_int(layout.get("max_width"))
+    warn_default = _positive_int(default_warn) or 280
+    max_default = _positive_int(default_max) or 300
+    return (warn if warn is not None else warn_default,
+            max_w if max_w is not None else max_default)
+
+
 def is_fuzzy_match(word1: str, word2: str, threshold: float = 0.8) -> bool:
     """
     Checks if two words are similar enough using SequenceMatcher.

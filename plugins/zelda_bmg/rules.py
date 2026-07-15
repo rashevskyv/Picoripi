@@ -887,13 +887,39 @@ class GameRules(BaseGameRules):
           - per-character halo colors per window kind (dMsgScrnLight_c);
           - text brightness: main text modulated by TEV white (200,200,200).
         """
-        from .window_kinds import window_style_for_kind
+        from .window_kinds import window_style_for_kind, layout_for_kind
         fuki_kind = None
         if block_idx is not None and string_idx is not None:
             attrs = self.get_message_attributes(block_idx, string_idx)
             if attrs:
                 fuki_kind = attrs.get("fuki_kind")
-        return window_style_for_kind(fuki_kind)
+        style = window_style_for_kind(fuki_kind)
+        # window_layouts.json drives preview pagination / page-height scale
+        layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
+        lines = layout.get("lines_per_page")
+        if isinstance(lines, int) and lines > 0:
+            style["lines_per_page"] = lines
+        return style
+
+    def _get_window_layouts(self):
+        cached = getattr(self, "_window_layouts", None)
+        if cached is None:
+            from .window_kinds import load_window_layouts
+            cached = load_window_layouts(plugin_dir)
+            self._window_layouts = cached
+        return cached
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """Window-kind layout defaults for one string (widths, font,
+        lines-per-page), from window_layouts.json keyed by the message's
+        fuki_kind. Used by the app's width checks / autofix / AI wrapping
+        unless the string has an explicit override."""
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        if attrs is None:
+            return None
+        from .window_kinds import layout_for_kind
+        layout = layout_for_kind(self._get_window_layouts(), attrs.get("fuki_kind"))
+        return layout or None
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
         """Get the text representation for preview."""
