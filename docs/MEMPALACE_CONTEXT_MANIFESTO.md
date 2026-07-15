@@ -718,13 +718,31 @@ MemPalace може показати справжнє дерево Act → Chapte
 
 ## 10. Журнал прогресу
 
+### 2026-07-15 — Реальний TP dialogue flow у всіх AI-перекладах
+
+**Статус:** Done
+
+**Результат:** перевірено й завершено наскрізне підключення `FLW1/FLI1 → Zelda plugin → AI prompt`. Виявлено, що retail `zel_00.bmg` має фізично скорочену на 8 байтів фінальну секцію `FLI1`, через що попередня синтетична реалізація бачила вузли, але 0 розмов. Read-only flow parser тепер відновлює цю секцію з `BMGFile.trailing_data`, використовує реальну кількість branch targets із заголовка `FLW1` і враховує endianness BMG. Контекст порядку реплік, умов, виборів і наступних ігрових дій тепер потрапляє не лише в batch, а й в одиночний переклад та variation prompts. Кеш архівного BMG інвалідується за фактичним вмістом.
+
+**Повна acceptance-перевірка:** створено незмінний validation snapshot актуального Markup Studio autosave: 5205 marks, зокрема 2515 Text і 1329 Speaker. CUDA alignment на RTX 5060 Ti зіставив 2437 придатних dialogue nodes із 9098 BMG messages. Доказове покриття придатного розміченого діалогу становить `97,878%` при вимозі `≥95%`; exact flow-текстів, які matcher пропустив, після виправлення control-tag variants — 0. Виправлення дозволяє matcher-у обирати сильніший доказ між семантично розкритими тегами (Link/Epona) та формою без невидимих/control-тегів.
+
+**Flow-validation:** додано повторюваний `tools/mempalace_flow_validator.py`. У дев’яти BMG знайдено 1406 розмов, 5118 унікальних flow message rows і 6658 переходів; 0 некоректних message indices, next nodes або branch targets. 3602 flow rows мають підтримані script relations; 1727 із 2225 пов’язаних dialogue nodes (`77,618%`) отримують додатковий flow-контекст. Непов’язані flow rows не є acceptance-помилкою: walkthrough не зобов’язаний цитувати всі опціональні репліки гри. Аудит залишку показав 1233 рядки без точного тексту в розмітці, 231 короткий/system choice, 52 порожні/tag-only та 0 точних пропусків.
+
+**Actor-scope correction:** виявлено, що 292 числові flow ID повторюються між різними `zel_XX.bmg`. Усі 176 старих actor-map entries не містять BMG scope; 95 із них безпосередньо конфліктують із повторюваними ID. Щоб AI не отримував хибного NPC, unscoped actor evidence більше не потрапляє в prompts. Actor/character дозволяється лише для запису з перевіреним `bmg`/`bmg_files`; повне відновлення потребує stage/ACTR parser. Порепліковий speaker лишається за сценарієм/MemPalace.
+
+**Змінено:** `plugins/zelda_bmg/msg_flow.py`, `plugins/zelda_bmg/rules.py`, `plugins/zelda_bmg/flow_actors.json`, `handlers/translation/ai_prompt_composer.py`, `core/mempalace/dialogue_alignment.py`, `core/mempalace/flow_validation.py`, `tools/mempalace_flow_validator.py`, пов’язані тести, `plugins/zelda_bmg/TAGS.md`, `docs/MEMPALACE_CONTEXT_MANIFESTO.md`.
+
+**Перевірено:** synthetic parser/branch/event tests, truncated-`FLI1`, BMG-scoped actor policy, batch/single/variation prompt E2E, control-tag alignment regression, повний CUDA alignment і flow-validation усіх реальних BMG проєкту. Звіти збережені в `.tmp_test_run/flow_validation/` без зміни робочої MemPalace DB.
+
 ### 2026-07-15 — Zelda BMG Escape-теги та іконки керування
 
 **Статус:** Done  
 **Результат:** `TAGS.md` перетворено на єдиний машинний каталог усіх 124 задокументованих Escape-кодів. Прев’ю тепер розрізняє невидимі службові команди, буквальні символи, динамічні імена/лічильники, колір, масштаб і фурігану. Усі GameCube/Wii-кнопки та контролери показуються векторними іконками розміром 24×24 px; непрозорі аліаси Wii отримали зрозумілі назви. Вимірювання рядка враховує фактичний видимий результат тегів. Виправлено помилкове трактування `{escape:0:0001}` як Link: це `INSTANT`, тому він нічого не малює. Водночас для цього Zelda-проєкту всі AI-маршрути гарантовано отримують `{escape:0:0000}` як `Link`, `{escape:0:0022}` як `Epona`, а родові теги — як `Link's`/`Epona's`, незалежно від завантаження editor aliases.
 **Змінено:** `plugins/zelda_bmg/tag_catalog.py`, `plugins/zelda_bmg/rules.py`, `plugins/zelda_bmg/aliases.json`, `plugins/zelda_bmg/font_map.json`, `ui/components/bfn_preview_widget.py`, `tests/test_core/test_bfn_tp_layout.py`, `docs/MEMPALACE_CONTEXT_MANIFESTO.md`.  
 **Перевірено:** повноту всіх груп із `TAGS.md`, семантичні підстановки, декодування аргументів, 24-px ширину, промальовування кожного типу іконки; 106 цільових тестів пройшли. Окремий регресійний прогін 89 тестів підтвердив AI-підстановки Link/Epona в одиночному, пакетному, variation і glossary workflow. Ruff і компіляція Python пройшли.
-**Залишилось:** коротка ручна оцінка вигляду кнопок у реальному BFN-прев’ю; функціональна реалізація завершена.
+**Доповнення редактора:** автоматичні аліаси тепер генеруються з того самого машинного каталогу й реєструються у штатному `default_tag_mappings`, а не підміняються окремим renderer-шаром. Тому список рядків, редактор, `Edit Alias`, збереження проєкту та розрахунок ширини працюють з одним записом. Кнопки мають явні платформи (`{GC:A}`, `{W:A}`), параметризовані команди показують значення (`{pause:10f}`, `{scale:150%}`), а наведення пояснює семантику тегу. Link/Epona та їхні родові форми використовують саме форсовані аліаси (`{F:Link}`, `{F:Epona}`): вони не зникають у режимі Hide tags, а ширина рахується за видимим ім'ям. Старі `btn*` лишено лише для сумісності зі збереженими проєктами. `font_map.json` містить 24 px для фіксованих іконок і 0 px для невидимих команд. Додано пропущені семантики групи 1 (звук повідомлення; `{escape:1:0014}` = `{sound:20}`) та групи 2 (камера).
+**Acceptance редактора:** повний оригінальний `bmgres.arc` (5030 повідомлень, 5098 escape-входжень, 301 унікальна послідовність) синтетично пройшов `raw → editor aliases → raw`: 0 втрат, 0 змінених повідомлень і 0 сирих `{escape:...}` після відображення. 70 цільових UI/plugin/width/packing тестів пройшли.
+**Залишилось:** коротка ручна оцінка читабельності нових аліасів і тултіпів у головному вікні після перезапуску; функціональна реалізація завершена.
 
 ### 2026-07-14 — Етап 3, чесне покриття розмічених реплік вище 95%
 
