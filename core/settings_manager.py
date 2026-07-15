@@ -52,7 +52,9 @@ class SettingsManager:
     def load_settings(self):
         """Load settings."""
         log_info(f"Loading settings from {self.settings_file_path}...")
+        report = getattr(self.mw, 'report_startup_progress', lambda *_: None)
         self.global_settings.load(self._settings)
+        report(18, "Loading plugin settings…")
         self.plugin_settings.load(self._settings)
         
         # Apply logging settings
@@ -64,7 +66,14 @@ class SettingsManager:
             self.get('log_file_path', default_log_file_path)
         )
         
-        self.font_map_loader.load_all_font_maps()
+        last_path = Path(str(getattr(self.mw, 'last_opened_path', '') or ''))
+        opening_project = last_path.suffix.lower() == '.uiproj' and last_path.exists()
+        if opening_project:
+            log_info("Deferring font loading until startup project settings are available.")
+            report(25, "Deferring project fonts until the project opens…")
+        else:
+            report(25, "Loading font metrics…")
+            self.font_map_loader.load_all_font_maps()
 
         self.mw.initial_load_path = getattr(self.mw, 'original_file_path', None)
         self.mw.initial_edited_load_path = getattr(self.mw, 'edited_file_path', None)

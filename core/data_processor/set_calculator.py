@@ -44,6 +44,22 @@ class SetCalculator:
 
         return store._index_translated[block_idx]
 
+    def get_needs_translation_set(self, block_idx: int) -> Set[int]:
+        """Get the cached indices whose original text requires translation."""
+        store = self.mw.data_store
+        if block_idx < 0 or not store.data or block_idx >= len(store.data):
+            return set()
+
+        if block_idx not in store._index_needs_translation:
+            block_data = store.data[block_idx]
+            store._index_needs_translation[block_idx] = {
+                s_idx
+                for s_idx in range(len(block_data))
+                if self.dsp.string_needs_translation(block_idx, s_idx)
+            } if isinstance(block_data, list) else set()
+
+        return store._index_needs_translation[block_idx]
+
     def get_unsaved_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of unsaved string indices for the given block."""
         store = self.mw.data_store

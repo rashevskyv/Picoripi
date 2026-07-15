@@ -972,6 +972,10 @@ class DataStateProcessor:
         """Get or build the set of translated string indices for the given block."""
         return self.set_calculator.get_translated_set(block_idx)
 
+    def get_needs_translation_set(self, block_idx: int) -> Set[int]:
+        """Get or build the set of strings whose original text needs translation."""
+        return self.set_calculator.get_needs_translation_set(block_idx)
+
     def get_unsaved_set(self, block_idx: int) -> Set[int]:
         """Get or build the set of unsaved string indices for the given block."""
         return self.set_calculator.get_unsaved_set(block_idx)

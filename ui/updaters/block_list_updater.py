@@ -1,7 +1,7 @@
 import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
+from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle, QWidget
 from utils.logging_utils import log_info, log_warning
 from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
@@ -39,6 +39,17 @@ class BlockListUpdater(BaseUIUpdater):
         block_idx = item.data(0, Qt.ItemDataRole.UserRole)
         if block_idx is not None:
             self._block_items_cache.setdefault(block_idx, []).append(item)
+
+    def _start_chapters_worker_when_ready(self) -> None:
+        """Keep optional MemePalace I/O from competing with the initial project view."""
+        worker = self._chapters_load_worker
+        if worker is None:
+            return
+        if isinstance(getattr(self.mw, '_startup_splash', None), QWidget):
+            QTimer.singleShot(100, self._start_chapters_worker_when_ready)
+            return
+        if not worker.isRunning():
+            worker.start()
 
     def _get_block_display_name_with_ext(self, block_idx: int, base_display_name: str) -> str:
         """Internal helper to get the block display name with ext."""
@@ -782,7 +793,7 @@ class BlockListUpdater(BaseUIUpdater):
                             self._chapters_load_worker = MemePalaceChaptersLoadWorker(client, wing_name)
                             self._chapters_load_worker.finished_signal.connect(self._on_chapters_loaded)
                             self._chapters_load_worker.error_signal.connect(self._on_chapters_load_failed)
-                            self._chapters_load_worker.start()
+                            self._start_chapters_worker_when_ready()
 
                             # Show loading placeholder
                             chapters_root = QTreeWidgetItem(["Chapters"])

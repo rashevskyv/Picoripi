@@ -11,6 +11,43 @@ class BaseGameRules:
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         self.mw = main_window_ref
+        self._alias_lookup_signature = None
+        self._alias_lookup_cache = None
+
+    def _get_alias_lookup_tables(self, mappings: Dict[str, str]):
+        """Build alias lookup tables once for the current mapping contents."""
+        signature = (id(mappings), tuple(mappings.items()))
+        if signature == self._alias_lookup_signature and self._alias_lookup_cache is not None:
+            return self._alias_lookup_cache
+
+        tag_pattern = re.compile(r'(?:\{[^{}]*\}|\[[^\[\]]*\])')
+        reverse: Dict[str, str] = {}
+        tag_aliases: Dict[str, str] = {}
+        non_tag_to_alias = []
+        non_alias_to_tag = []
+        for alias, original_tag in mappings.items():
+            if not original_tag:
+                continue
+            if tag_pattern.fullmatch(original_tag):
+                reverse.setdefault(original_tag, alias)
+            else:
+                non_tag_to_alias.append((alias, original_tag))
+            if alias:
+                if tag_pattern.fullmatch(alias):
+                    tag_aliases[alias] = original_tag
+                else:
+                    non_alias_to_tag.append((alias, original_tag))
+
+        non_tag_to_alias.sort(key=lambda item: len(item[1]), reverse=True)
+        non_alias_to_tag.sort(key=lambda item: len(item[0]), reverse=True)
+        self._alias_lookup_signature = signature
+        self._alias_lookup_cache = (
+            reverse,
+            tag_aliases,
+            non_tag_to_alias,
+            non_alias_to_tag,
+        )
+        return self._alias_lookup_cache
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
         """Load data from json obj."""
@@ -194,21 +231,13 @@ class BaseGameRules:
         if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
             return text
         mappings = self.mw.default_tag_mappings
-        reverse: Dict[str, str] = {}
-        non_tag_mappings = []
-        for alias, original_tag in mappings.items():
-            if not original_tag:
-                continue
-            if re.fullmatch(r'(?:\{[^{}]*\}|\[[^\[\]]*\])', original_tag):
-                reverse.setdefault(original_tag, alias)
-            else:
-                non_tag_mappings.append((alias, original_tag))
+        reverse, _, non_tag_mappings, _ = self._get_alias_lookup_tables(mappings)
         result = re.sub(
             r'\{[^{}]*\}|\[[^\[\]]*\]',
             lambda match: reverse.get(match.group(0), match.group(0)),
             str(text),
         )
-        for alias, original_tag in sorted(non_tag_mappings, key=lambda item: len(item[1]), reverse=True):
+        for alias, original_tag in non_tag_mappings:
             result = result.replace(original_tag, alias)
         return result
 
@@ -217,22 +246,13 @@ class BaseGameRules:
         if not self.mw or not hasattr(self.mw, 'default_tag_mappings') or not self.mw.default_tag_mappings:
             return text
         mappings = self.mw.default_tag_mappings
-        tag_aliases = {
-            alias: original_tag
-            for alias, original_tag in mappings.items()
-            if alias and re.fullmatch(r'(?:\{[^{}]*\}|\[[^\[\]]*\])', alias)
-        }
+        _, tag_aliases, _, non_tag_mappings = self._get_alias_lookup_tables(mappings)
         result = re.sub(
             r'\{[^{}]*\}|\[[^\[\]]*\]',
             lambda match: tag_aliases.get(match.group(0), match.group(0)),
             str(text),
         )
-        non_tag_mappings = [
-            (alias, original_tag)
-            for alias, original_tag in mappings.items()
-            if alias and alias not in tag_aliases
-        ]
-        for alias, original_tag in sorted(non_tag_mappings, key=lambda item: len(item[0]), reverse=True):
+        for alias, original_tag in non_tag_mappings:
             result = result.replace(alias, original_tag)
         return result
 

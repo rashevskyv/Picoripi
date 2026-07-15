@@ -30,8 +30,16 @@ class TextHighlightManager:
         self._tag_highlight_timer = QTimer()
         self._tag_highlight_timer.setSingleShot(True)
         self._tag_highlight_timer.timeout.connect(self.clearTagInteractionHighlight)
+
+        self._zebra_update_timer = QTimer(editor)
+        self._zebra_update_timer.setSingleShot(True)
+        self._zebra_update_timer.timeout.connect(self.update_zebra_stripes)
         
         self._current_selected_lines = []
+
+    def schedule_zebra_update(self) -> None:
+        """Coalesce document/scroll changes into one visible-area refresh."""
+        self._zebra_update_timer.start(0)
 
     def _create_block_background_selection(self, block: QTextBlock, color: QColor, use_full_width: bool = False) -> List[QTextEdit.ExtraSelection]:
         """Internal helper to create block background selection."""
@@ -449,8 +457,13 @@ class TextHighlightManager:
             self.applyHighlights()
             return
 
-        for i in range(doc.blockCount()):
-            block = doc.findBlockByNumber(i)
+        block = self.editor.firstVisibleBlock()
+        viewport_bottom = self.editor.viewport().rect().bottom()
+        while block.isValid():
+            top = self.editor.blockBoundingGeometry(block).translated(self.editor.contentOffset()).top()
+            if top > viewport_bottom:
+                break
+            i = block.blockNumber()
             is_odd = i % 2 != 0
             color = odd_color if is_odd else even_color
             
@@ -459,6 +472,7 @@ class TextHighlightManager:
             if color and color != Qt.GlobalColor.transparent and color.alpha() != 0 and i not in self._current_selected_lines:
                 selections = self._create_block_background_selection(block, color, use_full_width=True)
                 new_selections.extend(selections)
+            block = block.next()
 
         self._zebra_selections = new_selections
         self.applyHighlights()

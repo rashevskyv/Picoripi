@@ -56,6 +56,10 @@ def test_lazy_index_initialization():
 
     processor = DataStateProcessor(mw)
 
+    needs_set = processor.get_needs_translation_set(0)
+    assert needs_set == {0, 2}
+    assert store._index_needs_translation[0] == {0, 2}
+
     # 1. Test empty set
     empty_set = processor.get_empty_set(0)
     assert empty_set == {1}
@@ -91,6 +95,7 @@ def test_lazy_index_initialization():
 def test_index_invalidation_on_data_change():
     store = AppDataStore()
     store._index_empty[0] = {1}
+    store._index_needs_translation[0] = {0}
     store._index_translated[0] = {2}
 
     # Write to data property
@@ -98,6 +103,7 @@ def test_index_invalidation_on_data_change():
 
     # Verify indexes are cleared
     assert len(store._index_empty) == 0
+    assert len(store._index_needs_translation) == 0
     assert len(store._index_translated) == 0
 
 def test_incremental_index_updates():

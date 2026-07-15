@@ -76,6 +76,7 @@ from utils.utils import ALL_TAGS_PATTERN
 
 from ui.settings_dialog import SettingsDialog
 from components.custom_list_item_delegate import CustomListItemDelegate
+from components.startup_splash import StartupSplash
 
 from ui.main_window.main_window_helper import MainWindowHelper
 from ui.main_window.main_window_actions import MainWindowActions
@@ -143,16 +144,40 @@ class MainWindow(QMainWindow):
     def force_focus(self):
         self.ui_handler.force_focus()
 
-    def __init__(self) -> None:
+    def __init__(self, startup_splash: Optional[StartupSplash] = None) -> None:
         super().__init__()
+        self._startup_splash = startup_splash
+        self._startup_loading_pending = False
         log_info("Initializing main window...")
 
+        self.report_startup_progress(8, "Initializing application state…")
         self._init_metadata()
         self._init_state()
         self._init_visual_settings()
+        self.report_startup_progress(12, "Loading settings and fonts…")
         self._init_data_structures()
         self._init_handlers()
+        self.report_startup_progress(42, "Building the workspace…")
         self._init_ui()
+
+    def report_startup_progress(self, value: int, message: str) -> None:
+        """Update the early startup UI when the application is still loading."""
+        splash = getattr(self, '_startup_splash', None)
+        if splash is not None:
+            splash.update_progress(value, message)
+
+    def finish_startup_loading(self) -> None:
+        """Close the startup UI once the main window has usable project data."""
+        self._startup_loading_pending = False
+        splash = getattr(self, '_startup_splash', None)
+        if splash is None:
+            return
+        splash.update_progress(100, "Ready")
+        splash.close()
+        splash.deleteLater()
+        self._startup_splash = None
+        self.raise_()
+        self.activateWindow()
 
     def _init_metadata(self) -> None:
         self.EDITOR_PLAYER_TAG = EDITOR_PLAYER_TAG
@@ -230,6 +255,7 @@ class MainWindow(QMainWindow):
         self.ui_updater = UIUpdater(self, self.data_processor)
         self.undo_manager = UndoManager(self)
 
+        self.report_startup_progress(15, "Reading application settings…")
         self.settings_manager.load_settings()
 
         # Actions Handlers
@@ -241,6 +267,7 @@ class MainWindow(QMainWindow):
         self.block_handler = MainWindowBlockHandler(self)
 
         # Plugin Setup
+        self.report_startup_progress(32, "Loading game plugin…")
         self.plugin_handler.load_game_plugin()
 
         # Merge autofix_enabled and detection_enabled defaults from the plugin if they are empty
@@ -346,6 +373,7 @@ class MainWindow(QMainWindow):
         self.plugin_status_label: Optional[QLabel] = None
 
         # Setup
+        self.report_startup_progress(45, "Creating editors and toolbars…")
         setup_main_window_ui(self)
         self.ui_handler.force_focus()
         log_info("UI setup complete.")
@@ -367,6 +395,7 @@ class MainWindow(QMainWindow):
         self.text_analysis_handler.ensure_menu_action()
 
         log_info("Initializing dynamic UI from plugin...")
+        self.report_startup_progress(52, "Preparing plugin tools…")
         self.plugin_handler.setup_plugin_ui()
         self.plugin_handler.update_warnings_filter_button()
 
@@ -399,6 +428,7 @@ class MainWindow(QMainWindow):
                     editor_widget.updateLineNumberAreaWidth(0)
 
         self.ui_handler.apply_font_size()
+        self.report_startup_progress(58, "Restoring the previous workspace…")
         self.helper.restore_state_after_settings_load()
         self.helper.apply_text_wrap_settings()
 
@@ -722,8 +752,13 @@ if __name__ == '__main__':
     MainWindowUIHandler.apply_theme(app, theme_to_apply)
 
     try:
-        window = MainWindow()
+        splash = StartupSplash()
+        splash.update_progress(3, "Starting Picoripi…")
+        splash.show_centered()
+        window = MainWindow(startup_splash=splash)
         window.show()
+        if not window._startup_loading_pending:
+            window.finish_startup_loading()
     except Exception as e:
         log_error(f"CRITICAL ERROR during MainWindow initialization: {e}", exc_info=True)
         sys.exit(1)

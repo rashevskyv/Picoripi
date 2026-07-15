@@ -257,6 +257,11 @@ class ProjectActionHandler(BaseHandler):
         self._pending_restore_block: int = 0
         self._pending_restore_cat: Optional[str] = None
 
+    def _report_startup(self, value: int, message: str) -> None:
+        reporter = getattr(self.mw, 'report_startup_progress', None)
+        if callable(reporter):
+            reporter(value, message)
+
     def _set_project_actions_enabled(self, enabled: bool):
         """Enable or disable project-specific UI actions and update their tooltips."""
         actions_map = {
@@ -752,6 +757,7 @@ class ProjectActionHandler(BaseHandler):
             return
 
         if self._restore_project_session_fast_path(on_completed):
+            self._report_startup(96, "Restored cached project session")
             return
 
         # Reset block/string selection state to avoid stale index issues
@@ -771,10 +777,13 @@ class ProjectActionHandler(BaseHandler):
 
         # Setup loading thread and progress dialog
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
+        startup_loading = getattr(self.mw, '_startup_splash', None) is not None
+        if startup_loading:
+            self.mw._startup_loading_pending = True
 
         import sys
         progress_dialog = None
-        if 'pytest' not in sys.modules:
+        if 'pytest' not in sys.modules and not startup_loading:
             from PyQt6.QtWidgets import QProgressDialog
             from PyQt6.QtCore import Qt
             total_steps = len(worker.blocks) * 2
@@ -794,6 +803,8 @@ class ProjectActionHandler(BaseHandler):
                     QMessageBox.critical(self.mw, "Load Error", f"An error occurred while loading project files:\n{worker.error_occurred}")
                 if on_completed:
                     on_completed(False)
+                if startup_loading:
+                    self.mw.finish_startup_loading()
                 return
 
             self.mw.data_store.data = result['data']
@@ -846,10 +857,19 @@ class ProjectActionHandler(BaseHandler):
 
             if on_completed:
                 on_completed(state_restored)
+            if startup_loading:
+                self._report_startup(98, "Finalizing the project view…")
+                self.mw.finish_startup_loading()
 
         # Store worker reference to prevent garbage collection
         self._active_load_worker = worker
         worker.finished.connect(on_finished)
+        if startup_loading:
+            def report_worker_progress(current, total):
+                ratio = current / max(1, total)
+                phase = "Reading original blocks…" if ratio < 0.5 else "Reading translated blocks…"
+                self._report_startup(75 + int(ratio * 20), phase)
+            worker.progress.connect(report_worker_progress)
 
         if 'pytest' in sys.modules:
             worker.run()
@@ -917,6 +937,7 @@ class ProjectActionHandler(BaseHandler):
             return
 
         # Load project using ProjectManager
+        self._report_startup(60, "Reading project metadata…")
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.load(project_path)
@@ -936,8 +957,17 @@ class ProjectActionHandler(BaseHandler):
             # Even if it's the same plugin, we reload it to ensure a clean state for this project
             target_plugin = project.plugin_name or self.mw.active_game_plugin
             log_info(f"Initializing project plugin: '{target_plugin}' (previous: '{self.mw.active_game_plugin}')")
+            same_fresh_startup_plugin = (
+                getattr(self.mw, '_startup_splash', None) is not None
+                and target_plugin == self.mw.active_game_plugin
+                and self.mw.current_game_rules is not None
+            )
             self.mw.active_game_plugin = target_plugin
-            self.mw.load_game_plugin() # SYNC CALL UPDATING current_game_rules
+            if same_fresh_startup_plugin:
+                log_info(f"Reusing freshly loaded startup plugin: '{target_plugin}'")
+            else:
+                self._report_startup(64, f"Loading {target_plugin} plugin…")
+                self.mw.load_game_plugin() # SYNC CALL UPDATING current_game_rules
             self.ui_updater.update_plugin_status_label()
 
             # Load project-specific settings
@@ -949,6 +979,7 @@ class ProjectActionHandler(BaseHandler):
             if hasattr(self.mw, 'ui_handler'):
                 self.mw.ui_handler.update_editor_rules_properties()
             if hasattr(self.mw, 'settings_manager'):
+                self._report_startup(68, "Loading project fonts…")
                 self.mw.settings_manager.load_all_font_maps()
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_font_combobox()
@@ -961,6 +992,7 @@ class ProjectActionHandler(BaseHandler):
             self._set_project_actions_enabled(True)
 
             # 5. Sync project files (extract archives, discover new blocks)
+            self._report_startup(72, "Synchronizing project files…")
             self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
 
             # 6. Populate UI components with the new project data
@@ -978,6 +1010,7 @@ class ProjectActionHandler(BaseHandler):
                     self._pending_restore_cat = restored_cat
                     self._restore_view_timer.start(150)
 
+            self._report_startup(75, "Restoring cached project data…")
             self._populate_blocks_from_project(on_completed=on_recent_opened)
         else:
             QMessageBox.critical(

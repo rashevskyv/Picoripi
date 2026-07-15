@@ -3,6 +3,7 @@ import pickle
 import time
 import os
 import base64
+import uuid
 from pathlib import Path
 from typing import Any, Optional
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
@@ -15,6 +16,8 @@ class SessionManager:
         self.mw = data_processor.mw
         self._session_dirty = False
         self._durable_session_dirty = False
+        self._last_pickle_checkpoint_id = None
+        self._last_pickle_saved_at = 0.0
 
     def get_session_file_path(self) -> Optional[Path]:
         """Get the file path for saving/loading session data."""
@@ -195,6 +198,7 @@ class SessionManager:
         json_snapshot = {
             "version": 1,
             "saved_at": snapshot.get("saved_at", 0.0),
+            "checkpoint_id": snapshot.get("checkpoint_id"),
             "json_path": snapshot.get("json_path"),
             "edited_json_path": snapshot.get("edited_json_path"),
             "data": self._to_json_safe_value(snapshot.get("data", [])),
@@ -266,6 +270,7 @@ class SessionManager:
         snapshot = {
             "version": 1,
             "saved_at": json_data.get("saved_at", 0.0),
+            "checkpoint_id": json_data.get("checkpoint_id"),
             "json_path": json_data.get("json_path"),
             "edited_json_path": json_data.get("edited_json_path"),
             "data": self._from_json_safe_value(json_data.get("data", [])),
@@ -325,8 +330,11 @@ class SessionManager:
                 snapshot = data_store.get_session_snapshot()
                 self._attach_runtime_session_state(snapshot)
                 snapshot["saved_at"] = time.time()
+                snapshot["checkpoint_id"] = uuid.uuid4().hex
                 with session_path.open('wb') as f:
                     pickle.dump(snapshot, f)
+                self._last_pickle_checkpoint_id = snapshot["checkpoint_id"]
+                self._last_pickle_saved_at = snapshot["saved_at"]
                 self._session_dirty = False
                 log_debug(f"DSP: Session autosaved to {session_path}")
         except Exception as e:
@@ -349,11 +357,21 @@ class SessionManager:
                 snapshot = data_store.get_session_snapshot()
                 self._attach_runtime_session_state(snapshot)
                 snapshot["saved_at"] = time.time()
+                snapshot["checkpoint_id"] = (
+                    self._last_pickle_checkpoint_id
+                    if self._last_pickle_checkpoint_id
+                    and not self._session_dirty
+                    and time.time() - self._last_pickle_saved_at < 10.0
+                    else uuid.uuid4().hex
+                )
                 json_snapshot = self.serialize_session_to_json(snapshot)
                 
                 tmp_path = json_path.with_suffix(json_path.suffix + ".tmp")
                 with tmp_path.open('w', encoding='utf-8') as f:
-                    json.dump(json_snapshot, f, ensure_ascii=False, indent=2)
+                    # This checkpoint can contain the complete project data.
+                    # Pretty-printing adds several megabytes and noticeably
+                    # slows both shutdown writes and the next startup read.
+                    json.dump(json_snapshot, f, ensure_ascii=False, separators=(',', ':'))
                     f.flush()
                     try:
                         os.fsync(f.fileno())
@@ -384,8 +402,34 @@ class SessionManager:
         
         pickle_snapshot = None
         pickle_saved_at = 0.0
+        checkpoints_match = False
 
-        if json_path and json_path.exists():
+        # Modern clean-shutdown checkpoints carry the same random ID in both
+        # files. Pickle is much faster to deserialize than the large durable
+        # JSON, so verify that ID from JSON's small prefix and take the fast
+        # path without parsing the full JSON document.
+        if json_path and json_path.exists() and session_path and session_path.exists():
+            try:
+                with session_path.open('rb') as f:
+                    candidate = pickle.load(f)
+                if isinstance(candidate, dict):
+                    pickle_snapshot = candidate
+                    pickle_saved_at = candidate.get("saved_at", 0.0)
+                checkpoint_id = candidate.get("checkpoint_id") if isinstance(candidate, dict) else None
+                if checkpoint_id:
+                    with json_path.open('r', encoding='utf-8') as f:
+                        json_prefix = f.read(512)
+                    compact_marker = f'"checkpoint_id":"{checkpoint_id}"'
+                    spaced_marker = f'"checkpoint_id": "{checkpoint_id}"'
+                    if compact_marker in json_prefix or spaced_marker in json_prefix:
+                        checkpoints_match = True
+                        self._last_pickle_checkpoint_id = checkpoint_id
+                        self._last_pickle_saved_at = pickle_saved_at
+                        log_info("DSP: Loaded matching session checkpoint through Pickle fast path")
+            except Exception as e:
+                log_debug(f"DSP: Pickle fast-path probe failed; using durable fallback: {e}")
+
+        if not checkpoints_match and json_path and json_path.exists():
             try:
                 with json_path.open('r', encoding='utf-8') as f:
                     json_data = json.load(f)
@@ -396,7 +440,25 @@ class SessionManager:
                 log_warning(f"DSP: Failed to load durable JSON session: {e}")
                 json_snapshot = None
 
-        if session_path and session_path.exists():
+        # A normal clean shutdown writes Pickle first and the durable JSON
+        # immediately afterwards.  Avoid deserializing both multi-megabyte
+        # snapshots when the Pickle file cannot possibly be newer.  We still
+        # read it when JSON failed or its filesystem timestamp is newer than
+        # JSON's embedded timestamp (crash-recovery path).
+        should_read_pickle = (
+            not checkpoints_match
+            and pickle_snapshot is None
+            and bool(session_path and session_path.exists())
+        )
+        if should_read_pickle and json_snapshot:
+            try:
+                should_read_pickle = session_path.stat().st_mtime > json_saved_at + 0.01
+            except OSError:
+                should_read_pickle = True
+            if not should_read_pickle:
+                log_debug("DSP: Durable JSON is current; skipping redundant Pickle deserialization")
+
+        if should_read_pickle:
             try:
                 with session_path.open('rb') as f:
                     pickle_snapshot = pickle.load(f)
@@ -447,7 +509,10 @@ class SessionManager:
         snapshot = None
         needs_durable_sync = False
 
-        if json_snapshot and pickle_snapshot:
+        if checkpoints_match and pickle_snapshot:
+            snapshot = pickle_snapshot
+            log_info(f"DSP: Loaded matched Pickle/JSON checkpoint from {session_path}")
+        elif json_snapshot and pickle_snapshot:
             if pickle_saved_at > json_saved_at:
                 snapshot = pickle_snapshot
                 needs_durable_sync = True
@@ -498,7 +563,7 @@ class SessionManager:
                         if tree_widget and hasattr(tree_widget, 'select_block_by_index'):
                             tree_widget.select_block_by_index(block_idx, category_name)
 
-                        self.mw.ui_updater.populate_strings_for_block(block_idx, category_name, force=True)
+                        self.mw.ui_updater.populate_strings_for_block(block_idx, category_name, force=False)
 
                         if string_idx != -1:
                             self.mw.ui_updater.update_text_views()

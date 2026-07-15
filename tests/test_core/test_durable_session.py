@@ -35,6 +35,18 @@ def test_get_durable_session_file_path(dsp, mock_mw, tmp_path):
     path = dsp.get_durable_session_file_path()
     assert path == Path(tmp_path) / ".picoripi_session.json"
 
+
+def test_matching_checkpoint_uses_pickle_without_full_json_parse(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.data_store.data = [["cached"]]
+    dsp._autosave_session(force=True)
+    assert dsp._save_durable_session_json(force=True)
+
+    with patch("core.data_processor.session_manager.json.load") as json_load:
+        assert dsp.load_session_file() is True
+
+    json_load.assert_not_called()
+
 def test_serialize_and_deserialize_session(dsp):
     # Prepare mock snapshot
     action1 = UndoAction("edit", 0, 0, "old", "new", 123.45, 2, {"meta": "data"})

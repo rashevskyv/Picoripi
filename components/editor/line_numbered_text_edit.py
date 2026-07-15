@@ -91,8 +91,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.lineNumberArea.paint_logic = LNETLineNumberAreaPaintLogic(self, self.paint_helpers, main_window_ref)
 
         self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
-        self.blockCountChanged.connect(lambda: self.highlightManager.update_zebra_stripes() if hasattr(self, 'highlightManager') and self.highlightManager else None)
+        self.blockCountChanged.connect(lambda: self.highlightManager.schedule_zebra_update() if hasattr(self, 'highlightManager') and self.highlightManager else None)
         self.updateRequest.connect(self.updateLineNumberArea)
+        self.verticalScrollBar().valueChanged.connect(self.highlightManager.schedule_zebra_update)
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.mouse_handler.showContextMenu)
@@ -313,16 +314,24 @@ class LineNumberedTextEdit(QPlainTextEdit):
         cursor = QTextCursor(self.document())
 
         if is_exceeded:
-            # Find the exact character index k (1-based) where the threshold is crossed
+            # Width is monotonic, so locate the crossing in O(log n) measurements.
+            # The previous linear prefix scan repeatedly parsed all BMG aliases and
+            # made long strings quadratic during every row change.
             found = False
-            for k in range(1, len(block_text_raw) + 1):
-                prefix = block_text_raw[:k]
-                prefix_w = get_width(prefix)
+            low, high = 1, len(block_text_raw)
+            while low < high:
+                middle = (low + high) // 2
+                if get_width(block_text_raw[:middle]) >= limit_px:
+                    high = middle
+                else:
+                    low = middle + 1
+            if block_text_raw:
+                k = low
+                prefix_w = get_width(block_text_raw[:k])
                 if prefix_w >= limit_px:
-                    prev_prefix = block_text_raw[:k-1]
-                    prev_w = get_width(prev_prefix)
+                    prev_w = get_width(block_text_raw[:k - 1])
 
-                    # Find which visual line contains character index k - 1
+                    # Find which visual line contains character index k - 1.
                     found_line = -1
                     for i in range(layout.lineCount()):
                         line = layout.lineAt(i)
@@ -351,7 +360,6 @@ class LineNumberedTextEdit(QPlainTextEdit):
                         limit_x = x_prev + fraction * (x_curr - x_prev)
                         self.guideline_positions[(block_num, found_line)] = (limit_x, True)
                         found = True
-                        break
             # Fallback if somehow not found (should not happen if block_width_px > limit_px)
             if not found and layout.lineCount() > 0:
                 last_idx = layout.lineCount() - 1

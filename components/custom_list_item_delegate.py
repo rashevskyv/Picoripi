@@ -333,9 +333,12 @@ class CustomListItemDelegate(QStyledItemDelegate):
                         block = project.blocks[proj_b_idx]
                         category = next((c for c in block.categories if c.name == category_name), None)
                         if category and category.line_indices:
-                            total_needs = sum(1 for l_idx in category.line_indices if main_window.data_processor.string_needs_translation(block_idx_data, l_idx))
+                            category_indices = set(category.line_indices)
+                            needs_set = main_window.data_processor.get_needs_translation_set(block_idx_data)
+                            translated_set = main_window.data_processor.get_translated_set(block_idx_data)
+                            total_needs = len(category_indices & needs_set)
                             if total_needs > 0:
-                                translated = sum(1 for l_idx in category.line_indices if main_window.data_processor.is_string_translated(block_idx_data, l_idx))
+                                translated = len(category_indices & translated_set)
                                 percentage = translated / total_needs
                             else:
                                 percentage = 0.0 # No strings need translation, do not treat as fully complete
@@ -361,9 +364,16 @@ class CustomListItemDelegate(QStyledItemDelegate):
                                         ch_mappings.append(indices)
                                         
                         if ch_mappings:
-                            total_needs = sum(1 for b_idx, s_idx in ch_mappings if main_window.data_processor.string_needs_translation(b_idx, s_idx))
+                            status_sets = {}
+                            for b_idx, _ in ch_mappings:
+                                if b_idx not in status_sets:
+                                    status_sets[b_idx] = (
+                                        main_window.data_processor.get_needs_translation_set(b_idx),
+                                        main_window.data_processor.get_translated_set(b_idx),
+                                    )
+                            total_needs = sum(1 for b_idx, s_idx in ch_mappings if s_idx in status_sets[b_idx][0])
                             if total_needs > 0:
-                                translated = sum(1 for b_idx, s_idx in ch_mappings if main_window.data_processor.is_string_translated(b_idx, s_idx))
+                                translated = sum(1 for b_idx, s_idx in ch_mappings if s_idx in status_sets[b_idx][1])
                                 percentage = translated / total_needs
                             else:
                                 percentage = 0.0
@@ -372,9 +382,10 @@ class CustomListItemDelegate(QStyledItemDelegate):
                         if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
                             block_data = ds.data[block_idx_data]
                             if isinstance(block_data, list) and block_data:
-                                total_needs = sum(1 for i in range(len(block_data)) if main_window.data_processor.string_needs_translation(block_idx_data, i))
+                                needs_set = main_window.data_processor.get_needs_translation_set(block_idx_data)
+                                total_needs = len(needs_set)
                                 if total_needs > 0:
-                                    translated = sum(1 for i in range(len(block_data)) if main_window.data_processor.is_string_translated(block_idx_data, i))
+                                    translated = len(main_window.data_processor.get_translated_set(block_idx_data))
                                     percentage = translated / total_needs
                                 else:
                                     percentage = 0.0

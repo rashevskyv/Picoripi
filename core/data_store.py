@@ -90,6 +90,7 @@ class AppDataStore:
 
     # Filtering Indexes
     _index_empty: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
+    _index_needs_translation: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
     _index_translated: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
     _index_unsaved: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
     _index_overrides: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
@@ -125,6 +126,7 @@ class AppDataStore:
         """Clear filtering indexes for a specific block or all blocks."""
         if block_idx is not None:
             self._index_empty.pop(block_idx, None)
+            self._index_needs_translation.pop(block_idx, None)
             self._index_translated.pop(block_idx, None)
             self._index_unsaved.pop(block_idx, None)
             self._index_overrides.pop(block_idx, None)
@@ -132,6 +134,7 @@ class AppDataStore:
             self._index_categorized.pop(block_idx, None)
         else:
             self._index_empty.clear()
+            self._index_needs_translation.clear()
             self._index_translated.clear()
             self._index_unsaved.clear()
             self._index_overrides.clear()

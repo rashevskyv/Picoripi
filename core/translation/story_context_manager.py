@@ -11,6 +11,9 @@ class StoryContextManager:
         self.mw = mw
         self._mempalace_client = None
         self._mempalace_project_dir = None
+        self._mempalace_source_project_dir = None
+        self._wing_name_cache_key = None
+        self._wing_name_cache = None
 
     def get_mempalace_client(self) -> Optional[object]:
         """Dynamically get or initialize MemePalaceClient for current project directory."""
@@ -30,6 +33,13 @@ class StoryContextManager:
                     project_dir = os.path.dirname(json_path)
             if not project_dir or not isinstance(project_dir, (str, bytes)):
                 project_dir = os.getcwd()
+
+        source_project_dir = os.path.abspath(project_dir) if project_dir else None
+        if (
+            self._mempalace_client is not None
+            and self._mempalace_source_project_dir == source_project_dir
+        ):
+            return self._mempalace_client
 
         # Verify if the db exists or search in parent/adjacent directories up to 4 levels
         db_file = "mempalace_local.db"
@@ -86,6 +96,9 @@ class StoryContextManager:
             from core.mempalace_client import MemePalaceClient
             self._mempalace_client = MemePalaceClient(project_dir=project_dir)
             self._mempalace_project_dir = project_dir
+            self._wing_name_cache_key = None
+            self._wing_name_cache = None
+        self._mempalace_source_project_dir = source_project_dir
 
         return self._mempalace_client
 
@@ -101,6 +114,9 @@ class StoryContextManager:
 
         try:
             client = self.get_mempalace_client()
+            cache_key = (id(client), clean_name)
+            if self._wing_name_cache_key == cache_key and self._wing_name_cache:
+                return self._wing_name_cache
             if client and hasattr(client, "get_wings"):
                 wings = client.get_wings()
                 wing_names = [w["name"] for w in wings]
@@ -108,15 +124,23 @@ class StoryContextManager:
                     # Look for fuzzy match or prefix match
                     for w_name in wing_names:
                         if clean_name.lower().startswith(w_name.lower()) or w_name.lower().startswith(clean_name.lower()):
+                            self._wing_name_cache_key = cache_key
+                            self._wing_name_cache = w_name
                             return w_name
                     # If only one wing exists in DB, use it
                     if len(wing_names) == 1:
+                        self._wing_name_cache_key = cache_key
+                        self._wing_name_cache = wing_names[0]
                         return wing_names[0]
         except Exception as e:
             import utils.logging_utils
             utils.logging_utils.log_error(f"Error resolving wing name fallback: {e}")
 
-        return clean_name or "Zelda_TP"
+        resolved_name = clean_name or "Zelda_TP"
+        if 'cache_key' in locals():
+            self._wing_name_cache_key = cache_key
+            self._wing_name_cache = resolved_name
+        return resolved_name
 
     def get_block_label(self, block_idx: int) -> str:
         """Get friendly display label for a project file block index."""
