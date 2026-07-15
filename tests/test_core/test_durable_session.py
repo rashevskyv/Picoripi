@@ -60,6 +60,11 @@ def test_serialize_and_deserialize_session(dsp):
         "block_to_project_file_map": {0: "file1.json", 1: "file2.json"},
         "unsaved_changes": True,
         "plugin_original_keys": ["key0", "key1"],
+        "plugin_runtime_state": {
+            "version": 1,
+            "auto_kind_widths": {0: 300, 6: 271},
+            "auto_kind_widths_signature": "font-signature",
+        },
     }
 
     # Serialize
@@ -87,6 +92,7 @@ def test_serialize_and_deserialize_session(dsp):
     assert json_snapshot["redo_stack"][0]["type"] == "StructuralAction"
     assert json_snapshot["redo_stack"][0]["label"] == "moved"
     assert json_snapshot["plugin_original_keys"] == ["key0", "key1"]
+    assert json_snapshot["plugin_runtime_state"]["auto_kind_widths"] == {"0": 300, "6": 271}
 
     # Deserialize
     deserialized = dsp.deserialize_session_from_json(json_snapshot)
@@ -100,6 +106,7 @@ def test_serialize_and_deserialize_session(dsp):
         (0, 0, 0): {"WIDTH_EXCEEDED"},
         (1, 2, 1): {"TAG_WARNING", "MISSING_SPACE"}
     }
+    assert deserialized["plugin_runtime_state"]["auto_kind_widths"] == {"0": 300, "6": 271}
 
     # Verify restored actions
     restored_action1 = deserialized["undo_stack"][0]

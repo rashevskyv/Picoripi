@@ -960,6 +960,58 @@ class GameRules(BaseGameRules):
         layout = self._resolve_auto_widths(layout, fuki_kind)
         return layout or None
 
+    _AUTO_WIDTH_CACHE_VERSION = 1
+
+    def _auto_width_signature(self) -> str:
+        """Fingerprint the settings that affect measured string widths."""
+        import hashlib
+        import json
+
+        payload = {
+            "version": self._AUTO_WIDTH_CACHE_VERSION,
+            "font_map": getattr(self.mw, 'font_map', None) or {},
+            "icon_sequences": getattr(self.mw, 'icon_sequences', []) or [],
+            "tag_mappings": getattr(self.mw, 'default_tag_mappings', None) or {},
+        }
+        encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str).encode('utf-8')
+        return hashlib.sha256(encoded).hexdigest()
+
+    def export_runtime_session_state(self) -> Dict[str, Any]:
+        """Return small derived caches that are safe to persist with a session."""
+        cached = getattr(self, "_auto_kind_widths_cache", None)
+        if not cached:
+            return {}
+        ds = getattr(self.mw, 'data_store', None) if self.mw else None
+        data = getattr(ds, 'data', None) if ds is not None else None
+        if not isinstance(data, list) or cached[0] != (id(data), len(data)):
+            return {}
+        return {
+            "version": self._AUTO_WIDTH_CACHE_VERSION,
+            "auto_kind_widths": dict(cached[1]),
+            "auto_kind_widths_signature": self._auto_width_signature(),
+        }
+
+    def restore_runtime_session_state(self, state: Dict[str, Any]) -> None:
+        """Restore calibrated widths when their width-affecting settings match."""
+        if not isinstance(state, dict) or state.get("version") != self._AUTO_WIDTH_CACHE_VERSION:
+            return
+        if state.get("auto_kind_widths_signature") != self._auto_width_signature():
+            return
+        raw_widths = state.get("auto_kind_widths")
+        if not isinstance(raw_widths, dict):
+            return
+        try:
+            widths = {int(kind): int(width) for kind, width in raw_widths.items() if int(width) > 0}
+        except (TypeError, ValueError):
+            return
+        ds = getattr(self.mw, 'data_store', None) if self.mw else None
+        data = getattr(ds, 'data', None) if ds is not None else None
+        if not isinstance(data, list) or not data:
+            return
+        cache_token = (id(data), len(data))
+        self._auto_kind_widths_cache = (cache_token, widths)
+        log_info(f"zelda_bmg: restored calibrated window-kind widths from session: {widths}")
+
     def _resolve_auto_widths(self, layout: Dict[str, Any], fuki_kind) -> Dict[str, Any]:
         """Replace "auto" width values with limits measured from the original
         text of the same window kind; drop them if calibration is impossible."""

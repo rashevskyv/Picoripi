@@ -44,21 +44,33 @@ class SessionManager:
                 snapshot["plugin_original_keys"] = list(original_keys)
             except TypeError:
                 pass
+        export_runtime_state = getattr(game_rules, 'export_runtime_session_state', None)
+        if callable(export_runtime_state):
+            try:
+                runtime_state = export_runtime_state()
+                if isinstance(runtime_state, dict) and runtime_state:
+                    snapshot["plugin_runtime_state"] = runtime_state
+            except Exception as e:
+                log_warning(f"DSP: Failed to export plugin runtime state: {e}")
         return snapshot
 
     def _restore_runtime_session_state(self, snapshot: dict) -> None:
         """Restore runtime-only state that is required before project saves."""
-        if "plugin_original_keys" not in snapshot:
-            return
-
         game_rules = getattr(self.mw, 'current_game_rules', None)
-        if game_rules is None or not hasattr(game_rules, 'original_keys'):
+        if game_rules is None:
             return
+        if "plugin_original_keys" in snapshot and hasattr(game_rules, 'original_keys'):
+            plugin_keys = snapshot.get("plugin_original_keys")
+            if plugin_keys is not None:
+                game_rules.original_keys = list(plugin_keys or [])
 
-        plugin_keys = snapshot.get("plugin_original_keys")
-        if plugin_keys is None:
-            return
-        game_rules.original_keys = list(plugin_keys or [])
+        restore_runtime_state = getattr(game_rules, 'restore_runtime_session_state', None)
+        runtime_state = snapshot.get("plugin_runtime_state")
+        if callable(restore_runtime_state) and isinstance(runtime_state, dict) and runtime_state:
+            try:
+                restore_runtime_state(runtime_state)
+            except Exception as e:
+                log_warning(f"DSP: Failed to restore plugin runtime state: {e}")
 
     def _to_json_safe_value(self, value: Any) -> Any:
         """Convert nested session values to JSON-safe primitives."""
@@ -215,6 +227,7 @@ class SessionManager:
             "block_to_project_file_map": block_to_file_serialized,
             "problems_per_subline": problems_serialized,
             "plugin_original_keys": snapshot.get("plugin_original_keys"),
+            "plugin_runtime_state": self._to_json_safe_value(snapshot.get("plugin_runtime_state")),
         }
         return json_snapshot
 
@@ -285,6 +298,7 @@ class SessionManager:
             "block_to_project_file_map": block_to_file_deserialized,
             "problems_per_subline": problems_deserialized,
             "plugin_original_keys": json_data.get("plugin_original_keys"),
+            "plugin_runtime_state": self._from_json_safe_value(json_data.get("plugin_runtime_state")),
         }
         return snapshot
 
