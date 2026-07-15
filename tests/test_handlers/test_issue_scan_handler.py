@@ -69,3 +69,33 @@ def test_IssueScanHandler_rescan_all_tags(mock_msg, handler, mock_mw, qapp):
         qapp.processEvents()
         mock_scan.assert_called_once()
         handler.ui_updater.populate_blocks.assert_called_once()
+
+
+@patch('handlers.issue_scan_handler.QMessageBox.information')
+def test_rescan_all_tags_reports_completion_only_after_last_batch(mock_msg, handler, mock_mw):
+    mock_mw.data_store.data = [["line"] for _ in range(3)]
+    handler._SCAN_BATCH_SIZE = 1
+
+    with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:
+        handler.rescan_all_tags()
+        handler._scan_timer.stop()
+
+        mock_msg.assert_not_called()
+
+        handler._scan_next_batch()
+        handler._scan_timer.stop()
+        mock_msg.assert_not_called()
+
+        handler._scan_next_batch()
+        handler._scan_timer.stop()
+        mock_msg.assert_not_called()
+
+        handler._scan_next_batch()
+
+    assert mock_scan.call_count == 3
+    mock_msg.assert_called_once_with(
+        mock_mw,
+        "Scan Complete",
+        "Full issue scan complete.",
+    )
+    handler.ui_updater.populate_blocks.assert_called_once()

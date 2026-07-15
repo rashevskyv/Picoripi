@@ -15,6 +15,7 @@ class IssueScanHandler(BaseHandler):
         super().__init__(main_window, data_processor, ui_updater)
         self._progress_dialog = None
         self._scan_total_count = 0
+        self._scan_completion_callback = None
 
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
         """Internal helper to get the string thresholds."""
@@ -229,10 +230,12 @@ class IssueScanHandler(BaseHandler):
         delay = 0 if is_test else 30
         self._scan_timer.start(delay)
 
-    def _perform_initial_silent_scan_all_issues(self):
+    def _perform_initial_silent_scan_all_issues(self, on_completed=None):
         """Start (or restart) an scan of all blocks, loading from cache if valid."""
+        self._scan_completion_callback = on_completed
         if not self.mw.data_store.data:
             self.mw.data_store.problems_per_subline.clear()
+            self._scan_completion_callback = None
             return
 
         # Cancel any in-progress scan
@@ -289,6 +292,10 @@ class IssueScanHandler(BaseHandler):
             log_info("Loaded all block issues from cache.")
             if hasattr(self.mw, 'ui_updater'):
                 self.ui_updater.populate_blocks()
+            callback = self._scan_completion_callback
+            self._scan_completion_callback = None
+            if callback:
+                callback()
             return
 
         log_info(f"Scanning {len(pending_scan_indices)} blocks for issues (not found or outdated in cache).")
@@ -301,6 +308,10 @@ class IssueScanHandler(BaseHandler):
             if hasattr(self, '_progress_dialog') and self._progress_dialog:
                 self._progress_dialog.close()
                 self._progress_dialog = None
+            callback = self._scan_completion_callback
+            self._scan_completion_callback = None
+            if callback:
+                callback()
             return
 
         # Check if progress dialog was canceled
@@ -308,6 +319,7 @@ class IssueScanHandler(BaseHandler):
             self._scan_pending_indices = []
             self._scan_timer = None
             self._progress_dialog = None
+            self._scan_completion_callback = None
             log_info("Initial issue scan canceled by user.")
             return
 
@@ -346,6 +358,10 @@ class IssueScanHandler(BaseHandler):
             log_debug("Initial issue scan complete.")
             self._save_issues_cache()
             self.data_processor.schedule_autosave()
+            callback = self._scan_completion_callback
+            self._scan_completion_callback = None
+            if callback:
+                callback()
 
     def rescan_issues_for_single_block(self, block_idx: int = -1, show_message_on_completion: bool = True, use_default_mappings: bool = True):
         """Rescan issues for single block."""
@@ -403,7 +419,9 @@ class IssueScanHandler(BaseHandler):
                 cache_path.unlink()
             except Exception:
                 pass
-        self._perform_initial_silent_scan_all_issues()
-        self.ui_updater.populate_blocks()
-        QMessageBox.information(self.mw, "Scan Complete", "Full issue scan complete.")
+        def show_completion():
+            self.ui_updater.populate_blocks()
+            QMessageBox.information(self.mw, "Scan Complete", "Full issue scan complete.")
+
+        self._perform_initial_silent_scan_all_issues(on_completed=show_completion)
 
