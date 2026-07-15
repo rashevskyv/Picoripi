@@ -946,13 +946,93 @@ class GameRules(BaseGameRules):
         """Window-kind layout defaults for one string (widths, font,
         lines-per-page), from window_layouts.json keyed by the message's
         fuki_kind. Used by the app's width checks / autofix / AI wrapping
-        unless the string has an explicit override."""
+        unless the string has an explicit override.
+
+        Width values may be the string "auto": then the limit is calibrated
+        from the project's ORIGINAL text — the longest original line of the
+        same window kind (originals always fit the real game box)."""
         attrs = self.get_message_attributes(block_idx, string_idx)
         if attrs is None:
             return None
         from .window_kinds import layout_for_kind
-        layout = layout_for_kind(self._get_window_layouts(), attrs.get("fuki_kind"))
+        fuki_kind = attrs.get("fuki_kind")
+        layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
+        layout = self._resolve_auto_widths(layout, fuki_kind)
         return layout or None
+
+    def _resolve_auto_widths(self, layout: Dict[str, Any], fuki_kind) -> Dict[str, Any]:
+        """Replace "auto" width values with limits measured from the original
+        text of the same window kind; drop them if calibration is impossible."""
+        if not layout:
+            return layout
+        wants_auto = layout.get("max_width") == "auto" or layout.get("warn_width") == "auto"
+        if not wants_auto:
+            return layout
+        layout = dict(layout)
+        auto_max = self._get_auto_kind_widths().get(int(fuki_kind or 0), 0)
+        if auto_max > 0:
+            if layout.get("max_width") == "auto":
+                layout["max_width"] = auto_max
+            if layout.get("warn_width") == "auto":
+                layout["warn_width"] = max(1, auto_max - 20)
+        else:
+            # calibration unavailable -> fall back to the global settings
+            for key in ("max_width", "warn_width"):
+                if layout.get(key) == "auto":
+                    layout.pop(key)
+        return layout
+
+    def _get_auto_kind_widths(self) -> Dict[int, int]:
+        """Per-window-kind width limits measured from the project's original
+        text: for every fuki_kind, the widest original line (in font px).
+
+        Computed once per loaded dataset and cached; a few thousand strings
+        take well under a second and every later lookup is a dict hit.
+        """
+        ds = getattr(self.mw, 'data_store', None) if self.mw else None
+        data = getattr(ds, 'data', None) if ds is not None else None
+        if not isinstance(data, list) or not data:
+            return {}
+
+        cache_token = (id(data), len(data))
+        cached = getattr(self, "_auto_kind_widths_cache", None)
+        if cached is not None and cached[0] == cache_token:
+            return cached[1]
+
+        from .window_kinds import decode_message_attributes
+        from utils.utils import calculate_string_width
+
+        font_map = getattr(self.mw, 'font_map', None) or {}
+        icon_sequences = getattr(self.mw, 'icon_sequences', [])
+        tag_mappings = getattr(self.mw, 'default_tag_mappings', None)
+        result: Dict[int, int] = {}
+        try:
+            for b_idx, block in enumerate(data):
+                if not isinstance(block, list) or not block:
+                    continue
+                bmg, _, _ = self._get_bmg_for_block(b_idx)
+                messages = getattr(bmg, "messages", None) if bmg is not None else None
+                if not messages:
+                    continue
+                for s_idx, text in enumerate(block):
+                    if s_idx >= len(messages):
+                        break
+                    kind = decode_message_attributes(
+                        getattr(messages[s_idx], "info", b"")).get("fuki_kind", 0)
+                    for line in str(text).split('\n'):
+                        if not line:
+                            continue
+                        w = calculate_string_width(
+                            line, font_map, icon_sequences=icon_sequences,
+                            default_tag_mappings=tag_mappings)
+                        if w > result.get(kind, 0):
+                            result[kind] = w
+        except Exception as e:
+            log_debug(f"zelda_bmg: auto width calibration failed: {e}")
+
+        self._auto_kind_widths_cache = (cache_token, result)
+        log_info(f"zelda_bmg: calibrated window-kind widths from originals: {result}")
+        return result
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
         """Get the text representation for preview."""

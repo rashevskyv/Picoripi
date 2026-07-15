@@ -195,19 +195,30 @@ class LayoutBuilder:
         left_header_layout.setContentsMargins(0, 0, 0, 0)
         left_header_layout.setSpacing(0)
 
+        original_tools_layout = QHBoxLayout()
+        original_tools_layout.addStretch(1)
+
+        self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
+        self.mw.hide_original_tags_checkbox.setToolTip("Hide tags in all text panels. (Ctrl+Q)")
+        self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
+        original_tools_layout.addWidget(self.mw.hide_original_tags_checkbox)
+        left_header_layout.addLayout(original_tools_layout)
+        left_header_layout.addStretch(1)
+
         original_header_layout = QHBoxLayout()
         original_header_layout.addWidget(QLabel("Original (Read-Only):"))
+        original_header_layout.addSpacing(12)
+        original_header_layout.addWidget(QLabel("Max-width:"))
         self.mw.original_width_label = QLabel("")
+        self.mw.original_width_label.setObjectName("original_width_value")
+        self.mw.original_width_label.setStyleSheet(
+            "QLabel#original_width_value { font-weight: bold; padding: 1px 6px; "
+            "border: 1px solid palette(mid); border-radius: 3px; }"
+        )
         original_header_layout.addWidget(self.mw.original_width_label)
         original_header_layout.addStretch(1)
-        
-        self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
-        self.mw.hide_original_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in original text. (Ctrl+Q)")
-        self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
-        original_header_layout.addWidget(self.mw.hide_original_tags_checkbox)
-        
+
         left_header_layout.addLayout(original_header_layout)
-        left_header_layout.addStretch(1)
         bottom_left_layout.addWidget(self.mw.left_header_container)
 
         self.mw.original_text_edit = LineNumberedTextEdit(self.mw)
@@ -341,36 +352,35 @@ class LayoutBuilder:
         right_header_layout.setContentsMargins(0, 0, 0, 0)
         right_header_layout.setSpacing(0)
 
+        control_height = 30
+
         # Tools Header
         editable_text_header_layout = QHBoxLayout()
-        editable_text_header_layout.addWidget(QLabel("Editable Text:"))
-        editable_text_header_layout.addSpacing(10)
-        
-        self.mw.hide_translation_tags_checkbox = QCheckBox("Hide tags")
-        self.mw.hide_translation_tags_checkbox.setToolTip("Hide all tags except forced aliases and tags with custom width in translation. (Ctrl+Q)")
-        self.mw.hide_translation_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
-        editable_text_header_layout.addWidget(self.mw.hide_translation_tags_checkbox)
-        
         editable_text_header_layout.addStretch(1)
-        
+
         self.mw.navigate_down_button = QPushButton()
         self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowDown))
         self.mw.navigate_down_button.setToolTip("Navigate to next problem string (Ctrl+Down)")
+        self.mw.navigate_down_button.setFixedSize(control_height, control_height)
         editable_text_header_layout.addWidget(self.mw.navigate_down_button)
 
         self.mw.navigate_up_button = QPushButton()
         self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
         self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
+        self.mw.navigate_up_button.setFixedSize(control_height, control_height)
         editable_text_header_layout.addWidget(self.mw.navigate_up_button)
 
         self.mw.ai_translate_button = QPushButton('AI Translate')
+        self.mw.ai_translate_button.setFixedHeight(control_height)
         editable_text_header_layout.addWidget(self.mw.ai_translate_button)
 
         self.mw.ai_variation_button = QPushButton('AI Variation')
+        self.mw.ai_variation_button.setFixedHeight(control_height)
         editable_text_header_layout.addWidget(self.mw.ai_variation_button)
 
         self.mw.auto_fix_button = QPushButton('Auto-fix')
         self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
+        self.mw.auto_fix_button.setFixedHeight(control_height)
         editable_text_header_layout.addWidget(self.mw.auto_fix_button)
         
         right_header_layout.addLayout(editable_text_header_layout)
@@ -378,7 +388,11 @@ class LayoutBuilder:
         # String Settings Panel
         string_settings_panel = QWidget()
         string_settings_layout = QHBoxLayout(string_settings_panel)
-        string_settings_layout.setContentsMargins(0, 5, 0, 5)
+        string_settings_layout.setContentsMargins(0, 4, 0, 4)
+
+        message_context_layout = QVBoxLayout()
+        message_context_layout.setContentsMargins(0, 0, 0, 0)
+        message_context_layout.setSpacing(2)
 
         self.mw.speaker_label = QLabel("")
         self.mw.speaker_label.setObjectName("speaker_label")
@@ -386,36 +400,47 @@ class LayoutBuilder:
         self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
         self.mw.speaker_label.setVisible(False)
 
-        # Speaker Assignment ComboBox
-        self.mw.speaker_select_label = QLabel("Speaker:")
-        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; padding-left: 5px;")
-        string_settings_layout.addWidget(self.mw.speaker_select_label)
-        self.mw.speaker_combobox = QComboBox()
-        self.mw.speaker_combobox.setEditable(True)
-        self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
-        self.mw.speaker_combobox.setFixedWidth(150)
-        string_settings_layout.addWidget(self.mw.speaker_combobox)
-
         # Current message window type (derived from game data by the plugin)
         self.mw.window_kind_label = QLabel("")
         self.mw.window_kind_label.setObjectName("window_kind_label")
         self.mw.window_kind_label.setStyleSheet(
-            "QLabel#window_kind_label { color: #8a63d2; font-weight: bold; padding-left: 10px; }")
+            "QLabel#window_kind_label { color: #8a63d2; font-weight: bold; padding-left: 5px; }")
         self.mw.window_kind_label.setToolTip(
             "Message window type from the game data (drives width limits, font and pagination)")
         self.mw.window_kind_label.setVisible(False)
-        string_settings_layout.addWidget(self.mw.window_kind_label)
+        message_context_layout.addWidget(self.mw.window_kind_label)
 
-        string_settings_layout.addStretch(1)
+        # Speaker Assignment ComboBox
+        speaker_layout = QHBoxLayout()
+        speaker_layout.setContentsMargins(0, 0, 0, 0)
+        speaker_layout.setSpacing(6)
+        self.mw.speaker_select_label = QLabel("Speaker:")
+        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; padding-left: 5px;")
+        speaker_layout.addWidget(self.mw.speaker_select_label)
+        self.mw.speaker_combobox = QComboBox()
+        self.mw.speaker_combobox.setEditable(True)
+        self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
+        self.mw.speaker_combobox.setMinimumWidth(180)
+        self.mw.speaker_combobox.setFixedHeight(control_height)
+        self.mw.speaker_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        speaker_layout.addWidget(self.mw.speaker_combobox, 1)
+        message_context_layout.addLayout(speaker_layout)
+        string_settings_layout.addLayout(message_context_layout, 1)
+
+        string_settings_layout.addSpacing(16)
         string_settings_layout.addWidget(QLabel("Font:"))
         self.mw.font_combobox = QComboBox()
+        self.mw.font_combobox.setMinimumWidth(180)
+        self.mw.font_combobox.setFixedHeight(control_height)
         string_settings_layout.addWidget(self.mw.font_combobox)
 
-        string_settings_layout.addWidget(QLabel("Width:"))
+        string_settings_layout.addWidget(QLabel("Max-width:"))
         self.mw.width_spinbox = QSpinBox()
         self.mw.width_spinbox.setRange(0, 10000)
         self.mw.width_spinbox.setToolTip("Set custom width for this string (0 = use plugin default)")
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.mw.width_spinbox.setFixedHeight(control_height)
+        self.mw.width_spinbox.setMinimumWidth(90)
         
         def show_width_context_menu(pos):
             """Show width context menu."""
@@ -453,8 +478,14 @@ class LayoutBuilder:
         
         self.mw.apply_width_button = QPushButton("Apply")
         self.mw.apply_width_button.setEnabled(False)
+        self.mw.apply_width_button.setFixedHeight(control_height)
         string_settings_layout.addWidget(self.mw.apply_width_button)
         right_header_layout.addWidget(string_settings_panel)
+
+        editable_title_layout = QHBoxLayout()
+        editable_title_layout.addWidget(QLabel("Editable Text:"))
+        editable_title_layout.addStretch(1)
+        right_header_layout.addLayout(editable_title_layout)
         bottom_right_layout.addWidget(self.mw.right_header_container)
 
         # Sync heights using event filter
