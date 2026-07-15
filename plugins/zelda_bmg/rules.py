@@ -438,6 +438,111 @@ class GameRules(BaseGameRules):
             log_error(f"Error packing BMG in plugin: {e}", exc_info=True, category="file_ops")
             return b""
 
+    # ── AI translation flow context (TP message flow FLW1/FLI1) ──────────────
+
+    def _make_flow_msg_label(self, bmg):
+        """Label callable: message index -> '[msg ID] "text snippet"'."""
+        def label(msg_index: int) -> str:
+            try:
+                msg = bmg.messages[msg_index]
+            except Exception:
+                return f"line #{msg_index}"
+            msg_id = getattr(msg, "id", msg_index)
+            try:
+                text = self.msg_to_editor_text(msg)
+            except Exception:
+                text = ""
+            text = re.sub(r'\{[^}]*\}', "", str(text)).replace("\n", " / ").strip()
+            if len(text) > 90:
+                text = text[:90] + "…"
+            return f'[msg {msg_id}] "{text}"'
+        return label
+
+    def _flow_context_from_bmg_cached(self, bmg, cache_key):
+        from .msg_flow import flow_context_from_bmg
+        cache = getattr(self, "_flow_ctx_cache", None)
+        if cache is None:
+            cache = {}
+            self._flow_ctx_cache = cache
+        if cache_key in cache:
+            return cache[cache_key]
+        ctx = None
+        try:
+            ctx = flow_context_from_bmg(bmg, msg_label=self._make_flow_msg_label(bmg))
+        except Exception as e:
+            log_debug(f"zelda_bmg: failed to build flow context: {e}")
+        cache[cache_key] = ctx
+        if len(cache) > 64:
+            cache.pop(next(iter(cache)))
+        return ctx
+
+    def _get_flow_context_for_block(self, block_idx):
+        """Resolve the BMG file behind a data block and build its dialogue-flow
+        context (cached by file path + mtime)."""
+        from bmg_tool import BMGFile
+
+        raw = None
+        cache_key = None
+        try:
+            pm = getattr(self.mw, 'project_manager', None)
+            block_map = getattr(self.mw, 'block_to_project_file_map', {}) or {}
+            proj_idx = block_map.get(block_idx, block_idx)
+            blocks = pm.project.blocks if pm and getattr(pm, 'project', None) else []
+            if isinstance(proj_idx, int) and 0 <= proj_idx < len(blocks):
+                block = blocks[proj_idx]
+                meta = getattr(block, 'metadata', {}) or {}
+                if meta.get('is_archive_member'):
+                    arc = meta.get('archive_rel_path')
+                    inner = meta.get('archive_file_name')
+                    container = pm.get_archive_container(arc, is_translation=False)
+                    raw = container.read_file(inner)
+                    cache_key = f"arc:{arc}:{inner}"
+                else:
+                    path = pm.get_absolute_path(block.source_file)
+                    if path and os.path.exists(path):
+                        raw = open(path, 'rb').read()
+                        cache_key = f"file:{path}:{os.path.getmtime(path)}"
+        except Exception as e:
+            log_debug(f"zelda_bmg: flow context file resolution failed for block {block_idx}: {e}")
+
+        if raw is not None and cache_key is not None:
+            cache = getattr(self, "_flow_ctx_cache", {})
+            if cache_key in cache:
+                return cache[cache_key]
+            bmg = BMGFile()
+            try:
+                bmg.load(raw)
+            except Exception:
+                return None
+            return self._flow_context_from_bmg_cached(bmg, cache_key)
+
+        # Fallback: the most recently loaded BMG (single-file workflows, tests)
+        if self.last_loaded_bmg is not None:
+            return self._flow_context_from_bmg_cached(
+                self.last_loaded_bmg, f"last:{id(self.last_loaded_bmg)}")
+        return None
+
+    def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """Per-line dialogue-flow context for the AI translation prompt."""
+        ctx = self._get_flow_context_for_block(block_idx)
+        if ctx is None:
+            return None
+        try:
+            return ctx.context_for_message(int(string_idx))
+        except (TypeError, ValueError):
+            return None
+
+    def get_ai_flow_overview(self, block_idx: int, string_indices) -> Optional[str]:
+        """Conversation outlines covering the given lines, for the AI prompt."""
+        ctx = self._get_flow_context_for_block(block_idx)
+        if ctx is None:
+            return None
+        try:
+            indices = [int(i) for i in string_indices]
+        except (TypeError, ValueError):
+            return None
+        return ctx.overview_for_messages(indices)
+
     def get_display_name(self) -> str:
         """Get the display name."""
         return "Zelda: Twilight Princess BMG"

@@ -237,6 +237,21 @@ class BaseGameRules:
         cleaned = re.sub(r'\[[^\]]*\]', "", cleaned)
         return cleaned, None
 
+    def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """Per-line game-script flow context for the AI translation prompt.
+
+        Plugins that can reconstruct the game's dialogue graphs (e.g. zelda_bmg
+        with TP FLW1/FLI1 data) return a short English annotation: which
+        conversation the line belongs to, its position, branch conditions and
+        follow-up game actions. Default: no flow data.
+        """
+        return None
+
+    def get_ai_flow_overview(self, block_idx: int, string_indices) -> Optional[str]:
+        """Conversation outlines covering the given string indices, used as a
+        chunk-level context section in AI translation prompts. Default: None."""
+        return None
+
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         """Get the syntax highlighting rules."""
         return []

@@ -241,6 +241,14 @@ class AIPromptComposer(BaseTranslationHandler):
                 cleaned_lines.append(cleaned_line)
             current_text_clean = '\n'.join(cleaned_lines)
 
+            # Resolve real data-store coordinates for this item
+            real_b_idx = block_idx
+            real_s_idx = item_id
+            if temp_id_map and item_id in temp_id_map:
+                real_b_idx, real_s_idx = temp_id_map[item_id]
+            elif temp_id_map and str(item_id) in temp_id_map:
+                real_b_idx, real_s_idx = temp_id_map[str(item_id)]
+
             # Resolve speaker
             speaker = None
             raw_spk = None
@@ -252,12 +260,6 @@ class AIPromptComposer(BaseTranslationHandler):
             if is_single_word:
                 speaker = "NONE"
             else:
-                real_b_idx = block_idx
-                real_s_idx = item_id
-                if temp_id_map and item_id in temp_id_map:
-                    real_b_idx, real_s_idx = temp_id_map[item_id]
-                elif temp_id_map and str(item_id) in temp_id_map:
-                    real_b_idx, real_s_idx = temp_id_map[str(item_id)]
                 real_block_label = self._get_block_label(real_b_idx)
 
                 if client:
@@ -290,6 +292,18 @@ class AIPromptComposer(BaseTranslationHandler):
             }
             if isinstance(item, dict) and item.get('scene_context'):
                 item_for_ai['scene_context'] = item['scene_context']
+
+            # Game-script flow context (plugin-provided): conversation position,
+            # branch conditions and follow-up game actions for this exact line
+            rules = getattr(self.mw, 'current_game_rules', None)
+            if rules is not None and hasattr(rules, 'get_ai_flow_context_for_string'):
+                try:
+                    flow_ctx = rules.get_ai_flow_context_for_string(real_b_idx, real_s_idx)
+                    if isinstance(flow_ctx, str) and flow_ctx:
+                        item_for_ai['flow_context'] = flow_ctx
+                except Exception as e:
+                    log_debug(f"AIPromptComposer: flow context failed for ({real_b_idx},{real_s_idx}): {e}")
+
             items_with_context.append(item_for_ai)
 
         # 2. Extract scene context for the entire chunk if available
@@ -515,6 +529,31 @@ class AIPromptComposer(BaseTranslationHandler):
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
         glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
+        # 3b. Game-script dialogue flow outlines for the whole chunk: the actual
+        # in-game conversation graphs (order, player choices, conditions) that
+        # contain the lines being translated (plugin-provided)
+        dialogue_flow = ""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules is not None and hasattr(rules, 'get_ai_flow_overview'):
+            try:
+                indices_by_block = {}
+                for item in source_items:
+                    iid = item.get('id', 0) if isinstance(item, dict) else 0
+                    rb, rs = block_idx, iid
+                    if temp_id_map and iid in temp_id_map:
+                        rb, rs = temp_id_map[iid]
+                    elif temp_id_map and str(iid) in temp_id_map:
+                        rb, rs = temp_id_map[str(iid)]
+                    indices_by_block.setdefault(rb, []).append(rs)
+                overviews = []
+                for rb, indices in indices_by_block.items():
+                    ov = rules.get_ai_flow_overview(rb, indices)
+                    if isinstance(ov, str) and ov:
+                        overviews.append(ov)
+                dialogue_flow = "\n\n".join(overviews)
+            except Exception as e:
+                log_debug(f"AIPromptComposer: flow overview failed: {e}")
+
         # 4. Build JSON payload
         tag_alias_legend = {}
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
@@ -529,6 +568,8 @@ class AIPromptComposer(BaseTranslationHandler):
         }
         if scene_context:
             json_payload_for_ai['scene_context'] = scene_context
+        if dialogue_flow:
+            json_payload_for_ai['dialogue_flow'] = dialogue_flow
         if glossary_text:
             json_payload_for_ai['glossary'] = glossary_text
         if tag_alias_legend:
@@ -563,6 +604,16 @@ class AIPromptComposer(BaseTranslationHandler):
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
+
+        has_flow_items = any('flow_context' in it for it in items_with_context)
+        if dialogue_flow or has_flow_items:
+            instructions.append(
+                'DIALOGUE FLOW: The "dialogue_flow" field (and per-item "flow_context") describes the real '
+                'in-game conversation graphs extracted from the game data: the order lines are spoken in, '
+                'player choices, the conditions under which a line appears (e.g. wolf form, not enough rupees) '
+                'and game actions that follow it. Use this to keep replies coherent with their questions, '
+                'match choice answers to the choice prompt, and pick the correct tone and referents.'
+            )
 
         if tag_alias_legend:
             instructions.append('TAG ALIAS LEGEND: Use the "tag_alias_legend" field in the JSON payload to understand the meaning of tag aliases (e.g. colors, speed). Place these tag aliases correctly around the corresponding translated words.')
