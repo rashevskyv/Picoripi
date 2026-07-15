@@ -448,3 +448,14 @@ def test_tp_width_measurement_uses_semantic_tag_output(bmg_rules):
     assert bmg_rules.calculate_string_width_override("{escape:0:000a}", font_map) == 24
     assert bmg_rules.calculate_string_width_override("{escape:0:0001}", font_map) == 0
     assert bmg_rules.calculate_string_width_override("{escape:0:0000}", font_map) == 22
+
+
+def test_tp_ai_runtime_names_are_explicit_and_instant_is_not_link(bmg_rules):
+    text = (
+        "{escape:0:0000} and {escape:0:0022}; "
+        "{escape:6:0000} horse; {escape:6:0001} rider; {escape:0:0001}"
+    )
+
+    assert bmg_rules.replace_runtime_names_for_ai(text) == (
+        "Link and Epona; Link's horse; Epona's rider; {escape:0:0001}"
+    )

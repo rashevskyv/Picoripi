@@ -38,6 +38,15 @@ class AIPromptComposer(BaseTranslationHandler):
             return 'Ukrainian'
         return target_lang
 
+    def _replace_runtime_names_for_ai(self, text: str) -> str:
+        """Apply a game plugin's explicit runtime-name substitutions."""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules and hasattr(rules, 'replace_runtime_names_for_ai'):
+            replaced = rules.replace_runtime_names_for_ai(text)
+            if isinstance(replaced, str):
+                return replaced
+        return str(text or "")
+
     # ------------------------------------------------------------------
     # Properties for backwards compatibility with test cache assertions
     # ------------------------------------------------------------------
@@ -220,6 +229,7 @@ class AIPromptComposer(BaseTranslationHandler):
             from utils.force_alias import prepare_text_for_ai
             tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
             current_text_for_ai, force_maps = prepare_text_for_ai(current_text, tag_mappings)
+            current_text_for_ai = self._replace_runtime_names_for_ai(current_text_for_ai)
             if force_maps:
                 placeholder_map[item_id] = force_maps
 
@@ -583,6 +593,7 @@ class AIPromptComposer(BaseTranslationHandler):
             'JSON DATA TO PROCESS:\n' + json.dumps(json_payload_for_ai, indent=2, ensure_ascii=False),
         ]
         user_content = '\n\n'.join(user_sections)
+        user_content = self._replace_runtime_names_for_ai(user_content)
 
         log_debug(
             f'Composed batch request for AI. System prompt size: {len(combined_system)}, '
@@ -642,6 +653,10 @@ class AIPromptComposer(BaseTranslationHandler):
                 converted_sel = self.mw.current_game_rules.get_text_representation_for_editor(selected_text)
                 if isinstance(converted_sel, str):
                     selected_text = converted_sel
+
+        source_text = self._replace_runtime_names_for_ai(source_text)
+        if selected_text:
+            selected_text = self._replace_runtime_names_for_ai(selected_text)
 
         target_lang = self._get_target_lang()
         glossary_text = ""
@@ -824,6 +839,7 @@ class AIPromptComposer(BaseTranslationHandler):
             user_sections.append(source_text)
 
         user_content = '\n\n'.join([section for section in user_sections if section])
+        user_content = self._replace_runtime_names_for_ai(user_content)
         log_debug(
             f'Composed request for AI. Type={request_type}, System prompt size={len(combined_system)}, '
             f'User content size={len(user_content)}'
@@ -871,6 +887,7 @@ class AIPromptComposer(BaseTranslationHandler):
             "\n".join(f"- {item}" for item in instructions),
         ]
         user_content = "\n".join(user_sections)
+        user_content = self._replace_runtime_names_for_ai(user_content)
         return combined_system, user_content
 
     def compose_glossary_occurrence_batch_request(
@@ -906,6 +923,7 @@ class AIPromptComposer(BaseTranslationHandler):
             "JSON DATA TO UPDATE:\n" + json.dumps(payload, indent=2, ensure_ascii=False),
         ]
         user_content = "\n\n".join(user_sections)
+        user_content = self._replace_runtime_names_for_ai(user_content)
         log_debug(
             "Composed glossary batch update: "
             f"System prompt size={len(combined_system)}, User content size={len(user_content)}"
@@ -914,4 +932,4 @@ class AIPromptComposer(BaseTranslationHandler):
 
     def compose_glossary_request(self, system_prompt: str, user_content: str, **_: Dict) -> Tuple[str, str]:
         """Compose glossary request."""
-        return system_prompt.strip(), user_content
+        return system_prompt.strip(), self._replace_runtime_names_for_ai(user_content)

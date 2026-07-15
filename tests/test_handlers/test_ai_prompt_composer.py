@@ -49,6 +49,44 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
     assert "Block 0" in user
 
 
+def test_zelda_bmg_runtime_names_are_plain_words_in_ai_prompts(composer):
+    from plugins.zelda_bmg.rules import GameRules
+
+    composer.mw.current_game_rules = GameRules(None)
+    composer.mw.default_tag_mappings = {}
+    composer.mw.project_manager = None
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+
+    raw = "Hello {escape:0:0000} and {escape:0:0022} {escape:0:0001}"
+    _, single_user = composer.compose_messages(
+        "Translate into {target_lang}.", raw,
+        block_idx=None, string_idx=None, expected_lines=1,
+        mode_description="translation", request_type="translation",
+    )
+    _, batch_user, _ = composer.compose_batch_request(
+        "Translate into {target_lang}.",
+        [{"id": 0, "text": raw}], [{"id": 0, "text": raw}],
+        block_idx=None, mode_description="translation",
+    )
+
+    for prompt in (single_user, batch_user):
+        assert "Hello Link and Epona" in prompt
+        assert "{escape:0:0000}" not in prompt
+        assert "{escape:0:0022}" not in prompt
+        assert "{escape:0:0001}" in prompt
+
+    _, glossary_user = composer.compose_glossary_occurrence_update_request(
+        "Update {target_lang} text.",
+        source_text="Current Link", current_translation="Current Link",
+        original_text=raw, term="Link", old_translation="Link",
+        new_translation="Лінк", expected_lines=1,
+    )
+    assert "Hello Link and Epona" in glossary_user
+    assert "{escape:0:0000}" not in glossary_user
+    assert "{escape:0:0022}" not in glossary_user
+
+
 def test_AIPromptComposer_prepare_glossary_for_prompt_full(composer):
     gm = MagicMock()
     gm.get_entries.return_value = [GlossaryEntry("Term", "Тлумач", "")]

@@ -201,6 +201,30 @@ class GameRules(BaseGameRules):
             "{escape:0:0022}": "Epona",
         }
 
+    def replace_runtime_names_for_ai(self, text: str) -> str:
+        """Expose TP's two project-specific runtime names to the language model.
+
+        This is deliberately independent of editor aliases: even if aliases
+        have not been loaded yet, AI input contains Link/Epona rather than the
+        opaque BMG escapes.  Other control tags remain untouched and can be
+        preserved in the translated message.
+        """
+        result = str(text or "")
+        replacements = {
+            "{PLAYER}": "Link",
+            "{F:Link}": "Link",
+            "{f:Link}": "Link",
+            "{escape:0:0000}": "Link",
+            "{F:Epona}": "Epona",
+            "{f:Epona}": "Epona",
+            "{escape:0:0022}": "Epona",
+            "{escape:6:0000}": "Link's",
+            "{escape:6:0001}": "Epona's",
+        }
+        for tag, visible_name in replacements.items():
+            result = result.replace(tag, visible_name)
+        return result
+
     def get_escape_tag_description(self, tag: str) -> str:
         """Return a human-readable explanation for a raw BMG escape tag."""
         match = _ESCAPE_ANY_RE.fullmatch(str(tag))
