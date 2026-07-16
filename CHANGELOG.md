@@ -1,5 +1,21 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.075-dev] - 2026-07-17
+
+### Added
+- **Manual MemPalace Context Assignment**: Added searchable chapter and speaker pickers, drag-and-drop assignment, context-menu actions, aggregate virtual-folder browsing, and stable selection restoration for Story, Speaker, and Item context.
+- **Script Markup Studio Tree Search**: Added live filtering of the hierarchy and review queue with automatic branch expansion and restoration of the previous expansion state.
+- **Game-Aware AI Context**: Added plugin-provided window and content roles to translation and glossary prompts, including dedicated Zelda BMG boss-name handling and glossary categorization.
+- **BFN Preview Page Navigation**: Replaced the compact page counter with a vertical page rail containing direct page indicators and previous/next controls.
+
+### Changed
+- **Tree Expansion Performance**: Avoided rebuilding the block tree for expand/collapse-all actions and enabled uniform row heights and stretched tree columns.
+- **Version Updates**: Bumped the application and documentation version to `0.3.075-dev`.
+
+### Fixed
+- **Tag Validation and Spacing**: Canonicalized raw tags and aliases, respected zero-width font-map controls, narrowed missing-icon-spacing checks, and invalidated stale issue caches after rule changes.
+- **Story and Speaker Navigation**: Preserved physical row identity and tree selection while editing virtual Story/Speaker views.
+
 ## [0.3.073-dev] - Unreleased
 
 ### Fixed
