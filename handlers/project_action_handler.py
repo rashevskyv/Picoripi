@@ -1134,38 +1134,41 @@ class ProjectActionHandler(BaseHandler):
     def expand_all_action(self) -> None:
         """Expand all nodes in the tree."""
         if hasattr(self.mw, 'block_list_widget'):
-            # Set flag to avoid recursive signals during bulk update
-            self.mw.block_list_widget._is_programmatic_expansion = True
+            tree = self.mw.block_list_widget
+            tree._is_programmatic_expansion = True
+            old_blocked = tree.blockSignals(True)
+            tree.setUpdatesEnabled(False)
             try:
-                # Update folder state in project manager
-                self._update_all_folder_expansion_state(True)
-                # Re-populate to update compaction labels
-                self.mw.block_list_widget.setUpdatesEnabled(False)
-                try:
-                    self.ui_updater.populate_blocks()
-                    self.mw.block_list_widget.expandAll()
-                finally:
-                    self.mw.block_list_widget.setUpdatesEnabled(True)
+                tree.expandAll()
             finally:
-                self.mw.block_list_widget._is_programmatic_expansion = False
+                tree.blockSignals(old_blocked)
+                tree.setUpdatesEnabled(True)
+                tree._is_programmatic_expansion = False
+            self._update_all_folder_expansion_state(True, persist=False)
+            tree.viewport().update()
             log_debug("Tree expanded all.")
 
     def collapse_all_action(self) -> None:
         """Collapse all nodes in the tree."""
         if hasattr(self.mw, 'block_list_widget'):
-            self.mw.block_list_widget._is_programmatic_expansion = True
+            tree = self.mw.block_list_widget
+            tree._is_programmatic_expansion = True
+            old_blocked = tree.blockSignals(True)
+            tree.setUpdatesEnabled(False)
             try:
-                self._update_all_folder_expansion_state(False)
-                self.mw.block_list_widget.setUpdatesEnabled(False)
-                try:
-                    self.ui_updater.populate_blocks()
-                    self.mw.block_list_widget.collapseAll()
-                finally:
-                    self.mw.block_list_widget.setUpdatesEnabled(True)
+                tree.collapseAll()
             finally:
-                self.mw.block_list_widget._is_programmatic_expansion = False
+                tree.blockSignals(old_blocked)
+                tree.setUpdatesEnabled(True)
+                tree._is_programmatic_expansion = False
+            self._update_all_folder_expansion_state(False, persist=False)
+            tree.viewport().update()
             log_debug("Tree collapsed all.")
 
-    def _update_all_folder_expansion_state(self, expanded: bool) -> None:
+    def _update_all_folder_expansion_state(
+        self, expanded: bool, persist: bool = True
+    ) -> None:
         """Internal helper to update the all folder expansion state."""
-        self.mw.virtual_folder_handler.update_all_folder_expansion_state(expanded)
+        self.mw.virtual_folder_handler.update_all_folder_expansion_state(
+            expanded, persist=persist
+        )

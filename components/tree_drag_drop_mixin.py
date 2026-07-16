@@ -10,6 +10,228 @@ from utils.logging_utils import log_debug
 class TreeDragDropMixin:
     """Custom drag-and-drop logic: visual pixmap, above/on/below drop positions."""
 
+    @staticmethod
+    def _event_point(event):
+        """Return an integer viewport point for Qt 6 and older compatible events."""
+        position = event.position() if hasattr(event, "position") else event.pos()
+        return position.toPoint() if hasattr(position, "toPoint") else position
+
+    @staticmethod
+    def _story_assignment_target(item):
+        """Return the editable Story facet represented by a virtual tree leaf."""
+        if item is None:
+            return None
+        if item.data(0, Qt.UserRole + 17) == "unbound":
+            return "all", "None", ()
+        kind = item.data(0, Qt.UserRole)
+        if kind == -2:
+            value = item.data(0, Qt.UserRole + 11)
+            if value is not None:
+                path = []
+                cursor = item
+                while cursor is not None:
+                    if cursor.data(0, Qt.UserRole) == -2:
+                        label = cursor.text(0).strip()
+                        if label and label != "None":
+                            path.append(label)
+                    cursor = cursor.parent()
+                return "story", value, tuple(reversed(path))
+        if kind == -3:
+            value = item.data(0, Qt.UserRole + 15)
+            if value is not None:
+                return "speaker", value, ()
+        if kind == -4:
+            value = item.data(0, Qt.UserRole + 16)
+            if value is not None:
+                return "item", value, ()
+        return None
+
+    def _selected_editor_assignment_rows(self):
+        """Resolve the current multi-line editor selection to physical game rows."""
+        main_window = self.window()
+        store = getattr(main_window, "data_store", None)
+        if store is None:
+            return []
+        selected = list(getattr(store, "selected_string_indices", []) or [])
+        rows = []
+        physical_block = getattr(store, "physical_block_idx", -1)
+        if physical_block is None or physical_block < 0:
+            physical_block = getattr(store, "current_block_idx", -1)
+        for value in selected:
+            if isinstance(value, (tuple, list)) and len(value) == 2:
+                row = (int(value[0]), int(value[1]))
+            elif physical_block is not None and physical_block >= 0:
+                row = (int(physical_block), int(value))
+            else:
+                continue
+            if row not in rows:
+                rows.append(row)
+        return rows
+
+    def _dragged_assignment_rows(self, source_items=None, external=False):
+        """Resolve editor lines or dragged tree nodes to physical game rows."""
+        if external:
+            return self._selected_editor_assignment_rows()
+        rows = []
+        seen = set()
+
+        def collect_item(item):
+            mappings = item.data(0, Qt.UserRole + 13)
+            if isinstance(mappings, (list, tuple)):
+                for value in mappings:
+                    if isinstance(value, (list, tuple)) and len(value) == 2:
+                        row = (int(value[0]), int(value[1]))
+                        if row not in seen:
+                            seen.add(row)
+                            rows.append(row)
+            for child_idx in range(item.childCount()):
+                collect_item(item.child(child_idx))
+
+        for item in source_items or []:
+            collect_item(item)
+        if rows:
+            return rows
+        selected_by_block = getattr(self, "_get_selected_strings_by_block", lambda: {})()
+        for block_idx, string_indices in selected_by_block.items():
+            for string_idx in string_indices:
+                row = (int(block_idx), int(string_idx))
+                if row not in seen:
+                    seen.add(row)
+                    rows.append(row)
+        return rows
+
+    @staticmethod
+    def _virtual_item_locator(item):
+        """Capture a stable path to an auto-generated virtual tree item."""
+        path = []
+        cursor = item
+        while cursor is not None:
+            path.append((
+                cursor.text(0),
+                cursor.data(0, Qt.UserRole),
+                cursor.data(0, Qt.UserRole + 11),
+                cursor.data(0, Qt.UserRole + 15),
+                cursor.data(0, Qt.UserRole + 16),
+                cursor.data(0, Qt.UserRole + 17),
+            ))
+            cursor = cursor.parent()
+        return tuple(reversed(path))
+
+    def _restore_virtual_item_locator(self, locator):
+        """Restore selection and expansion after the virtual tree is rebuilt."""
+        if not locator:
+            return False
+        iterator = QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            if self._virtual_item_locator(item) == locator:
+                parent = item.parent()
+                while parent is not None:
+                    parent.setExpanded(True)
+                    parent = parent.parent()
+                self.setCurrentItem(item)
+                item.setSelected(True)
+                self.scrollToItem(item)
+                return True
+            iterator += 1
+        return False
+
+    def _assign_rows_to_story_target(self, rows, target_item):
+        """Persist a forced Story/Speaker/Item assignment for several game rows."""
+        target = self._story_assignment_target(target_item)
+        if not target or not rows:
+            return False
+        facet, value, path = target
+        return self._assign_rows_to_story_context(
+            rows,
+            facet,
+            value,
+            path,
+            target_item.text(0),
+            self._virtual_item_locator(target_item),
+        )
+
+    def _assign_rows_to_story_context(
+        self,
+        rows,
+        facet,
+        value,
+        path=(),
+        target_label=None,
+        target_locator=None,
+    ):
+        """Persist one chosen Memory Palace facet for several game rows."""
+        if facet not in {"story", "speaker", "item", "all"} or not rows:
+            return False
+        main_window = self.window()
+        manager = getattr(main_window, "project_manager", None)
+        if manager is None or getattr(manager, "project", None) is None:
+            return False
+
+        target_label = target_label or str(value)
+        undo_mgr = getattr(main_window, "undo_manager", None)
+        before = undo_mgr.get_project_snapshot() if undo_mgr else None
+        from core.story_context_overrides import update_story_context_override
+
+        changed = 0
+        for block_idx, string_idx in rows:
+            if facet == "story":
+                changes = {
+                    "structure_id": value,
+                    "structure_path": list(path) if value != "story:none" else [],
+                }
+            elif facet == "speaker":
+                changes = {"speaker": str(value or "None")}
+            elif facet == "item":
+                changes = {"item": str(value or "None")}
+            else:
+                changes = {
+                    "structure_id": "story:none",
+                    "structure_path": [],
+                    "speaker": "None",
+                    "item": "None",
+                }
+            if update_story_context_override(
+                main_window, block_idx, string_idx, **changes
+            ):
+                changed += 1
+        if not changed:
+            return False
+
+        manager.save()
+        if undo_mgr and before is not None:
+            undo_mgr.record_structural_action(
+                before,
+                "ASSIGN_STORY_CONTEXT",
+                f"Change {facet} context for {changed} string(s): {target_label}",
+            )
+        updater = getattr(getattr(main_window, "ui_updater", None), "block_list_updater", None)
+        if updater is not None:
+            def refresh_and_restore_target():
+                try:
+                    from PyQt6 import sip
+                except ImportError:
+                    import sip
+                try:
+                    if sip.isdeleted(self):
+                        return
+                except (TypeError, RuntimeError):
+                    return
+                updater.populate_blocks()
+                try:
+                    if target_locator and not sip.isdeleted(self):
+                        self._restore_virtual_item_locator(target_locator)
+                except (TypeError, RuntimeError):
+                    return
+
+            QTimer.singleShot(0, refresh_and_restore_target)
+        status_bar = getattr(main_window, "statusBar", None)
+        if callable(status_bar):
+            status_bar().showMessage(
+                f"Changed {facet} context for {changed} string(s): {target_label}", 5000
+            )
+        return True
+
     def startDrag(self, supportedActions):
         """Capture selected items BEFORE Qt can change hover/current state."""
         self._pending_drag_items = list(self.selectedItems())
@@ -53,15 +275,28 @@ class TreeDragDropMixin:
         drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
         drag.exec(supportedActions)
 
+    def dragEnterEvent(self, event):
+        """Accept selected game-string lines dragged from the Strings editor."""
+        if event.mimeData().hasFormat("application/x-selected-lines"):
+            event.acceptProposedAction()
+            return
+        super().dragEnterEvent(event)
+
     def dragMoveEvent(self, event):
         """Dragmoveevent."""
-        super().dragMoveEvent(event)
+        is_editor_drag = event.mimeData().hasFormat("application/x-selected-lines")
+        if not is_editor_drag:
+            super().dragMoveEvent(event)
         self._custom_drop_target = None
-        item = self.itemAt(event.pos())
+        event_point = self._event_point(event)
+        item = self.itemAt(event_point)
 
-        if item and (item.data(0, Qt.UserRole) is not None or item.data(0, Qt.UserRole + 1) is not None):
+        if self._story_assignment_target(item):
+            self._custom_drop_target = (item, "On")
+            event.acceptProposedAction()
+        elif not is_editor_drag and item and (item.data(0, Qt.UserRole) is not None or item.data(0, Qt.UserRole + 1) is not None):
             rect = self.visualItemRect(item)
-            pct = (event.pos().y() - rect.top()) / max(rect.height(), 1)
+            pct = (event_point.y() - rect.top()) / max(rect.height(), 1)
             pos = "Above" if pct < 0.2 else ("Below" if pct > 0.8 else "On")
             self._custom_drop_target = (item, pos)
             event.acceptProposedAction()
@@ -77,6 +312,11 @@ class TreeDragDropMixin:
     def dropEvent(self, event):
         """Dropevent."""
         target_info = getattr(self, '_custom_drop_target', None)
+        drop_item = self.itemAt(self._event_point(event))
+        # Qt may clear/change the hover state between dragMoveEvent and dropEvent.
+        # Re-resolve semantic assignment targets at the actual release point.
+        if self._story_assignment_target(drop_item):
+            target_info = (drop_item, "On")
         self._custom_drop_target = None
         self.viewport().update()
 
@@ -86,6 +326,19 @@ class TreeDragDropMixin:
 
         selected_items = self.selectedItems()
         drag_source_items = self._pending_drag_items or selected_items
+
+        is_editor_drag = event.mimeData().hasFormat("application/x-selected-lines")
+        if target_info and self._story_assignment_target(target_info[0]):
+            target_item, drop_pos = target_info
+            rows = self._dragged_assignment_rows(
+                drag_source_items, external=is_editor_drag
+            )
+            if drop_pos == "On" and self._assign_rows_to_story_target(rows, target_item):
+                event.acceptProposedAction()
+            else:
+                event.ignore()
+            self._pending_drag_items = []
+            return
 
         if target_info and drag_source_items:
             target_item, drop_pos = target_info
@@ -197,7 +450,7 @@ class TreeDragDropMixin:
             return
 
         # ── Fallback: drop on empty space → append to root ──────────────────
-        target_item = self.itemAt(event.pos())
+        target_item = self.itemAt(self._event_point(event))
         selected_items = self.selectedItems()
         main_window = self.window()
         undo_mgr = getattr(main_window, 'undo_manager', None)

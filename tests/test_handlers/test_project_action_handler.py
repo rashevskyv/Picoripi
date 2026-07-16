@@ -203,22 +203,24 @@ def test_ProjectActionHandler_expand_all_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     h._update_all_folder_expansion_state = MagicMock()
     h.expand_all_action()
-    h._update_all_folder_expansion_state.assert_called_with(True)
-    mock_mw.ui_updater.populate_blocks.assert_called_once()
+    h._update_all_folder_expansion_state.assert_called_with(True, persist=False)
+    mock_mw.ui_updater.populate_blocks.assert_not_called()
     mock_mw.block_list_widget.expandAll.assert_called_once()
 
 def test_ProjectActionHandler_collapse_all_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     h._update_all_folder_expansion_state = MagicMock()
     h.collapse_all_action()
-    h._update_all_folder_expansion_state.assert_called_with(False)
-    mock_mw.ui_updater.populate_blocks.assert_called_once()
+    h._update_all_folder_expansion_state.assert_called_with(False, persist=False)
+    mock_mw.ui_updater.populate_blocks.assert_not_called()
     mock_mw.block_list_widget.collapseAll.assert_called_once()
 
 def test_ProjectActionHandler_update_all_folder_expansion_state(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     h._update_all_folder_expansion_state(True)
-    mock_mw.virtual_folder_handler.update_all_folder_expansion_state.assert_called_once_with(True)
+    mock_mw.virtual_folder_handler.update_all_folder_expansion_state.assert_called_once_with(
+        True, persist=True
+    )
 
 # --- New Tests for missing coverage ---
 

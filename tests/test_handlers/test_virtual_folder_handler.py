@@ -80,3 +80,11 @@ def test_VirtualFolderHandler_update_all_folder_expansion_state(mock_mw):
     assert folder1.is_expanded is True
     assert folder2.is_expanded is True
     mock_mw.project_manager.save.assert_called_once()
+
+
+def test_bulk_expansion_can_skip_large_project_write(mock_mw):
+    h = VirtualFolderHandler(mock_mw, MagicMock(), MagicMock())
+
+    h.update_all_folder_expansion_state(False, persist=False)
+
+    mock_mw.project_manager.save.assert_not_called()

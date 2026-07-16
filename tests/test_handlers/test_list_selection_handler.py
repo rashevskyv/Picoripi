@@ -249,6 +249,22 @@ def test_clicking_restored_virtual_item_rebuilds_empty_strings_view(handler):
 
     handler.mw.ui_updater.populate_current_view.assert_called_once_with(force=True)
 
+
+def test_selecting_virtual_parent_shows_all_descendant_rows(handler):
+    item = QTreeWidgetItem(["Windows"])
+    item.setData(0, Qt.UserRole + 18, "aggregate")
+    item.setData(0, Qt.UserRole + 13, [(0, 1), (2, 3)])
+
+    handler.block_selected(item, None)
+
+    store = handler.mw.data_store
+    assert store.current_view_kind == ViewKind.CHAPTER
+    assert store.chapter_mappings == [(0, 1), (2, 3)]
+    assert store.physical_block_idx == 0
+    assert store.current_block_idx == 0
+    assert store.current_string_idx == 1
+    handler.mw.ui_updater.populate_current_view.assert_called_once_with(force=True)
+
 def test_ListSelectionHandler_handle_block_item_text_changed(handler):
     mock_item = MagicMock()
     mock_item.text.return_value = "NewName"

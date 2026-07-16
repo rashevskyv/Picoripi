@@ -51,6 +51,9 @@ class CustomTreeWidget(
         from .custom_list_item_delegate import CustomListItemDelegate
         self.setItemDelegate(CustomListItemDelegate(self))
         self.setIndentation(15)
+        # Every row uses the same font/padding. Telling Qt this avoids asking the
+        # custom delegate to measure every newly visible node during expandAll().
+        self.setUniformRowHeights(True)
 
         self.setHeaderHidden(True)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -58,9 +61,11 @@ class CustomTreeWidget(
         # ── Drag & drop ───────────────────────────────────────────────────────
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
-        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)
         self.header().setStretchLastSection(True)
-        self.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        # ResizeToContents scans the whole expanded tree to find the widest label.
+        # A single-column tree should simply follow the available viewport width.
+        self.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 

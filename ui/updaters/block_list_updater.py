@@ -27,6 +27,10 @@ class BlockListUpdater(BaseUIUpdater):
         self._story_item_mappings_cache = {}
         self._reference_item_groups_cache = None
         self._window_kind_groups_cache = None
+        self._story_context_overrides_cache = None
+        self._story_structure_overrides_cache = None
+        self._story_override_index_cache = None
+        self._cache_story_overrides = False
         self._chapters_cache_wing_name = None
         self._chapters_load_error = None
         self._is_loading_chapters = False
@@ -189,6 +193,61 @@ class BlockListUpdater(BaseUIUpdater):
                     reverse[(block_idx, string_idx)] = name
         return item_mappings, reverse
 
+    def _apply_manual_item_overrides(self, item_mappings):
+        """Overlay explicit Item/None assignments without mutating the cached scan."""
+        combined = {name: list(rows) for name, rows in item_mappings.items()}
+        for (block_idx, string_idx), assignment in self._story_context_overrides().items():
+            if "item" not in assignment:
+                continue
+            row = (block_idx, string_idx)
+            for rows in combined.values():
+                if row in rows:
+                    rows.remove(row)
+            item_name = str(assignment.get("item") or "None").strip()
+            if item_name.casefold() != "none":
+                combined.setdefault(item_name, []).append(row)
+        return {name: rows for name, rows in combined.items() if rows}
+
+    def _story_context_overrides(self) -> dict[tuple[int, int], dict]:
+        """Read manual structure overrides once for one tree rebuild."""
+        if self._story_context_overrides_cache is None:
+            result = {
+                (block_idx, string_idx): assignment
+                for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw)
+            }
+            if not self._cache_story_overrides:
+                return result
+            self._story_context_overrides_cache = result
+        return self._story_context_overrides_cache
+
+    def _story_structure_overrides(self) -> dict[tuple[int, int], dict]:
+        """Return the structure-only subset without filtering it for every Story node."""
+        if self._story_structure_overrides_cache is None:
+            result = {
+                row: assignment
+                for row, assignment in self._story_context_overrides().items()
+                if "structure_id" in assignment
+            }
+            if not self._cache_story_overrides:
+                return result
+            self._story_structure_overrides_cache = result
+        return self._story_structure_overrides_cache
+
+    def _story_override_index(self):
+        """Index manual Story rows by target so each tree node is O(its own rows)."""
+        if self._story_override_index_cache is None:
+            overrides = self._story_structure_overrides()
+            by_structure = {}
+            for row, assignment in overrides.items():
+                structure_id = assignment.get("structure_id")
+                if structure_id not in (None, "story:none"):
+                    by_structure.setdefault(structure_id, []).append(row)
+            result = (set(overrides), by_structure)
+            if not self._cache_story_overrides:
+                return result
+            self._story_override_index_cache = result
+        return self._story_override_index_cache
+
     def _all_game_rows(self) -> set[tuple[int, int]]:
         return {
             (block_idx, string_idx)
@@ -206,8 +265,10 @@ class BlockListUpdater(BaseUIUpdater):
 
         for root in projection.roots:
             visit(root)
-        for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw):
-            if assignment.get("structure_id") is not None:
+        overrides = self._story_structure_overrides()
+        linked.difference_update(overrides)
+        for (block_idx, string_idx), assignment in overrides.items():
+            if assignment.get("structure_id") not in (None, "story:none"):
                 linked.add((block_idx, string_idx))
         return linked
 
@@ -231,10 +292,42 @@ class BlockListUpdater(BaseUIUpdater):
         item.setData(0, Qt.ItemDataRole.UserRole + 4, label)
         item.setData(0, Qt.EditRole, label)
         item.setData(0, Qt.ItemDataRole.UserRole + 13, mappings)
-        item.setToolTip(0, f"{len(mappings)} game strings")
+        item.setToolTip(
+            0,
+            f"{len(mappings)} game strings\n"
+            "Drop selected Strings here to assign this attribute manually.\n"
+            "You can also right-click and choose an action under MemPalace Context.",
+        )
         parent.addChild(item)
         self._register_item_in_cache(item)
         return item
+
+    @staticmethod
+    def _set_virtual_folder_mappings(item: QTreeWidgetItem) -> list[tuple[int, int]]:
+        """Store the unique rows contained by a virtual folder and all descendants."""
+        rows = []
+        seen = set()
+
+        def add(values):
+            for value in values or ():
+                if isinstance(value, (tuple, list)) and len(value) == 2:
+                    row = (int(value[0]), int(value[1]))
+                    if row not in seen:
+                        seen.add(row)
+                        rows.append(row)
+
+        add(item.data(0, Qt.ItemDataRole.UserRole + 13))
+        for child_idx in range(item.childCount()):
+            child = item.child(child_idx)
+            if child.childCount():
+                add(BlockListUpdater._set_virtual_folder_mappings(child))
+            else:
+                add(child.data(0, Qt.ItemDataRole.UserRole + 13))
+        if item.childCount():
+            item.setData(0, Qt.ItemDataRole.UserRole + 13, rows)
+            item.setData(0, Qt.ItemDataRole.UserRole + 18, "aggregate")
+            item.setToolTip(0, f"{len(rows)} game strings in this folder and its subfolders")
+        return rows
 
     def _add_story_folder_item(
         self,
@@ -246,11 +339,11 @@ class BlockListUpdater(BaseUIUpdater):
     ) -> bool:
         """Add one normalized story folder recursively and restore selection when possible."""
         mappings = self._story_mapping_indices(folder.mappings)
-        for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw):
-            if assignment.get("structure_id") == folder.id:
-                row = (block_idx, string_idx)
-                if row not in mappings:
-                    mappings.append(row)
+        overridden_rows, rows_by_structure = self._story_override_index()
+        mappings = [row for row in mappings if row not in overridden_rows]
+        for row in rows_by_structure.get(folder.id, ()):
+            if row not in mappings:
+                mappings.append(row)
         if allowed_rows is not None:
             mappings = [row for row in mappings if row in allowed_rows]
         if getattr(self.mw.data_store, "show_unsaved_blocks_only", False):
@@ -270,7 +363,11 @@ class BlockListUpdater(BaseUIUpdater):
         item.setData(0, Qt.ItemDataRole.UserRole + 11, folder.id)
         item.setData(0, Qt.ItemDataRole.UserRole + 4, folder.title)
         item.setData(0, Qt.ItemDataRole.UserRole + 13, mappings)
-        item.setToolTip(0, f"{folder.node_type.title()} · {len(mappings)} linked game strings")
+        item.setToolTip(
+            0,
+            f"{folder.node_type.title()} · {len(mappings)} linked game strings\n"
+            "Drop selected Strings here to link them to this Story structure.",
+        )
 
         child_added = False
         for child in folder.children:
@@ -308,6 +405,8 @@ class BlockListUpdater(BaseUIUpdater):
             self._add_story_folder_item(
                 root, folder, selected_id, scope, True
             )
+        if root.childCount() == 0:
+            return None
         none_rows = sorted(scope - self._story_linked_rows(projection))
         none_item = self._add_virtual_role_leaf(
             root, "None", -2, Qt.ItemDataRole.UserRole + 11,
@@ -317,6 +416,7 @@ class BlockListUpdater(BaseUIUpdater):
             self.mw.block_list_widget.setCurrentItem(none_item)
         if root.childCount() == 0:
             return None
+        self._set_virtual_folder_mappings(root)
         parent.addChild(root)
         return root
 
@@ -339,6 +439,8 @@ class BlockListUpdater(BaseUIUpdater):
             self._add_virtual_role_leaf(
                 root, name, -3, Qt.ItemDataRole.UserRole + 15, name, rows
             )
+        if root.childCount() == 0:
+            return None
         none_item = self._add_virtual_role_leaf(
             root, "None", -3, Qt.ItemDataRole.UserRole + 15,
             "None", sorted(scope - assigned),
@@ -348,6 +450,7 @@ class BlockListUpdater(BaseUIUpdater):
             root.insertChild(0, none_item)
         if root.childCount() == 0:
             return None
+        self._set_virtual_folder_mappings(root)
         parent.addChild(root)
         return root
 
@@ -370,6 +473,8 @@ class BlockListUpdater(BaseUIUpdater):
             self._add_virtual_role_leaf(
                 root, name, -4, Qt.ItemDataRole.UserRole + 16, name, rows
             )
+        if root.childCount() == 0:
+            return None
         none_item = self._add_virtual_role_leaf(
             root, "None", -4, Qt.ItemDataRole.UserRole + 16,
             "None", sorted(scope - assigned),
@@ -379,6 +484,7 @@ class BlockListUpdater(BaseUIUpdater):
             root.insertChild(0, none_item)
         if root.childCount() == 0:
             return None
+        self._set_virtual_folder_mappings(root)
         parent.addChild(root)
         return root
 
@@ -437,14 +543,18 @@ class BlockListUpdater(BaseUIUpdater):
             self._add_speaker_projection_root(kind_root, speakers, rows)
             self._add_item_projection_root(kind_root, item_mappings, rows)
             unbound = sorted(rows - story_rows - speaker_rows - item_rows)
-            self._add_virtual_role_leaf(
+            unbound_item = self._add_virtual_role_leaf(
                 kind_root, "None", -3, Qt.ItemDataRole.UserRole + 15,
                 "None", unbound,
             )
+            if unbound_item is not None:
+                unbound_item.setData(0, Qt.ItemDataRole.UserRole + 17, "unbound")
             if kind_root.childCount() > 0:
+                self._set_virtual_folder_mappings(kind_root)
                 windows_root.addChild(kind_root)
         if windows_root.childCount() == 0:
             return None
+        self._set_virtual_folder_mappings(windows_root)
         parent.addChild(windows_root)
         return windows_root
 
@@ -939,8 +1049,12 @@ class BlockListUpdater(BaseUIUpdater):
 
     def populate_blocks(self, override_folder_id=None, override_block_idx=None):
         """Populate blocks."""
+        self._story_context_overrides_cache = None
+        self._story_structure_overrides_cache = None
+        self._story_override_index_cache = None
         if not hasattr(self.mw, 'block_list_widget') or not self.mw.block_list_widget:
             return  # Sometimes called during initialization before block_list_widget is created
+        self._cache_story_overrides = True
 
         current_selection_block_idx = override_block_idx
         current_selection_folder_id = override_folder_id
@@ -1349,15 +1463,16 @@ class BlockListUpdater(BaseUIUpdater):
                 # Explicit project-local assignments replace normalized speaker ancestry
                 # only for their concrete row. This supports system/UI strings that have
                 # no Text node in the marked script.
-                for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw):
-                    speaker_name = str(assignment.get("speaker") or "").strip()
-                    if not speaker_name:
+                for (block_idx, string_idx), assignment in self._story_context_overrides().items():
+                    if "speaker" not in assignment:
                         continue
+                    speaker_name = str(assignment.get("speaker") or "None").strip()
                     row = (block_idx, string_idx)
                     for existing in mempalace_speakers.values():
                         if row in existing:
                             existing.remove(row)
-                    mempalace_speakers.setdefault(speaker_name, []).append(row)
+                    if speaker_name.casefold() != "none":
+                        mempalace_speakers.setdefault(speaker_name, []).append(row)
 
                 combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
                 assigned_strings = set()  # {(b_idx, s_idx), ...}
@@ -1432,7 +1547,7 @@ class BlockListUpdater(BaseUIUpdater):
                 if "None" in combined_speakers:
                     unique_speakers.insert(0, "None")
 
-                if combined_speakers:
+                if any(name != "None" for name in combined_speakers):
                     speakers_root = QTreeWidgetItem(["Speakers"])
                     self._set_item_style_icon(speakers_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                     speakers_root.setFlags(speakers_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -1481,12 +1596,21 @@ class BlockListUpdater(BaseUIUpdater):
                         )
                         self._reference_item_groups_cache = item_mappings
                     else:
-                        item_mappings = self._reference_item_groups_cache
+                        item_mappings = {
+                            name: list(rows)
+                            for name, rows in self._reference_item_groups_cache.items()
+                        }
                         reverse_items = {
                             row: name
                             for name, rows in item_mappings.items()
                             for row in rows
                         }
+                    item_mappings = self._apply_manual_item_overrides(item_mappings)
+                    reverse_items = {
+                        row: name
+                        for name, rows in item_mappings.items()
+                        for row in rows
+                    }
                     self._story_item_mappings_cache = reverse_items
                     tree_root = self.mw.block_list_widget.invisibleRootItem()
                     self._add_item_projection_root(tree_root, item_mappings)
@@ -1500,7 +1624,7 @@ class BlockListUpdater(BaseUIUpdater):
                     item_rows = {row for rows in item_mappings.values() for row in rows}
                     window_rows = self._window_bound_rows()
                     globally_unbound = self._all_game_rows() - story_rows - speaker_rows - item_rows - window_rows
-                    self._add_virtual_role_leaf(
+                    global_none_item = self._add_virtual_role_leaf(
                         tree_root,
                         "None",
                         -3,
@@ -1508,6 +1632,10 @@ class BlockListUpdater(BaseUIUpdater):
                         "None",
                         sorted(globally_unbound),
                     )
+                    if global_none_item is not None:
+                        global_none_item.setData(
+                            0, Qt.ItemDataRole.UserRole + 17, "unbound"
+                        )
                     self._add_windows_projection_root(
                         tree_root,
                         self._story_projection_cache,
@@ -1516,13 +1644,17 @@ class BlockListUpdater(BaseUIUpdater):
                     )
                     self._persist_virtual_cache(
                         getattr(self, "_chapters_cache_wing_name", ""),
-                        item_mappings,
+                        self._reference_item_groups_cache or {},
                     )
                     self._update_string_statistics(globally_unbound)
             except Exception as e:
                 from utils.logging_utils import log_error
                 log_error(f"Error populating Speakers folder: {e}", exc_info=True)
         finally:
+            self._cache_story_overrides = False
+            self._story_context_overrides_cache = None
+            self._story_structure_overrides_cache = None
+            self._story_override_index_cache = None
             self.mw.block_list_widget._is_programmatic_expansion = False
             self.mw.block_list_widget.blockSignals(False)
             self.mw.block_list_widget.setUpdatesEnabled(True)

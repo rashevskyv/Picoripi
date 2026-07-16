@@ -88,6 +88,57 @@ class SpeakerHandler(BaseHandler):
             parent.setExpanded(True)
             parent = parent.parent()
 
+    @staticmethod
+    def _tree_item_locator(item: QTreeWidgetItem | None):
+        """Capture one tree item's exact ancestry without retaining deleted Qt objects."""
+        if not isinstance(item, QTreeWidgetItem):
+            return None
+        path = []
+        cursor = item
+        while isinstance(cursor, QTreeWidgetItem):
+            path.append((
+                cursor.text(0),
+                cursor.data(0, Qt.UserRole),
+                cursor.data(0, Qt.UserRole + 1),
+                cursor.data(0, Qt.UserRole + 11),
+                cursor.data(0, Qt.UserRole + 15),
+                cursor.data(0, Qt.UserRole + 16),
+                cursor.data(0, Qt.UserRole + 17),
+            ))
+            cursor = cursor.parent()
+        return tuple(reversed(path))
+
+    def _find_tree_item_by_locator(self, locator):
+        """Find the rebuilt item at the same exact tree path."""
+        tree = getattr(self.mw, "block_list_widget", None)
+        if tree is None or not locator:
+            return None
+        from PyQt6.QtWidgets import QTreeWidgetItemIterator
+
+        iterator = QTreeWidgetItemIterator(tree)
+        while iterator.value():
+            item = iterator.value()
+            if self._tree_item_locator(item) == locator:
+                return item
+            iterator += 1
+        return None
+
+    def _restore_tree_selection(self, locator):
+        """Restore the exact pre-edit tree item without emitting navigation signals."""
+        tree = getattr(self.mw, "block_list_widget", None)
+        item = self._find_tree_item_by_locator(locator)
+        if tree is None or item is None:
+            return None
+        signals_were_blocked = tree.blockSignals(True)
+        try:
+            tree.clearSelection()
+            self._expand_item_ancestors(item)
+            tree.setCurrentItem(item)
+            item.setSelected(True)
+        finally:
+            tree.blockSignals(signals_were_blocked)
+        return item
+
     def _story_client_and_document(self):
         """Return the active normalized-story client and document, if available."""
         translation = getattr(self.mw, "translation_handler", None)
@@ -164,6 +215,11 @@ class SpeakerHandler(BaseHandler):
         if block_idx == -1 or string_idx == -1:
             return
 
+        tree = getattr(self.mw, "block_list_widget", None)
+        selected_tree_locator = self._tree_item_locator(
+            tree.currentItem() if tree is not None else None
+        )
+
         client, document_id = self._story_client_and_document()
         if client is not None and document_id is not None:
             manual = get_story_context_override(self.mw, block_idx, string_idx)
@@ -188,6 +244,7 @@ class SpeakerHandler(BaseHandler):
                 block_updater = getattr(self.ui_updater, "block_list_updater", None)
                 if block_updater is not None:
                     block_updater.populate_blocks()
+                    self._restore_tree_selection(selected_tree_locator)
                 settings = getattr(self.mw, "string_settings_updater", None)
                 if settings is not None:
                     settings.clear_story_context_cache()
@@ -301,15 +358,16 @@ class SpeakerHandler(BaseHandler):
                 self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
 
                 # Find the active speaker item in the block tree to get its updated mappings
-                active_item = None
+                active_item = self._find_tree_item_by_locator(selected_tree_locator)
                 from PyQt6.QtWidgets import QTreeWidgetItemIterator
-                iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-                while iterator.value():
-                    item = iterator.value()
-                    if item.data(0, Qt.UserRole) == -3 and item.data(0, Qt.UserRole + 15) == current_speaker_name_in_store:
-                        active_item = item
-                        break
-                    iterator += 1
+                if active_item is None:
+                    iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.data(0, Qt.UserRole) == -3 and item.data(0, Qt.UserRole + 15) == current_speaker_name_in_store:
+                            active_item = item
+                            break
+                        iterator += 1
 
                 if active_item:
                     # Update chapter_mappings from the freshly-rebuilt item, then refresh
@@ -345,6 +403,7 @@ class SpeakerHandler(BaseHandler):
                     if block_list_widget:
                         signals_were_blocked = block_list_widget.blockSignals(True)
                         try:
+                            block_list_widget.clearSelection()
                             self._expand_item_ancestors(active_item)
                             block_list_widget.setCurrentItem(active_item)
                             active_item.setSelected(True)
@@ -376,6 +435,7 @@ class SpeakerHandler(BaseHandler):
                         self.mw.string_settings_updater.update_string_settings_panel()
             else:
                 self.ui_updater.block_list_updater.populate_blocks(override_folder_id=override_folder_id, override_block_idx=override_block_idx)
+                self._restore_tree_selection(selected_tree_locator)
                 if hasattr(self.mw, 'string_settings_updater'):
                     self.mw.string_settings_updater.update_string_settings_panel()
         finally:
@@ -395,7 +455,10 @@ class SpeakerHandler(BaseHandler):
             structure_id = combo.currentData()
         path = []
         if combo is not None and structure_id is not None:
-            path = combo.currentText().split(" › ")
+            if hasattr(combo, "current_story_path"):
+                path = list(combo.current_story_path())
+            else:
+                path = combo.currentText().split(" › ")
         if not update_story_context_override(
             self.mw,
             block_idx,

@@ -141,7 +141,9 @@ class StringSettingsUpdater(BaseUIUpdater):
             speakers = (manual_speaker,)
         manual_structure_id = manual.get("structure_id")
         manual_structure_path = tuple(manual.get("structure_path") or ())
-        if manual_structure_id is not None:
+        if manual_structure_id == "story:none":
+            contexts = ()
+        elif manual_structure_id is not None:
             contexts = (
                 StoryStringContext(manual_structure_id, manual_structure_path, manual_speaker or None),
             )
@@ -193,19 +195,26 @@ class StringSettingsUpdater(BaseUIUpdater):
             display = " › ".join(context.structure_path) if context is not None else "No chapter"
             chapter_label.story_structure_id = structure_id
             if isinstance(chapter_label, QComboBox):
-                chapter_label.blockSignals(True)
-                chapter_label.clear()
-                chapter_label.addItem("No chapter", None)
-                if projection:
-                    for folder_id, path in self._story_structure_choices(projection):
-                        chapter_label.addItem(" › ".join(path), folder_id)
-                selected = chapter_label.findData(structure_id)
-                if selected < 0 and structure_id is not None:
-                    chapter_label.addItem(display, structure_id)
-                    selected = chapter_label.count() - 1
-                chapter_label.setCurrentIndex(max(selected, 0))
+                if hasattr(chapter_label, "set_story_projection"):
+                    chapter_label.set_story_projection(projection)
+                    chapter_label.set_story_selection(
+                        structure_id,
+                        context.structure_path if context is not None else (),
+                    )
+                else:
+                    chapter_label.blockSignals(True)
+                    chapter_label.clear()
+                    chapter_label.addItem("No chapter", None)
+                    if projection:
+                        for folder_id, path in self._story_structure_choices(projection):
+                            chapter_label.addItem(" › ".join(path), folder_id)
+                    selected = chapter_label.findData(structure_id)
+                    if selected < 0 and structure_id is not None:
+                        chapter_label.addItem(display, structure_id)
+                        selected = chapter_label.count() - 1
+                    chapter_label.setCurrentIndex(max(selected, 0))
+                    chapter_label.blockSignals(False)
                 chapter_label.setEnabled(projection is not None)
-                chapter_label.blockSignals(False)
             else:
                 chapter_label.setText(display)
                 chapter_label.setEnabled(context is not None)
@@ -271,10 +280,14 @@ class StringSettingsUpdater(BaseUIUpdater):
             chapter_label = getattr(self.mw, "chapter_value_label", None)
             if chapter_label is not None:
                 if isinstance(chapter_label, QComboBox):
-                    chapter_label.blockSignals(True)
-                    chapter_label.clear()
-                    chapter_label.addItem("No chapter", None)
-                    chapter_label.blockSignals(False)
+                    if hasattr(chapter_label, "set_story_projection"):
+                        chapter_label.set_story_projection(None)
+                        chapter_label.set_story_selection(None, ())
+                    else:
+                        chapter_label.blockSignals(True)
+                        chapter_label.clear()
+                        chapter_label.addItem("No chapter", None)
+                        chapter_label.blockSignals(False)
                 else:
                     chapter_label.setText("No chapter")
                 chapter_label.story_structure_id = None

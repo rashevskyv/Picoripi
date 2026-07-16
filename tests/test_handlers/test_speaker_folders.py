@@ -437,6 +437,57 @@ def test_save_speaker_in_virtual_folder_does_not_navigate(qapp, mock_mw, mock_pr
     # 3. Verify populate_blocks kept the existing folder selected.
     mock_mw.ui_updater.block_list_updater.populate_blocks.assert_called_with(override_folder_id="Hero", override_block_idx=-3)
 
+
+def test_save_speaker_restores_exact_duplicate_virtual_folder(qapp, mock_mw, mock_project):
+    """Changing a speaker must not select the first same-named folder elsewhere."""
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = mock_project
+    mock_mw.block_to_project_file_map = {0: 0}
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+    mock_mw.data_store.current_speaker_name = "Hero"
+    mock_mw.data_store.chapter_mappings = [(0, 0)]
+    mock_mw.is_programmatically_changing_text = False
+
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+
+    tree = QTreeWidget()
+
+    def add_window(name):
+        window = QTreeWidgetItem([name])
+        speakers = QTreeWidgetItem(window, ["Speakers"])
+        hero = QTreeWidgetItem(speakers, ["Hero"])
+        hero.setData(0, int(Qt.ItemDataRole.UserRole), -3)
+        hero.setData(0, int(Qt.ItemDataRole.UserRole + 15), "Hero")
+        hero.setData(0, int(Qt.ItemDataRole.UserRole + 13), [(0, 0)])
+        tree.addTopLevelItem(window)
+        return hero
+
+    add_window("Dialogue")
+    selected_hero = add_window("Description")
+    tree.setCurrentItem(selected_hero)
+    mock_mw.block_list_widget = tree
+    mock_mw.ui_updater = MagicMock()
+    mock_mw.ui_updater.block_list_updater = MagicMock()
+
+    def rebuild(*_args, **_kwargs):
+        tree.clear()
+        add_window("Dialogue")
+        add_window("Description")
+
+    mock_mw.ui_updater.block_list_updater.populate_blocks.side_effect = rebuild
+    handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
+    mock_mw.list_selection_handler = handler
+
+    handler.save_speaker_for_current_string("Villain")
+
+    assert tree.currentItem().text(0) == "Hero"
+    assert tree.currentItem().parent().parent().text(0) == "Description"
+    assert mock_mw.data_store.physical_block_idx == 0
+    assert mock_mw.data_store.current_string_idx == 0
+
 def test_save_speaker_in_virtual_folder_keeps_same_physical_string_when_old_folder_has_later_sibling(qapp, mock_mw):
     """Regression: changing speaker must not jump to the next old-speaker string in another block."""
     project = MagicMock()

@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
+from components.chapter_picker import HierarchicalChapterComboBox
 
 
 class NavigableLabel(QLabel):
@@ -495,7 +496,7 @@ class LayoutBuilder:
         )
         self.mw.chapter_select_label.setFixedWidth(compact_label_width)
         header_grid.addWidget(self.mw.chapter_select_label, 1, 0)
-        self.mw.chapter_combobox = QComboBox()
+        self.mw.chapter_combobox = HierarchicalChapterComboBox()
         self.mw.chapter_combobox.setFixedWidth(compact_context_width)
         self.mw.chapter_combobox.setFixedHeight(compact_context_height)
         self.mw.chapter_combobox.setStyleSheet("font-size: 13px;")

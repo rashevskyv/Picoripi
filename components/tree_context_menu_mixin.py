@@ -1,7 +1,7 @@
 # components/tree_context_menu_mixin.py
 """Context-menu mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMenu, QStyle, QMessageBox
+from PyQt6.QtWidgets import QDialog, QMenu, QStyle, QMessageBox, QTreeWidgetItemIterator
 from PyQt6.QtGui import QAction
 
 from utils.logging_utils import log_debug
@@ -32,6 +32,10 @@ class TreeContextMenuMixin:
 
         main_window = self.window()
         menu = QMenu(self)
+
+        selected_rows = self._selected_editor_assignment_rows()
+        if self._add_mempalace_context_menu(menu, selected_rows):
+            menu.addSeparator()
 
         # в”Ђв”Ђ 1. Batch "Move to Folder" в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
         if len(selected_items) > 1:
@@ -425,6 +429,164 @@ class TreeContextMenuMixin:
             prop_act.triggered.connect(lambda checked=False, idx=block_idx: self._show_block_properties(idx))
 
         menu.exec(self.mapToGlobal(pos))
+
+    def _mempalace_assignment_targets(self):
+        """Return unique editable Memory Palace targets currently shown in the tree."""
+        targets = {"story": [], "speaker": [], "item": [], "all": []}
+        seen = set()
+        iterator = QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            target = self._story_assignment_target(item)
+            if target and target[0] in targets:
+                facet, value, path = target
+                key = (facet, str(value), tuple(path))
+                if key not in seen:
+                    seen.add(key)
+                    targets[facet].append((value, tuple(path), item))
+            iterator += 1
+        return targets
+
+    def _add_mempalace_context_menu(self, menu, selected_rows):
+        """Add an explicit choose-operation-then-target Memory Palace menu."""
+        targets = self._mempalace_assignment_targets()
+        if not any(targets.values()):
+            return False
+
+        count = len(selected_rows)
+        palace_menu = menu.addMenu(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton),
+            f"MemPalace Context ({count} selected)",
+        )
+        palace_menu.setEnabled(bool(selected_rows))
+
+        definitions = (
+            ("story", "Change Chapter / Scene", "None", "story:none"),
+            ("speaker", "Change Speaker", "None", "None"),
+            ("item", "Change Item", "None", "None"),
+        )
+        for facet, title, none_label, none_value in definitions:
+            entries = list(targets[facet])
+            if facet == "story":
+                action = palace_menu.addAction(title + "…")
+                action.triggered.connect(
+                    lambda checked=False, rows=tuple(selected_rows),
+                    story_entries=tuple(entries): self._open_story_assignment_dialog(
+                        rows, story_entries
+                    )
+                )
+                continue
+
+            if facet == "speaker":
+                action = palace_menu.addAction(title + "…")
+                action.triggered.connect(
+                    lambda checked=False, rows=tuple(selected_rows),
+                    speaker_entries=tuple(entries): self._open_speaker_assignment_dialog(
+                        rows, speaker_entries
+                    )
+                )
+                continue
+
+            facet_menu = palace_menu.addMenu(title)
+            if not any(str(value) == none_value for value, _path, _item in entries):
+                entries.append((none_value, (), None))
+
+            def sort_key(entry):
+                value, path, _target_item = entry
+                label = " › ".join(path) if facet == "story" and path else str(value)
+                return (str(value) != none_value, label.casefold())
+
+            for value, path, target_item in sorted(entries, key=sort_key):
+                label = (
+                    " › ".join(path)
+                    if facet == "story" and path
+                    else (none_label if str(value) == none_value else str(value))
+                )
+                action = facet_menu.addAction(label)
+                locator = self._virtual_item_locator(target_item) if target_item else None
+                action.triggered.connect(
+                    lambda checked=False, rows=tuple(selected_rows), target_facet=facet,
+                    target_value=value, target_path=path, target_label=label,
+                    target_locator=locator: self._assign_rows_to_story_context(
+                        rows,
+                        target_facet,
+                        target_value,
+                        target_path,
+                        target_label,
+                        target_locator,
+                    )
+                )
+
+        palace_menu.addSeparator()
+        clear_action = palace_menu.addAction("Clear All Context")
+        clear_action.triggered.connect(
+            lambda checked=False, rows=tuple(selected_rows):
+                self._assign_rows_to_story_context(rows, "all", "None", (), "None")
+        )
+        return True
+
+    def _open_story_assignment_dialog(self, selected_rows, entries):
+        """Choose a nested Story target in a searchable dialog."""
+        from components.chapter_picker import ChapterSelectionDialog
+
+        choices = [
+            (value, path)
+            for value, path, _item in entries
+            if str(value) != "story:none" and path
+        ]
+        dialog = ChapterSelectionDialog(
+            choices=choices,
+            parent=self.window(),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return False
+
+        structure_id, path = dialog.selection()
+        value = structure_id if structure_id is not None else "story:none"
+        target_item = next(
+            (
+                item
+                for entry_value, entry_path, item in entries
+                if entry_value == structure_id and tuple(entry_path) == tuple(path)
+            ),
+            None,
+        )
+        label = " › ".join(path) if path else "None"
+        locator = self._virtual_item_locator(target_item) if target_item else None
+        return self._assign_rows_to_story_context(
+            tuple(selected_rows),
+            "story",
+            value,
+            tuple(path),
+            label,
+            locator,
+        )
+
+    def _open_speaker_assignment_dialog(self, selected_rows, entries):
+        """Choose a speaker in a compact searchable dialog."""
+        from components.name_picker import SpeakerSelectionDialog
+
+        dialog = SpeakerSelectionDialog(
+            [value for value, _path, _item in entries],
+            parent=self.window(),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return False
+
+        name = dialog.selection()
+        target_item = next(
+            (item for value, _path, item in entries if str(value) == name),
+            None,
+        )
+        locator = self._virtual_item_locator(target_item) if target_item else None
+        return self._assign_rows_to_story_context(
+            tuple(selected_rows),
+            "speaker",
+            name,
+            (),
+            name,
+            locator,
+        )
 
     # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 

@@ -92,6 +92,24 @@ def mock_dp(mock_mw):
     return dp
 
 
+def test_virtual_parent_collects_all_unique_descendant_rows(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    root = QTreeWidgetItem(["Windows"])
+    boss = QTreeWidgetItem(root, ["Boss name"])
+    story = QTreeWidgetItem(boss, ["Story"])
+    scene = QTreeWidgetItem(story, ["Scene"])
+    scene.setData(0, Qt.UserRole + 13, [(0, 1), (0, 2)])
+    speakers = QTreeWidgetItem(boss, ["Speakers"])
+    midna = QTreeWidgetItem(speakers, ["MIDNA"])
+    midna.setData(0, Qt.UserRole + 13, [(0, 2), (1, 0)])
+
+    assert updater._set_virtual_folder_mappings(root) == [(0, 1), (0, 2), (1, 0)]
+    assert root.data(0, Qt.UserRole + 18) == "aggregate"
+    assert boss.data(0, Qt.UserRole + 13) == [(0, 1), (0, 2), (1, 0)]
+    assert story.data(0, Qt.UserRole + 13) == [(0, 1), (0, 2)]
+    assert speakers.data(0, Qt.UserRole + 13) == [(0, 2), (1, 0)]
+
+
 def test_reference_item_mappings_are_separate_from_speakers(mock_mw, mock_dp):
     mock_mw.data_store.data = [["Wallet\nA wallet from your childhood.", "Unrelated dialogue"]]
     reference = MagicMock(name="reference")
@@ -105,6 +123,36 @@ def test_reference_item_mappings_are_separate_from_speakers(mock_mw, mock_dp):
 
     assert mappings == {"Wallet": [(0, 0)]}
     assert reverse == {(0, 0): "Wallet"}
+
+
+def test_manual_item_override_can_reassign_or_force_none(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    block = mock_mw.project_manager.project.blocks[0]
+    block.metadata = {
+        "story_context_assignments": {"0": {"item": "None"}}
+    }
+
+    assert updater._apply_manual_item_overrides({"Wallet": [(0, 0)]}) == {}
+
+    block.metadata["story_context_assignments"]["0"]["item"] = "Boss Names"
+    assert updater._apply_manual_item_overrides({"Wallet": [(0, 0)]}) == {
+        "Boss Names": [(0, 0)]
+    }
+
+
+def test_manual_story_none_suppresses_normalized_story_link(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mapping = StoryVirtualMapping("0", "Block Zero_Str_0", 0)
+    folder = StoryVirtualFolder(10, "scene", "Scene", (), (mapping,))
+    projection = StoryVirtualProjection(1, (folder,), ())
+    mock_mw.project_manager.project.blocks[0].metadata = {
+        "story_context_assignments": {"0": {"structure_id": "story:none"}}
+    }
+
+    assert updater._story_linked_rows(projection) == set()
+
+    parent = QTreeWidgetItem(["Story"])
+    assert updater._add_story_folder_item(parent, folder, None, hide_empty=True) is False
 
 
 def test_empty_virtual_leaf_is_not_added(updater):
@@ -383,31 +431,28 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     assert all(item.text(0) != "None" for item in roots)
 
     windows_root = next(item for item in roots if item.text(0) == "Windows")
+    descriptions = next(
+        windows_root.child(i)
+        for i in range(windows_root.childCount())
+        if windows_root.child(i).text(0) == "Descriptions / save"
+    )
+    description_children = [
+        descriptions.child(i).text(0) for i in range(descriptions.childCount())
+    ]
+    assert "Story" in description_children
+    assert "Speakers" in description_children
+    assert "Items" not in description_children
+
     dialogue = next(
         windows_root.child(i)
         for i in range(windows_root.childCount())
         if windows_root.child(i).text(0) == "Dialogue"
     )
-    nested_story = next(
-        dialogue.child(i)
-        for i in range(dialogue.childCount())
-        if dialogue.child(i).text(0) == "Story"
-    )
-    nested_story_none = next(
-        nested_story.child(i)
-        for i in range(nested_story.childCount())
-        if nested_story.child(i).text(0) == "None"
-    )
-    assert nested_story_none.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
-
-    nested_speakers = next(
-        dialogue.child(i)
-        for i in range(dialogue.childCount())
-        if dialogue.child(i).text(0) == "Speakers"
-    )
-    nested_speaker_none = nested_speakers.child(0)
-    assert nested_speaker_none.data(0, Qt.UserRole + 15) == "None"
-    assert nested_speaker_none.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
+    dialogue_children = [
+        dialogue.child(i).text(0) for i in range(dialogue.childCount())
+    ]
+    assert "Story" not in dialogue_children
+    assert "Speakers" not in dialogue_children
 
     nested_items = next(
         dialogue.child(i)
@@ -424,9 +469,10 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
         if dialogue.child(i).text(0) == "None"
     )
     assert unbound.data(0, Qt.UserRole + 13) == [(1, 2)]
+    assert unbound.data(0, Qt.UserRole + 17) == "unbound"
 
 
-def test_BlockListUpdater_shows_none_when_no_rows_have_speakers(updater):
+def test_BlockListUpdater_hides_virtual_folders_that_only_contain_none(updater):
     projection = StoryVirtualProjection(1, (), ())
     client = MagicMock()
     client.get_story_virtual_projection.return_value = projection
@@ -447,11 +493,14 @@ def test_BlockListUpdater_shows_none_when_no_rows_have_speakers(updater):
         updater.mw.block_list_widget.topLevelItem(i)
         for i in range(updater.mw.block_list_widget.topLevelItemCount())
     ]
-    speakers_root = next(item for item in roots if item.text(0) == "Speakers")
-    assert speakers_root.childCount() == 1
-    none_item = speakers_root.child(0)
-    assert none_item.data(0, Qt.UserRole + 15) == "None"
-    assert none_item.data(0, Qt.UserRole + 13) == [(0, 0), (1, 0), (1, 1)]
+    assert all(item.text(0) not in {"Story", "Speakers", "Items"} for item in roots)
+
+    windows_root = next(item for item in roots if item.text(0) == "Windows")
+    window_kind = windows_root.child(0)
+    assert window_kind.childCount() == 1
+    window_none = window_kind.child(0)
+    assert window_none.text(0) == "None"
+    assert window_none.data(0, Qt.UserRole + 13) == [(0, 0), (1, 0), (1, 1)]
 
 
 def test_BlockListUpdater_compacted_folder_problem_count(updater):

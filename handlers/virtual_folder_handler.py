@@ -196,7 +196,7 @@ class VirtualFolderHandler(BaseHandler):
             else:
                 self.ui_updater.populate_blocks()
 
-    def update_all_folder_expansion_state(self, expanded: bool) -> None:
+    def update_all_folder_expansion_state(self, expanded: bool, persist: bool = True) -> None:
         """Recursively update the is_expanded state for all virtual folders."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
             return
@@ -209,7 +209,8 @@ class VirtualFolderHandler(BaseHandler):
 
         for folder in self.mw.project_manager.project.virtual_folders:
             update_folder(folder)
-        self.mw.project_manager.save()
+        if persist:
+            self.mw.project_manager.save()
 
     def navigate_between_blocks(self, forward: bool) -> None:
         """Handle global Alt+Shift+Up/Down to jump to next/prev block in the tree."""

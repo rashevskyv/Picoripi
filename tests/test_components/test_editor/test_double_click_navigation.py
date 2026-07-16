@@ -8,6 +8,7 @@ from components.editor.line_number_area import LineNumberArea
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.editor.mouse_handlers import LNETMouseHandlers
 from handlers.list_selection_handler import ListSelectionHandler
+from core.data_store import AppDataStore, ViewKind
 
 
 @pytest.fixture
@@ -97,4 +98,66 @@ def test_scroll_to_current_string_in_preview_logic(app):
         mock_preview.setTextCursor.assert_called_once_with(mock_cursor)
         mock_preview.set_selected_lines.assert_called_once_with([2])
         handler._cursor_visible_timer.start.assert_called_once_with(10)
+
+
+@pytest.mark.parametrize(
+    "view_kind",
+    [ViewKind.CHAPTER, ViewKind.SPEAKER, ViewKind.ITEM],
+)
+def test_scroll_to_current_string_in_preview_uses_physical_tuple_in_virtual_view(
+    app, view_kind
+):
+    mock_mw = MagicMock()
+    store = AppDataStore()
+    store.set_view_kind(view_kind)
+    store.physical_block_idx = 7
+    store.current_string_idx = 2
+    store.displayed_string_indices = [(5, 1), (7, 2), (9, 3)]
+    mock_mw.data_store = store
+
+    mock_preview = MagicMock()
+    mock_doc = MagicMock()
+    mock_block = MagicMock()
+    mock_block.isValid.return_value = True
+    mock_doc.blockCount.return_value = 3
+    mock_doc.findBlockByNumber.return_value = mock_block
+    mock_preview.document.return_value = mock_doc
+    mock_mw.preview_text_edit = mock_preview
+
+    handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    handler._cursor_visible_timer = MagicMock()
+
+    with patch("handlers.list_selection_handler.QTextCursor") as cursor_class:
+        handler.scroll_to_current_string_in_preview()
+
+    mock_doc.findBlockByNumber.assert_called_once_with(1)
+    mock_preview.set_selected_lines.assert_called_once_with([1])
+    mock_preview.setTextCursor.assert_called_once_with(cursor_class.return_value)
+    handler._cursor_visible_timer.start.assert_called_once_with(10)
+
+
+def test_scroll_to_current_string_in_preview_keeps_index_based_category_view(app):
+    mock_mw = MagicMock()
+    store = AppDataStore()
+    store.set_view_kind(ViewKind.CATEGORY)
+    store.physical_block_idx = 4
+    store.current_string_idx = 12
+    store.displayed_string_indices = [3, 12, 18]
+    mock_mw.data_store = store
+
+    mock_preview = MagicMock()
+    mock_block = MagicMock()
+    mock_block.isValid.return_value = True
+    mock_preview.document().blockCount.return_value = 3
+    mock_preview.document().findBlockByNumber.return_value = mock_block
+    mock_mw.preview_text_edit = mock_preview
+
+    handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    handler._cursor_visible_timer = MagicMock()
+
+    with patch("handlers.list_selection_handler.QTextCursor"):
+        handler.scroll_to_current_string_in_preview()
+
+    mock_preview.document().findBlockByNumber.assert_called_once_with(1)
+    mock_preview.set_selected_lines.assert_called_once_with([1])
 

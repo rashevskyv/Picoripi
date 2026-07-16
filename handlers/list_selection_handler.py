@@ -204,6 +204,10 @@ class ListSelectionHandler(BaseHandler):
                 self._handle_virtual_row_selection(current_item)
                 return
 
+            if current_item.data(0, Qt.UserRole + 18) == "aggregate":
+                self._handle_aggregate_virtual_selection(current_item)
+                return
+
             block_index = current_item.data(0, Qt.UserRole)
             category_name = current_item.data(0, Qt.UserRole + 10)
             chapter_id = current_item.data(0, Qt.UserRole + 11)
@@ -438,6 +442,38 @@ class ListSelectionHandler(BaseHandler):
         if hasattr(self.mw, 'string_settings_updater'):
             self.mw.string_settings_updater.update_string_settings_panel()
         self._update_block_toolbar_button_states(-1)
+
+    def _handle_aggregate_virtual_selection(self, current_item: QTreeWidgetItem) -> None:
+        """Show every unique game row contained in a virtual parent folder."""
+        mappings = list(current_item.data(0, Qt.UserRole + 13) or [])
+        self._clear_pending_speaker_retention()
+        self.mw.data_store.set_view_kind(ViewKind.CHAPTER)
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_chapter_id = None
+        self.mw.data_store.current_speaker_name = None
+        self.mw.data_store.chapter_mappings = mappings
+
+        if mappings:
+            target = (self._target_block_idx, self._target_string_idx)
+            target_idx = mappings.index(target) if target in mappings else 0
+            block_idx, string_idx = mappings[target_idx]
+            self.mw.data_store.physical_block_idx = block_idx
+            self.mw.data_store.current_block_idx = block_idx
+            self.mw.data_store.current_string_idx = string_idx
+        else:
+            self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_block_idx = -1
+            self.mw.data_store.current_string_idx = -1
+
+        self.ui_updater.populate_current_view(force=True)
+        if mappings and not getattr(self.mw, '_restoring_session_state', False):
+            self._schedule_string_selection(target_idx)
+        elif not mappings:
+            self.ui_updater.update_text_views()
+        self._target_block_idx = None
+        self._target_string_idx = None
+        self.ui_updater.update_statusbar_paths()
+        self._update_block_toolbar_button_states(-2)
 
     def _handle_physical_block_selection(self, block_index: int, category_name: Optional[str], old_block: int, old_string: int, old_category: Optional[str]) -> None:
         if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
@@ -1359,7 +1395,18 @@ class ListSelectionHandler(BaseHandler):
         if current_string_idx == -1:
             return
 
-        rel_idx = self._get_relative_index(current_string_idx)
+        # Physical/category views address rows by string index, while virtual
+        # chapter/speaker/item/aggregate views address them by the physical
+        # (block, string) tuple. Prefer the representation actually present in
+        # the current preview so this action never switches view paradigms.
+        displayed_indices = self._get_displayed_indices()
+        physical_target = (
+            self.mw.data_store.physical_block_idx,
+            current_string_idx,
+        )
+        target = physical_target if physical_target in displayed_indices else current_string_idx
+
+        rel_idx = self._get_relative_index(target)
         if rel_idx != -1:
             if 0 <= rel_idx < preview_edit.document().blockCount():
                 block_to_show = preview_edit.document().findBlockByNumber(rel_idx)
