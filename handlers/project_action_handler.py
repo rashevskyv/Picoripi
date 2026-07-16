@@ -756,9 +756,40 @@ class ProjectActionHandler(BaseHandler):
                 on_completed(False)
             return
 
-        if self._restore_project_session_fast_path(on_completed):
-            self._report_startup(96, "Restored cached project session")
+        startup_loading = getattr(self.mw, '_startup_splash', None) is not None
+        if startup_loading:
+            self.mw._startup_loading_pending = True
+
+        def wait_for_virtual_blocks(callback):
+            block_updater = getattr(self.ui_updater, "block_list_updater", None)
+            waiter = getattr(block_updater, "when_virtual_blocks_ready", None)
+            try:
+                from ui.updaters.block_list_updater import BlockListUpdater
+                can_wait = isinstance(block_updater, BlockListUpdater)
+            except ImportError:
+                can_wait = False
+            if can_wait and callable(waiter):
+                waiter(callback)
+            else:
+                callback()
+
+        if self._restore_project_session_fast_path():
+            self._report_startup(96, "Restoring virtual blocks…")
+
+            def finish_cached_restore():
+                self._report_startup(99, "Project view ready")
+                if on_completed:
+                    on_completed(True)
+                if startup_loading:
+                    self.mw.finish_startup_loading()
+
+            wait_for_virtual_blocks(finish_cached_restore)
             return
+
+        block_updater = getattr(self.ui_updater, "block_list_updater", None)
+        invalidator = getattr(block_updater, "invalidate_mempalace_story_cache", None)
+        if callable(invalidator):
+            invalidator()
 
         # Reset block/string selection state to avoid stale index issues
         self.mw.data_store.current_block_idx = -1
@@ -777,9 +808,7 @@ class ProjectActionHandler(BaseHandler):
 
         # Setup loading thread and progress dialog
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
-        startup_loading = getattr(self.mw, '_startup_splash', None) is not None
-        if startup_loading:
-            self.mw._startup_loading_pending = True
+        self.mw._project_loading_pending = True
 
         import sys
         progress_dialog = None
@@ -795,10 +824,10 @@ class ProjectActionHandler(BaseHandler):
             worker.progress.connect(progress_dialog.setValue)
 
         def on_finished(result):
-            if 'pytest' not in sys.modules and progress_dialog:
-                progress_dialog.close()
-
             if not result:
+                self.mw._project_loading_pending = False
+                if 'pytest' not in sys.modules and progress_dialog:
+                    progress_dialog.close()
                 if worker.error_occurred:
                     QMessageBox.critical(self.mw, "Load Error", f"An error occurred while loading project files:\n{worker.error_occurred}")
                 if on_completed:
@@ -806,6 +835,11 @@ class ProjectActionHandler(BaseHandler):
                 if startup_loading:
                     self.mw.finish_startup_loading()
                 return
+
+            if progress_dialog:
+                progress_dialog.setLabelText("Building virtual blocks and scanning issues…")
+                progress_dialog.setRange(0, 0)
+            self._report_startup(95, "Building virtual blocks and scanning issues…")
 
             self.mw.data_store.data = result['data']
             self.mw.data_store.edited_file_data = result['edited_file_data']
@@ -825,9 +859,52 @@ class ProjectActionHandler(BaseHandler):
             if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
                 self.mw.translation_handler.load_progress_from_metadata()
 
-            # Perform initial scan
-            if hasattr(self.mw, 'app_action_handler'):
-                self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+            readiness = {"issues": True, "virtual": False, "finished": False}
+
+            def finalize_project_view():
+                if readiness["finished"] or not readiness["issues"] or not readiness["virtual"]:
+                    return
+                readiness["finished"] = True
+                self.mw._project_loading_pending = False
+
+                state_restored = False
+                if self.mw.project_manager and self.mw.project_manager.project_file_path:
+                    p_path = str(self.mw.project_manager.project_file_path)
+                    state = None
+                    if self.mw.project_manager.project:
+                        state = self.mw.project_manager.project.metadata.get("session_state")
+                    if not state:
+                        state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
+                    if state and (state.get("selected_id") or state.get("expanded_ids")):
+                        log_info(f"Restoring project UI state for {p_path}")
+                        self.ui_updater.apply_tree_state(state)
+                        state_restored = True
+
+                if progress_dialog:
+                    progress_dialog.close()
+                if on_completed:
+                    on_completed(state_restored)
+                if startup_loading:
+                    self._report_startup(99, "Finalizing the project view…")
+                    self.mw.finish_startup_loading()
+
+            scanner = getattr(self.mw, "issue_scan_handler", None)
+            try:
+                from handlers.issue_scan_handler import IssueScanHandler
+                wait_for_issue_scan = isinstance(scanner, IssueScanHandler)
+            except ImportError:
+                wait_for_issue_scan = False
+            if scanner and hasattr(scanner, "_perform_initial_silent_scan_all_issues"):
+                if wait_for_issue_scan:
+                    readiness["issues"] = False
+
+                    def issues_ready():
+                        readiness["issues"] = True
+                        finalize_project_view()
+
+                    scanner._perform_initial_silent_scan_all_issues(on_completed=issues_ready)
+                else:
+                    scanner._perform_initial_silent_scan_all_issues()
 
             if hasattr(self.data_processor, '_autosave_session'):
                 self.data_processor._autosave_session(force=True)
@@ -840,26 +917,11 @@ class ProjectActionHandler(BaseHandler):
             self.ui_updater.populate_blocks()
             self.ui_updater.update_statusbar_paths()
 
-            state_restored = False
-            # Restore UI Session state for project
-            if self.mw.project_manager and self.mw.project_manager.project_file_path:
-                p_path = str(self.mw.project_manager.project_file_path)
-                state = None
-                if self.mw.project_manager.project:
-                    state = self.mw.project_manager.project.metadata.get("session_state")
-                if not state:
-                    state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
+            def virtual_ready():
+                readiness["virtual"] = True
+                finalize_project_view()
 
-                if state and (state.get("selected_id") or state.get("expanded_ids")):
-                    log_info(f"Restoring project UI state for {p_path}")
-                    self.ui_updater.apply_tree_state(state)
-                    state_restored = True
-
-            if on_completed:
-                on_completed(state_restored)
-            if startup_loading:
-                self._report_startup(98, "Finalizing the project view…")
-                self.mw.finish_startup_loading()
+            wait_for_virtual_blocks(virtual_ready)
 
         # Store worker reference to prevent garbage collection
         self._active_load_worker = worker

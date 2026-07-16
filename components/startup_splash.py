@@ -63,7 +63,8 @@ class StartupSplash(QWidget):
             self.move(area.center() - self.rect().center())
         self.show()
         self.raise_()
-        QApplication.processEvents()
+        self.repaint()
+        self.progress_bar.repaint()
 
     def update_progress(self, value: int, message: str) -> None:
         self.progress_bar.setValue(max(0, min(100, int(value))))

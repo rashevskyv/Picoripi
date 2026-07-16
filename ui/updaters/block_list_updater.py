@@ -1,11 +1,16 @@
 import re
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle, QWidget
+from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
 from utils.logging_utils import log_info, log_warning
 from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
-from core.mempalace.story_timeline import StoryVirtualFolder, StoryVirtualProjection
+from core.mempalace.story_timeline import (
+    StoryVirtualFolder,
+    StoryVirtualProjection,
+    story_virtual_projection_from_dict,
+    story_virtual_projection_to_dict,
+)
 from core.story_context_overrides import iter_story_context_overrides
 from core.mempalace.dialogue_mapping import canonicalize_dialogue_text
 
@@ -20,9 +25,12 @@ class BlockListUpdater(BaseUIUpdater):
         self._chapter_mappings_cache = None
         self._story_projection_cache = None
         self._story_item_mappings_cache = {}
+        self._reference_item_groups_cache = None
+        self._window_kind_groups_cache = None
         self._chapters_cache_wing_name = None
         self._chapters_load_error = None
         self._is_loading_chapters = False
+        self._virtual_ready_callbacks = []
         if hasattr(self.mw, 'filter_query_api') and self.mw.filter_query_api is not None:
             if getattr(self.mw.filter_query_api, '_data_processor', None) is None:
                 self.mw.filter_query_api._data_processor = data_processor
@@ -36,12 +44,92 @@ class BlockListUpdater(BaseUIUpdater):
         self._chapter_mappings_cache = None
         self._story_projection_cache = None
         self._story_item_mappings_cache = {}
+        self._reference_item_groups_cache = None
+        self._window_kind_groups_cache = None
+        self.mw.data_store.virtual_block_cache = {}
         settings_updater = getattr(self.mw, "string_settings_updater", None)
         clear_context = getattr(settings_updater, "clear_story_context_cache", None)
         if callable(clear_context):
             clear_context()
         self._chapters_load_error = None
         self._is_loading_chapters = worker_running
+
+    def when_virtual_blocks_ready(self, callback) -> None:
+        """Run callback once the complete virtual facet tree is available."""
+        if not callable(callback):
+            return
+        if not self._is_loading_chapters:
+            callback()
+            return
+        self._virtual_ready_callbacks.append(callback)
+
+    def _notify_virtual_blocks_ready(self) -> None:
+        callbacks, self._virtual_ready_callbacks = self._virtual_ready_callbacks, []
+        for callback in callbacks:
+            callback()
+
+    def _data_shape_signature(self) -> list[int]:
+        return [len(block) for block in getattr(self.mw.data_store, "data", [])]
+
+    @staticmethod
+    def _rows_from_cache(groups) -> dict[str, list[tuple[int, int]]]:
+        if not isinstance(groups, dict):
+            return {}
+        return {
+            str(name): [tuple(row) for row in rows if isinstance(row, (list, tuple)) and len(row) == 2]
+            for name, rows in groups.items()
+        }
+
+    def _restore_persisted_virtual_cache(self, wing_name: str) -> bool:
+        cache = getattr(self.mw.data_store, "virtual_block_cache", {})
+        if (
+            not isinstance(cache, dict)
+            or cache.get("version") != 1
+            or cache.get("wing_name") != wing_name
+            or cache.get("data_shape") != self._data_shape_signature()
+        ):
+            return False
+        projection = story_virtual_projection_from_dict(cache.get("story_projection"))
+        if not isinstance(projection, StoryVirtualProjection):
+            return False
+        self._story_projection_cache = projection
+        self._chapters_cache = list(projection.roots)
+        self._chapter_mappings_cache = None
+        self._chapters_cache_wing_name = wing_name
+        self._reference_item_groups_cache = self._rows_from_cache(cache.get("item_mappings"))
+        window_groups = self._rows_from_cache(cache.get("window_groups"))
+        self._window_kind_groups_cache = {
+            name: set(rows) for name, rows in window_groups.items()
+        }
+        self._chapters_load_error = None
+        self._is_loading_chapters = False
+        return True
+
+    def _persist_virtual_cache(self, wing_name: str, item_mappings) -> None:
+        projection = self._story_projection_cache
+        if not isinstance(projection, StoryVirtualProjection):
+            return
+        window_groups = self._window_kind_groups()
+        cache = {
+            "version": 1,
+            "wing_name": wing_name,
+            "data_shape": self._data_shape_signature(),
+            "story_projection": story_virtual_projection_to_dict(projection),
+            "item_mappings": {
+                name: [list(row) for row in rows]
+                for name, rows in item_mappings.items()
+            },
+            "window_groups": {
+                name: [list(row) for row in sorted(rows)]
+                for name, rows in window_groups.items()
+            },
+        }
+        if cache == getattr(self.mw.data_store, "virtual_block_cache", {}):
+            return
+        self.mw.data_store.virtual_block_cache = cache
+        scheduler = getattr(self.data_processor, "schedule_autosave", None)
+        if callable(scheduler):
+            scheduler()
 
     def _resolve_story_mapping(self, mapping):
         """Resolve a normalized story relation to one physical project string."""
@@ -295,6 +383,8 @@ class BlockListUpdater(BaseUIUpdater):
         return root
 
     def _window_kind_groups(self) -> dict[str, set[tuple[int, int]]]:
+        if self._window_kind_groups_cache is not None:
+            return self._window_kind_groups_cache
         groups = {}
         rules = getattr(self.mw, "current_game_rules", None)
         for block_idx, string_idx in sorted(self._all_game_rows()):
@@ -309,7 +399,8 @@ class BlockListUpdater(BaseUIUpdater):
                 except Exception:
                     pass
             groups.setdefault(name, set()).add((block_idx, string_idx))
-        return groups
+        self._window_kind_groups_cache = groups
+        return self._window_kind_groups_cache
 
     def _window_bound_rows(self) -> set[tuple[int, int]]:
         """Rows classified into a concrete Window facet."""
@@ -378,12 +469,9 @@ class BlockListUpdater(BaseUIUpdater):
             self._block_items_cache.setdefault(block_idx, []).append(item)
 
     def _start_chapters_worker_when_ready(self) -> None:
-        """Keep optional MemePalace I/O from competing with the initial project view."""
+        """Start virtual block loading while the startup progress UI is still visible."""
         worker = self._chapters_load_worker
         if worker is None:
-            return
-        if isinstance(getattr(self.mw, '_startup_splash', None), QWidget):
-            QTimer.singleShot(100, self._start_chapters_worker_when_ready)
             return
         if not worker.isRunning():
             worker.start()
@@ -988,6 +1076,9 @@ class BlockListUpdater(BaseUIUpdater):
                     if client:
                         wing_name = composer.prompt_composer._get_wing_name()
 
+                        if self._chapters_cache_wing_name != wing_name:
+                            self._restore_persisted_virtual_cache(wing_name)
+
                         # Check if wing changed
                         if getattr(self, '_chapters_cache_wing_name', None) != wing_name:
                             # Clean up old worker and caches
@@ -1001,6 +1092,8 @@ class BlockListUpdater(BaseUIUpdater):
                             self._chapters_cache = None
                             self._chapter_mappings_cache = None
                             self._story_projection_cache = None
+                            self._reference_item_groups_cache = None
+                            self._window_kind_groups_cache = None
                             self._chapters_cache_wing_name = wing_name
                             self._chapters_load_error = None
                             self._is_loading_chapters = False
@@ -1382,9 +1475,18 @@ class BlockListUpdater(BaseUIUpdater):
 
                 item_mappings = {}
                 if normalized_story_active and client is not None:
-                    item_mappings, reverse_items = self._reference_item_mappings(
-                        client, self._story_projection_cache.document_id
-                    )
+                    if self._reference_item_groups_cache is None:
+                        item_mappings, reverse_items = self._reference_item_mappings(
+                            client, self._story_projection_cache.document_id
+                        )
+                        self._reference_item_groups_cache = item_mappings
+                    else:
+                        item_mappings = self._reference_item_groups_cache
+                        reverse_items = {
+                            row: name
+                            for name, rows in item_mappings.items()
+                            for row in rows
+                        }
                     self._story_item_mappings_cache = reverse_items
                     tree_root = self.mw.block_list_widget.invisibleRootItem()
                     self._add_item_projection_root(tree_root, item_mappings)
@@ -1410,6 +1512,10 @@ class BlockListUpdater(BaseUIUpdater):
                         tree_root,
                         self._story_projection_cache,
                         combined_speakers,
+                        item_mappings,
+                    )
+                    self._persist_virtual_cache(
+                        getattr(self, "_chapters_cache_wing_name", ""),
                         item_mappings,
                     )
                     self._update_string_statistics(globally_unbound)
@@ -1508,6 +1614,7 @@ class BlockListUpdater(BaseUIUpdater):
         self._is_loading_chapters = False
         self._chapters_load_worker = None
         self.populate_blocks()
+        self._notify_virtual_blocks_ready()
 
     def _on_chapters_load_failed(self, error_msg):
         """Slot for failed async loading of MemePalace chapters."""
@@ -1515,3 +1622,4 @@ class BlockListUpdater(BaseUIUpdater):
         self._is_loading_chapters = False
         self._chapters_load_worker = None
         self.populate_blocks()
+        self._notify_virtual_blocks_ready()

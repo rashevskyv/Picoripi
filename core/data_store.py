@@ -92,6 +92,7 @@ class AppDataStore:
     unsaved_changes: bool = False
     unsaved_block_indices: Set[int] = field(default_factory=set)
     block_to_project_file_map: Dict[int, int] = field(default_factory=dict)
+    virtual_block_cache: Dict[str, Any] = field(default_factory=dict)
 
     # Selection State
     current_block_idx: int = -1
@@ -314,6 +315,7 @@ class AppDataStore:
             "unsaved_changes": self.unsaved_changes,
             "unsaved_block_indices": self.unsaved_block_indices,
             "block_to_project_file_map": self.block_to_project_file_map,
+            "virtual_block_cache": self.virtual_block_cache,
             # Problems per subline
             "problems_per_subline": dict(self.problems_per_subline),
         }
@@ -378,6 +380,7 @@ class AppDataStore:
         self.unsaved_changes = snapshot.get("unsaved_changes", False)
         self.unsaved_block_indices = set(snapshot.get("unsaved_block_indices", []))
         self.block_to_project_file_map = snapshot.get("block_to_project_file_map", {})
+        self.virtual_block_cache = snapshot.get("virtual_block_cache", {})
 
         # Problems per subline
         self.problems_per_subline = IndexingDict(
@@ -399,6 +402,7 @@ class AppDataStore:
         self.unsaved_changes = False
         self.unsaved_block_indices = set()
         self.block_to_project_file_map = {}
+        self.virtual_block_cache = {}
         self.current_block_idx = -1
         self._physical_block_idx = -1
         self.current_view_kind = ViewKind.PHYSICAL

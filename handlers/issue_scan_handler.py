@@ -206,9 +206,17 @@ class IssueScanHandler(BaseHandler):
         """Internal helper to show scan progress dialog."""
         import sys
         from PyQt6.QtWidgets import QApplication
-        is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication) or getattr(self.mw, 'is_testing', False)
+        is_test = (
+            'pytest' in sys.modules
+            or not isinstance(QApplication.instance(), QApplication)
+            or getattr(self.mw, 'is_testing', False)
+        )
+        covered_by_project_progress = bool(
+            getattr(self.mw, '_startup_splash', None)
+            or getattr(self.mw, '_project_loading_pending', False)
+        )
         
-        if is_test:
+        if is_test or covered_by_project_progress:
             self._progress_dialog = None
         else:
             from PyQt6.QtWidgets import QWidget
@@ -228,7 +236,7 @@ class IssueScanHandler(BaseHandler):
         self._scan_timer.setSingleShot(True)
         self._scan_timer.timeout.connect(self._scan_next_batch)
         
-        delay = 0 if is_test else 30
+        delay = 0 if is_test or covered_by_project_progress else 30
         self._scan_timer.start(delay)
 
     def _perform_initial_silent_scan_all_issues(self, on_completed=None, force=False):

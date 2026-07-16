@@ -75,6 +75,11 @@ def test_serialize_and_deserialize_session(dsp):
         "redo_stack": [struct_action],
         "block_names": {0: "block1", 1: "block2"},
         "block_to_project_file_map": {0: "file1.json", 1: "file2.json"},
+        "virtual_block_cache": {
+            "version": 1,
+            "wing_name": "tp",
+            "window_groups": {"Dialogue": [[0, 0], [1, 2]]},
+        },
         "unsaved_changes": True,
         "plugin_original_keys": ["key0", "key1"],
         "plugin_runtime_state": {
@@ -114,6 +119,7 @@ def test_serialize_and_deserialize_session(dsp):
     assert json_snapshot["current_view_kind"] == "speaker"
     assert json_snapshot["current_chapter_id"] == 42
     assert json_snapshot["chapter_mappings"] == [(1, 2), (3, 4)]
+    assert json_snapshot["virtual_block_cache"]["window_groups"]["Dialogue"] == [[0, 0], [1, 2]]
 
     # Deserialize
     deserialized = dsp.deserialize_session_from_json(json_snapshot)
@@ -132,6 +138,7 @@ def test_serialize_and_deserialize_session(dsp):
     assert deserialized["current_view_kind"] == "speaker"
     assert deserialized["current_chapter_id"] == 42
     assert deserialized["chapter_mappings"] == [(1, 2), (3, 4)]
+    assert deserialized["virtual_block_cache"]["wing_name"] == "tp"
 
     # Verify restored actions
     restored_action1 = deserialized["undo_stack"][0]

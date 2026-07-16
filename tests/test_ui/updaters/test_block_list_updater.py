@@ -122,6 +122,48 @@ def test_empty_virtual_leaf_is_not_added(updater):
     assert item is None
     assert root.childCount() == 0
 
+
+def test_virtual_block_cache_round_trips_without_requery(updater, mock_mw, mock_dp):
+    mapping = StoryVirtualMapping("0", "zel_00_Str_1", 1)
+    folder = StoryVirtualFolder(7, "chapter", "Intro", (), (mapping,))
+    projection = StoryVirtualProjection(
+        11,
+        (folder,),
+        (StoryVirtualSpeaker("MIDNA", (mapping,)),),
+    )
+    updater._story_projection_cache = projection
+    updater._window_kind_groups_cache = {"Dialogue": {(0, 0), (1, 1)}}
+
+    updater._persist_virtual_cache("tp", {"Wallet": [(1, 0)]})
+
+    restored = BlockListUpdater(mock_mw, mock_dp)
+    assert restored._restore_persisted_virtual_cache("tp") is True
+    assert restored._story_projection_cache == projection
+    assert restored._reference_item_groups_cache == {"Wallet": [(1, 0)]}
+    assert restored._window_kind_groups_cache == {"Dialogue": {(0, 0), (1, 1)}}
+
+
+def test_virtual_ready_callback_waits_for_story_worker(updater):
+    callback = MagicMock()
+    updater._is_loading_chapters = True
+
+    updater.when_virtual_blocks_ready(callback)
+    callback.assert_not_called()
+
+    updater._notify_virtual_blocks_ready()
+    callback.assert_called_once_with()
+
+
+def test_story_worker_starts_while_startup_splash_exists(updater):
+    worker = MagicMock()
+    worker.isRunning.return_value = False
+    updater._chapters_load_worker = worker
+    updater.mw._startup_splash = MagicMock()
+
+    updater._start_chapters_worker_when_ready()
+
+    worker.start.assert_called_once_with()
+
 @pytest.fixture
 def updater(mock_mw, mock_dp):
     return BlockListUpdater(mock_mw, mock_dp)

@@ -232,6 +232,7 @@ class SessionManager:
             "unsaved_changes": snapshot.get("unsaved_changes", False),
             "unsaved_block_indices": unsaved_blocks,
             "block_to_project_file_map": block_to_file_serialized,
+            "virtual_block_cache": self._to_json_safe_value(snapshot.get("virtual_block_cache", {})),
             "problems_per_subline": problems_serialized,
             "plugin_original_keys": snapshot.get("plugin_original_keys"),
             "plugin_runtime_state": self._to_json_safe_value(snapshot.get("plugin_runtime_state")),
@@ -307,6 +308,7 @@ class SessionManager:
             "unsaved_changes": json_data.get("unsaved_changes", False),
             "unsaved_block_indices": unsaved_blocks,
             "block_to_project_file_map": block_to_file_deserialized,
+            "virtual_block_cache": self._from_json_safe_value(json_data.get("virtual_block_cache", {})),
             "problems_per_subline": problems_deserialized,
             "plugin_original_keys": json_data.get("plugin_original_keys"),
             "plugin_runtime_state": self._from_json_safe_value(json_data.get("plugin_runtime_state")),
@@ -510,6 +512,7 @@ class SessionManager:
                         "unsaved_changes": restored_store.__dict__.get("unsaved_changes", False),
                         "unsaved_block_indices": restored_store.__dict__.get("unsaved_block_indices", set()),
                         "block_to_project_file_map": restored_store.__dict__.get("block_to_project_file_map", {}),
+                        "virtual_block_cache": restored_store.__dict__.get("virtual_block_cache", {}),
                         "problems_per_subline": dict(restored_store.__dict__.get("problems_per_subline", {})),
                         "plugin_original_keys": restored_store.__dict__.get("plugin_original_keys"),
                     }

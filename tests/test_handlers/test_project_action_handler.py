@@ -496,6 +496,40 @@ def test_ProjectActionHandler_populate_blocks_from_project_session_restore(mock_
         on_completed_mock.assert_called_once_with(True)
 
 
+def test_startup_splash_waits_for_restored_virtual_blocks(mock_mw):
+    from ui.updaters.block_list_updater import BlockListUpdater
+
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project.blocks = [
+        MagicMock(source_file='a.json', translation_file='t_a.json')
+    ]
+    mock_mw.project_manager.get_absolute_path.side_effect = lambda path, **kwargs: "abs_" + path
+    mock_mw.current_game_rules = MagicMock()
+    mock_mw._startup_splash = MagicMock()
+    mock_mw.finish_startup_loading = MagicMock()
+    mock_mw.data_store.data = [["restored"]]
+    mock_mw.data_store.block_to_project_file_map = {0: 0}
+
+    data_processor = MagicMock()
+    data_processor.load_session_file.return_value = True
+    block_updater = BlockListUpdater(mock_mw, data_processor)
+    block_updater._is_loading_chapters = True
+    mock_mw.ui_updater.block_list_updater = block_updater
+    handler = ProjectActionHandler(mock_mw, data_processor, mock_mw.ui_updater)
+    completed = MagicMock()
+
+    handler._populate_blocks_from_project(on_completed=completed)
+
+    completed.assert_not_called()
+    mock_mw.finish_startup_loading.assert_not_called()
+
+    block_updater._is_loading_chapters = False
+    block_updater._notify_virtual_blocks_ready()
+
+    completed.assert_called_once_with(True)
+    mock_mw.finish_startup_loading.assert_called_once_with()
+
+
 def test_ProjectActionHandler_populate_blocks_from_project_empty_session_falls_back(mock_mw):
     mock_mw.project_manager = MagicMock()
     mock_block = MagicMock(source_file='a.json', translation_file='t_a.json', name="Block A")
