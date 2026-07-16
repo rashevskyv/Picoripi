@@ -355,7 +355,9 @@ class GlossaryManager:
             return None
         existing = next((entry for entry in self._entries if entry.original == original_key), None)
         if existing:
-            return self.update_entry(original_key, translation, notes, profiled=profiled)
+            return self.update_entry(
+                original_key, translation, notes, section=section, profiled=profiled
+            )
         new_entry = GlossaryEntry(
             original=original_key,
             translation=translation.strip(),

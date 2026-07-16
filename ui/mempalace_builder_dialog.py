@@ -534,22 +534,13 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         self.story_tree_status_label.setStyleSheet("color: #107c41; font-weight: bold;")
         self.match_dialogue_btn.setEnabled(bool(getattr(self.mw.data_store, "data", None)))
 
-    @pyqtSlot()
-    def _start_dialogue_node_mapping(self) -> None:
-        if self.story_document_id is None:
-            QMessageBox.warning(
-                self,
-                "Story tree required",
-                "Import a Markup Studio Project before matching game strings.",
-            )
-            return
-        store = getattr(self.mw, "data_store", None)
-        data = getattr(store, "data", None)
-        if not isinstance(data, list) or not data:
-            QMessageBox.warning(self, "Open project required", "Open a game project first.")
-            return
+    def _game_messages_for_story_alignment(self, data) -> list[GameMessage]:
+        """Build alignment inputs while honoring plugin window-type exclusions."""
         game_messages = []
+        store = getattr(self.mw, "data_store", None)
         block_names = getattr(store, "block_names", {}) or {}
+        rules = getattr(self.mw, "current_game_rules", None)
+        eligible = getattr(rules, "should_auto_match_story_context", None)
         for block_index, block in enumerate(data):
             if not isinstance(block, list):
                 continue
@@ -566,6 +557,12 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 text = str(value or "")
                 if not text.strip():
                     continue
+                if callable(eligible):
+                    try:
+                        if eligible(block_index, string_index) is False:
+                            continue
+                    except Exception:
+                        pass
                 game_messages.append(GameMessage(
                     message_id=len(game_messages),
                     block_id=str(block_index),
@@ -574,8 +571,27 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                     stable_id=f"{block_name}_Str_{string_index}",
                     text=text,
                 ))
+        return game_messages
+
+    @pyqtSlot()
+    def _start_dialogue_node_mapping(self) -> None:
+        if self.story_document_id is None:
+            QMessageBox.warning(
+                self,
+                "Story tree required",
+                "Import a Markup Studio Project before matching game strings.",
+            )
+            return
+        store = getattr(self.mw, "data_store", None)
+        data = getattr(store, "data", None)
+        if not isinstance(data, list) or not data:
+            QMessageBox.warning(self, "Open project required", "Open a game project first.")
+            return
+        game_messages = self._game_messages_for_story_alignment(data)
         if not game_messages:
-            QMessageBox.information(self, "Nothing to match", "The open project has no text strings.")
+            QMessageBox.information(
+                self, "Nothing to match", "The open project has no eligible dialogue strings."
+            )
             return
 
         self.match_dialogue_btn.setEnabled(False)

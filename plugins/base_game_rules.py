@@ -121,6 +121,14 @@ class BaseGameRules:
             return self.mw.display_name
         return "Base Game (No Plugin)"
 
+    def should_auto_match_story_context(self, block_idx: int, string_idx: int) -> bool:
+        """Whether this physical string may participate in automatic dialogue matching."""
+        return True
+
+    def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        """Game metadata that should accompany this string in AI translation workflows."""
+        return {}
+
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
         """Get the problem definitions."""
         return {}

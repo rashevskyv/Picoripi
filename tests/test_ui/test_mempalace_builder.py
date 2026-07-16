@@ -370,6 +370,21 @@ def test_mempalace_builder_matches_open_project_to_dialogue_nodes(qapp, qtbot, t
     assert not restored.story_context_done_btn.isHidden()
 
 
+def test_mempalace_builder_excludes_plugin_rejected_window_strings(qapp, tmp_path):
+    mock_mw, _settings = _settings_backed_main_window()
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.data_store.data = [["Twilit Parasite\nDIABABA", "Hello."]]
+    mock_mw.data_store.block_names = {"0": "zel_00"}
+    mock_mw.current_game_rules.should_auto_match_story_context.side_effect = (
+        lambda block_idx, string_idx: string_idx != 0
+    )
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=QWidget())
+
+    messages = dialog._game_messages_for_story_alignment(mock_mw.data_store.data)
+
+    assert [(item.string_index, item.text) for item in messages] == [(1, "Hello.")]
+
+
 def test_mempalace_builder_approves_and_locks_review_mapping(qapp, qtbot, tmp_path):
     mock_mw, _settings = _settings_backed_main_window()
     mock_mw.project_manager.project_dir = str(tmp_path)

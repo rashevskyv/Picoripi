@@ -193,6 +193,7 @@ class AIWorker(QObject):
                 user_template = self.task_details.get('user_prompt_template', '{text_chunk}')
                 block_data = self.task_details.get('block_data', [])
                 target_indices = self.task_details.get('target_indices', [])
+                string_contexts = self.task_details.get('string_contexts', {}) or {}
                 raw_chunk_size = self.task_details.get('chunk_size', 8000)
                 dialog_steps = self.task_details.get('dialog_steps', [])
 
@@ -206,15 +207,56 @@ class AIWorker(QObject):
                 chunk_size = max(1000, min(32000, chunk_size))
 
                 # 1. Background text aggregation
-                target_strings = [str(block_data[i]) for i in target_indices if i < len(block_data)]
+                target_strings = []
+                for string_idx in target_indices:
+                    if string_idx >= len(block_data):
+                        continue
+                    text = str(block_data[string_idx])
+                    context = string_contexts.get(string_idx) or string_contexts.get(str(string_idx))
+                    if isinstance(context, dict) and context:
+                        metadata = []
+                        if context.get('window_type'):
+                            metadata.append(f"Window Type: {context['window_type']}")
+                        if context.get('content_role'):
+                            metadata.append(f"Content Role: {context['content_role']}")
+                        if context.get('glossary_section'):
+                            metadata.append(f"Glossary Section: {context['glossary_section']}")
+                        if context.get('force_glossary'):
+                            metadata.append("Required Glossary Entry: yes")
+                        target_strings.append(
+                            "=== GAME STRING ===\n" + "\n".join(metadata) + f"\nText:\n{text}\n=== END GAME STRING ==="
+                        )
+                    else:
+                        target_strings.append(text)
                 full_text = "\n".join(target_strings)
 
                 # 2. Background tag masking first to prevent tag leakage on chunk boundaries
                 from core.tag_utils import mask_all_tags_including_visual_markers
                 masked_text = mask_all_tags_including_visual_markers(full_text)
 
-                # 3. Background chunking
-                chunks = [masked_text[i:i+chunk_size] for i in range(0, len(masked_text), chunk_size)]
+                # 3. Background chunking. When semantic records are present, keep
+                # their metadata and text together whenever one record fits.
+                if string_contexts:
+                    masked_records = [mask_all_tags_including_visual_markers(record) for record in target_strings]
+                    chunks = []
+                    current_chunk = ""
+                    for record in masked_records:
+                        separator = "\n" if current_chunk else ""
+                        if current_chunk and len(current_chunk) + len(separator) + len(record) > chunk_size:
+                            chunks.append(current_chunk)
+                            current_chunk = ""
+                            separator = ""
+                        if len(record) > chunk_size:
+                            if current_chunk:
+                                chunks.append(current_chunk)
+                                current_chunk = ""
+                            chunks.extend(record[i:i+chunk_size] for i in range(0, len(record), chunk_size))
+                        else:
+                            current_chunk += separator + record
+                    if current_chunk:
+                        chunks.append(current_chunk)
+                else:
+                    chunks = [masked_text[i:i+chunk_size] for i in range(0, len(masked_text), chunk_size)]
                 
                 total_chunks = len(chunks)
                 log_debug(f"AIWorker: Splitting text into {total_chunks} chunks of size ~{chunk_size} in background.")

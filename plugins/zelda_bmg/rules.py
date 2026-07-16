@@ -914,6 +914,31 @@ class GameRules(BaseGameRules):
             return None
         return decode_message_attributes(getattr(messages[string_idx], "info", b""))
 
+    def should_auto_match_story_context(self, block_idx: int, string_idx: int) -> bool:
+        """Keep non-dialogue boss captions out of automatic script matching."""
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        return not attrs or attrs.get("fuki_kind") != 19
+
+    def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        """Expose the BMG window kind as translation and glossary semantics."""
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        if not attrs:
+            return {}
+
+        fuki_kind = attrs.get("fuki_kind")
+        context: Dict[str, Any] = {
+            "window_type": self.get_preview_window_style(block_idx, string_idx).get(
+                "kind_name", f"Window kind {fuki_kind}"
+            ),
+        }
+        if fuki_kind == 19:
+            context.update({
+                "content_role": "BossName",
+                "glossary_section": "Boss Names",
+                "force_glossary": True,
+            })
+        return context
+
     def get_preview_window_style(self, block_idx: Optional[int] = None,
                                  string_idx: Optional[int] = None) -> Dict[str, Any]:
         """Visual style of the message window for the game-like preview.

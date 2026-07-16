@@ -189,12 +189,24 @@ class GlossaryBuilderHandler:
         resolved_system_prompt = resolve_target_language_prompt(self.prompt_data['system_prompt'], target_lang)
         resolved_user_prompt_template = resolve_target_language_prompt(self.prompt_data['user_prompt_template'], target_lang)
 
+        string_contexts = {}
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules is not None and hasattr(rules, 'get_translation_context_for_string'):
+            for string_idx in target_indices:
+                try:
+                    context = rules.get_translation_context_for_string(block_id, string_idx)
+                    if isinstance(context, dict) and context:
+                        string_contexts[string_idx] = context
+                except Exception as e:
+                    log_debug(f"Glossary context failed for ({block_id},{string_idx}): {e}")
+
         task_details = {
             'type': 'build_glossary',
             'system_prompt': resolved_system_prompt,
             'user_prompt_template': resolved_user_prompt_template,
             'block_data': block_data,
             'target_indices': target_indices,
+            'string_contexts': string_contexts,
             'chunk_size': chunk_size,
             'dialog_steps': self._status_dialog.steps,
             'block_id': block_id
@@ -267,6 +279,7 @@ class GlossaryBuilderHandler:
             term = str(item.get('term') or '').strip()
             translation = str(item.get('translation') or '').strip()
             notes = str(item.get('notes') or item.get('description') or '').strip()
+            section = str(item.get('section') or item.get('category') or '').strip()
             if not term or not translation:
                 continue
 
@@ -276,7 +289,7 @@ class GlossaryBuilderHandler:
                 continue
 
             seen_in_batch.add(normalized)
-            entry = manager.add_entry(term, translation, notes)
+            entry = manager.add_entry(term, translation, notes, section=section or None)
             if not entry:
                 continue
 

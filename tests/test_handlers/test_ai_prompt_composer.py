@@ -52,7 +52,12 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
 def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
     block = MagicMock()
     block.metadata = {
-        "story_context_assignments": {"3": {"speaker": "System"}}
+        "story_context_assignments": {"3": {
+            "speaker": "System",
+            "structure_id": 30,
+            "structure_path": ["Act One", "Memory Card"],
+            "item": "Save UI",
+        }}
     }
     composer.mw.project_manager.project.blocks = [block]
     composer.mw.block_to_project_file_map = {0: 0}
@@ -72,6 +77,36 @@ def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
     )
 
     assert '"speaker": "System"' in user
+    assert '"story_structure": "Act One > Memory Card"' in user
+    assert '"reference_item": "Save UI"' in user
+    composer._find_speaker_in_script.assert_not_called()
+
+
+def test_batch_prompt_carries_boss_name_window_context(composer):
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.current_game_rules.get_translation_context_for_string.return_value = {
+        "window_type": "Boss name",
+        "content_role": "BossName",
+        "glossary_section": "Boss Names",
+        "force_glossary": True,
+    }
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer._find_speaker_in_script = MagicMock()
+
+    _, user, _ = composer.compose_batch_request(
+        "SysPrompt",
+        [{"id": 5, "text": "Twilit Parasite\nDIABABA"}],
+        [{"id": 5, "text": "Twilit Parasite\nDIABABA"}],
+        block_idx=0,
+        mode_description="translation",
+    )
+
+    assert '"window_type": "Boss name"' in user
+    assert '"content_role": "BossName"' in user
+    assert '"speaker": "NONE"' in user
+    assert "standalone in-game boss title/name card" in user
     composer._find_speaker_in_script.assert_not_called()
 
 

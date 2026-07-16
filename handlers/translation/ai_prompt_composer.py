@@ -132,6 +132,13 @@ class AIPromptComposer(BaseTranslationHandler):
         return self.story_context.get_block_label(block_idx)
 
     def _fetch_story_context(self, block_idx: int, s_idx: int, text: str) -> Optional[str]:
+        manual = get_story_context_override(self.mw, block_idx, s_idx)
+        structure_id = manual.get("structure_id")
+        if structure_id == "story:none":
+            return None
+        structure_path = [str(part) for part in manual.get("structure_path") or () if str(part)]
+        if structure_id is not None and structure_path:
+            return "Manually assigned Story structure: " + " > ".join(structure_path)
         return self.story_context.fetch_story_context(
             block_idx, s_idx, text, self.script_speaker_finder, self.data_processor
         )
@@ -250,6 +257,16 @@ class AIPromptComposer(BaseTranslationHandler):
             elif temp_id_map and str(item_id) in temp_id_map:
                 real_b_idx, real_s_idx = temp_id_map[str(item_id)]
 
+            translation_context = {}
+            rules = getattr(self.mw, 'current_game_rules', None)
+            if rules is not None and hasattr(rules, 'get_translation_context_for_string'):
+                try:
+                    candidate = rules.get_translation_context_for_string(real_b_idx, real_s_idx)
+                    if isinstance(candidate, dict):
+                        translation_context = candidate
+                except Exception as e:
+                    log_debug(f"AIPromptComposer: translation context failed for ({real_b_idx},{real_s_idx}): {e}")
+
             # Resolve speaker
             speaker = None
             raw_spk = None
@@ -261,7 +278,9 @@ class AIPromptComposer(BaseTranslationHandler):
             manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
             manual_speaker = str(manual.get("speaker") or "").strip()
             if manual_speaker:
-                speaker = manual_speaker
+                speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
+            elif translation_context.get('content_role') == 'BossName':
+                speaker = "NONE"
             elif is_single_word:
                 speaker = "NONE"
             else:
@@ -295,12 +314,25 @@ class AIPromptComposer(BaseTranslationHandler):
                 'text': current_text_clean,
                 'speaker': speaker
             }
+            item_for_ai.update(translation_context)
+            structure_path = [
+                str(part) for part in manual.get('structure_path') or () if str(part)
+            ]
+            if manual.get('structure_id') == 'story:none':
+                item_for_ai['story_structure'] = 'None (manually unassigned)'
+            elif structure_path:
+                item_for_ai['story_structure'] = ' > '.join(structure_path)
+            manual_item = str(manual.get('item') or '').strip()
+            if manual_item:
+                item_for_ai['reference_item'] = (
+                    'None (manually unassigned)'
+                    if manual_item.casefold() == 'none' else manual_item
+                )
             if isinstance(item, dict) and item.get('scene_context'):
                 item_for_ai['scene_context'] = item['scene_context']
 
             # Game-script flow context (plugin-provided): conversation position,
             # branch conditions and follow-up game actions for this exact line
-            rules = getattr(self.mw, 'current_game_rules', None)
             if rules is not None and hasattr(rules, 'get_ai_flow_context_for_string'):
                 try:
                     flow_ctx = rules.get_ai_flow_context_for_string(real_b_idx, real_s_idx)
@@ -590,7 +622,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
                 f'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
                 'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (e.g. formal/informal). Apply this information to the entire translation.',
-                'Use "scene_context" (if present) and "speaker" to determine the correct tone, formality, and speech mannerisms.',
+                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine whether text is dialogue, a caption, a name, an item, or another UI role and translate it accordingly.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -605,7 +637,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 'Each object must have the original "id" and a "translation" field.',
                 'The number of objects must match the input.',
                 'GLOSSARY IS MANDATORY: Every term in the "glossary" MUST be translated exactly as specified. No synonyms or alternatives allowed.',
-                'Use "scene_context" (if present) and "speaker" to determine tone, gender agreement, and form of address.',
+                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine the text role, tone, gender agreement, and form of address.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -618,6 +650,12 @@ class AIPromptComposer(BaseTranslationHandler):
                 'player choices, the conditions under which a line appears (e.g. wolf form, not enough rupees) '
                 'and game actions that follow it. Use this to keep replies coherent with their questions, '
                 'match choice answers to the choice prompt, and pick the correct tone and referents.'
+            )
+
+        if any(it.get('content_role') == 'BossName' for it in items_with_context):
+            instructions.append(
+                'BOSS NAMES: An item with "content_role": "BossName" is a standalone in-game boss title/name card, '
+                'not spoken dialogue. Translate it consistently as a proper boss name/title and preserve its line structure.'
             )
 
         if tag_alias_legend:
@@ -732,8 +770,19 @@ class AIPromptComposer(BaseTranslationHandler):
             if block_idx is not None and string_idx is not None else {}
         )
         manual_speaker = str(manual.get("speaker") or "").strip()
+        translation_context = {}
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules is not None and block_idx is not None and string_idx is not None and hasattr(rules, 'get_translation_context_for_string'):
+            try:
+                candidate = rules.get_translation_context_for_string(block_idx, string_idx)
+                if isinstance(candidate, dict):
+                    translation_context = candidate
+            except Exception as e:
+                log_debug(f"AIPromptComposer: single-string translation context failed: {e}")
         if manual_speaker:
-            speaker = manual_speaker
+            speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
+        elif translation_context.get('content_role') == 'BossName':
+            speaker = "NONE"
         elif is_single_word:
             speaker = "NONE"
         elif block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
@@ -793,6 +842,25 @@ class AIPromptComposer(BaseTranslationHandler):
             context_lines.append(f'Row: #{string_idx}')
         if mode_description:
             context_lines.append(f'Mode: {mode_description}')
+        if translation_context.get('window_type'):
+            context_lines.append(f"Window Type: {translation_context['window_type']}")
+        if translation_context.get('content_role'):
+            context_lines.append(f"Content Role: {translation_context['content_role']}")
+        structure_path = [
+            str(part) for part in manual.get('structure_path') or () if str(part)
+        ]
+        if manual.get('structure_id') == 'story:none':
+            context_lines.append('Story Structure: None (manually unassigned)')
+        elif structure_path:
+            context_lines.append('Story Structure: ' + ' > '.join(structure_path))
+        manual_item = str(manual.get('item') or '').strip()
+        if manual_item:
+            context_lines.append(
+                'Reference Item: ' + (
+                    'None (manually unassigned)'
+                    if manual_item.casefold() == 'none' else manual_item
+                )
+            )
 
         # Fetch story context from MemePalace if available
         if block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:

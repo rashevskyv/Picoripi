@@ -138,6 +138,56 @@ def test_gbh_start_async_glossary_task(mock_dialog, mock_thread, mock_worker, mo
     assert gbh._worker == mock_worker_inst
     assert gbh._thread == mock_thread_inst
 
+
+@patch('handlers.translation.glossary_builder_handler.QApplication.processEvents')
+@patch('handlers.translation.glossary_builder_handler.AIWorker')
+@patch('handlers.translation.glossary_builder_handler.QThread')
+@patch('handlers.translation.glossary_builder_handler.AIStatusDialog')
+def test_gbh_passes_window_context_to_glossary_worker(mock_dialog, mock_thread, mock_worker, mock_process_events, gbh):
+    gbh.mw.statusBar = MagicMock()
+    gbh.mw.glossary_manager = MagicMock()
+    gbh.mw.current_game_rules.get_translation_context_for_string.return_value = {
+        "window_type": "Boss name",
+        "content_role": "BossName",
+        "glossary_section": "Boss Names",
+        "force_glossary": True,
+    }
+
+    gbh._start_async_glossary_task(0, MagicMock(), {}, ["Twilit Parasite\nDIABABA"], [0], 1000)
+
+    task_details = mock_worker.call_args.args[2]
+    assert task_details["string_contexts"][0]["content_role"] == "BossName"
+
+
+def test_ai_worker_formats_required_boss_name_for_glossary():
+    from handlers.translation.ai_worker import AIWorker
+
+    mock_provider = MagicMock()
+    mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
+    worker = AIWorker(mock_provider, None, {
+        "type": "build_glossary",
+        "system_prompt": "sys",
+        "user_prompt_template": "{text_chunk}",
+        "block_data": ["Twilit Parasite\nDIABABA"],
+        "target_indices": [0],
+        "string_contexts": {0: {
+            "window_type": "Boss name",
+            "content_role": "BossName",
+            "glossary_section": "Boss Names",
+            "force_glossary": True,
+        }},
+        "chunk_size": 1000,
+    })
+
+    worker.run()
+
+    prompt = mock_provider.translate.call_args.args[0][1]["content"]
+    assert "Window Type: Boss name" in prompt
+    assert "Content Role: BossName" in prompt
+    assert "Glossary Section: Boss Names" in prompt
+    assert "Required Glossary Entry: yes" in prompt
+    assert "Twilit Parasite\nDIABABA" in prompt
+
 def test_ai_worker_build_glossary_background_processing():
     from handlers.translation.ai_worker import AIWorker
     from core.translation.providers import ProviderResponse
@@ -274,10 +324,31 @@ def test_gbh_on_glossary_success(mock_box, gbh):
     resp = ProviderResponse(raw_payload=[{"term": "Test", "translation": "Тест"}], text="")
     gbh._on_glossary_success(resp, {}, mock_sb)
     
-    mock_mgr.add_entry.assert_called_with("Test", "Тест", "")
+    mock_mgr.add_entry.assert_called_with("Test", "Тест", "", section=None)
     mock_mgr.save_to_disk.assert_called()
     mock_box.information.assert_called()
     mock_sb.showMessage.assert_called()
+
+
+@patch('handlers.translation.glossary_builder_handler.QMessageBox')
+def test_gbh_preserves_ai_glossary_section(mock_box, gbh):
+    mock_mgr = MagicMock()
+    mock_mgr.get_entries.return_value = []
+    mock_mgr.add_entry.return_value = True
+    mock_mgr.normalize_term.side_effect = lambda t: t.lower()
+    gbh._glossary_manager = mock_mgr
+
+    response = ProviderResponse(raw_payload=[{
+        "term": "DIABABA",
+        "translation": "ДІАБАБА",
+        "notes": "Бос із титулом «Сутінковий паразит».",
+        "section": "Boss Names",
+    }], text="")
+    gbh._on_glossary_success(response, {}, MagicMock())
+
+    mock_mgr.add_entry.assert_called_with(
+        "DIABABA", "ДІАБАБА", "Бос із титулом «Сутінковий паразит».", section="Boss Names"
+    )
 
 @patch('handlers.translation.glossary_builder_handler.QMessageBox')
 def test_gbh_on_glossary_error_cancelled(mock_box, gbh):

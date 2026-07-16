@@ -152,6 +152,27 @@ def test_rules_message_attributes_and_style(bmg_rules):
     assert bmg_rules.get_message_attributes(0, "bad") is None
 
 
+def test_boss_names_are_excluded_from_automatic_story_matching(bmg_rules):
+    bmg_rules.last_loaded_bmg = _FakeBmg([
+        _FakeMsg(_info(fuki_kind=19)),
+        _FakeMsg(_info(fuki_kind=0)),
+    ])
+
+    assert not bmg_rules.should_auto_match_story_context(0, 0)
+    assert bmg_rules.should_auto_match_story_context(0, 1)
+
+    boss_context = bmg_rules.get_translation_context_for_string(0, 0)
+    assert boss_context == {
+        "window_type": "Boss name",
+        "content_role": "BossName",
+        "glossary_section": "Boss Names",
+        "force_glossary": True,
+    }
+    assert bmg_rules.get_translation_context_for_string(0, 1) == {
+        "window_type": "Dialogue",
+    }
+
+
 @pytest.mark.parametrize("kind, warn, max_width, lines", [
     (0, 410, 435, 4),    # all talk variants use the JSON default
     (2, 340, 360, 4),    # wooden sign
