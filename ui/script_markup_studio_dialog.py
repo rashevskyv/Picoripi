@@ -1037,6 +1037,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self._outline_reveal_keys: set[str] = set()
         self._outline_expansion_overrides: dict[str, bool] = {}
         self._outline_expansion_signal_suspended = 0
+        self._outline_search_expansion_state: dict[str, bool] | None = None
         self._hierarchy_outline_signature = None
         self._collapsed_hierarchy_keys: set[str] = set()
         self._raw_line_depths: dict[int, int] = {}
@@ -1638,6 +1639,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self.outline_panel.setMinimumWidth(260)
         outline_layout = QVBoxLayout(self.outline_panel)
         outline_layout.setContentsMargins(0, 0, 0, 0)
+        outline_layout.setSpacing(4)
         outline_header = QHBoxLayout()
         outline_header.setContentsMargins(0, 0, 0, 0)
         self.outline_label = QLabel("Script tree (double-click to jump):")
@@ -1655,6 +1657,17 @@ class ScriptMarkupStudioDialog(QDialog):
         self.collapse_tree_btn.clicked.connect(self._collapse_outline_all)
         outline_header.addWidget(self.collapse_tree_btn)
         outline_layout.addLayout(outline_header)
+        self.outline_search_edit = QLineEdit()
+        self.outline_search_edit.setPlaceholderText("Search tree…")
+        self.outline_search_edit.setClearButtonEnabled(True)
+        self.outline_search_edit.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.outline_search_edit.setToolTip(
+            "Filter the script tree or review queue. Matching branches are expanded automatically."
+        )
+        self.outline_search_edit.textChanged.connect(self._on_outline_search_changed)
+        outline_layout.addWidget(self.outline_search_edit)
         self.flags_list = _ScriptTreeWidget(self)
         self.flags_list.setToolTip(
             "Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename."
@@ -5371,6 +5384,56 @@ class ScriptMarkupStudioDialog(QDialog):
     def _collapse_outline_all(self):
         self.flags_list.collapseAll()
 
+    def _on_outline_search_changed(self, text: str):
+        query = str(text or "").strip()
+        if query and self._outline_search_expansion_state is None:
+            self._outline_search_expansion_state = self._collect_outline_expansion_state()
+        self._apply_outline_tree_filter(query)
+        if not query and self._outline_search_expansion_state is not None:
+            state = self._outline_search_expansion_state
+            self._outline_search_expansion_state = None
+            self._restore_outline_search_expansion_state(state)
+
+    def _apply_outline_tree_filter(self, query: str | None = None):
+        if query is None:
+            query = self.outline_search_edit.text()
+        needle = str(query or "").strip().casefold()
+
+        def filter_item(item: QTreeWidgetItem, ancestor_matches: bool = False) -> bool:
+            own_match = bool(needle) and needle in item.text(0).casefold()
+            child_visible = False
+            for index in range(item.childCount()):
+                child_visible = filter_item(
+                    item.child(index), ancestor_matches or own_match
+                ) or child_visible
+            visible = not needle or ancestor_matches or own_match or child_visible
+            item.setHidden(not visible)
+            if needle and visible and (own_match or child_visible):
+                item.setExpanded(True)
+            return visible
+
+        self._set_outline_expansion_signals_suspended(True)
+        try:
+            for index in range(self.flags_list.topLevelItemCount()):
+                filter_item(self.flags_list.topLevelItem(index))
+        finally:
+            self._set_outline_expansion_signals_suspended(False)
+
+    def _restore_outline_search_expansion_state(self, state: dict[str, bool]):
+        def walk(item: QTreeWidgetItem):
+            key = self._outline_item_data(item, _OUTLINE_ENTRY_KEY_ROLE)
+            if key is not None and str(key) in state:
+                item.setExpanded(bool(state[str(key)]))
+            for index in range(item.childCount()):
+                walk(item.child(index))
+
+        self._set_outline_expansion_signals_suspended(True)
+        try:
+            for index in range(self.flags_list.topLevelItemCount()):
+                walk(self.flags_list.topLevelItem(index))
+        finally:
+            self._set_outline_expansion_signals_suspended(False)
+
     def _queue_outline_reveal(self, *keys: str | None):
         for key in keys:
             if key:
@@ -5680,6 +5743,8 @@ class ScriptMarkupStudioDialog(QDialog):
                 self.flags_list.horizontalScrollBar().setValue(
                     min(horizontal_scroll, self.flags_list.horizontalScrollBar().maximum())
                 )
+        if self.outline_search_edit.text().strip():
+            self._apply_outline_tree_filter()
         self._hierarchy_outline_signature = signature
 
     def _refresh_custom(self):
@@ -5769,6 +5834,8 @@ class ScriptMarkupStudioDialog(QDialog):
             item.setData(0, _OUTLINE_LINE_ROLE, line_no)
             item.setData(0, _OUTLINE_ENTRY_KEY_ROLE, f"flag:{line_no}:{reason}")
             self.flags_list.addTopLevelItem(item)
+        if self.outline_search_edit.text().strip():
+            self._apply_outline_tree_filter()
 
     def _outline_item_data(self, item: QTreeWidgetItem | None, role):
         try:

@@ -2147,6 +2147,44 @@ def test_studio_can_expand_collapse_tree_and_use_mark_shortcuts(qapp):
     assert ignored[0].start_line == 2
 
 
+def test_studio_tree_search_filters_branches_and_survives_tree_refresh(qapp):
+    dialog = _make_dialog(qapp)
+    _use_hierarchy_mode(dialog)
+    dialog.raw_edit.setPlainText("Act One\nMIDNA\nHello.\nAct Two\nZANT\nBegone.\n")
+    dialog.hierarchy_marks = [
+        HierarchyMark(0, 2, 0, HierarchyType.STRUCTURE, text="Act One", order=1),
+        HierarchyMark(1, 2, 1, HierarchyType.SPEAKER, text="MIDNA", order=2),
+        HierarchyMark(2, 2, 2, HierarchyType.TEXT, order=3),
+        HierarchyMark(3, 5, 0, HierarchyType.STRUCTURE, text="Act Two", order=4),
+        HierarchyMark(4, 5, 1, HierarchyType.SPEAKER, text="ZANT", order=5),
+        HierarchyMark(5, 5, 2, HierarchyType.TEXT, order=6),
+    ]
+    dialog._refresh()
+    act_one = dialog.flags_list.topLevelItem(0)
+    act_two = dialog.flags_list.topLevelItem(1)
+    act_one.setExpanded(False)
+
+    dialog.outline_search_edit.setText("midna")
+
+    assert not act_one.isHidden()
+    assert not act_one.child(0).isHidden()
+    assert act_one.isExpanded()
+    assert act_two.isHidden()
+
+    dialog._refresh()
+    assert dialog.flags_list.topLevelItem(1).isHidden()
+
+    dialog.outline_search_edit.clear()
+    assert not dialog.flags_list.topLevelItem(0).isHidden()
+    assert not dialog.flags_list.topLevelItem(1).isHidden()
+    assert not dialog.flags_list.topLevelItem(0).isExpanded()
+
+    dialog.outline_search_edit.setText("second")
+    dialog._fill_flags([(1, "First issue"), (2, "Second issue")])
+    assert dialog.flags_list.topLevelItem(0).isHidden()
+    assert not dialog.flags_list.topLevelItem(1).isHidden()
+
+
 def test_studio_hierarchy_type_shortcuts_select_type_without_selection(qapp):
     dialog = _make_dialog(qapp)
     _use_hierarchy_mode(dialog)
