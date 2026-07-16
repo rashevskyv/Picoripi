@@ -1993,7 +1993,8 @@ def test_studio_auto_marks_are_visible_and_can_be_approved_as_examples(qapp):
     assert "[Auto]" in item.text(0)
     assert dialog._approve_hierarchy_mark_keys([dialog._hierarchy_mark_key(automatic)]) == 1
     assert automatic.approved
-    assert "[Auto✓]" in dialog.flags_list.topLevelItem(0).text(0)
+    assert "[Auto]" in dialog.flags_list.topLevelItem(0).text(0)
+    assert "✓" not in dialog.flags_list.topLevelItem(0).text(0)
 
     payload = dialog._hierarchy_project_payload()
     restored = _make_dialog(qapp)
@@ -2910,6 +2911,31 @@ def test_studio_opens_builder_project_at_exact_line_without_reloading_it_twice(q
     assert studio.open_hierarchy_project_at_line(str(project_path), 3)
     assert studio.raw_edit.textCursor().blockNumber() == 3
     assert "Unsaved new markup" in studio.raw_edit.toPlainText()
+
+
+def test_studio_assigns_linked_dialogue_to_speaker_and_saves(qapp, tmp_path):
+    studio = _make_dialog(qapp)
+    _use_hierarchy_mode(studio)
+    studio.raw_edit.setPlainText("LETTER\nAbout Mail Delivery\n")
+    studio.hierarchy_marks = [
+        HierarchyMark(
+            0, 0, 3, HierarchyType.SPEAKER, text="LETTER", order=1,
+            origin="speaker_assignment",
+        ),
+        HierarchyMark(1, 1, 4, HierarchyType.TEXT, order=2),
+    ]
+    studio._refresh()
+    project_path = tmp_path / "script_markup_project.json"
+    project_path.write_text(
+        json.dumps(studio._hierarchy_project_payload()), encoding="utf-8"
+    )
+    studio.current_hierarchy_project_path = str(project_path.resolve())
+
+    assert studio.assign_speaker_at_line(str(project_path), 1, "POSTMAN")
+
+    assert studio.hierarchy_marks[0].text == "POSTMAN"
+    saved = json.loads(project_path.read_text(encoding="utf-8"))
+    assert saved["hierarchy_marks"][0]["text"] == "POSTMAN"
 
 
 def test_studio_tree_disclosure_click_never_schedules_rename(qapp, monkeypatch):
