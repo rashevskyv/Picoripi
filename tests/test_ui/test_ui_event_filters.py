@@ -5,7 +5,7 @@ from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QComboBox, QWidget
 from PyQt6.QtTest import QTest
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
-from ui.builders.layout_builder import NavigableLabel
+from ui.builders.layout_builder import ClickableLabel, NavigableLabel
 
 
 def test_story_navigation_double_click_is_owned_by_label(qtbot):
@@ -16,6 +16,18 @@ def test_story_navigation_double_click_is_owned_by_label(qtbot):
     label.show()
 
     QTest.mouseDClick(label, Qt.MouseButton.LeftButton)
+
+    assert received == [True]
+
+
+def test_original_width_value_emits_single_click(qtbot):
+    label = ClickableLabel("128 px")
+    qtbot.addWidget(label)
+    received = []
+    label.clicked.connect(lambda: received.append(True))
+    label.show()
+
+    QTest.mouseClick(label, Qt.MouseButton.LeftButton)
 
     assert received == [True]
 

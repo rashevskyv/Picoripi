@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter,
     QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox, QMenu, QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -16,6 +16,19 @@ class NavigableLabel(QLabel):
     def mouseDoubleClickEvent(self, event):
         self.doubleClicked.emit()
         event.accept()
+
+
+class ClickableLabel(QLabel):
+    """Read-only value that exposes a deliberate single-click action."""
+
+    clicked = pyqtSignal()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+            event.accept()
+            return
+        super().mousePressEvent(event)
 
 class LayoutBuilder:
     """Layout builder implementation."""
@@ -210,11 +223,15 @@ class LayoutBuilder:
         original_tools_layout.setSpacing(6)
 
         original_tools_layout.addWidget(QLabel("Max-width:"))
-        self.mw.original_width_label = QLabel("")
+        self.mw.original_width_label = ClickableLabel("")
         self.mw.original_width_label.setObjectName("original_width_value")
         self.mw.original_width_label.setStyleSheet(
             "QLabel#original_width_value { font-weight: bold; padding: 1px 6px; "
             "border: 1px solid palette(mid); border-radius: 3px; }"
+        )
+        self.mw.original_width_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.mw.original_width_label.setToolTip(
+            "Click to copy this original-text width to the translation Max-width field."
         )
         original_tools_layout.addWidget(self.mw.original_width_label)
         original_tools_layout.addStretch(1)
@@ -223,8 +240,8 @@ class LayoutBuilder:
         self.mw.hide_original_tags_checkbox.setToolTip("Hide tags in all text panels. (Ctrl+Q)")
         self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         original_tools_layout.addWidget(self.mw.hide_original_tags_checkbox)
-        left_header_layout.addLayout(original_tools_layout)
         left_header_layout.addStretch(1)
+        left_header_layout.addLayout(original_tools_layout)
 
         original_header_layout = QHBoxLayout()
         original_header_layout.setContentsMargins(0, 0, 0, 0)
@@ -404,66 +421,24 @@ class LayoutBuilder:
 
         control_height = 30
 
-        # Action row: message-window context and actions for the current string.
-        editable_text_header_layout = QHBoxLayout()
-        editable_text_header_layout.setContentsMargins(0, 0, 0, 0)
-        editable_text_header_layout.setSpacing(4)
+        header_grid = QGridLayout()
+        header_grid.setContentsMargins(0, 2, 0, 2)
+        header_grid.setHorizontalSpacing(4)
+        header_grid.setVerticalSpacing(2)
+        compact_context_height = 28
+        compact_context_width = 220
+        compact_label_width = 62
 
-        # Current message window type (derived from game data by the plugin)
+        # Row 1: window information on the left, actions on the far right.
         self.mw.window_kind_label = NavigableLabel("Window:")
         self.mw.window_kind_label.setStyleSheet(
             "font-weight: bold; color: #2e7d32; font-size: 13px;"
         )
         self.mw.window_kind_label.setToolTip(
             "Message window type from the game data. Double-click to open the physical game block.")
-        editable_text_header_layout.addStretch(1)
-
-        self.mw.navigate_down_button = QPushButton()
-        self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowDown))
-        self.mw.navigate_down_button.setToolTip("Navigate to next problem string (Ctrl+Down)")
-        self.mw.navigate_down_button.setFixedSize(control_height, control_height)
-        editable_text_header_layout.addWidget(self.mw.navigate_down_button)
-
-        self.mw.navigate_up_button = QPushButton()
-        self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
-        self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
-        self.mw.navigate_up_button.setFixedSize(control_height, control_height)
-        editable_text_header_layout.addWidget(self.mw.navigate_up_button)
-
-        self.mw.ai_translate_button = QPushButton('AI Translate')
-        self.mw.ai_translate_button.setFixedHeight(control_height)
-        editable_text_header_layout.addWidget(self.mw.ai_translate_button)
-
-        self.mw.ai_variation_button = QPushButton('AI Variation')
-        self.mw.ai_variation_button.setFixedHeight(control_height)
-        editable_text_header_layout.addWidget(self.mw.ai_variation_button)
-
-        self.mw.auto_fix_button = QPushButton('Auto-fix')
-        self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
-        self.mw.auto_fix_button.setFixedHeight(control_height)
-        editable_text_header_layout.addWidget(self.mw.auto_fix_button)
-        
-        right_header_layout.addLayout(editable_text_header_layout)
-
-        # String Settings Panel
-        string_settings_panel = QWidget()
-        string_settings_layout = QHBoxLayout(string_settings_panel)
-        string_settings_layout.setContentsMargins(0, 4, 0, 4)
-
-        # Window, Chapter and Speaker/Item form one left-aligned vertical column.
-        # Only Speaker/Item is editable.
-        context_layout = QVBoxLayout()
-        context_layout.setContentsMargins(0, 0, 0, 0)
-        context_layout.setSpacing(2)
-        compact_context_height = 28
-        compact_context_width = 250
-        compact_label_width = 62
-
-        window_layout = QHBoxLayout()
-        window_layout.setContentsMargins(0, 0, 0, 0)
-        window_layout.setSpacing(4)
         self.mw.window_kind_label.setFixedWidth(compact_label_width)
-        window_layout.addWidget(self.mw.window_kind_label)
+        header_grid.addWidget(self.mw.window_kind_label, 0, 0)
+
         self.mw.window_kind_value_label = QLabel("")
         self.mw.window_kind_value_label.setFixedWidth(compact_context_width)
         self.mw.window_kind_value_label.setFixedHeight(compact_context_height)
@@ -472,12 +447,45 @@ class LayoutBuilder:
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
         self.mw.window_kind_value_label.setToolTip(self.mw.window_kind_label.toolTip())
-        window_layout.addWidget(self.mw.window_kind_value_label)
-        context_layout.addLayout(window_layout)
+        header_grid.addWidget(self.mw.window_kind_value_label, 0, 1)
 
-        chapter_layout = QHBoxLayout()
-        chapter_layout.setContentsMargins(0, 0, 0, 0)
-        chapter_layout.setSpacing(4)
+        editor_action_group = QWidget()
+        editor_action_layout = QHBoxLayout(editor_action_group)
+        editor_action_layout.setContentsMargins(0, 0, 0, 0)
+        editor_action_layout.setSpacing(4)
+
+        self.mw.navigate_down_button = QPushButton()
+        self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowDown))
+        self.mw.navigate_down_button.setToolTip("Navigate to next problem string (Ctrl+Down)")
+        self.mw.navigate_down_button.setFixedSize(control_height, control_height)
+        editor_action_layout.addWidget(self.mw.navigate_down_button)
+
+        self.mw.navigate_up_button = QPushButton()
+        self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
+        self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
+        self.mw.navigate_up_button.setFixedSize(control_height, control_height)
+        editor_action_layout.addWidget(self.mw.navigate_up_button)
+
+        self.mw.ai_translate_button = QPushButton('AI Translate')
+        self.mw.ai_translate_button.setFixedHeight(control_height)
+        editor_action_layout.addWidget(self.mw.ai_translate_button)
+
+        self.mw.ai_variation_button = QPushButton('AI Variation')
+        self.mw.ai_variation_button.setFixedHeight(control_height)
+        editor_action_layout.addWidget(self.mw.ai_variation_button)
+
+        self.mw.auto_fix_button = QPushButton('Auto-fix')
+        self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
+        self.mw.auto_fix_button.setFixedHeight(control_height)
+        editor_action_layout.addWidget(self.mw.auto_fix_button)
+        header_grid.addWidget(
+            editor_action_group,
+            0,
+            3,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
+
+        # Row 2: chapter assignment.
         self.mw.chapter_select_label = NavigableLabel("Chapter:")
         self.mw.chapter_select_label.setStyleSheet(
             "font-weight: bold; color: #6a1b9a; font-size: 13px;"
@@ -486,20 +494,18 @@ class LayoutBuilder:
             "Double-click to open this row in its virtual Chapter."
         )
         self.mw.chapter_select_label.setFixedWidth(compact_label_width)
-        chapter_layout.addWidget(self.mw.chapter_select_label)
-        self.mw.chapter_value_label = QLabel("")
-        self.mw.chapter_value_label.setFixedWidth(compact_context_width)
-        self.mw.chapter_value_label.setFixedHeight(compact_context_height)
-        self.mw.chapter_value_label.setStyleSheet("color: #000000; font-size: 13px;")
-        self.mw.chapter_value_label.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        header_grid.addWidget(self.mw.chapter_select_label, 1, 0)
+        self.mw.chapter_combobox = QComboBox()
+        self.mw.chapter_combobox.setFixedWidth(compact_context_width)
+        self.mw.chapter_combobox.setFixedHeight(compact_context_height)
+        self.mw.chapter_combobox.setStyleSheet("font-size: 13px;")
+        self.mw.chapter_combobox.setToolTip(
+            "Assign this row to a Story chapter or scene, including rows without a script link."
         )
-        self.mw.chapter_value_label.setToolTip(
-            "Story structure from Markup Studio. Double-click to open its virtual folder."
-        )
-        self.mw.chapter_value_label.story_structure_id = None
-        chapter_layout.addWidget(self.mw.chapter_value_label)
-        context_layout.addLayout(chapter_layout)
+        self.mw.chapter_combobox.story_structure_id = None
+        # Compatibility alias for navigation code and older UI tests.
+        self.mw.chapter_value_label = self.mw.chapter_combobox
+        header_grid.addWidget(self.mw.chapter_combobox, 1, 1)
 
         self.mw.speaker_label = QLabel("")
         self.mw.speaker_label.setObjectName("speaker_label")
@@ -507,17 +513,14 @@ class LayoutBuilder:
         self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
         self.mw.speaker_label.setVisible(False)
 
-        # Speaker Assignment ComboBox
-        speaker_layout = QHBoxLayout()
-        speaker_layout.setContentsMargins(0, 0, 0, 0)
-        speaker_layout.setSpacing(4)
+        # Row 3: speaker on the left, all translation formatting on the right.
         self.mw.speaker_select_label = NavigableLabel("Speaker:")
         self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; font-size: 13px;")
         self.mw.speaker_select_label.setToolTip(
             "Double-click to open this row in its virtual Speaker or Item block."
         )
         self.mw.speaker_select_label.setFixedWidth(compact_label_width)
-        speaker_layout.addWidget(self.mw.speaker_select_label)
+        header_grid.addWidget(self.mw.speaker_select_label, 2, 0)
         self.mw.speaker_combobox = QComboBox()
         self.mw.speaker_combobox.setEditable(True)
         self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
@@ -525,29 +528,27 @@ class LayoutBuilder:
         self.mw.speaker_combobox.setFixedHeight(compact_context_height)
         self.mw.speaker_combobox.setStyleSheet("font-size: 13px;")
         self.mw.speaker_combobox.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        speaker_layout.addWidget(self.mw.speaker_combobox)
-        context_layout.addLayout(speaker_layout)
-        string_settings_layout.addLayout(context_layout)
+        header_grid.addWidget(self.mw.speaker_combobox, 2, 1)
 
-        string_settings_layout.addSpacing(16)
-        font_layout = QHBoxLayout()
-        font_layout.setContentsMargins(0, 0, 0, 0)
-        font_layout.setSpacing(4)
+        formatting_group = QWidget()
+        formatting_layout = QHBoxLayout(formatting_group)
+        formatting_layout.setContentsMargins(0, 0, 0, 0)
+        formatting_layout.setSpacing(4)
         font_label = QLabel("Font:")
-        font_layout.addWidget(font_label)
+        formatting_layout.addWidget(font_label)
         self.mw.font_combobox = QComboBox()
-        self.mw.font_combobox.setFixedWidth(190)
+        self.mw.font_combobox.setFixedWidth(170)
         self.mw.font_combobox.setFixedHeight(control_height)
-        font_layout.addWidget(self.mw.font_combobox)
-        string_settings_layout.addLayout(font_layout)
+        formatting_layout.addWidget(self.mw.font_combobox)
+        formatting_layout.addSpacing(12)
 
-        string_settings_layout.addWidget(QLabel("Max-width:"))
+        formatting_layout.addWidget(QLabel("Max-width:"))
         self.mw.width_spinbox = QSpinBox()
         self.mw.width_spinbox.setRange(0, 10000)
         self.mw.width_spinbox.setToolTip("Set custom width for this string (0 = use plugin default)")
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.mw.width_spinbox.setFixedHeight(control_height)
-        self.mw.width_spinbox.setMinimumWidth(90)
+        self.mw.width_spinbox.setFixedWidth(110)
         
         def show_width_context_menu(pos):
             """Show width context menu."""
@@ -565,36 +566,26 @@ class LayoutBuilder:
                     default_width = getattr(self.mw, 'game_dialog_max_width_pixels', 300)
                 self.mw.width_spinbox.setValue(default_width)
             elif action == set_from_original_action:
-                block_idx = self.mw.data_store.current_block_idx
-                string_idx = self.mw.data_store.current_string_idx
-                if block_idx != -1 and string_idx != -1:
-                    original_text = self.mw.data_processor._get_string_from_source(
-                        block_idx, string_idx, self.mw.data_store.data, "original_data"
-                    )
-                    if original_text is not None:
-                        font_map = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-                        icon_sequences = getattr(self.mw, 'icon_sequences', [])
-                        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None)
-                        
-                        from utils.utils import calculate_string_width
-                        lines = str(original_text).split('\n')
-                        max_w = 0
-                        for line in lines:
-                            w = calculate_string_width(line, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
-                            if w > max_w:
-                                max_w = w
-                        
-                        if max_w > 0:
-                            self.mw.width_spinbox.setValue(max_w)
+                handler = getattr(self.mw, "string_settings_handler", None)
+                if handler is not None:
+                    handler.copy_original_width_to_editor()
 
         self.mw.width_spinbox.customContextMenuRequested.connect(show_width_context_menu)
-        string_settings_layout.addWidget(self.mw.width_spinbox)
+        formatting_layout.addWidget(self.mw.width_spinbox)
         
         self.mw.apply_width_button = QPushButton("Apply")
         self.mw.apply_width_button.setEnabled(False)
         self.mw.apply_width_button.setFixedHeight(control_height)
-        string_settings_layout.addWidget(self.mw.apply_width_button)
-        right_header_layout.addWidget(string_settings_panel)
+        self.mw.apply_width_button.setFixedWidth(72)
+        formatting_layout.addWidget(self.mw.apply_width_button)
+        header_grid.addWidget(
+            formatting_group,
+            2,
+            3,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
+        header_grid.setColumnStretch(2, 1)
+        right_header_layout.addLayout(header_grid)
 
         editable_title_layout = QHBoxLayout()
         editable_title_layout.setContentsMargins(0, 0, 0, 0)

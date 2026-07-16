@@ -1,11 +1,12 @@
 import re
 import os
 from pathlib import Path
-from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QComboBox, QMainWindow
 from PyQt6.QtGui import QColor, QPalette
 from .base_ui_updater import BaseUIUpdater
 from utils.utils import log_debug
 from core.mempalace.story_timeline import StoryStringContext, StoryVirtualProjection
+from core.story_context_overrides import get_story_context_override
 
 class StringSettingsUpdater(BaseUIUpdater):
     """String settings updater implementation."""
@@ -65,6 +66,21 @@ class StringSettingsUpdater(BaseUIUpdater):
         self._projection_context_indices[projection.document_id] = index
         return index
 
+    @staticmethod
+    def _story_structure_choices(projection: StoryVirtualProjection):
+        """Return selectable structure ids and their full visible paths."""
+        choices = []
+
+        def visit(folder, path):
+            current = path + (folder.title,)
+            choices.append((folder.id, current))
+            for child in folder.children:
+                visit(child, current)
+
+        for root in projection.roots:
+            visit(root, ())
+        return choices
+
     def _apply_normalized_story_speaker(self, block_idx: int, string_idx: int) -> None:
         """Make normalized Markup Studio relations the only visible speaker source."""
         composer_owner = getattr(self.mw, "translation_handler", None)
@@ -119,6 +135,16 @@ class StringSettingsUpdater(BaseUIUpdater):
                     item_context = None
                 contexts = (item_context,) if item_context is not None else ()
         role = "item" if item_name else "speaker"
+        manual = get_story_context_override(self.mw, block_idx, string_idx)
+        manual_speaker = str(manual.get("speaker") or "").strip()
+        if manual_speaker and role == "speaker":
+            speakers = (manual_speaker,)
+        manual_structure_id = manual.get("structure_id")
+        manual_structure_path = tuple(manual.get("structure_path") or ())
+        if manual_structure_id is not None:
+            contexts = (
+                StoryStringContext(manual_structure_id, manual_structure_path, manual_speaker or None),
+            )
         current = item_name or (", ".join(speakers) if speakers else "None")
         tooltip = (
             "Reference item from Markup Studio. Double-click to open its Items folder."
@@ -163,13 +189,26 @@ class StringSettingsUpdater(BaseUIUpdater):
                 (value for value in contexts if value.structure_id is not None),
                 None,
             )
-            chapter_label.story_structure_id = (
-                context.structure_id if context is not None else None
-            )
-            chapter_label.setText(
-                " › ".join(context.structure_path) if context is not None else "No chapter"
-            )
-            chapter_label.setEnabled(context is not None)
+            structure_id = context.structure_id if context is not None else None
+            display = " › ".join(context.structure_path) if context is not None else "No chapter"
+            chapter_label.story_structure_id = structure_id
+            if isinstance(chapter_label, QComboBox):
+                chapter_label.blockSignals(True)
+                chapter_label.clear()
+                chapter_label.addItem("No chapter", None)
+                if projection:
+                    for folder_id, path in self._story_structure_choices(projection):
+                        chapter_label.addItem(" › ".join(path), folder_id)
+                selected = chapter_label.findData(structure_id)
+                if selected < 0 and structure_id is not None:
+                    chapter_label.addItem(display, structure_id)
+                    selected = chapter_label.count() - 1
+                chapter_label.setCurrentIndex(max(selected, 0))
+                chapter_label.setEnabled(projection is not None)
+                chapter_label.blockSignals(False)
+            else:
+                chapter_label.setText(display)
+                chapter_label.setEnabled(context is not None)
 
         label = getattr(self.mw, "speaker_label", None)
         if label is not None:
@@ -231,7 +270,13 @@ class StringSettingsUpdater(BaseUIUpdater):
                 self.mw.speaker_select_label.setToolTip("Select or type speaker name for this string")
             chapter_label = getattr(self.mw, "chapter_value_label", None)
             if chapter_label is not None:
-                chapter_label.setText("No chapter")
+                if isinstance(chapter_label, QComboBox):
+                    chapter_label.blockSignals(True)
+                    chapter_label.clear()
+                    chapter_label.addItem("No chapter", None)
+                    chapter_label.blockSignals(False)
+                else:
+                    chapter_label.setText("No chapter")
                 chapter_label.story_structure_id = None
                 chapter_label.setEnabled(False)
             window_value = getattr(self.mw, "window_kind_value_label", None)

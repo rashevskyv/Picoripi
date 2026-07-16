@@ -305,6 +305,38 @@ class TestPreviewUpdater:
         updater.populate_strings_for_block(-1)
         preview_edit.setPlainText.assert_called_with("")
 
+    @pytest.mark.parametrize("kind", ["speaker", "item"])
+    @patch.object(PreviewUpdater, 'update_text_views')
+    @patch.object(PreviewUpdater, '_apply_highlights_for_block')
+    def test_virtual_view_populates_after_parent_folder_left_physical_index_unset(
+        self, mock_hl, mock_ut, updater, mock_mw, mock_dp, kind
+    ):
+        from core.data_store import AppDataStore, ViewKind
+        from core.filter_query_api import FilterQueryAPI
+
+        store = AppDataStore()
+        store.data = [["Boss name"]]
+        store.current_block_idx = -1
+        store.physical_block_idx = -1
+        store.current_string_idx = -1
+        store.chapter_mappings = [(0, 0)]
+        store.set_view_kind(ViewKind(kind))
+        mock_mw.data_store = store
+        mock_mw.filter_query_api = FilterQueryAPI(mock_mw, mock_dp)
+        mock_mw.current_game_rules = MagicMock()
+        mock_mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda text: text
+        mock_mw.project_manager = None
+        mock_mw.preview_text_edit = MagicMock()
+        mock_mw.preview_text_edit.toPlainText.return_value = ""
+        mock_mw.original_text_edit = MagicMock()
+        mock_mw.edited_text_edit = MagicMock()
+        mock_dp.get_current_string_text.return_value = ("Boss name", None)
+
+        updater.populate_current_view(force=True)
+
+        assert store.displayed_string_indices == [(0, 0)]
+        mock_mw.preview_text_edit.setPlainText.assert_called_with("Boss name")
+
     def test_populate_strings_no_data(self, updater):
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = ""

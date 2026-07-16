@@ -15,6 +15,7 @@ from utils.logging_utils import log_debug
 from core.translation.placeholder_manager import AIPlaceholderManager
 from core.translation.glossary_formatter import GlossaryPromptFormatter
 from core.translation.story_context_manager import StoryContextManager
+from core.story_context_overrides import get_story_context_override
 from core.translation.script_speaker_finder import ScriptSpeakerFinder
 
 
@@ -257,7 +258,11 @@ class AIPromptComposer(BaseTranslationHandler):
             clean_item_text = remove_all_tags(current_text).strip()
             is_single_word = len(clean_item_text.split()) <= 1
 
-            if is_single_word:
+            manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
+            manual_speaker = str(manual.get("speaker") or "").strip()
+            if manual_speaker:
+                speaker = manual_speaker
+            elif is_single_word:
                 speaker = "NONE"
             else:
                 real_block_label = self._get_block_label(real_b_idx)
@@ -722,7 +727,14 @@ class AIPromptComposer(BaseTranslationHandler):
         speaker = None
         raw_spk = None
 
-        if is_single_word:
+        manual = (
+            get_story_context_override(self.mw, block_idx, string_idx)
+            if block_idx is not None and string_idx is not None else {}
+        )
+        manual_speaker = str(manual.get("speaker") or "").strip()
+        if manual_speaker:
+            speaker = manual_speaker
+        elif is_single_word:
             speaker = "NONE"
         elif block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
             client = self._get_mempalace_client()

@@ -183,6 +183,22 @@ class StoryContextManager:
     ) -> Optional[str]:
         """Query the local SQLite database for visual scene description, character status and timeline info."""
         client = self.get_mempalace_client()
+        from core.story_context_overrides import get_story_context_override
+
+        manual = get_story_context_override(self.mw, block_idx, s_idx)
+        manual_parts = []
+        manual_path = manual.get("structure_path") or []
+        if manual_path:
+            manual_parts.append(f"Manually assigned Story chapter/scene: {' > '.join(manual_path)}")
+        manual_speaker = str(manual.get("speaker") or "").strip()
+        if manual_speaker:
+            manual_parts.append(f"Manually assigned speaker in this line: {manual_speaker}")
+
+        def with_manual(value: Optional[str]) -> Optional[str]:
+            parts = list(manual_parts)
+            if value:
+                parts.append(value)
+            return "\n".join(parts) or None
 
         from utils.utils import remove_all_tags
         clean_t = remove_all_tags(text).strip()
@@ -279,7 +295,7 @@ class StoryContextManager:
                 except Exception as rel_err:
                     log_debug(f"Could not load relations for visual context: {rel_err}")
 
-                return "\n".join(context_parts)
+                return with_manual("\n".join(context_parts))
 
             # 2. Search database fallback
             results = client.search_context(wing_name, bmg_id, limit=1)
@@ -393,7 +409,7 @@ class StoryContextManager:
                         import utils.logging_utils
                         utils.logging_utils.log_error(f"Error gathering relations for prompt: {rel_err}")
 
-                    return "\n".join(context_parts)
+                    return with_manual("\n".join(context_parts))
 
         # 3. Absolute Fallback: SQLite completely failed, try Script Fallback to at least extract Speaker
         fallback = get_script_speaker_fallback() if not is_single_word else None
@@ -405,6 +421,6 @@ class StoryContextManager:
                 f"Script Line: {lines_str}",
                 "Timeline: Mapped from script sequence"
             ]
-            return "\n".join(context_parts)
+            return with_manual("\n".join(context_parts))
 
-        return None
+        return with_manual(None)

@@ -21,6 +21,10 @@ class StatusBarBuilder:
         self.mw.status_label_part1 = QLabel("Pos: 000")
         self.mw.status_label_part2 = QLabel("Line: 000/000")
         self.mw.status_label_part3 = QLabel("Width: 0000px")
+        self.mw.statistics_status_label = QLabel("Strings: 0 | Unbound: 0")
+        self.mw.statistics_status_label.setToolTip(
+            "Total game strings and strings with no Story, Speaker, Item, or Window binding"
+        )
         
         font_for_metrics = QFont() 
         if self.mw.font() and self.mw.font().family(): 
@@ -35,6 +39,8 @@ class StatusBarBuilder:
         self.mw.statusBar.addWidget(QLabel("|"))
         self.mw.statusBar.addWidget(self.mw.edited_path_label)
         self.mw.statusBar.addPermanentWidget(self.mw.plugin_status_label)
+        self.mw.statusBar.addPermanentWidget(QLabel("|"))
+        self.mw.statusBar.addPermanentWidget(self.mw.statistics_status_label)
         self.mw.statusBar.addPermanentWidget(QLabel("|"))
         self.mw.statusBar.addPermanentWidget(self.mw.status_label_part1)
         self.mw.statusBar.addPermanentWidget(QLabel("|")) 

@@ -205,6 +205,7 @@ def test_ProjectActionHandler_expand_all_action(mock_mw):
     h.expand_all_action()
     h._update_all_folder_expansion_state.assert_called_with(True)
     mock_mw.ui_updater.populate_blocks.assert_called_once()
+    mock_mw.block_list_widget.expandAll.assert_called_once()
 
 def test_ProjectActionHandler_collapse_all_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -212,6 +213,7 @@ def test_ProjectActionHandler_collapse_all_action(mock_mw):
     h.collapse_all_action()
     h._update_all_folder_expansion_state.assert_called_with(False)
     mock_mw.ui_updater.populate_blocks.assert_called_once()
+    mock_mw.block_list_widget.collapseAll.assert_called_once()
 
 def test_ProjectActionHandler_update_all_folder_expansion_state(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)

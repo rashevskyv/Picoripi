@@ -65,6 +65,12 @@ class MainWindowActions:
         # Apply ALL new settings to self.mw immediately so they are captured by subsequent save_settings()
         for key, value in new_settings.items():
             setattr(self.mw, key, value)
+        if hasattr(self.mw, 'toggle_preview_action'):
+            self.mw.toggle_preview_action.setChecked(bool(self.mw.preview_enabled))
+        if hasattr(self.mw, 'ui_updater'):
+            self.mw.ui_updater.update_preview_visibility(
+                bool(self.mw.preview_enabled), persist=False
+            )
 
         if not (dialog.plugin_changed_requires_restart or dialog.theme_changed_requires_restart or font_file_changed):
             self.mw.string_settings_updater.update_string_settings_panel()

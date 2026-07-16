@@ -16,7 +16,7 @@
     "default": {
         "warn_width": 410,
         "max_width": 435,
-        "font_file": "",
+        "font_file": "rodan_b_24_22.bfn",
         "lines_per_page": 4
     },
     "kinds": {
@@ -41,6 +41,7 @@
         "15": {
             "warn_width": 340,
             "max_width": 360,
+            "font_file": "reishotai_24_22.bfn",
             "lines_per_page": 4,
             "name": "Wooden sign"
         },
@@ -65,6 +66,7 @@
         "12": {
             "warn_width": 420,
             "max_width": 440,
+            "font_file": "reishotai_24_22.bfn",
             "lines_per_page": 1,
             "name": "Location name"
         },
@@ -83,6 +85,7 @@
         "19": {
             "warn_width": 420,
             "max_width": 440,
+            "font_file": "reishotai_24_22.bfn",
             "lines_per_page": 1,
             "name": "Boss name"
         }

@@ -49,6 +49,32 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
     assert "Block 0" in user
 
 
+def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
+    block = MagicMock()
+    block.metadata = {
+        "story_context_assignments": {"3": {"speaker": "System"}}
+    }
+    composer.mw.project_manager.project.blocks = [block]
+    composer.mw.block_to_project_file_map = {0: 0}
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer._get_mempalace_client = MagicMock(return_value=None)
+    composer._find_speaker_in_script = MagicMock()
+
+    _, user, _ = composer.compose_batch_request(
+        "SysPrompt",
+        [{"id": 3, "text": "Checking Memory Card in slot A."}],
+        [{"id": 3, "text": "Checking Memory Card in slot A."}],
+        block_idx=0,
+        mode_description="TestMode",
+    )
+
+    assert '"speaker": "System"' in user
+    composer._find_speaker_in_script.assert_not_called()
+
+
 def test_zelda_bmg_runtime_names_are_plain_words_in_ai_prompts(composer):
     from plugins.zelda_bmg.rules import GameRules
 

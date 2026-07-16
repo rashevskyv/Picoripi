@@ -30,6 +30,27 @@ def test_StringSettingsHandler_on_width_changed(handler):
     handler.on_width_changed(150)
     handler.mw.apply_width_button.setEnabled.assert_called_with(True)
 
+
+def test_copy_original_width_to_editor_uses_physical_row(handler):
+    handler.mw.data_store.current_block_idx = -2
+    handler.mw.data_store.physical_block_idx = 3
+    handler.mw.data_store.current_string_idx = 7
+    handler.data_processor._get_string_from_source.return_value = "Short\nLongest line"
+    handler.mw.helper.get_font_map_for_string.return_value = {}
+    handler.mw.icon_sequences = []
+    handler.mw.default_tag_mappings = {}
+
+    with patch(
+        "handlers.string_settings_handler.calculate_string_width",
+        side_effect=lambda text, *_args, **_kwargs: len(text) * 10,
+    ):
+        handler.copy_original_width_to_editor()
+
+    handler.data_processor._get_string_from_source.assert_called_once_with(
+        3, 7, handler.mw.data_store.data, "original_data"
+    )
+    handler.mw.width_spinbox.setValue.assert_called_once_with(120)
+
 def test_StringSettingsHandler_apply_settings_change(handler):
     handler.mw.font_combobox.currentData.return_value = "NewFont"
     handler.mw.width_spinbox.value.return_value = 120

@@ -233,6 +233,17 @@ class ListSelectionHandler(BaseHandler):
         if not getattr(self.mw, 'is_loading_data', False) and not self._restoring_selection:
             self.data_processor.schedule_autosave()
 
+    def refresh_empty_virtual_view_on_click(self, item: QTreeWidgetItem, _column: int) -> None:
+        """Recover a restored virtual selection whose indices exist but editor text was not built."""
+        mappings = item.data(0, Qt.UserRole + 13) or []
+        displayed = getattr(self.mw.data_store, "displayed_string_indices", [])
+        preview = getattr(self.mw, "preview_text_edit", None)
+        if not mappings or not displayed or preview is None:
+            return
+        current_text = preview.toPlainText()
+        if isinstance(current_text, str) and not current_text:
+            self.ui_updater.populate_current_view(force=True)
+
     def _handle_virtual_row_selection(self, current_item: QTreeWidgetItem) -> None:
         b_idx = current_item.data(0, Qt.UserRole)
         s_idx = current_item.data(0, Qt.UserRole + 1)
@@ -262,7 +273,7 @@ class ListSelectionHandler(BaseHandler):
                         chapter_mappings.append(indices)
         self.mw.data_store.chapter_mappings = chapter_mappings
 
-        self.ui_updater.populate_current_view()
+        self.ui_updater.populate_current_view(force=True)
 
         # Find relative index for preview
         target_tuple = (b_idx, s_idx)
@@ -292,7 +303,7 @@ class ListSelectionHandler(BaseHandler):
         char_mappings = current_item.data(0, Qt.UserRole + 13) or []
         self.mw.data_store.chapter_mappings = char_mappings
 
-        self.ui_updater.populate_current_view()
+        self.ui_updater.populate_current_view(force=True)
 
         if char_mappings:
             target_idx = -1
@@ -336,7 +347,7 @@ class ListSelectionHandler(BaseHandler):
         self.mw.data_store.current_chapter_id = None
         self.mw.data_store.current_speaker_name = item_name
         self.mw.data_store.chapter_mappings = mappings
-        self.ui_updater.populate_current_view()
+        self.ui_updater.populate_current_view(force=True)
         if mappings:
             target = (self._target_block_idx, self._target_string_idx)
             target_idx = mappings.index(target) if target in mappings else 0
@@ -379,7 +390,7 @@ class ListSelectionHandler(BaseHandler):
                             chapter_mappings.append(indices)
         self.mw.data_store.chapter_mappings = chapter_mappings
 
-        self.ui_updater.populate_current_view()
+        self.ui_updater.populate_current_view(force=True)
 
         if chapter_mappings:
             target_idx = -1
@@ -1405,6 +1416,10 @@ class ListSelectionHandler(BaseHandler):
     def save_speaker_for_current_string(self, char_name: str) -> None:
         """Save speaker assignment for the current string and refresh UI."""
         self.speaker_handler.save_speaker_for_current_string(char_name)
+
+    def save_chapter_for_current_string(self, structure_id=None) -> None:
+        """Save a manual Story structure assignment for the current string."""
+        self.speaker_handler.save_chapter_for_current_string(structure_id)
 
     def save_character_for_current_string(self, char_name: str) -> None:
         """Alias for save_speaker_for_current_string to maintain compatibility."""

@@ -236,7 +236,18 @@ def test_real_store_virtual_selection_preserves_physical_invariant(handler, kind
     assert store.current_string_idx == 1
     assert store.current_view_kind == kind
     assert store.is_virtual_view is True
-    handler.mw.ui_updater.populate_current_view.assert_called_once_with()
+    handler.mw.ui_updater.populate_current_view.assert_called_once_with(force=True)
+
+
+def test_clicking_restored_virtual_item_rebuilds_empty_strings_view(handler):
+    item = QTreeWidgetItem(["None"])
+    item.setData(0, Qt.UserRole + 13, [(0, 1)])
+    handler.mw.data_store.displayed_string_indices = [(0, 1)]
+    handler.mw.preview_text_edit.toPlainText.return_value = ""
+
+    handler.refresh_empty_virtual_view_on_click(item, 0)
+
+    handler.mw.ui_updater.populate_current_view.assert_called_once_with(force=True)
 
 def test_ListSelectionHandler_handle_block_item_text_changed(handler):
     mock_item = MagicMock()

@@ -49,7 +49,7 @@ class PreviewCache:
             cache_block_idx = key[0]
             target_indices = cache.get('target_indices', [])
             
-            if cache_block_idx in (-2, -3):
+            if cache_block_idx in (-2, -3, -4):
                 target_item = (phys_b_idx, string_idx)
             elif cache_block_idx == phys_b_idx:
                 target_item = string_idx
@@ -67,6 +67,9 @@ class PreviewCache:
 
     def schedule_pre_cache(self):
         """Schedule pre-caching of preview lines."""
+        if not getattr(self.mw, 'preview_enabled', True):
+            self.cancel_idle_caching()
+            return
         from PyQt6.QtWidgets import QApplication
         is_test = getattr(self.mw, '_is_test_mode', False) or not isinstance(QApplication.instance(), QApplication)
         if is_test:
@@ -95,6 +98,9 @@ class PreviewCache:
     def pre_cache_all_blocks(self):
         """Pre-cache preview lines for all blocks to enable instantaneous switching."""
         self.cancel_idle_caching()
+
+        if not getattr(self.mw, 'preview_enabled', True):
+            return
 
         if not self.mw.data_store.data:
             return
@@ -138,6 +144,8 @@ class PreviewCache:
 
     def _start_idle_caching(self):
         """Start background caching of blocks in idle mode using a timer."""
+        if not getattr(self.mw, 'preview_enabled', True):
+            return
         if not self.mw.data_store.data:
             return
 
@@ -178,6 +186,9 @@ class PreviewCache:
 
     def _cache_next_idle_block(self):
         """Cache next block in background using time-slicing (10ms budget)."""
+        if not getattr(self.mw, 'preview_enabled', True):
+            self.cancel_idle_caching()
+            return
         import time
 
         # 1. If we are not currently caching any block, pick the next one from the queue

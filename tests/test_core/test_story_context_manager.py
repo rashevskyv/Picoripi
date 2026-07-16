@@ -65,6 +65,30 @@ def test_story_context_manager_fetch_story_context_cached(mock_mw):
     assert "Visual Action Context:\nBeautiful village near forest." in res
     assert "Link -[friend]-> Ilia" in res
 
+
+def test_story_context_manager_returns_manual_row_context_without_script_link(mock_mw):
+    block = MagicMock()
+    block.metadata = {
+        "story_context_assignments": {
+            "5": {
+                "speaker": "System",
+                "structure_id": 20,
+                "structure_path": ["Act One", "Chapter One"],
+            }
+        }
+    }
+    mock_mw.project_manager.project.blocks = [block]
+    mock_mw.block_to_project_file_map = {0: 0}
+    manager = StoryContextManager(mock_mw)
+    manager.get_mempalace_client = MagicMock(return_value=None)
+
+    result = manager.fetch_story_context(
+        0, 5, "Checking Memory Card", MagicMock(), MagicMock()
+    )
+
+    assert "Manually assigned Story chapter/scene: Act One > Chapter One" in result
+    assert "Manually assigned speaker in this line: System" in result
+
 def test_story_context_manager_fetch_story_context_database_search(mock_mw):
     manager = StoryContextManager(mock_mw)
     

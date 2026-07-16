@@ -1,7 +1,7 @@
 # tests/test_handlers/test_speaker_folders.py
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QTreeWidgetItem
+from PyQt6.QtWidgets import QComboBox, QTreeWidgetItem
 from PyQt6.QtCore import Qt
 from handlers.list_selection_handler import ListSelectionHandler
 from ui.updaters.block_list_updater import BlockListUpdater
@@ -53,6 +53,65 @@ def test_save_speaker_for_current_string(qapp, mock_mw, mock_project):
     handler.save_speaker_for_current_string("")
     assert "0" not in mock_project.blocks[0].metadata["character_assignments"]
     mock_mw.project_manager.save.assert_called_once()
+
+
+def test_unlinked_story_row_accepts_manual_speaker(qapp, mock_mw, mock_project):
+    """System/UI rows outside the script can still carry translator context."""
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = mock_project
+    mock_mw.block_to_project_file_map = {0: 0}
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+    mock_mw.speaker_combobox = QComboBox()
+    mock_mw.speaker_combobox.setEditable(True)
+    mock_mw.speaker_combobox._last_displayed_char = "Hero"
+    mock_mw.ui_updater = MagicMock()
+    mock_mw.ui_updater.block_list_updater = MagicMock()
+    mock_mw.string_settings_updater = MagicMock()
+    mock_mw.data_processor = MagicMock()
+
+    projection = StoryVirtualProjection(7, (), ())
+    mock_mw.ui_updater.block_list_updater._story_projection_cache = projection
+    client = MagicMock()
+    client.get_story_speakers_for_game_string.return_value = ()
+    client.get_story_navigation_target.return_value = None
+    mock_mw.translation_handler.prompt_composer._get_mempalace_client.return_value = client
+
+    handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
+    with patch("handlers.speaker_handler.QMessageBox.information") as information:
+        handler.save_speaker_for_current_string("System")
+
+    assignment = mock_project.blocks[0].metadata["story_context_assignments"]["0"]
+    assert assignment["speaker"] == "System"
+    information.assert_not_called()
+    mock_mw.project_manager.save.assert_called_once()
+    mock_mw.data_processor.schedule_autosave.assert_called_once()
+
+
+def test_row_accepts_manual_story_chapter(qapp, mock_mw, mock_project):
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = mock_project
+    mock_mw.block_to_project_file_map = {0: 0}
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+    mock_mw.ui_updater = MagicMock()
+    mock_mw.ui_updater.block_list_updater = MagicMock()
+    mock_mw.string_settings_updater = MagicMock()
+    mock_mw.data_processor = MagicMock()
+    mock_mw.chapter_combobox = QComboBox()
+    mock_mw.chapter_combobox.addItem("Act One › Chapter One", 20)
+
+    handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
+    handler.save_chapter_for_current_string(20)
+
+    assignment = mock_project.blocks[0].metadata["story_context_assignments"]["0"]
+    assert assignment["structure_id"] == 20
+    assert assignment["structure_path"] == ["Act One", "Chapter One"]
+    mock_mw.project_manager.save.assert_called_once()
+    mock_mw.ui_updater.block_list_updater.populate_blocks.assert_called_once()
+    mock_mw.data_processor.schedule_autosave.assert_called_once()
 
 def test_save_speaker_restores_editor_focus_after_combobox_change(qapp, mock_mw, mock_project):
     """Regression: Ctrl+Z after speaker combobox selection should reach app undo, not the combobox line edit."""
@@ -145,7 +204,7 @@ def test_select_speaker_folder(qapp, mock_mw, mock_project):
     assert mock_mw.data_store.physical_block_idx == 0
     assert mock_mw.current_speaker_name == "Hero"
     assert mock_mw.chapter_mappings == [(0, 0)]
-    mock_mw.ui_updater.populate_current_view.assert_called_with()
+    mock_mw.ui_updater.populate_current_view.assert_called_with(force=True)
 
 def test_string_settings_updater_speakers(qapp, mock_mw, mock_project):
     """Normalized Story Context overrides stale project speaker assignments."""

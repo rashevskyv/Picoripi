@@ -56,6 +56,26 @@ def test_bfn_preview_widget_get_active_font(qapp):
     active_font_fallback = widget.get_active_bfn_font()
     assert active_font_fallback == default_bfn_mock
 
+
+def test_bfn_preview_widget_uses_window_layout_font(qapp):
+    mw_mock = MagicMock()
+    mw_mock.data_store.current_block_idx = 0
+    mw_mock.data_store.current_string_idx = 1
+    mw_mock.string_metadata = {}
+    mw_mock.default_font_file = "default.bfn"
+    mw_mock.current_game_rules.get_string_layout.return_value = {
+        "font_file": "reishotai_24_22.bfn"
+    }
+    expected = MagicMock(spec=BfnCore)
+    mw_mock.all_bfn_fonts = {
+        "default.bfn": MagicMock(spec=BfnCore),
+        "rubyres.arc/reishotai_24_22.bfn": expected,
+    }
+
+    widget = BfnPreviewWidget(mw_mock)
+
+    assert widget.get_active_bfn_font() is expected
+
 def test_bfn_preview_widget_get_active_font_archive_fallback(qapp):
     mw_mock = MagicMock()
     mw_mock.data_store.current_block_idx = 0
@@ -536,6 +556,7 @@ def test_bfn_preview_widget_visibility_management(qapp):
     preview_widget_mock.hide.assert_called_once()
     toggle_action_mock.setEnabled.assert_called_once_with(False)
     toggle_action_mock.setChecked.assert_called_once_with(False)
+    mw_mock.settings_manager.save_settings.assert_not_called()
     
     # Reset mocks
     preview_widget_mock.reset_mock()
@@ -555,14 +576,43 @@ def test_bfn_preview_widget_visibility_management(qapp):
     preview_widget_mock.reset_mock()
     toggle_action_mock.reset_mock()
     
-    # Test case 3: Fonts loaded, toggle action is unchecked
-    toggle_action_mock.isChecked.return_value = False
+    # Test case 3: the user explicitly switches preview off
+    updater.update_preview_visibility(False)
     
-    updater.update_preview_visibility()
-    
-    toggle_action_mock.setEnabled.assert_called_once_with(True)
     preview_widget_mock.hide.assert_called_once()
     preview_widget_mock.show.assert_not_called()
+    assert mw_mock.preview_enabled is False
+    mw_mock.settings_manager.save_settings.assert_called_once()
+
+
+def test_disabled_bfn_preview_does_not_prepare_text(qapp):
+    mw_mock = MagicMock()
+    mw_mock.preview_enabled = False
+    widget = BfnPreviewWidget(mw_mock)
+    widget.text = "old"
+
+    widget.update_preview_text("new")
+
+    assert widget.text == "old"
+    assert widget._preview_resources_loaded is False
+
+
+def test_page_bar_is_pinned_to_rendered_background(qapp):
+    from PyQt6.QtGui import QImage
+
+    mw_mock = MagicMock()
+    mw_mock.preview_enabled = True
+    widget = BfnPreviewWidget(mw_mock)
+    widget.resize(900, 300)
+    widget.bg_image = QImage(700, 240, QImage.Format.Format_ARGB32)
+    widget.bg_hidden = False
+    widget.bg_scale = 100
+    widget.bg_offset_x = 20
+    widget.bg_offset_y = 15
+
+    widget._position_page_bar()
+
+    assert widget.page_bar.geometry() == QRect(720, 15, 38, 240)
 
 
 def test_bfn_preview_widget_background_gestures(qapp):
@@ -687,7 +737,65 @@ def test_bfn_preview_widget_fix_font_scale(qapp):
          mw_mock.settings_manager.save_settings.assert_called()
 
 
-
+def test_bfn_preview_widget_page_switcher(qapp):
+    mw_mock = MagicMock()
+    widget = BfnPreviewWidget(mw_mock)
+    widget.setGeometry(0, 0, 400, 300)
+    
+    # Initially hide
+    assert widget.page_bar.isHidden()
+    
+    # Mock text and lines per page to have 3 pages
+    widget._lines_per_page = MagicMock(return_value=4)
+    widget._prepare_render_text = MagicMock(return_value=("Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9", None, None, None))
+    
+    # Trigger refresh
+    widget._refresh_page_bar()
+    
+    assert widget._page_count == 3
+    assert not widget.page_bar.isHidden()
+    assert len(widget.indicator_buttons) == 3
+    
+    # Active index is 0, so first button is checked, others not
+    assert widget.indicator_buttons[0].isChecked() is True
+    assert widget.indicator_buttons[1].isChecked() is False
+    assert widget.indicator_buttons[2].isChecked() is False
+    
+    # Prev button should be disabled, Next button enabled
+    assert widget.btn_page_prev.isEnabled() is False
+    assert widget.btn_page_next.isEnabled() is True
+    
+    # Position check: geometry should stretch full height on the right
+    widget._position_page_bar()
+    assert widget.page_bar.geometry() == QRect(400 - 38, 0, 38, 300)
+    
+    # Test jump to page 1 via clicking indicator button
+    widget.indicator_buttons[1].click()
+    assert widget._preview_page == 1
+    assert widget.indicator_buttons[0].isChecked() is False
+    assert widget.indicator_buttons[1].isChecked() is True
+    assert widget.indicator_buttons[2].isChecked() is False
+    
+    # Now both buttons should be enabled
+    assert widget.btn_page_prev.isEnabled() is True
+    assert widget.btn_page_next.isEnabled() is True
+    
+    # Click next button to go to page 2
+    widget.btn_page_next.click()
+    assert widget._preview_page == 2
+    assert widget.indicator_buttons[0].isChecked() is False
+    assert widget.indicator_buttons[1].isChecked() is False
+    assert widget.indicator_buttons[2].isChecked() is True
+    
+    # Now next should be disabled, prev enabled
+    assert widget.btn_page_prev.isEnabled() is True
+    assert widget.btn_page_next.isEnabled() is False
+    
+    # Test single page hides bar
+    widget._prepare_render_text = MagicMock(return_value=("Single line text", None, None, None))
+    widget._refresh_page_bar()
+    assert widget._page_count == 1
+    assert widget.page_bar.isHidden()
 
 
 

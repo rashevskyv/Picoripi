@@ -96,9 +96,9 @@ class UIUpdater:
         """Update the text views."""
         self.preview_updater.update_text_views()
 
-    def update_preview_visibility(self):
+    def update_preview_visibility(self, checked=None, *, persist=True):
         """Update the preview visibility."""
-        self.preview_updater.update_preview_visibility()
+        self.preview_updater.update_preview_visibility(checked, persist=persist)
 
     def sync_filter_checkboxes_with_store(self):
         """Synchronize the states of all filter checkboxes with the AppDataStore values without triggering signals."""

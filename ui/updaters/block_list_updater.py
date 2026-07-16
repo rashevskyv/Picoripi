@@ -6,6 +6,7 @@ from utils.logging_utils import log_info, log_warning
 from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
 from core.mempalace.story_timeline import StoryVirtualFolder, StoryVirtualProjection
+from core.story_context_overrides import iter_story_context_overrides
 from core.mempalace.dialogue_mapping import canonicalize_dialogue_text
 
 class BlockListUpdater(BaseUIUpdater):
@@ -100,9 +101,70 @@ class BlockListUpdater(BaseUIUpdater):
                     reverse[(block_idx, string_idx)] = name
         return item_mappings, reverse
 
-    def _add_story_folder_item(self, parent, folder: StoryVirtualFolder, selected_id) -> bool:
+    def _all_game_rows(self) -> set[tuple[int, int]]:
+        return {
+            (block_idx, string_idx)
+            for block_idx, block in enumerate(getattr(self.mw.data_store, "data", []))
+            for string_idx in range(len(block))
+        }
+
+    def _story_linked_rows(self, projection: StoryVirtualProjection) -> set[tuple[int, int]]:
+        linked = set()
+
+        def visit(folder):
+            linked.update(self._story_mapping_indices(folder.mappings))
+            for child in folder.children:
+                visit(child)
+
+        for root in projection.roots:
+            visit(root)
+        for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw):
+            if assignment.get("structure_id") is not None:
+                linked.add((block_idx, string_idx))
+        return linked
+
+    def _add_virtual_role_leaf(
+        self,
+        parent,
+        label: str,
+        block_kind: int,
+        identity_role: int,
+        identity,
+        mappings,
+    ):
+        mappings = list(mappings)
+        if not mappings:
+            return None
+        item = QTreeWidgetItem([label])
+        self._set_item_style_icon(item, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        item.setData(0, Qt.ItemDataRole.UserRole, block_kind)
+        item.setData(0, identity_role, identity)
+        item.setData(0, Qt.ItemDataRole.UserRole + 4, label)
+        item.setData(0, Qt.EditRole, label)
+        item.setData(0, Qt.ItemDataRole.UserRole + 13, mappings)
+        item.setToolTip(0, f"{len(mappings)} game strings")
+        parent.addChild(item)
+        self._register_item_in_cache(item)
+        return item
+
+    def _add_story_folder_item(
+        self,
+        parent,
+        folder: StoryVirtualFolder,
+        selected_id,
+        allowed_rows: set[tuple[int, int]] | None = None,
+        hide_empty: bool = False,
+    ) -> bool:
         """Add one normalized story folder recursively and restore selection when possible."""
         mappings = self._story_mapping_indices(folder.mappings)
+        for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw):
+            if assignment.get("structure_id") == folder.id:
+                row = (block_idx, string_idx)
+                if row not in mappings:
+                    mappings.append(row)
+        if allowed_rows is not None:
+            mappings = [row for row in mappings if row in allowed_rows]
         if getattr(self.mw.data_store, "show_unsaved_blocks_only", False):
             own_unsaved = any(item in self.mw.data_store.edited_data for item in mappings)
         else:
@@ -124,7 +186,11 @@ class BlockListUpdater(BaseUIUpdater):
 
         child_added = False
         for child in folder.children:
-            child_added = self._add_story_folder_item(item, child, selected_id) or child_added
+            child_added = self._add_story_folder_item(
+                item, child, selected_id, allowed_rows, hide_empty
+            ) or child_added
+        if hide_empty and not mappings and not child_added:
+            return False
         if not own_unsaved and not child_added:
             return False
 
@@ -138,6 +204,158 @@ class BlockListUpdater(BaseUIUpdater):
                 ancestor.setExpanded(True)
                 ancestor = ancestor.parent()
         return True
+
+    def _add_story_projection_root(
+        self,
+        parent,
+        projection: StoryVirtualProjection,
+        allowed_rows: set[tuple[int, int]] | None = None,
+        selected_id=None,
+    ):
+        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        root = QTreeWidgetItem(["Story"])
+        self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
+        root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        for folder in projection.roots:
+            self._add_story_folder_item(
+                root, folder, selected_id, scope, True
+            )
+        none_rows = sorted(scope - self._story_linked_rows(projection))
+        none_item = self._add_virtual_role_leaf(
+            root, "None", -2, Qt.ItemDataRole.UserRole + 11,
+            "story:none", none_rows,
+        )
+        if selected_id == "story:none" and none_item is not None:
+            self.mw.block_list_widget.setCurrentItem(none_item)
+        if root.childCount() == 0:
+            return None
+        parent.addChild(root)
+        return root
+
+    def _add_speaker_projection_root(
+        self,
+        parent,
+        speakers: dict[str, list[tuple[int, int]]],
+        allowed_rows: set[tuple[int, int]] | None = None,
+    ):
+        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        root = QTreeWidgetItem(["Speakers"])
+        self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
+        root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        assigned = set()
+        for name in sorted((name for name in speakers if name != "None"), key=str.casefold):
+            rows = [row for row in speakers[name] if row in scope]
+            if not rows:
+                continue
+            assigned.update(rows)
+            self._add_virtual_role_leaf(
+                root, name, -3, Qt.ItemDataRole.UserRole + 15, name, rows
+            )
+        none_item = self._add_virtual_role_leaf(
+            root, "None", -3, Qt.ItemDataRole.UserRole + 15,
+            "None", sorted(scope - assigned),
+        )
+        if none_item is not None:
+            root.takeChild(root.indexOfChild(none_item))
+            root.insertChild(0, none_item)
+        if root.childCount() == 0:
+            return None
+        parent.addChild(root)
+        return root
+
+    def _add_item_projection_root(
+        self,
+        parent,
+        item_mappings: dict[str, list[tuple[int, int]]],
+        allowed_rows: set[tuple[int, int]] | None = None,
+    ):
+        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        root = QTreeWidgetItem(["Items"])
+        self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
+        root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        assigned = set()
+        for name in sorted(item_mappings, key=str.casefold):
+            rows = [row for row in item_mappings[name] if row in scope]
+            if not rows:
+                continue
+            assigned.update(rows)
+            self._add_virtual_role_leaf(
+                root, name, -4, Qt.ItemDataRole.UserRole + 16, name, rows
+            )
+        none_item = self._add_virtual_role_leaf(
+            root, "None", -4, Qt.ItemDataRole.UserRole + 16,
+            "None", sorted(scope - assigned),
+        )
+        if none_item is not None:
+            root.takeChild(root.indexOfChild(none_item))
+            root.insertChild(0, none_item)
+        if root.childCount() == 0:
+            return None
+        parent.addChild(root)
+        return root
+
+    def _window_kind_groups(self) -> dict[str, set[tuple[int, int]]]:
+        groups = {}
+        rules = getattr(self.mw, "current_game_rules", None)
+        for block_idx, string_idx in sorted(self._all_game_rows()):
+            name = "Unknown"
+            getter = getattr(rules, "get_preview_window_style", None)
+            if callable(getter):
+                try:
+                    style = getter(block_idx=block_idx, string_idx=string_idx)
+                    candidate = style.get("kind_name") if isinstance(style, dict) else None
+                    if isinstance(candidate, str) and candidate.strip():
+                        name = candidate.strip()
+                except Exception:
+                    pass
+            groups.setdefault(name, set()).add((block_idx, string_idx))
+        return groups
+
+    def _window_bound_rows(self) -> set[tuple[int, int]]:
+        """Rows classified into a concrete Window facet."""
+        return {row for rows in self._window_kind_groups().values() for row in rows}
+
+    def _update_string_statistics(self, unbound_rows=None) -> None:
+        label = getattr(self.mw, "statistics_status_label", None)
+        if label is None:
+            return
+        total = len(self._all_game_rows())
+        unbound = len(unbound_rows or ())
+        label.setText(f"Strings: {total:,} | Unbound: {unbound:,}")
+
+    def _add_windows_projection_root(
+        self,
+        parent,
+        projection: StoryVirtualProjection,
+        speakers: dict[str, list[tuple[int, int]]],
+        item_mappings: dict[str, list[tuple[int, int]]],
+    ):
+        windows_root = QTreeWidgetItem(["Windows"])
+        self._set_item_style_icon(windows_root, 0, QStyle.StandardPixmap.SP_DirIcon)
+        windows_root.setFlags(windows_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        story_rows = self._story_linked_rows(projection)
+        speaker_rows = {
+            row for name, rows in speakers.items() if name != "None" for row in rows
+        }
+        item_rows = {row for rows in item_mappings.values() for row in rows}
+        for kind_name, rows in sorted(self._window_kind_groups().items(), key=lambda x: x[0].casefold()):
+            kind_root = QTreeWidgetItem([kind_name])
+            self._set_item_style_icon(kind_root, 0, QStyle.StandardPixmap.SP_DirIcon)
+            kind_root.setFlags(kind_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self._add_story_projection_root(kind_root, projection, rows)
+            self._add_speaker_projection_root(kind_root, speakers, rows)
+            self._add_item_projection_root(kind_root, item_mappings, rows)
+            unbound = sorted(rows - story_rows - speaker_rows - item_rows)
+            self._add_virtual_role_leaf(
+                kind_root, "None", -3, Qt.ItemDataRole.UserRole + 15,
+                "None", unbound,
+            )
+            if kind_root.childCount() > 0:
+                windows_root.addChild(kind_root)
+        if windows_root.childCount() == 0:
+            return None
+        parent.addChild(windows_root)
+        return windows_root
 
 
 
@@ -762,10 +980,10 @@ class BlockListUpdater(BaseUIUpdater):
                         if block_item.childCount() > 0:
                             block_item.setExpanded(True)
 
-            # 3. Add virtual Chapters folder hierarchy from MemePalace if available
+            # 3. Add the Story hierarchy from MemePalace if game rows are loaded.
             try:
                 composer = getattr(self.mw, "translation_handler", None)
-                if composer and hasattr(composer, "prompt_composer"):
+                if self._all_game_rows() and composer and hasattr(composer, "prompt_composer"):
                     client = composer.prompt_composer._get_mempalace_client()
                     if client:
                         wing_name = composer.prompt_composer._get_wing_name()
@@ -804,7 +1022,7 @@ class BlockListUpdater(BaseUIUpdater):
 
                         if self._chapters_load_error:
                             # Show load error placeholder
-                            chapters_root = QTreeWidgetItem(["Chapters (Load Error)"])
+                            chapters_root = QTreeWidgetItem(["Story (Load Error)"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
@@ -817,7 +1035,7 @@ class BlockListUpdater(BaseUIUpdater):
 
                         elif self._is_loading_chapters:
                             # Show loading placeholder
-                            chapters_root = QTreeWidgetItem(["Chapters"])
+                            chapters_root = QTreeWidgetItem(["Story"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
@@ -829,28 +1047,20 @@ class BlockListUpdater(BaseUIUpdater):
                             self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
 
                         elif isinstance(self._story_projection_cache, StoryVirtualProjection):
-                            chapters_root = QTreeWidgetItem(["Story"])
-                            self._set_item_style_icon(
-                                chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon
-                            )
-                            chapters_root.setFlags(
-                                chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable
-                            )
                             tree_root = self.mw.block_list_widget.invisibleRootItem()
-                            tree_root.addChild(chapters_root)
                             selected_id = (
                                 getattr(self.mw.data_store, "current_chapter_id", None)
                                 if current_selection_block_idx == -2
                                 else None
                             )
-                            for folder in self._story_projection_cache.roots:
-                                self._add_story_folder_item(chapters_root, folder, selected_id)
-                            if chapters_root.childCount() == 0:
-                                tree_root.removeChild(chapters_root)
+                            self._add_story_projection_root(
+                                tree_root, self._story_projection_cache,
+                                selected_id=selected_id,
+                            )
 
                         elif self._chapters_cache is not None:
                             # We have cached chapters, build the hierarchy
-                            chapters_root = QTreeWidgetItem(["Chapters"])
+                            chapters_root = QTreeWidgetItem(["Story"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
@@ -943,7 +1153,7 @@ class BlockListUpdater(BaseUIUpdater):
                             self._start_chapters_worker_when_ready()
 
                             # Show loading placeholder
-                            chapters_root = QTreeWidgetItem(["Chapters"])
+                            chapters_root = QTreeWidgetItem(["Story"])
                             self._set_item_style_icon(chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                             chapters_root.setFlags(chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
@@ -1043,6 +1253,19 @@ class BlockListUpdater(BaseUIUpdater):
                                                     if indices:
                                                         mempalace_speakers.setdefault(speaker_name, []).append(indices)
 
+                # Explicit project-local assignments replace normalized speaker ancestry
+                # only for their concrete row. This supports system/UI strings that have
+                # no Text node in the marked script.
+                for block_idx, string_idx, assignment in iter_story_context_overrides(self.mw):
+                    speaker_name = str(assignment.get("speaker") or "").strip()
+                    if not speaker_name:
+                        continue
+                    row = (block_idx, string_idx)
+                    for existing in mempalace_speakers.values():
+                        if row in existing:
+                            existing.remove(row)
+                    mempalace_speakers.setdefault(speaker_name, []).append(row)
+
                 combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
                 assigned_strings = set()  # {(b_idx, s_idx), ...}
                 normalized_story_active = isinstance(
@@ -1080,15 +1303,16 @@ class BlockListUpdater(BaseUIUpdater):
                         combined_speakers.setdefault(speaker_name, []).append(string_tuple)
                         assigned_strings.add(string_tuple)
 
-                if not normalized_story_active:
-                    none_strings = []
-                    for b_idx in range(len(self.mw.data_store.data)):
-                        block_data = self.mw.data_store.data[b_idx]
-                        for s_idx in range(len(block_data)):
-                            if (b_idx, s_idx) not in assigned_strings:
-                                none_strings.append((b_idx, s_idx))
-                    if none_strings:
-                        combined_speakers["None"] = none_strings
+                # None is a real virtual speaker block in every context model. It is
+                # the complete complement of assigned rows, not a legacy-only fallback.
+                none_strings = []
+                for b_idx in range(len(self.mw.data_store.data)):
+                    block_data = self.mw.data_store.data[b_idx]
+                    for s_idx in range(len(block_data)):
+                        if (b_idx, s_idx) not in assigned_strings:
+                            none_strings.append((b_idx, s_idx))
+                if none_strings:
+                    combined_speakers["None"] = none_strings
 
                 pending_retention = None
                 if hasattr(self.mw, 'list_selection_handler'):
@@ -1105,12 +1329,17 @@ class BlockListUpdater(BaseUIUpdater):
                         speaker_mappings.insert(insert_at, retained_tuple)
                         combined_speakers[retained_speaker] = speaker_mappings
 
+                # Do not flash the legacy partial Speakers tree while the normalized
+                # Story projection is still loading. The complete facet tree is added
+                # together when the worker finishes.
+                if self._is_loading_chapters:
+                    combined_speakers.clear()
+
                 unique_speakers = sorted([c for c in combined_speakers.keys() if c != "None"])
                 if "None" in combined_speakers:
                     unique_speakers.insert(0, "None")
 
-                has_named_speakers = any(c != "None" for c in combined_speakers.keys())
-                if combined_speakers and has_named_speakers:
+                if combined_speakers:
                     speakers_root = QTreeWidgetItem(["Speakers"])
                     self._set_item_style_icon(speakers_root, 0, QStyle.StandardPixmap.SP_DirIcon)
                     speakers_root.setFlags(speakers_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -1151,27 +1380,39 @@ class BlockListUpdater(BaseUIUpdater):
                             self.mw.block_list_widget.setCurrentItem(selected_speaker_item)
                             selected_speaker_item.setSelected(True)
 
+                item_mappings = {}
                 if normalized_story_active and client is not None:
                     item_mappings, reverse_items = self._reference_item_mappings(
                         client, self._story_projection_cache.document_id
                     )
                     self._story_item_mappings_cache = reverse_items
-                    if item_mappings:
-                        items_root = QTreeWidgetItem(["Items"])
-                        self._set_item_style_icon(items_root, 0, QStyle.StandardPixmap.SP_DirIcon)
-                        items_root.setFlags(items_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                        for item_name in sorted(item_mappings, key=str.casefold):
-                            mappings = item_mappings[item_name]
-                            item_node = QTreeWidgetItem([item_name])
-                            self._set_item_style_icon(item_node, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
-                            item_node.setFlags(item_node.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                            item_node.setData(0, Qt.ItemDataRole.UserRole, -4)
-                            item_node.setData(0, Qt.ItemDataRole.UserRole + 16, item_name)
-                            item_node.setData(0, Qt.ItemDataRole.UserRole + 4, item_name)
-                            item_node.setData(0, Qt.ItemDataRole.UserRole + 13, mappings)
-                            items_root.addChild(item_node)
-                            self._register_item_in_cache(item_node)
-                        self.mw.block_list_widget.invisibleRootItem().addChild(items_root)
+                    tree_root = self.mw.block_list_widget.invisibleRootItem()
+                    self._add_item_projection_root(tree_root, item_mappings)
+                    story_rows = self._story_linked_rows(self._story_projection_cache)
+                    speaker_rows = {
+                        row
+                        for name, rows in combined_speakers.items()
+                        if name != "None"
+                        for row in rows
+                    }
+                    item_rows = {row for rows in item_mappings.values() for row in rows}
+                    window_rows = self._window_bound_rows()
+                    globally_unbound = self._all_game_rows() - story_rows - speaker_rows - item_rows - window_rows
+                    self._add_virtual_role_leaf(
+                        tree_root,
+                        "None",
+                        -3,
+                        Qt.ItemDataRole.UserRole + 15,
+                        "None",
+                        sorted(globally_unbound),
+                    )
+                    self._add_windows_projection_root(
+                        tree_root,
+                        self._story_projection_cache,
+                        combined_speakers,
+                        item_mappings,
+                    )
+                    self._update_string_statistics(globally_unbound)
             except Exception as e:
                 from utils.logging_utils import log_error
                 log_error(f"Error populating Speakers folder: {e}", exc_info=True)
@@ -1182,6 +1423,8 @@ class BlockListUpdater(BaseUIUpdater):
             self.mw.block_list_widget.verticalScrollBar().setValue(v_scroll)
 
         self.mw.block_list_widget.viewport().update()
+        if not isinstance(self._story_projection_cache, StoryVirtualProjection):
+            self._update_string_statistics(self._all_game_rows() - self._window_bound_rows())
 
 
     def update_block_item_text_with_problem_count(self, block_idx: int):

@@ -3,6 +3,7 @@ import pytest
 
 from plugins.zelda_bmg.window_kinds import (
     decode_message_attributes, window_style_for_kind, window_kind_name,
+    layout_for_kind, load_window_layouts,
 )
 
 
@@ -93,6 +94,13 @@ def test_window_kind_names():
     assert window_kind_name(17) == "Howling stone"
     assert window_kind_name(7) == "Staff credits"
     assert window_kind_name(0) == "Dialogue"
+
+
+def test_original_game_fonts_follow_window_kind():
+    layouts = load_window_layouts()
+    assert layout_for_kind(layouts, 0)["font_file"] == "rodan_b_24_22.bfn"
+    assert layout_for_kind(layouts, 12)["font_file"] == "reishotai_24_22.bfn"
+    assert layout_for_kind(layouts, 19)["font_file"] == "reishotai_24_22.bfn"
 
 
 class _FakeMsg:

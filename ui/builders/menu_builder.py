@@ -247,7 +247,7 @@ class MenuBuilder:
         preview_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_DesktopIcon)
         self.mw.toggle_preview_action = QAction(preview_icon, '&Preview', self.mw)
         self.mw.toggle_preview_action.setCheckable(True)
-        self.mw.toggle_preview_action.setChecked(True)
+        self.mw.toggle_preview_action.setChecked(bool(getattr(self.mw, 'preview_enabled', True)))
         self.mw.toggle_preview_action.setShortcut('Ctrl+Shift+P')
         self.mw.toggle_preview_action.setToolTip("Toggle the visibility of the visual text preview")
         view_menu.addAction(self.mw.toggle_preview_action)

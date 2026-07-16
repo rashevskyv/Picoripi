@@ -217,6 +217,7 @@ class IssueScanHandler(BaseHandler):
             self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             self._progress_dialog.setMinimumDuration(0)
             self._progress_dialog.setValue(0)
+            self._progress_dialog.show()
         
         # Save indices to scan
         self._scan_pending_indices = list(pending_scan_indices)

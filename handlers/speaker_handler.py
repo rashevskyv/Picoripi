@@ -4,6 +4,10 @@ from PyQt6.QtWidgets import QMessageBox, QTreeWidgetItem
 from PyQt6.QtCore import Qt, QTimer
 from core.data_store import ViewKind, get_view_kind
 from core.mempalace.story_timeline import StoryVirtualProjection
+from core.story_context_overrides import (
+    get_story_context_override,
+    update_story_context_override,
+)
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info
 
@@ -162,23 +166,34 @@ class SpeakerHandler(BaseHandler):
 
         client, document_id = self._story_client_and_document()
         if client is not None and document_id is not None:
+            manual = get_story_context_override(self.mw, block_idx, string_idx)
             current = client.get_story_speakers_for_game_string(
                 str(block_idx), string_idx, document_id
             )
-            if len(current) == 1 and current[0] == char_name:
+            visible_current = manual.get("speaker") or (current[0] if len(current) == 1 else None)
+            if visible_current == char_name:
                 return
             node = client.get_story_navigation_target(
                 str(block_idx), string_idx, document_id
             )
             if node is None or node.start_line is None:
-                QMessageBox.information(
-                    self.mw,
-                    "No marked-script link yet",
-                    "This row cannot change a speaker until Story Context links it "
-                    "to a marked Text node.",
-                )
-                if cb is not None:
-                    cb.setCurrentText(", ".join(current) if current else "None")
+                speaker = None if not char_name or char_name.casefold() == "none" else char_name
+                if not update_story_context_override(
+                    self.mw, block_idx, string_idx, speaker=speaker
+                ):
+                    return
+                manager = getattr(self.mw, "project_manager", None)
+                if manager:
+                    manager.save()
+                block_updater = getattr(self.ui_updater, "block_list_updater", None)
+                if block_updater is not None:
+                    block_updater.populate_blocks()
+                settings = getattr(self.mw, "string_settings_updater", None)
+                if settings is not None:
+                    settings.clear_story_context_cache()
+                    settings.update_string_settings_panel()
+                self.data_processor.schedule_autosave()
+                self._restore_editor_focus_after_speaker_save()
                 return
             if not char_name or char_name.casefold() == "none":
                 QMessageBox.information(
@@ -367,6 +382,38 @@ class SpeakerHandler(BaseHandler):
             self.mw.is_programmatically_changing_text = previous_programmatic_state
 
         self._restore_editor_focus_after_speaker_save()
+        self.data_processor.schedule_autosave()
+
+    def save_chapter_for_current_string(self, structure_id=None) -> None:
+        """Persist a manual chapter/scene assignment for the current game row."""
+        block_idx = getattr(self.mw.data_store, "physical_block_idx", -1)
+        string_idx = getattr(self.mw.data_store, "current_string_idx", -1)
+        if block_idx < 0 or string_idx < 0:
+            return
+        combo = getattr(self.mw, "chapter_combobox", None)
+        if structure_id is None and combo is not None:
+            structure_id = combo.currentData()
+        path = []
+        if combo is not None and structure_id is not None:
+            path = combo.currentText().split(" › ")
+        if not update_story_context_override(
+            self.mw,
+            block_idx,
+            string_idx,
+            structure_id=structure_id,
+            structure_path=path,
+        ):
+            return
+        manager = getattr(self.mw, "project_manager", None)
+        if manager:
+            manager.save()
+        block_updater = getattr(self.ui_updater, "block_list_updater", None)
+        if block_updater is not None:
+            block_updater.populate_blocks()
+        settings = getattr(self.mw, "string_settings_updater", None)
+        if settings is not None:
+            settings.clear_story_context_cache()
+            settings.update_string_settings_panel()
         self.data_processor.schedule_autosave()
 
     def save_character_for_current_string(self, char_name: str) -> None:

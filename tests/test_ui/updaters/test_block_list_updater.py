@@ -106,6 +106,22 @@ def test_reference_item_mappings_are_separate_from_speakers(mock_mw, mock_dp):
     assert mappings == {"Wallet": [(0, 0)]}
     assert reverse == {(0, 0): "Wallet"}
 
+
+def test_empty_virtual_leaf_is_not_added(updater):
+    root = QTreeWidgetItem(["Root"])
+
+    item = updater._add_virtual_role_leaf(
+        root,
+        "None",
+        -3,
+        Qt.UserRole + 15,
+        "None",
+        [],
+    )
+
+    assert item is None
+    assert root.childCount() == 0
+
 @pytest.fixture
 def updater(mock_mw, mock_dp):
     return BlockListUpdater(mock_mw, mock_dp)
@@ -192,11 +208,11 @@ def test_BlockListUpdater_populate_chapters(updater):
     # Populate blocks should fetch chapters and add tree nodes
     updater.populate_blocks()
 
-    # Find "Chapters" root node in block list widget
+    # Find the normalized Story root node in the block list widget
     root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
     chapters_root = None
     for r in root_items:
-        if r.text(0) == "Chapters":
+        if r.text(0) == "Story":
             chapters_root = r
             break
 
@@ -218,6 +234,7 @@ def test_BlockListUpdater_populate_chapters(updater):
 
 
 def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater):
+    updater.mw.data_store.data[1].append("Loose")
     mapping = StoryVirtualMapping("1", "zel_01_Str_1", 1)
     scene = StoryVirtualFolder(30, "scene", "Scene One", (), (mapping,))
     chapter = StoryVirtualFolder(20, "chapter", "Chapter One", (scene,), (mapping,))
@@ -229,6 +246,10 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     )
     client = MagicMock()
     client.get_story_virtual_projection.return_value = projection
+    reference = MagicMock()
+    reference.name = "Str1"
+    reference.description = ""
+    client.get_reference_items.return_value = (reference,)
     composer = MagicMock()
     composer.prompt_composer._get_mempalace_client.return_value = client
     composer.prompt_composer._get_wing_name.return_value = "tp"
@@ -238,8 +259,24 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     updater.mw.data_store.current_speaker_name = None
     updater.mw.data_store.show_unsaved_blocks_only = False
     updater.mw.data_store.edited_data = {}
+    updater.mw.current_game_rules.get_preview_window_style.side_effect = (
+        lambda block_idx, string_idx: {
+            "kind_name": (
+                "Descriptions / save"
+                if (block_idx, string_idx) in {(0, 0), (1, 1)}
+                else "Dialogue"
+            )
+        }
+    )
     updater.mw.project_manager.project.blocks[0].metadata = {
-        "character_assignments": {"0": "STALE SPEAKER"}
+        "character_assignments": {"0": "STALE SPEAKER"},
+        "story_context_assignments": {
+            "0": {
+                "speaker": "SYSTEM",
+                "structure_id": 30,
+                "structure_path": ["Act One", "Chapter One", "Scene One"],
+            }
+        },
     }
 
     updater.populate_blocks()
@@ -253,7 +290,7 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     assert scene_item.text(0) == "Scene One"
     assert scene_item.data(0, Qt.UserRole) == -2
     assert scene_item.data(0, Qt.UserRole + 11) == 30
-    assert scene_item.data(0, Qt.UserRole + 13) == [(1, 1)]
+    assert scene_item.data(0, Qt.UserRole + 13) == [(1, 1), (0, 0)]
 
     speakers_root = next(item for item in roots if item.text(0) == "Speakers")
     midna = next(
@@ -262,10 +299,117 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
         if speakers_root.child(i).text(0) == "MIDNA"
     )
     assert midna.data(0, Qt.UserRole + 13) == [(1, 1)]
+    system = next(
+        speakers_root.child(i)
+        for i in range(speakers_root.childCount())
+        if speakers_root.child(i).data(0, Qt.UserRole + 15) == "SYSTEM"
+    )
+    assert system.data(0, Qt.UserRole + 13) == [(0, 0)]
+    unassigned = next(
+        speakers_root.child(i)
+        for i in range(speakers_root.childCount())
+        if speakers_root.child(i).data(0, Qt.UserRole + 15) == "None"
+    )
+    assert unassigned.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
     assert all(
         speakers_root.child(i).text(0) != "STALE SPEAKER"
         for i in range(speakers_root.childCount())
     )
+
+    story_none = next(
+        story_root.child(i)
+        for i in range(story_root.childCount())
+        if story_root.child(i).text(0) == "None"
+    )
+    assert story_none.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
+
+    items_root = next(item for item in roots if item.text(0) == "Items")
+    item_str1 = next(
+        items_root.child(i)
+        for i in range(items_root.childCount())
+        if items_root.child(i).data(0, Qt.UserRole + 16) == "Str1"
+    )
+    assert item_str1.data(0, Qt.UserRole + 13) == [(1, 0)]
+    items_none = next(
+        items_root.child(i)
+        for i in range(items_root.childCount())
+        if items_root.child(i).data(0, Qt.UserRole + 16) == "None"
+    )
+    assert items_none.data(0, Qt.UserRole + 13) == [(0, 0), (1, 1), (1, 2)]
+
+    # Every row has a Window binding, so an empty global None is omitted.
+    assert all(item.text(0) != "None" for item in roots)
+
+    windows_root = next(item for item in roots if item.text(0) == "Windows")
+    dialogue = next(
+        windows_root.child(i)
+        for i in range(windows_root.childCount())
+        if windows_root.child(i).text(0) == "Dialogue"
+    )
+    nested_story = next(
+        dialogue.child(i)
+        for i in range(dialogue.childCount())
+        if dialogue.child(i).text(0) == "Story"
+    )
+    nested_story_none = next(
+        nested_story.child(i)
+        for i in range(nested_story.childCount())
+        if nested_story.child(i).text(0) == "None"
+    )
+    assert nested_story_none.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
+
+    nested_speakers = next(
+        dialogue.child(i)
+        for i in range(dialogue.childCount())
+        if dialogue.child(i).text(0) == "Speakers"
+    )
+    nested_speaker_none = nested_speakers.child(0)
+    assert nested_speaker_none.data(0, Qt.UserRole + 15) == "None"
+    assert nested_speaker_none.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
+
+    nested_items = next(
+        dialogue.child(i)
+        for i in range(dialogue.childCount())
+        if dialogue.child(i).text(0) == "Items"
+    )
+    nested_items_none = nested_items.child(0)
+    assert nested_items_none.data(0, Qt.UserRole + 16) == "None"
+    assert nested_items_none.data(0, Qt.UserRole + 13) == [(1, 2)]
+
+    unbound = next(
+        dialogue.child(i)
+        for i in range(dialogue.childCount())
+        if dialogue.child(i).text(0) == "None"
+    )
+    assert unbound.data(0, Qt.UserRole + 13) == [(1, 2)]
+
+
+def test_BlockListUpdater_shows_none_when_no_rows_have_speakers(updater):
+    projection = StoryVirtualProjection(1, (), ())
+    client = MagicMock()
+    client.get_story_virtual_projection.return_value = projection
+    composer = MagicMock()
+    composer.prompt_composer._get_mempalace_client.return_value = client
+    composer.prompt_composer._get_wing_name.return_value = "tp"
+    updater.mw.translation_handler = composer
+    updater.mw.data_store.current_block_idx = -1
+    updater.mw.data_store.current_chapter_id = None
+    updater.mw.data_store.current_speaker_name = None
+    updater.mw.data_store.show_unsaved_blocks_only = False
+    updater.mw.data_store.edited_data = {}
+    updater.mw.project_manager.project.blocks[0].metadata = {}
+
+    updater.populate_blocks()
+
+    roots = [
+        updater.mw.block_list_widget.topLevelItem(i)
+        for i in range(updater.mw.block_list_widget.topLevelItemCount())
+    ]
+    speakers_root = next(item for item in roots if item.text(0) == "Speakers")
+    assert speakers_root.childCount() == 1
+    none_item = speakers_root.child(0)
+    assert none_item.data(0, Qt.UserRole + 15) == "None"
+    assert none_item.data(0, Qt.UserRole + 13) == [(0, 0), (1, 0), (1, 1)]
 
 
 def test_BlockListUpdater_compacted_folder_problem_count(updater):
@@ -308,10 +452,12 @@ def test_BlockListUpdater_compacted_folder_problem_count(updater):
     # Run populate_blocks
     updater.populate_blocks()
 
-    # The block list widget should have a top-level item (the compacted folder)
-    # representing block 0 with the error count in brackets
-    assert updater.mw.block_list_widget.topLevelItemCount() == 1
-    item = updater.mw.block_list_widget.topLevelItem(0)
+    # The compacted folder remains present alongside the required Speakers/None block.
+    item = next(
+        updater.mw.block_list_widget.topLevelItem(i)
+        for i in range(updater.mw.block_list_widget.topLevelItemCount())
+        if updater.mw.block_list_widget.topLevelItem(i).text(0).startswith("CompactFolder")
+    )
 
     assert item.text(0) == "CompactFolder / block0 (1)"
     assert "Width Error" in item.toolTip(0)
@@ -368,7 +514,7 @@ def test_BlockListUpdater_async_chapters_loading(updater):
 
     # Check that tree shows loading placeholder
     root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
-    chapters_root = next((r for r in root_items if r.text(0) == "Chapters"), None)
+    chapters_root = next((r for r in root_items if r.text(0) == "Story"), None)
     assert chapters_root is not None
     assert chapters_root.childCount() == 1
     assert chapters_root.child(0).text(0) == "Loading..."
@@ -381,7 +527,7 @@ def test_BlockListUpdater_async_chapters_loading(updater):
 
     # Re-fetch root items after populate_blocks is called again internally by slot
     root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
-    chapters_root = next((r for r in root_items if r.text(0) == "Chapters"), None)
+    chapters_root = next((r for r in root_items if r.text(0) == "Story"), None)
     assert chapters_root is not None
     # Now the layout should have the actual chapter hierarchy populated from the cache
     assert chapters_root.childCount() == 1 # Act 1
@@ -390,7 +536,7 @@ def test_BlockListUpdater_async_chapters_loading(updater):
     # Now simulate load failure
     updater._on_chapters_load_failed("Network Timeout")
     root_items = [updater.mw.block_list_widget.topLevelItem(i) for i in range(updater.mw.block_list_widget.topLevelItemCount())]
-    chapters_root = next((r for r in root_items if r.text(0) == "Chapters (Load Error)"), None)
+    chapters_root = next((r for r in root_items if r.text(0) == "Story (Load Error)"), None)
     assert chapters_root is not None
     assert chapters_root.child(0).text(0) == "Error: Network Timeout"
 

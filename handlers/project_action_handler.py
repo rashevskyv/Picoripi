@@ -1081,6 +1081,7 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.block_list_widget.setUpdatesEnabled(False)
                 try:
                     self.ui_updater.populate_blocks()
+                    self.mw.block_list_widget.expandAll()
                 finally:
                     self.mw.block_list_widget.setUpdatesEnabled(True)
             finally:
@@ -1096,6 +1097,7 @@ class ProjectActionHandler(BaseHandler):
                 self.mw.block_list_widget.setUpdatesEnabled(False)
                 try:
                     self.ui_updater.populate_blocks()
+                    self.mw.block_list_widget.collapseAll()
                 finally:
                     self.mw.block_list_widget.setUpdatesEnabled(True)
             finally:

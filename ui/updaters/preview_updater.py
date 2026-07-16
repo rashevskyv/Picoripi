@@ -89,9 +89,15 @@ class PreviewUpdater(BaseUIUpdater):
         self.preview_cache.update_cached_string(block_idx, string_idx, preview_line_text, physical_block_idx)
 
     def schedule_pre_cache(self):
+        if not getattr(self.mw, 'preview_enabled', True):
+            self.preview_cache.cancel_idle_caching()
+            return
         self.preview_cache.schedule_pre_cache()
 
     def pre_cache_all_blocks(self):
+        if not getattr(self.mw, 'preview_enabled', True):
+            self.preview_cache.cancel_idle_caching()
+            return
         self.preview_cache.pre_cache_all_blocks()
 
     def cancel_idle_caching(self):
@@ -214,19 +220,18 @@ class PreviewUpdater(BaseUIUpdater):
 
     def _do_populate_strings_for_block(self, block_idx, category_name=None, force=False):
         """Actual populate strings for block logic using central FilterQueryAPI."""
-        if block_idx != -1:
-            current_view_kind = get_view_kind(self.mw.data_store)
-            if current_view_kind == ViewKind.CHAPTER:
-                block_idx = -2
-                category_name = None
-            elif current_view_kind == ViewKind.SPEAKER:
-                block_idx = -3
-                category_name = None
-            elif current_view_kind == ViewKind.ITEM:
-                block_idx = -4
-                category_name = None
-            elif category_name is None:
-                category_name = getattr(self.mw.data_store, 'current_category_name', None)
+        current_view_kind = get_view_kind(self.mw.data_store)
+        if current_view_kind == ViewKind.CHAPTER:
+            block_idx = -2
+            category_name = None
+        elif current_view_kind == ViewKind.SPEAKER:
+            block_idx = -3
+            category_name = None
+        elif current_view_kind == ViewKind.ITEM:
+            block_idx = -4
+            category_name = None
+        elif block_idx != -1 and category_name is None:
+            category_name = getattr(self.mw.data_store, 'current_category_name', None)
 
         if not hasattr(self.mw, 'preview_text_edit'):
             return
@@ -739,20 +744,30 @@ class PreviewUpdater(BaseUIUpdater):
         if hasattr(self.mw, 'dictionary_tooltip') and self.mw.dictionary_tooltip:
              self.mw.dictionary_tooltip.hide()
 
-    def update_preview_visibility(self):
+    def update_preview_visibility(self, checked=None, *, persist=True):
         """Update visibility of the visual preview widget based on loaded fonts and menu toggle state."""
         preview_widget = getattr(self.mw, 'bfn_preview_widget', None)
         if not preview_widget:
             return
 
-        if not getattr(self.mw, 'preview_enabled', True):
+        toggle_action = getattr(self.mw, 'toggle_preview_action', None)
+        explicit_change = checked is not None
+        if checked is None:
+            checked = getattr(self.mw, 'preview_enabled', True)
+        enabled = bool(checked)
+        self.mw.preview_enabled = enabled
+        if persist and explicit_change and hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+
+        if not enabled:
+            if toggle_action:
+                toggle_action.setChecked(False)
+            self.preview_cache.cancel_idle_caching()
             preview_widget.hide()
             return
 
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
         fonts_loaded = bool(all_bfn_fonts)
-
-        toggle_action = getattr(self.mw, 'toggle_preview_action', None)
 
         if not fonts_loaded:
             preview_widget.hide()
@@ -762,14 +777,18 @@ class PreviewUpdater(BaseUIUpdater):
         else:
             if toggle_action:
                 toggle_action.setEnabled(True)
-                if toggle_action.isChecked():
-                    preview_widget.show()
-                    # Immediately update preview text when showing
+                toggle_action.setChecked(True)
+            activate_preview = getattr(preview_widget, 'activate_preview', None)
+            if callable(activate_preview):
+                activate_preview()
+            preview_widget.show()
+            # Immediately update preview text when showing
+            edited_text_raw = ""
+            if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+                edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
+                if edited_text_raw is None:
                     edited_text_raw = ""
-                    if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
-                        edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
-                        if edited_text_raw is None:
-                            edited_text_raw = ""
-                    preview_widget.update_preview_text(edited_text_raw)
-                else:
-                    preview_widget.hide()
+            preview_widget.update_preview_text(edited_text_raw)
+
+        if enabled:
+            self.schedule_pre_cache()

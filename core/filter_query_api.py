@@ -54,9 +54,7 @@ class FilterQueryAPI:
         if data_source is None:
             data_source = getattr(self.data_store, 'data', []) or []
 
-        is_chapter = (block_idx == -2)
-        is_speaker = (block_idx == -3)
-        is_virtual = is_chapter or is_speaker
+        is_virtual = block_idx in (-2, -3, -4)
 
         # 1. Determine base target indices
         target_indices = []

@@ -277,17 +277,11 @@ class BfnPreviewWidget(QWidget):
         self.setMinimumHeight(150)  # Increased minimum height to accommodate dialogue frames nicely
         self.setStyleSheet("BfnPreviewWidget { background-color: #111111; border: 1px solid #333333; border-radius: 6px; }")
         
-        # Load translation map if available
-        self.load_translation_map()
+        self._preview_resources_loaded = False
         
         # State variables for background image and spacing
         self.bg_image_path = getattr(self.mw, 'preview_bg_image_path', "")
         self.bg_image = None
-        if self.bg_image_path and Path(self.bg_image_path).exists():
-            try:
-                self.bg_image = QImage(self.bg_image_path)
-            except Exception:
-                self.bg_image = None
                 
         self.bg_scale = getattr(self.mw, 'preview_bg_scale', 100)
         self.bg_offset_x = getattr(self.mw, 'preview_bg_offset_x', 0)
@@ -311,6 +305,9 @@ class BfnPreviewWidget(QWidget):
         self.fix_font_scale = bool(getattr(self.mw, 'preview_fix_font_scale', False))
         self.fixed_font_scale = float(getattr(self.mw, 'preview_fixed_font_scale', 1.0))
         self._last_computed_scale_factor = 1.0
+
+        if getattr(self.mw, 'preview_enabled', True):
+            self.activate_preview()
 
         
         # UI Interaction state
@@ -376,8 +373,23 @@ class BfnPreviewWidget(QWidget):
         else:
             self.translation_map = None
 
+    def activate_preview(self):
+        """Lazily load preview-only resources after the preview is enabled."""
+        if self._preview_resources_loaded:
+            return
+        self.load_translation_map()
+        if self.bg_image_path and Path(self.bg_image_path).exists():
+            try:
+                self.bg_image = QImage(self.bg_image_path)
+            except Exception:
+                self.bg_image = None
+        self._preview_resources_loaded = True
+
     def update_preview_text(self, text: str):
         """Update the text and request redraw."""
+        if not getattr(self.mw, 'preview_enabled', True):
+            return
+        self.activate_preview()
         if text != self.text:
             self._preview_page = 0
         self.text = text
@@ -411,6 +423,16 @@ class BfnPreviewWidget(QWidget):
         if block_idx != -1 and string_idx != -1:
             string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
             font_file = string_meta.get("font_file")
+
+        if not font_file or font_file == "default":
+            rules = getattr(self.mw, 'current_game_rules', None)
+            layout_getter = getattr(rules, 'get_string_layout', None)
+            if callable(layout_getter) and block_idx != -1 and string_idx != -1:
+                try:
+                    layout = layout_getter(block_idx, string_idx) or {}
+                    font_file = layout.get("font_file") if isinstance(layout, dict) else None
+                except Exception:
+                    font_file = None
 
         if not font_file or font_file == "default":
             font_file = getattr(self.mw, 'default_font_file', None)
@@ -490,38 +512,104 @@ class BfnPreviewWidget(QWidget):
 
     # ── Message page switcher ─────────────────────────────────────────────────
 
+    def _button_stylesheet(self) -> str:
+        return (
+            "QPushButton {"
+            "  background: #1e1e1e;"
+            "  color: #cccccc;"
+            "  border: 1px solid #3a3a3a;"
+            "  border-radius: 5px;"
+            "  font-size: 11px;"
+            "}"
+            "QPushButton:hover {"
+            "  background: #2d2d2d;"
+            "  border-color: #5a5a5a;"
+            "  color: #ffffff;"
+            "}"
+            "QPushButton:disabled {"
+            "  color: #444444;"
+            "  background: #121212;"
+            "  border-color: #222222;"
+            "}"
+        )
+
+    def _indicator_stylesheet(self) -> str:
+        return (
+            "QPushButton {"
+            "  background: transparent;"
+            "  border: 2px solid #555555;"
+            "  border-radius: 2px;"
+            "}"
+            "QPushButton:hover {"
+            "  border-color: #888888;"
+            "}"
+            "QPushButton:checked {"
+            "  background: #0078d7;"
+            "  border-color: #0078d7;"
+            "}"
+        )
+
     def _build_page_bar(self):
-        """Small overlay with prev/next buttons for multi-page messages."""
-        from PyQt6.QtWidgets import QHBoxLayout, QLabel
+        """Vertical page switcher bar on the right side with prev/next buttons and page indicator squares."""
+        from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QFrame
         self.page_bar = QFrame(self)
         self.page_bar.setStyleSheet(
-            "QFrame { background: rgba(15, 15, 15, 200); border: 1px solid #3a3a3a;"
-            " border-radius: 5px; }"
-            "QPushButton { background: transparent; color: #cccccc; border: none;"
-            " font-size: 12px; }"
-            "QPushButton:hover { color: #ffffff; }"
-            "QLabel { color: #cccccc; font-size: 11px; border: none; }"
+            "QFrame {"
+            "  background: rgba(15, 15, 15, 200);"
+            "  border-left: 1px solid #2a2a2a;"
+            "  border-top-right-radius: 6px;"
+            "  border-bottom-right-radius: 6px;"
+            "}"
         )
-        bar_layout = QHBoxLayout(self.page_bar)
-        bar_layout.setContentsMargins(6, 2, 6, 2)
-        bar_layout.setSpacing(4)
-        self.btn_page_prev = QPushButton("◀", self.page_bar)
-        self.btn_page_prev.setFixedSize(18, 18)
+        self.page_bar.setFixedWidth(38)
+        
+        bar_layout = QVBoxLayout(self.page_bar)
+        bar_layout.setContentsMargins(4, 8, 4, 8)
+        bar_layout.setSpacing(6)
+        
+        # Top button: Previous page (▲)
+        self.btn_page_prev = QPushButton("▲", self.page_bar)
+        self.btn_page_prev.setFixedSize(30, 30)
+        self.btn_page_prev.setStyleSheet(self._button_stylesheet())
         self.btn_page_prev.clicked.connect(lambda: self._change_page(-1))
-        self.page_label = QLabel("1/1", self.page_bar)
-        self.btn_page_next = QPushButton("▶", self.page_bar)
-        self.btn_page_next.setFixedSize(18, 18)
+        self.btn_page_prev.setToolTip("Previous page")
+        bar_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
+        
+        bar_layout.addStretch()
+        
+        # Container layout for page indicators (squares)
+        self.indicators_layout = QVBoxLayout()
+        self.indicators_layout.setSpacing(6)
+        self.indicators_layout.setContentsMargins(0, 0, 0, 0)
+        bar_layout.addLayout(self.indicators_layout)
+        
+        bar_layout.addStretch()
+        
+        # Bottom button: Next page (▼)
+        self.btn_page_next = QPushButton("▼", self.page_bar)
+        self.btn_page_next.setFixedSize(30, 30)
+        self.btn_page_next.setStyleSheet(self._button_stylesheet())
         self.btn_page_next.clicked.connect(lambda: self._change_page(1))
-        bar_layout.addWidget(self.btn_page_prev)
-        bar_layout.addWidget(self.page_label)
-        bar_layout.addWidget(self.btn_page_next)
+        self.btn_page_next.setToolTip("Next page")
+        bar_layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
+        
+        self.indicator_buttons = []
         self.page_bar.hide()
 
     def _position_page_bar(self):
         if hasattr(self, 'page_bar'):
-            self.page_bar.adjustSize()
-            self.page_bar.move(self.width() - self.page_bar.width() - 8,
-                               self.height() - self.page_bar.height() - 8)
+            x = self.width() - 38
+            y = 0
+            height = self.height()
+            if self.bg_image and not self.bg_image.isNull() and not self.bg_hidden:
+                scale = self.bg_scale / 100.0 if self.bg_scale else 1.0
+                image_right = int(round(self.bg_offset_x + self.bg_image.width() * scale))
+                image_top = int(round(self.bg_offset_y))
+                image_height = int(round(self.bg_image.height() * scale))
+                x = max(0, min(self.width() - 38, image_right))
+                y = max(0, min(self.height(), image_top))
+                height = max(0, min(image_height, self.height() - y))
+            self.page_bar.setGeometry(x, y, 38, height)
             self.page_bar.raise_()
 
     def _lines_per_page(self, game_style=None) -> int:
@@ -545,6 +633,13 @@ class BfnPreviewWidget(QWidget):
             self._refresh_page_bar()
             self.update()
 
+    def _jump_to_page(self, page_idx: int):
+        new_page = max(0, min(self._page_count - 1, page_idx))
+        if new_page != self._preview_page:
+            self._preview_page = new_page
+            self._refresh_page_bar()
+            self.update()
+
     def _refresh_page_bar(self):
         if not hasattr(self, 'page_bar'):
             return
@@ -559,7 +654,32 @@ class BfnPreviewWidget(QWidget):
             self._page_count = 1
         self._preview_page = max(0, min(self._page_count - 1, self._preview_page))
         if self._page_count > 1:
-            self.page_label.setText(f"{self._preview_page + 1}/{self._page_count}")
+            # Recreate indicator squares if the count changed
+            if len(self.indicator_buttons) != self._page_count:
+                # Clear layout
+                while self.indicators_layout.count() > 0:
+                    item = self.indicators_layout.takeAt(0)
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater()
+                self.indicator_buttons.clear()
+                
+                # Rebuild
+                for i in range(self._page_count):
+                    btn = QPushButton(self.page_bar)
+                    btn.setFixedSize(12, 12)
+                    btn.setCheckable(True)
+                    btn.setStyleSheet(self._indicator_stylesheet())
+                    btn.setChecked(i == self._preview_page)
+                    btn.clicked.connect(lambda checked, idx=i: self._jump_to_page(idx))
+                    btn.setToolTip(f"Go to page {i + 1}")
+                    self.indicators_layout.addWidget(btn, 0, Qt.AlignmentFlag.AlignHCenter)
+                    self.indicator_buttons.append(btn)
+            else:
+                # Just update checked state
+                for i, btn in enumerate(self.indicator_buttons):
+                    btn.setChecked(i == self._preview_page)
+                    
             self.btn_page_prev.setEnabled(self._preview_page > 0)
             self.btn_page_next.setEnabled(self._preview_page < self._page_count - 1)
             self.page_bar.show()
@@ -1093,7 +1213,7 @@ class BfnPreviewWidget(QWidget):
 
     def paintEvent(self, event):
         """Paintevent."""
-        if self.isHidden():
+        if self.isHidden() or not getattr(self.mw, 'preview_enabled', True):
             return
             
         painter = QPainter(self)

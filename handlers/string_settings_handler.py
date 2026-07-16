@@ -27,6 +27,35 @@ class StringSettingsHandler(BaseHandler):
 
     def _is_default_width(self, width: int, block_idx: int, string_idx: int) -> bool:
         return width == 0 or width == self.get_default_width_for_string(block_idx, string_idx)
+
+    def copy_original_width_to_editor(self) -> None:
+        """Copy the selected original row's measured max width into the editor control."""
+        block_idx = getattr(self.mw.data_store, "physical_block_idx", -1)
+        string_idx = getattr(self.mw.data_store, "current_string_idx", -1)
+        if block_idx < 0 or string_idx < 0:
+            return
+        original_text = self.data_processor._get_string_from_source(
+            block_idx, string_idx, self.mw.data_store.data, "original_data"
+        )
+        if original_text is None:
+            return
+        font_map = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+        icon_sequences = getattr(self.mw, "icon_sequences", [])
+        default_tag_mappings = getattr(self.mw, "default_tag_mappings", None)
+        max_width = max(
+            (
+                calculate_string_width(
+                    line,
+                    font_map,
+                    icon_sequences=icon_sequences,
+                    default_tag_mappings=default_tag_mappings,
+                )
+                for line in str(original_text).split("\n")
+            ),
+            default=0,
+        )
+        if max_width > 0:
+            self.mw.width_spinbox.setValue(max_width)
         
     def _apply_and_rescan(self) -> None:
         """Internal helper to apply and rescan."""

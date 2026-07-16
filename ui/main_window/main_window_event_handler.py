@@ -42,6 +42,7 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'help_shortcuts_action'): self.mw.help_shortcuts_action.triggered.connect(self.mw.actions.show_shortcuts_help)
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.currentItemChanged.connect(self.mw.list_selection_handler.block_selected)
+            self.mw.block_list_widget.itemClicked.connect(self.mw.list_selection_handler.refresh_empty_virtual_view_on_click)
             self.mw.block_list_widget.itemDoubleClicked.connect(self.mw.list_selection_handler.rename_block)
             self.mw.block_list_widget.itemChanged.connect(self.mw.list_selection_handler.handle_block_item_text_changed)
         
@@ -180,6 +181,10 @@ class MainWindowEventHandler:
             self.mw.width_spinbox.valueChanged.connect(self.mw.string_settings_handler.on_width_changed)
         if hasattr(self.mw, 'apply_width_button'):
             self.mw.apply_width_button.clicked.connect(self.mw.string_settings_handler.apply_settings_change)
+        if hasattr(self.mw, 'original_width_label'):
+            self.mw.original_width_label.clicked.connect(
+                self.mw.string_settings_handler.copy_original_width_to_editor
+            )
 
         if hasattr(self.mw, 'highlight_categorized_checkbox'):
             self.mw.highlight_categorized_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_highlight_categorized)
@@ -203,6 +208,12 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox is not None:
             self.mw.speaker_combobox.lineEdit().returnPressed.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
             self.mw.speaker_combobox.activated.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
+        if hasattr(self.mw, 'chapter_combobox') and self.mw.chapter_combobox is not None:
+            self.mw.chapter_combobox.activated.connect(
+                lambda: self.mw.list_selection_handler.save_chapter_for_current_string(
+                    self.mw.chapter_combobox.currentData()
+                )
+            )
         speaker_label = getattr(self.mw, 'speaker_select_label', None)
         if speaker_label is not None:
             speaker_label.doubleClicked.connect(
@@ -296,6 +307,7 @@ class MainWindowEventHandler:
         # Widgets
         if hasattr(mw, 'block_list_widget'):
             safe_disconnect(mw.block_list_widget, 'currentItemChanged')
+            safe_disconnect(mw.block_list_widget, 'itemClicked')
             safe_disconnect(mw.block_list_widget, 'itemDoubleClicked')
             safe_disconnect(mw.block_list_widget, 'itemChanged')
             
@@ -375,6 +387,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'font_combobox'): safe_disconnect(mw.font_combobox, 'currentIndexChanged')
         if hasattr(mw, 'width_spinbox'): safe_disconnect(mw.width_spinbox, 'valueChanged')
         if hasattr(mw, 'apply_width_button'): safe_disconnect(mw.apply_width_button, 'clicked')
+        if hasattr(mw, 'original_width_label'): safe_disconnect(mw.original_width_label, 'clicked')
 
         # Checkboxes
         if hasattr(mw, 'highlight_categorized_checkbox'): safe_disconnect(mw.highlight_categorized_checkbox, 'toggled')
@@ -391,6 +404,8 @@ class MainWindowEventHandler:
             if mw.speaker_combobox.lineEdit():
                 safe_disconnect(mw.speaker_combobox.lineEdit(), 'returnPressed')
             safe_disconnect(mw.speaker_combobox, 'activated')
+        if hasattr(mw, 'chapter_combobox') and mw.chapter_combobox is not None:
+            safe_disconnect(mw.chapter_combobox, 'activated')
         if hasattr(mw, 'speaker_select_label') and mw.speaker_select_label is not None:
             safe_disconnect(mw.speaker_select_label, 'doubleClicked')
         if hasattr(mw, 'window_kind_label') and mw.window_kind_label is not None:
