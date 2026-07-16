@@ -3,6 +3,12 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PyQt6.QtCore import Qt
 from ui.updaters.block_list_updater import BlockListUpdater
+from core.mempalace.story_timeline import (
+    StoryVirtualFolder,
+    StoryVirtualMapping,
+    StoryVirtualProjection,
+    StoryVirtualSpeaker,
+)
 
 @pytest.fixture
 def mock_mw():
@@ -84,6 +90,21 @@ def mock_dp(mock_mw):
     dp.get_unsaved_set.side_effect = get_unsaved_set
     dp.get_empty_set.side_effect = get_empty_set
     return dp
+
+
+def test_reference_item_mappings_are_separate_from_speakers(mock_mw, mock_dp):
+    mock_mw.data_store.data = [["Wallet\nA wallet from your childhood.", "Unrelated dialogue"]]
+    reference = MagicMock(name="reference")
+    reference.name = "Wallet"
+    reference.description = "A wallet from your childhood."
+    client = MagicMock()
+    client.get_reference_items.return_value = (reference,)
+    updater = BlockListUpdater(mock_mw, mock_dp)
+
+    mappings, reverse = updater._reference_item_mappings(client, 1)
+
+    assert mappings == {"Wallet": [(0, 0)]}
+    assert reverse == {(0, 0): "Wallet"}
 
 @pytest.fixture
 def updater(mock_mw, mock_dp):
@@ -194,6 +215,57 @@ def test_BlockListUpdater_populate_chapters(updater):
 
     # Verify that no dialogue child rows are nested under ch1 (redundant to preview panel)
     assert ch1.childCount() == 0
+
+
+def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater):
+    mapping = StoryVirtualMapping("1", "zel_01_Str_1", 1)
+    scene = StoryVirtualFolder(30, "scene", "Scene One", (), (mapping,))
+    chapter = StoryVirtualFolder(20, "chapter", "Chapter One", (scene,), (mapping,))
+    act = StoryVirtualFolder(10, "act", "Act One", (chapter,), (mapping,))
+    projection = StoryVirtualProjection(
+        1,
+        (act,),
+        (StoryVirtualSpeaker("MIDNA", (mapping,)),),
+    )
+    client = MagicMock()
+    client.get_story_virtual_projection.return_value = projection
+    composer = MagicMock()
+    composer.prompt_composer._get_mempalace_client.return_value = client
+    composer.prompt_composer._get_wing_name.return_value = "tp"
+    updater.mw.translation_handler = composer
+    updater.mw.data_store.current_block_idx = -1
+    updater.mw.data_store.current_chapter_id = None
+    updater.mw.data_store.current_speaker_name = None
+    updater.mw.data_store.show_unsaved_blocks_only = False
+    updater.mw.data_store.edited_data = {}
+    updater.mw.project_manager.project.blocks[0].metadata = {
+        "character_assignments": {"0": "STALE SPEAKER"}
+    }
+
+    updater.populate_blocks()
+
+    roots = [
+        updater.mw.block_list_widget.topLevelItem(i)
+        for i in range(updater.mw.block_list_widget.topLevelItemCount())
+    ]
+    story_root = next(item for item in roots if item.text(0) == "Story")
+    scene_item = story_root.child(0).child(0).child(0)
+    assert scene_item.text(0) == "Scene One"
+    assert scene_item.data(0, Qt.UserRole) == -2
+    assert scene_item.data(0, Qt.UserRole + 11) == 30
+    assert scene_item.data(0, Qt.UserRole + 13) == [(1, 1)]
+
+    speakers_root = next(item for item in roots if item.text(0) == "Speakers")
+    midna = next(
+        speakers_root.child(i)
+        for i in range(speakers_root.childCount())
+        if speakers_root.child(i).text(0) == "MIDNA"
+    )
+    assert midna.data(0, Qt.UserRole + 13) == [(1, 1)]
+    assert all(
+        speakers_root.child(i).text(0) != "STALE SPEAKER"
+        for i in range(speakers_root.childCount())
+    )
 
 
 def test_BlockListUpdater_compacted_folder_problem_count(updater):

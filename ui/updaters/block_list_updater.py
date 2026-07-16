@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle, QW
 from utils.logging_utils import log_info, log_warning
 from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
+from core.mempalace.story_timeline import StoryVirtualFolder, StoryVirtualProjection
+from core.mempalace.dialogue_mapping import canonicalize_dialogue_text
 
 class BlockListUpdater(BaseUIUpdater):
     """Block list updater implementation."""
@@ -14,11 +16,128 @@ class BlockListUpdater(BaseUIUpdater):
         self._block_items_cache = {}  # {block_idx: [QTreeWidgetItem, ...]}
         self._chapters_load_worker = None
         self._chapters_cache = None
+        self._chapter_mappings_cache = None
+        self._story_projection_cache = None
+        self._story_item_mappings_cache = {}
         self._chapters_cache_wing_name = None
         self._chapters_load_error = None
+        self._is_loading_chapters = False
         if hasattr(self.mw, 'filter_query_api') and self.mw.filter_query_api is not None:
             if getattr(self.mw.filter_query_api, '_data_processor', None) is None:
                 self.mw.filter_query_api._data_processor = data_processor
+
+    def invalidate_mempalace_story_cache(self) -> None:
+        """Force the next tree refresh to read the latest normalized story links."""
+        worker_running = bool(
+            self._chapters_load_worker and self._chapters_load_worker.isRunning()
+        )
+        self._chapters_cache = None
+        self._chapter_mappings_cache = None
+        self._story_projection_cache = None
+        self._story_item_mappings_cache = {}
+        settings_updater = getattr(self.mw, "string_settings_updater", None)
+        clear_context = getattr(settings_updater, "clear_story_context_cache", None)
+        if callable(clear_context):
+            clear_context()
+        self._chapters_load_error = None
+        self._is_loading_chapters = worker_running
+
+    def _resolve_story_mapping(self, mapping):
+        """Resolve a normalized story relation to one physical project string."""
+        try:
+            block_idx = int(mapping.game_block_id)
+            string_idx = int(mapping.string_index)
+            data = getattr(self.mw.data_store, "data", [])
+            if 0 <= block_idx < len(data) and 0 <= string_idx < len(data[block_idx]):
+                return block_idx, string_idx
+        except (TypeError, ValueError, IndexError):
+            pass
+        handler = getattr(self.mw, "list_selection_handler", None)
+        if handler is not None:
+            return handler.resolve_bmg_id_to_indices(mapping.game_string_id)
+        return None
+
+    def _story_mapping_indices(self, mappings) -> list[tuple[int, int]]:
+        resolved = []
+        seen = set()
+        for mapping in mappings:
+            indices = self._resolve_story_mapping(mapping)
+            if indices is not None and indices not in seen:
+                seen.add(indices)
+                resolved.append(indices)
+        return resolved
+
+    @staticmethod
+    def _item_match_text(value: str) -> str:
+        canonical = canonicalize_dialogue_text(str(value or ""))
+        return " ".join(re.findall(r"[\w']+", canonical.casefold()))
+
+    def _reference_item_mappings(self, client, document_id):
+        """Derive conservative exact/contained links for the non-dialogue item catalogue."""
+        item_mappings = {}
+        reverse = {}
+        if client is None or document_id is None:
+            return item_mappings, reverse
+        references = client.get_reference_items(document_id)
+        prepared = []
+        for reference in references:
+            name = self._item_match_text(reference.name)
+            description = self._item_match_text(reference.description)
+            combined = " ".join(part for part in (name, description) if part)
+            prepared.append((reference.name, tuple(x for x in (name, description, combined) if x)))
+        for block_idx, block in enumerate(getattr(self.mw.data_store, "data", [])):
+            for string_idx, raw in enumerate(block):
+                game = self._item_match_text(raw)
+                if len(game) < 3:
+                    continue
+                matches = []
+                for item_name, variants in prepared:
+                    if any(game == variant or (len(game) >= 10 and f" {game} " in f" {variant} ") for variant in variants):
+                        matches.append(item_name)
+                if len(set(matches)) == 1:
+                    name = matches[0]
+                    item_mappings.setdefault(name, []).append((block_idx, string_idx))
+                    reverse[(block_idx, string_idx)] = name
+        return item_mappings, reverse
+
+    def _add_story_folder_item(self, parent, folder: StoryVirtualFolder, selected_id) -> bool:
+        """Add one normalized story folder recursively and restore selection when possible."""
+        mappings = self._story_mapping_indices(folder.mappings)
+        if getattr(self.mw.data_store, "show_unsaved_blocks_only", False):
+            own_unsaved = any(item in self.mw.data_store.edited_data for item in mappings)
+        else:
+            own_unsaved = True
+
+        item = QTreeWidgetItem([folder.title])
+        icon = (
+            QStyle.StandardPixmap.SP_DirIcon
+            if folder.children
+            else QStyle.StandardPixmap.SP_FileDialogDetailedView
+        )
+        self._set_item_style_icon(item, 0, icon)
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        item.setData(0, Qt.ItemDataRole.UserRole, -2)
+        item.setData(0, Qt.ItemDataRole.UserRole + 11, folder.id)
+        item.setData(0, Qt.ItemDataRole.UserRole + 4, folder.title)
+        item.setData(0, Qt.ItemDataRole.UserRole + 13, mappings)
+        item.setToolTip(0, f"{folder.node_type.title()} · {len(mappings)} linked game strings")
+
+        child_added = False
+        for child in folder.children:
+            child_added = self._add_story_folder_item(item, child, selected_id) or child_added
+        if not own_unsaved and not child_added:
+            return False
+
+        parent.addChild(item)
+        self._register_item_in_cache(item)
+        if selected_id == folder.id:
+            self.mw.block_list_widget.setCurrentItem(item)
+            item.setSelected(True)
+            ancestor = item.parent()
+            while ancestor is not None:
+                ancestor.setExpanded(True)
+                ancestor = ancestor.parent()
+        return True
 
 
 
@@ -662,6 +781,7 @@ class BlockListUpdater(BaseUIUpdater):
                                 self._chapters_load_worker = None
                             self._chapters_cache = None
                             self._chapter_mappings_cache = None
+                            self._story_projection_cache = None
                             self._chapters_cache_wing_name = wing_name
                             self._chapters_load_error = None
                             self._is_loading_chapters = False
@@ -669,8 +789,14 @@ class BlockListUpdater(BaseUIUpdater):
                         is_test = getattr(self.mw, '_is_test_mode', False)
                         if is_test and self._chapters_cache is None:
                             try:
-                                self._chapter_mappings_cache = client.get_all_chapter_mappings(wing_name)
-                                self._chapters_cache = client.get_all_chapters(wing_name)
+                                projection_getter = getattr(client, "get_story_virtual_projection", None)
+                                projection = projection_getter() if callable(projection_getter) else None
+                                if isinstance(projection, StoryVirtualProjection) and projection.document_id:
+                                    self._story_projection_cache = projection
+                                    self._chapters_cache = list(projection.roots)
+                                else:
+                                    self._chapter_mappings_cache = client.get_all_chapter_mappings(wing_name)
+                                    self._chapters_cache = client.get_all_chapters(wing_name)
                                 self._is_loading_chapters = False
                             except Exception as e_test:
                                 self._chapters_load_error = str(e_test)
@@ -700,6 +826,26 @@ class BlockListUpdater(BaseUIUpdater):
                             chapters_root.addChild(loading_item)
 
                             self.mw.block_list_widget.invisibleRootItem().addChild(chapters_root)
+
+                        elif isinstance(self._story_projection_cache, StoryVirtualProjection):
+                            chapters_root = QTreeWidgetItem(["Story"])
+                            self._set_item_style_icon(
+                                chapters_root, 0, QStyle.StandardPixmap.SP_DirIcon
+                            )
+                            chapters_root.setFlags(
+                                chapters_root.flags() & ~Qt.ItemFlag.ItemIsEditable
+                            )
+                            tree_root = self.mw.block_list_widget.invisibleRootItem()
+                            tree_root.addChild(chapters_root)
+                            selected_id = (
+                                getattr(self.mw.data_store, "current_chapter_id", None)
+                                if current_selection_block_idx == -2
+                                else None
+                            )
+                            for folder in self._story_projection_cache.roots:
+                                self._add_story_folder_item(chapters_root, folder, selected_id)
+                            if chapters_root.childCount() == 0:
+                                tree_root.removeChild(chapters_root)
 
                         elif self._chapters_cache is not None:
                             # We have cached chapters, build the hierarchy
@@ -819,7 +965,12 @@ class BlockListUpdater(BaseUIUpdater):
                     client = composer.prompt_composer._get_mempalace_client()
 
                 mempalace_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
-                if client:
+                if isinstance(self._story_projection_cache, StoryVirtualProjection):
+                    for speaker in self._story_projection_cache.speakers:
+                        mappings = self._story_mapping_indices(speaker.mappings)
+                        if mappings:
+                            mempalace_speakers[speaker.name] = mappings
+                elif client:
                     wing_name = composer.prompt_composer._get_wing_name() if hasattr(composer, "prompt_composer") else "Zelda_TP"
                     # Try using _bmg_to_context cache first
                     if hasattr(client, "_bmg_to_context") and client._bmg_to_context:
@@ -893,26 +1044,34 @@ class BlockListUpdater(BaseUIUpdater):
 
                 combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
                 assigned_strings = set()  # {(b_idx, s_idx), ...}
+                normalized_story_active = isinstance(
+                    self._story_projection_cache, StoryVirtualProjection
+                )
 
-                # 1. Project assignments (highest priority)
-                project = getattr(self.mw, 'project_manager', None) and self.mw.project_manager.project
-                if project:
-                    block_map = getattr(self.mw, 'block_to_project_file_map', {})
-                    project_to_block_map = {}
-                    if block_map:
-                        project_to_block_map = {proj_idx: data_idx for data_idx, proj_idx in block_map.items()}
+                # Normalized Story Context is authoritative. Old project assignments are
+                # consulted only for databases that do not have the new story model.
+                if not normalized_story_active:
+                    project = (
+                        getattr(self.mw, 'project_manager', None)
+                        and self.mw.project_manager.project
+                    )
+                    if project:
+                        block_map = getattr(self.mw, 'block_to_project_file_map', {})
+                        project_to_block_map = {
+                            proj_idx: data_idx for data_idx, proj_idx in block_map.items()
+                        } if block_map else {}
+                        for proj_b_idx, block in enumerate(project.blocks):
+                            assignments = block.metadata.get("character_assignments", {})
+                            for s_idx_str, c_name in assignments.items():
+                                if c_name and str(c_name).strip() and str(c_name).lower() not in ("unknown", "none"):
+                                    speaker_name = str(c_name).strip()
+                                    indices = (
+                                        project_to_block_map.get(proj_b_idx, proj_b_idx),
+                                        int(s_idx_str),
+                                    )
+                                    combined_speakers.setdefault(speaker_name, []).append(indices)
+                                    assigned_strings.add(indices)
 
-                    for proj_b_idx, block in enumerate(project.blocks):
-                        assignments = block.metadata.get("character_assignments", {})
-                        for s_idx_str, c_name in assignments.items():
-                            if c_name and str(c_name).strip() and str(c_name).lower() not in ("unknown", "none"):
-                                speaker_name = str(c_name).strip()
-                                s_idx = int(s_idx_str)
-                                data_idx = project_to_block_map.get(proj_b_idx, proj_b_idx)
-                                combined_speakers.setdefault(speaker_name, []).append((data_idx, s_idx))
-                                assigned_strings.add((data_idx, s_idx))
-
-                # 2. Add MemePalace speakers (only if not already assigned in project metadata)
                 for speaker_name, strings in mempalace_speakers.items():
                     for string_tuple in strings:
                         if string_tuple in assigned_strings:
@@ -920,21 +1079,24 @@ class BlockListUpdater(BaseUIUpdater):
                         combined_speakers.setdefault(speaker_name, []).append(string_tuple)
                         assigned_strings.add(string_tuple)
 
-                # 3. Collect all other strings into "None"
-                none_strings = []
-                for b_idx in range(len(self.mw.data_store.data)):
-                    block_data = self.mw.data_store.data[b_idx]
-                    for s_idx in range(len(block_data)):
-                        if (b_idx, s_idx) not in assigned_strings:
-                            none_strings.append((b_idx, s_idx))
-
-                if none_strings:
-                    combined_speakers["None"] = none_strings
+                if not normalized_story_active:
+                    none_strings = []
+                    for b_idx in range(len(self.mw.data_store.data)):
+                        block_data = self.mw.data_store.data[b_idx]
+                        for s_idx in range(len(block_data)):
+                            if (b_idx, s_idx) not in assigned_strings:
+                                none_strings.append((b_idx, s_idx))
+                    if none_strings:
+                        combined_speakers["None"] = none_strings
 
                 pending_retention = None
                 if hasattr(self.mw, 'list_selection_handler'):
                     pending_retention = getattr(self.mw.list_selection_handler, '_pending_speaker_retention', None)
-                if isinstance(pending_retention, tuple) and len(pending_retention) == 3:
+                if (
+                    not normalized_story_active
+                    and isinstance(pending_retention, tuple)
+                    and len(pending_retention) == 3
+                ):
                     retained_speaker, retained_tuple, retained_index = pending_retention
                     speaker_mappings = list(combined_speakers.get(retained_speaker, []))
                     if retained_tuple not in speaker_mappings:
@@ -987,6 +1149,28 @@ class BlockListUpdater(BaseUIUpdater):
                             speakers_root.setExpanded(True)
                             self.mw.block_list_widget.setCurrentItem(selected_speaker_item)
                             selected_speaker_item.setSelected(True)
+
+                if normalized_story_active and client is not None:
+                    item_mappings, reverse_items = self._reference_item_mappings(
+                        client, self._story_projection_cache.document_id
+                    )
+                    self._story_item_mappings_cache = reverse_items
+                    if item_mappings:
+                        items_root = QTreeWidgetItem(["Items"])
+                        self._set_item_style_icon(items_root, 0, QStyle.StandardPixmap.SP_DirIcon)
+                        items_root.setFlags(items_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        for item_name in sorted(item_mappings, key=str.casefold):
+                            mappings = item_mappings[item_name]
+                            item_node = QTreeWidgetItem([item_name])
+                            self._set_item_style_icon(item_node, 0, QStyle.StandardPixmap.SP_FileDialogDetailedView)
+                            item_node.setFlags(item_node.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                            item_node.setData(0, Qt.ItemDataRole.UserRole, -4)
+                            item_node.setData(0, Qt.ItemDataRole.UserRole + 16, item_name)
+                            item_node.setData(0, Qt.ItemDataRole.UserRole + 4, item_name)
+                            item_node.setData(0, Qt.ItemDataRole.UserRole + 13, mappings)
+                            items_root.addChild(item_node)
+                            self._register_item_in_cache(item_node)
+                        self.mw.block_list_widget.invisibleRootItem().addChild(items_root)
             except Exception as e:
                 from utils.logging_utils import log_error
                 log_error(f"Error populating Speakers folder: {e}", exc_info=True)
@@ -1071,7 +1255,12 @@ class BlockListUpdater(BaseUIUpdater):
     def _on_chapters_loaded(self, chapters, mappings):
         """Slot for successful async loading of MemePalace chapters."""
         self._chapters_cache = chapters
-        self._chapter_mappings_cache = mappings
+        if isinstance(mappings, StoryVirtualProjection):
+            self._story_projection_cache = mappings
+            self._chapter_mappings_cache = None
+        else:
+            self._story_projection_cache = None
+            self._chapter_mappings_cache = mappings
         self._is_loading_chapters = False
         self._chapters_load_worker = None
         self.populate_blocks()

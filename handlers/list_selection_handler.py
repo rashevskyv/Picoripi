@@ -1,7 +1,7 @@
 # handlers/list_selection_handler.py
 from typing import Any, Optional, List, Dict, Union, Tuple
 from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
-from PyQt6.QtCore import Qt, QTimer, QObject
+from PyQt6.QtCore import Qt, QTimer, QObject, QSignalBlocker
 from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
@@ -76,6 +76,86 @@ class ListSelectionHandler(BaseHandler):
         """Handle global Alt+Shift+Left/Right to jump to next/prev folder in the tree."""
         self.virtual_folder_handler.navigate_between_folders(forward)
 
+    def _select_virtual_tree_item(self, role_offset: int, value, kind: int | None = None) -> bool:
+        if value is None:
+            return False
+        target = (
+            self.mw.data_store.physical_block_idx,
+            self.mw.data_store.current_string_idx,
+        )
+        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+        while iterator.value():
+            item = iterator.value()
+            if item.data(0, Qt.UserRole + role_offset) == value and (
+                kind is None or item.data(0, Qt.UserRole) == kind
+            ):
+                mappings = item.data(0, Qt.UserRole + 13) or []
+                if target not in mappings:
+                    iterator += 1
+                    continue
+                self._target_block_idx, self._target_string_idx = target
+                parent = item.parent()
+                while parent is not None:
+                    parent.setExpanded(True)
+                    parent = parent.parent()
+                previous = self.mw.block_list_widget.currentItem()
+                # Invoke the selection route explicitly. Tree signals may be
+                # temporarily blocked while a large project tree is refreshed;
+                # navigation must still switch to the virtual block reliably.
+                blocker = QSignalBlocker(self.mw.block_list_widget)
+                self.mw.block_list_widget.setCurrentItem(item)
+                del blocker
+                self.block_selected(item, previous)
+                self.mw.block_list_widget.scrollToItem(item)
+                return (
+                    self.mw.data_store.current_block_idx == kind
+                    and self.mw.data_store.current_string_idx == target[1]
+                    and self.mw.data_store.physical_block_idx == target[0]
+                )
+            iterator += 1
+        return False
+
+    def navigate_to_current_story_structure(self) -> bool:
+        label = getattr(self.mw, "chapter_value_label", None)
+        structure_id = getattr(label, "story_structure_id", None)
+        return bool(label is not None and self._select_virtual_tree_item(11, structure_id, -2))
+
+    def navigate_to_current_story_role(self) -> bool:
+        combo = getattr(self.mw, "speaker_combobox", None)
+        name = combo.currentText().strip() if combo is not None else ""
+        role = getattr(combo, "_story_role", "speaker") if combo is not None else "speaker"
+        offset, kind = (16, -4) if role == "item" else (15, -3)
+        return self._select_virtual_tree_item(offset, name, kind) if name and name != "None" else False
+
+    def navigate_to_current_physical_block(self) -> bool:
+        return self.navigate_to_physical_string(
+            self.mw.data_store.physical_block_idx,
+            self.mw.data_store.current_string_idx,
+        )
+
+    def navigate_to_physical_string(self, block_idx: int, string_idx: int) -> bool:
+        """Select one concrete project row, regardless of the current virtual folder."""
+        self._target_block_idx = int(block_idx)
+        self._target_string_idx = int(string_idx)
+        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+        while iterator.value():
+            item = iterator.value()
+            if item.data(0, Qt.UserRole) == int(block_idx):
+                previous = self.mw.block_list_widget.currentItem()
+                blocker = QSignalBlocker(self.mw.block_list_widget)
+                self.mw.block_list_widget.setCurrentItem(item)
+                del blocker
+                self.block_selected(item, previous)
+                self.mw.block_list_widget.scrollToItem(item)
+                self.select_string_by_absolute_index(int(string_idx))
+                self._target_block_idx = None
+                self._target_string_idx = None
+                return True
+            iterator += 1
+        self._target_block_idx = None
+        self._target_string_idx = None
+        return False
+
     def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
         """Block selected."""
         try:
@@ -130,9 +210,15 @@ class ListSelectionHandler(BaseHandler):
             if block_index == -3:
                 self._handle_speaker_selection(current_item)
                 return
+            if block_index == -4:
+                self._handle_item_selection(current_item)
+                return
 
             if chapter_id is not None:
-                self._handle_chapter_selection(chapter_id)
+                self._handle_chapter_selection(
+                    chapter_id,
+                    current_item.data(0, Qt.UserRole + 13),
+                )
                 return
 
             if block_index is None:
@@ -234,7 +320,35 @@ class ListSelectionHandler(BaseHandler):
         self.ui_updater.update_statusbar_paths()
         self._update_block_toolbar_button_states(-3)
 
-    def _handle_chapter_selection(self, chapter_id: int) -> None:
+    def _handle_item_selection(self, current_item: QTreeWidgetItem) -> None:
+        """Show a reference item as a virtual block without treating it as dialogue."""
+        item_name = current_item.data(0, Qt.UserRole + 16)
+        mappings = current_item.data(0, Qt.UserRole + 13) or []
+        self._clear_pending_speaker_retention()
+        self.mw.data_store.current_block_idx = -4
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_chapter_id = None
+        self.mw.data_store.current_speaker_name = item_name
+        self.mw.data_store.chapter_mappings = mappings
+        self.ui_updater.populate_strings_for_block(-4)
+        if mappings:
+            target = (self._target_block_idx, self._target_string_idx)
+            target_idx = mappings.index(target) if target in mappings else 0
+            block_idx, string_idx = mappings[target_idx]
+            self.mw.data_store.physical_block_idx = block_idx
+            self.mw.data_store.current_string_idx = string_idx
+            self._target_block_idx = None
+            self._target_string_idx = None
+            if not getattr(self.mw, '_restoring_session_state', False):
+                self._schedule_string_selection(target_idx)
+        else:
+            self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_string_idx = -1
+            self.ui_updater.update_text_views()
+        self.ui_updater.update_statusbar_paths()
+        self._update_block_toolbar_button_states(-4)
+
+    def _handle_chapter_selection(self, chapter_id: int, stored_mappings=None) -> None:
         self._clear_pending_speaker_retention()
         self.mw.data_store.current_block_idx = -2
         self.mw.data_store.current_category_name = None
@@ -242,18 +356,19 @@ class ListSelectionHandler(BaseHandler):
         self.mw.data_store.current_speaker_name = None
 
         # Fetch mappings from MemePalace client
-        chapter_mappings = []
-        composer = getattr(self.mw, "translation_handler", None)
-        if composer and hasattr(composer, "prompt_composer"):
-            client = composer.prompt_composer._get_mempalace_client()
-            if client:
-                wing_name = composer.prompt_composer._get_wing_name()
-                mappings = client.get_chapter_mappings(wing_name, chapter_id)
-                for m in mappings:
-                    bmg_id = m.get("bmg_id")
-                    indices = self.resolve_bmg_id_to_indices(bmg_id)
-                    if indices:
-                        chapter_mappings.append(indices)
+        chapter_mappings = list(stored_mappings) if stored_mappings is not None else []
+        if stored_mappings is None:
+            composer = getattr(self.mw, "translation_handler", None)
+            if composer and hasattr(composer, "prompt_composer"):
+                client = composer.prompt_composer._get_mempalace_client()
+                if client:
+                    wing_name = composer.prompt_composer._get_wing_name()
+                    mappings = client.get_chapter_mappings(wing_name, chapter_id)
+                    for m in mappings:
+                        bmg_id = m.get("bmg_id")
+                        indices = self.resolve_bmg_id_to_indices(bmg_id)
+                        if indices:
+                            chapter_mappings.append(indices)
         self.mw.data_store.chapter_mappings = chapter_mappings
 
         self.ui_updater.populate_strings_for_block(-2)
@@ -668,7 +783,7 @@ class ListSelectionHandler(BaseHandler):
 
         # Determine the physical block index for validation; current_block_idx can be -2 (chapter) or -3 (speaker).
         _phys_b_idx = self.mw.data_store.physical_block_idx
-        _is_virtual_mode = self.mw.data_store.current_block_idx in (-2, -3)
+        _is_virtual_mode = self.mw.data_store.current_block_idx in (-2, -3, -4)
 
         if preview_edit and self.mw.data_store.current_string_idx != -1 and \
            (_is_virtual_mode or (0 <= _phys_b_idx < len(self.mw.data_store.data) and

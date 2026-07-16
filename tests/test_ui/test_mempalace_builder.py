@@ -129,7 +129,6 @@ def test_mempalace_builder_uses_consistent_action_styles(qapp):
     dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
 
     workflow_buttons = (
-        dialog.ai_analyze_btn,
         dialog.ai_profile_speech_btn,
         dialog.map_chapters_btn,
         dialog.analyze_chapter_btn,
@@ -139,9 +138,9 @@ def test_mempalace_builder_uses_consistent_action_styles(qapp):
     assert dialog.cancel_btn.styleSheet() == SECONDARY_BUTTON_STYLE
     assert dialog.clear_btn.styleSheet() == DANGER_BUTTON_STYLE
     assert dialog.hierarchy_project_browse_btn.styleSheet() == SECONDARY_BUTTON_STYLE
-    assert dialog.workflow_tabs.count() == 4
+    assert dialog.workflow_tabs.count() == 3
     assert dialog.workflow_tabs.tabText(0) == "1. Source"
-    assert dialog.workflow_tabs.widget(1).isAncestorOf(dialog.ai_analyze_btn)
+    assert dialog.source_next_btn.text() == "Continue to Story Context →"
     assert dialog.map_chapters_btn.isHidden()
     assert dialog.table.isHidden()
     assert dialog.legacy_fallback_checkbox.isHidden()
@@ -152,10 +151,10 @@ def test_mempalace_builder_uses_consistent_action_styles(qapp):
     assert dialog.mapping_review_splitter.orientation() == Qt.Orientation.Horizontal
     assert dialog.mapping_review_splitter.count() == 2
     assert not dialog.mapping_review_splitter.childrenCollapsible()
-    assert dialog.workflow_tabs.tabText(2) == "3. Story Context"
+    assert dialog.workflow_tabs.tabText(1) == "2. Story Context"
     assert dialog.story_group.isHidden()
     assert dialog.mapping_review_table.isHidden()
-    assert dialog.workflow_tabs.widget(3).isAncestorOf(dialog.analyze_all_chapters_btn)
+    assert dialog.workflow_tabs.widget(2).isAncestorOf(dialog.analyze_all_chapters_btn)
 
 
 def test_mempalace_builder_selects_validated_hierarchy_project(qapp, tmp_path):
@@ -270,8 +269,7 @@ def test_mempalace_builder_import_sync_persists_metadata_idempotently(qapp, tmp_
     assert dialog.hierarchy_project_status_label.text().startswith("Status: Up to date")
     assert dialog.file_path_edit.text() == str(raw_path)
     assert dialog.workflow_tabs.isTabEnabled(1)
-    assert dialog.workflow_tabs.isTabEnabled(2)
-    assert not dialog.workflow_tabs.isTabEnabled(3)
+    assert not dialog.workflow_tabs.isTabEnabled(2)
 
     assert dialog._import_sync_hierarchy_project()
     assert {key: settings[key] for key in first_metadata} == first_metadata
@@ -358,6 +356,18 @@ def test_mempalace_builder_matches_open_project_to_dialogue_nodes(qapp, qtbot, t
     assert "Need your decision: 0" in dialog.dialogue_mapping_summary_label.text()
     assert not dialog.mapping_review_table.isVisible()
     assert dialog.mapping_review_actions.isHidden()
+    assert dialog.match_dialogue_btn.text() == "Recheck After Changes"
+    assert dialog.match_dialogue_btn.styleSheet() == SECONDARY_BUTTON_STYLE
+    assert not dialog.story_context_done_btn.isHidden()
+
+    restored = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    qtbot.addWidget(restored)
+    assert "Story context is ready" in restored.dialogue_mapping_summary_label.text()
+    assert "1 automatically matched" in restored.dialogue_mapping_summary_label.text()
+    assert "1 active context links" in restored.dialogue_mapping_summary_label.text()
+    assert restored.match_dialogue_btn.text() == "Recheck After Changes"
+    assert restored.match_dialogue_btn.styleSheet() == SECONDARY_BUTTON_STYLE
+    assert not restored.story_context_done_btn.isHidden()
 
 
 def test_mempalace_builder_approves_and_locks_review_mapping(qapp, qtbot, tmp_path):
@@ -402,7 +412,7 @@ def test_mempalace_builder_approves_and_locks_review_mapping(qapp, qtbot, tmp_pa
 
     dialog._refresh_dialogue_review_table()
     dialog.resize(920, 700)
-    dialog.workflow_tabs.setCurrentIndex(2)
+    dialog.workflow_tabs.setCurrentIndex(1)
     dialog.show()
     qapp.processEvents()
     assert dialog.mapping_review_table.isHidden()
@@ -505,7 +515,8 @@ def test_mempalace_builder_can_mark_review_item_as_not_story_dialogue(qapp, qtbo
     assert mapping.dialogue_node_id is None
     assert mapping.locked
     assert dialog.mapping_review_actions.isHidden()
-    assert "not story dialogue" in dialog.dialogue_mapping_summary_label.text().lower()
+    assert "story context is ready" in dialog.dialogue_mapping_summary_label.text().lower()
+    assert "1 reviewed" in dialog.dialogue_mapping_summary_label.text().lower()
 
 
 def test_mempalace_builder_detects_changed_source_hash_and_restores_status(qapp, tmp_path):
@@ -552,8 +563,8 @@ def test_mempalace_builder_persists_chapters_splitter_sizes(qapp):
     dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
     dialog.resize(860, 680)
     dialog.show()
-    dialog.workflow_tabs.setTabEnabled(2, True)
-    dialog.workflow_tabs.setCurrentIndex(2)
+    dialog.workflow_tabs.setTabEnabled(1, True)
+    dialog.workflow_tabs.setCurrentIndex(1)
     qapp.processEvents()
     dialog.toggle_story_btn.click()
     qapp.processEvents()
@@ -567,8 +578,8 @@ def test_mempalace_builder_persists_chapters_splitter_sizes(qapp):
     assert all(size > 0 for size in saved_sizes)
     restored = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
     restored.resize(860, 680)
-    restored.workflow_tabs.setTabEnabled(2, True)
-    restored.workflow_tabs.setCurrentIndex(2)
+    restored.workflow_tabs.setTabEnabled(1, True)
+    restored.workflow_tabs.setCurrentIndex(1)
     restored.show()
     restored.toggle_story_btn.click()
     qapp.processEvents()
@@ -683,7 +694,7 @@ def test_mempalace_builder_keeps_old_analysis_step_locked(qapp, tmp_path):
     
     parent_widget = QWidget()
     dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
-    assert not dialog.workflow_tabs.isTabEnabled(3)
+    assert not dialog.workflow_tabs.isTabEnabled(2)
     assert not dialog.mapping_next_btn.isEnabled()
 
 
@@ -696,7 +707,6 @@ def test_mempalace_builder_wizard_gates_later_steps_until_source_is_ready(qapp, 
     assert dialog.workflow_tabs.isTabEnabled(0)
     assert not dialog.workflow_tabs.isTabEnabled(1)
     assert not dialog.workflow_tabs.isTabEnabled(2)
-    assert not dialog.workflow_tabs.isTabEnabled(3)
     assert not dialog.source_next_btn.isEnabled()
 
     project_path = tmp_path / "script_markup_project.json"
@@ -705,12 +715,13 @@ def test_mempalace_builder_wizard_gates_later_steps_until_source_is_ready(qapp, 
     assert dialog._import_sync_hierarchy_project()
 
     assert dialog.workflow_tabs.isTabEnabled(1)
-    assert dialog.workflow_tabs.isTabEnabled(2)
-    assert not dialog.workflow_tabs.isTabEnabled(3)
+    assert not dialog.workflow_tabs.isTabEnabled(2)
     assert dialog.source_next_btn.isEnabled()
     assert "ready" in dialog.source_readiness_label.text().lower()
+    dialog.source_next_btn.click()
+    assert dialog.workflow_tabs.currentIndex() == 1
 
-    assert not dialog.workflow_tabs.isTabEnabled(3)
+    assert not dialog.workflow_tabs.isTabEnabled(2)
     assert not dialog.mapping_next_btn.isEnabled()
 
 

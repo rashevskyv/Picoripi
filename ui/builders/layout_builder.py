@@ -2,10 +2,20 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox, QMenu, QCheckBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
+
+
+class NavigableLabel(QLabel):
+    """Read-only text that can open its represented virtual destination."""
+
+    doubleClicked = pyqtSignal()
+
+    def mouseDoubleClickEvent(self, event):
+        self.doubleClicked.emit()
+        event.accept()
 
 class LayoutBuilder:
     """Layout builder implementation."""
@@ -253,6 +263,20 @@ class LayoutBuilder:
         painter_s.drawText(pixmap_s.rect(), Qt.AlignmentFlag.AlignCenter, "S")
         painter_s.end()
         story_icon = QIcon(pixmap_s)
+
+        # Match the purple "R" used by Script Markup Studio in the Tools menu.
+        pixmap_markup = QPixmap(32, 32)
+        pixmap_markup.fill(Qt.GlobalColor.transparent)
+        painter_markup = QPainter(pixmap_markup)
+        painter_markup.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter_markup.setPen(QColor("#8e44ad"))
+        font_markup = QFont("Arial", 22, QFont.Weight.Bold)
+        painter_markup.setFont(font_markup)
+        painter_markup.drawText(
+            pixmap_markup.rect(), Qt.AlignmentFlag.AlignCenter, "R"
+        )
+        painter_markup.end()
+        markup_icon = QIcon(pixmap_markup)
         
         # Create a dynamic beautiful icon for Restore Translation (document sheet with a blue arrow pointing right)
         pixmap_r = QPixmap(32, 32)
@@ -340,6 +364,29 @@ class LayoutBuilder:
         self.mw.inspect_story_context_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
         
         middle_layout.addWidget(self.mw.inspect_story_context_button, 0, Qt.AlignmentFlag.AlignCenter)
+
+        middle_layout.addSpacing(6)
+
+        self.mw.open_current_string_in_markup_studio_button = QPushButton()
+        self.mw.open_current_string_in_markup_studio_button.setIcon(markup_icon)
+        self.mw.open_current_string_in_markup_studio_button.setToolTip(
+            "Open the marked-script place linked to the current game string in "
+            "Script Markup Studio"
+        )
+        self.mw.open_current_string_in_markup_studio_button.setFixedWidth(30)
+        self.mw.open_current_string_in_markup_studio_button.setCursor(
+            Qt.CursorShape.PointingHandCursor
+        )
+        self.mw.open_current_string_in_markup_studio_button.setStyleSheet(
+            "QPushButton { padding: 4px; border: 1px solid #ccc; "
+            "border-radius: 4px; background-color: #f9f9f9; } "
+            "QPushButton:hover { background-color: #e6e6e6; }"
+        )
+        middle_layout.addWidget(
+            self.mw.open_current_string_in_markup_studio_button,
+            0,
+            Qt.AlignmentFlag.AlignCenter,
+        )
         middle_layout.addStretch(1)
         
         middle_panel.setFixedWidth(34)
@@ -363,14 +410,12 @@ class LayoutBuilder:
         editable_text_header_layout.setSpacing(4)
 
         # Current message window type (derived from game data by the plugin)
-        self.mw.window_kind_label = QLabel("")
-        self.mw.window_kind_label.setObjectName("window_kind_label")
+        self.mw.window_kind_label = NavigableLabel("Window:")
         self.mw.window_kind_label.setStyleSheet(
-            "QLabel#window_kind_label { color: #8a63d2; font-weight: bold; padding-left: 5px; }")
+            "font-weight: bold; color: #2e7d32; font-size: 13px;"
+        )
         self.mw.window_kind_label.setToolTip(
-            "Message window type from the game data (drives width limits, font and pagination)")
-        self.mw.window_kind_label.setVisible(False)
-        editable_text_header_layout.addWidget(self.mw.window_kind_label)
+            "Message window type from the game data. Double-click to open the physical game block.")
         editable_text_header_layout.addStretch(1)
 
         self.mw.navigate_down_button = QPushButton()
@@ -405,6 +450,57 @@ class LayoutBuilder:
         string_settings_layout = QHBoxLayout(string_settings_panel)
         string_settings_layout.setContentsMargins(0, 4, 0, 4)
 
+        # Window, Chapter and Speaker/Item form one left-aligned vertical column.
+        # Only Speaker/Item is editable.
+        context_layout = QVBoxLayout()
+        context_layout.setContentsMargins(0, 0, 0, 0)
+        context_layout.setSpacing(2)
+        compact_context_height = 28
+        compact_context_width = 250
+        compact_label_width = 62
+
+        window_layout = QHBoxLayout()
+        window_layout.setContentsMargins(0, 0, 0, 0)
+        window_layout.setSpacing(4)
+        self.mw.window_kind_label.setFixedWidth(compact_label_width)
+        window_layout.addWidget(self.mw.window_kind_label)
+        self.mw.window_kind_value_label = QLabel("")
+        self.mw.window_kind_value_label.setFixedWidth(compact_context_width)
+        self.mw.window_kind_value_label.setFixedHeight(compact_context_height)
+        self.mw.window_kind_value_label.setStyleSheet("color: #000000; font-size: 13px;")
+        self.mw.window_kind_value_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        self.mw.window_kind_value_label.setToolTip(self.mw.window_kind_label.toolTip())
+        window_layout.addWidget(self.mw.window_kind_value_label)
+        context_layout.addLayout(window_layout)
+
+        chapter_layout = QHBoxLayout()
+        chapter_layout.setContentsMargins(0, 0, 0, 0)
+        chapter_layout.setSpacing(4)
+        self.mw.chapter_select_label = NavigableLabel("Chapter:")
+        self.mw.chapter_select_label.setStyleSheet(
+            "font-weight: bold; color: #6a1b9a; font-size: 13px;"
+        )
+        self.mw.chapter_select_label.setToolTip(
+            "Double-click to open this row in its virtual Chapter."
+        )
+        self.mw.chapter_select_label.setFixedWidth(compact_label_width)
+        chapter_layout.addWidget(self.mw.chapter_select_label)
+        self.mw.chapter_value_label = QLabel("")
+        self.mw.chapter_value_label.setFixedWidth(compact_context_width)
+        self.mw.chapter_value_label.setFixedHeight(compact_context_height)
+        self.mw.chapter_value_label.setStyleSheet("color: #000000; font-size: 13px;")
+        self.mw.chapter_value_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        self.mw.chapter_value_label.setToolTip(
+            "Story structure from Markup Studio. Double-click to open its virtual folder."
+        )
+        self.mw.chapter_value_label.story_structure_id = None
+        chapter_layout.addWidget(self.mw.chapter_value_label)
+        context_layout.addLayout(chapter_layout)
+
         self.mw.speaker_label = QLabel("")
         self.mw.speaker_label.setObjectName("speaker_label")
         self.mw.speaker_label.setStyleSheet("QLabel#speaker_label { font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px; }")
@@ -414,25 +510,36 @@ class LayoutBuilder:
         # Speaker Assignment ComboBox
         speaker_layout = QHBoxLayout()
         speaker_layout.setContentsMargins(0, 0, 0, 0)
-        speaker_layout.setSpacing(6)
-        self.mw.speaker_select_label = QLabel("Speaker:")
-        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; padding-left: 5px;")
+        speaker_layout.setSpacing(4)
+        self.mw.speaker_select_label = NavigableLabel("Speaker:")
+        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; font-size: 13px;")
+        self.mw.speaker_select_label.setToolTip(
+            "Double-click to open this row in its virtual Speaker or Item block."
+        )
+        self.mw.speaker_select_label.setFixedWidth(compact_label_width)
         speaker_layout.addWidget(self.mw.speaker_select_label)
         self.mw.speaker_combobox = QComboBox()
         self.mw.speaker_combobox.setEditable(True)
         self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
-        self.mw.speaker_combobox.setMinimumWidth(180)
-        self.mw.speaker_combobox.setFixedHeight(control_height)
-        self.mw.speaker_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        speaker_layout.addWidget(self.mw.speaker_combobox, 1)
-        string_settings_layout.addLayout(speaker_layout, 1)
+        self.mw.speaker_combobox.setFixedWidth(compact_context_width)
+        self.mw.speaker_combobox.setFixedHeight(compact_context_height)
+        self.mw.speaker_combobox.setStyleSheet("font-size: 13px;")
+        self.mw.speaker_combobox.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        speaker_layout.addWidget(self.mw.speaker_combobox)
+        context_layout.addLayout(speaker_layout)
+        string_settings_layout.addLayout(context_layout)
 
         string_settings_layout.addSpacing(16)
-        string_settings_layout.addWidget(QLabel("Font:"))
+        font_layout = QHBoxLayout()
+        font_layout.setContentsMargins(0, 0, 0, 0)
+        font_layout.setSpacing(4)
+        font_label = QLabel("Font:")
+        font_layout.addWidget(font_label)
         self.mw.font_combobox = QComboBox()
-        self.mw.font_combobox.setMinimumWidth(180)
+        self.mw.font_combobox.setFixedWidth(190)
         self.mw.font_combobox.setFixedHeight(control_height)
-        string_settings_layout.addWidget(self.mw.font_combobox)
+        font_layout.addWidget(self.mw.font_combobox)
+        string_settings_layout.addLayout(font_layout)
 
         string_settings_layout.addWidget(QLabel("Max-width:"))
         self.mw.width_spinbox = QSpinBox()

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QTreeWidgetItem, QMessageBox
+from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMessageBox
 from handlers.list_selection_handler import ListSelectionHandler
 
 @pytest.fixture
@@ -51,6 +51,57 @@ def test_ListSelectionHandler_navigate_between_folders(handler):
     handler.mw.block_list_widget = MagicMock()
     handler.navigate_between_folders(False)
     handler.mw.block_list_widget.navigate_folders.assert_called_with(-1)
+
+
+@pytest.mark.parametrize(
+    ("kind", "role_offset", "value"),
+    [(-2, 11, 42), (-3, 15, "MIDNA")],
+)
+def test_virtual_navigation_keeps_same_physical_row(handler, kind, role_offset, value):
+    tree = QTreeWidget()
+    handler.mw.block_list_widget = tree
+    physical = QTreeWidgetItem(["zel_00"])
+    physical.setData(0, Qt.UserRole, 0)
+    virtual = QTreeWidgetItem([str(value)])
+    virtual.setData(0, Qt.UserRole, kind)
+    virtual.setData(0, Qt.UserRole + role_offset, value)
+    virtual.setData(0, Qt.UserRole + 13, [(0, 1), (0, 2)])
+    tree.addTopLevelItems([physical, virtual])
+    tree.setCurrentItem(physical)
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.physical_block_idx = 0
+    handler.mw.data_store.current_string_idx = 1
+
+    with patch.object(handler, "_schedule_string_selection") as schedule:
+        assert handler._select_virtual_tree_item(role_offset, value, kind) is True
+
+    assert tree.currentItem() is virtual
+    assert handler.mw.data_store.current_block_idx == kind
+    assert handler.mw.data_store.physical_block_idx == 0
+    assert handler.mw.data_store.current_string_idx == 1
+    schedule.assert_called_once_with(0)
+
+
+def test_window_navigation_returns_to_physical_block_and_same_row(handler):
+    tree = QTreeWidget()
+    handler.mw.block_list_widget = tree
+    physical = QTreeWidgetItem(["zel_00"])
+    physical.setData(0, Qt.UserRole, 0)
+    virtual = QTreeWidgetItem(["MIDNA"])
+    virtual.setData(0, Qt.UserRole, -3)
+    tree.addTopLevelItems([physical, virtual])
+    tree.setCurrentItem(virtual)
+    handler.mw.data_store.current_block_idx = -3
+    handler.mw.data_store.physical_block_idx = 0
+    handler.mw.data_store.current_string_idx = 2
+
+    with patch.object(handler, "select_string_by_absolute_index") as select:
+        assert handler.navigate_to_current_physical_block() is True
+
+    assert tree.currentItem() is physical
+    assert handler.mw.data_store.current_block_idx == 0
+    assert handler.mw.data_store.physical_block_idx == 0
+    select.assert_called_once_with(2)
 
 def test_ListSelectionHandler_block_selected(handler):
     mock_item = MagicMock()

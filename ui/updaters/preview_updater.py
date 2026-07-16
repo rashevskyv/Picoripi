@@ -271,7 +271,7 @@ class PreviewUpdater(BaseUIUpdater):
                 data_source = []
 
         is_chapter = (block_idx == -2)
-        is_speaker = (block_idx == -3)
+        is_speaker = (block_idx in (-3, -4))
         is_virtual = is_chapter or is_speaker
         if not is_virtual and (block_idx < 0 or not data_source or block_idx >= len(data_source) or not isinstance(data_source[block_idx], list)):
             self.preview_cache.cache.clear()
@@ -542,7 +542,7 @@ class PreviewUpdater(BaseUIUpdater):
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit:
                 is_chapter = (self.mw.data_store.current_block_idx == -2)
-                is_speaker = (self.mw.data_store.current_block_idx == -3)
+                is_speaker = (self.mw.data_store.current_block_idx in (-3, -4))
                 is_virtual = is_chapter or is_speaker
                 displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
 

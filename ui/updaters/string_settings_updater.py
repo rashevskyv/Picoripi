@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QColor, QPalette
 from .base_ui_updater import BaseUIUpdater
 from utils.utils import log_debug
+from core.mempalace.story_timeline import StoryStringContext, StoryVirtualProjection
 
 class StringSettingsUpdater(BaseUIUpdater):
     """String settings updater implementation."""
@@ -22,6 +23,169 @@ class StringSettingsUpdater(BaseUIUpdater):
             "  border: none; "
             "}"
         )
+        self._story_context_cache = {}
+        self._reference_items_cache = {}
+        self._projection_context_indices = {}
+
+    def clear_story_context_cache(self) -> None:
+        self._story_context_cache.clear()
+        self._reference_items_cache.clear()
+        self._projection_context_indices.clear()
+
+    def _projection_context_index(self, projection: StoryVirtualProjection):
+        cached = self._projection_context_indices.get(projection.document_id)
+        if cached is not None:
+            return cached
+        index = {}
+
+        def visit(folder, path):
+            current_path = path + (folder.title,)
+            for mapping in folder.mappings:
+                key = (str(mapping.game_block_id), int(mapping.string_index))
+                index[key] = {
+                    "structure_id": folder.id,
+                    "path": current_path,
+                    "speakers": [],
+                }
+            for child in folder.children:
+                visit(child, current_path)
+
+        for root in projection.roots:
+            visit(root, ())
+        for speaker in projection.speakers:
+            for mapping in speaker.mappings:
+                key = (str(mapping.game_block_id), int(mapping.string_index))
+                entry = index.setdefault(key, {
+                    "structure_id": None,
+                    "path": (),
+                    "speakers": [],
+                })
+                if speaker.name not in entry["speakers"]:
+                    entry["speakers"].append(speaker.name)
+        self._projection_context_indices[projection.document_id] = index
+        return index
+
+    def _apply_normalized_story_speaker(self, block_idx: int, string_idx: int) -> None:
+        """Make normalized Markup Studio relations the only visible speaker source."""
+        composer_owner = getattr(self.mw, "translation_handler", None)
+        prompt_composer = getattr(composer_owner, "prompt_composer", None)
+        client = prompt_composer._get_mempalace_client() if prompt_composer else None
+
+        projection = None
+        ui_updater = getattr(self.mw, "ui_updater", None)
+        block_updater = getattr(ui_updater, "block_list_updater", None)
+        cached = getattr(block_updater, "_story_projection_cache", None)
+        if isinstance(cached, StoryVirtualProjection):
+            projection = cached
+        elif client:
+            candidate = client.get_story_virtual_projection()
+            if isinstance(candidate, StoryVirtualProjection):
+                projection = candidate
+
+        speakers = ()
+        contexts = ()
+        item_name = None
+        item_cache = getattr(block_updater, "_story_item_mappings_cache", {})
+        if isinstance(item_cache, dict):
+            item_name = item_cache.get((block_idx, string_idx))
+        if client and projection and projection.document_id is not None:
+            cache_key = (projection.document_id, block_idx, string_idx)
+            contexts = self._story_context_cache.get(cache_key)
+            if contexts is None:
+                entry = self._projection_context_index(projection).get(
+                    (str(block_idx), int(string_idx))
+                )
+                contexts = tuple(
+                    StoryStringContext(
+                        entry["structure_id"], tuple(entry["path"]), speaker
+                    )
+                    for speaker in (entry["speakers"] or [None])
+                ) if entry is not None else ()
+                self._story_context_cache[cache_key] = contexts
+            speakers = tuple(dict.fromkeys(
+                context.speaker_name
+                for context in contexts
+                if context.speaker_name
+            ))
+            if item_name:
+                item_key = (projection.document_id, "item", item_name)
+                item_context = self._story_context_cache.get(item_key)
+                if item_context is None:
+                    item_context = client.get_reference_item_context(
+                        projection.document_id, item_name
+                    )
+                    self._story_context_cache[item_key] = item_context or False
+                if item_context is False:
+                    item_context = None
+                contexts = (item_context,) if item_context is not None else ()
+        role = "item" if item_name else "speaker"
+        current = item_name or (", ".join(speakers) if speakers else "None")
+        tooltip = (
+            "Reference item from Markup Studio. Double-click to open its Items folder."
+            if role == "item" else
+            "Speaker from the current Markup Studio Story Context. "
+            "Select another speaker here or open the linked line in Markup Studio."
+        )
+
+        combo = getattr(self.mw, "speaker_combobox", None)
+        if combo is not None:
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItem("None")
+            if role == "item" and projection and client:
+                references = self._reference_items_cache.get(projection.document_id)
+                if references is None:
+                    references = client.get_reference_items(projection.document_id)
+                    self._reference_items_cache[projection.document_id] = references
+                for reference in references:
+                    if reference.name != "None":
+                        combo.addItem(reference.name)
+            elif projection:
+                for name in sorted(
+                    (speaker.name for speaker in projection.speakers),
+                    key=str.casefold,
+                ):
+                    if name != "None":
+                        combo.addItem(name)
+            current_index = combo.findText(current)
+            if not isinstance(current_index, int) or current_index < 0:
+                combo.addItem(current)
+            combo.setCurrentText(current)
+            combo._last_displayed_char = current
+            combo._story_role = role
+            combo.setEnabled(True)
+            combo.setToolTip(tooltip)
+            combo.blockSignals(False)
+
+        chapter_label = getattr(self.mw, "chapter_value_label", None)
+        if chapter_label is not None:
+            context = next(
+                (value for value in contexts if value.structure_id is not None),
+                None,
+            )
+            chapter_label.story_structure_id = (
+                context.structure_id if context is not None else None
+            )
+            chapter_label.setText(
+                " › ".join(context.structure_path) if context is not None else "No chapter"
+            )
+            chapter_label.setEnabled(context is not None)
+
+        label = getattr(self.mw, "speaker_label", None)
+        if label is not None:
+            label.setText(f"Speaker: {current}")
+            label.setToolTip(tooltip)
+        select_label = getattr(self.mw, "speaker_select_label", None)
+        if select_label is not None:
+            select_label.setText("Item:" if role == "item" else "Speaker:")
+            select_label.setToolTip(
+                tooltip + " Double-click this label to open the matching virtual block."
+            )
+        studio_button = getattr(
+            self.mw, "open_current_string_in_markup_studio_button", None
+        )
+        if studio_button is not None:
+            studio_button.setEnabled(block_idx >= 0 and string_idx >= 0)
 
     def update_font_combobox(self):
         """Update the font combobox."""
@@ -65,13 +229,21 @@ class StringSettingsUpdater(BaseUIUpdater):
                 self.mw.speaker_combobox.blockSignals(False)
             if hasattr(self.mw, 'speaker_select_label') and self.mw.speaker_select_label:
                 self.mw.speaker_select_label.setToolTip("Select or type speaker name for this string")
+            chapter_label = getattr(self.mw, "chapter_value_label", None)
+            if chapter_label is not None:
+                chapter_label.setText("No chapter")
+                chapter_label.story_structure_id = None
+                chapter_label.setEnabled(False)
+            window_value = getattr(self.mw, "window_kind_value_label", None)
+            if window_value is not None:
+                window_value.setText("Unknown")
             return
 
         self.mw.font_combobox.setEnabled(True)
         self.mw.width_spinbox.setEnabled(True)
 
         # Update speaker assignments
-        if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox is not None:
+        if False and hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox is not None:
             self.mw.speaker_combobox.blockSignals(True)
             self.mw.speaker_combobox.clear()
             self.mw.speaker_combobox.setEnabled(True)
@@ -227,7 +399,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             self.mw.speaker_combobox.blockSignals(False)
 
         # Update Speaker Label instantly from MemePalace cache
-        if hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
+        if False and hasattr(self.mw, 'speaker_label') and self.mw.speaker_label:
             speaker_text = ""
             
             block_label = ""
@@ -339,6 +511,10 @@ class StringSettingsUpdater(BaseUIUpdater):
             if hasattr(self.mw, 'speaker_select_label') and self.mw.speaker_select_label:
                 self.mw.speaker_select_label.setToolTip(tooltip_text)
 
+        # The normalized story model is authoritative. This intentionally overwrites
+        # every legacy project/cache/regex value calculated above.
+        self._apply_normalized_story_speaker(block_idx, string_idx)
+
         metadata_key = (block_idx, string_idx)
         string_meta = self.mw.string_metadata.get(metadata_key, {})
 
@@ -348,8 +524,8 @@ class StringSettingsUpdater(BaseUIUpdater):
         kind_layout = resolve_string_layout(rules, block_idx, string_idx)
 
         # Window kind label near the editors
-        kind_label = getattr(self.mw, 'window_kind_label', None)
-        if kind_label is not None:
+        kind_value_label = getattr(self.mw, 'window_kind_value_label', None)
+        if kind_value_label is not None:
             kind_name = None
             if rules is not None and hasattr(rules, 'get_preview_window_style'):
                 try:
@@ -361,10 +537,9 @@ class StringSettingsUpdater(BaseUIUpdater):
                 except Exception:
                     kind_name = None
             if kind_name:
-                kind_label.setText(f"Window: {kind_name}")
-                kind_label.setVisible(True)
+                kind_value_label.setText(kind_name)
             else:
-                kind_label.setVisible(False)
+                kind_value_label.setText("Unknown")
 
         # Update font: explicit override > window-kind font > default
         font_file = string_meta.get("font_file")

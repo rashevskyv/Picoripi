@@ -6,6 +6,11 @@ from PyQt6.QtCore import Qt
 from handlers.list_selection_handler import ListSelectionHandler
 from ui.updaters.block_list_updater import BlockListUpdater
 from ui.updaters.string_settings_updater import StringSettingsUpdater
+from core.mempalace.story_timeline import (
+    StoryVirtualMapping,
+    StoryVirtualProjection,
+    StoryVirtualSpeaker,
+)
 
 @pytest.fixture
 def mock_project():
@@ -141,10 +146,11 @@ def test_select_speaker_folder(qapp, mock_mw, mock_project):
     mock_mw.ui_updater.populate_strings_for_block.assert_called_with(-3)
 
 def test_string_settings_updater_speakers(qapp, mock_mw, mock_project):
-    """Test speaker_combobox populating and text setting in settings updater."""
+    """Normalized Story Context overrides stale project speaker assignments."""
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = mock_project
     mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
     mock_mw.data_store.current_string_idx = 0
     
     print(f"DEBUG UPDATER TEST: mock_mw.project_manager.project = {mock_mw.project_manager.project}")
@@ -165,22 +171,37 @@ def test_string_settings_updater_speakers(qapp, mock_mw, mock_project):
     mock_mw.width_spinbox = MagicMock()
     mock_mw.apply_width_button = MagicMock()
     mock_mw.block_to_project_file_map = {0: 0}
+    mapping = StoryVirtualMapping("0", "zel_00_Str_0", 0)
+    projection = StoryVirtualProjection(
+        1,
+        (),
+        (StoryVirtualSpeaker("LETTER", (mapping,)),),
+    )
+    client = MagicMock()
+    client.get_story_virtual_projection.return_value = projection
+    client.get_story_speakers_for_game_string.return_value = ("LETTER",)
+    mock_mw.translation_handler.prompt_composer._get_mempalace_client.return_value = client
+    mock_mw.ui_updater.block_list_updater._story_projection_cache = projection
     
     updater = StringSettingsUpdater(mock_mw, mock_mw.data_processor)
     
-    # Populate string 0 which has speaker "Hero"
+    # The old project says Hero, but the normalized story says LETTER.
     updater.update_string_settings_panel()
     
-    # hero, empty option, and None option
-    assert cb.count() == 3
-    assert cb.itemText(1) == "None"
-    assert cb.itemText(2) == "Hero"
-    assert cb.currentText() == "Hero"
+    assert cb.count() == 2
+    assert cb.itemText(0) == "None"
+    assert cb.itemText(1) == "LETTER"
+    assert cb.currentText() == "LETTER"
+    assert cb.isEnabled()
+    assert spk_lbl.text() == "Speaker: LETTER"
     
     # Check that tooltips are assigned successfully to both cb and lbl
     assert cb.toolTip() != ""
     assert lbl.toolTip() != ""
-    assert cb.toolTip() == lbl.toolTip()
+    assert cb.toolTip() in lbl.toolTip()
+    assert "Double-click this label" in lbl.toolTip()
+    client.get_story_speakers_for_game_string.assert_not_called()
+    client.get_story_string_contexts.assert_not_called()
 
 def test_transition_from_speaker_to_physical_block_clears_state(qapp, mock_mw, mock_project):
     """Test that transitioning from a virtual speaker folder to a physical block clears current_speaker_name."""

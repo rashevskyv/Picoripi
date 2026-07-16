@@ -55,6 +55,25 @@ class DialogueMappingUpsertResult:
 
 
 @dataclass(frozen=True)
+class DialogueMappingState:
+    """Persisted UI-facing state of one document's context search."""
+
+    total: int
+    automatic: int
+    reviewed: int
+    needs_review: int
+    context_links: int
+
+    @property
+    def has_results(self) -> bool:
+        return self.total > 0 or self.context_links > 0
+
+    @property
+    def is_complete(self) -> bool:
+        return self.has_results and self.needs_review == 0
+
+
+@dataclass(frozen=True)
 class GameString:
     block_id: str
     block_name: str
@@ -159,6 +178,42 @@ def get_dialogue_mappings(
         params += (review_status,)
     query += " ORDER BY game_block_id, string_index"
     return tuple(_record(row) for row in conn.execute(query, params).fetchall())
+
+
+def get_dialogue_mapping_state(
+    conn: sqlite3.Connection,
+    document_id: int,
+) -> DialogueMappingState:
+    """Return durable search progress without rerunning the matcher."""
+    mapping = conn.execute(
+        """
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN review_status = 'matched' THEN 1 ELSE 0 END) AS automatic,
+            SUM(CASE WHEN review_status IN ('approved', 'rejected') THEN 1 ELSE 0 END)
+                AS reviewed,
+            SUM(CASE WHEN review_status = 'needs_review' THEN 1 ELSE 0 END)
+                AS needs_review
+        FROM story_dialogue_mappings
+        WHERE document_id = ?
+        """,
+        (document_id,),
+    ).fetchone()
+    relation = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM story_dialogue_relations
+        WHERE document_id = ? AND relation_status IN ('supported', 'approved')
+        """,
+        (document_id,),
+    ).fetchone()
+    return DialogueMappingState(
+        total=int(mapping[0] or 0),
+        automatic=int(mapping[1] or 0),
+        reviewed=int(mapping[2] or 0),
+        needs_review=int(mapping[3] or 0),
+        context_links=int(relation[0] or 0),
+    )
 
 
 def match_game_strings(

@@ -80,7 +80,7 @@ class MemePalaceBuilderUiMixin:
     """UI setup and style sheet mixin for MemePalaceBuilderDialog."""
 
     def _setup_ui(self):
-        """Build a gated four-step workflow instead of one crowded tool surface."""
+        """Build the gated source-to-context workflow."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(8)
@@ -181,7 +181,7 @@ class MemePalaceBuilderUiMixin:
         source_layout.addStretch()
         source_nav = QHBoxLayout()
         source_nav.addStretch()
-        self.source_next_btn = QPushButton("Continue to Characters →")
+        self.source_next_btn = QPushButton("Continue to Story Context →")
         self.source_next_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.source_next_btn.setEnabled(False)
         self.source_next_btn.clicked.connect(lambda: self._go_to_wizard_step(1))
@@ -189,38 +189,7 @@ class MemePalaceBuilderUiMixin:
         source_layout.addLayout(source_nav)
         self.workflow_tabs.addTab(source_tab, "1. Source")
 
-        # Step 2: character preparation
-        characters_tab = QWidget()
-        characters_layout = QVBoxLayout(characters_tab)
-        characters_layout.setContentsMargins(14, 14, 14, 14)
-        characters_layout.setSpacing(12)
-        characters_intro = QLabel(
-            "Extract the initial character and terminology context. You can rerun this step "
-            "when the source changes."
-        )
-        characters_intro.setWordWrap(True)
-        characters_layout.addWidget(characters_intro)
-        character_group = QGroupBox("Character and terminology preparation")
-        character_group_layout = QVBoxLayout(character_group)
-        self.ai_analyze_btn = QPushButton("Mine Characters & Terms via AI")
-        self.ai_analyze_btn.setToolTip(
-            "Extract character profiles and relationship rules from the script introduction."
-        )
-        self.ai_analyze_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.ai_analyze_btn.clicked.connect(self._pre_analyze_script_via_ai)
-        character_group_layout.addWidget(self.ai_analyze_btn)
-        characters_layout.addWidget(character_group)
-        characters_layout.addStretch()
-        characters_nav = QHBoxLayout()
-        characters_nav.addStretch()
-        self.prepare_next_btn = QPushButton("Continue to Chapters →")
-        self.prepare_next_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.prepare_next_btn.clicked.connect(lambda: self._go_to_wizard_step(2))
-        characters_nav.addWidget(self.prepare_next_btn)
-        characters_layout.addLayout(characters_nav)
-        self.workflow_tabs.addTab(characters_tab, "2. Characters")
-
-        # Step 3: connect game text to its story context
+        # Step 2: connect game text to its story context
         chapters_tab = QWidget()
         chapters_layout = QVBoxLayout(chapters_tab)
         chapters_layout.setContentsMargins(14, 14, 14, 14)
@@ -461,16 +430,21 @@ class MemePalaceBuilderUiMixin:
         self.story_context_completion_label.setStyleSheet("color: #666666;")
         chapters_nav.addWidget(self.story_context_completion_label, 1)
         chapters_nav.addStretch()
+        self.story_context_done_btn = QPushButton("Done — Close Builder")
+        self.story_context_done_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.story_context_done_btn.setVisible(False)
+        self.story_context_done_btn.clicked.connect(self._handle_close_or_cancel)
+        chapters_nav.addWidget(self.story_context_done_btn)
         self.mapping_next_btn = QPushButton("Analysis will unlock in the next stage")
         self.mapping_next_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.mapping_next_btn.setEnabled(False)
         self.mapping_next_btn.setVisible(False)
-        self.mapping_next_btn.clicked.connect(lambda: self._go_to_wizard_step(3))
+        self.mapping_next_btn.clicked.connect(lambda: self._go_to_wizard_step(2))
         chapters_nav.addWidget(self.mapping_next_btn)
         chapters_layout.addLayout(chapters_nav)
-        self.workflow_tabs.addTab(chapters_tab, "3. Story Context")
+        self.workflow_tabs.addTab(chapters_tab, "2. Story Context")
 
-        # Step 4: analysis and activity
+        # Step 3: future analysis and activity
         analysis_tab = QWidget()
         analysis_layout = QVBoxLayout(analysis_tab)
         analysis_layout.setContentsMargins(14, 14, 14, 14)
@@ -537,11 +511,10 @@ class MemePalaceBuilderUiMixin:
         self.clear_btn.clicked.connect(self._clear_database)
         danger_row.addWidget(self.clear_btn)
         analysis_layout.addLayout(danger_row)
-        self.workflow_tabs.addTab(analysis_tab, "4. Analysis")
+        self.workflow_tabs.addTab(analysis_tab, "3. Analysis")
 
         self.workflow_tabs.setTabEnabled(1, False)
         self.workflow_tabs.setTabEnabled(2, False)
-        self.workflow_tabs.setTabEnabled(3, False)
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
@@ -553,7 +526,6 @@ class MemePalaceBuilderUiMixin:
 
     def _set_ui_enabled(self, enabled: bool):
         """Internal helper to set the ui enabled."""
-        self.ai_analyze_btn.setEnabled(enabled)
         self.ai_profile_speech_btn.setEnabled(enabled)
         self.map_chapters_btn.setEnabled(enabled)
         self.match_dialogue_btn.setEnabled(

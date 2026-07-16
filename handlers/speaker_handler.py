@@ -1,7 +1,8 @@
 # handlers/speaker_handler.py
 from typing import Any, Optional, Tuple
-from PyQt6.QtWidgets import QTreeWidgetItem
+from PyQt6.QtWidgets import QMessageBox, QTreeWidgetItem
 from PyQt6.QtCore import Qt, QTimer
+from core.mempalace.story_timeline import StoryVirtualProjection
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info
 
@@ -82,8 +83,63 @@ class SpeakerHandler(BaseHandler):
             parent.setExpanded(True)
             parent = parent.parent()
 
+    def _story_client_and_document(self):
+        """Return the active normalized-story client and document, if available."""
+        translation = getattr(self.mw, "translation_handler", None)
+        composer = getattr(translation, "prompt_composer", None)
+        client = composer._get_mempalace_client() if composer else None
+        block_updater = getattr(getattr(self.mw, "ui_updater", None), "block_list_updater", None)
+        projection = getattr(block_updater, "_story_projection_cache", None)
+        document_id = (
+            projection.document_id
+            if isinstance(projection, StoryVirtualProjection) else None
+        )
+        return client, document_id
+
+    def open_current_string_in_markup_studio(self) -> bool:
+        """Reveal the source node linked to the currently selected game string."""
+        block_idx = getattr(self.mw.data_store, "physical_block_idx", -1)
+        string_idx = getattr(self.mw.data_store, "current_string_idx", -1)
+        if block_idx < 0 or string_idx < 0:
+            return False
+        client, document_id = self._story_client_and_document()
+        node = (
+            client.get_story_navigation_target(str(block_idx), string_idx, document_id)
+            if client else None
+        )
+        if node is None or node.start_line is None:
+            QMessageBox.information(
+                self.mw,
+                "No marked-script link yet",
+                "This game string is not linked to a marked script line yet. "
+                "Run Story Context matching after saving the current Markup Studio project.",
+            )
+            return False
+        project_path = client.get_story_document_source_path(document_id)
+        actions = getattr(self.mw, "actions", None)
+        open_studio = getattr(actions, "open_script_markup_studio", None)
+        if not project_path or not callable(open_studio):
+            return False
+        open_studio()
+        studio = getattr(self.mw, "script_markup_studio_dialog", None)
+        navigate = getattr(studio, "open_hierarchy_project_at_line", None)
+        if studio is None or not callable(navigate) or not navigate(project_path, node.start_line):
+            QMessageBox.warning(
+                self.mw,
+                "Could not open marked line",
+                "Markup Studio opened, but the linked source line could not be shown.",
+            )
+            return False
+        studio.show()
+        studio.raise_()
+        studio.activateWindow()
+        return True
+
     def save_speaker_for_current_string(self, char_name: str) -> None:
         """Save speaker assignment for the current string and refresh UI."""
+        combo = getattr(self.mw, "speaker_combobox", None)
+        if getattr(combo, "_story_role", "speaker") == "item":
+            return
         char_name = char_name.strip()
 
         # Prevent redundant saves and selection changes when the user clicks/opens the combobox
@@ -101,6 +157,56 @@ class SpeakerHandler(BaseHandler):
         string_idx = self.mw.data_store.current_string_idx
 
         if block_idx == -1 or string_idx == -1:
+            return
+
+        client, document_id = self._story_client_and_document()
+        if client is not None and document_id is not None:
+            current = client.get_story_speakers_for_game_string(
+                str(block_idx), string_idx, document_id
+            )
+            if len(current) == 1 and current[0] == char_name:
+                return
+            node = client.get_story_navigation_target(
+                str(block_idx), string_idx, document_id
+            )
+            if node is None or node.start_line is None:
+                QMessageBox.information(
+                    self.mw,
+                    "No marked-script link yet",
+                    "This row cannot change a speaker until Story Context links it "
+                    "to a marked Text node.",
+                )
+                if cb is not None:
+                    cb.setCurrentText(", ".join(current) if current else "None")
+                return
+            if not char_name or char_name.casefold() == "none":
+                QMessageBox.information(
+                    self.mw,
+                    "Choose a speaker",
+                    "A marked dialogue must have an owning speaker. To remove or rebuild "
+                    "the speaker block, open this line in Markup Studio.",
+                )
+                if cb is not None:
+                    cb.setCurrentText(", ".join(current) if current else "None")
+                return
+            project_path = client.get_story_document_source_path(document_id)
+            actions = getattr(self.mw, "actions", None)
+            open_studio = getattr(actions, "open_script_markup_studio", None)
+            if callable(open_studio):
+                open_studio()
+            studio = getattr(self.mw, "script_markup_studio_dialog", None)
+            assign = getattr(studio, "assign_speaker_at_line", None)
+            if callable(assign) and assign(project_path, node.start_line, char_name):
+                cb._last_displayed_char = char_name
+                self._restore_editor_focus_after_speaker_save()
+                return
+            QMessageBox.warning(
+                self.mw,
+                "Could not change speaker",
+                "The linked Text block or its owning Speaker block could not be updated.",
+            )
+            if cb is not None:
+                cb.setCurrentText(", ".join(current) if current else "None")
             return
 
         pm = getattr(self.mw, 'project_manager', None)

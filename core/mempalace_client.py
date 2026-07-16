@@ -11,7 +11,9 @@ from core.mempalace.dialogue_mapping import (
     DialogueMappingInput,
     DialogueMatchSummary,
     DialogueMappingRecord,
+    DialogueMappingState,
     DialogueMappingUpsertResult,
+    get_dialogue_mapping_state,
     get_dialogue_mappings,
     GameString,
     match_game_strings,
@@ -23,15 +25,24 @@ from core.mempalace.story_timeline import (
     StoryTimelineConflictError,
     StoryTimelinePosition,
     StoryTimelineSyncResult,
+    StoryVirtualProjection,
+    StoryStringContext,
     ReferenceItemRecord,
     get_reference_items,
     get_story_ancestors,
     get_story_descendants,
     get_story_document_id,
+    get_story_document_source_path,
     get_story_neighbors,
+    get_story_navigation_target,
     get_story_node,
     get_story_timeline,
     get_story_timeline_position,
+    get_story_virtual_projection,
+    get_story_speakers_for_game_string,
+    get_story_string_contexts,
+    get_story_mappings_for_node,
+    get_reference_item_context,
     get_story_sync_conflicts,
     record_story_sync_conflict,
     resolve_story_sync_conflict,
@@ -368,6 +379,13 @@ class MemePalaceClient:
             if conn else ()
         )
 
+    def get_dialogue_mapping_state(self, document_id: int) -> DialogueMappingState:
+        """Read saved context-search progress for reopening the Builder."""
+        conn = self._get_connection()
+        if conn is None:
+            return DialogueMappingState(0, 0, 0, 0, 0)
+        return get_dialogue_mapping_state(conn, document_id)
+
     def match_game_strings(
         self,
         document_id: int,
@@ -426,6 +444,74 @@ class MemePalaceClient:
     def get_story_timeline(self, document_id: int) -> tuple[StoryNodeRecord, ...]:
         conn = self._get_connection()
         return get_story_timeline(conn, document_id) if conn else ()
+
+    def get_story_virtual_projection(
+        self,
+        document_id: int | None = None,
+    ) -> StoryVirtualProjection:
+        """Return folders derived from the current normalized story and saved links."""
+        conn = self._get_connection()
+        if conn is None:
+            return StoryVirtualProjection(None, (), ())
+        return get_story_virtual_projection(conn, document_id)
+
+    def get_story_speakers_for_game_string(
+        self,
+        game_block_id: str,
+        string_index: int,
+        document_id: int | None = None,
+    ) -> tuple[str, ...]:
+        """Return authoritative Markup Studio speakers for one game string."""
+        conn = self._get_connection()
+        if conn is None:
+            return ()
+        return get_story_speakers_for_game_string(
+            conn,
+            game_block_id,
+            string_index,
+            document_id,
+        )
+
+    def get_story_navigation_target(
+        self,
+        game_block_id: str,
+        string_index: int,
+        document_id: int | None = None,
+    ) -> Optional[StoryNodeRecord]:
+        """Return the marked-script node currently linked to a game string."""
+        conn = self._get_connection()
+        if conn is None:
+            return None
+        return get_story_navigation_target(
+            conn, game_block_id, string_index, document_id
+        )
+
+    def get_story_string_contexts(
+        self,
+        game_block_id: str,
+        string_index: int,
+        document_id: int | None = None,
+    ) -> tuple[StoryStringContext, ...]:
+        conn = self._get_connection()
+        return (
+            get_story_string_contexts(
+                conn, game_block_id, string_index, document_id
+            ) if conn else ()
+        )
+
+    def get_story_mappings_for_node(
+        self, document_id: int, stable_id: str
+    ):
+        conn = self._get_connection()
+        return get_story_mappings_for_node(conn, document_id, stable_id) if conn else ()
+
+    def get_reference_item_context(self, document_id: int, item_name: str):
+        conn = self._get_connection()
+        return get_reference_item_context(conn, document_id, item_name) if conn else None
+
+    def get_story_document_source_path(self, document_id: int | None = None) -> str:
+        conn = self._get_connection()
+        return get_story_document_source_path(conn, document_id) if conn else ""
 
     def get_story_ancestors(self, document_id: int, stable_id: str) -> tuple[StoryNodeRecord, ...]:
         conn = self._get_connection()

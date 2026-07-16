@@ -3,7 +3,21 @@ from unittest.mock import MagicMock
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QComboBox, QWidget
+from PyQt6.QtTest import QTest
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
+from ui.builders.layout_builder import NavigableLabel
+
+
+def test_story_navigation_double_click_is_owned_by_label(qtbot):
+    label = NavigableLabel("Chapter:")
+    qtbot.addWidget(label)
+    received = []
+    label.doubleClicked.connect(lambda: received.append(True))
+    label.show()
+
+    QTest.mouseDClick(label, Qt.MouseButton.LeftButton)
+
+    assert received == [True]
 
 def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     # Setup mock data: 5 strings, indices 0-4

@@ -203,6 +203,26 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox is not None:
             self.mw.speaker_combobox.lineEdit().returnPressed.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
             self.mw.speaker_combobox.activated.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
+        speaker_label = getattr(self.mw, 'speaker_select_label', None)
+        if speaker_label is not None:
+            speaker_label.doubleClicked.connect(
+                self.mw.list_selection_handler.navigate_to_current_story_role
+            )
+        window_label = getattr(self.mw, 'window_kind_label', None)
+        if window_label is not None:
+            window_label.doubleClicked.connect(
+                self.mw.list_selection_handler.navigate_to_current_physical_block
+            )
+        chapter_label = getattr(self.mw, 'chapter_select_label', None)
+        if chapter_label is not None:
+            chapter_label.doubleClicked.connect(
+                self.mw.list_selection_handler.navigate_to_current_story_structure
+            )
+        studio_button = getattr(self.mw, 'open_current_string_in_markup_studio_button', None)
+        if studio_button is not None:
+            studio_button.clicked.connect(
+                self.mw.list_selection_handler.speaker_handler.open_current_string_in_markup_studio
+            )
         if hasattr(self.mw, 'show_warnings_only_checkbox') and self.mw.show_warnings_only_checkbox:
             self.mw.show_warnings_only_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_show_warnings_only)
         if hasattr(self.mw, 'warnings_filter_button') and self.mw.warnings_filter_button:
@@ -371,6 +391,15 @@ class MainWindowEventHandler:
             if mw.speaker_combobox.lineEdit():
                 safe_disconnect(mw.speaker_combobox.lineEdit(), 'returnPressed')
             safe_disconnect(mw.speaker_combobox, 'activated')
+        if hasattr(mw, 'speaker_select_label') and mw.speaker_select_label is not None:
+            safe_disconnect(mw.speaker_select_label, 'doubleClicked')
+        if hasattr(mw, 'window_kind_label') and mw.window_kind_label is not None:
+            safe_disconnect(mw.window_kind_label, 'doubleClicked')
+        if hasattr(mw, 'chapter_select_label') and mw.chapter_select_label is not None:
+            safe_disconnect(mw.chapter_select_label, 'doubleClicked')
+        studio_button = getattr(mw, 'open_current_string_in_markup_studio_button', None)
+        if studio_button is not None:
+            safe_disconnect(studio_button, 'clicked')
         if hasattr(mw, 'show_warnings_only_checkbox'):
             safe_disconnect(mw.show_warnings_only_checkbox, 'toggled')
         if hasattr(mw, 'warnings_filter_button'):

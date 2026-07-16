@@ -39,6 +39,11 @@ class UIUpdater:
         """Populate blocks."""
         self.block_list_updater.populate_blocks(override_folder_id, override_block_idx)
 
+    def refresh_mempalace_story_folders(self):
+        """Reload derived story and speaker folders after MemPalace data changes."""
+        self.block_list_updater.invalidate_mempalace_story_cache()
+        self.block_list_updater.populate_blocks()
+
     def update_block_item_text_with_problem_count(self, block_idx: int):
         """Update the block item text with problem count."""
         self.block_list_updater.update_block_item_text_with_problem_count(block_idx)

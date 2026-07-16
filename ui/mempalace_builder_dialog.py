@@ -22,7 +22,11 @@ from utils.logging_utils import log_info, log_error
 
 # Import decomposed elements
 from ui.mempalace.mempalace_sleep import prevent_sleep, restore_sleep, put_to_sleep
-from ui.mempalace.mempalace_ui import MemePalaceBuilderUiMixin
+from ui.mempalace.mempalace_ui import (
+    MemePalaceBuilderUiMixin,
+    SECONDARY_BUTTON_STYLE,
+    WORKFLOW_BUTTON_STYLE,
+)
 from ui.mempalace.mempalace_pipeline import MemePalacePipelineMixin
 
 
@@ -236,6 +240,28 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         )
         return True
 
+    def apply_saved_markup_studio_project(self, path: str) -> bool:
+        """Synchronize a newly saved Studio snapshot and refresh existing matches."""
+        if not path or not self._load_hierarchy_project_preview(path, show_error=True):
+            return False
+        previous_document_id = self.client.get_story_document_id(
+            self.hierarchy_project.source_path
+        )
+        previous_state = (
+            self.client.get_dialogue_mapping_state(previous_document_id)
+            if previous_document_id is not None else None
+        )
+        if not self._import_sync_hierarchy_project():
+            return False
+        if previous_state is not None and previous_state.has_results:
+            self._start_dialogue_node_mapping()
+        else:
+            self._refresh_main_story_folders()
+            updater = getattr(self.mw, "string_settings_updater", None)
+            if updater is not None:
+                updater.update_string_settings_panel()
+        return True
+
     def _load_hierarchy_project_preview(self, path: str, *, show_error: bool = False) -> bool:
         """Load a validated project and show its deterministic node summary."""
         try:
@@ -350,10 +376,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             return
         source_ready = self._source_is_ready()
         self.workflow_tabs.setTabEnabled(1, source_ready)
-        self.workflow_tabs.setTabEnabled(2, source_ready)
-        self.workflow_tabs.setTabEnabled(3, False)
+        self.workflow_tabs.setTabEnabled(2, False)
         self.source_next_btn.setEnabled(source_ready)
-        self.prepare_next_btn.setEnabled(source_ready)
         self.mapping_next_btn.setEnabled(False)
 
         if not self.wing_edit.text().strip():
@@ -387,6 +411,13 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if self.workflow_tabs.isTabEnabled(index):
             self.workflow_tabs.setCurrentIndex(index)
 
+    def _refresh_main_story_folders(self) -> None:
+        """Expose saved story changes immediately in the main project tree."""
+        ui_updater = getattr(self.mw, "ui_updater", None)
+        refresh = getattr(ui_updater, "refresh_mempalace_story_folders", None)
+        if callable(refresh):
+            refresh()
+
     @pyqtSlot()
     def _import_sync_hierarchy_project(self) -> bool:
         """Persist one validated source snapshot as the current import baseline."""
@@ -416,6 +447,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         self.story_document_id = sync_result.document_id
         self._invalidate_dialogue_review_cache()
         self._refresh_story_tree()
+        self._restore_dialogue_mapping_state()
         self.imported_hierarchy_project_path = project.source_path
         self.imported_hierarchy_project_hash = project.source_hash
         self.imported_hierarchy_project_version = project.version
@@ -435,6 +467,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             f"({sync_result.reference_items_removed} removed), "
             f"SHA-256 {project.source_hash[:12]}..."
         )
+        self._refresh_main_story_folders()
         return True
 
     def _refresh_story_tree(self) -> None:
@@ -596,6 +629,53 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             f"color: {color}; font-weight: bold;"
         )
         self._refresh_dialogue_review_table()
+        self._set_saved_dialogue_search_actions(review_count == 0)
+        self._refresh_main_story_folders()
+        updater = getattr(self.mw, "string_settings_updater", None)
+        if updater is not None:
+            updater.update_string_settings_panel()
+
+    def _set_saved_dialogue_search_actions(self, complete: bool) -> None:
+        """Make rerunning secondary once durable search results exist."""
+        self.match_dialogue_btn.setText("Recheck After Changes")
+        self.match_dialogue_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
+        self.story_context_done_btn.setVisible(complete)
+        if complete:
+            self.story_context_completion_label.setText(
+                "All context decisions are saved. These links are already available to AI "
+                "translation; rerun the search only after the script or game text changes."
+            )
+
+    def _restore_dialogue_mapping_state(self) -> None:
+        """Restore persisted context-search status when Builder is reopened."""
+        if self.story_document_id is None:
+            return
+        state = self.client.get_dialogue_mapping_state(self.story_document_id)
+        if not state.has_results:
+            self.match_dialogue_btn.setText("Find Context Automatically")
+            self.match_dialogue_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+            self.story_context_done_btn.setVisible(False)
+            return
+        self._refresh_dialogue_review_table()
+        if state.needs_review:
+            self.dialogue_mapping_summary_label.setText(
+                f"Saved search restored: {state.automatic} automatically matched; "
+                f"{state.reviewed} reviewed; {state.context_links} active context links. "
+                f"Need your decision: {state.needs_review}."
+            )
+            self.dialogue_mapping_summary_label.setStyleSheet(
+                "color: #a15c00; font-weight: bold;"
+            )
+        else:
+            self.dialogue_mapping_summary_label.setText(
+                f"Story context is ready. Saved results: {state.automatic} automatically "
+                f"matched; {state.reviewed} reviewed; "
+                f"{state.context_links} active context links."
+            )
+            self.dialogue_mapping_summary_label.setStyleSheet(
+                "color: #107c41; font-weight: bold;"
+            )
+        self._set_saved_dialogue_search_actions(state.is_complete)
 
     def _invalidate_dialogue_review_cache(self) -> None:
         self._dialogue_review_cache_document_id = None
@@ -882,11 +962,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             mapping.string_index,
             dialogue_node_id,
         )
-        self._refresh_dialogue_review_table()
-        self.dialogue_mapping_summary_label.setText(
-            "Decision saved. It will be kept when the automatic search runs again."
-        )
-        self.dialogue_mapping_summary_label.setStyleSheet("color: #107c41; font-weight: bold;")
+        self._restore_dialogue_mapping_state()
+        self._refresh_main_story_folders()
 
     @pyqtSlot()
     def _reject_selected_dialogue_mapping(self) -> None:
@@ -918,11 +995,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             mapping.string_index,
             None,
         )
-        self._refresh_dialogue_review_table()
-        self.dialogue_mapping_summary_label.setText(
-            "Marked as not story dialogue. This decision will be kept."
-        )
-        self.dialogue_mapping_summary_label.setStyleSheet("color: #107c41; font-weight: bold;")
+        self._restore_dialogue_mapping_state()
+        self._refresh_main_story_folders()
 
     def append_log(self, text: str):
         """Append log."""
@@ -1463,6 +1537,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                         self.imported_hierarchy_project_path
                     )
                     self._refresh_story_tree()
+                    self._restore_dialogue_mapping_state()
         except Exception as e:
             log_error(f"Failed to load builder settings: {e}")
 

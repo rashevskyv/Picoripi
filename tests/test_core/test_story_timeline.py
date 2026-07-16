@@ -100,6 +100,63 @@ def test_normalize_hierarchy_project_preserves_order_and_parentage():
     assert nodes[-1].text == "Hello."
 
 
+def test_reference_item_context_uses_containing_structure(tmp_path):
+    client = MemePalaceClient(project_dir=str(tmp_path))
+    result = client.sync_story_timeline(_reference_project())
+
+    context = client.get_reference_item_context(result.document_id, "Wallet")
+
+    assert context is not None
+    assert context.structure_path == ("Collection Screen",)
+    assert context.structure_id is not None
+
+
+def test_normalize_dialogue_reads_current_source_range_not_stale_cached_text():
+    project = _project()
+    payload = {
+        "format": project.format,
+        "version": project.version,
+        "source_path": project.raw_source_path,
+        "raw_text": "Act I\nChapter One\nScene One\nLETTER\nAbout Mail Delivery\n",
+        "type_definitions": [
+            {
+                "type_id": definition.type_id,
+                "label": definition.label,
+                "description": definition.description,
+                "color": definition.color,
+            }
+            for definition in project.type_definitions
+        ],
+        "hierarchy_marks": [
+            {
+                "start_line": mark.start_line,
+                "end_line": mark.end_line,
+                "depth": mark.depth,
+                "type_id": mark.type_id,
+                "text": (
+                    "Part of the Mirror of Twilight"
+                    if mark.type_id == HierarchyType.TEXT else mark.text
+                ),
+                "label": mark.label,
+                "description": mark.description,
+                "color": mark.color,
+                "order": mark.order,
+                "start_col": mark.start_col,
+                "end_col": mark.end_col,
+                "origin": mark.origin,
+                "approved": mark.approved,
+            }
+            for mark in project.hierarchy_marks
+        ],
+    }
+    moved = parse_hierarchy_project(payload, source_path=project.source_path)
+
+    nodes = normalize_hierarchy_project(moved)
+
+    assert nodes[-2].title == "LETTER"
+    assert nodes[-1].text == "About Mail Delivery"
+
+
 def test_item_catalog_is_stored_separately_from_story_dialogue(tmp_path):
     project = _reference_project()
 
@@ -267,3 +324,65 @@ def test_story_timeline_query_api_returns_paths_neighbors_and_position(tmp_path)
     position = client.get_story_timeline_position(result.document_id, dialogue.stable_id)
     assert (position.index, position.total, position.progress) == (5, 5, 1.0)
     assert [node.node_type for node in position.path] == ["act", "chapter", "scene"]
+
+
+def test_story_virtual_projection_uses_normalized_hierarchy_and_active_relations(tmp_path):
+    client = MemePalaceClient(project_dir=str(tmp_path))
+    result = client.sync_story_timeline(_project())
+    dialogue = normalize_hierarchy_project(_project())[-1]
+    stored_dialogue = client.get_story_node(result.document_id, dialogue.stable_id)
+    conn = client._get_connection()
+    relation_values = (
+        result.document_id, "1", "zel_01", 1, "zel_01_Str_1",
+        stored_dialogue.id, "Hello.", "exact_or_contained", 1.0, 1.0,
+    )
+    conn.execute(
+        """
+        INSERT INTO story_dialogue_relations (
+            document_id, game_block_id, game_block_name, string_index,
+            game_string_id, dialogue_node_id, source_text_snapshot,
+            relation_method, score, game_coverage, relation_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'supported')
+        """,
+        relation_values,
+    )
+    conn.execute(
+        """
+        INSERT INTO story_dialogue_relations (
+            document_id, game_block_id, game_block_name, string_index,
+            game_string_id, dialogue_node_id, source_text_snapshot,
+            relation_method, score, game_coverage, relation_status
+        ) VALUES (?, '0', 'zel_00', 0, 'zel_00_Str_0', ?, 'No',
+                  'manual', 1.0, 1.0, 'rejected')
+        """,
+        (result.document_id, stored_dialogue.id),
+    )
+    conn.commit()
+
+    projection = client.get_story_virtual_projection()
+
+    assert projection.document_id == result.document_id
+    act = projection.roots[0]
+    chapter = act.children[0]
+    scene = chapter.children[0]
+    assert [act.title, chapter.title, scene.title] == [
+        "Act I", "Chapter One", "Scene One"
+    ]
+    assert [(m.game_block_id, m.string_index) for m in scene.mappings] == [("1", 1)]
+    assert [(speaker.name, len(speaker.mappings)) for speaker in projection.speakers] == [
+        ("MIDNA", 1)
+    ]
+    assert client.get_story_speakers_for_game_string("1", 1) == ("MIDNA",)
+    assert client.get_story_speakers_for_game_string("0", 0) == ()
+    target = client.get_story_navigation_target("1", 1)
+    assert target is not None
+    assert target.stable_id == dialogue.stable_id
+    assert client.get_story_navigation_target("0", 0) is None
+    contexts = client.get_story_string_contexts("1", 1)
+    assert len(contexts) == 1
+    assert contexts[0].structure_path == ("Act I", "Chapter One", "Scene One")
+    assert contexts[0].structure_id == scene.id
+    assert contexts[0].speaker_name == "MIDNA"
+    mappings = client.get_story_mappings_for_node(result.document_id, dialogue.stable_id)
+    assert [(mapping.game_block_id, mapping.string_index) for mapping in mappings] == [("1", 1)]
+    assert client.get_story_document_source_path(result.document_id) == _project().source_path

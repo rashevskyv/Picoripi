@@ -41,7 +41,7 @@ class PreviewRenderer:
         preview_edit.highlightManager.clearAllProblemHighlights()
 
         is_chapter = (block_idx == -2)
-        is_speaker = (block_idx == -3)
+        is_speaker = (block_idx in (-3, -4))
         is_virtual = is_chapter or is_speaker
         if not is_virtual and not (0 <= block_idx < len(data_source)):
             return
@@ -282,7 +282,7 @@ class PreviewRenderer:
 
             preview_idx_to_select = -1
             is_chapter = (block_idx == -2)
-            is_speaker = (block_idx == -3)
+            is_speaker = (block_idx in (-3, -4))
             is_virtual = is_chapter or is_speaker
             if is_virtual:
                 target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
