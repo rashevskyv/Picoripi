@@ -566,6 +566,9 @@ class BfnPreviewWidget(QWidget):
         bar_layout = QVBoxLayout(self.page_bar)
         bar_layout.setContentsMargins(4, 8, 4, 8)
         bar_layout.setSpacing(6)
+
+        # Keep the whole switcher as one compact, vertically centred group.
+        bar_layout.addStretch()
         
         # Top button: Previous page (▲)
         self.btn_page_prev = QPushButton("▲", self.page_bar)
@@ -575,15 +578,11 @@ class BfnPreviewWidget(QWidget):
         self.btn_page_prev.setToolTip("Previous page")
         bar_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
         
-        bar_layout.addStretch()
-        
         # Container layout for page indicators (squares)
         self.indicators_layout = QVBoxLayout()
         self.indicators_layout.setSpacing(6)
         self.indicators_layout.setContentsMargins(0, 0, 0, 0)
         bar_layout.addLayout(self.indicators_layout)
-        
-        bar_layout.addStretch()
         
         # Bottom button: Next page (▼)
         self.btn_page_next = QPushButton("▼", self.page_bar)
@@ -592,6 +591,8 @@ class BfnPreviewWidget(QWidget):
         self.btn_page_next.clicked.connect(lambda: self._change_page(1))
         self.btn_page_next.setToolTip("Next page")
         bar_layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
+
+        bar_layout.addStretch()
         
         self.indicator_buttons = []
         self.page_bar.hide()
@@ -627,7 +628,9 @@ class BfnPreviewWidget(QWidget):
         return 0
 
     def _change_page(self, delta: int):
-        new_page = max(0, min(self._page_count - 1, self._preview_page + delta))
+        if self._page_count <= 1:
+            return
+        new_page = (self._preview_page + delta) % self._page_count
         if new_page != self._preview_page:
             self._preview_page = new_page
             self._refresh_page_bar()
@@ -680,8 +683,9 @@ class BfnPreviewWidget(QWidget):
                 for i, btn in enumerate(self.indicator_buttons):
                     btn.setChecked(i == self._preview_page)
                     
-            self.btn_page_prev.setEnabled(self._preview_page > 0)
-            self.btn_page_next.setEnabled(self._preview_page < self._page_count - 1)
+            # Navigation wraps at both ends, so both arrows stay available.
+            self.btn_page_prev.setEnabled(True)
+            self.btn_page_next.setEnabled(True)
             self.page_bar.show()
             self._position_page_bar()
         else:

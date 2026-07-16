@@ -761,8 +761,8 @@ def test_bfn_preview_widget_page_switcher(qapp):
     assert widget.indicator_buttons[1].isChecked() is False
     assert widget.indicator_buttons[2].isChecked() is False
     
-    # Prev button should be disabled, Next button enabled
-    assert widget.btn_page_prev.isEnabled() is False
+    # Both arrows stay enabled because navigation wraps at both ends.
+    assert widget.btn_page_prev.isEnabled() is True
     assert widget.btn_page_next.isEnabled() is True
     
     # Position check: geometry should stretch full height on the right
@@ -787,9 +787,15 @@ def test_bfn_preview_widget_page_switcher(qapp):
     assert widget.indicator_buttons[1].isChecked() is False
     assert widget.indicator_buttons[2].isChecked() is True
     
-    # Now next should be disabled, prev enabled
+    # Next wraps from the last page to the first.
     assert widget.btn_page_prev.isEnabled() is True
-    assert widget.btn_page_next.isEnabled() is False
+    assert widget.btn_page_next.isEnabled() is True
+    widget.btn_page_next.click()
+    assert widget._preview_page == 0
+
+    # Previous wraps from the first page to the last.
+    widget.btn_page_prev.click()
+    assert widget._preview_page == 2
     
     # Test single page hides bar
     widget._prepare_render_text = MagicMock(return_value=("Single line text", None, None, None))
