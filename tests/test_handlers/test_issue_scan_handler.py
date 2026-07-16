@@ -53,6 +53,22 @@ def test_IssueScanHandler_initial_silent_scan(handler, mock_mw, qapp):
         qapp.processEvents()
         mock_scan.assert_called_with(0)
 
+def test_IssueScanHandler_initial_silent_scan_force(handler, mock_mw, qapp):
+    with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan, \
+         patch.object(handler, '_load_issues_cache') as mock_load_cache, \
+         patch.object(handler, '_get_cache_path') as mock_get_path:
+        
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+        mock_get_path.return_value = mock_path
+        
+        handler._perform_initial_silent_scan_all_issues(force=True)
+        qapp.processEvents()
+        
+        mock_load_cache.assert_not_called()
+        mock_path.unlink.assert_called_once()
+        mock_scan.assert_called_with(0)
+
 @patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_IssueScanHandler_rescan_issues_for_single_block(mock_msg, handler, mock_mw):
     mock_mw.current_block_idx = 0

@@ -230,8 +230,8 @@ class IssueScanHandler(BaseHandler):
         delay = 0 if is_test else 30
         self._scan_timer.start(delay)
 
-    def _perform_initial_silent_scan_all_issues(self, on_completed=None):
-        """Start (or restart) an scan of all blocks, loading from cache if valid."""
+    def _perform_initial_silent_scan_all_issues(self, on_completed=None, force=False):
+        """Start (or restart) an scan of all blocks, loading from cache if valid (unless force is True)."""
         self._scan_completion_callback = on_completed
         if not self.mw.data_store.data:
             self.mw.data_store.problems_per_subline.clear()
@@ -243,7 +243,16 @@ class IssueScanHandler(BaseHandler):
             self._scan_timer.stop()
             self._scan_timer = None
 
-        cache = self._load_issues_cache()
+        if force:
+            cache_path = self._get_cache_path()
+            if cache_path and cache_path.exists():
+                try:
+                    cache_path.unlink()
+                except Exception:
+                    pass
+            cache = None
+        else:
+            cache = self._load_issues_cache()
         
         # Check if cache is valid globally
         cache_valid = False
@@ -413,15 +422,9 @@ class IssueScanHandler(BaseHandler):
     def rescan_all_tags(self):
         # Invalidate cache to force a full scan
         """Rescan all tags."""
-        cache_path = self._get_cache_path()
-        if cache_path and cache_path.exists():
-            try:
-                cache_path.unlink()
-            except Exception:
-                pass
         def show_completion():
             self.ui_updater.populate_blocks()
             QMessageBox.information(self.mw, "Scan Complete", "Full issue scan complete.")
 
-        self._perform_initial_silent_scan_all_issues(on_completed=show_completion)
+        self._perform_initial_silent_scan_all_issues(on_completed=show_completion, force=True)
 

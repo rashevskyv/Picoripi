@@ -550,8 +550,8 @@ class AppActionHandler(BaseHandler):
         self.width_worker.start()
         progress.show()
 
-    def _perform_initial_silent_scan_all_issues(self) -> None:
+    def _perform_initial_silent_scan_all_issues(self, force: bool = False) -> None:
         """Internal helper to perform initial silent scan all issues."""
         if hasattr(self.mw, 'issue_scan_handler'):
-            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues(force=force)
 
