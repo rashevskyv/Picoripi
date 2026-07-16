@@ -44,6 +44,23 @@ def _get_string_width(text: str, context: RuleContext) -> int:
             return len(text) * default_w
     return w
 
+
+def _is_visible_tag_in_context(tag: str, context: RuleContext) -> bool:
+    """Resolve tag visibility using both generic and game-specific semantics."""
+    if is_visible_tag(
+        tag,
+        context.default_tag_mappings,
+        context.font_map,
+        context.icon_sequences,
+    ):
+        return True
+
+    candidates = [tag]
+    mapped = context.default_tag_mappings.get(tag)
+    if mapped is not None:
+        candidates.append(str(mapped))
+    return any(_get_string_width(candidate, context) > 0 for candidate in candidates)
+
 class WidthRule(ProblemRule):
     @property
     def id(self) -> str:
@@ -152,7 +169,7 @@ class BadSpacingRule(ProblemRule):
             tag = match.group(0)
             if tag.lower().startswith("{f:") or tag.lower().startswith("[f:"):
                 return "X"
-            if is_visible_tag(tag, context.default_tag_mappings, context.font_map, context.icon_sequences):
+            if _is_visible_tag_in_context(tag, context):
                 return "X"
             return ""
             
@@ -242,7 +259,7 @@ class MissingIconSpacingRule(ProblemRule):
         matches = []
         
         def check_visible(t):
-            return is_visible_tag(t, context.default_tag_mappings, context.font_map, context.icon_sequences)
+            return _is_visible_tag_in_context(t, context)
 
         for i, line in enumerate(sublines):
             spans = find_missing_icon_spacing_spans(line, check_visible, context.font_map, context.default_tag_mappings, context.icon_sequences)
@@ -256,7 +273,7 @@ class MissingIconSpacingRule(ProblemRule):
         fixed_lines = []
 
         def check_visible(t):
-            return is_visible_tag(t, context.default_tag_mappings, context.font_map, context.icon_sequences)
+            return _is_visible_tag_in_context(t, context)
 
         for line in sublines:
             fixed = fix_missing_icon_spacing(line, check_visible, context.font_map, context.default_tag_mappings, context.icon_sequences)
@@ -725,14 +742,43 @@ class TagWarningRule(ProblemRule):
                     exceptions = {rules.tag_exceptions}
                     
         exceptions_lower = {e.lower() for e in exceptions}
-        
+
+        mappings = context.default_tag_mappings
+        if not isinstance(mappings, dict):
+            mappings = {}
+
+        reverse_aliases = {}
+        for alias, raw_tag in mappings.items():
+            reverse_aliases.setdefault(str(raw_tag), []).append(str(alias))
+
+        def equivalent_forms(tag):
+            forms = [tag]
+            mapped = mappings.get(tag)
+            if mapped is not None:
+                forms.append(str(mapped))
+            forms.extend(reverse_aliases.get(tag, []))
+            return forms
+
+        def is_exception(tag):
+            for form in equivalent_forms(tag):
+                inner = form[1:-1] if (
+                    (form.startswith('{') and form.endswith('}'))
+                    or (form.startswith('[') and form.endswith(']'))
+                ) else form
+                if inner.lower().startswith("f:"):
+                    inner = inner[2:]
+                if inner.lower() in exceptions_lower or form.lower() in exceptions_lower:
+                    return True
+            return False
+
         def clean_tags(tags_list):
             cleaned = []
             for tag in tags_list:
-                inner = tag[1:-1] if (tag.startswith('{') and tag.endswith('}')) or (tag.startswith('[') and tag.endswith(']')) else tag
-                if inner.lower() in exceptions_lower or tag.lower() in exceptions_lower:
+                if is_exception(tag):
                     continue
-                cleaned.append(tag)
+                # The editor shows aliases while stored strings may contain the
+                # corresponding raw escape tag. Compare their canonical forms.
+                cleaned.append(str(mappings.get(tag, tag)))
             return cleaned
             
         orig_cleaned = clean_tags(orig_tags)

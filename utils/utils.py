@@ -94,8 +94,6 @@ def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional
 
     for t in normalized_tags:
         is_known = False
-        if icon_sequences and t in icon_sequences:
-            return True
 
         if font_map and t in font_map:
             val = font_map.get(t)
@@ -104,6 +102,12 @@ def is_visible_tag(tag: str, mappings: Optional[dict] = None, font_map: Optional
                 if w > 0:
                     return True
                 is_known = True
+
+        # Font maps are authoritative: a known zero-width control tag must not
+        # become a visible icon merely because the icon-sequence cache contains
+        # every multi-character font-map key.
+        if not is_known and icon_sequences and t in icon_sequences:
+            return True
 
         width = get_tag_width(t, mappings, font_map, icon_sequences=icon_sequences)
         if width > 0:
@@ -226,8 +230,14 @@ def analyze_missing_icon_spacing(
                 warning_spans.append((orig_left + 1, orig_right))
                 edits.append(('insert', orig_left + 1, ' '))
 
-        # Punctuation followed by alphanumeric (always, even if not separated by tags)
-        elif left_char in ('.', ',', '!', '?', ':', ';') and right_char.isalnum():
+        # Punctuation followed by alphanumeric across one or more zero-width tags.
+        # Adjacent punctuation and text without an intervening tag belongs to other
+        # spacing rules and must not produce a Missing Tag Spacing warning.
+        elif (
+            separated_by_tags
+            and left_char in ('.', ',', '!', '?', ':', ';')
+            and right_char.isalnum()
+        ):
             # Exclude decimals
             if left_char in ('.', ',') and right_char.isdigit() and i > 0 and clean_str[i-1].isdigit():
                 continue

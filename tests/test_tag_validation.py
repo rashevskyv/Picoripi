@@ -77,6 +77,28 @@ def test_check_tags_mismatch_with_exceptions(main_window):
     # Exception inside curly brackets
     assert analyzer.check_tags_mismatch("Hello {Link} and [A]", "Hi [A]") is False
 
+
+def test_check_tags_mismatch_normalizes_editor_aliases(main_window):
+    main_window.default_tag_mappings = {
+        "{F:Epona}": "{escape:0:0022}",
+        "{icon:heart}": "{escape:0:0039}",
+    }
+    analyzer = GenericProblemAnalyzer(main_window, MagicMock(), {}, MagicMock())
+
+    # Clicking a string compares the editor-facing source alias with the stored
+    # raw translation. Equivalent forms must not create a gray TAG_WARNING.
+    assert analyzer.check_tags_mismatch(
+        "the one that {F:Epona} likes?",
+        "the one that {escape:0:0022} likes?",
+    ) is False
+    assert analyzer.check_tags_mismatch(
+        "Take {icon:heart}",
+        "Take {escape:0:0039}",
+    ) is False
+
+    # A genuinely missing non-exempt tag must still be reported.
+    assert analyzer.check_tags_mismatch("Take {icon:heart}", "Take it") is True
+
 @patch('handlers.text_operation_handler.AsyncIssueScanner')
 def test_immediate_async_scan_on_string_select(mock_async_scanner, main_window):
     dsp = DataStateProcessor(main_window)

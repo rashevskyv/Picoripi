@@ -8,6 +8,9 @@ from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug, log_error
 from utils.constants import APP_VERSION
 
+ISSUE_RULE_ENGINE_VERSION = 3
+
+
 class IssueScanHandler(BaseHandler):
     """Handler for issue scan operations."""
     def __init__(self, main_window, data_processor, ui_updater):
@@ -87,7 +90,7 @@ class IssueScanHandler(BaseHandler):
                 "project_id": self.mw.project_manager.project.id if self.mw.project_manager.project else None,
                 "settings": {
                     "cache_format_version": 2,
-                    "rule_engine_version": 1,
+                    "rule_engine_version": ISSUE_RULE_ENGINE_VERSION,
                     "plugin_id": self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else None,
                     "game_dialog_max_width_pixels": getattr(self.mw, 'game_dialog_max_width_pixels', 300),
                     "line_width_warning_threshold_pixels": getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
@@ -270,7 +273,7 @@ class IssueScanHandler(BaseHandler):
             cache_valid = (
                 cache.get("app_version") == APP_VERSION
                 and settings.get("cache_format_version") == 2
-                and settings.get("rule_engine_version") == 1
+                and settings.get("rule_engine_version") == ISSUE_RULE_ENGINE_VERSION
                 and settings.get("plugin_id") == (self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else None)
                 and settings.get("game_dialog_max_width_pixels") == getattr(self.mw, 'game_dialog_max_width_pixels', 300)
                 and settings.get("line_width_warning_threshold_pixels") == getattr(self.mw, 'line_width_warning_threshold_pixels', 280)

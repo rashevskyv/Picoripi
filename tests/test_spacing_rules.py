@@ -222,9 +222,41 @@ def test_is_visible_tag():
 
 
 def test_find_missing_icon_spacing_spans():
-    from utils.utils import find_missing_icon_spacing_spans
+    from utils.utils import find_missing_icon_spacing_spans, is_visible_tag
     visible_tags = {"{(A)}", "{icon}"}
     check_visible = lambda t: t in visible_tags
+
+    # Plain text cannot have a tag-spacing problem, even when punctuation touches
+    # the next word (the exact shape of the false positive reported from the UI).
+    assert find_missing_icon_spacing_spans(
+        "...The only time we can feel the lingering regrets of spirits who have left our world.",
+        check_visible,
+    ) == []
+
+    # An unrelated tag elsewhere on the line must not turn ordinary punctuation
+    # adjacency into a tag-spacing warning.
+    assert find_missing_icon_spacing_spans("...The {icon} World", check_visible) == []
+
+    # The runtime icon cache also contains multi-character zero-width controls.
+    # An explicit width of zero must win, or {ctrl:instant} incorrectly demands
+    # a space before the following text.
+    font_map = {
+        "{ctrl:instant}": {"width": 0},
+        "{GC:A}": {"width": 24},
+    }
+    icon_sequences = list(font_map)
+    check_cached_tag = lambda tag: is_visible_tag(
+        tag, {}, font_map, icon_sequences
+    )
+    screenshot_text = (
+        "{wii-msgid:4055}{ctrl:instant}You caught a "
+        "{color:red}bombfish{color:white}!{ctrl:type}"
+    )
+    assert is_visible_tag("{ctrl:instant}", {}, font_map, icon_sequences) is False
+    assert is_visible_tag("{GC:A}", {}, font_map, icon_sequences) is True
+    assert find_missing_icon_spacing_spans(
+        screenshot_text, check_cached_tag, font_map, {}, icon_sequences
+    ) == []
     
     # Both sides spaced - OK
     assert len(find_missing_icon_spacing_spans("Hello {(A)} World", check_visible)) == 0
@@ -254,6 +286,10 @@ def test_find_missing_icon_spacing_spans():
     assert len(find_missing_icon_spacing_spans("Hello {(A)} - world", check_visible)) == 0
 
     # Zero-width tag validation cases
+    # Punctuation separated from text by a zero-width tag - ERROR
+    spans = find_missing_icon_spacing_spans("Hello.{color:red}World", check_visible)
+    assert len(spans) == 1
+    assert spans[0] == (5, 18)
     # No space around it - ERROR
     spans = find_missing_icon_spacing_spans("Hello{color:red}World", check_visible)
     assert len(spans) == 1
@@ -373,6 +409,51 @@ def test_plugin_missing_icon_spacing_detection_and_fix(mc_rules, ww_rules, plain
     fixed, changed = pokemon_rules.autofix_data_string("Hello{(A)}World", pokemon_rules.mw.font_map, 1000)
     assert fixed == "Hello {(A)} World"
     assert changed is True
+
+
+def test_bmg_control_tags_do_not_trigger_tag_spacing(bmg_rules):
+    from plugins.zelda_bmg.config import PROBLEM_MISSING_ICON_SPACING
+
+    text = "{ctrl:instant}You there!{ctrl:type}"
+    problems = bmg_rules.problem_analyzer.analyze_data_string(
+        data_string=text,
+        font_map={
+            "{ctrl:instant}": {"width": 0},
+            "{ctrl:type}": {"width": 0},
+        },
+        threshold=435,
+    )
+
+    assert PROBLEM_MISSING_ICON_SPACING not in problems[0]
+
+
+def test_bmg_font_glyph_with_one_space_has_no_spacing_warning(bmg_rules):
+    from plugins.zelda_bmg.config import (
+        PROBLEM_BAD_SPACING,
+        PROBLEM_MISSING_ICON_SPACING,
+    )
+
+    bmg_rules.mw.default_tag_mappings = bmg_rules.get_default_tag_mappings()
+    font_map = {"♂": {"width": 11}}
+
+    for text in (
+        "{escape:6:0002} phasmid",
+        "{glyph:male-icon} phasmid",
+    ):
+        problems = bmg_rules.problem_analyzer.analyze_data_string(
+            data_string=text,
+            font_map=font_map,
+            threshold=435,
+        )
+        assert PROBLEM_BAD_SPACING not in problems[0]
+        assert PROBLEM_MISSING_ICON_SPACING not in problems[0]
+
+    missing_space = bmg_rules.problem_analyzer.analyze_data_string(
+        data_string="{glyph:male-icon}phasmid",
+        font_map=font_map,
+        threshold=435,
+    )
+    assert PROBLEM_MISSING_ICON_SPACING in missing_space[0]
 
 
 def test_autofix_disabled_settings(mc_rules):
@@ -867,13 +948,12 @@ def test_new_clean_text_spacing_rules():
     fixed = fix_missing_icon_spacing(text, check_visible)
     assert fixed == "{tab}побував. {color:green}{color:white}{color:orange}Жовта стрілка{color:white} — це ти."
 
-    # Direct punctuation + alphanumeric without tags (should flag and fix as well)
+    # Direct punctuation + alphanumeric without tags is not a tag-spacing issue.
     text_direct = "побував.Жовта"
     spans_direct = find_missing_icon_spacing_spans(text_direct, check_visible)
-    assert len(spans_direct) == 1
-    assert spans_direct[0] == (7, 9) # from '.' to 'Ж' + 1
+    assert spans_direct == []
     fixed_direct = fix_missing_icon_spacing(text_direct, check_visible)
-    assert fixed_direct == "побував. Жовта"
+    assert fixed_direct == text_direct
 
 
 
