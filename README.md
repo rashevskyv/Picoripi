@@ -1,6 +1,6 @@
-# Picoripi v0.3.070-dev
+# Picoripi v0.3.073-dev
 
-The **Picoripi** (v0.3.070-dev) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+The **Picoripi** (v0.3.073-dev) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
 
 
 ---
@@ -22,6 +22,7 @@ The **Picoripi** (v0.3.070-dev) is a visual translation and localization workben
 
 ### 1. Project Management & Workspace Navigation
 - **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
+- **Redesigned Script Markup Studio Interface**: Reorganized the workspace to separate workflow stages, file operations, and advanced tools. Features a centralized File menu, a Live Save Status Indicator, a dynamic 4-stage Progress Bar, and an intelligent Next Action dashboard suggesting context-aware buttons (AI Auto-fill, suggestions review, or MemPalace transition) based on project completion.
 - **Virtual Folder Structure**: Organizes text blocks into nested virtual folders (categories) for logical narrative layout. Supports drag-and-drop file organization.
 - **Granular Status & Propagation**: Unsaved changes propagate dynamically as asterisks (`*`) up the folder tree, with specialized error/warning counts on parent nodes.
 - **Partial Changes Saving**:

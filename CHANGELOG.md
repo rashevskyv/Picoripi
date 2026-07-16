@@ -1,16 +1,36 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [0.3.070-dev] - Unreleased
+## [0.3.073-dev] - Unreleased
+
+### Fixed
+- **Width Recalculation Dialog Timing**: Delayed the "Recalculation Complete" dialog when forcing a recalculation until the asynchronous issue scan has fully completed.
+- **Forced Issue Rescan**: Resolved an issue where subsequent recalculation/rescan requests would immediately return cached results without scanning because modification times (`mtime`) were unchanged. The recalculate action now bypasses and invalidates the cache by utilizing a new `force=True` parameter.
 
 ### Changed
-- **Script Markup Studio SMS Audit Follow-ups**:
-  - Removed the hierarchy AI startup `QApplication.processEvents()` regression and added an AST-based product-code guard to prevent future `processEvents()` calls outside tests.
-  - Moved hierarchy AI job-preparation helpers and hierarchy AI worker classes into `core/script_markup/hierarchy_ai_jobs.py`, keeping UI compatibility aliases while reducing `ui/script_markup_studio_dialog.py`.
-  - Added safe shutdown for hierarchy AI prepare/request threads during Script Markup Studio close/reject paths.
-  - Debounced and sampled `TextMinimap` document-map rebuilding for large scripts, with unit and performance coverage.
-  - Deleted the unused tracked `test_settings_dump.json` root fixture.
-  - Refreshed audit/test metrics in `AUDIT.md`, `README.md`, `GEMINI.md`, and `walkthrough.md`.
-- **Version Updates**: Bumped version to `0.3.070-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`, and `CHANGELOG.md`.
+- **Version Updates**: Bumped version to `0.3.073-dev` across `utils/constants.py`, `GEMINI.md`, and `CHANGELOG.md`.
+
+## [0.3.072-dev] - 2026-07-16
+
+### Changed
+- **Version Updates**: Bumped version to `0.3.072-dev` across `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`, and `CHANGELOG.md`.
+
+## [0.3.071-dev] - 2026-07-16
+
+### Added
+- **Redesigned Script Markup Studio Interface**:
+  - Reorganized the workspace layout: separated workflow progress stages, file operations, and advanced/legacy tools.
+  - Implemented a centralized **File** menu button and menu containing: Open script, Open project, Save, Save As, and Close.
+  - Added a **Live Save Status Indicator** displaying `Project saved ✓` (green), `Unsaved changes *` (red/orange), or `Autosaved` (grey).
+  - Added a dynamic **Progress Bar** displaying workflow stages: `1. Source ── 2. Markup ── 3. Review ── 4. MemPalace`.
+  - Added an intelligent **Next Action** dashboard panel featuring dynamic context-aware buttons (AI Fill, Suggestions review, or MemPalace transition) based on project completion status.
+  - Moved legacy settings (Template, Export, Legacy tools) to the **Advanced** menu button.
+  - Retained 100% backward compatibility for all existing tests and underlying code contracts.
+  - **Compact Header Integration**: Removed duplicate window title label. Positioned breadcrumbs progress bar and save status indicator on the exact same horizontal level.
+  - **Sidebar Actions Panel**: Relocated the `Next Action` box and the status bar into the right outline sidebar panel below the script tree, expanding raw text editor height to its maximum.
+  - **Compact Status Metrics**: Introduced `CompactLegendLabel` displaying color-coded letter blocks (e.g. `[S]`, `[P]`) and `CompactStatsLabel` displaying shorthand labels (`N: X | D: Y`), with both displaying full descriptions in tooltips.
+
+### Fixed
+- **Taskbar Window Proliferation**: Resolved issue where unparented legacy widgets (`Save Project...`, `Finish for MemPalace...`, `Template`, `Auto-fill`, `Recipe`, and `mode_combo`) spawned separate windows on the Windows taskbar, by passing `self` as parent to all dialog-owned components.
 
 ## [0.3.069-dev] - 2026-07-09
 
