@@ -33,7 +33,11 @@ class LNETTooltipLogic:
             string_idx = line_idx_in_widget
             if hasattr(main_window.data_store, 'displayed_string_indices') and main_window.data_store.displayed_string_indices:
                 if 0 <= line_idx_in_widget < len(main_window.data_store.displayed_string_indices):
-                    string_idx = main_window.data_store.displayed_string_indices[line_idx_in_widget]
+                    displayed = main_window.data_store.displayed_string_indices[line_idx_in_widget]
+                    if isinstance(displayed, tuple) and len(displayed) == 2:
+                        block_idx, string_idx = displayed
+                    else:
+                        string_idx = displayed
                 else:
                     string_idx = -1
 
@@ -46,6 +50,7 @@ class LNETTooltipLogic:
             if not hasattr(main_window.data_store, 'current_string_idx'):
                 return None
             string_idx = main_window.data_store.current_string_idx
+            block_idx = getattr(main_window.data_store, 'physical_block_idx', block_idx)
             problems = getattr(main_window.data_store, 'problems_per_subline', {}).get((block_idx, string_idx, line_idx_in_widget), set())
         
         tooltip_lines = []

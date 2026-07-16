@@ -153,3 +153,45 @@ def test_tooltip_preview_text_edit_sums_sublines(app):
     assert "Problem A" in tooltip
     assert "Problem B" in tooltip
     mw.close()
+
+
+def test_virtual_folder_tooltips_use_physical_mapping(app):
+    mw, editor = _make_real_main_window(app)
+    editor.setObjectName("preview_text_edit")
+    mw.data_store.current_block_idx = -3
+    mw.data_store.displayed_string_indices = [(4, 7)]
+    mw.data_store.problems_per_subline = {(4, 7, 0): {"WARN"}}
+
+    from unittest.mock import MagicMock
+    mw.current_game_rules = MagicMock()
+    mw.current_game_rules.get_problem_definitions.return_value = {
+        "WARN": {"name": "Virtual warning", "description": "Physical row problem"}
+    }
+    mw.detection_enabled = {"WARN": True}
+
+    tooltip = LNETTooltipLogic(editor).find_warning_tooltip_at(QPoint(5, 5))
+
+    assert tooltip is not None
+    assert "Virtual warning" in tooltip
+    mw.close()
+
+
+def test_virtual_folder_editor_tooltip_uses_physical_block(app):
+    mw, editor = _make_real_main_window(app)
+    mw.data_store.current_block_idx = -2
+    mw.data_store.physical_block_idx = 4
+    mw.data_store.current_string_idx = 7
+    mw.data_store.problems_per_subline = {(4, 7, 0): {"WARN"}}
+
+    from unittest.mock import MagicMock
+    mw.current_game_rules = MagicMock()
+    mw.current_game_rules.get_problem_definitions.return_value = {
+        "WARN": {"name": "Editor warning", "description": "Physical row problem"}
+    }
+    mw.detection_enabled = {"WARN": True}
+
+    tooltip = LNETTooltipLogic(editor).find_warning_tooltip_at(QPoint(5, 5))
+
+    assert tooltip is not None
+    assert "Editor warning" in tooltip
+    mw.close()

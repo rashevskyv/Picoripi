@@ -83,6 +83,12 @@ class LNETLineNumberAreaPaintLogic:
             current_string_idx_data_mw = -1
             if isinstance(main_window_ref, QMainWindow) and hasattr(main_window_ref, 'data_store'):
                 current_block_idx_data_mw = main_window_ref.data_store.current_block_idx
+                if self.editor.objectName() in ("original_text_edit", "edited_text_edit"):
+                    current_block_idx_data_mw = getattr(
+                        main_window_ref.data_store,
+                        "physical_block_idx",
+                        current_block_idx_data_mw,
+                    )
                 current_string_idx_data_mw = main_window_ref.data_store.current_string_idx
 
             # Prepare mapping for string-level zebra striping if in Review Dialog

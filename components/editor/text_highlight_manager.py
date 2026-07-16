@@ -270,7 +270,7 @@ class TextHighlightManager:
         self.addCriticalProblemHighlight(line_number)
 
     def addCriticalProblemHighlight(self, line_number: int, color: QColor = None):
-        # Не підсвічуємо фон тексту в редакторах, тільки в прев'ю (якщо потрібно)
+        # Warning state is rendered in the width/indicator gutter, not as text background.
         """Addcriticalproblemhighlight."""
         return
 
@@ -295,7 +295,7 @@ class TextHighlightManager:
         return bool(self._critical_problem_selections)
 
     def addWarningLineHighlight(self, line_number: int, color: QColor = None):
-        # Не підсвічуємо фон тексту в редакторах
+        # Warning state is rendered in the width/indicator gutter, not as text background.
         """Addwarninglinehighlight."""
         return
 

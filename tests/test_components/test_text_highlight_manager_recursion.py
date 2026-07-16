@@ -36,6 +36,16 @@ def test_setLinkedCursorPosition_skips_duplicate(editor):
         manager.setLinkedCursorPosition(1, 0)
         assert mock_apply.call_count == 2
 
+
+def test_warning_and_error_do_not_color_editor_background(editor):
+    manager = TextHighlightManager(editor)
+
+    manager.addWarningLineHighlight(1)
+    manager.addCriticalProblemHighlight(2)
+
+    assert not manager.hasWarningLineHighlight(1)
+    assert not manager.hasCriticalProblemHighlight(2)
+
 def test_updateCurrentLineHighlight_skips_same_line(editor):
     """updateCurrentLineHighlight must not re-apply if cursor is on the same line."""
     manager = TextHighlightManager(editor)

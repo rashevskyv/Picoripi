@@ -60,7 +60,11 @@ class LNETPaintEventLogic:
             block_idx = -1
             string_idx = -1
             if hasattr(main_window, 'data_store') and hasattr(main_window, 'helper'):
-                block_idx = main_window.data_store.current_block_idx
+                block_idx = getattr(
+                    main_window.data_store,
+                    'physical_block_idx',
+                    main_window.data_store.current_block_idx,
+                )
                 string_idx = main_window.data_store.current_string_idx
                 if block_idx != -1 and string_idx != -1:
                     font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)

@@ -18,6 +18,7 @@ def mw_with_problems(app):
     mw = QMainWindow()
     mw.data_store = MagicMock()
     mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
     mw.data_store.current_string_idx = 0
     mw.data_store.displayed_string_indices = [0]
     mw.data_store.edited_data = {}
@@ -117,6 +118,38 @@ def test_problems_per_subline_is_read_from_data_store(editor_setup):
         "No problem color was painted! This means problems_per_subline was not read from data_store. "
         "Likely cause: hasattr(main_window_ref, 'problems_per_subline') returns False because "
         "this attribute was moved to data_store during refactoring."
+    )
+
+
+def test_virtual_folder_paints_warning_for_same_physical_string(editor_setup):
+    """Virtual navigation must not change warning lookup for the physical row."""
+    logic, editor, mw = editor_setup
+    mw.data_store.current_block_idx = -3
+    mw.data_store.physical_block_idx = 0
+
+    filled_rects = []
+    image = QImage(200, 100, QImage.Format.Format_ARGB32)
+    event = QPaintEvent(QRect(0, 0, 200, 100))
+
+    from PyQt6.QtGui import QPainter, QColor
+    original_fill = QPainter.fillRect
+
+    def tracking_fill(self_, *args):
+        if len(args) >= 2:
+            color_arg = args[-1]
+            if (
+                isinstance(color_arg, QColor)
+                and color_arg.red() > 200
+                and color_arg.green() < 100
+            ):
+                filled_rects.append(args)
+        return original_fill(self_, *args)
+
+    with patch.object(QPainter, "fillRect", tracking_fill):
+        logic.execute_paint_event(event, image)
+
+    assert filled_rects, (
+        "The virtual folder lost the warning indicator of its physical string"
     )
 
 
