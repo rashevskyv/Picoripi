@@ -166,7 +166,7 @@ def test_th_prompt_for_revert_after_cancel(mock_box, th):
     th.data_processor.update_edited_data.assert_any_call(1, 0, "orig1")
     th.data_processor.update_edited_data.assert_any_call(1, 1, "orig2")
     assert 1 not in th.pre_translation_state
-    th.ui_updater.populate_strings_for_block.assert_called_with(1, ANY, force=True)
+    th.ui_updater.populate_current_view.assert_called_with(force=True)
     
     # No revert chosen (which is QMessageBox.StandardButton.Yes)
     th.ui_handler.reset_mock()
@@ -197,7 +197,7 @@ def test_th_prompt_for_revert_after_cancel_chapter(mock_box, th):
     th.data_processor.update_edited_data.assert_any_call(0, 1, "orig0_1")
     assert 0 not in th.pre_translation_state
     assert -2 not in th.pre_translation_state
-    th.ui_updater.populate_strings_for_block.assert_called_with(-2, force=True)
+    th.ui_updater.populate_current_view.assert_called_with(force=True)
 
 
 @patch('handlers.translation_handler.QMessageBox')
@@ -330,8 +330,7 @@ def test_th_handle_chunk_translated_chapter(th):
     
     th._handle_chunk_translated(0, chunk_text, ctx)
     
-    # Verify that populate_strings_for_block is called with -2, not current_block_idx (0)
-    th.ui_updater.populate_strings_for_block.assert_called_with(-2, ANY, force=True)
+    th.ui_updater.populate_current_view.assert_called_with(force=True)
 
 
 def test_th_handle_preview_translation_success(th):
@@ -670,8 +669,7 @@ def test_th_apply_chosen_variation_focus_changed(th):
     th.ui_handler.apply_full_translation.assert_not_called()
     th.ui_handler.apply_inline_variation.assert_not_called()
 
-    # Verify: ui_updater.populate_strings_for_block is called for target block (0)
-    th.ui_updater.populate_strings_for_block.assert_called_with(0, ANY, force=True)
+    th.ui_updater.populate_current_view.assert_called_with(force=True)
 
 
 def test_translate_specific_strings_force_prompt(th):

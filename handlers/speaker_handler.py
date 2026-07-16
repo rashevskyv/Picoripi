@@ -2,6 +2,7 @@
 from typing import Any, Optional, Tuple
 from PyQt6.QtWidgets import QMessageBox, QTreeWidgetItem
 from PyQt6.QtCore import Qt, QTimer
+from core.data_store import ViewKind, get_view_kind
 from core.mempalace.story_timeline import StoryVirtualProjection
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info
@@ -25,7 +26,7 @@ class SpeakerHandler(BaseHandler):
 
         self._pending_speaker_retention = None
 
-        if getattr(self.mw.data_store, 'current_block_idx', None) != -3:
+        if get_view_kind(self.mw.data_store) != ViewKind.SPEAKER:
             return
         if getattr(self.mw.data_store, 'current_speaker_name', None) != speaker_name:
             return
@@ -37,7 +38,7 @@ class SpeakerHandler(BaseHandler):
         mappings.remove(retained_tuple)
         self.mw.data_store.chapter_mappings = mappings
         if hasattr(self.ui_updater, 'populate_strings_for_block'):
-            self.ui_updater.populate_strings_for_block(-3)
+            self.ui_updater.populate_current_view()
 
     def _restore_editor_focus_after_speaker_save(self) -> None:
         """Return focus from the editable speaker combobox to the main editor."""
@@ -320,7 +321,8 @@ class SpeakerHandler(BaseHandler):
                     else:
                         self._pending_speaker_retention = None
                     self.mw.data_store.chapter_mappings = new_mappings
-                    self.mw.data_store.current_block_idx = -3
+                    self.mw.data_store.current_block_idx = block_idx
+                    self.mw.data_store.set_view_kind(ViewKind.SPEAKER)
                     self.mw.data_store.physical_block_idx = block_idx
                     self.mw.data_store.current_string_idx = string_idx
                     self.mw.data_store.current_speaker_name = current_speaker_name_in_store
@@ -333,8 +335,9 @@ class SpeakerHandler(BaseHandler):
                             active_item.setSelected(True)
                         finally:
                             block_list_widget.blockSignals(signals_were_blocked)
-                    self.ui_updater.populate_strings_for_block(-3)
-                    self.mw.data_store.current_block_idx = -3
+                    self.ui_updater.populate_current_view()
+                    self.mw.data_store.current_block_idx = block_idx
+                    self.mw.data_store.set_view_kind(ViewKind.SPEAKER)
                     self.mw.data_store.physical_block_idx = block_idx
                     self.mw.data_store.current_string_idx = string_idx
                     self.mw.data_store.current_speaker_name = current_speaker_name_in_store
@@ -347,11 +350,12 @@ class SpeakerHandler(BaseHandler):
                     self.ui_updater.update_statusbar_paths()
                 else:
                     self.mw.data_store.chapter_mappings = []
-                    self.mw.data_store.current_block_idx = -3
+                    self.mw.data_store.current_block_idx = block_idx
+                    self.mw.data_store.set_view_kind(ViewKind.SPEAKER)
                     self.mw.data_store.physical_block_idx = block_idx
                     self.mw.data_store.current_string_idx = string_idx
                     self.mw.data_store.current_speaker_name = current_speaker_name_in_store
-                    self.ui_updater.populate_strings_for_block(-3)
+                    self.ui_updater.populate_current_view()
                     self.ui_updater.update_text_views()
                     if hasattr(self.mw, 'string_settings_updater'):
                         self.mw.string_settings_updater.update_string_settings_panel()

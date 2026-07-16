@@ -647,8 +647,9 @@ class BlockListUpdater(BaseUIUpdater):
             else:
                 # Robust fallback using data_store selection state
                 if hasattr(self.mw, 'data_store'):
-                    if getattr(self.mw.data_store, 'current_chapter_id', None) is not None:
-                        current_selection_block_idx = -2
+                    from core.data_store import store_is_virtual_view
+                    if store_is_virtual_view(self.mw.data_store):
+                        current_selection_block_idx = self.mw.data_store.view_block_token
                     elif getattr(self.mw.data_store, 'current_block_idx', -1) != -1:
                         current_selection_block_idx = self.mw.data_store.current_block_idx
 

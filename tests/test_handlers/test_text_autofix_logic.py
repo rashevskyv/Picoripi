@@ -100,7 +100,7 @@ def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix
 
     mock_autofix.auto_fix_current_string()
 
-    mock_autofix.ui_updater.populate_strings_for_block.assert_called_once()
+    mock_autofix.ui_updater.populate_current_view.assert_called_once_with()
 
 
 def test_TextAutofixLogic_coverage_corner_cases(mock_autofix, mock_mw):
@@ -435,7 +435,7 @@ def test_text_autofix_logic_uses_real_game_rules_path(qapp):
     handler.auto_fix_current_string()
 
     assert editor.toPlainText() == "Hello World"
-    ui_updater.populate_strings_for_block.assert_called_once()
+    ui_updater.populate_current_view.assert_called_once_with()
 
 
 

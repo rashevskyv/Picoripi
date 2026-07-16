@@ -174,7 +174,7 @@ class AppActionHandler(BaseHandler):
                  if custom_tree and hasattr(custom_tree, 'select_block_by_index'):
                      custom_tree.select_block_by_index(0)
             else:
-                 self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+                 self.ui_updater.populate_current_view()
 
     def save_data_action(self, ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """

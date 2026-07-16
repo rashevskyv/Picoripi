@@ -87,6 +87,10 @@ class UIUpdater:
     def populate_strings_for_block(self, block_idx, category_name=None, force=False):
         """Populate strings for block."""
         self.preview_updater.populate_strings_for_block(block_idx, category_name, force)
+
+    def populate_current_view(self, force=False):
+        """Refresh the active view without treating its kind as a block address."""
+        self.preview_updater.populate_current_view(force=force)
             
     def update_text_views(self): 
         """Update the text views."""

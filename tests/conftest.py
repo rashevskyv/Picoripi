@@ -14,12 +14,14 @@ Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 
 from unittest.mock import MagicMock, Mock
 from PyQt6.QtWidgets import QApplication, QWidget
+from core.data_store import ViewKind
 
 class MockMainWindow(MagicMock):
     """A specialized MagicMock subclass for MainWindow in tests, exposing physical_block_idx."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._physical_block_idx = -1
+        self.current_view_kind = ViewKind.PHYSICAL
 
     @property
     def physical_block_idx(self) -> int:
@@ -51,6 +53,21 @@ class MockMainWindow(MagicMock):
     @physical_block_idx.setter
     def physical_block_idx(self, val: int) -> None:
         self._physical_block_idx = val
+
+    @property
+    def is_virtual_view(self) -> bool:
+        return self.current_view_kind != ViewKind.PHYSICAL
+
+    @property
+    def view_block_token(self) -> int:
+        return {
+            ViewKind.CHAPTER: -2,
+            ViewKind.SPEAKER: -3,
+            ViewKind.ITEM: -4,
+        }.get(self.current_view_kind, self.current_block_idx)
+
+    def set_view_kind(self, kind) -> None:
+        self.current_view_kind = kind if isinstance(kind, ViewKind) else ViewKind(kind)
 
 
 @pytest.fixture(autouse=True)

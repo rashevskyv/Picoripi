@@ -120,7 +120,7 @@ class MainWindowActions:
                     if hasattr(self.mw, 'ui_updater'):
                         self.mw.ui_updater.update_title()
                         self.mw.ui_updater.populate_blocks()
-                        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+                        self.mw.ui_updater.populate_current_view()
                     if hasattr(self.mw, 'preview_text_edit'):
                         self.mw.preview_text_edit.viewport().update()
                     if hasattr(self.mw, 'edited_text_edit'):
@@ -281,9 +281,9 @@ class MainWindowActions:
             self.mw.ui_updater.update_block_item_text_with_problem_count(block_to_refresh_ui_for)
 
         if hasattr(self.mw, 'preview_updater') and hasattr(self.mw.preview_updater, 'update_preview_for_block'):
-            self.mw.preview_updater.update_preview_for_block(self.mw.data_store.current_block_idx)
+            self.mw.preview_updater.populate_current_view()
         elif hasattr(self.mw.ui_updater, 'populate_strings_for_block'):
-            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+            self.mw.ui_updater.populate_current_view()
         
         if hasattr(self.mw, 'editor_state_updater') and hasattr(self.mw.editor_state_updater, 'update_editor_content'):
              self.mw.editor_state_updater.update_editor_content()
@@ -450,7 +450,7 @@ class MainWindowActions:
                 if hasattr(ui, 'update_text_views'):
                     ui.update_text_views()
                 if hasattr(ui, 'populate_strings_for_block'):
-                    ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
+                    ui.populate_current_view(force=True)
                     
             QMessageBox.information(self.mw, "Recalculation Complete", "All text widths and issues have been successfully recalculated!")
 

@@ -282,6 +282,18 @@ class TestPreviewUpdater:
         # Should not raise
         updater.populate_strings_for_block(0)
 
+    @pytest.mark.parametrize("kind", ["physical", "category", "chapter", "speaker", "item"])
+    def test_populate_current_view_passes_only_physical_address(self, updater, kind):
+        from core.data_store import ViewKind
+        updater.mw.data_store.current_block_idx = 7
+        updater.mw.data_store.current_category_name = "Review"
+        updater.mw.data_store.set_view_kind(ViewKind(kind))
+
+        with patch.object(updater, "populate_strings_for_block") as populate:
+            updater.populate_current_view(force=True)
+
+        populate.assert_called_once_with(7, "Review", True)
+
     def test_populate_strings_negative_block_idx(self, updater):
         preview_edit = MagicMock()
         preview_edit.toPlainText.return_value = "old"
@@ -401,7 +413,9 @@ class TestPreviewUpdater:
         updater.mw.preview_text_edit = preview_edit
         updater.mw.current_game_rules = MagicMock()
         updater.mw.current_game_rules.get_text_representation_for_preview.side_effect = lambda x: x
-        updater.mw.data_store.current_block_idx = -3
+        from core.data_store import ViewKind
+        updater.mw.data_store.current_block_idx = 5
+        updater.mw.data_store.set_view_kind(ViewKind.SPEAKER)
         updater.mw.data_store.physical_block_idx = 5
         updater.mw.data_store.current_string_idx = 10
         updater.mw.data_store.current_category_name = None

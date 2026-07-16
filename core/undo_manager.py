@@ -459,7 +459,8 @@ class UndoManager:
         if block_idx == -1: return
 
         current_block = self.mw.data_store.current_block_idx
-        if isinstance(current_block, int) and current_block < 0:
+        from core.data_store import store_is_virtual_view
+        if store_is_virtual_view(self.mw.data_store):
             displayed = getattr(self.mw.data_store, 'displayed_string_indices', [])
             target = (block_idx, string_idx)
             if target in displayed:

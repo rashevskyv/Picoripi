@@ -3,6 +3,7 @@ from typing import Any, Optional, List, Dict, Union, Tuple
 from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
 from PyQt6.QtCore import Qt, QTimer, QObject, QSignalBlocker
 from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock
+from core.data_store import ViewKind, get_view_kind, store_is_virtual_view
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info, log_error
 from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
@@ -108,7 +109,7 @@ class ListSelectionHandler(BaseHandler):
                 self.block_selected(item, previous)
                 self.mw.block_list_widget.scrollToItem(item)
                 return (
-                    self.mw.data_store.current_block_idx == kind
+                    self.mw.data_store.view_block_token == kind
                     and self.mw.data_store.current_string_idx == target[1]
                     and self.mw.data_store.physical_block_idx == target[0]
                 )
@@ -239,6 +240,8 @@ class ListSelectionHandler(BaseHandler):
         self._clear_pending_speaker_retention((b_idx, s_idx))
 
         self.mw.data_store.current_block_idx = b_idx
+        self.mw.data_store.physical_block_idx = b_idx
+        self.mw.data_store.set_view_kind(ViewKind.CHAPTER)
         self.mw.data_store.current_string_idx = s_idx
         self.mw.data_store.current_chapter_id = ch_id
         self.mw.data_store.current_category_name = None
@@ -259,7 +262,7 @@ class ListSelectionHandler(BaseHandler):
                         chapter_mappings.append(indices)
         self.mw.data_store.chapter_mappings = chapter_mappings
 
-        self.ui_updater.populate_strings_for_block(-2)
+        self.ui_updater.populate_current_view()
 
         # Find relative index for preview
         target_tuple = (b_idx, s_idx)
@@ -280,7 +283,7 @@ class ListSelectionHandler(BaseHandler):
         if not pending or pending[0] != char_name:
             self._clear_pending_speaker_retention()
 
-        self.mw.data_store.current_block_idx = -3
+        self.mw.data_store.set_view_kind(ViewKind.SPEAKER)
         self.mw.data_store.current_category_name = None
         self.mw.data_store.current_chapter_id = None
         self.mw.data_store.current_speaker_name = char_name
@@ -289,7 +292,7 @@ class ListSelectionHandler(BaseHandler):
         char_mappings = current_item.data(0, Qt.UserRole + 13) or []
         self.mw.data_store.chapter_mappings = char_mappings
 
-        self.ui_updater.populate_strings_for_block(-3)
+        self.ui_updater.populate_current_view()
 
         if char_mappings:
             target_idx = -1
@@ -301,6 +304,7 @@ class ListSelectionHandler(BaseHandler):
             if target_idx != -1:
                 first_mapping = char_mappings[target_idx]
                 self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_block_idx = first_mapping[0]
                 self.mw.data_store.current_string_idx = first_mapping[1]
                 self._target_block_idx = None
                 self._target_string_idx = None
@@ -309,11 +313,13 @@ class ListSelectionHandler(BaseHandler):
             else:
                 first_mapping = char_mappings[0]
                 self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_block_idx = first_mapping[0]
                 self.mw.data_store.current_string_idx = first_mapping[1]
                 if not getattr(self.mw, '_restoring_session_state', False):
                     self._schedule_string_selection(0)
         else:
             self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_block_idx = -1
             self.mw.data_store.current_string_idx = -1
             self.ui_updater.update_text_views()
 
@@ -325,17 +331,18 @@ class ListSelectionHandler(BaseHandler):
         item_name = current_item.data(0, Qt.UserRole + 16)
         mappings = current_item.data(0, Qt.UserRole + 13) or []
         self._clear_pending_speaker_retention()
-        self.mw.data_store.current_block_idx = -4
+        self.mw.data_store.set_view_kind(ViewKind.ITEM)
         self.mw.data_store.current_category_name = None
         self.mw.data_store.current_chapter_id = None
         self.mw.data_store.current_speaker_name = item_name
         self.mw.data_store.chapter_mappings = mappings
-        self.ui_updater.populate_strings_for_block(-4)
+        self.ui_updater.populate_current_view()
         if mappings:
             target = (self._target_block_idx, self._target_string_idx)
             target_idx = mappings.index(target) if target in mappings else 0
             block_idx, string_idx = mappings[target_idx]
             self.mw.data_store.physical_block_idx = block_idx
+            self.mw.data_store.current_block_idx = block_idx
             self.mw.data_store.current_string_idx = string_idx
             self._target_block_idx = None
             self._target_string_idx = None
@@ -343,6 +350,7 @@ class ListSelectionHandler(BaseHandler):
                 self._schedule_string_selection(target_idx)
         else:
             self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_block_idx = -1
             self.mw.data_store.current_string_idx = -1
             self.ui_updater.update_text_views()
         self.ui_updater.update_statusbar_paths()
@@ -350,7 +358,7 @@ class ListSelectionHandler(BaseHandler):
 
     def _handle_chapter_selection(self, chapter_id: int, stored_mappings=None) -> None:
         self._clear_pending_speaker_retention()
-        self.mw.data_store.current_block_idx = -2
+        self.mw.data_store.set_view_kind(ViewKind.CHAPTER)
         self.mw.data_store.current_category_name = None
         self.mw.data_store.current_chapter_id = chapter_id
         self.mw.data_store.current_speaker_name = None
@@ -371,7 +379,7 @@ class ListSelectionHandler(BaseHandler):
                             chapter_mappings.append(indices)
         self.mw.data_store.chapter_mappings = chapter_mappings
 
-        self.ui_updater.populate_strings_for_block(-2)
+        self.ui_updater.populate_current_view()
 
         if chapter_mappings:
             target_idx = -1
@@ -383,6 +391,7 @@ class ListSelectionHandler(BaseHandler):
             if target_idx != -1:
                 first_mapping = chapter_mappings[target_idx]
                 self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_block_idx = first_mapping[0]
                 self.mw.data_store.current_string_idx = first_mapping[1]
                 self._target_block_idx = None
                 self._target_string_idx = None
@@ -391,11 +400,13 @@ class ListSelectionHandler(BaseHandler):
             else:
                 first_mapping = chapter_mappings[0]
                 self.mw.data_store.physical_block_idx = first_mapping[0]
+                self.mw.data_store.current_block_idx = first_mapping[0]
                 self.mw.data_store.current_string_idx = first_mapping[1]
                 if not getattr(self.mw, '_restoring_session_state', False):
                     self._schedule_string_selection(0)
         else:
             self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_block_idx = -1
             self.mw.data_store.current_string_idx = -1
             self.ui_updater.update_text_views()
 
@@ -406,6 +417,7 @@ class ListSelectionHandler(BaseHandler):
         self._clear_pending_speaker_retention()
         self.mw.data_store.current_block_idx = -1
         self.mw.data_store.physical_block_idx = -1
+        self.mw.data_store.set_view_kind(ViewKind.PHYSICAL)
         self.mw.data_store.current_string_idx = -1
         self.mw.data_store.current_category_name = None
         self.mw.data_store.current_chapter_id = None
@@ -421,6 +433,9 @@ class ListSelectionHandler(BaseHandler):
             self._clear_pending_speaker_retention()
             self.mw.data_store.current_block_idx = block_index
             self.mw.data_store.physical_block_idx = block_index
+            self.mw.data_store.set_view_kind(
+                ViewKind.CATEGORY if category_name else ViewKind.PHYSICAL
+            )
             self.mw.data_store.current_category_name = category_name
             self.mw.data_store.current_chapter_id = None
             self.mw.data_store.current_speaker_name = None
@@ -510,10 +525,20 @@ class ListSelectionHandler(BaseHandler):
     def _restore_block_selection(self) -> None:
         """Internal helper to restore block selection."""
         if self.mw.data_store.current_block_idx != -1:
+            target_token = self.mw.data_store.view_block_token
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
             while iterator.value():
-                if iterator.value().data(0, Qt.UserRole) == self.mw.data_store.current_block_idx:
-                    self.mw.block_list_widget.setCurrentItem(iterator.value())
+                item = iterator.value()
+                matches = item.data(0, Qt.UserRole) == target_token
+                current_view_kind = get_view_kind(self.mw.data_store)
+                if current_view_kind == ViewKind.CHAPTER:
+                    matches = matches and item.data(0, Qt.UserRole + 11) == self.mw.data_store.current_chapter_id
+                elif current_view_kind == ViewKind.SPEAKER:
+                    matches = matches and item.data(0, Qt.UserRole + 15) == self.mw.data_store.current_speaker_name
+                elif current_view_kind == ViewKind.ITEM:
+                    matches = matches and item.data(0, Qt.UserRole + 16) == self.mw.data_store.current_speaker_name
+                if matches:
+                    self.mw.block_list_widget.setCurrentItem(item)
                     break
                 iterator += 1
         self._restoring_selection = False
@@ -665,8 +690,7 @@ class ListSelectionHandler(BaseHandler):
         if absolute_idx == -1: return
 
         rel_idx: int = -1
-        is_chapter = getattr(self.mw.data_store, 'current_block_idx', -1) == -2
-        if is_chapter:
+        if store_is_virtual_view(self.mw.data_store):
             target_tuple = None
             displayed_indices = self._get_displayed_indices()
             for item in displayed_indices:
@@ -740,10 +764,7 @@ class ListSelectionHandler(BaseHandler):
         else:
             # Update physical_block_idx
             self.mw.data_store.physical_block_idx = curr_b_idx
-
-            # Update current_block_idx if we switched to a different block inside the normal view (not in virtual speaker/chapter folders)
-            if self.mw.data_store.current_block_idx >= 0 and self.mw.data_store.current_block_idx != curr_b_idx:
-                self.mw.data_store.current_block_idx = curr_b_idx
+            self.mw.data_store.current_block_idx = curr_b_idx
 
             self.mw.data_store.current_string_idx = curr_s_idx
             self.mw.data_store.edited_sublines.clear() # Clear editor sublines on line change
@@ -783,7 +804,7 @@ class ListSelectionHandler(BaseHandler):
 
         # Determine the physical block index for validation; current_block_idx can be -2 (chapter) or -3 (speaker).
         _phys_b_idx = self.mw.data_store.physical_block_idx
-        _is_virtual_mode = self.mw.data_store.current_block_idx in (-2, -3, -4)
+        _is_virtual_mode = store_is_virtual_view(self.mw.data_store)
 
         if preview_edit and self.mw.data_store.current_string_idx != -1 and \
            (_is_virtual_mode or (0 <= _phys_b_idx < len(self.mw.data_store.data) and
@@ -1113,7 +1134,7 @@ class ListSelectionHandler(BaseHandler):
                     if hasattr(preview_edit, 'set_selected_lines'):
                         # Find the relative index for the current string to highlight it
                         displayed_indices = self._get_displayed_indices()
-                        is_virtual = self.mw.data_store.current_block_idx < 0
+                        is_virtual = store_is_virtual_view(self.mw.data_store)
                         if is_virtual or (displayed_indices and isinstance(displayed_indices[0], tuple)):
                             target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
                             rel_idx = self._get_relative_index(target_tuple)
@@ -1162,12 +1183,7 @@ class ListSelectionHandler(BaseHandler):
                 target_b_idx, target_s_idx = target_idx
 
             if self.mw.data_store.current_string_idx != target_s_idx or self.mw.data_store.current_block_idx != target_b_idx:
-                # In virtual mode (speaker/chapter folder, current_block_idx is -2 or -3),
-                # do NOT overwrite current_block_idx with the physical target_b_idx.
-                # Only update physical_block_idx and current_string_idx.
-                is_virtual_mode = self.mw.data_store.current_block_idx < 0
-                if not is_virtual_mode:
-                    self.mw.data_store.current_block_idx = target_b_idx
+                self.mw.data_store.current_block_idx = target_b_idx
                 self.mw.data_store.physical_block_idx = target_b_idx
                 self.mw.data_store.current_string_idx = target_s_idx
                 self.ui_updater.update_text_views()
@@ -1194,28 +1210,28 @@ class ListSelectionHandler(BaseHandler):
         """Toggle highlighting of categorized strings in parent block."""
         self.mw.data_store.highlight_categorized = checked
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_hide_categorized(self, checked: bool) -> None:
         """Toggle hiding of categorized strings in parent block."""
         self.mw.data_store.hide_categorized = checked
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_hide_empty_strings(self, checked: bool) -> None:
         """Toggle hiding of empty strings in preview list."""
         self.mw.data_store.hide_empty_strings = checked
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_hide_translated(self, checked: bool) -> None:
         """Toggle hiding of translated strings in preview list."""
         self.mw.data_store.hide_translated = checked
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_show_overrides_only(self, checked: bool) -> None:
@@ -1237,7 +1253,7 @@ class ListSelectionHandler(BaseHandler):
 
         try:
             if self.mw.data_store.current_block_idx != -1:
-                self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                self.ui_updater.populate_current_view()
         finally:
             if preview_updater:
                 preview_updater._load_fully_synchronously = False
@@ -1279,10 +1295,7 @@ class ListSelectionHandler(BaseHandler):
         if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
             self.mw.helper.reconfigure_all_highlighters()
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(
-                self.mw.data_store.current_block_idx,
-                self.mw.data_store.current_category_name,
-            )
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_hide_translation_tags(self, checked: bool) -> None:
@@ -1291,7 +1304,7 @@ class ListSelectionHandler(BaseHandler):
         if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
             self.mw.helper.reconfigure_all_highlighters()
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_hide_tags_global(self) -> None:
@@ -1308,7 +1321,7 @@ class ListSelectionHandler(BaseHandler):
             if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
                 self.mw.helper.reconfigure_all_highlighters()
             if self.mw.data_store.current_block_idx != -1:
-                self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
 
@@ -1316,7 +1329,7 @@ class ListSelectionHandler(BaseHandler):
         """Toggle showing only unsaved strings in preview list."""
         self.mw.data_store.show_unsaved_only = checked
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def toggle_show_unsaved_blocks_only(self, checked: bool) -> None:
@@ -1401,14 +1414,14 @@ class ListSelectionHandler(BaseHandler):
         """Toggle showing only strings matching active warning filters."""
         self.mw.data_store.show_warnings_only = checked
         if self.mw.data_store.current_block_idx != -1:
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def warnings_filter_changed(self, active_warnings: list) -> None:
         """Handle change in active warning filters selection."""
         self.mw.data_store.active_warning_filters = active_warnings
         if self.mw.data_store.current_block_idx != -1 and getattr(self.mw.data_store, 'show_warnings_only', False):
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+            self.ui_updater.populate_current_view()
         self.data_processor.schedule_autosave()
 
     def open_warnings_filter_dialog(self) -> None:

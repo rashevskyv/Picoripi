@@ -43,7 +43,7 @@ class CategoryHandler(BaseHandler):
 
         # Update UI
         self.ui_updater.populate_blocks()
-        self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+        self.ui_updater.populate_current_view()
 
         log_debug(f"Moved {len(selected_indices)} strings to Category '{name}' in Block {proj_b_idx}")
 

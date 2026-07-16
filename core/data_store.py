@@ -1,5 +1,6 @@
 from typing import List, Dict, Set, Optional, Any, Tuple
 from dataclasses import dataclass, field
+from enum import Enum
 from utils.logging_utils import log_debug
 
 class IndexingDict(dict):
@@ -39,6 +40,38 @@ class IndexingDict(dict):
         self.update(state)
         self._on_change_callback = None
 
+
+class ViewKind(str, Enum):
+    """How physical strings are currently grouped in the UI."""
+
+    PHYSICAL = "physical"
+    CATEGORY = "category"
+    CHAPTER = "chapter"
+    SPEAKER = "speaker"
+    ITEM = "item"
+
+
+def get_view_kind(store: Any) -> ViewKind:
+    """Read explicit view state, with migration support for old sentinel stores."""
+    raw = getattr(store, "current_view_kind", None)
+    if isinstance(raw, ViewKind):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return ViewKind(raw)
+        except ValueError:
+            pass
+    return {
+        -2: ViewKind.CHAPTER,
+        -3: ViewKind.SPEAKER,
+        -4: ViewKind.ITEM,
+    }.get(getattr(store, "current_block_idx", -1), ViewKind.PHYSICAL)
+
+
+def store_is_virtual_view(store: Any) -> bool:
+    """Return virtual state without requiring a concrete AppDataStore instance."""
+    return get_view_kind(store) != ViewKind.PHYSICAL
+
 @dataclass
 class AppDataStore:
     """
@@ -63,6 +96,7 @@ class AppDataStore:
     # Selection State
     current_block_idx: int = -1
     _physical_block_idx: int = -1
+    current_view_kind: ViewKind = ViewKind.PHYSICAL
     current_string_idx: int = -1
     selected_string_indices: List[int] = field(default_factory=list)
     _displayed_string_indices: List[Any] = field(default_factory=list, init=False, repr=False)
@@ -174,8 +208,27 @@ class AppDataStore:
 
     @physical_block_idx.setter
     def physical_block_idx(self, value: int) -> None:
-        if value >= 0:
-            self._physical_block_idx = value
+        normalized = value if value >= 0 else -1
+        self._physical_block_idx = normalized
+        self.current_block_idx = normalized
+
+    @property
+    def is_virtual_view(self) -> bool:
+        """Whether the current list is a projection over physical strings."""
+        return store_is_virtual_view(self)
+
+    @property
+    def view_block_token(self) -> int:
+        """Compatibility token for renderers that still accept old sentinels."""
+        return {
+            ViewKind.CHAPTER: -2,
+            ViewKind.SPEAKER: -3,
+            ViewKind.ITEM: -4,
+        }.get(self.current_view_kind, self.current_block_idx)
+
+    def set_view_kind(self, kind: ViewKind | str) -> None:
+        """Set grouping independently from the physical string address."""
+        self.current_view_kind = kind if isinstance(kind, ViewKind) else ViewKind(kind)
 
     @property
     def current_speaker_name(self) -> Optional[str]:
@@ -232,9 +285,12 @@ class AppDataStore:
             "edited_data": dict(self.edited_data),
             "current_block_idx": self.current_block_idx,
             "_physical_block_idx": self._physical_block_idx,
+            "current_view_kind": self.current_view_kind.value,
             "current_string_idx": self.current_string_idx,
             "selected_string_indices": self.selected_string_indices,
             "current_category_name": self.current_category_name,
+            "current_chapter_id": self.current_chapter_id,
+            "chapter_mappings": self.chapter_mappings,
             "current_character_name": self.current_character_name,
             "last_selected_block_index": self.last_selected_block_index,
             "last_selected_string_index": self.last_selected_string_index,
@@ -278,11 +334,24 @@ class AppDataStore:
             on_change_callback=lambda key: self.clear_indexes(None) if key is None else None
         )
 
-        self.current_block_idx = snapshot.get("current_block_idx", -1)
+        restored_block_idx = snapshot.get("current_block_idx", -1)
         self._physical_block_idx = snapshot.get("_physical_block_idx", -1)
+        legacy_kind = {
+            -2: ViewKind.CHAPTER,
+            -3: ViewKind.SPEAKER,
+            -4: ViewKind.ITEM,
+        }.get(restored_block_idx, ViewKind.PHYSICAL)
+        self.current_view_kind = ViewKind(snapshot.get("current_view_kind", legacy_kind.value))
+        self.current_block_idx = (
+            self._physical_block_idx
+            if restored_block_idx < 0 and self._physical_block_idx >= 0
+            else restored_block_idx
+        )
         self.current_string_idx = snapshot.get("current_string_idx", -1)
         self.selected_string_indices = snapshot.get("selected_string_indices", [])
         self.current_category_name = snapshot.get("current_category_name")
+        self.current_chapter_id = snapshot.get("current_chapter_id")
+        self.chapter_mappings = [tuple(pair) for pair in snapshot.get("chapter_mappings", [])]
         self.current_character_name = snapshot.get("current_character_name")
         self.last_selected_block_index = snapshot.get("last_selected_block_index", -1)
         self.last_selected_string_index = snapshot.get("last_selected_string_index", -1)
@@ -332,6 +401,7 @@ class AppDataStore:
         self.block_to_project_file_map = {}
         self.current_block_idx = -1
         self._physical_block_idx = -1
+        self.current_view_kind = ViewKind.PHYSICAL
         self.current_string_idx = -1
         self.current_chapter_id = None
         self.chapter_mappings = []

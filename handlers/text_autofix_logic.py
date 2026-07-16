@@ -155,7 +155,7 @@ class TextAutofixLogic:
                      self.mw.original_text_edit.setPlainText(original_text_for_display)
 
             self.mw.issue_scan_handler._perform_issues_scan_for_block(block_idx, is_single_block_scan=True, use_default_mappings_in_scan=False)
-            self.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+            self.ui_updater.populate_current_view()
 
             self.ui_updater.update_status_bar()
             self.ui_updater.synchronize_original_cursor()

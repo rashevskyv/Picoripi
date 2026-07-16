@@ -61,6 +61,11 @@ def test_serialize_and_deserialize_session(dsp):
         "edited_file_data": [["translated_0"], ["translated_1"]],
         "edited_data": {(0, 0): "new", (1, 2): "new_val"},
         "current_block_idx": 1,
+        "_physical_block_idx": 1,
+        "current_view_kind": "speaker",
+        "current_character_name": "MIDNA",
+        "current_chapter_id": 42,
+        "chapter_mappings": [(1, 2), (3, 4)],
         "unsaved_block_indices": {0, 1},
         "problems_per_subline": {
             (0, 0, 0): {"WIDTH_EXCEEDED"},
@@ -105,6 +110,10 @@ def test_serialize_and_deserialize_session(dsp):
     assert json_snapshot["redo_stack"][0]["label"] == "moved"
     assert json_snapshot["plugin_original_keys"] == ["key0", "key1"]
     assert json_snapshot["plugin_runtime_state"]["auto_kind_widths"] == {"0": 300, "6": 271}
+    assert json_snapshot["current_block_idx"] == 1
+    assert json_snapshot["current_view_kind"] == "speaker"
+    assert json_snapshot["current_chapter_id"] == 42
+    assert json_snapshot["chapter_mappings"] == [(1, 2), (3, 4)]
 
     # Deserialize
     deserialized = dsp.deserialize_session_from_json(json_snapshot)
@@ -119,6 +128,10 @@ def test_serialize_and_deserialize_session(dsp):
         (1, 2, 1): {"TAG_WARNING", "MISSING_SPACE"}
     }
     assert deserialized["plugin_runtime_state"]["auto_kind_widths"] == {"0": 300, "6": 271}
+    assert deserialized["current_block_idx"] == 1
+    assert deserialized["current_view_kind"] == "speaker"
+    assert deserialized["current_chapter_id"] == 42
+    assert deserialized["chapter_mappings"] == [(1, 2), (3, 4)]
 
     # Verify restored actions
     restored_action1 = deserialized["undo_stack"][0]

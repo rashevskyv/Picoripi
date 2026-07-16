@@ -203,7 +203,9 @@ def test_UndoManager_undo_navigation(um, mock_mw):
         mock_nav.assert_called_with(1, 2, None)
 
 def test_UndoManager_navigate_to_virtual_folder_target_uses_preview_relative_index(um, mock_mw):
-    mock_mw.data_store.current_block_idx = -3
+    from core.data_store import ViewKind
+    mock_mw.data_store.current_block_idx = 5
+    mock_mw.data_store.current_view_kind = ViewKind.SPEAKER
     mock_mw.data_store.displayed_string_indices = [(5, 1), (7, 2)]
     mock_mw.list_selection_handler = MagicMock()
     mock_mw.block_list_widget = MagicMock()
@@ -214,7 +216,9 @@ def test_UndoManager_navigate_to_virtual_folder_target_uses_preview_relative_ind
     mock_mw.list_selection_handler.string_selected_from_preview.assert_called_once_with(1)
 
 def test_UndoManager_navigate_to_virtual_folder_missing_target_does_not_select_physical_block(um, mock_mw):
-    mock_mw.data_store.current_block_idx = -2
+    from core.data_store import ViewKind
+    mock_mw.data_store.current_block_idx = 5
+    mock_mw.data_store.current_view_kind = ViewKind.CHAPTER
     mock_mw.data_store.displayed_string_indices = [(5, 1)]
     mock_mw.list_selection_handler = MagicMock()
     mock_mw.block_list_widget = MagicMock()

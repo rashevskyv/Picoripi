@@ -124,7 +124,7 @@ def test_problems_per_subline_is_read_from_data_store(editor_setup):
 def test_virtual_folder_paints_warning_for_same_physical_string(editor_setup):
     """Virtual navigation must not change warning lookup for the physical row."""
     logic, editor, mw = editor_setup
-    mw.data_store.current_block_idx = -3
+    mw.data_store.current_block_idx = 0
     mw.data_store.physical_block_idx = 0
 
     filled_rects = []

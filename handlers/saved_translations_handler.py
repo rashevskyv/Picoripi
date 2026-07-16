@@ -80,7 +80,7 @@ class SavedTranslationsHandler(BaseHandler):
         # Refreshes
         if hasattr(self.ui_updater, 'update_block_item_text_with_problem_count'):
             self.ui_updater.update_block_item_text_with_problem_count(block_idx)
-        self.ui_updater.populate_strings_for_block(self.data_store.current_block_idx, force=True)
+        self.ui_updater.populate_current_view(force=True)
         self.ui_updater.update_text_views()
         
         if hasattr(self.ctx, 'statusBar') and self.ctx.statusBar:
@@ -405,7 +405,7 @@ class SavedTranslationsHandler(BaseHandler):
 
         if imported_count > 0:
             self.ui_updater.populate_blocks()
-            self.ui_updater.populate_strings_for_block(self.data_store.current_block_idx, force=True)
+            self.ui_updater.populate_current_view(force=True)
             self.ui_updater.update_text_views()
             QMessageBox.information(
                 self.ctx,

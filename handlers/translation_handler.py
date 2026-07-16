@@ -311,7 +311,7 @@ class TranslationHandler(BaseHandler):
                 if -2 in self.pre_translation_state:
                     del self.pre_translation_state[-2]
                 
-                self.ui_updater.populate_strings_for_block(-2, force=True)
+                self.ui_updater.populate_current_view(force=True)
                 self.ui_updater.update_text_views()
             else:
                 if block_idx in self.pre_translation_state:
@@ -324,7 +324,7 @@ class TranslationHandler(BaseHandler):
                 if block_idx in self.translation_progress:
                     del self.translation_progress[block_idx]
 
-                self.ui_updater.populate_strings_for_block(block_idx, self.mw.data_store.current_category_name, force=True)
+                self.ui_updater.populate_current_view(force=True)
                 self.ui_updater.update_text_views()
         else:
             if block_idx == -2:
@@ -821,12 +821,7 @@ class TranslationHandler(BaseHandler):
         log_debug("_handle_single_translation_success: applied translation length=%d" % len(final_text))
         self.current_session_translations = {block_idx: [(string_idx, final_text)]}
         self.ui_handler.finish_ai_operation(translation_details=self.current_session_translations)
-        refresh_idx = block_idx
-        if self.mw.data_store.current_chapter_id is not None:
-            refresh_idx = -2
-        elif self.mw.data_store.current_block_idx == -3:
-            refresh_idx = -3
-        self.ui_updater.populate_strings_for_block(refresh_idx, self.mw.data_store.current_category_name, force=True)
+        self.ui_updater.populate_current_view(force=True)
         # If we translated the currently visible string, update the text view
         if self.mw.data_store.physical_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
             self.ui_updater.update_text_views()

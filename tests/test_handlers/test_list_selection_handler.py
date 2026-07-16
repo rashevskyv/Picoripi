@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMessageBox
 from handlers.list_selection_handler import ListSelectionHandler
+from core.data_store import ViewKind
 
 @pytest.fixture
 def handler(mock_mw):
@@ -55,7 +56,7 @@ def test_ListSelectionHandler_navigate_between_folders(handler):
 
 @pytest.mark.parametrize(
     ("kind", "role_offset", "value"),
-    [(-2, 11, 42), (-3, 15, "MIDNA")],
+    [(-2, 11, 42), (-3, 15, "MIDNA"), (-4, 16, "Mirror Shards")],
 )
 def test_virtual_navigation_keeps_same_physical_row(handler, kind, role_offset, value):
     tree = QTreeWidget()
@@ -76,7 +77,13 @@ def test_virtual_navigation_keeps_same_physical_row(handler, kind, role_offset, 
         assert handler._select_virtual_tree_item(role_offset, value, kind) is True
 
     assert tree.currentItem() is virtual
-    assert handler.mw.data_store.current_block_idx == kind
+    assert handler.mw.data_store.current_block_idx == 0
+    assert handler.mw.data_store.view_block_token == kind
+    assert handler.mw.data_store.current_view_kind == {
+        -2: ViewKind.CHAPTER,
+        -3: ViewKind.SPEAKER,
+        -4: ViewKind.ITEM,
+    }[kind]
     assert handler.mw.data_store.physical_block_idx == 0
     assert handler.mw.data_store.current_string_idx == 1
     schedule.assert_called_once_with(0)
@@ -91,7 +98,8 @@ def test_window_navigation_returns_to_physical_block_and_same_row(handler):
     virtual.setData(0, Qt.UserRole, -3)
     tree.addTopLevelItems([physical, virtual])
     tree.setCurrentItem(virtual)
-    handler.mw.data_store.current_block_idx = -3
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.set_view_kind(ViewKind.SPEAKER)
     handler.mw.data_store.physical_block_idx = 0
     handler.mw.data_store.current_string_idx = 2
 
@@ -114,6 +122,7 @@ def test_ListSelectionHandler_block_selected(handler):
     handler.block_selected(mock_item, None)
 
     assert handler.mw.data_store.current_block_idx == 0
+    assert handler.mw.data_store.current_view_kind == ViewKind.PHYSICAL
     assert handler.mw.data_store.current_string_idx == 42
     handler.data_processor.schedule_autosave.assert_called_once()
 
@@ -183,6 +192,52 @@ def test_ListSelectionHandler_rename_block(handler):
     handler.rename_block(MagicMock())
     handler.mw.block_list_widget.editItem.assert_called_once()
 
+
+def test_category_view_keeps_physical_block_address(handler):
+    item = MagicMock()
+    item.data.side_effect = lambda _column, role: {
+        Qt.UserRole: 0,
+        Qt.UserRole + 10: "Needs Review",
+    }.get(role)
+
+    handler.block_selected(item, None)
+
+    assert handler.mw.data_store.current_block_idx == 0
+    assert handler.mw.data_store.physical_block_idx == 0
+    assert handler.mw.data_store.current_view_kind == ViewKind.CATEGORY
+    assert handler.mw.data_store.view_block_token == 0
+
+
+@pytest.mark.parametrize("kind", [ViewKind.CHAPTER, ViewKind.SPEAKER, ViewKind.ITEM])
+def test_real_store_virtual_selection_preserves_physical_invariant(handler, kind):
+    from core.data_store import AppDataStore
+
+    store = AppDataStore()
+    store.data = [[], [], ["zero", "target"]]
+    handler.mw.data_store = store
+    handler.mw.ui_updater = MagicMock()
+    handler.ui_updater = handler.mw.ui_updater
+
+    with patch.object(handler, "_schedule_string_selection"):
+        if kind == ViewKind.CHAPTER:
+            handler._handle_chapter_selection(42, [(2, 1)])
+        else:
+            item = QTreeWidgetItem([kind.value])
+            role = Qt.UserRole + (15 if kind == ViewKind.SPEAKER else 16)
+            item.setData(0, role, kind.value.upper())
+            item.setData(0, Qt.UserRole + 13, [(2, 1)])
+            if kind == ViewKind.SPEAKER:
+                handler._handle_speaker_selection(item)
+            else:
+                handler._handle_item_selection(item)
+
+    assert store.current_block_idx == 2
+    assert store.physical_block_idx == 2
+    assert store.current_string_idx == 1
+    assert store.current_view_kind == kind
+    assert store.is_virtual_view is True
+    handler.mw.ui_updater.populate_current_view.assert_called_once_with()
+
 def test_ListSelectionHandler_handle_block_item_text_changed(handler):
     mock_item = MagicMock()
     mock_item.text.return_value = "NewName"
@@ -222,7 +277,10 @@ def test_ListSelectionHandler_handle_preview_selection_changed(handler):
 
 @pytest.mark.parametrize("virtual_block_idx", [-3, -2])
 def test_ListSelectionHandler_preview_selection_keeps_virtual_folder(handler, virtual_block_idx):
-    handler.mw.data_store.current_block_idx = virtual_block_idx
+    handler.mw.data_store.current_block_idx = 5
+    handler.mw.data_store.set_view_kind(
+        ViewKind.SPEAKER if virtual_block_idx == -3 else ViewKind.CHAPTER
+    )
     handler.mw.data_store.physical_block_idx = 5
     handler.mw.data_store.current_string_idx = 0
     handler.mw.data_store.displayed_string_indices = [(5, 0), (7, 2)]
@@ -230,7 +288,8 @@ def test_ListSelectionHandler_preview_selection_keeps_virtual_folder(handler, vi
 
     handler.handle_preview_selection_changed([1])
 
-    assert handler.mw.data_store.current_block_idx == virtual_block_idx
+    assert handler.mw.data_store.current_block_idx == 7
+    assert handler.mw.data_store.view_block_token == virtual_block_idx
     assert handler.mw.data_store.physical_block_idx == 7
     assert handler.mw.data_store.current_string_idx == 2
     assert handler.mw.data_store.selected_string_indices == [(7, 2)]
@@ -250,7 +309,10 @@ def test_ListSelectionHandler_preview_selection_updates_block_in_normal_mode(han
 
 @pytest.mark.parametrize("virtual_block_idx", [-3, -2])
 def test_ListSelectionHandler_string_selected_from_preview_uses_physical_tuple_in_virtual_folder(handler, virtual_block_idx):
-    handler.mw.data_store.current_block_idx = virtual_block_idx
+    handler.mw.data_store.current_block_idx = 5
+    handler.mw.data_store.set_view_kind(
+        ViewKind.SPEAKER if virtual_block_idx == -3 else ViewKind.CHAPTER
+    )
     handler.mw.data_store.physical_block_idx = 5
     handler.mw.data_store.current_string_idx = 0
     handler.mw.data_store.displayed_string_indices = [(5, 0), (7, 2)]
@@ -259,7 +321,8 @@ def test_ListSelectionHandler_string_selected_from_preview_uses_physical_tuple_i
     with patch('handlers.list_selection_handler.QTextCursor'):
         handler.string_selected_from_preview(1)
 
-    assert handler.mw.data_store.current_block_idx == virtual_block_idx
+    assert handler.mw.data_store.current_block_idx == 7
+    assert handler.mw.data_store.view_block_token == virtual_block_idx
     assert handler.mw.data_store.physical_block_idx == 7
     assert handler.mw.data_store.current_string_idx == 2
     handler.mw.preview_text_edit.set_selected_lines.assert_called_with([1])
@@ -419,7 +482,7 @@ def test_ListSelectionHandler_toggle_show_overrides_only_checked(handler):
     assert handler._saved_string_idx == 2
     assert handler._saved_approx_visible_lines == (120 // 20) + 50
     assert handler.mw.data_store.show_overrides_only is True
-    handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    handler.ui_updater.populate_current_view.assert_called_once_with()
 
 def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_same_string(handler):
     handler._saved_scrollbar_value = 120
@@ -438,7 +501,7 @@ def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_same_string(h
     handler.toggle_show_overrides_only(False)
     
     assert handler.mw.data_store.show_overrides_only is False
-    handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    handler.ui_updater.populate_current_view.assert_called_once_with()
     handler.mw.preview_text_edit.set_selected_lines.assert_called_with([2])
     mock_scroll.setValue.assert_called_with(120)
     assert handler._saved_approx_visible_lines == 0
@@ -458,7 +521,7 @@ def test_ListSelectionHandler_toggle_show_overrides_only_unchecked_different_str
     handler.toggle_show_overrides_only(False)
     
     assert handler.mw.data_store.show_overrides_only is False
-    handler.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    handler.ui_updater.populate_current_view.assert_called_once_with()
     handler.scroll_to_current_string_in_preview.assert_called_once()
     assert handler._saved_approx_visible_lines == 0
 
@@ -497,7 +560,7 @@ def test_ListSelectionHandler_toggle_hide_tags_global(handler):
     assert handler.mw.data_store.hide_original_tags is True
     assert handler.mw.data_store.hide_translation_tags is True
     handler.mw.helper.reconfigure_all_highlighters.assert_called_once()
-    handler.ui_updater.populate_strings_for_block.assert_called_with(0, "test_cat")
+    handler.ui_updater.populate_current_view.assert_called_with()
 
 
 def test_ListSelectionHandler_hide_tags_checkbox_updates_all_panels(handler):
@@ -512,7 +575,7 @@ def test_ListSelectionHandler_hide_tags_checkbox_updates_all_panels(handler):
     assert handler.mw.data_store.hide_original_tags is True
     assert handler.mw.data_store.hide_translation_tags is True
     handler.mw.helper.reconfigure_all_highlighters.assert_called_once()
-    handler.ui_updater.populate_strings_for_block.assert_called_once_with(0, "test_cat")
+    handler.ui_updater.populate_current_view.assert_called_once_with()
     handler.data_processor.schedule_autosave.assert_called_once()
 
 
@@ -552,7 +615,8 @@ def test_ListSelectionHandler_handle_speaker_selection(handler):
 
     with patch.object(handler, '_schedule_string_selection') as mock_schedule:
         handler._handle_speaker_selection(mock_item)
-        assert handler.mw.data_store.current_block_idx == -3
+        assert handler.mw.data_store.current_block_idx == 0
+        assert handler.mw.data_store.current_view_kind == ViewKind.SPEAKER
         assert handler.mw.data_store.current_speaker_name == "Zelda"
         assert handler.mw.data_store.chapter_mappings == [(0, 1), (0, 2)]
         assert handler.mw.data_store.physical_block_idx == 0
@@ -572,7 +636,8 @@ def test_ListSelectionHandler_handle_chapter_selection(handler):
 
     with patch.object(handler, '_schedule_string_selection') as mock_schedule:
         handler._handle_chapter_selection(42)
-        assert handler.mw.data_store.current_block_idx == -2
+        assert handler.mw.data_store.current_block_idx == 0
+        assert handler.mw.data_store.current_view_kind == ViewKind.CHAPTER
         assert handler.mw.data_store.current_chapter_id == 42
         assert handler.mw.data_store.chapter_mappings == [(0, 2)]
         assert handler.mw.data_store.physical_block_idx == 0

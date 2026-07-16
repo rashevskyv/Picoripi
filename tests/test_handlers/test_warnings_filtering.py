@@ -16,17 +16,17 @@ def test_warnings_filter_handler_calls(qapp, mock_mw):
     # Toggle show warnings only
     handler.toggle_show_warnings_only(True)
     assert mock_mw.data_store.show_warnings_only is True
-    mock_mw.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    mock_mw.ui_updater.populate_current_view.assert_called_with()
     mock_mw.data_processor.schedule_autosave.assert_called_once()
 
     # Change active warning filters
     mock_mw.data_processor.schedule_autosave.reset_mock()
-    mock_mw.ui_updater.populate_strings_for_block.reset_mock()
+    mock_mw.ui_updater.populate_current_view.reset_mock()
     mock_mw.data_store.show_warnings_only = True
 
     handler.warnings_filter_changed(["width_exceeded"])
     assert mock_mw.data_store.active_warning_filters == ["width_exceeded"]
-    mock_mw.ui_updater.populate_strings_for_block.assert_called_with(0, None)
+    mock_mw.ui_updater.populate_current_view.assert_called_with()
     mock_mw.data_processor.schedule_autosave.assert_called_once()
 
 def test_preview_updater_warnings_filtering(qapp, mock_mw):

@@ -159,7 +159,7 @@ class AIVariationsHandler(BaseTranslationHandler):
                 if target_block_idx == self.mw.data_store.current_block_idx and target_string_idx == self.mw.data_store.current_string_idx:
                     self.main_handler.ui_handler.apply_full_translation(final_text)
                 else:
-                    self.ui_updater.populate_strings_for_block(target_block_idx, self.mw.data_store.current_category_name, force=True)
+                    self.ui_updater.populate_current_view(force=True)
         finally:
             self.mw.undo_manager.end_group("TRANSLATE")
 

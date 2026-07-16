@@ -1,5 +1,5 @@
 import pytest
-from core.data_store import AppDataStore
+from core.data_store import AppDataStore, ViewKind
 
 
 @pytest.fixture
@@ -15,6 +15,8 @@ def test_AppDataStore_defaults(store):
     assert store.unsaved_changes is False
     assert store.unsaved_block_indices == set()
     assert store.current_block_idx == -1
+    assert store.current_view_kind == ViewKind.PHYSICAL
+    assert store.is_virtual_view is False
     assert store.current_string_idx == -1
 
 
@@ -70,6 +72,7 @@ def test_AppDataStore_clear(store):
     assert store.unsaved_changes is False
     assert store.unsaved_block_indices == set()
     assert store.current_block_idx == -1
+    assert store.current_view_kind == ViewKind.PHYSICAL
     assert store.current_string_idx == -1
     assert store.problems_per_subline == {}
 
@@ -109,3 +112,82 @@ def test_AppDataStore_displayed_string_indices_preserves_list_index_semantics(st
 
     assert store.displayed_string_indices.index(5) == 0
     assert store.get_displayed_index_pos(5) == 0
+
+
+@pytest.mark.parametrize(
+    ("kind", "token"),
+    [
+        (ViewKind.PHYSICAL, 7),
+        (ViewKind.CATEGORY, 7),
+        (ViewKind.CHAPTER, -2),
+        (ViewKind.SPEAKER, -3),
+        (ViewKind.ITEM, -4),
+    ],
+)
+def test_view_kind_never_replaces_physical_address(store, kind, token):
+    store.physical_block_idx = 7
+    store.current_string_idx = 12
+
+    store.set_view_kind(kind)
+
+    assert store.current_block_idx == 7
+    assert store.physical_block_idx == 7
+    assert store.current_string_idx == 12
+    assert store.view_block_token == token
+    assert store.is_virtual_view is (kind != ViewKind.PHYSICAL)
+
+
+def test_physical_block_setter_keeps_canonical_addresses_in_sync(store):
+    store.set_view_kind(ViewKind.SPEAKER)
+
+    store.physical_block_idx = 9
+
+    assert store.current_block_idx == 9
+    assert store.physical_block_idx == 9
+    assert store.view_block_token == -3
+
+
+@pytest.mark.parametrize("kind", list(ViewKind))
+def test_session_snapshot_round_trips_view_and_physical_identity(store, kind):
+    store.physical_block_idx = 4
+    store.current_string_idx = 8
+    store.set_view_kind(kind)
+    store.current_chapter_id = 77
+    store.current_speaker_name = "MIDNA"
+    store.chapter_mappings = [(4, 8), (6, 2)]
+
+    restored = AppDataStore()
+    assert restored.restore_from_snapshot(store.get_session_snapshot()) is True
+
+    assert restored.current_block_idx == 4
+    assert restored.physical_block_idx == 4
+    assert restored.current_string_idx == 8
+    assert restored.current_view_kind == kind
+    assert restored.current_chapter_id == 77
+    assert restored.current_speaker_name == "MIDNA"
+    assert restored.chapter_mappings == [(4, 8), (6, 2)]
+
+
+@pytest.mark.parametrize(
+    ("legacy_block", "kind"),
+    [
+        (-2, ViewKind.CHAPTER),
+        (-3, ViewKind.SPEAKER),
+        (-4, ViewKind.ITEM),
+    ],
+)
+def test_legacy_negative_session_migrates_to_explicit_view(store, legacy_block, kind):
+    snapshot = store.get_session_snapshot()
+    snapshot.pop("current_view_kind")
+    snapshot["current_block_idx"] = legacy_block
+    snapshot["_physical_block_idx"] = 5
+    snapshot["current_string_idx"] = 3
+
+    restored = AppDataStore()
+    assert restored.restore_from_snapshot(snapshot) is True
+
+    assert restored.current_block_idx == 5
+    assert restored.physical_block_idx == 5
+    assert restored.current_string_idx == 3
+    assert restored.current_view_kind == kind
+    assert restored.view_block_token == legacy_block

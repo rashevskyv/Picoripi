@@ -142,7 +142,7 @@ class BfnActions:
                 ui.update_text_views()
             if hasattr(ui, 'populate_strings_for_block'):
                 # Force refresh preview text lines cache
-                ui.populate_strings_for_block(self.mw.data_store.current_block_idx, category_name=self.mw.data_store.current_category_name, force=True)
+                ui.populate_current_view(force=True)
         
         # Proactively trigger silent project-wide recalculation after changes in glyphs
         if hasattr(self.mw, 'issue_scan_handler'):
@@ -355,7 +355,7 @@ class BfnActions:
             if hasattr(ui, 'update_title'):
                 ui.update_title()
             if hasattr(ui, 'populate_strings_for_block'):
-                ui.populate_strings_for_block(ds.current_block_idx, force=True)
+                ui.populate_current_view(force=True)
             if hasattr(ui, 'update_text_views'):
                 ui.update_text_views()
 

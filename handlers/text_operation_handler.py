@@ -625,7 +625,7 @@ class TextOperationHandler(BaseHandler):
         
         # Smoothly update problem counts in block list instead of full rebuild
         self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
-        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, force=True)
+        self.mw.ui_updater.populate_current_view(force=True)
         self.mw.ui_updater.update_text_views()
         
 
@@ -672,7 +672,7 @@ class TextOperationHandler(BaseHandler):
         self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
         
         # Update strings preview list with force=True to ensure it regenerates cached values
-        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, force=True)
+        self.mw.ui_updater.populate_current_view(force=True)
         self.mw.ui_updater.update_text_views()
         
 
@@ -922,7 +922,7 @@ class TextOperationHandler(BaseHandler):
             edited_text_edit.setTextCursor(restored_cursor)
  
             # 4. Refresh UI: preview list and text views.
-            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+            self.mw.ui_updater.populate_current_view()
             self.mw.ui_updater.update_text_views()
  
             if hasattr(self.mw, 'statusBar'):
@@ -1105,7 +1105,7 @@ class TextOperationHandler(BaseHandler):
                 edited_text_edit.setTextCursor(restored_cursor)
 
         if self.mw.data_store.current_block_idx != -1:
-            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+            self.mw.ui_updater.populate_current_view()
         self.mw.ui_updater.update_text_views()
 
         if hasattr(self.mw, 'statusBar'):

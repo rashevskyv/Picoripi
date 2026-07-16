@@ -13,6 +13,7 @@ from .base_ui_updater import BaseUIUpdater
 from utils.logging_utils import log_debug
 from .preview_cache import PreviewCache
 from .preview_renderer import PreviewRenderer
+from core.data_store import ViewKind, get_view_kind, store_is_virtual_view
 
 class PreviewUpdater(BaseUIUpdater):
     """Preview updater implementation coordinating caching, filtering, and rendering."""
@@ -203,14 +204,26 @@ class PreviewUpdater(BaseUIUpdater):
         finally:
             self._in_populate = False
 
+    def populate_current_view(self, force=False):
+        """Refresh the active grouping while retaining the physical address."""
+        self.populate_strings_for_block(
+            self.mw.data_store.current_block_idx,
+            self.mw.data_store.current_category_name,
+            force,
+        )
+
     def _do_populate_strings_for_block(self, block_idx, category_name=None, force=False):
         """Actual populate strings for block logic using central FilterQueryAPI."""
-        if block_idx not in (-1,):
-            if type(getattr(self.mw.data_store, 'current_chapter_id', None)) is int:
+        if block_idx != -1:
+            current_view_kind = get_view_kind(self.mw.data_store)
+            if current_view_kind == ViewKind.CHAPTER:
                 block_idx = -2
                 category_name = None
-            elif isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
+            elif current_view_kind == ViewKind.SPEAKER:
                 block_idx = -3
+                category_name = None
+            elif current_view_kind == ViewKind.ITEM:
+                block_idx = -4
                 category_name = None
             elif category_name is None:
                 category_name = getattr(self.mw.data_store, 'current_category_name', None)
@@ -541,9 +554,7 @@ class PreviewUpdater(BaseUIUpdater):
         if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
             preview_edit = getattr(self.mw, 'preview_text_edit', None)
             if preview_edit:
-                is_chapter = (self.mw.data_store.current_block_idx == -2)
-                is_speaker = (self.mw.data_store.current_block_idx in (-3, -4))
-                is_virtual = is_chapter or is_speaker
+                is_virtual = store_is_virtual_view(self.mw.data_store)
                 displayed_indices = getattr(self.mw.data_store, 'displayed_string_indices', [])
 
                 preview_idx = -1

@@ -10,7 +10,7 @@ import pytest
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtCore import QPoint
 
-from core.data_store import AppDataStore
+from core.data_store import AppDataStore, ViewKind
 from components.editor.lnet_tooltips import LNETTooltipLogic
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 
@@ -158,7 +158,8 @@ def test_tooltip_preview_text_edit_sums_sublines(app):
 def test_virtual_folder_tooltips_use_physical_mapping(app):
     mw, editor = _make_real_main_window(app)
     editor.setObjectName("preview_text_edit")
-    mw.data_store.current_block_idx = -3
+    mw.data_store.current_block_idx = 0
+    mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mw.data_store.displayed_string_indices = [(4, 7)]
     mw.data_store.problems_per_subline = {(4, 7, 0): {"WARN"}}
 
@@ -178,7 +179,8 @@ def test_virtual_folder_tooltips_use_physical_mapping(app):
 
 def test_virtual_folder_editor_tooltip_uses_physical_block(app):
     mw, editor = _make_real_main_window(app)
-    mw.data_store.current_block_idx = -2
+    mw.data_store.current_block_idx = 0
+    mw.data_store.set_view_kind(ViewKind.CHAPTER)
     mw.data_store.physical_block_idx = 4
     mw.data_store.current_string_idx = 7
     mw.data_store.problems_per_subline = {(4, 7, 0): {"WARN"}}

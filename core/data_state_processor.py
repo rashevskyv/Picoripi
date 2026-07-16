@@ -883,7 +883,7 @@ class DataStateProcessor:
                     self.mw.ui_updater.update_title()
 
                     if self.mw.data_store.current_block_idx in affected_blocks:
-                        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                        self.mw.ui_updater.populate_current_view()
                     if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
                         self.mw.ui_updater.block_list_updater.populate_blocks()
 
@@ -910,7 +910,7 @@ class DataStateProcessor:
                                 self.mw.ui_updater.update_title()
 
                                 if self.mw.data_store.current_block_idx in affected_blocks:
-                                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                                    self.mw.ui_updater.populate_current_view()
                                 if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
                                     self.mw.ui_updater.block_list_updater.populate_blocks()
 
@@ -945,7 +945,7 @@ class DataStateProcessor:
                         self.mw.ui_updater.update_title()
 
                         if self.mw.data_store.current_block_idx in affected_blocks:
-                            self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, self.mw.data_store.current_category_name)
+                            self.mw.ui_updater.populate_current_view()
                         if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False):
                             self.mw.ui_updater.block_list_updater.populate_blocks()
 

@@ -11,6 +11,7 @@ from core.mempalace.story_timeline import (
     StoryVirtualProjection,
     StoryVirtualSpeaker,
 )
+from core.data_store import ViewKind
 
 @pytest.fixture
 def mock_project():
@@ -139,11 +140,12 @@ def test_select_speaker_folder(qapp, mock_mw, mock_project):
     mock_mw.block_list_widget.currentItem.return_value = item
     
     handler.block_selected(item, 0)
-    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.current_block_idx == 0
+    assert mock_mw.data_store.current_view_kind == ViewKind.SPEAKER
     assert mock_mw.data_store.physical_block_idx == 0
     assert mock_mw.current_speaker_name == "Hero"
     assert mock_mw.chapter_mappings == [(0, 0)]
-    mock_mw.ui_updater.populate_strings_for_block.assert_called_with(-3)
+    mock_mw.ui_updater.populate_current_view.assert_called_with()
 
 def test_string_settings_updater_speakers(qapp, mock_mw, mock_project):
     """Normalized Story Context overrides stale project speaker assignments."""
@@ -210,7 +212,8 @@ def test_transition_from_speaker_to_physical_block_clears_state(qapp, mock_mw, m
     mock_mw.block_to_project_file_map = {0: 0}
     
     # 1. Start in speaker state
-    mock_mw.data_store.current_block_idx = -3
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mock_mw.data_store.current_speaker_name = "Hero"
     mock_mw.data_store.chapter_mappings = [(0, 0)]
     mock_mw.is_loading_data = False
@@ -231,6 +234,7 @@ def test_transition_from_speaker_to_physical_block_clears_state(qapp, mock_mw, m
     
     # Check that block state is resolved to physical block 0 and speaker name is cleared
     assert mock_mw.data_store.current_block_idx == 0
+    assert mock_mw.data_store.current_view_kind == ViewKind.PHYSICAL
     assert mock_mw.data_store.current_speaker_name is None
     assert mock_mw.data_store.chapter_mappings == []
 
@@ -242,6 +246,7 @@ def test_save_speaker_preserves_virtual_selection(qapp, mock_mw, mock_project):
     
     # Simulate being in virtual speakers mode
     mock_mw.data_store.current_block_idx = 0  # physical block (from active row selection)
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mock_mw.data_store.current_string_idx = 0
     mock_mw.data_store.current_speaker_name = "Hero"
     
@@ -307,7 +312,8 @@ def test_save_speaker_in_virtual_folder_does_not_navigate(qapp, mock_mw, mock_pr
     mock_mw._restoring_session_state = False
     
     # Simulate being in virtual speakers mode for "Hero"
-    mock_mw.data_store.current_block_idx = -3
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mock_mw.data_store.physical_block_idx = 0
     mock_mw.data_store.current_string_idx = 0
     mock_mw.data_store.current_speaker_name = "Hero"
@@ -358,7 +364,8 @@ def test_save_speaker_in_virtual_folder_does_not_navigate(qapp, mock_mw, mock_pr
     # 1. Verify speaker metadata changed, but virtual folder and physical row did not navigate.
     assert mock_project.blocks[0].metadata["character_assignments"]["0"] == "Villain"
     assert mock_mw.data_store.current_speaker_name == "Hero"
-    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.current_block_idx == 0
+    assert mock_mw.data_store.current_view_kind == ViewKind.SPEAKER
     assert mock_mw.data_store.physical_block_idx == 0
     assert mock_mw.data_store.current_string_idx == 0
     
@@ -389,7 +396,8 @@ def test_save_speaker_in_virtual_folder_keeps_same_physical_string_when_old_fold
     mock_mw.data_store.data[5] = [""] * 11
     mock_mw.data_store.data[7] = [""] * 3
     mock_mw.data_store.block_names = {str(i): f"Block {i}" for i in range(8)}
-    mock_mw.data_store.current_block_idx = -3
+    mock_mw.data_store.current_block_idx = 5
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mock_mw.data_store.physical_block_idx = 5
     mock_mw.data_store.current_string_idx = 10
     mock_mw.data_store.current_speaker_name = "Black Cat"
@@ -434,12 +442,13 @@ def test_save_speaker_in_virtual_folder_keeps_same_physical_string_when_old_fold
         mock_mw.data_store.displayed_string_indices = list(mock_mw.data_store.chapter_mappings)
         handler.handle_preview_selection_changed([1])
 
-    mock_mw.ui_updater.populate_strings_for_block.side_effect = mock_populate_strings
+    mock_mw.ui_updater.populate_current_view.side_effect = lambda: mock_populate_strings(-3)
 
     handler.save_speaker_for_current_string("Black & White Cat")
 
     assert project.blocks[5].metadata["character_assignments"]["10"] == "Black & White Cat"
-    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.current_block_idx == 5
+    assert mock_mw.data_store.current_view_kind == ViewKind.SPEAKER
     assert mock_mw.data_store.physical_block_idx == 5
     assert mock_mw.data_store.current_string_idx == 10
     assert mock_mw.data_store.current_speaker_name == "Black Cat"
@@ -452,7 +461,8 @@ def test_save_speaker_in_virtual_folder_keeps_same_physical_string_when_old_fold
     mock_mw.data_store.displayed_string_indices = list(mock_mw.data_store.chapter_mappings)
     handler.string_selected_from_preview(1)
 
-    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.current_block_idx == 7
+    assert mock_mw.data_store.current_view_kind == ViewKind.SPEAKER
     assert mock_mw.data_store.physical_block_idx == 7
     assert mock_mw.data_store.current_string_idx == 2
     assert mock_mw.data_store.current_speaker_name == "Black Cat"
@@ -486,7 +496,8 @@ def test_save_speaker_with_real_rebuild_retains_old_folder_until_next_row(qapp, 
     mock_mw.data_store.problems_per_subline = {}
     mock_mw.data_store.edited_data = {}
     mock_mw.data_store.edited_sublines = set()
-    mock_mw.data_store.current_block_idx = -3
+    mock_mw.data_store.current_block_idx = 5
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mock_mw.data_store.physical_block_idx = 5
     mock_mw.data_store.current_string_idx = 10
     mock_mw.data_store.current_speaker_name = "Black Cat"
@@ -517,7 +528,8 @@ def test_save_speaker_with_real_rebuild_retains_old_folder_until_next_row(qapp, 
     handler.save_speaker_for_current_string("Black & White Cat")
 
     assert project.blocks[5].metadata["character_assignments"]["10"] == "Black & White Cat"
-    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.current_block_idx == 5
+    assert mock_mw.data_store.current_view_kind == ViewKind.SPEAKER
     assert mock_mw.data_store.physical_block_idx == 5
     assert mock_mw.data_store.current_string_idx == 10
     assert mock_mw.data_store.current_speaker_name == "Black Cat"
@@ -532,7 +544,8 @@ def test_save_speaker_with_real_rebuild_retains_old_folder_until_next_row(qapp, 
     mock_mw.data_store.displayed_string_indices = list(mock_mw.data_store.chapter_mappings)
     handler.string_selected_from_preview(1)
 
-    assert mock_mw.data_store.current_block_idx == -3
+    assert mock_mw.data_store.current_block_idx == 7
+    assert mock_mw.data_store.current_view_kind == ViewKind.SPEAKER
     assert mock_mw.data_store.physical_block_idx == 7
     assert mock_mw.data_store.current_string_idx == 2
     assert mock_mw.data_store.current_speaker_name == "Black Cat"
@@ -565,7 +578,8 @@ def test_block_list_rebuild_keeps_pending_speaker_retention_before_selection(qap
     mock_mw.data_store.data[7] = [""] * 3
     mock_mw.data_store.block_names = {str(i): f"Block {i}" for i in range(8)}
     mock_mw.data_store.problems_per_subline = {}
-    mock_mw.data_store.current_block_idx = -3
+    mock_mw.data_store.current_block_idx = 5
+    mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
     mock_mw.data_store.physical_block_idx = 5
     mock_mw.data_store.current_string_idx = 10
     mock_mw.data_store.current_speaker_name = "Black Cat"

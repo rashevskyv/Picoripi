@@ -152,7 +152,7 @@ class MainWindowUIHandler:
 
         self.mw.ui_updater.update_text_views()
         self.mw.ui_updater.populate_blocks()
-        self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+        self.mw.ui_updater.populate_current_view()
 
     def apply_text_wrap_settings(self):
         """Apply text wrap settings."""

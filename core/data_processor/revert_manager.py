@@ -268,7 +268,7 @@ class RevertManager:
 
         if hasattr(self.mw, 'ui_updater'):
             if self.mw.data_store.current_block_idx in block_indices:
-                self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx, getattr(self.mw, 'current_category_name', None), force=True)
+                self.mw.ui_updater.populate_current_view(force=True)
                 self.mw.ui_updater.update_text_views()
             for b_idx in block_indices:
                 self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
@@ -334,7 +334,7 @@ class RevertManager:
 
                     self.dsp._show_message("Reverted", f"Changes file '{Path(self.mw.data_store.edited_json_path).name}' has been reverted to match the original.", type="info")
                     self.mw.ui_updater.update_title()
-                    self.mw.ui_updater.populate_strings_for_block(self.mw.data_store.current_block_idx)
+                    self.mw.ui_updater.populate_current_view()
                     return True
                 else: 
                     return False

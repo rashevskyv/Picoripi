@@ -148,12 +148,7 @@ class AIBatchTranslator(BaseTranslationHandler):
             for m_block in modified_blocks:
                 self.ui_updater.update_block_item_text_with_problem_count(m_block)
 
-            current_view_block = self.mw.data_store.current_block_idx
-            if self.mw.data_store.current_chapter_id is not None:
-                current_view_block = -2
-            self.ui_updater.populate_strings_for_block(
-                current_view_block, getattr(self.mw.data_store, 'current_category_name', None), force=True
-            )
+            self.ui_updater.populate_current_view(force=True)
             self.ui_updater.update_text_views()
             self.ui_updater.update_title()
 
@@ -397,10 +392,7 @@ class AIBatchTranslator(BaseTranslationHandler):
             
             self.main_handler.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=chunk_text)
             
-            current_view_block = self.mw.data_store.current_block_idx
-            if self.mw.data_store.current_chapter_id is not None:
-                current_view_block = -2
-            self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
+            self.ui_updater.populate_current_view(force=True)
             self.main_handler.translated_chunks_count = len(self.main_handler.translation_progress.get(block_idx, {}).get('completed_chunks', set()))
             self.main_handler.ui_handler.status_dialog.update_progress(self.main_handler.translated_chunks_count)
             
@@ -565,10 +557,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                 previous_translations=previous_details
             )
             
-            current_view_block = self.mw.data_store.current_block_idx
-            if self.mw.data_store.current_chapter_id is not None:
-                current_view_block = -2
-            self.ui_updater.populate_strings_for_block(current_view_block, self.mw.data_store.current_category_name, force=True)
+            self.ui_updater.populate_current_view(force=True)
             self.ui_updater.update_text_views()
             self.ui_updater.update_title()
 
@@ -620,12 +609,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         log_debug("handle_single_translation_success: applied translation length=%d" % len(final_text))
         self.main_handler.current_session_translations = {block_idx: [(string_idx, final_text)]}
         self.main_handler.ui_handler.finish_ai_operation(translation_details=self.main_handler.current_session_translations)
-        refresh_idx = block_idx
-        if self.mw.data_store.current_chapter_id is not None:
-            refresh_idx = -2
-        elif self.mw.data_store.current_block_idx == -3:
-            refresh_idx = -3
-        self.ui_updater.populate_strings_for_block(refresh_idx, self.mw.data_store.current_category_name, force=True)
+        self.ui_updater.populate_current_view(force=True)
         # If we translated the currently visible string, update the text view
         if self.mw.data_store.physical_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
             self.ui_updater.update_text_views()
