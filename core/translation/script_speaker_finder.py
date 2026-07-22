@@ -170,7 +170,8 @@ class ScriptSpeakerFinder:
                 pass
 
         def line_strip_is_speaker(s: str) -> bool:
-            return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
+            s_clean = re.sub(r'\(.*?\)', '', s).strip()
+            return s_clean.isupper() and len(s_clean) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s_clean) is not None
 
         # If direct mapping found, we can load the script and find the speaker directly from that line index
         if db_mapping and db_mapping.get("script_line"):
@@ -193,14 +194,22 @@ class ScriptSpeakerFinder:
 
                 # Scan backwards from line_num - 2 (0-indexed offset of line_num - 1)
                 speaker = None
+                in_brackets_back = False
                 for idx in range(line_num - 2, -1, -1):
                     s = lines[idx].strip()
                     if not s:
                         continue
+                    if s.endswith("]") and not s.startswith("["):
+                        in_brackets_back = True
+                        continue
+                    if in_brackets_back:
+                        if s.startswith("["):
+                            in_brackets_back = False
+                        continue
                     if s.startswith("[") and s.endswith("]"):
                         continue
                     if line_strip_is_speaker(s):
-                        speaker = s
+                        speaker = re.sub(r'\(.*?\)', '', s).strip()
                         break
                 speaker_str = speaker if speaker else "NONE"
                 return speaker_str, str(line_num)
@@ -250,9 +259,18 @@ class ScriptSpeakerFinder:
 
             global_distilled = []
             char_to_line_map = []
+            in_brackets = False
             for idx, line in enumerate(lines):
                 line_strip = line.strip()
-                if line_strip.startswith("[") and line_strip.endswith("]"):
+                if not line_strip:
+                    continue
+                starts_bracket = line_strip.startswith("[")
+                ends_bracket = line_strip.endswith("]")
+                if starts_bracket or in_brackets:
+                    if ends_bracket or "]" in line_strip:
+                        in_brackets = False
+                    else:
+                        in_brackets = True
                     continue
                 if line_strip_is_speaker(line_strip):
                     continue
@@ -278,6 +296,10 @@ class ScriptSpeakerFinder:
 
         distilled_query = distill(text)
         if not distilled_query:
+            return "NONE", None
+
+        # Check if the query is too short
+        if len(distilled_query) < 3:
             return "NONE", None
 
         start_offset = 0
@@ -402,14 +424,22 @@ class ScriptSpeakerFinder:
 
                 # Speaker resolution by scanning backwards from line_num - 1
                 speaker = None
+                in_brackets_back = False
                 for idx in range(line_num - 2, -1, -1):
                     s = lines[idx].strip()
                     if not s:
                         continue
+                    if s.endswith("]") and not s.startswith("["):
+                        in_brackets_back = True
+                        continue
+                    if in_brackets_back:
+                        if s.startswith("["):
+                            in_brackets_back = False
+                        continue
                     if s.startswith("[") and s.endswith("]"):
                         continue
                     if line_strip_is_speaker(s):
-                        speaker = s
+                        speaker = re.sub(r'\(.*?\)', '', s).strip()
                         break
 
                 speaker_str = speaker if speaker else "NONE"

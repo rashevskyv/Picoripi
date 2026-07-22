@@ -653,6 +653,97 @@ class GameRules(BaseGameRules):
             return None
         return ctx.overview_for_messages(indices)
 
+    def _get_stage_scene_data(self):
+        """Lazily load (and cache) the generated stage_scene_data.json."""
+        cached = getattr(self, "_stage_scene_data", None)
+        if cached is None:
+            from .stage_data import load_stage_scene_data
+            cached = load_stage_scene_data(plugin_dir)
+            self._stage_scene_data = cached
+        return cached
+
+    def _get_msg_group_for_block(self, block_idx):
+        """Message-resource group (bmgres<N>) behind a block, from the archive
+        path (``.../bmgres3.arc``). None for loose zel_XX.bmg files."""
+        try:
+            pm = getattr(self.mw, 'project_manager', None)
+            block_map = getattr(self.mw, 'block_to_project_file_map', {}) or {}
+            proj_idx = block_map.get(block_idx, block_idx)
+            blocks = pm.project.blocks if pm and getattr(pm, 'project', None) else []
+            if isinstance(proj_idx, int) and 0 <= proj_idx < len(blocks):
+                meta = getattr(blocks[proj_idx], 'metadata', {}) or {}
+                arc = meta.get('archive_rel_path') or ''
+                m = re.search(r"bmgres(\d+)", str(arc))
+                if m:
+                    return int(m.group(1))
+        except Exception as e:
+            log_debug(f"zelda_bmg: msg_group resolution failed for block {block_idx}: {e}")
+        return None
+
+    def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        """Game-truth scene evidence for the Story Timeline window (see base class).
+
+        Combines the block's message resource (bmgres group), the FLW1/FLI1 flow
+        that reaches this line (its owning NPC-class candidates + a per-line
+        conversation summary), and the stage arcs that load that message group
+        (candidate locations). Speaker candidates from unscoped flow_actors.json
+        are ambiguous by design and clearly labelled as such.
+        """
+        result: Dict[str, Any] = {}
+        try:
+            _, _, resource_name = self._get_bmg_for_block(block_idx)
+        except Exception:
+            resource_name = None
+        if resource_name:
+            result["resource"] = resource_name
+
+        msg_group = self._get_msg_group_for_block(block_idx)
+        if msg_group is not None:
+            result["msg_group"] = msg_group
+            result["bmgres"] = f"bmgres{msg_group}"
+
+        # Flow: which conversation(s) reach this line, owning actor candidates,
+        # and the compact per-line context.
+        ctx = self._get_flow_context_for_block(block_idx)
+        if ctx is not None:
+            try:
+                sidx = int(string_idx)
+            except (TypeError, ValueError):
+                sidx = None
+            if sidx is not None:
+                flow_ids = ctx.flows_for_message(sidx)
+                if flow_ids:
+                    result["flow_ids"] = flow_ids
+                    actor_map = self._get_flow_actor_map()
+                    candidates: List[str] = []
+                    for fid in flow_ids:
+                        for actor in (actor_map.get(fid, {}) or {}).get("actors", []) or []:
+                            if actor not in candidates:
+                                candidates.append(actor)
+                    if candidates:
+                        result["candidate_actors"] = candidates
+                summary = ctx.context_for_message(sidx)
+                if summary:
+                    result["flow_summary"] = summary
+
+        # Stage arcs that load this message group -> candidate locations.
+        if msg_group is not None:
+            doc = self._get_stage_scene_data()
+            stages = doc.get("stages", {})
+            telop = doc.get("telop_data", {})
+            names = [s for s, rec in stages.items() if rec.get("msg_group") == msg_group]
+            if names:
+                loc = {"count": len(names), "stages": sorted(names)}
+                titles = sorted({
+                    code for code, tno in telop.items()
+                    if any(code and (code in s or s in code) for s in names)
+                })
+                if titles:
+                    loc["telop_codes"] = titles
+                result["location_candidates"] = loc
+
+        return result
+
     def get_display_name(self) -> str:
         """Get the display name."""
         return "Zelda: Twilight Princess BMG"

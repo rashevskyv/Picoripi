@@ -320,6 +320,18 @@ class BaseGameRules:
         chunk-level context section in AI translation prompts. Default: None."""
         return None
 
+    def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        """Game-truth scene evidence for one line, for the Story Timeline window.
+
+        Plugins that can mine the game's own data (e.g. zelda_bmg with TP stage
+        arcs + FLW1/FLI1 flow) return a dict with any of: ``resource`` (message
+        file), ``msg_group``/``bmgres`` (message resource group), ``flow_ids``,
+        ``candidate_actors`` (owning NPC classes, may be ambiguous),
+        ``flow_summary`` (per-line conversation context), ``location_candidates``
+        (stages/locations that use this message resource). Default: no data.
+        """
+        return {}
+
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         """Get the syntax highlighting rules."""
         return []

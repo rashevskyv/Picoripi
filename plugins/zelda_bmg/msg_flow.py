@@ -327,6 +327,10 @@ class MsgFlowContext:
             return f", game actor: {', '.join(str(a) for a in actors[:2])}"
         return ""
 
+    def flows_for_message(self, msg_index: int) -> List[int]:
+        """Flow IDs of every conversation that reaches this message string."""
+        return [conv.flow_id for conv in self._by_msg.get(msg_index, [])]
+
     def context_for_message(self, msg_index: int) -> Optional[str]:
         """Compact per-line context for the AI prompt."""
         convs = self._by_msg.get(msg_index)
