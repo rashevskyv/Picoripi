@@ -1574,16 +1574,112 @@ class BfnPreviewWidget(QWidget):
         # ── 3. Bounding box overlay ───────────────────────────────────────────
         self.draw_bounding_box(painter)
 
+    _icon_texture_cache: dict = {}
+
+    @staticmethod
+    def _tinted_icon_texture(path: str, tint: str):
+        """Load an icon PNG and multiply it by the game's TEV tint color.
+
+        Mirrors COutFont_c::createPane's setBlackWhite(black=0, white=tint):
+        output = texel_intensity × tint, alpha preserved.  Returns None when
+        the file is missing/unreadable so the caller can fall back to vectors.
+        """
+        cache = BfnPreviewWidget._icon_texture_cache
+        key = (path, tint)
+        if key in cache:
+            return cache[key]
+
+        img = QImage(path)
+        if img.isNull():
+            cache[key] = None
+            return None
+        img = img.convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+        if QColor(tint) != QColor("#ffffff"):
+            tinted = QImage(img.size(), QImage.Format.Format_ARGB32_Premultiplied)
+            tinted.fill(Qt.GlobalColor.transparent)
+            tp = QPainter(tinted)
+            try:
+                tp.drawImage(0, 0, img)
+                tp.setCompositionMode(QPainter.CompositionMode.CompositionMode_Multiply)
+                tp.fillRect(tinted.rect(), QColor(tint))
+                tp.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
+                tp.drawImage(0, 0, img)
+            finally:
+                tp.end()
+            img = tinted
+        cache[key] = img
+        return img
+
+    @staticmethod
+    def _draw_icon_texture(p: QPainter, spec: dict, x: float, y: float,
+                           size: float, shadow: bool) -> bool:
+        """Draw the real game texture for an icon spec. Returns False to ask
+        the caller for the vector fallback."""
+        if shadow and spec.get("no_shadow"):
+            return True  # game draws this icon without a shadow pass
+        tint = "#000000" if shadow else spec.get("tint", "#ffffff")
+        img = BfnPreviewWidget._tinted_icon_texture(spec["texture"], tint)
+        if img is None:
+            return False
+
+        # Fit the texture into the 24px icon cell, preserving aspect ratio
+        # (portal 40x40, rupee 40x64, Wii remote 24x30 all land in one cell).
+        ratio = min(size / img.width(), size / img.height())
+        w, h = img.width() * ratio, img.height() * ratio
+
+        p.save()
+        try:
+            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            p.translate(x + size / 2.0, y + size / 2.0)
+            rot = int(spec.get("rot", 0))
+            if rot:
+                p.rotate(rot)
+            if spec.get("flip_y"):
+                p.scale(1.0, -1.0)
+            p.drawImage(QRectF(-w / 2.0, -h / 2.0, w, h), img)
+        finally:
+            p.restore()
+
+        # Direction arrows stay on top of the analog-stick texture: the game
+        # animates the stick tilt, which a static preview cannot convey.  (The
+        # Wii D-pad textures already carry their red direction marks.)  Drawn
+        # as vectors — arrow glyphs are missing from many UI fonts.
+        label = spec.get("label", "")
+        if label and spec.get("kind") == "stick_direction" and not shadow:
+            directions = {"↑": [(0, -1)], "↓": [(0, 1)], "←": [(-1, 0)], "→": [(1, 0)],
+                          "↕": [(0, -1), (0, 1)], "↔": [(-1, 0), (1, 0)]}
+            cx, cy = x + size / 2.0, y + size / 2.0
+            for outline, color, width in ((True, "#000000", 0.16), (False, "#ffd24a", 0.08)):
+                p.setPen(QPen(QColor(color), max(1.0, size * width),
+                              Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+                for dx, dy in directions.get(label, []):
+                    tip_x, tip_y = cx + dx * size * 0.46, cy + dy * size * 0.46
+                    p.drawLine(QPoint(int(cx + dx * size * 0.1), int(cy + dy * size * 0.1)),
+                               QPoint(int(tip_x), int(tip_y)))
+                    # arrowhead: two short strokes angled back from the tip
+                    px_, py_ = -dy, dx  # perpendicular
+                    back_x, back_y = tip_x - dx * size * 0.16, tip_y - dy * size * 0.16
+                    p.drawLine(QPoint(int(tip_x), int(tip_y)),
+                               QPoint(int(back_x + px_ * size * 0.12), int(back_y + py_ * size * 0.12)))
+                    p.drawLine(QPoint(int(tip_x), int(tip_y)),
+                               QPoint(int(back_x - px_ * size * 0.12), int(back_y - py_ * size * 0.12)))
+        return True
+
     @staticmethod
     def _draw_icon(p: QPainter, spec: dict, x: float, y: float, size: float, shadow: bool = False):
-        """Draw a vector placeholder for an in-game inline icon.
+        """Draw an in-game inline icon.
 
-        Specs come from the Zelda BMG tag catalogue.  Controller silhouettes
-        are intentionally vector-drawn so the preview does not depend on the
-        editor font having private-use button glyphs.
+        Specs come from the Zelda BMG tag catalogue.  When the spec carries a
+        "texture" (a PNG decoded from the game's own BTI resources) it is drawn
+        tinted exactly like COutFont_c does; the vector kind/label/color triple
+        remains as a fallback when the texture file is unavailable.
         """
         kind = spec.get("kind", "char")
         if kind == "blank" or size <= 0:
+            return
+
+        if spec.get("texture") and BfnPreviewWidget._draw_icon_texture(
+                p, spec, x, y, size, shadow):
             return
 
         body = QColor("#000000") if shadow else QColor(spec.get("color", "#c8c8c8"))

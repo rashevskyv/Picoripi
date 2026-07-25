@@ -150,16 +150,16 @@
         "width": 24
     },
     "{escape:0:001e}": {
-        "width": 0
+        "width": 24
     },
     "{ctrl:inline-2-next}": {
-        "width": 0
+        "width": 24
     },
     "{escape:0:001f}": {
-        "width": 0
+        "width": 24
     },
     "{ctrl:inline-2-first}": {
-        "width": 0
+        "width": 24
     },
     "{escape:0:0020}": {
         "width": 0
@@ -228,16 +228,16 @@
         "width": 24
     },
     "{escape:0:0033}": {
-        "width": 0
+        "width": 24
     },
     "{ctrl:inline-3-next}": {
-        "width": 0
+        "width": 24
     },
     "{escape:0:0034}": {
-        "width": 0
+        "width": 24
     },
     "{ctrl:inline-3-first}": {
-        "width": 0
+        "width": 24
     },
     "{escape:0:0039}": {
         "width": 24
@@ -388,87 +388,6 @@
     },
     "{sound:20}": {
         "width": 0
-    },
-    "(A)": {
-        "width": 50
-    },
-    "(B)": {
-        "width": 50
-    },
-    "<L>": {
-        "width": 50
-    },
-    "<R>": {
-        "width": 50
-    },
-    "(X)": {
-        "width": 50
-    },
-    "(Y)": {
-        "width": 50
-    },
-    "(L)": {
-        "width": 50
-    },
-    "[←]": {
-        "width": 50
-    },
-    "[→]": {
-        "width": 50
-    },
-    "[↑]": {
-        "width": 50
-    },
-    "[↓]": {
-        "width": 50
-    },
-    "(L↑)": {
-        "width": 50
-    },
-    "(L↓)": {
-        "width": 50
-    },
-    "(L←)": {
-        "width": 50
-    },
-    "(L→)": {
-        "width": 50
-    },
-    "(↑L↓)": {
-        "width": 50
-    },
-    "(←L→)": {
-        "width": 50
-    },
-    "[flash_A]": {
-        "width": 50
-    },
-    "[flash]": {
-        "width": 50
-    },
-    "[♥]": {
-        "width": 50
-    },
-    "[♪]": {
-        "width": 50
-    },
-    "(+)": {
-        "width": 50
-    },
-    "(-)": {
-        "width": 50
-    },
-    "<ZL>": {
-        "width": 50
-    },
-    "<ZR>": {
-        "width": 50
-    },
-    "(R)": {
-        "width": 50
-    },
-    "(↑R↓)": {
-        "width": 50
     },
     "{(A)}": {
         "width": 24

@@ -22,10 +22,9 @@ class PreviewRenderer:
     def _apply_highlights_for_block(self, block_idx: int):
         """Apply block-level highlights to the preview_text_edit."""
         if block_idx not in (-1,):
-            if type(getattr(self.mw.data_store, 'current_chapter_id', None)) is int:
-                block_idx = -2
-            elif getattr(self.mw.data_store, 'current_speaker_name', None) is not None:
-                block_idx = -3
+            view_token = getattr(self.mw.data_store, "view_block_token", block_idx)
+            if view_token in (-2, -3, -4, -5):
+                block_idx = view_token
 
         data_source = getattr(self.mw.data_store, 'data', None)
         if not isinstance(data_source, list):
@@ -41,7 +40,7 @@ class PreviewRenderer:
         preview_edit.highlightManager.clearAllProblemHighlights()
 
         is_chapter = (block_idx == -2)
-        is_speaker = (block_idx in (-3, -4))
+        is_speaker = (block_idx in (-3, -4, -5))
         is_virtual = is_chapter or is_speaker
         if not is_virtual and not (0 <= block_idx < len(data_source)):
             return
@@ -282,7 +281,7 @@ class PreviewRenderer:
 
             preview_idx_to_select = -1
             is_chapter = (block_idx == -2)
-            is_speaker = (block_idx in (-3, -4))
+            is_speaker = (block_idx in (-3, -4, -5))
             is_virtual = is_chapter or is_speaker
             if is_virtual:
                 target_tuple = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)

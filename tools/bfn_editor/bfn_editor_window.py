@@ -276,6 +276,7 @@ class BfnEditorWindow(QtWidgets.QMainWindow, BfnIoMixin, BfnSimMixin, BfnNavigat
         search_layout.addWidget(QtWidgets.QLabel('Search Glyph/Character:'))
         self.table_search = QtWidgets.QLineEdit()
         self.table_search.setPlaceholderText('Type character, index or sheet index to filter...')
+        self.table_search.setProperty('selectAllOnClick', True)
         self.table_search.textChanged.connect(self.populate_glyph_table)
         search_layout.addWidget(self.table_search)
         table_layout.addLayout(search_layout)

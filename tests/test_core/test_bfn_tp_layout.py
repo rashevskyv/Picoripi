@@ -523,6 +523,41 @@ def test_tp_width_measurement_uses_semantic_tag_output(bmg_rules):
     assert bmg_rules.calculate_string_width_override("{escape:0:0000}", font_map) == 22
 
 
+def test_tp_icon_textures_exist_and_cover_every_outfont_icon():
+    import os
+    from plugins.zelda_bmg.tag_catalog import ESCAPE_ICON_SPECS
+
+    textured = {key: spec for key, spec in ESCAPE_ICON_SPECS.items()
+                if spec.get("texture")}
+    for key, spec in textured.items():
+        assert os.path.exists(spec["texture"]), (key, spec["texture"])
+        assert spec.get("tint", "").startswith("#"), key
+    # Every drawing icon except the metric-only bullet indent has a real
+    # game texture decoded from main2D.arc / itemicon.arc.
+    untextured = {key for key, spec in ESCAPE_ICON_SPECS.items()
+                  if not spec.get("texture")}
+    assert untextured == {(6, 0x0B)}  # BULLET_SPACE draws nothing
+
+
+def test_tp_inline_choice_cursor_reserves_icon_width(bmg_rules):
+    # do_arrow2 draws the red choice arrow and always advances the cursor by
+    # fontSize + charSpace, so inline-choice tags are not zero-width.
+    from plugins.zelda_bmg.tag_catalog import fixed_escape_widths
+
+    widths = fixed_escape_widths()
+    for raw in ("{escape:0:001e}", "{escape:0:001f}",
+                "{escape:0:0033}", "{escape:0:0034}"):
+        assert widths[raw]["width"] == 24, raw
+
+    font_map = {"Y": {"width": 9}, "e": {"width": 7}, "s": {"width": 6}}
+    assert bmg_rules.calculate_string_width_override(
+        "{escape:0:001f00}Yes", font_map) == 24 + 9 + 7 + 6
+
+    clean, _, _, icons = bmg_rules.prepare_preview_glyph_text("{escape:0:001f00}Yes")
+    assert clean == "￼Yes"
+    assert icons and icons[0].get("texture")
+
+
 def test_tp_font_glyph_tags_use_font_width_not_icon_width(bmg_rules):
     font_map = {"♂": {"width": 11}}
 

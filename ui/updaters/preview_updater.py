@@ -230,6 +230,9 @@ class PreviewUpdater(BaseUIUpdater):
         elif current_view_kind == ViewKind.ITEM:
             block_idx = -4
             category_name = None
+        elif current_view_kind == ViewKind.NOTATED:
+            block_idx = -5
+            category_name = None
         elif block_idx != -1 and category_name is None:
             category_name = getattr(self.mw.data_store, 'current_category_name', None)
 
@@ -289,7 +292,7 @@ class PreviewUpdater(BaseUIUpdater):
                 data_source = []
 
         is_chapter = (block_idx == -2)
-        is_speaker = (block_idx in (-3, -4))
+        is_speaker = (block_idx in (-3, -4, -5))
         is_virtual = is_chapter or is_speaker
         if not is_virtual and (block_idx < 0 or not data_source or block_idx >= len(data_source) or not isinstance(data_source[block_idx], list)):
             self.preview_cache.cache.clear()
