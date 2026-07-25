@@ -49,7 +49,19 @@ First, ask me these questions:
    - Are there character names that need Force-Alias behavior with the F: prefix?
    - Is there a script/timeline file that should be used for MemePalace or contextual translation?
 
-8. Tests:
+8. Game data and advanced capabilities (optional):
+   - Do I have the game's source code, a decompilation, or documentation of its data formats?
+   - Do I have the raw game files (message archives, stage/room/scene tables), or only text already extracted from them?
+   - Does a message carry any attribute saying which on-screen window or box the game draws it in? That attribute usually identifies the message's role - item name, place name, boss name, speaker caption - and can seed the glossary directly.
+   - Does the game data already pair a name with its own description or icon (for example an item-acquisition screen)? Those pairs are ready-made glossary entries that need no AI at all.
+   - Can conversations, branches, or scene membership be reconstructed from the data?
+   - Is there a community wiki or reference source for this game that glossary descriptions could be grounded in?
+   - Is there a fan script or walkthrough transcript containing scenes and speakers?
+   - Which of these should the first version include, and which can wait?
+
+   Answering "none" to all of these is fine. Picoripi then builds the glossary from the extracted text alone. Each answer maps to an opt-in hook documented in docs/PLUGIN_AUTHORING_GUIDE.md section 4; plugins/zelda_bmg/ is the reference implementation.
+
+9. Tests:
    - Give me at least 5 real sample strings and expected parsed output.
    - Give me at least 3 save round-trip examples.
    - Give me at least 5 tag edge cases.
@@ -81,5 +93,6 @@ Hard requirements:
 - Prefer shared helpers from plugins/common/ before writing custom layout logic.
 - Keep the first plugin version conservative and easy to test.
 - Include comments only where they explain plugin-specific decisions.
+- Ship the required contract first. Treat everything from question 8 as a separate second milestone, and never let a missing advanced capability break loading, parsing, or saving.
 ```
 

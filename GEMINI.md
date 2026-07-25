@@ -27,6 +27,13 @@ Picoripi is largely AI-developed, so every AI agent must behave like a careful m
 7. Run relevant parallel tests and `git diff --check`.
 8. Report what changed, what was verified, and what risk remains.
 
+### Codebase Research (Mandatory)
+
+- **Refresh the graph at the start of every new conversation** before relying on it: run an incremental update (`graphify update`, which re-extracts only new/changed files) so queries reflect the current source, not a stale snapshot.
+- Use **Graphify** as the primary tool for exploring and understanding the source code, not ad-hoc `grep`/`read` sweeps. The persistent knowledge graph lives in `graphify-out/` (invoke the `graphify` skill; treat any architecture/"where does X flow" question as a graphify query first).
+- Start research from the graph (god nodes, communities, query/path/explain) to map how data and control flow across modules, then drop down to reading specific files only to confirm details.
+- This applies especially to cross-cutting questions (e.g. "where is the speaker/story/glossary information resolved and consumed"), where a single source of truth spans `core/`, `handlers/`, `ui/`, and `plugins/`.
+
 ### Architecture Rules
 
 - `AppDataStore` owns shared state; `DataStateProcessor` owns data mutation, save, revert, and session operations (delegated to `SessionManager`, `RevertManager`, and `SetCalculator` inside `core/data_processor/`).
@@ -77,6 +84,31 @@ Picoripi is largely AI-developed, so every AI agent must behave like a careful m
 - Update `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/default_plugin/` when plugin contracts change.
 - When the user asks to commit or release, bump the version and update `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`, and `CHANGELOG.md`.
 
+### New Plugin Capabilities Must Propagate (Mandatory)
+
+A capability added to one plugin is not done when that plugin works. Whenever a plugin gains a
+new ability — a new game-data source, an external lookup, a new `BaseGameRules` hook, or any
+feature another game could also expose — re-read these three files and update every one the
+capability belongs in:
+
+- `docs/PIPELINE_ROADMAP.md` — how the pipeline consumes the capability, and which lifecycle
+  stage it feeds. This is the agreed design of record.
+- `docs/PLUGIN_AUTHORING_GUIDE.md` section 4 — the hook, its default, and what it unlocks in
+  the app. Keep "available today" and "planned" strictly separated: never document an
+  unimplemented hook as available, or generated plugins will call something that does not exist.
+- `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` question 8 — so the AI assistant asks
+  new plugin authors whether *their* game can provide the same thing.
+
+Describe capabilities by **mechanism, not by game-specific identifiers**: an author working on
+another game gains nothing from a raw constant, but the pattern ("find the field in the game's
+data that already encodes a message's role, then expose it through a hook") transfers.
+
+Skip propagation only when a capability is genuinely single-game, and say so explicitly in the
+report rather than leaving it silent.
+
+Periodically refresh the `README.md` feature list and the Core Features section of this file
+with capabilities added since the last pass. Do not let them drift behind the code.
+
 ### Final AI Self-Checklist
 
 - Did I preserve unrelated user changes?
@@ -85,6 +117,7 @@ Picoripi is largely AI-developed, so every AI agent must behave like a careful m
 - Did I add or update the right tests?
 - Did I run relevant parallel tests?
 - Did I update the relevant docs?
+- If a plugin gained a capability, did I propagate it to the roadmap, the authoring guide, and the assistant prompt — or state why it is single-game?
 - Did I run `git diff --check`?
 - Did I explain remaining risk honestly?
 

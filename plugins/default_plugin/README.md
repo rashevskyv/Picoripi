@@ -29,6 +29,16 @@ It is deliberately small but fully loadable:
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_plugins/test_<your_plugin_name>/
 ```
 
+## Beyond The Minimum
+
+The steps above produce a working plugin. A plugin can also teach Picoripi to mine the
+game's **own data** — message attributes that identify what a string *is*, dialogue flow,
+scene tables — or an external lore source, and feed that into AI translation, glossary
+seeding, and the Story Timeline. All of it is opt-in and nothing breaks if you skip it.
+
+See `docs/PLUGIN_AUTHORING_GUIDE.md` section 4 for the full list of hooks, and
+`plugins/zelda_bmg/` for a reference implementation that goes the whole way.
+
 For detailed guidance, see:
 
 - `docs/PLUGIN_AUTHORING_GUIDE.md`

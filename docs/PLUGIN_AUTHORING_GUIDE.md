@@ -143,7 +143,94 @@ Use this for plugin-specific AI behavior:
 - glossary occurrence update prompt;
 - optional MemePalace prompt overrides.
 
-## 4. Development Workflow
+## 4. Optional Advanced Capabilities: Mining The Game's Own Data
+
+Everything in section 3 is the required minimum. Beyond it, a plugin can teach Picoripi to
+mine the game's **own data** — message attributes, dialogue graphs, scene tables, actor
+placement — or an external lore source, and feed that into AI translation, glossary
+building, and the Story Timeline.
+
+All of these are **opt-in**. Every hook has a safe default on `BaseGameRules`, and the
+application degrades gracefully when a plugin does not implement it. A plugin that skips
+this entire section still works: the universal AI text sweep operates on extracted text alone.
+
+Start by asking what you actually have:
+
+| If you have | What becomes possible |
+| :--- | :--- |
+| A decompilation or the game's source | window kinds, dialogue flow, scene tables, actor placement |
+| Raw game files (message archives, stage/room data) | the same, by parsing the binaries directly |
+| A community wiki for the game | external lore lookup for glossary descriptions |
+| A fan script or walkthrough transcript | scene and speaker structure for MemePalace |
+| Only the extracted text | nothing here is required — the text sweep still builds a glossary |
+
+### 4.1 Capabilities Available Today
+
+| Hook | What it unlocks in the app | Default |
+| :--- | :--- | :--- |
+| `get_translation_context_for_string` | Injects per-string game metadata into AI translation and glossary-building prompts. The engine recognises the keys `window_type`, `content_role`, `glossary_section`, and `force_glossary`, and treats their **values as opaque** — see the note below | `{}` |
+| `get_ai_flow_context_for_string` | Per-line conversation context in the translation prompt: which dialogue the line belongs to, its position, branch conditions | `None` |
+| `get_ai_flow_overview` | Chunk-level conversation outlines for batch translation | `None` |
+| `get_scene_context_for_string` | Story Timeline evidence: message resource, group, flow ids, `candidate_actors`, `flow_summary`, `location_candidates` | `{}` |
+| `get_string_layout` | Per-string width, font, and lines-per-page derived from game data instead of one global setting | `None` |
+| `prepare_preview_glyph_text` | Visual preview with per-character colors (and, if you extend it, scales and inline icons) | text with tags stripped |
+| `get_dynamic_name_tags` | Substitutes runtime name tags with real names before script matching, so `{escape:0:0022}` can match `Epona` in a script | `{}` |
+| `should_auto_match_story_context` | Excludes non-dialogue strings (captions, signs) from automatic script matching | `True` |
+| `parse_walkthrough_transcript` | Parses a game script into rooms, scenes, and speakers for MemePalace | generic text parser |
+| `get_tag_tooltip` | Human-readable explanations for control codes in the editor | `""` |
+| `get_plugin_actions`, `get_context_menu_actions` | Custom toolbar and context-menu actions | `[]` |
+| `export_runtime_session_state`, `restore_runtime_session_state` | Persists plugin-derived runtime state across sessions | not defined on base |
+
+**Slots versus values.** The metadata keys above are *slots* the engine publishes; the values
+you put in them are yours. `content_role` may be `"BossName"`, `"PokemonName"`,
+`"ChoiceOption"`, or anything your game needs — the engine passes it through without
+interpreting it. Do not expect the engine to understand a role by name, and do not add engine
+code that compares against a specific value.
+
+### 4.2 Planned Capabilities
+
+These are designed but **not yet implemented**. See `docs/PIPELINE_ROADMAP.md` before
+relying on them:
+
+- `get_capabilities()` — declares which capabilities the plugin implements, so the pipeline
+  wizard can show them before anything is run.
+- `get_glossary_seed_entries()` — ready-made glossary material straight from game data:
+  `{term, description?, section, icon?, source_ref}`. A game whose data already pairs a name
+  with its description can seed the glossary with **no AI involved at all**.
+- `get_external_lore(term)` — external knowledge lookup used to ground glossary descriptions.
+- `get_addressee_for_string()` — who a line is addressed to, for the Story Timeline and
+  translation prompts.
+- A `role_instruction` key alongside `content_role`, so a plugin supplies not just the name of
+  a role but the sentence explaining what it means to the AI. Today the engine still carries a
+  hardcoded instruction for one game-specific role; that paragraph moves into its plugin, after
+  which the engine will never need to know any role by name.
+
+### 4.3 Reference Implementation
+
+`plugins/zelda_bmg/` (The Legend of Zelda: Twilight Princess) is the reference for how far
+this can go. From the game's own files and a decompilation it mines:
+
+- **message attributes** — each message carries a byte identifying which on-screen window
+  the game draws it in, which in turn identifies the message's *role*: an item-acquisition
+  window pairs an item name with its description and icon; a location plate holds a place
+  name; a boss card holds a boss name. This turns whole categories of message into
+  ready-made glossary entries (`window_kinds.py`, `get_translation_context_for_string`);
+- **dialogue flow graphs** — reconstructs conversations, branches, and follow-up actions
+  from the message archive's flow tables (`get_ai_flow_context_for_string`);
+- **scene tables** — maps message groups to stages and candidate actors
+  (`get_scene_context_for_string`, `stage_data.py`);
+- **per-window layout** — derives text width and lines-per-page per message from its window
+  kind rather than one global limit (`get_string_layout`);
+- **rich preview** — per-character colors, text scaling, and inline button icons
+  (`prepare_preview_glyph_text`);
+- **external lore** — descriptions from a community wiki (currently in
+  `core/mempalace/character_profiler.py`; moving into the plugin, see the roadmap).
+
+Copy the *approach*, not the code: the specific tables are game-specific, but the pattern —
+find the field in the game's data that already encodes a message's role, then expose it
+through a hook — transfers to most games.
+
+## 5. Development Workflow
 
 1. Copy `plugins/default_plugin/`.
 2. Rename the folder and display name.
@@ -156,7 +243,7 @@ Use this for plugin-specific AI behavior:
 9. Run targeted tests in parallel.
 10. Run the full suite in parallel before release.
 
-## 5. Questions To Answer Before Coding
+## 6. Questions To Answer Before Coding
 
 Before implementing a new plugin, collect:
 
@@ -178,7 +265,7 @@ Before implementing a new plugin, collect:
 
 The prompt in `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` asks these questions in a structured way.
 
-## 6. Tests For A New Plugin
+## 7. Tests For A New Plugin
 
 Create:
 
@@ -203,7 +290,7 @@ Command:
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_plugins/test_<your_plugin_name>/
 ```
 
-## 7. Common Mistakes
+## 8. Common Mistakes
 
 - Importing `PyQt5` instead of `PyQt6`.
 - Creating `rules.py` without `config.json`, which prevents UI discovery.
@@ -214,7 +301,7 @@ $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_pl
 - Splitting or deleting unknown data fields during save.
 - Adding AI prompt instructions that permit changing tags.
 
-## 8. Release Checklist
+## 9. Release Checklist
 
 - Plugin appears in Settings.
 - `GameRules` imports without side effects.
