@@ -303,7 +303,7 @@ def test_th_resume_block_translation(mock_box, th):
         mock_init.assert_called_once()
 
 def test_th_handle_chunk_translated(th):
-    ctx = {'block_idx': 1}
+    ctx = {'block_idx': 1, 'source_items': [{'id': 0, 'text': 's'}]}
     th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
     th.data_processor.is_string_translated.return_value = False
     
@@ -315,10 +315,28 @@ def test_th_handle_chunk_translated(th):
     th.ui_handler.finish_ai_operation.assert_called_once()
     assert 1 not in th.translation_progress
 
+
+def test_th_handle_chunk_translated_rejects_changed_line_layout(th):
+    ctx = {
+        'block_idx': 1,
+        'source_items': [{'id': 0, 'text': 'line one\nline two'}],
+    }
+    th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
+
+    chunk_text = (
+        '{"translated_strings": '
+        '[{"id": 0, "translation": "merged line"}]}'
+    )
+    th._handle_chunk_translated(0, chunk_text, ctx)
+
+    th.data_processor.update_edited_data.assert_not_called()
+    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+
 def test_th_handle_chunk_translated_chapter(th):
     ctx = {
         'block_idx': -2,
-        'temp_id_map': {0: (0, 0)}
+        'temp_id_map': {0: (0, 0)},
+        'source_items': [{'id': 0, 'text': 's'}],
     }
     th.translation_progress = {-2: {'completed_chunks': set(), 'total_chunks': 1}}
     th.mw.data_store.current_chapter_id = 12
@@ -353,9 +371,25 @@ def test_th_handle_single_translation_success(th):
     th.ui_handler.apply_full_translation.assert_called_with("trans")
     th.ui_handler.finish_ai_operation.assert_called_once()
 
+
+def test_th_handle_single_translation_rejects_changed_line_layout(th):
+    ctx = {
+        'block_idx': 1,
+        'string_idx': 2,
+        'composer_args': {'source_text': 'line one\nline two'},
+    }
+    th.ai_lifecycle_manager._clean_model_output.return_value = (
+        '{"translation":"merged line"}'
+    )
+
+    th._handle_single_translation_success(ProviderResponse(), ctx)
+
+    th.data_processor.update_edited_data.assert_not_called()
+    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+
 @patch('handlers.translation_handler.QMessageBox')
 def test_th_handle_variation_success(mock_box, th):
-    ctx = {'is_inline': True}
+    ctx = {'is_inline': True, 'selected_text': 'source'}
     th.ai_lifecycle_manager._clean_model_output.return_value = "vars"
     th.ui_handler.parse_variation_payload.return_value = ["v1", "v2"]
     th.ui_handler.show_variations_dialog.return_value = "v1"
@@ -703,7 +737,7 @@ def test_translate_specific_strings_force_prompt(th):
         mock_init.assert_called_once()
 
 def test_th_handle_chunk_translated_retranslated(th):
-    ctx = {'block_idx': 1}
+    ctx = {'block_idx': 1, 'source_items': [{'id': 0, 'text': 'old_val'}]}
     th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
     
     th.data_processor.is_string_translated.return_value = True

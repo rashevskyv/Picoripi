@@ -374,9 +374,17 @@ class TranslationHandler(BaseHandler):
             QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
             return
         if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1: return
+        source_text = str(self.glossary_handler._get_original_string(
+            self.mw.data_store.physical_block_idx,
+            self.mw.data_store.current_string_idx,
+        ))
+        from core.translation.layout_contract import editor_text_for_layout
+        source_editor = editor_text_for_layout(
+            source_text, getattr(self.mw, 'current_game_rules', None)
+        )
         self._translate_and_apply(
-            source_text=str(self.glossary_handler._get_original_string(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)),
-            expected_lines=len(str(self.glossary_handler._get_original_string(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)).split("\n")),
+            source_text=source_text,
+            expected_lines=len(source_editor.split("\n")),
             mode_description="current row",
             block_idx=self.mw.data_store.physical_block_idx,
             string_idx=self.mw.data_store.current_string_idx,
@@ -771,6 +779,9 @@ class TranslationHandler(BaseHandler):
         """
         return self.text_formatter.format_and_wrap_translation(text, block_idx, string_idx)
 
+    def _convert_translation_preserving_layout(self, text: str) -> str:
+        return self.text_formatter.convert_translation_preserving_layout(text)
+
 
 
     def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
@@ -791,41 +802,7 @@ class TranslationHandler(BaseHandler):
 
     def _handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         """Internal helper to handle single translation success."""
-        log_debug(f"_handle_single_translation_success called: block={context.get('block_idx')}, string={context.get('string_idx')}")
-        self.ui_handler.update_ai_operation_step(3, self.ui_handler.status_dialog.steps[3], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        cleaned_translation = self.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
-        
-        # Restore placeholders
-        p_map = context.get('placeholder_map', {})
-        cleaned_translation = self.prompt_composer.restore_placeholders(cleaned_translation, p_map, key=0)
-        
-        block_idx = context.get('block_idx', self.mw.data_store.physical_block_idx)
-        string_idx = context.get('string_idx', self.mw.data_store.current_string_idx)
-        final_text = self._format_and_wrap_translation(cleaned_translation, block_idx, string_idx)
-        self.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
-        
-        self.ui_handler.update_ai_operation_step(4, self.ui_handler.status_dialog.steps[4], self.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        
-        # Write translated text directly to the database to prevent timer desync and immediate UI overwrites
-        if hasattr(self.mw, 'undo_manager'):
-            self.mw.undo_manager.begin_group()
-        self.data_processor.update_edited_data(block_idx, string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
-        if hasattr(self.mw, 'undo_manager'):
-            self.mw.undo_manager.end_group("TRANSLATE")
-            
-        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
-        if saved_mgr:
-            saved_mgr.save_translation(block_idx, string_idx, final_text)
-
-        self.ui_handler.apply_full_translation(final_text)
-        log_debug("_handle_single_translation_success: applied translation length=%d" % len(final_text))
-        self.current_session_translations = {block_idx: [(string_idx, final_text)]}
-        self.ui_handler.finish_ai_operation(translation_details=self.current_session_translations)
-        self.ui_updater.populate_current_view(force=True)
-        # If we translated the currently visible string, update the text view
-        if self.mw.data_store.physical_block_idx == block_idx and self.mw.data_store.current_string_idx == string_idx:
-            self.ui_updater.update_text_views()
-        self.ui_updater.update_title()
+        self.batch_translator.handle_single_translation_success(response, context)
 
     def _on_task_finished(self, context: Dict[str, Any]) -> None:
         """Internal helper to handle the task finished event."""

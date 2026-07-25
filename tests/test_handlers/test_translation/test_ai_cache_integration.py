@@ -120,6 +120,42 @@ def test_filter_already_saved_translations_all(translation_handler, mock_mw):
         assert len(filtered_items) == 0
         assert len(filtered_map) == 0
 
+
+def test_cached_translation_with_extra_lines_can_be_restored(
+    translation_handler, mock_mw
+):
+    source_items = [{"id": 0, "text": "one\ntwo\nthree"}]
+    temp_id_map = {0: (0, 0)}
+    saved_db = {
+        "src/block0.json::bk0::0": "one\ntwo\nthree\nfour\nfive"
+    }
+
+    with patch.object(
+        mock_mw.saved_translations_manager,
+        'load_all_saved_translations',
+        return_value=saved_db,
+    ), patch.object(
+        translation_handler.data_processor, 'update_edited_data'
+    ) as mock_update, patch.object(
+        CachedTranslationDialog, 'exec', return_value=1
+    ) as mock_dialog:
+        filtered_items, filtered_map = (
+            translation_handler._filter_already_saved_translations(
+                source_items, temp_id_map
+            )
+        )
+
+    mock_update.assert_called_once_with(
+        0,
+        0,
+        "one\ntwo\nthree\nfour\nfive",
+        action_type="RESTORE",
+        skip_ui_refresh=True,
+    )
+    mock_dialog.assert_called_once()
+    assert filtered_items == []
+    assert filtered_map == {}
+
 def test_translate_and_apply_cache_hit(translation_handler, mock_mw):
     # Test that _translate_and_apply immediately applies a saved translation and skips AI
     saved_db = {"src/block0.json::bk0::0": "Saved Translation 0"}
@@ -163,7 +199,10 @@ def test_handle_chunk_translated_saves_cache_bulk(translation_handler, mock_mw):
     context = {
         "block_idx": 0,
         "temp_id_map": {0: (0, 0), 1: (0, 1)},
-        "calculated_chunks": [[{"id": 0}, {"id": 1}]],
+        "calculated_chunks": [[
+            {"id": 0, "text": "Source 0"},
+            {"id": 1, "text": "Source 1"},
+        ]],
         "placeholder_map": {}
     }
     
@@ -177,7 +216,10 @@ def test_handle_preview_translation_success_saves_cache_bulk(translation_handler
     response = MagicMock()
     context = {
         "block_idx": 0,
-        "source_items": [{"id": 0}, {"id": 1}],
+        "source_items": [
+            {"id": 0, "text": "Source 0"},
+            {"id": 1, "text": "Source 1"},
+        ],
         "temp_id_map": {0: (0, 0), 1: (0, 1)},
         "placeholder_map": {}
     }

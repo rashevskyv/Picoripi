@@ -126,7 +126,7 @@ def test_AIWorker_run_translate_block_chunked(worker_deps):
     worker.chunk_translated.connect(mock_chunk_translated)
     worker.error.connect(mock_error)
     
-    response = ProviderResponse(text='{"translated_strings": ["TransA"]}')
+    response = ProviderResponse(text='{"translated_strings": [{"id": 0, "translation": "TransA"}]}')
     provider.translate.return_value = response
     
     worker.run()

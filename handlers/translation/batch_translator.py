@@ -11,6 +11,11 @@ from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from dialogs.cached_translation_dialog import CachedTranslationDialog
 from utils.logging_utils import log_debug, log_warning, log_info
 from utils.utils import is_control_modifier_pressed
+from core.translation.layout_contract import (
+    editor_text_for_layout,
+    resolve_lines_per_window,
+    validate_translation_layout,
+)
 
 
 class AIBatchTranslator(BaseTranslationHandler):
@@ -19,6 +24,89 @@ class AIBatchTranslator(BaseTranslationHandler):
     def __init__(self, main_handler):
         """Initialize a new instance."""
         super().__init__(main_handler)
+
+    @staticmethod
+    def _translation_value(item: Dict[str, Any]) -> str:
+        for key in ("translation", "text", "translated_text"):
+            if key in item and item[key] is not None:
+                return str(item[key])
+        return ""
+
+    def _validate_batch_layouts(
+        self,
+        translated_strings,
+        source_items,
+        placeholder_map,
+        temp_id_map=None,
+        block_idx=None,
+    ):
+        if not isinstance(translated_strings, list) or len(translated_strings) != len(source_items):
+            raise ValueError("Invalid response structure or item count mismatch.")
+        validated = []
+        rules = getattr(self.mw, "current_game_rules", None)
+        for index, (result, source_item) in enumerate(zip(translated_strings, source_items)):
+            if not isinstance(result, dict):
+                raise ValueError(f"Translation result #{index} is not an object.")
+            source_id = source_item.get("id") if isinstance(source_item, dict) else index
+            source_text = source_item.get("text", "") if isinstance(source_item, dict) else str(source_item)
+            translated = self._translation_value(result)
+            translated = self.main_handler.prompt_composer.restore_placeholders(
+                translated, placeholder_map, key=source_id
+            )
+            source_editor_text = editor_text_for_layout(source_text, rules)
+            real_block_idx, real_string_idx = block_idx, source_id
+            if temp_id_map and source_id in temp_id_map:
+                real_block_idx, real_string_idx = temp_id_map[source_id]
+            elif temp_id_map and str(source_id) in temp_id_map:
+                real_block_idx, real_string_idx = temp_id_map[str(source_id)]
+            validated.append(validate_translation_layout(
+                source_editor_text,
+                translated,
+                resolve_lines_per_window(
+                    self.mw, real_block_idx, real_string_idx
+                ),
+                allow_line_expansion=True,
+            ))
+        return validated
+
+    def _cached_translation_matches_layout(
+        self,
+        source_item: Dict[str, Any],
+        saved_text: str,
+        block_idx: int,
+        string_idx: int,
+    ) -> bool:
+        rules = getattr(self.mw, "current_game_rules", None)
+        source_editor = editor_text_for_layout(source_item.get("text", ""), rules)
+        saved_editor = editor_text_for_layout(saved_text, rules)
+        lines_per_window = resolve_lines_per_window(
+            self.mw, block_idx, string_idx
+        )
+        try:
+            validate_translation_layout(
+                source_editor,
+                saved_editor,
+                lines_per_window,
+                allow_line_expansion=True,
+            )
+        except ValueError:
+            return False
+        return True
+
+    def _extract_single_translation(self, response: ProviderResponse) -> str:
+        cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(
+            response, expect_json=True
+        )
+        try:
+            payload = json.loads(cleaned)
+            if isinstance(payload, dict) and isinstance(payload.get("translation"), str):
+                return payload["translation"]
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # Backward compatibility with cached/older plain-text responses.
+        return self.main_handler.ai_lifecycle_manager._clean_model_output(
+            response, expect_json=False
+        )
 
     def _resolve_base_timeout(self, provider: BaseTranslationProvider) -> int:
         """Resolve base timeout based on the active provider."""
@@ -74,7 +162,14 @@ class AIBatchTranslator(BaseTranslationHandler):
 
             key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
             saved_text = saved_translations.get(key)
-            if saved_text and isinstance(saved_text, str) and saved_text.strip():
+            if (
+                saved_text
+                and isinstance(saved_text, str)
+                and saved_text.strip()
+                and self._cached_translation_matches_layout(
+                    item, saved_text, r_block_idx, r_string_idx
+                )
+            ):
                 block_name = None
                 if hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
                     block_name = self.mw.data_store.block_names.get(str(r_block_idx))
@@ -120,7 +215,14 @@ class AIBatchTranslator(BaseTranslationHandler):
             key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
             saved_text = saved_translations.get(key)
             
-            if saved_text and isinstance(saved_text, str) and saved_text.strip():
+            if (
+                saved_text
+                and isinstance(saved_text, str)
+                and saved_text.strip()
+                and self._cached_translation_matches_layout(
+                    item, saved_text, r_block_idx, r_string_idx
+                )
+            ):
                 restored_items.append((r_block_idx, r_string_idx, saved_text))
             else:
                 filtered_source_items.append(item)
@@ -134,7 +236,7 @@ class AIBatchTranslator(BaseTranslationHandler):
 
             try:
                 for r_block_idx, r_string_idx, saved_text in restored_items:
-                    final_text = self.main_handler._format_and_wrap_translation(saved_text, r_block_idx, r_string_idx)
+                    final_text = self.main_handler._convert_translation_preserving_layout(saved_text)
                     self.data_processor.update_edited_data(
                         r_block_idx, r_string_idx, final_text, action_type="RESTORE", skip_ui_refresh=True
                     )
@@ -287,6 +389,16 @@ class AIBatchTranslator(BaseTranslationHandler):
             block_idx = context['block_idx']
             parsed_json = json.loads(chunk_text)
             translated_strings = parsed_json.get("translated_strings", [])
+            chunks = context.get('calculated_chunks')
+            current_chunk = chunks[chunk_index] if (chunks and chunk_index < len(chunks)) else None
+            source_items_for_chunk = current_chunk or context.get('source_items', [])
+            validated_translations = self._validate_batch_layouts(
+                translated_strings,
+                source_items_for_chunk,
+                context.get('placeholder_map', {}),
+                context.get('temp_id_map'),
+                block_idx,
+            )
             self.mw.undo_manager.begin_group()
 
             temp_id_map = context.get('temp_id_map')
@@ -294,16 +406,9 @@ class AIBatchTranslator(BaseTranslationHandler):
             translations_by_block = {}
 
             # Retrieve calculated chunks for robust sequential mapping in case AI returns sequential/reordered IDs
-            chunks = context.get('calculated_chunks')
-            current_chunk = chunks[chunk_index] if (chunks and chunk_index < len(chunks)) else None
-
             for idx_in_response, item in enumerate(translated_strings):
                 temp_id = item.get("id")
-                translated_text = item.get("translation") or item.get("text") or item.get("translated_text") or ""
-                
-                p_map = context.get('placeholder_map', {})
-                if p_map:
-                    translated_text = self.main_handler.prompt_composer.restore_placeholders(translated_text, p_map, key=temp_id)
+                translated_text = validated_translations[idx_in_response]
                 
                 # 1. First, try to resolve real block/string indices using sequential order inside the chunk
                 resolved = False
@@ -345,7 +450,7 @@ class AIBatchTranslator(BaseTranslationHandler):
 
                 if resolved:
                     modified_blocks.add(real_block_idx)
-                    final_text = self.main_handler._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
+                    final_text = self.main_handler._convert_translation_preserving_layout(translated_text)
                     
                     # Track previous translation if it was already translated
                     if self.data_processor.is_string_translated(real_block_idx, real_string_idx):
@@ -439,22 +544,26 @@ class AIBatchTranslator(BaseTranslationHandler):
         try:
             parsed_json = json.loads(cleaned_text)
             translated_strings = parsed_json.get("translated_strings")
-            if not isinstance(translated_strings, list) or len(translated_strings) != len(context['source_items']):
-                raise ValueError("Invalid response structure or item count mismatch.")
+            source_items = context.get('source_items', [])
+            validated_translations = self._validate_batch_layouts(
+                translated_strings,
+                source_items,
+                context.get('placeholder_map', {}),
+                context.get('temp_id_map'),
+                context.get('block_idx'),
+            )
 
             self.mw.undo_manager.begin_group()
                 
             self.main_handler.ui_handler.update_ai_operation_step(4, self.main_handler.ui_handler.status_dialog.steps[4], self.main_handler.ui_handler.status_dialog.STATUS_IN_PROGRESS)
             
             temp_id_map = context.get('temp_id_map')
-            p_map = context.get('placeholder_map', {})
-            source_items = context.get('source_items', [])
             modified_blocks = set()
             translations_by_block = {}
 
             for idx_in_response, item in enumerate(translated_strings):
                 temp_id = item.get("id")
-                translated_text = item.get("translation") or item.get("text") or item.get("translated_text") or ""
+                translated_text = validated_translations[idx_in_response]
                 
                 resolved_orig_id = None
                 if idx_in_response < len(source_items):
@@ -462,13 +571,6 @@ class AIBatchTranslator(BaseTranslationHandler):
                     if isinstance(orig_item, dict):
                         resolved_orig_id = orig_item.get('id')
                 
-                # Restore placeholders using sequential mapping key first, fallback to temp_id
-                restore_key = resolved_orig_id if resolved_orig_id is not None else temp_id
-                if p_map:
-                    translated_text = self.main_handler.prompt_composer.restore_placeholders(translated_text, p_map, key=restore_key)
-                else:
-                    translated_text = self.main_handler.prompt_composer.restore_placeholders(translated_text, None, key=None)
-
                 # 1. Try sequential order inside source_items first
                 resolved = False
                 if resolved_orig_id is not None:
@@ -512,7 +614,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                         real_string_idx = temp_id
 
                 modified_blocks.add(real_block_idx)
-                final_text = self.main_handler._format_and_wrap_translation(translated_text, real_block_idx, real_string_idx)
+                final_text = self.main_handler._convert_translation_preserving_layout(translated_text)
                 
                 if not hasattr(self.main_handler, 'current_session_translations') or self.main_handler.current_session_translations is None:
                     self.main_handler.current_session_translations = {}
@@ -582,7 +684,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         """Internal helper to handle single translation success."""
         log_debug(f"handle_single_translation_success called: block={context.get('block_idx')}, string={context.get('string_idx')}")
         self.main_handler.ui_handler.update_ai_operation_step(3, self.main_handler.ui_handler.status_dialog.steps[3], self.main_handler.ui_handler.status_dialog.STATUS_IN_PROGRESS)
-        cleaned_translation = self.main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=False)
+        cleaned_translation = self._extract_single_translation(response)
         
         # Restore placeholders
         p_map = context.get('placeholder_map', {})
@@ -590,7 +692,22 @@ class AIBatchTranslator(BaseTranslationHandler):
         
         block_idx = context.get('block_idx', self.mw.data_store.physical_block_idx)
         string_idx = context.get('string_idx', self.mw.data_store.current_string_idx)
-        final_text = self.main_handler._format_and_wrap_translation(cleaned_translation, block_idx, string_idx)
+        source_text = (context.get('composer_args') or {}).get('source_text')
+        if isinstance(source_text, str):
+            try:
+                source_editor = editor_text_for_layout(
+                    source_text, getattr(self.mw, 'current_game_rules', None)
+                )
+                cleaned_translation = validate_translation_layout(
+                    source_editor,
+                    cleaned_translation,
+                    resolve_lines_per_window(self.mw, block_idx, string_idx),
+                    allow_line_expansion=True,
+                )
+            except ValueError as exc:
+                self.main_handler._handle_ai_error(f"Validation failed: {exc}", context)
+                return
+        final_text = self.main_handler._convert_translation_preserving_layout(cleaned_translation)
         self.main_handler.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
         
         self.main_handler.ui_handler.update_ai_operation_step(4, self.main_handler.ui_handler.status_dialog.steps[4], self.main_handler.ui_handler.status_dialog.STATUS_IN_PROGRESS)

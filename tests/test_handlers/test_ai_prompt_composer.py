@@ -49,6 +49,69 @@ def test_AIPromptComposer_compose_batch_request_context(composer):
     assert "Block 0" in user
 
 
+def test_single_and_batch_prompts_include_full_structured_story_context_and_cast_glossary(composer):
+    bundle = {
+        "current_speakers": ["Midna"],
+        "event": {
+            "title": "Gate warning",
+            "summary": "Midna warns Link before entry.",
+            "location": "Castle gate",
+            "participants": ["Midna", "Link"],
+            "interactions": ["Midna → Link: warns him urgently"],
+        },
+        "character_profiles": [{
+            "name": "Midna",
+            "speech_style": "Sharp and concise",
+            "translation_advice": "Keep commands short",
+        }],
+        "known_relationships": [{
+            "source": "Midna", "relation": "trusted_ally", "target": "Link",
+        }],
+    }
+    composer._get_structured_story_context = MagicMock(return_value=bundle)
+    composer._get_mempalace_client = MagicMock(return_value=None)
+    composer._find_speaker_in_script = MagicMock(return_value=None)
+    composer._fetch_story_context = MagicMock(return_value=None)
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.data_store.block_names = {"0": "Dialog"}
+    composer.mw.data_store.data = [["Stop!"]]
+
+    entries = {
+        "Midna": GlossaryEntry("Midna", "Мідна", "Use feminine grammar"),
+        "Link": GlossaryEntry("Link", "Лінк", "Hero name"),
+    }
+    glossary = MagicMock()
+    glossary.get_relevant_terms.return_value = []
+    glossary.get_entry.side_effect = lambda name: entries.get(name)
+    glossary.get_entries.return_value = list(entries.values())
+    composer.main_handler._glossary_manager = glossary
+
+    system, single_user = composer.compose_messages(
+        "Translate into {target_lang}.", "Stop!", block_idx=0, string_idx=0,
+        expected_lines=1, mode_description="translation",
+    )
+    _, batch_user, _ = composer.compose_batch_request(
+        "Translate into {target_lang}.", [{"id": 0, "text": "Stop!"}],
+        [{"id": 0, "text": "Stop!"}], block_idx=0,
+        mode_description="translation",
+    )
+
+    assert "CONTEXT PRIORITY" in system
+    assert "MEMORY PALACE CONTEXT" in single_user
+    assert "Castle gate" in single_user
+    assert "trusted_ally" in single_user
+    assert "| Midna | Мідна |" in single_user
+    assert "| Link | Лінк |" in single_user
+    assert '"story_context_ref": "story_context_1"' in batch_user
+    assert '"story_context_catalog"' in batch_user
+    assert batch_user.count('"Gate warning"') == 1
+    assert "| Link | Лінк |" in batch_user
+    assert any(
+        "Castle gate" in str(call.args[0])
+        for call in glossary.get_relevant_terms.call_args_list
+    )
+
+
 def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
     block = MagicMock()
     block.metadata = {
@@ -57,6 +120,8 @@ def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
             "structure_id": 30,
             "structure_path": ["Act One", "Memory Card"],
             "item": "Save UI",
+            "translator_note": "This is a neutral system notification.",
+            "notated": True,
         }}
     }
     composer.mw.project_manager.project.blocks = [block]
@@ -79,6 +144,7 @@ def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
     assert '"speaker": "System"' in user
     assert '"story_structure": "Act One > Memory Card"' in user
     assert '"reference_item": "Save UI"' in user
+    assert '"translator_note": "This is a neutral system notification."' in user
     composer._find_speaker_in_script.assert_not_called()
 
 
@@ -653,3 +719,25 @@ def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     assert "TAG ALIAS LEGEND" in user_msg
     assert "{Color:Red}" in user_msg
     assert "{f:dummy}" not in user_msg
+    assert '"line_count": 2' in user
+    assert "SOURCE LAYOUT TARGET" in user_msg
+    assert "add only the minimum necessary extra lines" in user_msg.lower()
+
+
+def test_batch_prompt_keeps_source_whitespace_instead_of_reflowing(composer):
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+
+    _, user, _ = composer.compose_batch_request(
+        "SysPrompt",
+        [{"id": 0, "text": "  First  line  \n\nThird line\n"}],
+        [{"id": 0, "text": "  First  line  \n\nThird line\n"}],
+        block_idx=0,
+        mode_description="translation",
+    )
+
+    assert "  First  line  \\n\\nThird line\\n" in user
+    assert '"blank_line_indices": [' in user
+    assert '"ends_with_newline": true' in user

@@ -7,6 +7,11 @@ from PyQt6.QtWidgets import QMessageBox, QApplication
 from .base_translation_handler import BaseTranslationHandler
 from core.translation.providers import ProviderResponse
 from utils.logging_utils import log_debug
+from core.translation.layout_contract import (
+    editor_text_for_layout,
+    resolve_lines_per_window,
+    validate_translation_layout,
+)
 
 
 class AIVariationsHandler(BaseTranslationHandler):
@@ -86,18 +91,41 @@ class AIVariationsHandler(BaseTranslationHandler):
             QMessageBox.information(self.mw, "AI Variation", "Failed to parse variations from AI response.")
             return
             
-        trimmed = [self.main_handler.ai_lifecycle_manager._trim_trailing_whitespace_from_lines(v) for v in variants_raw]
-        
         # Restore placeholders
         p_map = context.get('placeholder_map', {})
         restored_variants = []
-        for v in trimmed:
-            restored_v = self.main_handler.prompt_composer.restore_placeholders(v, p_map, key=0)
-            restored_variants.append(restored_v)
-            
-        # Get target indices from context
+        layout_source = context.get('selected_text')
+        if layout_source is None:
+            layout_source = (context.get('composer_args') or {}).get('source_text', '')
+        layout_source = editor_text_for_layout(
+            layout_source, getattr(self.mw, 'current_game_rules', None)
+        )
         block_idx = context.get('block_idx', self.mw.data_store.current_block_idx)
         string_idx = context.get('string_idx', self.mw.data_store.current_string_idx)
+        lines_per_window = resolve_lines_per_window(
+            self.mw, block_idx, string_idx
+        )
+        for v in variants_raw:
+            restored_v = self.main_handler.prompt_composer.restore_placeholders(v, p_map, key=0)
+            try:
+                restored_variants.append(
+                    validate_translation_layout(
+                        layout_source,
+                        restored_v,
+                        lines_per_window,
+                        allow_line_expansion=True,
+                    )
+                )
+            except ValueError:
+                continue
+        if not restored_variants:
+            self.main_handler._handle_ai_error(
+                "All AI variations changed the source line layout. Retrying with the strict layout contract.",
+                context,
+            )
+            return
+            
+        # Get target indices from context
         on_success_callback = context.get('on_success_callback')
         parent_widget = context.get('parent')
         selected_text = context.get('selected_text')
@@ -131,7 +159,7 @@ class AIVariationsHandler(BaseTranslationHandler):
         if is_inline:
             final_text = chosen
         else:
-            final_text = self.main_handler._format_and_wrap_translation(chosen, target_block_idx, target_string_idx)
+            final_text = self.main_handler._convert_translation_preserving_layout(chosen)
         
         self.mw.undo_manager.begin_group()
         try:

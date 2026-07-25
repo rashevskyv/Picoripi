@@ -5,6 +5,11 @@ from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from core.translation.ai_error_handler import handle_ai_error
 from .ai_prompt_composer import AIPromptComposer
 from utils.logging_utils import log_debug
+from core.translation.layout_contract import (
+    editor_text_for_layout,
+    resolve_lines_per_window,
+    validate_translation_layout,
+)
 
 class AIWorker(QObject):
     """A i worker implementation."""
@@ -491,6 +496,43 @@ class AIWorker(QObject):
                         translated_items = parsed_response.get('translated_strings', [])
 
                         if len(translated_items) == len(chunk):
+                            rules = getattr(self.mw, 'current_game_rules', None) if self.mw else None
+                            for result_item, source_item in zip(translated_items, chunk):
+                                if not isinstance(result_item, dict):
+                                    raise ValueError("A translated item is not a JSON object")
+                                translated_value = next(
+                                    (
+                                        str(result_item[key])
+                                        for key in ("translation", "text", "translated_text")
+                                        if key in result_item and result_item[key] is not None
+                                    ),
+                                    "",
+                                )
+                                source_value = (
+                                    source_item.get('text', '')
+                                    if isinstance(source_item, dict) else str(source_item)
+                                )
+                                source_id = (
+                                    source_item.get('id')
+                                    if isinstance(source_item, dict) else None
+                                )
+                                real_block_idx = self.task_details.get('block_idx')
+                                real_string_idx = source_id
+                                temp_id_map = self.task_details.get('temp_id_map') or {}
+                                if source_id in temp_id_map:
+                                    real_block_idx, real_string_idx = temp_id_map[source_id]
+                                elif str(source_id) in temp_id_map:
+                                    real_block_idx, real_string_idx = temp_id_map[str(source_id)]
+                                validate_translation_layout(
+                                    editor_text_for_layout(source_value, rules),
+                                    translated_value,
+                                    resolve_lines_per_window(
+                                        self.mw,
+                                        real_block_idx,
+                                        real_string_idx,
+                                    ),
+                                    allow_line_expansion=True,
+                                )
                             if session_state and not session_state.bootstrapped:
                                 log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")
                                 session_state.bootstrapped = True
@@ -507,7 +549,7 @@ class AIWorker(QObject):
                             self.error.emit(error_msg, self.task_details)
                             return
 
-                    except (TranslationProviderError, json.JSONDecodeError) as e:
+                    except (TranslationProviderError, json.JSONDecodeError, ValueError) as e:
                         self._log_ai_traffic(messages, error=str(e))
                         resp_t = response.text if 'response' in locals() else ""
                         err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {i}")

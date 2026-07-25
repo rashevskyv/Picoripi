@@ -17,6 +17,11 @@ from core.translation.glossary_formatter import GlossaryPromptFormatter
 from core.translation.story_context_manager import StoryContextManager
 from core.story_context_overrides import get_story_context_override
 from core.translation.script_speaker_finder import ScriptSpeakerFinder
+from core.translation.story_context_bundle import (
+    build_story_context_bundle,
+    glossary_names_from_story_bundle,
+)
+from core.translation.layout_contract import layout_signature, resolve_lines_per_window
 
 
 class AIPromptComposer(BaseTranslationHandler):
@@ -140,8 +145,48 @@ class AIPromptComposer(BaseTranslationHandler):
         if structure_id is not None and structure_path:
             return "Manually assigned Story structure: " + " > ".join(structure_path)
         return self.story_context.fetch_story_context(
-            block_idx, s_idx, text, self.script_speaker_finder, self.data_processor
+            block_idx, s_idx, text, self.script_speaker_finder, self.data_processor,
+            include_normalized=False,
         )
+
+    def _get_structured_story_context(self, block_idx: int, string_idx: int) -> Dict:
+        try:
+            return build_story_context_bundle(
+                self._get_mempalace_client(),
+                str(block_idx),
+                string_idx,
+                self._get_wing_name(),
+            )
+        except Exception as exc:
+            log_debug(f"AIPromptComposer: structured story context failed: {exc}")
+            return {}
+
+    def _layout_contract_for_string(
+        self, text: str, block_idx: Optional[int], string_idx: Optional[int]
+    ) -> Dict:
+        signature = layout_signature(
+            text,
+            resolve_lines_per_window(self.mw, block_idx, string_idx),
+        )
+        try:
+            from utils.utils import resolve_width_limits
+
+            metadata = getattr(self.mw, 'string_metadata', {}).get(
+                (block_idx, string_idx), {}
+            )
+            warning_width, max_width = resolve_width_limits(
+                metadata,
+                getattr(self.mw, 'current_game_rules', None),
+                block_idx,
+                string_idx,
+                getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
+                getattr(self.mw, 'game_dialog_max_width_pixels', 300),
+            )
+            signature['warning_line_width_px'] = warning_width
+            signature['max_line_width_px'] = max_width
+        except (AttributeError, TypeError, ValueError):
+            pass
+        return signature
 
     def _append_speaker_glossary_entries(
         self,
@@ -219,6 +264,8 @@ class AIPromptComposer(BaseTranslationHandler):
         # 1. Resolve speakers and clean newlines for all items in chunk
         items_with_context = []
         speaker_candidates = set()
+        story_context_catalog = {}
+        story_context_refs = {}
         for item in source_items:
             if isinstance(item, dict):
                 item_id = item.get('id', 0)
@@ -241,13 +288,9 @@ class AIPromptComposer(BaseTranslationHandler):
             if force_maps:
                 placeholder_map[item_id] = force_maps
 
-            # Preserve structured deliberate newlines, normalising spaces inside each line
-            lines = current_text_for_ai.split('\n')
-            cleaned_lines = []
-            for line in lines:
-                cleaned_line = re.sub(r' +', ' ', line).strip()
-                cleaned_lines.append(cleaned_line)
-            current_text_clean = '\n'.join(cleaned_lines)
+            # Keep the exact editor-visible line structure and whitespace. The
+            # response validator enforces a one-to-one line layout.
+            current_text_clean = current_text_for_ai.replace('\r\n', '\n').replace('\r', '\n')
 
             # Resolve real data-store coordinates for this item
             real_b_idx = block_idx
@@ -276,6 +319,11 @@ class AIPromptComposer(BaseTranslationHandler):
             is_single_word = len(clean_item_text.split()) <= 1
 
             manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
+            structured_story_context = (
+                {}
+                if manual.get("structure_id") == "story:none"
+                else self._get_structured_story_context(real_b_idx, real_s_idx)
+            )
             manual_speaker = str(manual.get("speaker") or "").strip()
             if manual_speaker:
                 speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
@@ -308,11 +356,17 @@ class AIPromptComposer(BaseTranslationHandler):
             if speaker and speaker not in ("Unknown", "NONE"):
                 for part in speaker.split(','):
                     speaker_candidates.add(part.strip())
+            speaker_candidates.update(
+                glossary_names_from_story_bundle(structured_story_context)
+            )
 
             item_for_ai = {
                 'id': item_id,
                 'text': current_text_clean,
-                'speaker': speaker
+                'speaker': speaker,
+                'layout': self._layout_contract_for_string(
+                    current_text_clean, real_b_idx, real_s_idx
+                ),
             }
             item_for_ai.update(translation_context)
             structure_path = [
@@ -328,6 +382,19 @@ class AIPromptComposer(BaseTranslationHandler):
                     'None (manually unassigned)'
                     if manual_item.casefold() == 'none' else manual_item
                 )
+            translator_note = str(manual.get('translator_note') or '').strip()
+            if translator_note:
+                item_for_ai['translator_note'] = translator_note
+            if structured_story_context:
+                context_key = json.dumps(
+                    structured_story_context, ensure_ascii=False, sort_keys=True
+                )
+                context_ref = story_context_refs.get(context_key)
+                if context_ref is None:
+                    context_ref = f"story_context_{len(story_context_catalog) + 1}"
+                    story_context_refs[context_key] = context_ref
+                    story_context_catalog[context_ref] = structured_story_context
+                item_for_ai['story_context_ref'] = context_ref
             if isinstance(item, dict) and item.get('scene_context'):
                 item_for_ai['scene_context'] = item['scene_context']
 
@@ -559,6 +626,10 @@ class AIPromptComposer(BaseTranslationHandler):
                 )
         except Exception as e:
             log_debug(f"AIPromptComposer: Error calculating lookahead glossary text: {e}")
+        if story_context_catalog:
+            lookahead_text += " " + json.dumps(
+                story_context_catalog, ensure_ascii=False
+            )
 
         relevant_glossary_entries = []
         if glossary_manager:
@@ -603,6 +674,8 @@ class AIPromptComposer(BaseTranslationHandler):
         json_payload_for_ai = {
             'strings_to_translate': items_with_context
         }
+        if story_context_catalog:
+            json_payload_for_ai['story_context_catalog'] = story_context_catalog
         if scene_context:
             json_payload_for_ai['scene_context'] = scene_context
         if dialogue_flow:
@@ -620,8 +693,10 @@ class AIPromptComposer(BaseTranslationHandler):
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object in the returned array must have the original "id" (integer) and a "translation" (string) field.',
                 'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
+                'LAYOUT PRIORITY: First try to preserve line_count, blank_line_indices, trailing-newline state, and window_count from each item\'s "layout" field. Translate each source line into the corresponding output line and prefer concise wording that stays within max_line_width_px. Never remove, merge, or reorder source lines. You may add the minimum necessary extra lines, and therefore an extra dialogue window, only when the translation cannot remain readable or fit the width otherwise.',
                 f'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
                 'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (e.g. formal/informal). Apply this information to the entire translation.',
+                'Resolve each item\'s "story_context_ref" in "story_context_catalog". Use its event, location, participants, event-local interactions, character profiles, and known relationships. Apply only populated facts; do not invent missing context.',
                 'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine whether text is dialogue, a caption, a name, an item, or another UI role and translate it accordingly.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
@@ -636,8 +711,10 @@ class AIPromptComposer(BaseTranslationHandler):
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object must have the original "id" and a "translation" field.',
                 'The number of objects must match the input.',
+                'LAYOUT PRIORITY: Try to match every item\'s "layout", including window_count, and translate source lines one-to-one. Never remove, merge, or reorder source lines. Prefer concise wording within max_line_width_px; add only the minimum necessary extra lines or dialogue windows when preserving the original count is not viable.',
                 'GLOSSARY IS MANDATORY: Every term in the "glossary" MUST be translated exactly as specified. No synonyms or alternatives allowed.',
-                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine the text role, tone, gender agreement, and form of address.',
+                'Resolve each item\'s "story_context_ref" in "story_context_catalog" and use it for event facts, location, participants, interactions, character voices, relationships, gender agreement, and forms of address. Do not invent missing facts.',
+                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine the text role and tone.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -666,7 +743,11 @@ class AIPromptComposer(BaseTranslationHandler):
         system_prompt_addition = (
             "IMPORTANT: All text chunks you receive in a single request are part of a larger, "
             "cohesive block of text. Ensure your translations are consistent in style, tone, "
-            "and terminology across all chunks."
+            "and terminology across all chunks. Context priority: preserve source meaning and tags; "
+            "obey glossary translations; use event/location/participant facts; apply relationship and "
+            "address rules; then preserve each current speaker's voice profile. Context describes the "
+            "source scene and must never be copied into the translation as extra text. OUTPUT SHAPE IS "
+            "IMMUTABLE: preserve every source line boundary and blank line; never reflow text."
         )
 
         final_system_prompt = f"{system_prompt}\n\n{system_prompt_addition}"
@@ -769,6 +850,12 @@ class AIPromptComposer(BaseTranslationHandler):
             get_story_context_override(self.mw, block_idx, string_idx)
             if block_idx is not None and string_idx is not None else {}
         )
+        structured_story_context = (
+            {}
+            if manual.get("structure_id") == "story:none"
+            or block_idx is None or string_idx is None
+            else self._get_structured_story_context(block_idx, string_idx)
+        )
         manual_speaker = str(manual.get("speaker") or "").strip()
         translation_context = {}
         rules = getattr(self.mw, 'current_game_rules', None)
@@ -810,9 +897,16 @@ class AIPromptComposer(BaseTranslationHandler):
         if speaker and speaker not in ("Unknown", "NONE"):
             for part in speaker.split(','):
                 speaker_candidates.add(part.strip())
+        speaker_candidates.update(
+            glossary_names_from_story_bundle(structured_story_context)
+        )
 
         if glossary_manager and source_text:
             text_for_glossary = f"{source_text} {selected_text}" if selected_text else source_text
+            if structured_story_context:
+                text_for_glossary += " " + json.dumps(
+                    structured_story_context, ensure_ascii=False
+                )
             relevant_glossary_entries = list(glossary_manager.get_relevant_terms(text_for_glossary))
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
             if relevant_glossary_entries:
@@ -831,6 +925,15 @@ class AIPromptComposer(BaseTranslationHandler):
             tag_alias_legend_text = "TAG ALIAS LEGEND:\n" + "\n".join(f"- {alias} -> {orig}" for alias, orig in tag_alias_legend.items())
 
         combined_system = resolve_target_language_prompt(system_prompt, target_lang)
+        if request_type != 'glossary_notes_variation':
+            combined_system += (
+                "\n\nCONTEXT PRIORITY: Preserve source meaning and tags first. Glossary "
+                "translations are mandatory lexical choices. Then apply factual story event, "
+                "location and participant context; relationship/address rules; and finally the "
+                "current speaker's character voice. Never invent absent facts or copy context "
+                "descriptions into the translation. OUTPUT SHAPE IS IMMUTABLE: preserve every "
+                "source line boundary and blank line; never reflow text."
+            )
 
         context_lines: List[str] = []
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
@@ -861,6 +964,24 @@ class AIPromptComposer(BaseTranslationHandler):
                     if manual_item.casefold() == 'none' else manual_item
                 )
             )
+        translator_note = str(manual.get('translator_note') or '').strip()
+        if translator_note:
+            context_lines.append(f'Translator Note: {translator_note}')
+        if structured_story_context:
+            context_lines.append(
+                "MEMORY PALACE CONTEXT (structured authoritative facts):\n"
+                + json.dumps(structured_story_context, indent=2, ensure_ascii=False)
+            )
+        layout_source = selected_text if selected_text is not None else source_text
+        context_lines.append(
+            "SOURCE LAYOUT TARGET (preserve when viable; minimal expansion allowed):\n"
+            + json.dumps(
+                self._layout_contract_for_string(
+                    layout_source, block_idx, string_idx
+                ),
+                ensure_ascii=False,
+            )
+        )
 
         # Fetch story context from MemePalace if available
         if block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
@@ -926,8 +1047,9 @@ class AIPromptComposer(BaseTranslationHandler):
             if selected_text:
                 instructions = [
                     f'Generate 10 different {target_lang} translation alternatives specifically for the selected text segment, keeping the context of the full string in mind.',
-                    f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
+                    f'Each option should preferably keep {expected_lines} lines (including empty ones) in the same order.',
                     'Follow the glossary and preserve all tags exactly as they appear.',
+                    'Prefer the SOURCE LAYOUT TARGET. Never remove, merge, or reorder source lines; add only the minimum necessary extra lines when readability or width requires it.',
                     'Follow the tone of the original text and the surrounding translation.',
                     'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
                     'Do NOT wrap the array in an object. Return only valid JSON without any markdown or extra commentary.',
@@ -935,8 +1057,9 @@ class AIPromptComposer(BaseTranslationHandler):
             else:
                 instructions = [
                     f'Generate 10 different {target_lang} translation alternatives for the provided text.',
-                    f'Each option must contain exactly {expected_lines} lines (including empty ones) in the same order.',
+                    f'Each option should preferably keep {expected_lines} lines (including empty ones) in the same order.',
                     'Follow the glossary and preserve all tags exactly as they appear.',
+                    'Prefer the SOURCE LAYOUT TARGET. Never remove, merge, or reorder source lines; add only the minimum necessary extra lines when readability or width requires it.',
                     'Follow the tone of the original text.',
                     'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
                     'Do NOT wrap the array in an object (e.g. do not use {"variations": [...]}). Return only valid JSON without any markdown or extra commentary.',
@@ -953,11 +1076,13 @@ class AIPromptComposer(BaseTranslationHandler):
         else:
             instructions = [
                 f'Translate the text into {target_lang} without altering the meaning.',
-                f'Keep exactly {expected_lines} lines (including empty ones) and preserve their order.',
+                f'Prefer keeping {expected_lines} lines (including empty ones) and the original window_count.',
+                'Treat the SOURCE LAYOUT TARGET as the preferred layout, not an absolute prohibition. Translate each source line into its corresponding output line; never remove, merge, or reorder source lines. First use concise wording within max_line_width_px. If that would harm meaning or readability, add only the minimum necessary extra lines or dialogue windows.',
                 f'GLOSSARY IS MANDATORY: Every term found in the glossary MUST be translated exactly as specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect word endings to match {target_lang} grammar.',
                 'Read the "Notes" column in the glossary carefully for character gender, age, personality, speech style, and form of address (e.g. formal/informal). Apply this to the full translation.',
+                'Use MEMORY PALACE CONTEXT for the event, location, participants, their event-local interactions, persistent relationships, and character voice profiles. Apply only facts that are present; do not invent missing information.',
                 'All tags must be preserved exactly as they appear.',
-                'Do not add explanations or meta text; return only the translation.',
+                'Return only one valid JSON object in the form {"translation":"..."}. The translation string must preserve the source layout exactly. Do not add explanations or meta text.',
             ]
 
         if request_type not in ('glossary_notes_variation',):

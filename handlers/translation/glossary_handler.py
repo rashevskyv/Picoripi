@@ -109,6 +109,9 @@ class GlossaryHandler(BaseTranslationHandler):
         self.glossary_manager = GlossaryManager()
         self._open_glossary_action: Optional[QAction] = None
         self.dialog: Optional[GlossaryDialog] = None
+        # Snapshot of (original, translation) pairs taken when the dialog opens,
+        # so closing it only rebuilds the virtual folders if a name actually changed.
+        self._glossary_signature_on_open: Optional[tuple] = None
 
         # Delegates
         self._prompt_manager = GlossaryPromptManager(self.mw, main_handler, self.glossary_manager)
@@ -218,14 +221,43 @@ class GlossaryHandler(BaseTranslationHandler):
 
     # ── Glossary dialog ───────────────────────────────────────────────────
 
+    def _glossary_signature(self) -> tuple:
+        """Order-independent snapshot of the name-affecting glossary fields.
+
+        Only ``original`` and ``translation`` change speaker-folder labels, so
+        notes-only edits (or merely viewing the glossary) leave this unchanged.
+        """
+        try:
+            return tuple(sorted(
+                (str(getattr(e, "original", "") or ""), str(getattr(e, "translation", "") or ""))
+                for e in self.glossary_manager.get_entries()
+            ))
+        except Exception:
+            return ()
+
     def _on_glossary_dialog_closed(self):
         """Internal helper to handle the glossary dialog closed event."""
         self.dialog = None
         log_debug("Glossary dialog closed and reference cleared.")
+        # A changed translation renames speaker folders — but only rebuild them
+        # when a name actually changed, not on a view-only visit.
+        changed = self._glossary_signature() != self._glossary_signature_on_open
+        self._glossary_signature_on_open = None
+        if not changed:
+            return
+        updater = getattr(getattr(self.mw, "ui_updater", None), "block_list_updater", None)
+        refresh = getattr(updater, "refresh_virtual_folder_labels", None)
+        if callable(refresh):
+            try:
+                refresh()
+            except Exception as exc:
+                log_debug(f"Glossary close: folder label refresh failed: {exc}")
 
     def show_glossary_dialog(self, initial_term: Optional[str] = None) -> None:
         """Show glossary dialog."""
         if self.dialog and self.dialog.isVisible():
+            if initial_term and hasattr(self.dialog, "focus_term"):
+                self.dialog.focus_term(initial_term)
             self.dialog.raise_()
             self.dialog.activateWindow()
             return
@@ -263,6 +295,7 @@ class GlossaryHandler(BaseTranslationHandler):
             self.glossary_worker = None
 
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+            self._glossary_signature_on_open = self._glossary_signature()
             self.dialog = GlossaryDialog(
                 parent=self.mw, entries=entries, occurrence_map=occurrence_map,
                 jump_callback=self._jump_to_occurrence,

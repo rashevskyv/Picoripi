@@ -48,6 +48,7 @@ def mock_main_handler():
     mh._session_manager.get_state.return_value = {}
     
     mh._format_and_wrap_translation.side_effect = lambda text, *args: text
+    mh._convert_translation_preserving_layout.side_effect = lambda text: text
     
     return mh
 
@@ -77,7 +78,7 @@ def test_generate_variation_cached(mock_info, vh, mock_main_handler):
     vh.generate_variation_for_current_string(force=False)
     
     mock_main_handler.ui_handler.show_variations_dialog.assert_called_once_with(['cached_variant'], show_refresh=True, parent=None)
-    mock_main_handler._format_and_wrap_translation.assert_called_once_with('cached_variant', 0, 0)
+    mock_main_handler._convert_translation_preserving_layout.assert_called_once_with('cached_variant')
 
 
 @patch('PyQt6.QtWidgets.QMessageBox.information')
@@ -100,7 +101,7 @@ def test_generate_variation_api_flow(mock_info, vh, mock_main_handler):
 @patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_handle_variation_success(mock_info, vh, mock_main_handler):
     response = MagicMock()
-    context = {'placeholder_map': {}}
+    context = {'placeholder_map': {}, 'composer_args': {'source_text': 'source'}}
     
     mock_main_handler.ui_handler.show_variations_dialog.return_value = 'chosen_var'
     
@@ -117,7 +118,7 @@ def test_handle_variation_success(mock_info, vh, mock_main_handler):
 @patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_handle_variation_success_refresh(mock_info, vh, mock_main_handler):
     response = MagicMock()
-    context = {}
+    context = {'composer_args': {'source_text': 'source'}}
     
     mock_main_handler.ui_handler.show_variations_dialog.return_value = '__REFRESH__'
     vh._schedule_variation_refresh = MagicMock()

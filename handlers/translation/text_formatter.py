@@ -15,6 +15,13 @@ class TextFormatter:
         """Initialize a new instance."""
         self.mw = main_window
 
+    def convert_translation_preserving_layout(self, text: str) -> str:
+        """Convert editor-visible AI text to game data without wrapping or reflow."""
+        value = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+        if self.mw.current_game_rules:
+            return self.mw.current_game_rules.convert_editor_text_to_data(value)
+        return value
+
     def format_and_wrap_translation(self, text: str, block_idx: int, string_idx: int) -> str:
         """
         Cleans the incoming translation, wraps lines to balance between line_width_warning_threshold_pixels
