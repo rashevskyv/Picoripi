@@ -1,0 +1,68 @@
+"""Opening the glossary for a speaker must land ON that speaker's entry."""
+from core.glossary_manager import GlossaryEntry
+from components.glossary_dialog import GlossaryDialog
+
+
+def _entries():
+    return [
+        GlossaryEntry(original="WOMAN 1", translation="Жінка 1", notes="", section=""),
+        GlossaryEntry(original="ZELDA", translation="Зельда", notes="", section="Main"),
+        GlossaryEntry(
+            original="TWILIGHT PRINCESS",
+            translation="Сутінкова Принцеса",
+            notes="",
+            section="Main",
+        ),
+    ]
+
+
+def _dialog(qtbot, initial_term=None):
+    dlg = GlossaryDialog(
+        parent=None,
+        entries=_entries(),
+        occurrence_map={},
+        jump_callback=lambda _o: None,
+        update_callback=lambda *_a: None,
+        initial_term=initial_term,
+    )
+    qtbot.addWidget(dlg)
+    return dlg
+
+
+def test_initial_term_selects_entry_and_switches_section(qtbot):
+    dlg = _dialog(qtbot, initial_term="TWILIGHT PRINCESS")
+    dlg.focus_term("TWILIGHT PRINCESS")  # deterministic (constructor uses a timer)
+    assert dlg._current_entry is not None
+    assert dlg._current_entry.original == "TWILIGHT PRINCESS"
+    # jumped to the entry's section tab and filtered to it
+    assert dlg._tab_widget.tabText(dlg._tab_widget.currentIndex()) == "Main"
+    assert dlg._search_field.text() == "TWILIGHT PRINCESS"
+
+
+def test_focus_term_refocuses_an_open_dialog(qtbot):
+    dlg = _dialog(qtbot)
+    dlg.focus_term("TWILIGHT PRINCESS")
+    assert dlg._current_entry.original == "TWILIGHT PRINCESS"
+    dlg.focus_term("ZELDA")
+    assert dlg._current_entry.original == "ZELDA"
+
+
+def test_focus_term_for_speaker_without_entry_shows_empty(qtbot):
+    """A speaker with no glossary entry filters to nothing, so it is obvious the
+    entry must still be added — not silently opening at some unrelated row."""
+    dlg = _dialog(qtbot)
+    dlg.focus_term("SOME UNKNOWN GUARD")
+    assert dlg._filtered_entries == []
+    assert dlg._search_field.text() == "SOME UNKNOWN GUARD"
+
+
+def test_escape_closes_dialog_without_crashing(qtbot):
+    """Regression: Esc used the wrong PyQt6 enum (Qt.Key_Escape) and crashed."""
+    from PyQt6.QtCore import Qt, QEvent
+    from PyQt6.QtGui import QKeyEvent
+
+    dlg = _dialog(qtbot)
+    dlg.show()
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+    dlg.keyPressEvent(event)  # must not raise AttributeError
+    assert not dlg.isVisible()

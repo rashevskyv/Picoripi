@@ -280,6 +280,10 @@ def test_studio_constructs(qapp):
     assert dialog.flags_list.selectionMode() == QAbstractItemView.SelectionMode.ExtendedSelection
     assert dialog.main_splitter.widget(0) is dialog.raw_panel
     assert dialog.main_splitter.widget(1) is dialog.outline_panel
+    raw_search_layout = dialog.raw_panel.layout().itemAt(0).layout()
+    assert raw_search_layout.stretch(
+        raw_search_layout.indexOf(dialog.search_edit)
+    ) == 1
 
 
 def test_studio_buttons_explain_their_actions(qapp):

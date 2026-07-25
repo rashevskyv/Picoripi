@@ -1,6 +1,6 @@
-from PyQt6.QtCore import QObject, QEvent, Qt
+from PyQt6.QtCore import QObject, QEvent, Qt, QTimer
 from PyQt6.QtGui import QKeySequence
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication, QLineEdit, QWidget
 from utils.logging_utils import log_debug
 
 class TextEditEventFilter(QObject):
@@ -213,8 +213,37 @@ class MainWindowEventFilter(QObject):
 
         return False
 
+    @staticmethod
+    def _is_search_line_edit(obj) -> bool:
+        """Recognize search/filter inputs shared by the app and its dialogs."""
+        if not isinstance(obj, QLineEdit):
+            return False
+        if bool(obj.property("selectAllOnClick")):
+            return True
+        hint = " ".join((
+            obj.objectName(),
+            obj.placeholderText(),
+            type(obj).__name__,
+        )).casefold()
+        return any(word in hint for word in ("search", "find", "filter"))
+
     def eventFilter(self, obj, event):
         """Eventfilter."""
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            line_edit = obj if self._is_search_line_edit(obj) else None
+            if line_edit is None and self._is_speaker_combobox_event_source(obj):
+                combo = getattr(self.mw, 'speaker_combobox', None)
+                line_edit = combo.lineEdit() if combo is not None else None
+                if obj not in (combo, line_edit):
+                    line_edit = None
+            if line_edit is not None and line_edit.text():
+                # Run after Qt finishes the click, otherwise the native mouse
+                # release handler immediately clears the selection again.
+                QTimer.singleShot(0, line_edit.selectAll)
+
         if event.type() == QEvent.Type.KeyPress:
             if self._is_speaker_combobox_event_source(obj) and self._handle_speaker_combobox_undo_shortcut(event):
                 return True

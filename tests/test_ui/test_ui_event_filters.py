@@ -1,11 +1,16 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent
-from PyQt6.QtWidgets import QComboBox, QWidget
+from PyQt6.QtWidgets import QComboBox, QCompleter, QLineEdit, QWidget
 from PyQt6.QtTest import QTest
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
-from ui.builders.layout_builder import ClickableLabel, NavigableLabel
+from ui.builders.layout_builder import (
+    ClickableLabel,
+    NavigableLabel,
+    configure_speaker_autocomplete,
+)
+from ui.main_window.main_window_event_handler import MainWindowEventHandler
 
 
 def test_story_navigation_double_click_is_owned_by_label(qtbot):
@@ -113,3 +118,133 @@ def test_MainWindowEventFilter_routes_speaker_popup_redo_to_app_action(qapp):
     assert filter_obj.eventFilter(mw.speaker_combobox.view().viewport(), event) is True
     mw.redo_typing_action.trigger.assert_called_once()
     mw.undo_typing_action.trigger.assert_not_called()
+
+
+def test_speaker_click_selects_all_existing_text(qapp, qtbot):
+    mw = QWidget()
+    mw.speaker_combobox = QComboBox(mw)
+    mw.speaker_combobox.setEditable(True)
+    mw.speaker_combobox.setCurrentText("System")
+    line_edit = mw.speaker_combobox.lineEdit()
+    filter_obj = MainWindowEventFilter(mw)
+    line_edit.installEventFilter(filter_obj)
+    mw.show()
+
+    QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
+    qtbot.wait(10)
+
+    assert line_edit.selectedText() == "System"
+
+
+def test_speaker_autocomplete_is_prefix_based_and_case_insensitive(qapp):
+    combo = QComboBox()
+    combo.setEditable(True)
+    combo.addItems(["Fado", "Fyer", "Fia", "Fili", "Midna"])
+
+    configure_speaker_autocomplete(combo)
+
+    completer = combo.completer()
+    assert completer.caseSensitivity() == Qt.CaseSensitivity.CaseInsensitive
+    assert completer.filterMode() == Qt.MatchFlag.MatchStartsWith
+    assert completer.completionMode() == QCompleter.CompletionMode.PopupCompletion
+    completer.setCompletionPrefix("fi")
+    matches = [
+        completer.completionModel().index(row, 0).data()
+        for row in range(completer.completionCount())
+    ]
+    assert matches == ["Fia", "Fili"]
+
+
+@pytest.mark.parametrize(
+    ("placeholder", "marked"),
+    [
+        ("Search raw script", False),
+        ("Find...", False),
+        ("Filter entries", False),
+        ("Type a term or translation...", True),
+    ],
+)
+def test_all_search_fields_select_existing_text_on_click(
+    qapp, qtbot, placeholder, marked
+):
+    mw = QWidget()
+    search = QLineEdit(mw)
+    search.setPlaceholderText(placeholder)
+    search.setText("Midna")
+    if marked:
+        search.setProperty("selectAllOnClick", True)
+    filter_obj = MainWindowEventFilter(mw)
+    search.installEventFilter(filter_obj)
+    mw.show()
+
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.wait(10)
+
+    assert search.selectedText() == "Midna"
+
+
+def test_speaker_enter_commits_only_first_qcombobox_signal(qapp):
+    mw = QWidget()
+    mw.speaker_combobox = QComboBox(mw)
+    mw.speaker_combobox.setEditable(True)
+    mw.speaker_combobox.setCurrentText("System")
+    mw.list_selection_handler = MagicMock()
+    handler = MainWindowEventHandler(mw)
+    pending_timer_callbacks = []
+
+    def save_and_rebuild(_value):
+        # Reproduces the tree refresh selecting the next remaining None row.
+        mw.speaker_combobox.setCurrentText("None")
+
+    mw.list_selection_handler.save_speaker_for_current_string.side_effect = save_and_rebuild
+    with patch(
+        "ui.main_window.main_window_event_handler.QTimer.singleShot",
+        side_effect=lambda _delay, callback: pending_timer_callbacks.append(callback),
+    ):
+        handler._commit_speaker_selection(0)  # activated: System
+        handler._commit_speaker_selection()   # returnPressed: now reads None without guard
+
+    mw.list_selection_handler.save_speaker_for_current_string.assert_called_once_with(
+        "System"
+    )
+    pending_timer_callbacks[0]()
+    assert not mw.speaker_combobox._speaker_commit_pending
+
+
+def test_clicking_speaker_suggestion_does_not_commit_only_enter_does(qapp):
+    mw = QWidget()
+    mw.speaker_combobox = QComboBox(mw)
+    mw.speaker_combobox.setEditable(True)
+    mw.speaker_combobox.addItems(["None", "Fado", "Fyer"])
+    mw.list_selection_handler = MagicMock()
+    handler = MainWindowEventHandler(mw)
+
+    handler._connect_speaker_combobox()
+
+    # Selecting a suggestion (fires `activated`) fills the field but must not save.
+    mw.speaker_combobox.setCurrentIndex(1)
+    mw.speaker_combobox.activated.emit(1)
+    mw.list_selection_handler.save_speaker_for_current_string.assert_not_called()
+
+    # Only Enter (returnPressed) commits.
+    mw.speaker_combobox.lineEdit().returnPressed.emit()
+    mw.list_selection_handler.save_speaker_for_current_string.assert_called_once_with(
+        "Fado"
+    )
+
+
+def test_speaker_commit_reuses_existing_name_ignoring_case(qapp):
+    mw = QWidget()
+    mw.speaker_combobox = QComboBox(mw)
+    mw.speaker_combobox.setEditable(True)
+    mw.speaker_combobox.addItems(["None", "Fado", "Fyer"])
+    mw.speaker_combobox.setCurrentText("fado")
+    mw.list_selection_handler = MagicMock()
+    handler = MainWindowEventHandler(mw)
+
+    handler._commit_speaker_selection()
+
+    mw.list_selection_handler.save_speaker_for_current_string.assert_called_once_with(
+        "Fado"
+    )
+    assert mw.speaker_combobox.currentText() == "Fado"

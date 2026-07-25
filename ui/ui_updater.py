@@ -27,9 +27,9 @@ class UIUpdater:
         """Get the tree state."""
         return self.block_list_updater.get_tree_state()
 
-    def apply_tree_state(self, state: dict):
+    def apply_tree_state(self, state: dict, on_completed=None):
         """Apply tree state."""
-        self.block_list_updater.apply_tree_state(state)
+        self.block_list_updater.apply_tree_state(state, on_completed=on_completed)
 
     def highlight_glossary_occurrence(self, occurrence: GlossaryOccurrence):
         """Highlight glossary occurrence."""

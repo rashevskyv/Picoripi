@@ -161,6 +161,7 @@ class GlossaryDialog(QDialog):
         search_layout.addWidget(QLabel("Search:", self))
         self._search_field = QLineEdit(self)
         self._search_field.setPlaceholderText("Type a term or translation...")
+        self._search_field.setProperty("selectAllOnClick", True)
         self._search_field.textChanged.connect(self._apply_filter)
         search_layout.addWidget(self._search_field, 1)
         layout.addLayout(search_layout)
@@ -239,7 +240,7 @@ class GlossaryDialog(QDialog):
         self._populate_entries(self._filtered_entries)
 
         if initial_term:
-            QTimer.singleShot(0, lambda: self._select_initial_term(initial_term))
+            QTimer.singleShot(0, lambda: self.focus_term(initial_term))
         elif self._filtered_entries:
             self._active_table().selectRow(0)
             self._show_entry_for_row(0)
@@ -458,6 +459,22 @@ class GlossaryDialog(QDialog):
                 active_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtCenter)
                 self._show_entry_for_row(row)
                 return
+
+    def focus_term(self, term: str) -> None:
+        """Filter the list to ``term`` and select its entry (public entry point).
+
+        Robust for both a freshly created dialog and one that is already open:
+        it narrows the search box to the term (matching original or translation,
+        so the entry is always visible) and selects the exact original if present.
+        """
+        term = (term or "").strip()
+        if not term:
+            return
+        if self._search_field.text().strip() != term:
+            self._search_field.setText(term)  # emits textChanged -> _apply_filter
+        else:
+            self._apply_filter(term)
+        self._select_initial_term(term, switch_tab=True)
     def _show_entry_for_row(self, row: int) -> None:
         """Internal helper to show entry for row."""
         if row < 0:
@@ -717,7 +734,7 @@ class GlossaryDialog(QDialog):
 
     def keyPressEvent(self, event) -> None:
         """Keypressevent."""
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.reject()
             event.accept()
             return

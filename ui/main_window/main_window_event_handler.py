@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtGui import QTextCursor, QKeyEvent
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from utils.utils import ALL_TAGS_PATTERN
 
@@ -13,6 +13,51 @@ class MainWindowEventHandler:
     def __init__(self, main_window: MainWindow):
         """Initialize a new instance."""
         self.mw = main_window
+
+    def _clear_speaker_commit_guard(self) -> None:
+        combo = getattr(self.mw, 'speaker_combobox', None)
+        if combo is not None:
+            combo._speaker_commit_pending = False
+
+    def _commit_speaker_selection(self, *_signal_args) -> None:
+        """Commit one combo interaction once, despite Qt emitting duplicate signals."""
+        combo = getattr(self.mw, 'speaker_combobox', None)
+        if combo is None or getattr(combo, '_speaker_commit_pending', False):
+            return
+        combo._speaker_commit_pending = True
+        value = combo.currentText().strip()
+        folded_value = value.casefold()
+        for index in range(combo.count()):
+            candidate = combo.itemText(index).strip()
+            if candidate.casefold() == folded_value:
+                value = candidate
+                if combo.currentText() != candidate:
+                    combo.setCurrentText(candidate)
+                break
+        try:
+            self.mw.list_selection_handler.save_speaker_for_current_string(value)
+        finally:
+            # Editable QComboBox can emit activated/returnPressed repeatedly for
+            # one Enter key. Keep the guard until that complete event is over.
+            QTimer.singleShot(0, self._clear_speaker_commit_guard)
+
+    def _force_refresh_virtual_folders(self) -> None:
+        """Rebuild the virtual folders from the current story data (⟳ button)."""
+        updater = getattr(getattr(self.mw, "ui_updater", None), "block_list_updater", None)
+        refresh = getattr(updater, "force_refresh_virtual_folders", None)
+        if callable(refresh):
+            refresh()
+
+    def _connect_speaker_combobox(self) -> None:
+        """Wire the speaker combo so only Enter commits.
+
+        Clicking an autocomplete suggestion fires ``activated`` and merely fills
+        the field; the user commits the speaker deliberately by pressing Enter.
+        """
+        combo = getattr(self.mw, 'speaker_combobox', None)
+        if combo is None:
+            return
+        combo.lineEdit().returnPressed.connect(self._commit_speaker_selection)
 
     def connect_signals(self):
         """Connect signals."""
@@ -86,6 +131,8 @@ class MainWindowEventHandler:
             self.mw.move_block_up_button.clicked.connect(lambda: self.mw.project_action_handler.move_block_action(-1))
         if hasattr(self.mw, 'move_block_down_button'):
             self.mw.move_block_down_button.clicked.connect(lambda: self.mw.project_action_handler.move_block_action(1))
+        if hasattr(self.mw, 'refresh_virtual_blocks_button'):
+            self.mw.refresh_virtual_blocks_button.clicked.connect(self._force_refresh_virtual_folders)
         if hasattr(self.mw, 'add_folder_button'):
             self.mw.add_folder_button.clicked.connect(self.mw.project_action_handler.add_folder_action)
         
@@ -205,9 +252,7 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'hide_translation_tags_checkbox'):
             self.mw.hide_translation_tags_checkbox.toggled.connect(self.mw.list_selection_handler.toggle_hide_translation_tags)
 
-        if hasattr(self.mw, 'speaker_combobox') and self.mw.speaker_combobox is not None:
-            self.mw.speaker_combobox.lineEdit().returnPressed.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
-            self.mw.speaker_combobox.activated.connect(lambda: self.mw.list_selection_handler.save_speaker_for_current_string(self.mw.speaker_combobox.currentText()))
+        self._connect_speaker_combobox()
         if hasattr(self.mw, 'chapter_combobox') and self.mw.chapter_combobox is not None:
             self.mw.chapter_combobox.activated.connect(
                 lambda: self.mw.list_selection_handler.save_chapter_for_current_string(
@@ -258,7 +303,7 @@ class MainWindowEventHandler:
                 except Exception:
                     pass
             if hasattr(self.mw, 'data_processor') and self.mw.data_processor:
-                self.mw.data_processor._save_durable_session_json(force=True)
+                self.mw.data_processor.finalize_clean_shutdown_checkpoint()
             self.disconnect_signals()
             if hasattr(self.mw, 'event_filter') and self.mw.event_filter:
                 try:
@@ -336,6 +381,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'rename_block_button'): safe_disconnect(mw.rename_block_button, 'clicked')
         if hasattr(mw, 'move_block_up_button'): safe_disconnect(mw.move_block_up_button, 'clicked')
         if hasattr(mw, 'move_block_down_button'): safe_disconnect(mw.move_block_down_button, 'clicked')
+        if hasattr(mw, 'refresh_virtual_blocks_button'): safe_disconnect(mw.refresh_virtual_blocks_button, 'clicked')
         if hasattr(mw, 'add_folder_button'): safe_disconnect(mw.add_folder_button, 'clicked')
         if hasattr(mw, 'expand_all_button'): safe_disconnect(mw.expand_all_button, 'clicked')
         if hasattr(mw, 'collapse_all_button'): safe_disconnect(mw.collapse_all_button, 'clicked')

@@ -79,11 +79,84 @@ def test_UIUpdater_apply_tree_state(updater):
         "v_scroll": 0,
         "h_scroll": 0
     }
+    completed = MagicMock()
     with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda ms, func: func()):
-        updater.apply_tree_state(state)
+        updater.apply_tree_state(state, on_completed=completed)
     assert item.isExpanded()
     # verify that block selection is restored
     updater.mw.list_selection_handler.block_selected.assert_called_with(item, None)
+    completed.assert_called_once_with()
+    assert updater.block_list_updater._tree_state_restore_pending is False
+
+
+def test_tree_state_restores_exact_duplicate_virtual_node_and_collapsed_nodes(
+    updater, mock_mw
+):
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
+
+    tree = QTreeWidget()
+    mock_mw.block_list_widget = tree
+
+    windows = QTreeWidgetItem(["Windows"])
+    dialog = QTreeWidgetItem(windows, ["Dialog"])
+    window_none = QTreeWidgetItem(dialog, ["None"])
+    window_none.setData(0, Qt.UserRole, -3)
+    window_none.setData(0, Qt.UserRole + 15, "None")
+    window_none.setData(0, Qt.UserRole + 17, "unbound")
+    window_none.setData(0, Qt.UserRole + 13, [(7, 4), (7, 8)])
+
+    speakers = QTreeWidgetItem(["Speakers"])
+    speaker_none = QTreeWidgetItem(speakers, ["None"])
+    speaker_none.setData(0, Qt.UserRole, -3)
+    speaker_none.setData(0, Qt.UserRole + 15, "None")
+    speaker_none.setData(0, Qt.UserRole + 13, [(0, 1)])
+    tree.addTopLevelItem(windows)
+    tree.addTopLevelItem(speakers)
+
+    windows.setExpanded(True)
+    dialog.setExpanded(True)
+    speakers.setExpanded(False)
+    tree.setCurrentItem(window_none)
+    mock_mw.data_store.physical_block_idx = 7
+    mock_mw.data_store.current_string_idx = 8
+
+    state = updater.get_tree_state()
+
+    windows.setExpanded(False)
+    dialog.setExpanded(False)
+    speakers.setExpanded(True)
+    tree.setCurrentItem(speaker_none)
+    mock_mw.data_store.displayed_string_indices = [(7, 4), (7, 8)]
+
+    with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda ms, func: func()):
+        updater.apply_tree_state(state)
+
+    assert tree.currentItem() is window_none
+    assert windows.isExpanded()
+    assert dialog.isExpanded()
+    assert not speakers.isExpanded()
+    mock_mw.list_selection_handler.block_selected.assert_called_with(window_none, None)
+    assert mock_mw.list_selection_handler._target_block_idx == 7
+    assert mock_mw.list_selection_handler._target_string_idx == 8
+    mock_mw.list_selection_handler.string_selected_from_preview.assert_called_with(1)
+
+
+def test_tree_state_can_restore_every_node_collapsed(updater, mock_mw):
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+
+    tree = QTreeWidget()
+    mock_mw.block_list_widget = tree
+    root = QTreeWidgetItem(["Windows"])
+    child = QTreeWidgetItem(root, ["Dialog"])
+    tree.addTopLevelItem(root)
+    root.setExpanded(True)
+    child.setExpanded(True)
+
+    updater.apply_tree_state({"expanded_locators": []})
+
+    assert not root.isExpanded()
+    assert not child.isExpanded()
 
 def test_UIUpdater_get_item_id(updater):
     from PyQt6.QtWidgets import QTreeWidgetItem

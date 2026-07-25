@@ -1,12 +1,23 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter,
-    QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox, QMenu, QCheckBox
+    QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox,
+    QMenu, QCheckBox, QCompleter
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
 from components.chapter_picker import HierarchicalChapterComboBox
+
+
+def configure_speaker_autocomplete(combo: QComboBox) -> None:
+    """Show case-insensitive speaker suggestions matching the typed prefix."""
+    completer = combo.completer()
+    if completer is None:
+        return
+    completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+    completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
+    completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
 
 class NavigableLabel(QLabel):
@@ -119,6 +130,13 @@ class LayoutBuilder:
 
         self.mw.move_block_down_button = self._create_toolbar_button('↓', 'Move block down')
         block_toolbar.addWidget(self.mw.move_block_down_button)
+
+        self.mw.refresh_virtual_blocks_button = self._create_toolbar_button(
+            '⟳',
+            'Rebuild virtual folders (Speakers, Chapters, Items) from the current '
+            'story data — use if a folder looks out of sync with the editor.',
+        )
+        block_toolbar.addWidget(self.mw.refresh_virtual_blocks_button)
 
         block_list_container_layout.addLayout(block_toolbar)
         left_layout.addWidget(block_list_container)
@@ -524,6 +542,7 @@ class LayoutBuilder:
         header_grid.addWidget(self.mw.speaker_select_label, 2, 0)
         self.mw.speaker_combobox = QComboBox()
         self.mw.speaker_combobox.setEditable(True)
+        configure_speaker_autocomplete(self.mw.speaker_combobox)
         self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
         self.mw.speaker_combobox.setFixedWidth(compact_context_width)
         self.mw.speaker_combobox.setFixedHeight(compact_context_height)

@@ -127,6 +127,7 @@ class DictionaryManagerDialog(QDialog):
         filter_layout.addWidget(QLabel("Filter:"))
         self.filter_edit = QLineEdit(self)
         self.filter_edit.setPlaceholderText("e.g., Ukrainian or uk")
+        self.filter_edit.setProperty("selectAllOnClick", True)
         filter_layout.addWidget(self.filter_edit)
         main_layout.addLayout(filter_layout)
 

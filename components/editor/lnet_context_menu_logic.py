@@ -15,6 +15,37 @@ class LNETContextMenuLogic:
         """Initialize a new instance."""
         self.editor = editor
 
+    def _preview_mempalace_rows(
+        self, main_window, position_in_widget_coords: QPoint
+    ) -> list[tuple[int, int]]:
+        """Resolve preview selections to physical rows for MemPalace actions."""
+        selected_lines = list(self.editor.get_selected_lines() or [])
+        if not selected_lines:
+            selected_lines = [
+                self.editor.cursorForPosition(position_in_widget_coords).blockNumber()
+            ]
+        store = main_window.data_store
+        displayed = list(getattr(store, 'displayed_string_indices', []) or [])
+        physical_block = getattr(store, 'physical_block_idx', -1)
+        if physical_block is None or physical_block < 0:
+            physical_block = getattr(store, 'current_block_idx', -1)
+        rows = []
+        for relative_idx in selected_lines:
+            mapped = (
+                displayed[relative_idx]
+                if 0 <= relative_idx < len(displayed)
+                else relative_idx
+            )
+            if isinstance(mapped, (tuple, list)) and len(mapped) == 2:
+                row = (int(mapped[0]), int(mapped[1]))
+            elif physical_block is not None and physical_block >= 0:
+                row = (int(physical_block), int(mapped))
+            else:
+                continue
+            if row not in rows:
+                rows.append(row)
+        return rows
+
     def _find_tag_at(self, position_in_widget_coords: QPoint) -> Optional[str]:
         """Internal helper to find tag at."""
         cursor = self.editor.cursorForPosition(position_in_widget_coords)
@@ -303,6 +334,20 @@ class LNETContextMenuLogic:
 
             translator = getattr(main_window, 'translation_handler', None)
             selected_lines = self.editor.get_selected_lines()
+            block_tree = getattr(main_window, 'block_list_widget', None)
+            add_mempalace_menu = getattr(
+                block_tree, '_add_mempalace_context_menu', None
+            )
+            if callable(add_mempalace_menu):
+                physical_rows = self._preview_mempalace_rows(
+                    main_window, position_in_widget_coords
+                )
+                if add_mempalace_menu(
+                    menu,
+                    physical_rows,
+                    preserve_tree_selection=True,
+                ):
+                    menu.addSeparator()
 
             if translator:
                 if selected_lines:

@@ -171,8 +171,11 @@ class MainWindow(QMainWindow):
         self._startup_loading_pending = False
         splash = getattr(self, '_startup_splash', None)
         if splash is None:
+            if not self.isVisible():
+                self.show()
             return
         splash.update_progress(100, "Ready")
+        self.show()
         splash.close()
         splash.deleteLater()
         self._startup_splash = None
@@ -756,7 +759,6 @@ if __name__ == '__main__':
         splash.update_progress(3, "Starting Picoripi…")
         splash.show_centered()
         window = MainWindow(startup_splash=splash)
-        window.show()
         if not window._startup_loading_pending:
             window.finish_startup_loading()
     except Exception as e:

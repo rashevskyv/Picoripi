@@ -1583,7 +1583,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self.search_edit.textChanged.connect(self._on_search_text_changed)
         self.search_edit.findNextRequested.connect(self._find_next_search_match)
         self.search_edit.findPreviousRequested.connect(self._find_previous_search_match)
-        raw_header.addWidget(self.search_edit)
+        raw_header.addWidget(self.search_edit, 1)
 
         self.search_prev_btn = QPushButton("Prev")
         self.search_prev_btn.setToolTip(
@@ -1618,9 +1618,6 @@ class ScriptMarkupStudioDialog(QDialog):
         self.search_status_label.setMinimumWidth(48)
         self.search_status_label.setStyleSheet("color:#666;")
         raw_header.addWidget(self.search_status_label)
-
-        # Stretch separates search options and status indicator
-        raw_header.addStretch(1)
 
         self.raw_label = QLabel("")
         raw_header.addWidget(self.raw_label)
