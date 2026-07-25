@@ -8,6 +8,8 @@ from core.mempalace_client import MemePalaceClient
 from core.mempalace.dialogue_alignment import GameMessage
 from core.mempalace.dialogue_mapping import DialogueMappingInput
 from core.mempalace.dialogue_mapping_worker import DialogueAlignmentWorker
+from core.mempalace.timeline_ai_analyzer import StoryTimelineAIAnalyzerWorker
+from core.mempalace.normalized_character_profiler import NormalizedCharacterProfilerWorker
 from core.script_markup import (
     HierarchyImportStatus,
     HierarchyProjectError,
@@ -126,6 +128,106 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         """Internal helper to maybe prevent sleep."""
         if self.prevent_sleep_checkbox.isChecked():
             prevent_sleep()
+
+    @pyqtSlot()
+    def _start_story_timeline_analysis(self):
+        if self.worker and self.worker.isRunning():
+            QMessageBox.information(self, "MemPalace", "Another MemPalace task is still running.")
+            return
+        if not self.story_document_id:
+            QMessageBox.warning(self, "Timeline", "Import a marked Script Markup Studio project first.")
+            return
+        ai_provider = None
+        if getattr(self.mw, "translation_handler", None):
+            ai_provider = self.mw.translation_handler._prepare_provider()
+        if not ai_provider:
+            QMessageBox.warning(self, "Timeline", "Configure an AI provider before building the timeline.")
+            return
+        self.analyze_story_timeline_btn.setEnabled(False)
+        self.story_timeline_progress.setVisible(True)
+        self.story_timeline_progress.setRange(0, 0)
+        self.story_timeline_status_label.setText("Analyzing marked dialogue…")
+        self.worker = StoryTimelineAIAnalyzerWorker(
+            self.client,
+            ai_provider,
+            self.story_document_id,
+            getattr(self.mw, "target_language", "Ukrainian"),
+            self.mw,
+        )
+        self.worker.progress.connect(self._handle_story_timeline_progress)
+        self.worker.log.connect(self.append_log)
+        self.worker.finished.connect(self._handle_story_timeline_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.start()
+
+    def _handle_story_timeline_progress(self, current: int, total: int, message: str):
+        self.story_timeline_progress.setRange(0, max(total, 1))
+        self.story_timeline_progress.setValue(current)
+        self.story_timeline_status_label.setText(message)
+
+    def _handle_story_timeline_finished(self, success: bool, message: str):
+        self.worker = None
+        self.analyze_story_timeline_btn.setEnabled(bool(self.story_document_id))
+        self.story_timeline_progress.setVisible(False)
+        self.story_timeline_status_label.setText(message)
+        self.story_timeline_status_label.setStyleSheet(
+            "color: #137333;" if success else "color: #a80000;"
+        )
+        self.append_log(message)
+        if success:
+            QMessageBox.information(self, "Timeline Ready", message)
+        else:
+            QMessageBox.warning(self, "Timeline", message)
+
+    @pyqtSlot()
+    def _start_normalized_character_profiling(self):
+        if self.worker and self.worker.isRunning():
+            QMessageBox.information(self, "MemPalace", "Another MemPalace task is still running.")
+            return
+        if not self.story_document_id:
+            QMessageBox.warning(self, "Characters", "Import a marked Script Markup Studio project first.")
+            return
+        ai_provider = None
+        if getattr(self.mw, "translation_handler", None):
+            ai_provider = self.mw.translation_handler._prepare_provider()
+        if not ai_provider:
+            QMessageBox.warning(self, "Characters", "Configure an AI provider before analyzing characters.")
+            return
+        self.analyze_character_voices_btn.setEnabled(False)
+        self.character_profiles_progress.setVisible(True)
+        self.character_profiles_progress.setRange(0, 0)
+        self.character_profiles_status_label.setText("Analyzing character dialogue…")
+        self.worker = NormalizedCharacterProfilerWorker(
+            self.client,
+            ai_provider,
+            self.story_document_id,
+            getattr(self.mw, "target_language", "Ukrainian"),
+            self.mw,
+        )
+        self.worker.progress.connect(self._handle_character_profiles_progress)
+        self.worker.log.connect(self.append_log)
+        self.worker.finished.connect(self._handle_character_profiles_finished)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.start()
+
+    def _handle_character_profiles_progress(self, current: int, total: int, message: str):
+        self.character_profiles_progress.setRange(0, max(total, 1))
+        self.character_profiles_progress.setValue(current)
+        self.character_profiles_status_label.setText(message)
+
+    def _handle_character_profiles_finished(self, success: bool, message: str):
+        self.worker = None
+        self.analyze_character_voices_btn.setEnabled(bool(self.story_document_id))
+        self.character_profiles_progress.setVisible(False)
+        self.character_profiles_status_label.setText(message)
+        self.character_profiles_status_label.setStyleSheet(
+            "color: #137333;" if success else "color: #a80000;"
+        )
+        self.append_log(message)
+        if success:
+            QMessageBox.information(self, "Character Voices Ready", message)
+        else:
+            QMessageBox.warning(self, "Characters", message)
 
     def _finish_and_maybe_sleep(self):
         """Internal helper to finish and maybe sleep."""
@@ -379,6 +481,12 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         self.workflow_tabs.setTabEnabled(2, False)
         self.source_next_btn.setEnabled(source_ready)
         self.mapping_next_btn.setEnabled(False)
+        self.analyze_story_timeline_btn.setEnabled(
+            bool(self.story_document_id) and not (self.worker and self.worker.isRunning())
+        )
+        self.analyze_character_voices_btn.setEnabled(
+            bool(self.story_document_id) and not (self.worker and self.worker.isRunning())
+        )
 
         if not self.wing_edit.text().strip():
             message = "Enter a Wing name to continue."
@@ -481,6 +589,20 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             self.story_tree_status_label.setStyleSheet("color: #666666;")
             return
         nodes = self.client.get_story_timeline(self.story_document_id)
+        if hasattr(self, "story_timeline_status_label"):
+            analyzed_events = self.client.get_story_events(self.story_document_id)
+            if analyzed_events:
+                self.story_timeline_status_label.setText(
+                    f"Timeline ready: {len(analyzed_events)} story events."
+                )
+                self.story_timeline_status_label.setStyleSheet("color: #137333;")
+        if hasattr(self, "character_profiles_status_label"):
+            profiles = self.client.get_character_profiles(self.story_document_id)
+            if profiles:
+                self.character_profiles_status_label.setText(
+                    f"Character voices ready: {len(profiles)} profiles."
+                )
+                self.character_profiles_status_label.setStyleSheet("color: #137333;")
         reference_items = self.client.get_reference_items(self.story_document_id)
         items = {}
         for node in nodes:

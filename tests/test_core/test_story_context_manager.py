@@ -2,6 +2,8 @@ import os
 import pytest
 from unittest.mock import MagicMock, patch
 from core.translation.story_context_manager import StoryContextManager
+from core.mempalace.semantic_timeline import StoryEventContext
+from core.mempalace.character_profiles import StoryCharacterProfile
 
 @pytest.fixture
 def mock_mw():
@@ -88,6 +90,48 @@ def test_story_context_manager_returns_manual_row_context_without_script_link(mo
 
     assert "Manually assigned Story chapter/scene: Act One > Chapter One" in result
     assert "Manually assigned speaker in this line: System" in result
+
+
+def test_story_context_manager_includes_semantic_timeline(mock_mw):
+    manager = StoryContextManager(mock_mw)
+    mock_client = MagicMock()
+    mock_client.get_story_event_for_game_string.return_value = StoryEventContext(
+        1, 12, "dialogue:12", 3, "The warning", "A guard stops the hero.",
+        "Town gate", ("Guard", "Hero"), "Arrival", "Entering town", "hash",
+    )
+    mock_client.get_cached_context.return_value = None
+    mock_client.search_context.return_value = []
+    manager.get_mempalace_client = MagicMock(return_value=mock_client)
+
+    result = manager.fetch_story_context(
+        7, 5, "Stop right there!", MagicMock(), MagicMock()
+    )
+
+    mock_client.get_story_event_for_game_string.assert_called_once_with("7", 5)
+    assert "Timeline Event: The warning" in result
+    assert "Location: Town gate" in result
+    assert "Immediately after: Entering town" in result
+
+
+def test_story_context_manager_includes_linked_character_voice(mock_mw):
+    manager = StoryContextManager(mock_mw)
+    mock_client = MagicMock()
+    mock_client.get_story_event_for_game_string.return_value = None
+    mock_client.get_character_profiles_for_game_string.return_value = (
+        StoryCharacterProfile(
+            1, "Midna", "Companion", "Playfully impatient", "Compact commands",
+            "Teasing vocabulary", "Informal toward the hero", "Use informal ти",
+            "Keep her wit sharp and concise", "", 120, "hash",
+        ),
+    )
+    mock_client.get_cached_context.return_value = None
+    mock_client.search_context.return_value = []
+    manager.get_mempalace_client = MagicMock(return_value=mock_client)
+
+    result = manager.fetch_story_context(2, 4, "Move!", MagicMock(), MagicMock())
+
+    assert "Character Voice Profile — Midna" in result
+    assert "Translation direction: Keep her wit sharp and concise" in result
 
 def test_story_context_manager_fetch_story_context_database_search(mock_mw):
     manager = StoryContextManager(mock_mw)

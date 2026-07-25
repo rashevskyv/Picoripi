@@ -240,6 +240,44 @@ class MemePalaceBuilderUiMixin:
         self.dialogue_mapping_progress = QProgressBar()
         self.dialogue_mapping_progress.setVisible(False)
         dialogue_mapping_layout.addWidget(self.dialogue_mapping_progress)
+        timeline_actions = QHBoxLayout()
+        self.analyze_story_timeline_btn = QPushButton("Build Timeline with AI")
+        self.analyze_story_timeline_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.analyze_story_timeline_btn.setToolTip(
+            "Analyze the marked dialogue and attach story events to every linked line."
+        )
+        self.analyze_story_timeline_btn.clicked.connect(self._start_story_timeline_analysis)
+        timeline_actions.addWidget(self.analyze_story_timeline_btn)
+        self.story_timeline_status_label = QLabel(
+            "Build the timeline after the marked script has been imported."
+        )
+        self.story_timeline_status_label.setWordWrap(True)
+        self.story_timeline_status_label.setStyleSheet("color: #666666;")
+        timeline_actions.addWidget(self.story_timeline_status_label, 1)
+        dialogue_mapping_layout.addLayout(timeline_actions)
+        self.story_timeline_progress = QProgressBar()
+        self.story_timeline_progress.setVisible(False)
+        dialogue_mapping_layout.addWidget(self.story_timeline_progress)
+        character_actions = QHBoxLayout()
+        self.analyze_character_voices_btn = QPushButton("Analyze Character Voices with AI")
+        self.analyze_character_voices_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.analyze_character_voices_btn.setToolTip(
+            "Build personality, speech-style, grammar, and translation guidance from marked dialogue."
+        )
+        self.analyze_character_voices_btn.clicked.connect(
+            self._start_normalized_character_profiling
+        )
+        character_actions.addWidget(self.analyze_character_voices_btn)
+        self.character_profiles_status_label = QLabel(
+            "Analyze marked speakers to give the translator consistent character voices."
+        )
+        self.character_profiles_status_label.setWordWrap(True)
+        self.character_profiles_status_label.setStyleSheet("color: #666666;")
+        character_actions.addWidget(self.character_profiles_status_label, 1)
+        dialogue_mapping_layout.addLayout(character_actions)
+        self.character_profiles_progress = QProgressBar()
+        self.character_profiles_progress.setVisible(False)
+        dialogue_mapping_layout.addWidget(self.character_profiles_progress)
         # Older integrations can still access this widget, but it is intentionally not
         # placed in the visible layout. The guided review presents one decision at a time.
         self.mapping_review_table = QTableWidget()

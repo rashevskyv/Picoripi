@@ -3,7 +3,7 @@
 import sqlite3
 
 
-LATEST_SCHEMA_VERSION = 5
+LATEST_SCHEMA_VERSION = 8
 
 
 def migrate_mempalace_schema(conn: sqlite3.Connection) -> None:
@@ -53,6 +53,24 @@ def migrate_mempalace_schema(conn: sqlite3.Connection) -> None:
             conn.execute(
                 "INSERT INTO mempalace_schema_migrations (version) VALUES (?)",
                 (5,),
+            )
+        if 6 not in applied:
+            _migrate_semantic_timeline_v6(conn)
+            conn.execute(
+                "INSERT INTO mempalace_schema_migrations (version) VALUES (?)",
+                (6,),
+            )
+        if 7 not in applied:
+            _migrate_character_profiles_v7(conn)
+            conn.execute(
+                "INSERT INTO mempalace_schema_migrations (version) VALUES (?)",
+                (7,),
+            )
+        if 8 not in applied:
+            _migrate_timeline_interactions_v8(conn)
+            conn.execute(
+                "INSERT INTO mempalace_schema_migrations (version) VALUES (?)",
+                (8,),
             )
         conn.execute(f"RELEASE SAVEPOINT {savepoint}")
     except Exception:
@@ -269,3 +287,72 @@ def _migrate_reference_items_v5(conn: sqlite3.Connection) -> None:
             ON story_reference_items(document_id, order_index)
         """
     )
+
+
+def _migrate_semantic_timeline_v6(conn: sqlite3.Connection) -> None:
+    """Store AI story events directly against normalized dialogue nodes."""
+    conn.execute(
+        """
+        CREATE TABLE story_timeline_contexts (
+            document_id INTEGER NOT NULL,
+            dialogue_node_id INTEGER NOT NULL,
+            event_order INTEGER NOT NULL CHECK (event_order >= 0),
+            event_title TEXT NOT NULL,
+            summary TEXT NOT NULL DEFAULT '',
+            location TEXT NOT NULL DEFAULT '',
+            participants_json TEXT NOT NULL DEFAULT '[]',
+            previous_event TEXT NOT NULL DEFAULT '',
+            next_event TEXT NOT NULL DEFAULT '',
+            source_hash TEXT NOT NULL,
+            analysis_version INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(document_id, dialogue_node_id),
+            FOREIGN KEY(document_id) REFERENCES story_documents(id) ON DELETE CASCADE,
+            FOREIGN KEY(dialogue_node_id) REFERENCES story_nodes(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX story_timeline_contexts_order_idx
+            ON story_timeline_contexts(document_id, event_order, dialogue_node_id)
+        """
+    )
+
+
+def _migrate_character_profiles_v7(conn: sqlite3.Connection) -> None:
+    """Store translation-oriented profiles for normalized story speakers."""
+    conn.execute(
+        """
+        CREATE TABLE story_character_profiles (
+            document_id INTEGER NOT NULL,
+            speaker_key TEXT NOT NULL,
+            speaker_name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT '',
+            personality TEXT NOT NULL DEFAULT '',
+            speech_style TEXT NOT NULL DEFAULT '',
+            vocabulary TEXT NOT NULL DEFAULT '',
+            relationships TEXT NOT NULL DEFAULT '',
+            address_and_grammar TEXT NOT NULL DEFAULT '',
+            translation_advice TEXT NOT NULL DEFAULT '',
+            evidence_notes TEXT NOT NULL DEFAULT '',
+            dialogue_count INTEGER NOT NULL DEFAULT 0 CHECK (dialogue_count >= 0),
+            source_hash TEXT NOT NULL,
+            analysis_version INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(document_id, speaker_key),
+            FOREIGN KEY(document_id) REFERENCES story_documents(id) ON DELETE CASCADE
+        )
+        """
+    )
+
+
+def _migrate_timeline_interactions_v8(conn: sqlite3.Connection) -> None:
+    """Add event-local character dynamics to semantic timeline contexts."""
+    conn.execute(
+        "ALTER TABLE story_timeline_contexts "
+        "ADD COLUMN interactions_json TEXT NOT NULL DEFAULT '[]'"
+    )
+    # Existing summaries predate event-local interactions. They are derived AI
+    # data, so invalidate them instead of presenting incomplete context as fresh.
+    conn.execute("DELETE FROM story_timeline_contexts")

@@ -397,6 +397,10 @@ def sync_hierarchy_project(
     savepoint = "mempalace_story_sync"
     conn.execute(f"SAVEPOINT {savepoint}")
     try:
+        previous_document = conn.execute(
+            "SELECT id, source_hash FROM story_documents WHERE source_path = ?",
+            (project.source_path,),
+        ).fetchone()
         conn.execute(
             """
             INSERT INTO story_documents (
@@ -414,6 +418,17 @@ def sync_hierarchy_project(
             "SELECT id FROM story_documents WHERE source_path = ?",
             (project.source_path,),
         ).fetchone()[0]
+        if previous_document and previous_document[1] != project.source_hash:
+            # Semantic summaries describe the old source snapshot. They can be
+            # rebuilt without disturbing normalized nodes or reviewed mappings.
+            conn.execute(
+                "DELETE FROM story_timeline_contexts WHERE document_id = ?",
+                (document_id,),
+            )
+            conn.execute(
+                "DELETE FROM story_character_profiles WHERE document_id = ?",
+                (document_id,),
+            )
 
         wanted_reference_ids = {item.stable_id for item in reference_items}
         existing_reference_ids = {

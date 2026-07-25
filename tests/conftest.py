@@ -64,6 +64,7 @@ class MockMainWindow(MagicMock):
             ViewKind.CHAPTER: -2,
             ViewKind.SPEAKER: -3,
             ViewKind.ITEM: -4,
+            ViewKind.NOTATED: -5,
         }.get(self.current_view_kind, self.current_block_idx)
 
     def set_view_kind(self, kind) -> None:

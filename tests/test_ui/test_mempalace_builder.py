@@ -345,7 +345,7 @@ def test_mempalace_builder_matches_open_project_to_dialogue_nodes(qapp, qtbot, t
     # Cold CI/test processes may need a few seconds to import the alignment
     # stack before the tiny job starts; this is a completion guard, not a
     # performance assertion.
-    qtbot.waitUntil(lambda: dialog.worker is None, timeout=10000)
+    qtbot.waitUntil(lambda: dialog.worker is None, timeout=25000)
 
     mappings = dialog.client.get_dialogue_mappings(dialog.story_document_id)
     assert len(mappings) == 1

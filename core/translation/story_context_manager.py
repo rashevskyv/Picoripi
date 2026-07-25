@@ -180,6 +180,8 @@ class StoryContextManager:
         text: str,
         script_speaker_finder: object,
         data_processor: object,
+        *,
+        include_normalized: bool = True,
     ) -> Optional[str]:
         """Query the local SQLite database for visual scene description, character status and timeline info."""
         client = self.get_mempalace_client()
@@ -193,12 +195,38 @@ class StoryContextManager:
         manual_speaker = str(manual.get("speaker") or "").strip()
         if manual_speaker:
             manual_parts.append(f"Manually assigned speaker in this line: {manual_speaker}")
+        translator_note = str(manual.get("translator_note") or "").strip()
+        if translator_note:
+            manual_parts.append(f"Translator note for this line: {translator_note}")
 
         def with_manual(value: Optional[str]) -> Optional[str]:
             parts = list(manual_parts)
             if value:
                 parts.append(value)
             return "\n".join(parts) or None
+
+        # The normalized semantic timeline is the authoritative per-dialogue
+        # context. Legacy room/script data below can still enrich it.
+        if client and include_normalized:
+            try:
+                from core.mempalace.semantic_timeline import StoryEventContext
+                event_context = client.get_story_event_for_game_string(
+                    str(block_idx), s_idx
+                )
+                if isinstance(event_context, StoryEventContext):
+                    manual_parts.append(event_context.to_prompt_text())
+            except Exception as timeline_error:
+                log_debug(f"Could not load semantic timeline context: {timeline_error}")
+            try:
+                from core.mempalace.character_profiles import StoryCharacterProfile
+                character_profiles = client.get_character_profiles_for_game_string(
+                    str(block_idx), s_idx
+                )
+                for profile in character_profiles:
+                    if isinstance(profile, StoryCharacterProfile):
+                        manual_parts.append(profile.to_prompt_text())
+            except Exception as profile_error:
+                log_debug(f"Could not load character voice profile: {profile_error}")
 
         from utils.utils import remove_all_tags
         clean_t = remove_all_tags(text).strip()

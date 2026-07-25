@@ -6,6 +6,16 @@ import urllib.error
 import re
 from core.tag_utils import ANY_TAG_PATTERN as tag_pattern
 from core.mempalace.schema import migrate_mempalace_schema
+from core.mempalace.semantic_timeline import (
+    get_story_event_for_game_string,
+    get_story_events,
+    replace_story_event_contexts,
+)
+from core.mempalace.character_profiles import (
+    get_character_profile,
+    get_character_profiles,
+    replace_character_profiles,
+)
 from core.mempalace.dialogue_alignment import lock_relation_choice
 from core.mempalace.dialogue_mapping import (
     DialogueMappingInput,
@@ -444,6 +454,60 @@ class MemePalaceClient:
     def get_story_timeline(self, document_id: int) -> tuple[StoryNodeRecord, ...]:
         conn = self._get_connection()
         return get_story_timeline(conn, document_id) if conn else ()
+
+    def replace_story_event_contexts(self, document_id, contexts, source_hash) -> int:
+        conn = self._get_connection()
+        return replace_story_event_contexts(conn, document_id, contexts, source_hash) if conn else 0
+
+    def get_story_event_for_game_string(
+        self, game_block_id: str, string_index: int, document_id: int | None = None
+    ):
+        conn = self._get_connection()
+        return get_story_event_for_game_string(
+            conn, game_block_id, string_index, document_id
+        ) if conn else None
+
+    def get_story_events(self, document_id: int):
+        conn = self._get_connection()
+        return get_story_events(conn, document_id) if conn else ()
+
+    def replace_character_profiles(self, document_id, profiles, source_hash) -> int:
+        conn = self._get_connection()
+        return replace_character_profiles(conn, document_id, profiles, source_hash) if conn else 0
+
+    def get_character_profile(
+        self, speaker_name: str, document_id: int | None = None
+    ):
+        conn = self._get_connection()
+        return get_character_profile(conn, speaker_name, document_id) if conn else None
+
+    def get_character_profiles(self, document_id: int):
+        conn = self._get_connection()
+        return get_character_profiles(conn, document_id) if conn else ()
+
+    def get_character_profiles_for_game_string(
+        self, game_block_id: str, string_index: int, document_id: int | None = None
+    ):
+        names = self.get_story_speakers_for_game_string(
+            game_block_id, string_index, document_id
+        )
+        if not names:
+            target = self.get_story_navigation_target(
+                game_block_id, string_index, document_id
+            )
+            if target is not None:
+                names = tuple(
+                    (node.title or node.text or "").strip()
+                    for node in self.get_story_ancestors(
+                        target.document_id, target.stable_id
+                    )
+                    if node.node_type == "speaker"
+                    and (node.title or node.text or "").strip()
+                )
+        return tuple(
+            profile for name in names
+            if (profile := self.get_character_profile(name, document_id)) is not None
+        )
 
     def get_story_virtual_projection(
         self,
@@ -1155,6 +1219,33 @@ class MemePalaceClient:
                         })
             except Exception as e:
                 log_error(f"Local DB error in get_all_chapter_mappings: {e}")
+        return results
+
+    def get_all_script_mappings(self, wing_name: str) -> List[Dict[str, Any]]:
+        """Every BMG->script_line mapping for a wing, regardless of chapter.
+
+        Unlike ``get_all_chapter_mappings`` (which drops rows whose
+        ``chapter_id`` is NULL), this returns the complete ``script_mappings``
+        table for the wing — the same source ``get_script_mapping`` reads per
+        row. The speaker pool needs the full set so chapterless rows resolve to
+        the same speaker the editor field shows, in a single query.
+        """
+        results = []
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT sm.bmg_id, sm.script_line
+                    FROM script_mappings sm
+                    JOIN wings w ON sm.wing_id = w.id
+                    WHERE w.name = ?
+                    ORDER BY sm.script_line
+                """, (wing_name,))
+                for row in cursor.fetchall():
+                    results.append({"bmg_id": row[0], "script_line": row[1]})
+            except Exception as e:
+                log_error(f"Local DB error in get_all_script_mappings: {e}")
         return results
 
 

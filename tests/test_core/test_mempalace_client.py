@@ -51,6 +51,8 @@ def test_story_timeline_schema_is_created_and_versioned(client):
         "story_dialogue_mappings",
         "story_dialogue_relations",
         "story_reference_items",
+        "story_timeline_contexts",
+        "story_character_profiles",
     } <= tables
     assert conn.execute(
         "SELECT MAX(version) FROM mempalace_schema_migrations"
@@ -116,7 +118,7 @@ def test_story_conflict_migration_upgrades_v1_database(tmp_path):
 
     assert conn.execute(
         "SELECT version FROM mempalace_schema_migrations ORDER BY version"
-    ).fetchall() == [(1,), (2,), (3,), (4,), (5,)]
+    ).fetchall() == [(version,) for version in range(1, LATEST_SCHEMA_VERSION + 1)]
     assert conn.execute(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'story_sync_conflicts'"
     ).fetchone() == ("story_sync_conflicts",)
