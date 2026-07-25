@@ -3,12 +3,44 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Callable
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Callable
 import re
 import unicodedata
 import ahocorasick
 
 from utils.logging_utils import log_debug
+
+
+# Lifecycle status of a glossary entry (roadmap section 3). An empty string is a
+# legacy entry with no explicit status, treated as already usable.
+STATUS_SEEDED = "seeded"            # term only
+STATUS_FRAGMENTS = "fragments"      # description fragments accumulated
+STATUS_SYNTHESIZED = "synthesized"  # fragments folded into one description
+STATUS_TRANSLATED = "translated"    # one or more translation variants proposed
+STATUS_CONFIRMED = "confirmed"      # user picked the active translation
+
+# Statuses whose entries still await a confirmed human decision; the UI
+# highlights these as unconfirmed (roadmap section 7).
+UNCONFIRMED_STATUSES = frozenset(
+    {STATUS_SEEDED, STATUS_FRAGMENTS, STATUS_SYNTHESIZED, STATUS_TRANSLATED}
+)
+
+
+@dataclass(frozen=True)
+class DescriptionFragment:
+    """One description fragment for a term, tagged with its source row."""
+
+    text: str
+    block_idx: int = -1
+    string_idx: int = -1
+
+
+@dataclass(frozen=True)
+class TranslationVariant:
+    """A candidate translation with the rationale the AI gave for it."""
+
+    translation: str
+    rationale: str = ""
 
 
 @dataclass(frozen=True)
@@ -20,10 +52,24 @@ class GlossaryEntry:
     notes: str = ""
     section: Optional[str] = None
     profiled: bool = False
+    status: str = ""
+    icon: str = ""
+    fragments: Tuple[DescriptionFragment, ...] = ()
+    translation_variants: Tuple[TranslationVariant, ...] = ()
 
     def is_valid(self) -> bool:
-        """Check if is valid."""
-        return bool(self.original and self.translation)
+        """Whether the entry should load and appear.
+
+        A legacy entry needs both a term and a translation. A seeded entry has a
+        term and a lifecycle status but no translation yet (roadmap section 6),
+        so a status alone also makes it valid.
+        """
+        return bool(self.original) and (bool(self.translation) or bool(self.status))
+
+    @property
+    def is_unconfirmed(self) -> bool:
+        """True while the entry still awaits a confirmed human decision."""
+        return self.status in UNCONFIRMED_STATUSES
 
 
 @dataclass(frozen=True)
@@ -46,6 +92,78 @@ class GlossaryOccurrence:
     start: int
     end: int
     line_text: str
+
+
+def _fragments_from_raw(raw) -> Tuple[DescriptionFragment, ...]:
+    """Parse serialized description fragments back into typed objects."""
+    if not isinstance(raw, list):
+        return ()
+    out: List[DescriptionFragment] = []
+    for item in raw:
+        if isinstance(item, dict):
+            def _coord(key: str) -> int:
+                try:
+                    return int(item.get(key, -1))
+                except (TypeError, ValueError):
+                    return -1
+            out.append(
+                DescriptionFragment(
+                    text=str(item.get("text", "") or ""),
+                    block_idx=_coord("block_idx"),
+                    string_idx=_coord("string_idx"),
+                )
+            )
+        elif isinstance(item, str):
+            out.append(DescriptionFragment(text=item))
+    return tuple(out)
+
+
+def _variants_from_raw(raw) -> Tuple[TranslationVariant, ...]:
+    """Parse serialized translation variants back into typed objects."""
+    if not isinstance(raw, list):
+        return ()
+    out: List[TranslationVariant] = []
+    for item in raw:
+        if isinstance(item, dict):
+            out.append(
+                TranslationVariant(
+                    translation=str(item.get("translation", "") or ""),
+                    rationale=str(item.get("rationale", "") or ""),
+                )
+            )
+        elif isinstance(item, str):
+            out.append(TranslationVariant(translation=item))
+    return tuple(out)
+
+
+def _entry_to_dict(entry: GlossaryEntry) -> Dict[str, Any]:
+    """Serialize an entry, emitting new lifecycle fields only when set.
+
+    Keeping default-valued fields out of the JSON preserves the existing file
+    shape for legacy glossaries and avoids churning every entry on save.
+    """
+    out: Dict[str, Any] = {
+        "original": entry.original,
+        "translation": entry.translation,
+        "notes": entry.notes,
+        "section": entry.section,
+        "profiled": entry.profiled,
+    }
+    if entry.status:
+        out["status"] = entry.status
+    if entry.icon:
+        out["icon"] = entry.icon
+    if entry.fragments:
+        out["fragments"] = [
+            {"text": f.text, "block_idx": f.block_idx, "string_idx": f.string_idx}
+            for f in entry.fragments
+        ]
+    if entry.translation_variants:
+        out["translation_variants"] = [
+            {"translation": v.translation, "rationale": v.rationale}
+            for v in entry.translation_variants
+        ]
+    return out
 
 
 class GlossaryManager:
@@ -113,7 +231,11 @@ class GlossaryManager:
                         translation=item.get("translation", ""),
                         notes=item.get("notes", ""),
                         section=item.get("section"),
-                        profiled=bool(item.get("profiled", False))
+                        profiled=bool(item.get("profiled", False)),
+                        status=str(item.get("status", "") or ""),
+                        icon=str(item.get("icon", "") or ""),
+                        fragments=_fragments_from_raw(item.get("fragments")),
+                        translation_variants=_variants_from_raw(item.get("translation_variants")),
                     )
                     if entry.is_valid():
                         self._entries.append(entry)
@@ -373,8 +495,25 @@ class GlossaryManager:
         self._persist()
         return new_entry
 
-    def update_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: Optional[bool] = None) -> Optional[GlossaryEntry]:
-        """Update the entry."""
+    def update_entry(
+        self,
+        original: str,
+        translation: str,
+        notes: str,
+        section: Optional[str] = None,
+        profiled: Optional[bool] = None,
+        *,
+        status: Optional[str] = None,
+        icon: Optional[str] = None,
+        fragments: Optional[Tuple[DescriptionFragment, ...]] = None,
+        translation_variants: Optional[Tuple[TranslationVariant, ...]] = None,
+    ) -> Optional[GlossaryEntry]:
+        """Update the entry, preserving lifecycle fields unless overridden.
+
+        Lifecycle fields (``status``, ``icon``, ``fragments``,
+        ``translation_variants``) are carried over from the existing entry when
+        not passed, so a plain edit never silently drops them.
+        """
         original_key = (original or '').strip()
         updated_translation = translation.strip()
         updated_notes = notes.strip()
@@ -388,7 +527,15 @@ class GlossaryManager:
                     translation=updated_translation,
                     notes=updated_notes,
                     section=section if section is not None else entry.section,
-                    profiled=profiled if profiled is not None else entry.profiled
+                    profiled=profiled if profiled is not None else entry.profiled,
+                    status=status if status is not None else entry.status,
+                    icon=icon if icon is not None else entry.icon,
+                    fragments=fragments if fragments is not None else entry.fragments,
+                    translation_variants=(
+                        translation_variants
+                        if translation_variants is not None
+                        else entry.translation_variants
+                    ),
                 )
                 new_entries = list(self._entries)
                 new_entries[idx] = updated_entry
@@ -398,6 +545,43 @@ class GlossaryManager:
                 self._persist()
                 return updated_entry
         return None
+
+    def seed_entry(
+        self,
+        original: str,
+        section: Optional[str] = None,
+        *,
+        icon: str = "",
+        status: str = STATUS_SEEDED,
+        description: str = "",
+    ) -> Optional[GlossaryEntry]:
+        """Insert a term-only seed entry when the term is not already present.
+
+        Seeding fills gaps; it never overwrites an existing entry, which may
+        already carry a translation or a richer description (roadmap section 4).
+        Returns the entry now representing the term, or None for a blank term.
+        """
+        original_key = (original or '').strip()
+        if not original_key:
+            return None
+
+        existing = next((e for e in self._entries if e.original == original_key), None)
+        if existing is not None:
+            return existing
+
+        new_entry = GlossaryEntry(
+            original=original_key,
+            translation="",
+            notes=(description or "").strip(),
+            section=section,
+            status=status,
+            icon=(icon or "").strip(),
+        )
+        self._session_changes[original_key] = new_entry
+        self._entries = list(self._entries) + [new_entry]
+        self._occurrence_index = {}
+        self._persist()
+        return new_entry
 
     def delete_entry(self, original: str) -> bool:
         """Remove entry."""
@@ -573,16 +757,7 @@ class GlossaryManager:
 
             # Serialize entries to JSON
             import json
-            data_to_save = [
-                {
-                    "original": entry.original,
-                    "translation": entry.translation,
-                    "notes": entry.notes,
-                    "section": entry.section,
-                    "profiled": entry.profiled
-                }
-                for entry in self._entries
-            ]
+            data_to_save = [_entry_to_dict(entry) for entry in self._entries]
             
             try:
                 raw_json = json.dumps(data_to_save, ensure_ascii=False, indent=2) + "\n"
