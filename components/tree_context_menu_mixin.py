@@ -1,7 +1,9 @@
 # components/tree_context_menu_mixin.py
 """Context-menu mixin for CustomTreeWidget."""
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QMenu, QStyle, QMessageBox, QTreeWidgetItemIterator
+from PyQt6.QtWidgets import (
+    QDialog, QInputDialog, QMenu, QStyle, QMessageBox, QTreeWidgetItemIterator,
+)
 from PyQt6.QtGui import QAction
 
 from utils.logging_utils import log_debug
@@ -105,6 +107,26 @@ class TreeContextMenuMixin:
         merged_ids = item.data(0, Qt.UserRole + 2) or []
         compaction_type = item.data(0, Qt.UserRole + 3)
         pm = getattr(main_window, 'project_manager', None)
+
+        # ── Speaker folder: jump to this speaker's glossary entry ──────────────
+        speaker_folder_name = item.data(0, Qt.UserRole + 15)
+        if (
+            block_idx == -3
+            and isinstance(speaker_folder_name, str)
+            and speaker_folder_name.strip()
+            and speaker_folder_name.strip().casefold() != "none"
+        ):
+            translator = getattr(main_window, 'translation_handler', None)
+            if translator and hasattr(translator, 'show_glossary_dialog'):
+                gloss_act = menu.addAction(
+                    self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
+                    f"Open '{speaker_folder_name}' in glossary",
+                )
+                gloss_act.triggered.connect(
+                    lambda checked=False, name=speaker_folder_name:
+                    self._open_speaker_in_glossary(name)
+                )
+                menu.addSeparator()
 
         # в”Ђв”Ђ 4. Folder actions в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
         if folder_id or merged_ids:
@@ -447,7 +469,9 @@ class TreeContextMenuMixin:
             iterator += 1
         return targets
 
-    def _add_mempalace_context_menu(self, menu, selected_rows):
+    def _add_mempalace_context_menu(
+        self, menu, selected_rows, preserve_tree_selection=False
+    ):
         """Add an explicit choose-operation-then-target Memory Palace menu."""
         targets = self._mempalace_assignment_targets()
         if not any(targets.values()):
@@ -459,6 +483,11 @@ class TreeContextMenuMixin:
             f"MemPalace Context ({count} selected)",
         )
         palace_menu.setEnabled(bool(selected_rows))
+        preserved_locator = (
+            self._virtual_item_locator(self.currentItem())
+            if preserve_tree_selection and self.currentItem() is not None
+            else None
+        )
 
         definitions = (
             ("story", "Change Chapter / Scene", "None", "story:none"),
@@ -471,8 +500,9 @@ class TreeContextMenuMixin:
                 action = palace_menu.addAction(title + "…")
                 action.triggered.connect(
                     lambda checked=False, rows=tuple(selected_rows),
-                    story_entries=tuple(entries): self._open_story_assignment_dialog(
-                        rows, story_entries
+                    story_entries=tuple(entries), restore_locator=preserved_locator:
+                    self._open_story_assignment_dialog(
+                        rows, story_entries, restore_locator
                     )
                 )
                 continue
@@ -481,8 +511,9 @@ class TreeContextMenuMixin:
                 action = palace_menu.addAction(title + "…")
                 action.triggered.connect(
                     lambda checked=False, rows=tuple(selected_rows),
-                    speaker_entries=tuple(entries): self._open_speaker_assignment_dialog(
-                        rows, speaker_entries
+                    speaker_entries=tuple(entries), restore_locator=preserved_locator:
+                    self._open_speaker_assignment_dialog(
+                        rows, speaker_entries, restore_locator
                     )
                 )
                 continue
@@ -503,7 +534,9 @@ class TreeContextMenuMixin:
                     else (none_label if str(value) == none_value else str(value))
                 )
                 action = facet_menu.addAction(label)
-                locator = self._virtual_item_locator(target_item) if target_item else None
+                locator = preserved_locator or (
+                    self._virtual_item_locator(target_item) if target_item else None
+                )
                 action.triggered.connect(
                     lambda checked=False, rows=tuple(selected_rows), target_facet=facet,
                     target_value=value, target_path=path, target_label=label,
@@ -518,14 +551,88 @@ class TreeContextMenuMixin:
                 )
 
         palace_menu.addSeparator()
+        notes_menu = palace_menu.addMenu("Notes")
+        note_action = notes_menu.addAction("Add / Edit Notes...")
+        note_action.triggered.connect(
+            lambda checked=False, rows=tuple(selected_rows),
+            restore_locator=preserved_locator:
+                self._open_note_assignment_dialog(rows, restore_locator)
+        )
+        from core.story_context_overrides import get_story_context_override
+        has_notes = any(
+            str(get_story_context_override(self.window(), *row).get("translator_note") or "").strip()
+            for row in selected_rows
+        )
+        clear_note_action = notes_menu.addAction("Remove Notes")
+        clear_note_action.setEnabled(has_notes)
+        clear_note_action.triggered.connect(
+            lambda checked=False, rows=tuple(selected_rows),
+            restore_locator=preserved_locator:
+                self._set_notes_for_rows(rows, "", restore_locator)
+        )
+        palace_menu.addSeparator()
         clear_action = palace_menu.addAction("Clear All Context")
         clear_action.triggered.connect(
-            lambda checked=False, rows=tuple(selected_rows):
-                self._assign_rows_to_story_context(rows, "all", "None", (), "None")
+            lambda checked=False, rows=tuple(selected_rows),
+            restore_locator=preserved_locator:
+                self._assign_rows_to_story_context(
+                    rows, "all", "None", (), "None", restore_locator
+                )
         )
         return True
 
-    def _open_story_assignment_dialog(self, selected_rows, entries):
+    def _open_speaker_in_glossary(self, display_name: str) -> None:
+        """Open the glossary at the entry for a speaker folder.
+
+        The folder shows the glossary-*translated* speaker name, but the glossary
+        is keyed by the source original (``_select_initial_term`` matches
+        ``entry.original``). Map the displayed translation back to its original so
+        the right row is selected; for an untranslated speaker the displayed name
+        already is the original (so the glossary opens ready to add its entry).
+        """
+        main_window = self.window()
+        translator = getattr(main_window, 'translation_handler', None)
+        if not translator or not hasattr(translator, 'show_glossary_dialog'):
+            return
+        original = str(display_name).strip()
+        glossary_manager = (
+            getattr(translator, '_glossary_manager', None)
+            or getattr(getattr(translator, 'glossary_handler', None), 'glossary_manager', None)
+        )
+        try:
+            for entry in (glossary_manager.get_entries() if glossary_manager else []):
+                translation = str(getattr(entry, 'translation', '') or '').split(';')[0].strip()
+                if translation and translation.casefold() == original.casefold():
+                    original = str(getattr(entry, 'original', '') or '').strip() or original
+                    break
+        except Exception as exc:
+            log_debug(f"_open_speaker_in_glossary: reverse lookup failed: {exc}")
+        translator.show_glossary_dialog(original)
+
+    def _open_note_assignment_dialog(self, selected_rows, restore_locator=None):
+        """Collect one translator note and attach it to all selected rows."""
+        if not selected_rows:
+            return False
+        from core.story_context_overrides import get_story_context_override
+
+        notes = {
+            str(get_story_context_override(self.window(), *row).get("translator_note") or "")
+            for row in selected_rows
+        }
+        initial = notes.pop() if len(notes) == 1 else ""
+        text, accepted = QInputDialog.getMultiLineText(
+            self,
+            "Translator Note",
+            f"Note for {len(selected_rows)} selected string(s):",
+            initial,
+        )
+        if not accepted:
+            return False
+        return self._set_notes_for_rows(selected_rows, text, restore_locator)
+
+    def _open_story_assignment_dialog(
+        self, selected_rows, entries, restore_locator=None
+    ):
         """Choose a nested Story target in a searchable dialog."""
         from components.chapter_picker import ChapterSelectionDialog
 
@@ -552,7 +659,9 @@ class TreeContextMenuMixin:
             None,
         )
         label = " › ".join(path) if path else "None"
-        locator = self._virtual_item_locator(target_item) if target_item else None
+        locator = restore_locator or (
+            self._virtual_item_locator(target_item) if target_item else None
+        )
         return self._assign_rows_to_story_context(
             tuple(selected_rows),
             "story",
@@ -562,7 +671,9 @@ class TreeContextMenuMixin:
             locator,
         )
 
-    def _open_speaker_assignment_dialog(self, selected_rows, entries):
+    def _open_speaker_assignment_dialog(
+        self, selected_rows, entries, restore_locator=None
+    ):
         """Choose a speaker in a compact searchable dialog."""
         from components.name_picker import SpeakerSelectionDialog
 
@@ -578,7 +689,9 @@ class TreeContextMenuMixin:
             (item for value, _path, item in entries if str(value) == name),
             None,
         )
-        locator = self._virtual_item_locator(target_item) if target_item else None
+        locator = restore_locator or (
+            self._virtual_item_locator(target_item) if target_item else None
+        )
         return self._assign_rows_to_story_context(
             tuple(selected_rows),
             "speaker",

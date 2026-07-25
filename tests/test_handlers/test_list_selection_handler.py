@@ -56,7 +56,12 @@ def test_ListSelectionHandler_navigate_between_folders(handler):
 
 @pytest.mark.parametrize(
     ("kind", "role_offset", "value"),
-    [(-2, 11, 42), (-3, 15, "MIDNA"), (-4, 16, "Mirror Shards")],
+    [
+        (-2, 11, 42),
+        (-3, 15, "MIDNA"),
+        (-4, 16, "Mirror Shards"),
+        (-5, 19, "Notated"),
+    ],
 )
 def test_virtual_navigation_keeps_same_physical_row(handler, kind, role_offset, value):
     tree = QTreeWidget()
@@ -83,6 +88,7 @@ def test_virtual_navigation_keeps_same_physical_row(handler, kind, role_offset, 
         -2: ViewKind.CHAPTER,
         -3: ViewKind.SPEAKER,
         -4: ViewKind.ITEM,
+        -5: ViewKind.NOTATED,
     }[kind]
     assert handler.mw.data_store.physical_block_idx == 0
     assert handler.mw.data_store.current_string_idx == 1
@@ -361,6 +367,55 @@ def test_ListSelectionHandler_move_selection_to_category(mock_get_text, handler)
     mock_get_text.return_value = ("NewCat", True)
     handler.move_selection_to_category()
     handler.mw.project_manager.move_strings_to_category.assert_called_with(0, [1], "NewCat")
+
+
+@patch('PyQt6.QtWidgets.QInputDialog.getText')
+def test_move_from_category_keeps_source_view_and_selects_visible_next_row(
+    mock_get_text, handler, qtbot
+):
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    source_item = QTreeWidgetItem(["Source"])
+    source_item.setData(0, Qt.UserRole, 0)
+    source_item.setData(0, Qt.UserRole + 10, "Source")
+    tree.addTopLevelItem(source_item)
+    tree.setCurrentItem(source_item)
+    handler.mw.block_list_widget = tree
+
+    store = handler.mw.data_store
+    store.current_block_idx = 0
+    store.physical_block_idx = 0
+    store.current_category_name = "Source"
+    store.current_string_idx = 11
+    store.displayed_string_indices = [10, 11, 12, 13, 14]
+    store.selected_string_indices = [11, 12]
+
+    scrollbar = handler.mw.preview_text_edit.verticalScrollBar.return_value
+    scrollbar.value.return_value = 120
+    scrollbar.minimum.return_value = 0
+    scrollbar.maximum.return_value = 500
+    block = handler.mw.preview_text_edit.document.return_value.findBlockByNumber.return_value
+    block.isValid.return_value = False
+
+    def show_remaining(_block_idx, _category_name, force=False):
+        assert force
+        store.displayed_string_indices = [10, 13, 14]
+
+    handler.ui_updater.populate_strings_for_block.side_effect = show_remaining
+    mock_get_text.return_value = ("Target", True)
+
+    handler.move_selection_to_category()
+
+    handler.mw.project_manager.move_strings_to_category.assert_called_once_with(
+        0, [11, 12], "Target"
+    )
+    assert tree.currentItem() is source_item
+    assert store.current_category_name == "Source"
+    assert store.current_string_idx == 13
+    assert store.selected_string_indices == [13]
+    handler.mw.preview_text_edit.set_selected_lines.assert_called_with([1])
+    scrollbar.setValue.assert_called_with(120)
+    handler.mw.preview_text_edit.ensureCursorVisible.assert_called_once()
 
 @patch('PyQt6.QtWidgets.QInputDialog.getText')
 def test_ListSelectionHandler_rename_category(mock_get_text, handler):

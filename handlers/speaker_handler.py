@@ -104,6 +104,7 @@ class SpeakerHandler(BaseHandler):
                 cursor.data(0, Qt.UserRole + 15),
                 cursor.data(0, Qt.UserRole + 16),
                 cursor.data(0, Qt.UserRole + 17),
+                cursor.data(0, Qt.UserRole + 19),
             ))
             cursor = cursor.parent()
         return tuple(reversed(path))
@@ -151,6 +152,188 @@ class SpeakerHandler(BaseHandler):
             if isinstance(projection, StoryVirtualProjection) else None
         )
         return client, document_id
+
+    def _selected_physical_rows(self) -> list[tuple[int, int]]:
+        """Return the editor selection as unique physical game-string rows."""
+        store = getattr(self.mw, "data_store", None)
+        selected = getattr(store, "selected_string_indices", None)
+        if not isinstance(selected, (list, tuple, set)):
+            return []
+        physical_block = getattr(store, "physical_block_idx", -1)
+        if physical_block is None or physical_block < 0:
+            physical_block = getattr(store, "current_block_idx", -1)
+        rows = []
+        for value in selected:
+            if isinstance(value, (tuple, list)) and len(value) == 2:
+                row = (int(value[0]), int(value[1]))
+            elif physical_block is not None and physical_block >= 0:
+                row = (int(physical_block), int(value))
+            else:
+                continue
+            if row not in rows:
+                rows.append(row)
+        return rows
+
+    def _continuation_row_after_removal(self, source_rows, removed_rows):
+        """Choose the next surviving row after a batch leaves the current view."""
+        source_rows = list(source_rows or [])
+        removed = set(removed_rows or [])
+        removed_positions = [
+            index for index, row in enumerate(source_rows) if row in removed
+        ]
+        if not removed_positions:
+            return None
+
+        def is_row_non_empty(row):
+            try:
+                text, _ = self.data_processor.get_current_string_text(row[0], row[1])
+                if not text:
+                    return False
+                from utils.utils import remove_all_tags
+                return bool(remove_all_tags(text).strip())
+            except Exception:
+                return True
+
+        # 1. Search downwards for a non-empty surviving row
+        for row in source_rows[max(removed_positions) + 1:]:
+            if row not in removed and is_row_non_empty(row):
+                return row
+
+        # 2. Search upwards for a non-empty surviving row
+        for row in reversed(source_rows[:min(removed_positions)]):
+            if row not in removed and is_row_non_empty(row):
+                return row
+
+        # 3. Fallback: Search downwards for any surviving row
+        for row in source_rows[max(removed_positions) + 1:]:
+            if row not in removed:
+                return row
+
+        # 4. Fallback: Search upwards for any surviving row
+        for row in reversed(source_rows[:min(removed_positions)]):
+            if row not in removed:
+                return row
+
+        return None
+
+
+    def _restore_source_view_after_rebuild(self, locator, continuation_row=None):
+        """Restore a virtual source folder and its nearest surviving row."""
+        item = self._restore_tree_selection(locator)
+        if item is None:
+            return False
+        mappings = [
+            tuple(row) for row in (item.data(0, Qt.UserRole + 13) or ())
+            if isinstance(row, (tuple, list)) and len(row) == 2
+        ]
+        if not mappings:
+            return True
+        self.mw.data_store.chapter_mappings = mappings
+        current_row = (
+            self.mw.data_store.physical_block_idx,
+            self.mw.data_store.current_string_idx,
+        )
+        row_to_select = (
+            current_row if current_row in mappings
+            else continuation_row if continuation_row in mappings
+            else mappings[0]
+        )
+        block_idx, string_idx = row_to_select
+        self.mw.data_store.current_block_idx = block_idx
+        self.mw.data_store.physical_block_idx = block_idx
+        self.mw.data_store.current_string_idx = string_idx
+        self.mw.data_store.selected_string_indices = [row_to_select]
+        preview = getattr(self.mw, "preview_text_edit", None)
+        reset = getattr(preview, "reset_selection_state", None)
+        if callable(reset):
+            reset()
+        populate_view = getattr(self.ui_updater, "populate_current_view", None)
+        if callable(populate_view):
+            populate_view(force=True)
+        return True
+
+    def _save_speaker_for_selected_rows(self, char_name: str) -> bool:
+        """Apply an entered speaker to every selected row in one project update."""
+        rows = self._selected_physical_rows()
+        if len(rows) < 2:
+            return False
+        manager = getattr(self.mw, "project_manager", None)
+        if manager is None or getattr(manager, "project", None) is None:
+            return False
+
+        tree = getattr(self.mw, "block_list_widget", None)
+        selected_tree_locator = self._tree_item_locator(
+            tree.currentItem() if tree is not None else None
+        )
+        source_mappings = list(
+            tree.currentItem().data(0, Qt.UserRole + 13) or []
+            if tree is not None and tree.currentItem() is not None
+            else getattr(self.mw.data_store, "displayed_string_indices", []) or []
+        )
+        continuation_row = self._continuation_row_after_removal(
+            source_mappings, rows
+        )
+
+        undo_mgr = getattr(self.mw, "undo_manager", None)
+        before = undo_mgr.get_project_snapshot() if undo_mgr else None
+        value = char_name if char_name and char_name.casefold() != "none" else "None"
+        changed = sum(
+            bool(update_story_context_override(
+                self.mw, block_idx, string_idx, speaker=value
+            ))
+            for block_idx, string_idx in rows
+        )
+        if not changed:
+            return False
+
+        manager.save()
+        if undo_mgr and before is not None:
+            undo_mgr.record_structural_action(
+                before,
+                "ASSIGN_STORY_CONTEXT",
+                f"Change speaker for {changed} string(s): {value}",
+            )
+        block_updater = getattr(self.ui_updater, "block_list_updater", None)
+        if block_updater is not None:
+            block_updater.populate_blocks()
+            restored_item = self._restore_tree_selection(selected_tree_locator)
+            if restored_item is not None:
+                mappings = list(restored_item.data(0, Qt.UserRole + 13) or [])
+                self.mw.data_store.chapter_mappings = mappings
+                current_row = (
+                    self.mw.data_store.physical_block_idx,
+                    self.mw.data_store.current_string_idx,
+                )
+                row_to_select = (
+                    continuation_row
+                    if continuation_row in mappings
+                    else current_row if current_row in mappings
+                    else mappings[0] if mappings else None
+                )
+                if row_to_select is not None:
+                    block_idx, string_idx = row_to_select
+                    self.mw.data_store.current_block_idx = block_idx
+                    self.mw.data_store.physical_block_idx = block_idx
+                    self.mw.data_store.current_string_idx = string_idx
+                    self.mw.data_store.selected_string_indices = [row_to_select]
+                    preview = getattr(self.mw, "preview_text_edit", None)
+                    reset_selection = getattr(preview, "reset_selection_state", None)
+                    if callable(reset_selection):
+                        reset_selection()
+                if hasattr(self.ui_updater, "populate_current_view"):
+                    self.ui_updater.populate_current_view(force=True)
+        settings = getattr(self.mw, "string_settings_updater", None)
+        if settings is not None:
+            settings.clear_story_context_cache()
+            settings.update_string_settings_panel()
+        self.data_processor.schedule_autosave()
+        status_bar = getattr(self.mw, "statusBar", None)
+        if callable(status_bar):
+            status_bar().showMessage(
+                f"Changed speaker for {changed} selected string(s): {value}", 5000
+            )
+        self._restore_editor_focus_after_speaker_save()
+        return True
 
     def open_current_string_in_markup_studio(self) -> bool:
         """Reveal the source node linked to the currently selected game string."""
@@ -206,13 +389,20 @@ class SpeakerHandler(BaseHandler):
 
         if cb is not None and not is_undoing_redoing:
             last_displayed = getattr(cb, '_last_displayed_char', None)
-            if last_displayed is not None and char_name == last_displayed:
+            if (
+                last_displayed is not None
+                and char_name == last_displayed
+                and len(self._selected_physical_rows()) < 2
+            ):
                 return
 
         block_idx = self.mw.data_store.physical_block_idx
         string_idx = self.mw.data_store.current_string_idx
 
         if block_idx == -1 or string_idx == -1:
+            return
+
+        if self._save_speaker_for_selected_rows(char_name):
             return
 
         tree = getattr(self.mw, "block_list_widget", None)
@@ -450,6 +640,16 @@ class SpeakerHandler(BaseHandler):
         string_idx = getattr(self.mw.data_store, "current_string_idx", -1)
         if block_idx < 0 or string_idx < 0:
             return
+        tree = getattr(self.mw, "block_list_widget", None)
+        current_item = tree.currentItem() if tree is not None else None
+        source_locator = self._tree_item_locator(current_item)
+        source_mappings = [
+            tuple(row) for row in (current_item.data(0, Qt.UserRole + 13) or ())
+            if isinstance(row, (tuple, list)) and len(row) == 2
+        ] if current_item is not None else []
+        continuation_row = self._continuation_row_after_removal(
+            source_mappings, [(block_idx, string_idx)]
+        )
         combo = getattr(self.mw, "chapter_combobox", None)
         if structure_id is None and combo is not None:
             structure_id = combo.currentData()
@@ -473,6 +673,17 @@ class SpeakerHandler(BaseHandler):
         block_updater = getattr(self.ui_updater, "block_list_updater", None)
         if block_updater is not None:
             block_updater.populate_blocks()
+            restored = self._restore_source_view_after_rebuild(
+                source_locator, continuation_row
+            )
+            if not restored and getattr(block_updater, "_is_loading_chapters", False):
+                when_ready = getattr(block_updater, "when_virtual_blocks_ready", None)
+                if callable(when_ready):
+                    when_ready(
+                        lambda: self._restore_source_view_after_rebuild(
+                            source_locator, continuation_row
+                        )
+                    )
         settings = getattr(self.mw, "string_settings_updater", None)
         if settings is not None:
             settings.clear_story_context_cache()

@@ -49,6 +49,7 @@ class ViewKind(str, Enum):
     CHAPTER = "chapter"
     SPEAKER = "speaker"
     ITEM = "item"
+    NOTATED = "notated"
 
 
 def get_view_kind(store: Any) -> ViewKind:
@@ -65,6 +66,7 @@ def get_view_kind(store: Any) -> ViewKind:
         -2: ViewKind.CHAPTER,
         -3: ViewKind.SPEAKER,
         -4: ViewKind.ITEM,
+        -5: ViewKind.NOTATED,
     }.get(getattr(store, "current_block_idx", -1), ViewKind.PHYSICAL)
 
 
@@ -225,6 +227,7 @@ class AppDataStore:
             ViewKind.CHAPTER: -2,
             ViewKind.SPEAKER: -3,
             ViewKind.ITEM: -4,
+            ViewKind.NOTATED: -5,
         }.get(self.current_view_kind, self.current_block_idx)
 
     def set_view_kind(self, kind: ViewKind | str) -> None:
@@ -342,6 +345,7 @@ class AppDataStore:
             -2: ViewKind.CHAPTER,
             -3: ViewKind.SPEAKER,
             -4: ViewKind.ITEM,
+            -5: ViewKind.NOTATED,
         }.get(restored_block_idx, ViewKind.PHYSICAL)
         self.current_view_kind = ViewKind(snapshot.get("current_view_kind", legacy_kind.value))
         self.current_block_idx = (

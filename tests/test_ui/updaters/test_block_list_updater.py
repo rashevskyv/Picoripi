@@ -365,6 +365,8 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
                 "speaker": "SYSTEM",
                 "structure_id": 30,
                 "structure_path": ["Act One", "Chapter One", "Scene One"],
+                "translator_note": "System status text",
+                "notated": True,
             }
         },
     }
@@ -470,6 +472,22 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     )
     assert unbound.data(0, Qt.UserRole + 13) == [(1, 2)]
     assert unbound.data(0, Qt.UserRole + 17) == "unbound"
+
+    notated_root = next(item for item in roots if item.text(0) == "Notated")
+    noted = next(
+        notated_root.child(i)
+        for i in range(notated_root.childCount())
+        if notated_root.child(i).text(0) == "Notated"
+    )
+    assert noted.data(0, Qt.UserRole) == -5
+    assert noted.data(0, Qt.UserRole + 13) == [(0, 0)]
+
+    nested_notated = next(
+        descriptions.child(i)
+        for i in range(descriptions.childCount())
+        if descriptions.child(i).text(0) == "Notated"
+    )
+    assert nested_notated.child(0).data(0, Qt.UserRole + 13) == [(0, 0)]
 
 
 def test_BlockListUpdater_hides_virtual_folders_that_only_contain_none(updater):

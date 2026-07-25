@@ -588,9 +588,9 @@ class TestPreviewUpdater:
 
         updater.populate_strings_for_block(0, force=True)
 
-        expected_indices = [0, 1, 2, 3, 4, 5, -1, 9]
+        expected_indices = list(range(10))
         assert updater.mw.data_store.displayed_string_indices == expected_indices
-        assert updater._placeholder_texts[6] == "[6-8] 3 empty line(s)"
+        assert updater._placeholder_texts == {}
 
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
@@ -739,7 +739,7 @@ class TestPreviewUpdater:
         updater.mw.project_manager = None
 
         def get_text_side_effect(b_idx, r_idx):
-            is_empty = r_idx in [1, 2, 3]
+            is_empty = r_idx in [1, 2, 3, 4, 5]
             txt = "" if is_empty else f"line{r_idx}"
             return (txt, None)
 
@@ -748,7 +748,7 @@ class TestPreviewUpdater:
 
         updater.populate_strings_for_block(0, force=True)
 
-        assert preview_edit.custom_line_numbers == [1, None, 5, 6, 7]
+        assert preview_edit.custom_line_numbers == [1, 2, None, 6, 7]
 
 
 

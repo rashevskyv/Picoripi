@@ -122,6 +122,7 @@ def test_AppDataStore_displayed_string_indices_preserves_list_index_semantics(st
         (ViewKind.CHAPTER, -2),
         (ViewKind.SPEAKER, -3),
         (ViewKind.ITEM, -4),
+        (ViewKind.NOTATED, -5),
     ],
 )
 def test_view_kind_never_replaces_physical_address(store, kind, token):
@@ -174,6 +175,7 @@ def test_session_snapshot_round_trips_view_and_physical_identity(store, kind):
         (-2, ViewKind.CHAPTER),
         (-3, ViewKind.SPEAKER),
         (-4, ViewKind.ITEM),
+        (-5, ViewKind.NOTATED),
     ],
 )
 def test_legacy_negative_session_migrates_to_explicit_view(store, legacy_block, kind):

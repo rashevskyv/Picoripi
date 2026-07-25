@@ -1,6 +1,6 @@
-﻿# components/tree_drag_drop_mixin.py
+# components/tree_drag_drop_mixin.py
 """Drag-and-drop mixin for CustomTreeWidget."""
-from PyQt6.QtCore import Qt, QPoint, QTimer
+from PyQt6.QtCore import Qt, QPoint, QTimer, QSignalBlocker
 from PyQt6.QtGui import QDrag, QFontMetrics, QPixmap, QPainter, QColor
 from PyQt6.QtWidgets import QTreeWidgetItemIterator
 
@@ -113,6 +113,7 @@ class TreeDragDropMixin:
                 cursor.data(0, Qt.UserRole + 15),
                 cursor.data(0, Qt.UserRole + 16),
                 cursor.data(0, Qt.UserRole + 17),
+                cursor.data(0, Qt.UserRole + 19),
             ))
             cursor = cursor.parent()
         return tuple(reversed(path))
@@ -169,6 +170,56 @@ class TreeDragDropMixin:
             return False
 
         target_label = target_label or str(value)
+        source_locator = self._virtual_item_locator(self.currentItem())
+        source_rows = []
+        continuation_row = None
+        if self.currentItem() is not None:
+            source_rows = [
+                tuple(row) for row in (self.currentItem().data(0, Qt.UserRole + 13) or ())
+                if isinstance(row, (tuple, list)) and len(row) == 2
+            ]
+            removed = set(rows)
+            positions = [index for index, row in enumerate(source_rows) if row in removed]
+            if positions:
+                data_processor = getattr(main_window, "data_processor", None)
+
+                def is_row_non_empty(row):
+                    if not data_processor:
+                        return True
+                    try:
+                        text, _ = data_processor.get_current_string_text(row[0], row[1])
+                        if not text:
+                            return False
+                        from utils.utils import remove_all_tags
+                        return bool(remove_all_tags(text).strip())
+                    except Exception:
+                        return True
+
+                # 1. Search downwards for a non-empty surviving row
+                continuation_row = next(
+                    (row for row in source_rows[max(positions) + 1:] if row not in removed and is_row_non_empty(row)),
+                    None,
+                )
+                # 2. Search upwards for a non-empty surviving row
+                if continuation_row is None:
+                    continuation_row = next(
+                        (row for row in reversed(source_rows[:min(positions)]) if row not in removed and is_row_non_empty(row)),
+                        None,
+                    )
+                # 3. Fallback: Search downwards for any surviving row
+                if continuation_row is None:
+                    continuation_row = next(
+                        (row for row in source_rows[max(positions) + 1:] if row not in removed),
+                        None,
+                    )
+                # 4. Fallback: Search upwards for any surviving row
+                if continuation_row is None:
+                    continuation_row = next(
+                        (row for row in reversed(source_rows[:min(positions)]) if row not in removed),
+                        None,
+                    )
+        preserve_source = continuation_row is not None
+        restore_locator = source_locator if preserve_source else target_locator
         undo_mgr = getattr(main_window, "undo_manager", None)
         before = undo_mgr.get_project_snapshot() if undo_mgr else None
         from core.story_context_overrides import update_story_context_override
@@ -190,6 +241,8 @@ class TreeDragDropMixin:
                     "structure_path": [],
                     "speaker": "None",
                     "item": "None",
+                    "translator_note": None,
+                    "notated": None,
                 }
             if update_story_context_override(
                 main_window, block_idx, string_idx, **changes
@@ -207,6 +260,61 @@ class TreeDragDropMixin:
             )
         updater = getattr(getattr(main_window, "ui_updater", None), "block_list_updater", None)
         if updater is not None:
+            def restore_source_and_row():
+                try:
+                    from PyQt6 import sip
+                    if sip.isdeleted(self):
+                        return False
+                except (ImportError, TypeError, RuntimeError):
+                    pass
+                if not restore_locator:
+                    return False
+
+                selection_handler = getattr(main_window, "list_selection_handler", None)
+
+                # Re-select the source leaf without re-emitting currentItemChanged;
+                # we drive the block load explicitly below so the flow is
+                # deterministic regardless of Qt's signal timing.
+                blocker = QSignalBlocker(self)
+                restored = bool(self._restore_virtual_item_locator(restore_locator))
+                del blocker
+                if not restored:
+                    return False
+
+                if not (preserve_source and continuation_row is not None):
+                    # Fall back to the destination view (nothing survived in the
+                    # source leaf); mirror the plain locator restore behaviour.
+                    if selection_handler is not None:
+                        item = self.currentItem()
+                        if item is not None:
+                            selection_handler.block_selected(item, None)
+                    return True
+
+                item = self.currentItem()
+                if item is None or selection_handler is None:
+                    return True
+
+                # Rebuild the source leaf's view synchronously so its filtered
+                # preview (displayed_string_indices) is up to date.
+                selection_handler.block_selected(item, None)
+
+                # Then land the cursor on the continuation row using its position
+                # in the *displayed* preview, not the raw mapping index — the two
+                # diverge when filters such as "Hide empty strings" are active.
+                target_row = (int(continuation_row[0]), int(continuation_row[1]))
+
+                def reveal_continuation():
+                    try:
+                        from PyQt6 import sip
+                        if sip.isdeleted(self):
+                            return
+                    except (ImportError, TypeError, RuntimeError):
+                        pass
+                    self._reveal_preview_row(target_row)
+
+                QTimer.singleShot(0, reveal_continuation)
+                return True
+
             def refresh_and_restore_target():
                 try:
                     from PyQt6 import sip
@@ -219,8 +327,14 @@ class TreeDragDropMixin:
                     return
                 updater.populate_blocks()
                 try:
-                    if target_locator and not sip.isdeleted(self):
-                        self._restore_virtual_item_locator(target_locator)
+                    restored = restore_source_and_row()
+                    if (
+                        not restored
+                        and getattr(updater, "_is_loading_chapters", False)
+                    ):
+                        when_ready = getattr(updater, "when_virtual_blocks_ready", None)
+                        if callable(when_ready):
+                            when_ready(restore_source_and_row)
                 except (TypeError, RuntimeError):
                     return
 
@@ -229,6 +343,92 @@ class TreeDragDropMixin:
         if callable(status_bar):
             status_bar().showMessage(
                 f"Changed {facet} context for {changed} string(s): {target_label}", 5000
+            )
+        return True
+
+    def _reveal_preview_row(self, row):
+        """Select and scroll the preview to a physical (block, string) row.
+
+        Resolves the row against the *displayed* (filtered) preview lines so the
+        cursor lands correctly even when preview filters hide some strings. If the
+        exact row is filtered out, the nearest still-visible row is used instead.
+        """
+        main_window = self.window()
+        selection_handler = getattr(main_window, "list_selection_handler", None)
+        if selection_handler is None:
+            return
+
+        rel = -1
+        get_relative = getattr(selection_handler, "_get_relative_index", None)
+        if callable(get_relative):
+            try:
+                rel = int(get_relative(row))
+            except (TypeError, ValueError):
+                rel = -1
+
+        if rel == -1:
+            displayed = list(
+                getattr(main_window.data_store, "displayed_string_indices", []) or []
+            )
+            visible = [
+                (index, value)
+                for index, value in enumerate(displayed)
+                if isinstance(value, (tuple, list)) and len(value) == 2
+            ]
+            after = [index for index, value in visible if tuple(value) >= row]
+            before = [index for index, value in visible if tuple(value) < row]
+            if after:
+                rel = after[0]
+            elif before:
+                rel = before[-1]
+
+        if rel != -1:
+            selection_handler.string_selected_from_preview(rel)
+
+    def _set_notes_for_rows(self, rows, note, restore_locator=None):
+        """Persist or clear a translator note for several game rows."""
+        if not rows:
+            return False
+        main_window = self.window()
+        manager = getattr(main_window, "project_manager", None)
+        if manager is None or getattr(manager, "project", None) is None:
+            return False
+        note = str(note or "").strip()
+        undo_mgr = getattr(main_window, "undo_manager", None)
+        before = undo_mgr.get_project_snapshot() if undo_mgr else None
+        from core.story_context_overrides import update_story_context_override
+
+        changed = sum(
+            bool(update_story_context_override(
+                main_window,
+                block_idx,
+                string_idx,
+                translator_note=note or None,
+                notated=True if note else None,
+            ))
+            for block_idx, string_idx in rows
+        )
+        if not changed:
+            return False
+        manager.save()
+        if undo_mgr and before is not None:
+            undo_mgr.record_structural_action(
+                before,
+                "ASSIGN_STORY_CONTEXT",
+                f"{'Add' if note else 'Remove'} notes for {changed} string(s)",
+            )
+        updater = getattr(getattr(main_window, "ui_updater", None), "block_list_updater", None)
+        if updater is not None:
+            updater.populate_blocks()
+            if restore_locator:
+                self._restore_virtual_item_locator(restore_locator)
+        data_processor = getattr(main_window, "data_processor", None)
+        if data_processor is not None:
+            data_processor.schedule_autosave()
+        status_bar = getattr(main_window, "statusBar", None)
+        if callable(status_bar):
+            status_bar().showMessage(
+                f"{'Added' if note else 'Removed'} notes for {changed} string(s)", 5000
             )
         return True
 

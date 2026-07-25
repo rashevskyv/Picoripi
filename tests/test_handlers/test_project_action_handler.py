@@ -525,11 +525,31 @@ def test_startup_splash_waits_for_restored_virtual_blocks(mock_mw):
     completed.assert_not_called()
     mock_mw.finish_startup_loading.assert_not_called()
 
+    block_updater._tree_state_restore_pending = True
     block_updater._is_loading_chapters = False
     block_updater._notify_virtual_blocks_ready()
 
+    completed.assert_not_called()
+    mock_mw.finish_startup_loading.assert_not_called()
+
+    block_updater._notify_tree_state_ready()
+
     completed.assert_called_once_with(True)
     mock_mw.finish_startup_loading.assert_called_once_with()
+
+
+def test_restore_view_timer_finishes_deferred_startup(mock_mw):
+    handler = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    handler._pending_restore_block = 2
+    handler._pending_restore_cat = "None"
+    handler._finish_startup_after_restore_timer = True
+    mock_mw.finish_startup_loading = MagicMock()
+
+    handler._on_restore_view_timer_timeout()
+
+    mock_mw.block_list_widget.select_block_by_index.assert_called_once_with(2, "None")
+    mock_mw.finish_startup_loading.assert_called_once_with()
+    assert handler._finish_startup_after_restore_timer is False
 
 
 def test_ProjectActionHandler_populate_blocks_from_project_empty_session_falls_back(mock_mw):

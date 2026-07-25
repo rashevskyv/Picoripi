@@ -38,8 +38,47 @@ class SessionManager:
             return p_path.with_name(p_path.name + ".json")
         return None
 
+    def get_clean_checkpoint_file_path(self) -> Optional[Path]:
+        """Return the tiny marker that identifies a completed clean shutdown."""
+        session_path = self.get_session_file_path()
+        if session_path:
+            return session_path.with_name(session_path.name + ".clean")
+        return None
+
+    def finalize_clean_shutdown_checkpoint(self) -> bool:
+        """Mark the latest Pickle checkpoint as complete without rewriting JSON."""
+        if not self._last_pickle_checkpoint_id:
+            self._autosave_session(force=True)
+        marker_path = self.get_clean_checkpoint_file_path()
+        checkpoint_id = self._last_pickle_checkpoint_id
+        if marker_path is None or not checkpoint_id:
+            return False
+        tmp_path = marker_path.with_suffix(marker_path.suffix + ".tmp")
+        try:
+            marker_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path.write_text(checkpoint_id, encoding="ascii")
+            tmp_path.replace(marker_path)
+            return True
+        except Exception as e:
+            log_warning(f"DSP: Failed to finalize clean session checkpoint: {e}")
+            try:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+            except OSError:
+                pass
+            return False
+
     def _attach_runtime_session_state(self, snapshot: dict) -> dict:
         """Add runtime-only state that lives outside AppDataStore."""
+        ui_updater = getattr(self.mw, "ui_updater", None)
+        get_tree_state = getattr(ui_updater, "get_tree_state", None)
+        if callable(get_tree_state):
+            try:
+                tree_state = get_tree_state()
+                if isinstance(tree_state, dict) and tree_state:
+                    snapshot["ui_tree_state"] = tree_state
+            except Exception as e:
+                log_warning(f"DSP: Failed to capture UI tree session state: {e}")
         game_rules = getattr(self.mw, 'current_game_rules', None)
         original_keys = getattr(game_rules, 'original_keys', None)
         if original_keys is not None:
@@ -236,6 +275,7 @@ class SessionManager:
             "problems_per_subline": problems_serialized,
             "plugin_original_keys": snapshot.get("plugin_original_keys"),
             "plugin_runtime_state": self._to_json_safe_value(snapshot.get("plugin_runtime_state")),
+            "ui_tree_state": self._to_json_safe_value(snapshot.get("ui_tree_state", {})),
         }
         return json_snapshot
 
@@ -312,6 +352,7 @@ class SessionManager:
             "problems_per_subline": problems_deserialized,
             "plugin_original_keys": json_data.get("plugin_original_keys"),
             "plugin_runtime_state": self._from_json_safe_value(json_data.get("plugin_runtime_state")),
+            "ui_tree_state": self._from_json_safe_value(json_data.get("ui_tree_state", {})),
         }
         return snapshot
 
@@ -335,6 +376,12 @@ class SessionManager:
             data_store = getattr(self.mw, 'data_store', None)
             if data_store:
                 session_path.parent.mkdir(parents=True, exist_ok=True)
+                clean_marker = self.get_clean_checkpoint_file_path()
+                if clean_marker and clean_marker.exists():
+                    try:
+                        clean_marker.unlink()
+                    except OSError:
+                        pass
                 snapshot = data_store.get_session_snapshot()
                 self._attach_runtime_session_state(snapshot)
                 snapshot["saved_at"] = time.time()
@@ -412,11 +459,30 @@ class SessionManager:
         pickle_saved_at = 0.0
         checkpoints_match = False
 
+        # Clean shutdowns use Pickle plus a tiny matching marker. This avoids
+        # both rewriting and parsing the much larger durable JSON checkpoint.
+        clean_marker_path = self.get_clean_checkpoint_file_path()
+        if session_path and session_path.exists() and clean_marker_path and clean_marker_path.exists():
+            try:
+                with session_path.open('rb') as f:
+                    candidate = pickle.load(f)
+                checkpoint_id = candidate.get("checkpoint_id") if isinstance(candidate, dict) else None
+                marker_id = clean_marker_path.read_text(encoding="ascii").strip()
+                if checkpoint_id and checkpoint_id == marker_id:
+                    pickle_snapshot = candidate
+                    pickle_saved_at = candidate.get("saved_at", 0.0)
+                    checkpoints_match = True
+                    self._last_pickle_checkpoint_id = checkpoint_id
+                    self._last_pickle_saved_at = pickle_saved_at
+                    log_info("DSP: Loaded clean session through Pickle fast path")
+            except Exception as e:
+                log_debug(f"DSP: Clean Pickle fast-path probe failed: {e}")
+
         # Modern clean-shutdown checkpoints carry the same random ID in both
         # files. Pickle is much faster to deserialize than the large durable
         # JSON, so verify that ID from JSON's small prefix and take the fast
         # path without parsing the full JSON document.
-        if json_path and json_path.exists() and session_path and session_path.exists():
+        if not checkpoints_match and json_path and json_path.exists() and session_path and session_path.exists():
             try:
                 with session_path.open('rb') as f:
                     candidate = pickle.load(f)
@@ -573,8 +639,11 @@ class SessionManager:
                     block_idx = self.mw.data_store.current_block_idx
                     category_name = self.mw.data_store.current_category_name
                     string_idx = self.mw.data_store.current_string_idx
+                    ui_tree_state = snapshot.get("ui_tree_state")
 
-                    if block_idx != -1:
+                    if isinstance(ui_tree_state, dict) and ui_tree_state:
+                        self.mw.ui_updater.apply_tree_state(ui_tree_state)
+                    elif block_idx != -1:
                         tree_widget = getattr(self.mw, 'block_list_widget', None)
                         if tree_widget and hasattr(tree_widget, 'select_block_by_index'):
                             tree_widget.select_block_by_index(block_idx, category_name)

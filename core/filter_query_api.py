@@ -144,6 +144,21 @@ class FilterQueryAPI:
         if hide_empty_strings:
             collapsed_indices = []
             streak_indices = []
+
+            def append_empty_streak(streak):
+                if len(streak) <= 3:
+                    collapsed_indices.extend(streak)
+                    return
+                collapsed_indices.append(streak[0])
+                collapsed_indices.append(-1)
+                hidden = streak[1:-1]
+                start_idx = hidden[0][1] if isinstance(hidden[0], tuple) else hidden[0]
+                end_idx = hidden[-1][1] if isinstance(hidden[-1], tuple) else hidden[-1]
+                placeholder_texts[len(collapsed_indices) - 1] = (
+                    f"[{start_idx}-{end_idx}] {len(hidden)} empty line(s)"
+                )
+                collapsed_indices.append(streak[-1])
+
             for idx in target_indices:
                 b_idx = block_idx
                 s_idx = idx
@@ -157,25 +172,11 @@ class FilterQueryAPI:
                     streak_indices.append(idx)
                 else:
                     if streak_indices:
-                        if len(streak_indices) < 3:
-                            collapsed_indices.extend(streak_indices)
-                        else:
-                            collapsed_indices.append(-1)
-                            start_idx = streak_indices[0][1] if isinstance(streak_indices[0], tuple) else streak_indices[0]
-                            end_idx = streak_indices[-1][1] if isinstance(streak_indices[-1], tuple) else streak_indices[-1]
-                            count = len(streak_indices)
-                            placeholder_texts[len(collapsed_indices)-1] = f"[{start_idx}-{end_idx}] {count} empty line(s)"
+                        append_empty_streak(streak_indices)
                         streak_indices = []
                     collapsed_indices.append(idx)
             if streak_indices:
-                if len(streak_indices) < 3:
-                    collapsed_indices.extend(streak_indices)
-                else:
-                    collapsed_indices.append(-1)
-                    start_idx = streak_indices[0][1] if isinstance(streak_indices[0], tuple) else streak_indices[0]
-                    end_idx = streak_indices[-1][1] if isinstance(streak_indices[-1], tuple) else streak_indices[-1]
-                    count = len(streak_indices)
-                    placeholder_texts[len(collapsed_indices)-1] = f"[{start_idx}-{end_idx}] {count} empty line(s)"
+                append_empty_streak(streak_indices)
             target_indices = collapsed_indices
 
         return target_indices, placeholder_texts

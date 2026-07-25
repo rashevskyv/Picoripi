@@ -249,9 +249,10 @@ def test_string_settings_updater_speakers(qapp, mock_mw, mock_project):
     # The old project says Hero, but the normalized story says LETTER.
     updater.update_string_settings_panel()
     
-    assert cb.count() == 2
+    assert cb.count() == 3
     assert cb.itemText(0) == "None"
-    assert cb.itemText(1) == "LETTER"
+    assert cb.itemText(1) == "Hero"
+    assert cb.itemText(2) == "LETTER"
     assert cb.currentText() == "LETTER"
     assert cb.isEnabled()
     assert spk_lbl.text() == "Speaker: LETTER"
@@ -263,6 +264,50 @@ def test_string_settings_updater_speakers(qapp, mock_mw, mock_project):
     assert "Double-click this label" in lbl.toolTip()
     client.get_story_speakers_for_game_string.assert_not_called()
     client.get_story_string_contexts.assert_not_called()
+
+
+def test_field_reads_speaker_pool_so_it_matches_folders(qapp, mock_mw, mock_project):
+    """When the folder pool is published, the field shows that exact (translated)
+    speaker and lists every folder — so a field value always has a folder."""
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project = mock_project
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+
+    from PyQt6.QtWidgets import QComboBox, QLabel
+    cb = QComboBox()
+    cb.setEditable(True)
+    mock_mw.speaker_combobox = cb
+    mock_mw.speaker_select_label = QLabel()
+    mock_mw.speaker_label = QLabel()
+    mock_mw.font_combobox = MagicMock()
+    mock_mw.width_spinbox = MagicMock()
+    mock_mw.apply_width_button = MagicMock()
+    mock_mw.block_to_project_file_map = {0: 0}
+
+    projection = StoryVirtualProjection(1, (), ())
+    client = MagicMock()
+    client.get_story_virtual_projection.return_value = projection
+    mock_mw.translation_handler.prompt_composer._get_mempalace_client.return_value = client
+    block_updater = mock_mw.ui_updater.block_list_updater
+    block_updater._story_projection_cache = projection
+    # The folders resolved this row to the translated "Сутінкова Принцеса".
+    block_updater._speaker_pool_cache = {
+        (0, 0): "Сутінкова Принцеса",
+        (0, 5): "Зельда",
+    }
+
+    updater = StringSettingsUpdater(mock_mw, mock_mw.data_processor)
+    updater.update_string_settings_panel()
+
+    assert cb.currentText() == "Сутінкова Принцеса"
+    assert mock_mw.speaker_label.text() == "Speaker: Сутінкова Принцеса"
+    items = [cb.itemText(i) for i in range(cb.count())]
+    # Every folder is selectable, and the current value is among them.
+    assert "Сутінкова Принцеса" in items
+    assert "Зельда" in items
+
 
 def test_transition_from_speaker_to_physical_block_clears_state(qapp, mock_mw, mock_project):
     """Test that transitioning from a virtual speaker folder to a physical block clears current_speaker_name."""
@@ -728,3 +773,44 @@ def test_block_list_rebuild_keeps_pending_speaker_retention_before_selection(qap
     assert black_cat_item.parent() is not None
     assert black_cat_item.parent().isExpanded()
     assert handler._pending_speaker_retention == ("Black Cat", (5, 10), 0)
+
+def test_continuation_row_after_removal_finds_non_empty_row(qapp, mock_mw):
+    """Test that _continuation_row_after_removal skips empty rows and selects the nearest non-empty row."""
+    mock_data_processor = MagicMock()
+
+    def get_text(b, s):
+        if s == 0:
+            return "Some Text", "test"
+        elif s == 1:
+            return "{tab}", "test"
+        elif s == 2:
+            return "Removed Block", "test"
+        elif s == 3:
+            return "   ", "test"
+        elif s == 4:
+            return "Non-empty string", "test"
+        elif s == 5:
+            return "", "test"
+        return "", "test"
+
+    mock_data_processor.get_current_string_text.side_effect = get_text
+
+    from handlers.speaker_handler import SpeakerHandler
+    handler = SpeakerHandler(mock_mw, mock_data_processor, mock_mw.ui_updater)
+
+    source_rows = [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
+    removed_rows = [(0, 2)]
+
+    row = handler._continuation_row_after_removal(source_rows, removed_rows)
+    assert row == (0, 4)
+
+    removed_rows_2 = [(0, 2), (0, 3), (0, 4), (0, 5)]
+    row2 = handler._continuation_row_after_removal(source_rows, removed_rows_2)
+    assert row2 == (0, 0)
+
+    def get_all_empty(b, s):
+        return "{tab}", "test"
+    mock_data_processor.get_current_string_text.side_effect = get_all_empty
+    row3 = handler._continuation_row_after_removal(source_rows, [(0, 2)])
+    assert row3 == (0, 3)
+

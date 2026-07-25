@@ -769,6 +769,10 @@ class DataStateProcessor:
         """Autosave entire data_store into a JSON file if dirty or forced."""
         return self.session_manager._save_durable_session_json(force)
 
+    def finalize_clean_shutdown_checkpoint(self) -> bool:
+        """Finalize the fast Pickle checkpoint for a clean application exit."""
+        return self.session_manager.finalize_clean_shutdown_checkpoint()
+
     def load_session_file(self) -> bool:
         """Load entire project state from a JSON file (preferred) or a pickle file (fallback)."""
         return self.session_manager.load_session_file()

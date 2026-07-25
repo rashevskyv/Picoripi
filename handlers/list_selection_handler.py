@@ -218,6 +218,9 @@ class ListSelectionHandler(BaseHandler):
             if block_index == -4:
                 self._handle_item_selection(current_item)
                 return
+            if block_index == -5:
+                self._handle_notated_selection(current_item)
+                return
 
             if chapter_id is not None:
                 self._handle_chapter_selection(
@@ -370,6 +373,36 @@ class ListSelectionHandler(BaseHandler):
             self.ui_updater.update_text_views()
         self.ui_updater.update_statusbar_paths()
         self._update_block_toolbar_button_states(-4)
+
+    def _handle_notated_selection(self, current_item: QTreeWidgetItem) -> None:
+        """Show strings grouped by the presence of a translator note."""
+        label = current_item.data(0, Qt.UserRole + 19)
+        mappings = current_item.data(0, Qt.UserRole + 13) or []
+        self._clear_pending_speaker_retention()
+        self.mw.data_store.set_view_kind(ViewKind.NOTATED)
+        self.mw.data_store.current_category_name = None
+        self.mw.data_store.current_chapter_id = None
+        self.mw.data_store.current_speaker_name = label
+        self.mw.data_store.chapter_mappings = mappings
+        self.ui_updater.populate_current_view(force=True)
+        if mappings:
+            target = (self._target_block_idx, self._target_string_idx)
+            target_idx = mappings.index(target) if target in mappings else 0
+            block_idx, string_idx = mappings[target_idx]
+            self.mw.data_store.physical_block_idx = block_idx
+            self.mw.data_store.current_block_idx = block_idx
+            self.mw.data_store.current_string_idx = string_idx
+            self._target_block_idx = None
+            self._target_string_idx = None
+            if not getattr(self.mw, '_restoring_session_state', False):
+                self._schedule_string_selection(target_idx)
+        else:
+            self.mw.data_store.physical_block_idx = -1
+            self.mw.data_store.current_block_idx = -1
+            self.mw.data_store.current_string_idx = -1
+            self.ui_updater.update_text_views()
+        self.ui_updater.update_statusbar_paths()
+        self._update_block_toolbar_button_states(-5)
 
     def _handle_chapter_selection(self, chapter_id: int, stored_mappings=None) -> None:
         self._clear_pending_speaker_retention()
@@ -584,6 +617,8 @@ class ListSelectionHandler(BaseHandler):
                     matches = matches and item.data(0, Qt.UserRole + 15) == self.mw.data_store.current_speaker_name
                 elif current_view_kind == ViewKind.ITEM:
                     matches = matches and item.data(0, Qt.UserRole + 16) == self.mw.data_store.current_speaker_name
+                elif current_view_kind == ViewKind.NOTATED:
+                    matches = matches and item.data(0, Qt.UserRole + 19) == self.mw.data_store.current_speaker_name
                 if matches:
                     self.mw.block_list_widget.setCurrentItem(item)
                     break

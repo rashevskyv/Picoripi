@@ -47,6 +47,20 @@ def test_matching_checkpoint_uses_pickle_without_full_json_parse(dsp, mock_mw, t
 
     json_load.assert_not_called()
 
+
+def test_clean_shutdown_marker_skips_large_json_checkpoint(dsp, mock_mw, tmp_path):
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    mock_mw.data_store.data = [["instant"]]
+    dsp._autosave_session(force=True)
+    assert dsp.finalize_clean_shutdown_checkpoint()
+    assert not (Path(tmp_path) / ".picoripi_session.json").exists()
+
+    with patch("core.data_processor.session_manager.json.load") as json_load:
+        assert dsp.load_session_file() is True
+
+    json_load.assert_not_called()
+    assert mock_mw.data_store.data == [["instant"]]
+
 def test_serialize_and_deserialize_session(dsp):
     # Prepare mock snapshot
     action1 = UndoAction("edit", 0, 0, "old", "new", 123.45, 2, {"meta": "data"})
@@ -87,6 +101,12 @@ def test_serialize_and_deserialize_session(dsp):
             "auto_kind_widths": {0: 300, 6: 271},
             "auto_kind_widths_signature": "font-signature",
         },
+        "ui_tree_state": {
+            "expanded_locators": [[['Windows', None]]],
+            "selected_locator": [['Windows', None], ['Dialog', None]],
+            "selected_physical_block_idx": 7,
+            "selected_string_idx": 8,
+        },
     }
 
     # Serialize
@@ -115,6 +135,7 @@ def test_serialize_and_deserialize_session(dsp):
     assert json_snapshot["redo_stack"][0]["label"] == "moved"
     assert json_snapshot["plugin_original_keys"] == ["key0", "key1"]
     assert json_snapshot["plugin_runtime_state"]["auto_kind_widths"] == {"0": 300, "6": 271}
+    assert json_snapshot["ui_tree_state"]["selected_physical_block_idx"] == 7
     assert json_snapshot["current_block_idx"] == 1
     assert json_snapshot["current_view_kind"] == "speaker"
     assert json_snapshot["current_chapter_id"] == 42
@@ -134,6 +155,7 @@ def test_serialize_and_deserialize_session(dsp):
         (1, 2, 1): {"TAG_WARNING", "MISSING_SPACE"}
     }
     assert deserialized["plugin_runtime_state"]["auto_kind_widths"] == {"0": 300, "6": 271}
+    assert deserialized["ui_tree_state"]["selected_string_idx"] == 8
     assert deserialized["current_block_idx"] == 1
     assert deserialized["current_view_kind"] == "speaker"
     assert deserialized["current_chapter_id"] == 42

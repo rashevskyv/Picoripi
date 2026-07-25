@@ -6,7 +6,10 @@ from PyQt6.QtGui import QColor, QPalette
 from .base_ui_updater import BaseUIUpdater
 from utils.utils import log_debug
 from core.mempalace.story_timeline import StoryStringContext, StoryVirtualProjection
-from core.story_context_overrides import get_story_context_override
+from core.story_context_overrides import (
+    get_story_context_override,
+    iter_story_context_overrides,
+)
 
 class StringSettingsUpdater(BaseUIUpdater):
     """String settings updater implementation."""
@@ -32,6 +35,30 @@ class StringSettingsUpdater(BaseUIUpdater):
         self._story_context_cache.clear()
         self._reference_items_cache.clear()
         self._projection_context_indices.clear()
+
+    def _project_speaker_names(self):
+        """Return every persisted manual and legacy speaker name in the project."""
+        names = []
+        for _block_idx, _string_idx, assignment in iter_story_context_overrides(
+            self.mw
+        ):
+            name = str(assignment.get("speaker") or "").strip()
+            if name and name.casefold() not in ("none", "unknown"):
+                names.append(name)
+
+        manager = getattr(self.mw, "project_manager", None)
+        project = getattr(manager, "project", None) if manager else None
+        for block in getattr(project, "blocks", ()) or ():
+            assignments = getattr(block, "metadata", {}).get(
+                "character_assignments", {}
+            )
+            if not isinstance(assignments, dict):
+                continue
+            for value in assignments.values():
+                name = str(value or "").strip()
+                if name and name.casefold() not in ("none", "unknown"):
+                    names.append(name)
+        return names
 
     def _projection_context_index(self, projection: StoryVirtualProjection):
         cached = self._projection_context_indices.get(projection.document_id)
@@ -98,6 +125,13 @@ class StringSettingsUpdater(BaseUIUpdater):
             if isinstance(candidate, StoryVirtualProjection):
                 projection = candidate
 
+        # The virtual Speaker folders publish the resolved-speaker pool; when it
+        # is available the field reads a row's speaker straight from it, so the
+        # editor and the folders always show the identical (glossary-translated)
+        # name. Falls back to the legacy ladder only when no pool exists yet.
+        speaker_pool = getattr(block_updater, "_speaker_pool_cache", None)
+        pool_available = isinstance(speaker_pool, dict)
+
         speakers = ()
         contexts = ()
         item_name = None
@@ -139,6 +173,52 @@ class StringSettingsUpdater(BaseUIUpdater):
         manual_speaker = str(manual.get("speaker") or "").strip()
         if manual_speaker and role == "speaker":
             speakers = (manual_speaker,)
+
+        # Single source of truth: the folder pool already resolved this row's
+        # speaker (override -> projection -> legacy -> script, glossary-translated).
+        # Use it verbatim so the field value has a matching folder.
+        if pool_available and role == "speaker":
+            pooled = speaker_pool.get((block_idx, string_idx))
+            speakers = (pooled,) if pooled else ()
+
+        if not speakers and role == "speaker" and not pool_available:
+            fallback_speaker = None
+            project_manager = getattr(self.mw, "project_manager", None)
+            project = project_manager.project if project_manager else None
+            if project and block_idx is not None and string_idx is not None:
+                p_idx = getattr(self.mw, "block_to_project_file_map", {}).get(block_idx, block_idx)
+                if 0 <= p_idx < len(project.blocks):
+                    block = project.blocks[p_idx]
+                    legacy_speaker = block.metadata.get("character_assignments", {}).get(str(string_idx))
+                    if isinstance(legacy_speaker, str) and legacy_speaker:
+                        fallback_speaker = legacy_speaker
+
+            if not fallback_speaker and prompt_composer:
+                store = getattr(self.mw, "data_store", None)
+                orig_text = ""
+                if store and store.data and 0 <= block_idx < len(store.data):
+                    block_data = store.data[block_idx]
+                    if 0 <= string_idx < len(block_data):
+                        orig_text = block_data[string_idx]
+                if isinstance(orig_text, str) and orig_text:
+                    script_res = prompt_composer._find_speaker_in_script(block_idx, string_idx, orig_text)
+                    if script_res and isinstance(script_res, (tuple, list)) and len(script_res) >= 2:
+                        raw_spk, _ = script_res
+                        if isinstance(raw_spk, str) and raw_spk and raw_spk != "NONE":
+                            translated_spk = prompt_composer._translate_speaker(raw_spk)
+                            if isinstance(translated_spk, str):
+                                fallback_speaker = translated_spk
+
+            if not fallback_speaker and client:
+                db_spks = client.get_story_speakers_for_game_string(str(block_idx), string_idx)
+                if db_spks and isinstance(db_spks, (tuple, list)) and len(db_spks) > 0:
+                    cand = db_spks[0]
+                    if isinstance(cand, str):
+                        fallback_speaker = cand
+
+            if fallback_speaker and isinstance(fallback_speaker, str):
+                speakers = (fallback_speaker,)
+
         manual_structure_id = manual.get("structure_id")
         manual_structure_path = tuple(manual.get("structure_path") or ())
         if manual_structure_id == "story:none":
@@ -168,16 +248,43 @@ class StringSettingsUpdater(BaseUIUpdater):
                 for reference in references:
                     if reference.name != "None":
                         combo.addItem(reference.name)
+            elif pool_available and role == "speaker":
+                # Every selectable speaker == every virtual folder, same names.
+                unique_names = {}
+                for value in speaker_pool.values():
+                    name = str(value or "").strip()
+                    if name and name.casefold() != "none":
+                        unique_names.setdefault(name.casefold(), name)
+                for name in sorted(unique_names.values(), key=str.casefold):
+                    combo.addItem(name)
             elif projection:
-                for name in sorted(
-                    (speaker.name for speaker in projection.speakers),
-                    key=str.casefold,
-                ):
+                unique_names = {}
+                for speaker in projection.speakers:
+                    name = str(speaker.name or "").strip()
+                    if name:
+                        unique_names.setdefault(name.casefold(), name)
+                for name in self._project_speaker_names():
+                    unique_names.setdefault(name.casefold(), name)
+                for name in sorted(unique_names.values(), key=str.casefold):
                     if name != "None":
                         combo.addItem(name)
-            current_index = combo.findText(current)
+            elif role == "speaker":
+                unique_names = {}
+                for name in self._project_speaker_names():
+                    unique_names.setdefault(name.casefold(), name)
+                for name in sorted(unique_names.values(), key=str.casefold):
+                    combo.addItem(name)
+            current_index = next(
+                (
+                    index for index in range(combo.count())
+                    if combo.itemText(index).casefold() == current.casefold()
+                ),
+                -1,
+            )
             if not isinstance(current_index, int) or current_index < 0:
                 combo.addItem(current)
+            else:
+                current = combo.itemText(current_index)
             combo.setCurrentText(current)
             combo._last_displayed_char = current
             combo._story_role = role
@@ -399,59 +506,14 @@ class StringSettingsUpdater(BaseUIUpdater):
                 if c != "None":
                     self.mw.speaker_combobox.addItem(c)
                 
-            curr_speaker = ""
-            if block_idx != -1 and string_idx != -1 and block_idx not in (-2, -3) and project:
-                block_map = getattr(self.mw, 'block_to_project_file_map', {})
-                proj_b_idx = block_map.get(block_idx, block_idx)
-                # Fallback attribute verification to avoid comparison TypeError in tests
-                try:
-                    blocks_len = len(project.blocks)
-                except Exception:
-                    blocks_len = 1
-                if proj_b_idx < blocks_len:
-                    curr_speaker = project.blocks[proj_b_idx].metadata.get("character_assignments", {}).get(str(string_idx), "")
-                
-                # Fallback to MemePalace speaker if not assigned in project metadata
-                if not curr_speaker and client:
-                    # Resolve block label
-                    block_label = ""
-                    if proj_b_idx < blocks_len:
-                        block_label = project.blocks[proj_b_idx].name
-                    else:
-                        name_key = str(block_idx)
-                        if hasattr(self.mw, 'data_store') and self.mw.data_store and \
-                           self.mw.data_store.block_names and name_key in self.mw.data_store.block_names:
-                            b_desc = self.mw.data_store.block_names[name_key]
-                            if "Message ID" in b_desc:
-                                block_label = b_desc.partition("(")[0].strip()
-                    if not block_label:
-                        block_label = f"Block_{block_idx}"
-                    
-                    bmg_id = f"{block_label}_Str_{string_idx}"
-                    ctx = client.get_cached_context(bmg_id, None)
-                    if ctx and ctx.get("speaker"):
-                        spk = str(ctx["speaker"]).strip()
-                        if spk and spk.lower() not in ("unknown", "none"):
-                            curr_speaker = spk
-                            
-                if not curr_speaker and composer and hasattr(composer, "prompt_composer"):
-                    raw_text = ""
-                    try:
-                        if hasattr(self.mw, 'data_store') and self.mw.data_store.data:
-                            if 0 <= block_idx < len(self.mw.data_store.data):
-                                block_data = self.mw.data_store.data[block_idx]
-                                if 0 <= string_idx < len(block_data):
-                                    raw_text = block_data[string_idx] or ""
-                    except Exception:
-                        pass
-                    result = composer.prompt_composer._find_speaker_in_script(block_idx, string_idx, raw_text)
-                    if result and isinstance(result, (tuple, list)) and len(result) == 2:
-                        raw_spk, _ = result
-                        if raw_spk and raw_spk != "NONE" and raw_spk.lower() not in ("unknown", "none"):
-                            curr_speaker = raw_spk
-
-            if not curr_speaker:
-                curr_speaker = "None"
+            # Resolved through the shared chain (assignment -> MemePalace -> script)
+            # so the editor and the Story Timeline window can never disagree.
+            from core.speaker_resolution import resolve_speaker_for_string
+            resolution = resolve_speaker_for_string(
+                self.mw, block_idx, string_idx,
+                composer=getattr(composer, "prompt_composer", None) if composer else None,
+            )
+            curr_speaker = resolution.name or "None"
             self.mw.speaker_combobox.setCurrentText(curr_speaker)
             self.mw.speaker_combobox._last_displayed_char = curr_speaker
             self.mw.speaker_combobox.blockSignals(False)

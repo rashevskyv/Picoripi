@@ -256,6 +256,7 @@ class ProjectActionHandler(BaseHandler):
         self._restore_view_timer.timeout.connect(self._on_restore_view_timer_timeout)
         self._pending_restore_block: int = 0
         self._pending_restore_cat: Optional[str] = None
+        self._finish_startup_after_restore_timer = False
 
     def _report_startup(self, value: int, message: str) -> None:
         reporter = getattr(self.mw, 'report_startup_progress', None)
@@ -773,6 +774,24 @@ class ProjectActionHandler(BaseHandler):
             else:
                 callback()
 
+        def wait_for_restored_view(callback):
+            def virtual_ready():
+                block_updater = getattr(
+                    self.ui_updater, "block_list_updater", None
+                )
+                waiter = getattr(block_updater, "when_tree_state_ready", None)
+                try:
+                    from ui.updaters.block_list_updater import BlockListUpdater
+                    can_wait = isinstance(block_updater, BlockListUpdater)
+                except ImportError:
+                    can_wait = False
+                if can_wait and callable(waiter):
+                    waiter(callback)
+                else:
+                    callback()
+
+            wait_for_virtual_blocks(virtual_ready)
+
         if self._restore_project_session_fast_path():
             self._report_startup(96, "Restoring virtual blocks…")
 
@@ -783,7 +802,7 @@ class ProjectActionHandler(BaseHandler):
                 if startup_loading:
                     self.mw.finish_startup_loading()
 
-            wait_for_virtual_blocks(finish_cached_restore)
+            wait_for_restored_view(finish_cached_restore)
             return
 
         block_updater = getattr(self.ui_updater, "block_list_updater", None)
@@ -868,25 +887,45 @@ class ProjectActionHandler(BaseHandler):
                 self.mw._project_loading_pending = False
 
                 state_restored = False
+                state = None
                 if self.mw.project_manager and self.mw.project_manager.project_file_path:
                     p_path = str(self.mw.project_manager.project_file_path)
-                    state = None
                     if self.mw.project_manager.project:
                         state = self.mw.project_manager.project.metadata.get("session_state")
                     if not state:
                         state = self.mw.settings_manager.session_state.get_state_for_file(p_path)
                     if state and (state.get("selected_id") or state.get("expanded_ids")):
                         log_info(f"Restoring project UI state for {p_path}")
-                        self.ui_updater.apply_tree_state(state)
                         state_restored = True
 
-                if progress_dialog:
-                    progress_dialog.close()
-                if on_completed:
-                    on_completed(state_restored)
-                if startup_loading:
-                    self._report_startup(99, "Finalizing the project view…")
-                    self.mw.finish_startup_loading()
+                def complete_ready_view():
+                    if progress_dialog:
+                        progress_dialog.close()
+                    defer_startup_finish = False
+                    if on_completed:
+                        defer_startup_finish = on_completed(state_restored) is False
+                    if startup_loading and not defer_startup_finish:
+                        self._report_startup(99, "Finalizing the project view…")
+                        self.mw.finish_startup_loading()
+
+                if state_restored:
+                    block_updater = getattr(
+                        self.ui_updater, "block_list_updater", None
+                    )
+                    try:
+                        from ui.updaters.block_list_updater import BlockListUpdater
+                        can_wait = isinstance(block_updater, BlockListUpdater)
+                    except ImportError:
+                        can_wait = False
+                    if can_wait:
+                        self.ui_updater.apply_tree_state(
+                            state, on_completed=complete_ready_view
+                        )
+                    else:
+                        self.ui_updater.apply_tree_state(state)
+                        complete_ready_view()
+                else:
+                    complete_ready_view()
 
             scanner = getattr(self.mw, "issue_scan_handler", None)
             try:
@@ -1070,7 +1109,14 @@ class ProjectActionHandler(BaseHandler):
                     log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
                     self._pending_restore_block = restored_block
                     self._pending_restore_cat = restored_cat
+                    self._finish_startup_after_restore_timer = (
+                        getattr(self.mw, '_startup_splash', None) is not None
+                    )
                     self._restore_view_timer.start(150)
+                    if self._finish_startup_after_restore_timer:
+                        return False
+
+                return True
 
             self._report_startup(75, "Restoring cached project data…")
             self._populate_blocks_from_project(on_completed=on_recent_opened)
@@ -1106,13 +1152,19 @@ class ProjectActionHandler(BaseHandler):
         except (TypeError, ValueError, AttributeError, RuntimeError):
             is_deleted = False
 
-        if hasattr(self.mw, 'block_list_widget') and not is_deleted:
-            self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
+        try:
+            if hasattr(self.mw, 'block_list_widget') and not is_deleted:
+                self.mw.block_list_widget.select_block_by_index(restored_block, restored_cat)
 
-        # These calls refresh the string list and editors
-        self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
-        self.ui_updater.update_statusbar_paths()
-        self.ui_updater.update_plugin_status_label() # Ensure label is accurate
+            # These calls refresh the string list and editors
+            self.ui_updater.populate_strings_for_block(restored_block, restored_cat)
+            self.ui_updater.update_statusbar_paths()
+            self.ui_updater.update_plugin_status_label() # Ensure label is accurate
+        finally:
+            if self._finish_startup_after_restore_timer:
+                self._finish_startup_after_restore_timer = False
+                self._report_startup(99, "Finalizing the project view…")
+                self.mw.finish_startup_loading()
 
     def _clear_recent_projects(self) -> None:
         """Clear all recent projects."""

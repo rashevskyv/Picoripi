@@ -68,9 +68,21 @@ def test_get_filtered_string_indices_hide_empty_strings(mock_mw):
     mock_mw.data_processor.get_empty_set.return_value = {3, 4, 5}
     
     indices, placeholders = api.get_filtered_string_indices(0, hide_empty_strings=True)
-    # Indices 3, 4, 5 should collapse into -1
-    assert indices == [0, 1, 2, -1, 6]
-    assert placeholders[3] == "[3-5] 3 empty line(s)"
+    # Three or fewer empty rows remain fully visible.
+    assert indices == [0, 1, 2, 3, 4, 5, 6]
+    assert placeholders == {}
+
+
+def test_hide_empty_strings_keeps_edges_and_collapses_only_middle(mock_mw):
+    api = FilterQueryAPI(mock_mw)
+    mock_mw.data_processor.get_empty_set.return_value = {2, 3, 4, 5}
+
+    indices, placeholders = api.get_filtered_string_indices(
+        0, hide_empty_strings=True
+    )
+
+    assert indices == [0, 1, 2, -1, 5, 6]
+    assert placeholders == {3: "[3-4] 2 empty line(s)"}
 
 def test_get_aggregated_problems_for_block(mock_mw):
     api = FilterQueryAPI(mock_mw)
@@ -105,12 +117,15 @@ def test_get_filtered_string_indices_speaker_hide_translated(mock_mw):
 
 def test_get_filtered_string_indices_speaker_hide_empty(mock_mw):
     api = FilterQueryAPI(mock_mw)
-    mock_mw.data_store.virtual_mappings = [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]
-    mock_mw.data_processor.get_empty_set.side_effect = lambda b: {1, 2, 3}
-    
-    indices, placeholders = api.get_filtered_string_indices(-3, hide_empty_strings=True, virtual_mappings=[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)])
-    assert indices == [(0, 0), -1, (0, 4)]
-    assert placeholders[1] == "[1-3] 3 empty line(s)"
+    mappings = [(0, index) for index in range(7)]
+    mock_mw.data_store.virtual_mappings = mappings
+    mock_mw.data_processor.get_empty_set.side_effect = lambda b: {1, 2, 3, 4, 5}
+
+    indices, placeholders = api.get_filtered_string_indices(
+        -3, hide_empty_strings=True, virtual_mappings=mappings
+    )
+    assert indices == [(0, 0), (0, 1), -1, (0, 5), (0, 6)]
+    assert placeholders[2] == "[2-4] 3 empty line(s)"
 
 def test_get_filtered_string_indices_speaker_show_warnings_only(mock_mw):
     api = FilterQueryAPI(mock_mw)

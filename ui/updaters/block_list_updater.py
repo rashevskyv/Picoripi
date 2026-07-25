@@ -12,6 +12,7 @@ from core.mempalace.story_timeline import (
     story_virtual_projection_to_dict,
 )
 from core.story_context_overrides import iter_story_context_overrides
+from core.manual_story_structures import apply_manual_story_structures
 from core.mempalace.dialogue_mapping import canonicalize_dialogue_text
 
 class BlockListUpdater(BaseUIUpdater):
@@ -27,6 +28,12 @@ class BlockListUpdater(BaseUIUpdater):
         self._story_item_mappings_cache = {}
         self._reference_item_groups_cache = None
         self._window_kind_groups_cache = None
+        # Cached raw per-row marked-script speakers (the expensive script scan);
+        # rebuilt only when the script/mappings change (invalidate_mempalace_story_cache).
+        self._script_speaker_raw_cache = None
+        # The last {(block,string): display_speaker} pool built for the folders;
+        # the editor Speaker field reads it so field and folders never disagree.
+        self._speaker_pool_cache = None
         self._story_context_overrides_cache = None
         self._story_structure_overrides_cache = None
         self._story_override_index_cache = None
@@ -35,6 +42,8 @@ class BlockListUpdater(BaseUIUpdater):
         self._chapters_load_error = None
         self._is_loading_chapters = False
         self._virtual_ready_callbacks = []
+        self._tree_state_restore_pending = False
+        self._tree_state_ready_callbacks = []
         if hasattr(self.mw, 'filter_query_api') and self.mw.filter_query_api is not None:
             if getattr(self.mw.filter_query_api, '_data_processor', None) is None:
                 self.mw.filter_query_api._data_processor = data_processor
@@ -50,6 +59,7 @@ class BlockListUpdater(BaseUIUpdater):
         self._story_item_mappings_cache = {}
         self._reference_item_groups_cache = None
         self._window_kind_groups_cache = None
+        self._script_speaker_raw_cache = None
         self.mw.data_store.virtual_block_cache = {}
         settings_updater = getattr(self.mw, "string_settings_updater", None)
         clear_context = getattr(settings_updater, "clear_story_context_cache", None)
@@ -57,6 +67,70 @@ class BlockListUpdater(BaseUIUpdater):
             clear_context()
         self._chapters_load_error = None
         self._is_loading_chapters = worker_running
+
+    def force_refresh_virtual_folders(self) -> None:
+        """User-triggered full rebuild of the virtual folders from current data.
+
+        Drops every virtual-folder cache (including the persisted session cache
+        and the cached per-row marked-script speaker scan) and re-reads the story
+        projection from the database, so the Speakers/Chapters/Items folders are
+        rebuilt from the single source of truth and match the editor exactly.
+        Wired to the ⟳ button in the block toolbar.
+        """
+        self.invalidate_mempalace_story_cache()
+
+        # Also drop the marked-script parse caches so an edited script re-reads.
+        composer = getattr(self.mw, "translation_handler", None)
+        prompt_composer = getattr(composer, "prompt_composer", None) if composer else None
+        for attr in ("_line_to_speaker_cache", "_line_to_speaker_path", "_script_lines_cache"):
+            if prompt_composer is not None and hasattr(prompt_composer, attr):
+                try:
+                    setattr(prompt_composer, attr, None)
+                except Exception:
+                    pass
+
+        # Deep pass (button-only): resolve every remaining row against the marked
+        # script the same way the editor field does, so live-fuzzy-only rows also
+        # move into their speaker folder. Cached so later rebuilds reuse it.
+        from core.speaker_resolution import resolve_script_speaker_raw_rows
+        try:
+            self._script_speaker_raw_cache = resolve_script_speaker_raw_rows(
+                self.mw, prompt_composer
+            )
+        except Exception as exc:
+            from utils.logging_utils import log_error
+            log_error(f"force_refresh_virtual_folders: deep script scan failed: {exc}")
+            self._script_speaker_raw_cache = None
+
+        self.populate_blocks()
+
+        settings = getattr(self.mw, "string_settings_updater", None)
+        refresh_panel = getattr(settings, "update_string_settings_panel", None)
+        if callable(refresh_panel):
+            refresh_panel()
+
+        status_bar = getattr(self.mw, "statusBar", None)
+        if callable(status_bar):
+            try:
+                status_bar().showMessage("Virtual folders rebuilt from current story data.", 4000)
+            except Exception:
+                pass
+
+    def refresh_virtual_folder_labels(self) -> None:
+        """Rebuild folders so glossary-translated speaker names update.
+
+        Cheaper than ``force_refresh_virtual_folders``: it does NOT re-run the
+        deep per-row script scan (the raw speaker names are unchanged); it only
+        re-applies the current glossary translation. Called after the glossary
+        dialog closes so renaming a speaker's translation is reflected at once.
+        """
+        if getattr(self, "_speaker_pool_cache", None) is None:
+            return
+        self.populate_blocks()
+        settings = getattr(self.mw, "string_settings_updater", None)
+        refresh_panel = getattr(settings, "update_string_settings_panel", None)
+        if callable(refresh_panel):
+            refresh_panel()
 
     def when_virtual_blocks_ready(self, callback) -> None:
         """Run callback once the complete virtual facet tree is available."""
@@ -69,6 +143,24 @@ class BlockListUpdater(BaseUIUpdater):
 
     def _notify_virtual_blocks_ready(self) -> None:
         callbacks, self._virtual_ready_callbacks = self._virtual_ready_callbacks, []
+        for callback in callbacks:
+            callback()
+
+    def when_tree_state_ready(self, callback) -> None:
+        """Run callback after expansion, selection, string, cursor and scroll restore."""
+        if not callable(callback):
+            return
+        if not self._tree_state_restore_pending:
+            callback()
+            return
+        self._tree_state_ready_callbacks.append(callback)
+
+    def _notify_tree_state_ready(self) -> None:
+        self._tree_state_restore_pending = False
+        callbacks, self._tree_state_ready_callbacks = (
+            self._tree_state_ready_callbacks,
+            [],
+        )
         for callback in callbacks:
             callback()
 
@@ -96,6 +188,8 @@ class BlockListUpdater(BaseUIUpdater):
         projection = story_virtual_projection_from_dict(cache.get("story_projection"))
         if not isinstance(projection, StoryVirtualProjection):
             return False
+        project = getattr(getattr(self.mw, "project_manager", None), "project", None)
+        projection = apply_manual_story_structures(projection, project)
         self._story_projection_cache = projection
         self._chapters_cache = list(projection.roots)
         self._chapter_mappings_cache = None
@@ -488,6 +582,39 @@ class BlockListUpdater(BaseUIUpdater):
         parent.addChild(root)
         return root
 
+    def _notated_rows(self) -> set[tuple[int, int]]:
+        """Rows carrying an explicit translator note."""
+        return {
+            row
+            for row, assignment in self._story_context_overrides().items()
+            if assignment.get("notated") is True
+            and str(assignment.get("translator_note") or "").strip()
+        }
+
+    def _add_notated_projection_root(
+        self,
+        parent,
+        allowed_rows: set[tuple[int, int]] | None = None,
+    ):
+        """Add the independent Notated facet to the virtual tree."""
+        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        noted = sorted(scope & self._notated_rows())
+        if not noted:
+            return None
+        root = QTreeWidgetItem(["Notated"])
+        self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
+        root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self._add_virtual_role_leaf(
+            root, "Notated", -5, Qt.ItemDataRole.UserRole + 19, "Notated", noted
+        )
+        self._add_virtual_role_leaf(
+            root, "None", -5, Qt.ItemDataRole.UserRole + 19,
+            "None", sorted(scope - set(noted)),
+        )
+        self._set_virtual_folder_mappings(root)
+        parent.addChild(root)
+        return root
+
     def _window_kind_groups(self) -> dict[str, set[tuple[int, int]]]:
         if self._window_kind_groups_cache is not None:
             return self._window_kind_groups_cache
@@ -542,6 +669,7 @@ class BlockListUpdater(BaseUIUpdater):
             self._add_story_projection_root(kind_root, projection, rows)
             self._add_speaker_projection_root(kind_root, speakers, rows)
             self._add_item_projection_root(kind_root, item_mappings, rows)
+            self._add_notated_projection_root(kind_root, rows)
             unbound = sorted(rows - story_rows - speaker_rows - item_rows)
             unbound_item = self._add_virtual_role_leaf(
                 kind_root, "None", -3, Qt.ItemDataRole.UserRole + 15,
@@ -615,8 +743,10 @@ class BlockListUpdater(BaseUIUpdater):
             return {}
 
         expanded_ids = []
+        expanded_locators = []
         selected_id = None
         selected_type = None # 'block', 'folder', 'category'
+        selected_locator = None
 
         current_item = self.mw.block_list_widget.currentItem()
 
@@ -657,25 +787,68 @@ class BlockListUpdater(BaseUIUpdater):
                     selected_id = item_id
                     selected_type = item_type
 
+            locator = self._get_tree_item_locator(item)
+            if locator:
+                if item.isExpanded():
+                    expanded_locators.append([list(segment) for segment in locator])
+                if item == current_item:
+                    selected_locator = [list(segment) for segment in locator]
+
             iterator += 1
 
         result = {
             "expanded_ids": expanded_ids,
+            "expanded_locators": expanded_locators,
             "selected_id": selected_id,
             "selected_type": selected_type,
+            "selected_locator": selected_locator,
+            "selected_physical_block_idx": self.mw.data_store.physical_block_idx,
             "selected_string_idx": self.mw.data_store.current_string_idx if (hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'current_string_idx')) else (self.mw.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1)
         }
         from utils.logging_utils import log_info
         log_info(f"UIUpdater: Captured tree state: selected={selected_id}, string_idx={result['selected_string_idx']}")
         return result
 
-    def apply_tree_state(self, state: dict):
+    def apply_tree_state(self, state: dict, on_completed=None):
         """Restores the tree expansion and selection from state."""
         if not state or not self.mw.block_list_widget:
+            if callable(on_completed):
+                on_completed()
             return
 
+        self._tree_state_restore_pending = True
+
+        if self._is_loading_chapters and not state.get("_virtual_ready_retry"):
+            retry_state = dict(state)
+            retry_state["_virtual_ready_retry"] = True
+            self.when_virtual_blocks_ready(
+                lambda: self.apply_tree_state(retry_state, on_completed)
+            )
+            return
+
+
+        completed = False
+
+        def finish_restore():
+            nonlocal completed
+            if completed:
+                return
+            completed = True
+            self.mw._restoring_session_state = False
+            self._notify_tree_state_ready()
+            if callable(on_completed):
+                on_completed()
+
         expanded_ids = set(state.get("expanded_ids", []))
+        has_expanded_locators = "expanded_locators" in state
+        expanded_locators = {
+            self._normalize_tree_locator(locator)
+            for locator in state.get("expanded_locators", [])
+            if locator
+        }
         selected_id = state.get("selected_id")
+        selected_locator = self._normalize_tree_locator(state.get("selected_locator"))
+        selected_physical_block_idx = state.get("selected_physical_block_idx", -1)
         selected_string_idx = state.get("selected_string_idx", -1)
 
         # Set a flag indicating that session state is being restored to prevent double loads
@@ -688,14 +861,18 @@ class BlockListUpdater(BaseUIUpdater):
             while iterator.value():
                 item = iterator.value()
                 item_id = self._get_item_id(item)
-                if item_id in expanded_ids:
+                if has_expanded_locators:
+                    item.setExpanded(
+                        self._get_tree_item_locator(item) in expanded_locators
+                    )
+                elif item_id in expanded_ids:
                     item.setExpanded(True)
                 iterator += 1
         finally:
             self.mw.block_list_widget.blockSignals(old_blocked)
 
         # 2. Restore Selection (Delayed to ensure tree is stable)
-        if selected_id:
+        if selected_locator or selected_id:
             from utils.logging_utils import log_info, log_warning
 
             def _delayed_select():
@@ -712,7 +889,7 @@ class BlockListUpdater(BaseUIUpdater):
 
                 try:
                     if not self.mw.block_list_widget or safe_isdeleted(self.mw.block_list_widget):
-                        self.mw._restoring_session_state = False
+                        finish_restore()
                         return
 
                     # Re-find the item to avoid "deleted object" errors
@@ -722,7 +899,14 @@ class BlockListUpdater(BaseUIUpdater):
                         item = iterator.value()
                         if not safe_isdeleted(item):
                             try:
-                                if self._get_item_id(item) == selected_id:
+                                locator_matches = (
+                                    selected_locator
+                                    and self._get_tree_item_locator(item) == selected_locator
+                                )
+                                if locator_matches or (
+                                    not selected_locator
+                                    and self._get_item_id(item) == selected_id
+                                ):
                                     target_item = item
                                     break
                             except RuntimeError:
@@ -730,11 +914,15 @@ class BlockListUpdater(BaseUIUpdater):
                         iterator += 1
 
                     if target_item and not safe_isdeleted(target_item):
-                        log_info(f"UIUpdater: Restoring selection to {selected_id}")
+                        log_info(f"UIUpdater: Restoring selection to {selected_id or selected_locator}")
                         self.mw.block_list_widget.setFocus()
                         self.mw.block_list_widget.setCurrentItem(target_item)
                         # Manually trigger block load
-                        self.mw.list_selection_handler.block_selected(target_item, None)
+                        selection_handler = self.mw.list_selection_handler
+                        if selected_physical_block_idx is not None and selected_physical_block_idx >= 0:
+                            selection_handler._target_block_idx = selected_physical_block_idx
+                            selection_handler._target_string_idx = selected_string_idx
+                        selection_handler.block_selected(target_item, None)
 
                         if selected_string_idx != -1:
                             log_info(f"UIUpdater: Restoring string selection to absolute index {selected_string_idx}")
@@ -745,7 +933,17 @@ class BlockListUpdater(BaseUIUpdater):
                                 try:
                                     if safe_isdeleted(self.mw.block_list_widget):
                                         return
-                                    self.mw.list_selection_handler.select_string_by_absolute_index(selected_string_idx)
+                                    target_row = (
+                                        selected_physical_block_idx,
+                                        selected_string_idx,
+                                    )
+                                    displayed = self.mw.data_store.displayed_string_indices
+                                    if target_row in displayed:
+                                        self.mw.list_selection_handler.string_selected_from_preview(
+                                            displayed.index(target_row)
+                                        )
+                                    else:
+                                        self.mw.list_selection_handler.select_string_by_absolute_index(selected_string_idx)
 
                                     # Restore scroll & cursor after string is loaded and text edits are populated!
                                     if self.mw.edited_text_edit and not safe_isdeleted(self.mw.edited_text_edit):
@@ -784,23 +982,22 @@ class BlockListUpdater(BaseUIUpdater):
                                 except Exception as e:
                                     log_warning(f"UIUpdater: Error in _select_string_and_restore_scroll: {e}")
                                 finally:
-                                    # Ensure we clean up the restoration flag
-                                    self.mw._restoring_session_state = False
+                                    finish_restore()
 
                             QTimer.singleShot(200, _select_string_and_restore_scroll)
                         else:
-                            self.mw._restoring_session_state = False
+                            finish_restore()
                     else:
-                        log_warning(f"UIUpdater: Failed to find item {selected_id} for restoration.")
-                        self.mw._restoring_session_state = False
+                        log_warning(f"UIUpdater: Failed to find item {selected_id or selected_locator} for restoration.")
+                        finish_restore()
                 except Exception as e:
                     log_warning(f"UIUpdater: Error in _delayed_select: {e}")
-                    self.mw._restoring_session_state = False
+                    finish_restore()
 
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(50, _delayed_select)
         else:
-            self.mw._restoring_session_state = False
+            finish_restore()
 
     def _get_item_id(self, item) -> str:
         """Helper to generate consistent IDs for tree items."""
@@ -823,6 +1020,31 @@ class BlockListUpdater(BaseUIUpdater):
         elif block_idx is not None:
             return f"block_{block_idx}"
         return None
+
+    @staticmethod
+    def _normalize_tree_locator(locator):
+        """Normalize JSON lists and runtime tuples to one comparable locator."""
+        if not locator:
+            return None
+        return tuple(tuple(segment) for segment in locator)
+
+    def _get_tree_item_locator(self, item):
+        """Return an exact, rebuild-safe path for real and virtual tree nodes."""
+        if item is None:
+            return None
+        path = []
+        cursor = item
+        roles = (0, 1, 10, 11, 15, 16, 17, 18, 19)
+        while cursor is not None:
+            stable_label = cursor.data(0, Qt.ItemDataRole.UserRole + 4)
+            if stable_label is None:
+                stable_label = cursor.text(0)
+            path.append(tuple(
+                [stable_label]
+                + [cursor.data(0, Qt.ItemDataRole.UserRole + offset) for offset in roles]
+            ))
+            cursor = cursor.parent()
+        return tuple(reversed(path))
 
     def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, speaker_name: str = None, speaker_mappings: list = None, chapter_mappings: list = None) -> dict:
         """Internal helper to get the aggregated problems for block using central FilterQueryAPI."""
@@ -1218,6 +1440,8 @@ class BlockListUpdater(BaseUIUpdater):
                                 projection_getter = getattr(client, "get_story_virtual_projection", None)
                                 projection = projection_getter() if callable(projection_getter) else None
                                 if isinstance(projection, StoryVirtualProjection) and projection.document_id:
+                                    project = getattr(getattr(self.mw, "project_manager", None), "project", None)
+                                    projection = apply_manual_story_structures(projection, project)
                                     self._story_projection_cache = projection
                                     self._chapters_cache = list(projection.roots)
                                 else:
@@ -1379,137 +1603,40 @@ class BlockListUpdater(BaseUIUpdater):
                 # Query MemePalace for speakers as well
                 client = None
                 composer = getattr(self.mw, "translation_handler", None)
-                if composer and hasattr(composer, "prompt_composer"):
-                    client = composer.prompt_composer._get_mempalace_client()
+                prompt_composer = getattr(composer, "prompt_composer", None) if composer else None
+                if prompt_composer is not None:
+                    client = prompt_composer._get_mempalace_client()
 
-                mempalace_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
-                if isinstance(self._story_projection_cache, StoryVirtualProjection):
-                    for speaker in self._story_projection_cache.speakers:
-                        mappings = self._story_mapping_indices(speaker.mappings)
-                        if mappings:
-                            mempalace_speakers[speaker.name] = mappings
-                elif client:
-                    wing_name = composer.prompt_composer._get_wing_name() if hasattr(composer, "prompt_composer") else "Zelda_TP"
-                    # Try using _bmg_to_context cache first
-                    if hasattr(client, "_bmg_to_context") and client._bmg_to_context:
-                        for bmg_id_key, ctx_info in client._bmg_to_context.items():
-                            if bmg_id_key.startswith("[") and bmg_id_key.endswith("]"):
-                                continue
-                            speaker = ctx_info.get("speaker")
-                            if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
-                                speaker_name = str(speaker).strip()
-                                if hasattr(self.mw, 'list_selection_handler'):
-                                    indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
-                                    if indices:
-                                        mempalace_speakers.setdefault(speaker_name, []).append(indices)
-
-                    # Fallback to loading script mappings + script file if cache is empty
-                    if not mempalace_speakers and hasattr(composer, "prompt_composer"):
-                        import os
-                        script_path = composer.prompt_composer._find_script_path()
-                        if script_path and os.path.exists(script_path):
-                            line_to_speaker = getattr(composer.prompt_composer, "_line_to_speaker_cache", None)
-                            cached_path = getattr(composer.prompt_composer, "_line_to_speaker_path", None)
-                            if not line_to_speaker or cached_path != script_path:
-                                try:
-                                    lines = getattr(composer.prompt_composer, "_script_lines_cache", None)
-                                    if not lines:
-                                        try:
-                                            with open(script_path, "r", encoding="cp1252", errors="replace") as f:
-                                                lines = f.readlines()
-                                        except Exception:
-                                            with open(script_path, "r", encoding="utf-8", errors="replace") as f:
-                                                lines = f.readlines()
-                                        composer.prompt_composer._script_lines_cache = lines
-
-                                    def line_strip_is_speaker(s: str) -> bool:
-                                        return s.isupper() and len(s) >= 2 and re.match(r'^[A-Z0-9\s#]+$', s) is not None
-
-                                    line_to_speaker = {}
-                                    current_speaker = None
-                                    for idx, line in enumerate(lines):
-                                        line_strip = line.strip()
-                                        if not line_strip:
-                                            continue
-                                        if line_strip.startswith("[") and line_strip.endswith("]"):
-                                            continue
-                                        if line_strip_is_speaker(line_strip):
-                                            current_speaker = line_strip
-                                        if current_speaker:
-                                            line_to_speaker[idx + 1] = current_speaker
-
-                                    composer.prompt_composer._line_to_speaker_cache = line_to_speaker
-                                    composer.prompt_composer._line_to_speaker_path = script_path
-                                except Exception as e_parse:
-                                    from utils.logging_utils import log_error
-                                    log_error(f"Error building line_to_speaker map in block_list_updater: {e_parse}")
-                                    line_to_speaker = None
-
-                            if line_to_speaker:
-                                all_mappings = client.get_all_chapter_mappings(wing_name)
-                                for ch_id, ch_maps in all_mappings.items():
-                                    for mapping in ch_maps:
-                                        bmg_id_key = mapping.get("bmg_id")
-                                        script_line = mapping.get("script_line")
-                                        if bmg_id_key and script_line:
-                                            speaker = line_to_speaker.get(script_line)
-                                            if speaker and str(speaker).strip() and str(speaker).lower() not in ("unknown", "none"):
-                                                speaker_name = str(speaker).strip()
-                                                if hasattr(self.mw, 'list_selection_handler'):
-                                                    indices = self.mw.list_selection_handler.resolve_bmg_id_to_indices(bmg_id_key)
-                                                    if indices:
-                                                        mempalace_speakers.setdefault(speaker_name, []).append(indices)
-
-                # Explicit project-local assignments replace normalized speaker ancestry
-                # only for their concrete row. This supports system/UI strings that have
-                # no Text node in the marked script.
-                for (block_idx, string_idx), assignment in self._story_context_overrides().items():
-                    if "speaker" not in assignment:
-                        continue
-                    speaker_name = str(assignment.get("speaker") or "None").strip()
-                    row = (block_idx, string_idx)
-                    for existing in mempalace_speakers.values():
-                        if row in existing:
-                            existing.remove(row)
-                    if speaker_name.casefold() != "none":
-                        mempalace_speakers.setdefault(speaker_name, []).append(row)
-
-                combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
-                assigned_strings = set()  # {(b_idx, s_idx), ...}
                 normalized_story_active = isinstance(
                     self._story_projection_cache, StoryVirtualProjection
                 )
+                projection = (
+                    self._story_projection_cache if normalized_story_active else None
+                )
 
-                # Normalized Story Context is authoritative. Old project assignments are
-                # consulted only for databases that do not have the new story model.
-                if not normalized_story_active:
-                    project = (
-                        getattr(self.mw, 'project_manager', None)
-                        and self.mw.project_manager.project
-                    )
-                    if project:
-                        block_map = getattr(self.mw, 'block_to_project_file_map', {})
-                        project_to_block_map = {
-                            proj_idx: data_idx for data_idx, proj_idx in block_map.items()
-                        } if block_map else {}
-                        for proj_b_idx, block in enumerate(project.blocks):
-                            assignments = block.metadata.get("character_assignments", {})
-                            for s_idx_str, c_name in assignments.items():
-                                if c_name and str(c_name).strip() and str(c_name).lower() not in ("unknown", "none"):
-                                    speaker_name = str(c_name).strip()
-                                    indices = (
-                                        project_to_block_map.get(proj_b_idx, proj_b_idx),
-                                        int(s_idx_str),
-                                    )
-                                    combined_speakers.setdefault(speaker_name, []).append(indices)
-                                    assigned_strings.add(indices)
+                # Single source of truth: every row's speaker is resolved by the
+                # same priority ladder the editor Speaker field uses, so the
+                # virtual folders below can never disagree with the field. The
+                # cheap sources (override/projection/legacy/stored-script mapping)
+                # run every rebuild; the expensive per-row fuzzy scan runs only on
+                # the ⟳ "rebuild virtual folders" button and is cached here.
+                from core.speaker_resolution import build_speaker_pool
+                speaker_pool = build_speaker_pool(
+                    self.mw,
+                    prompt_composer,
+                    projection=projection,
+                    script_raw_rows=self._script_speaker_raw_cache,
+                )
+                # Publish the pool so the editor Speaker field resolves a row to
+                # the identical speaker (and folder) it lands in here.
+                self._speaker_pool_cache = speaker_pool
 
-                for speaker_name, strings in mempalace_speakers.items():
-                    for string_tuple in strings:
-                        if string_tuple in assigned_strings:
-                            continue
-                        combined_speakers.setdefault(speaker_name, []).append(string_tuple)
-                        assigned_strings.add(string_tuple)
+                combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
+                assigned_strings = set()  # {(b_idx, s_idx), ...}
+                for row in sorted(speaker_pool):
+                    speaker_name = speaker_pool[row]
+                    combined_speakers.setdefault(speaker_name, []).append(row)
+                    assigned_strings.add(row)
 
                 # None is a real virtual speaker block in every context model. It is
                 # the complete complement of assigned rows, not a legacy-only fallback.
@@ -1614,6 +1741,7 @@ class BlockListUpdater(BaseUIUpdater):
                     self._story_item_mappings_cache = reverse_items
                     tree_root = self.mw.block_list_widget.invisibleRootItem()
                     self._add_item_projection_root(tree_root, item_mappings)
+                    self._add_notated_projection_root(tree_root)
                     story_rows = self._story_linked_rows(self._story_projection_cache)
                     speaker_rows = {
                         row
@@ -1738,7 +1866,9 @@ class BlockListUpdater(BaseUIUpdater):
         """Slot for successful async loading of MemePalace chapters."""
         self._chapters_cache = chapters
         if isinstance(mappings, StoryVirtualProjection):
-            self._story_projection_cache = mappings
+            project = getattr(getattr(self.mw, "project_manager", None), "project", None)
+            self._story_projection_cache = apply_manual_story_structures(mappings, project)
+            self._chapters_cache = list(self._story_projection_cache.roots)
             self._chapter_mappings_cache = None
         else:
             self._story_projection_cache = None
