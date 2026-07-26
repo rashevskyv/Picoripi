@@ -55,50 +55,45 @@ class GlossaryPromptManager:
         ]
         return next((p for p in candidates if p and p.exists()), None)
 
+    def _project_dir(self) -> Optional[Path]:
+        """Directory of the open project, or None when no project is open."""
+        manager = getattr(self._mw, "project_manager", None)
+        project_dir = getattr(manager, "project_dir", None) if manager else None
+        if not project_dir:
+            return None
+        try:
+            return Path(project_dir)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _newest_glossary_in(directory: Path) -> Optional[Path]:
+        """Existing glossary file in ``directory``; the newer one if both exist."""
+        json_p = directory / "glossary.json"
+        md_p = directory / "glossary.md"
+        if json_p.exists() and md_p.exists():
+            return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
+        if json_p.exists():
+            return json_p
+        if md_p.exists():
+            return md_p
+        return None
+
     def _resolve_glossary_path(self, plugin_name: Optional[str]) -> Optional[Path]:
+        """Resolve the glossary path for the open project.
+
+        The glossary belongs to the PROJECT, not to the plugin: it lives in the
+        project directory and is looked up **only** there. Two projects never
+        share a glossary, and recreating a project starts from an empty one.
+
+        Returns ``<project>/glossary.json`` even when the file does not exist yet
+        (it is created on first write). Without an open project there is no
+        glossary path at all.
         """
-        Resolves the best available glossary path for the given plugin_name.
-        Prioritizes the plugin directory, then common defaults, and finally global fallback.
-        At each level, if both glossary.json and glossary.md exist, it returns the newer one.
-        """
-        # 1. Try plugin directory first
-        plugin_dir = self._plugin_dir(plugin_name)
-        if plugin_dir and plugin_dir.exists():
-            json_p = plugin_dir / "glossary.json"
-            md_p = plugin_dir / "glossary.md"
-            if json_p.exists() and md_p.exists():
-                return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
-            if json_p.exists():
-                return json_p
-            if md_p.exists():
-                return md_p
-
-        # 2. Try common defaults
-        common_dir = Path("plugins", "common", "defaults")
-        if common_dir.exists():
-            json_p = common_dir / "glossary.json"
-            md_p = common_dir / "glossary.md"
-            if json_p.exists() and md_p.exists():
-                return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
-            if json_p.exists():
-                return json_p
-            if md_p.exists():
-                return md_p
-
-        # 3. Fallback directory
-        fallback_dir = self._fallback_dir()
-        if fallback_dir.exists():
-            json_p = fallback_dir / "glossary.json"
-            md_p = fallback_dir / "glossary.md"
-            if json_p.exists() and md_p.exists():
-                return md_p if md_p.stat().st_mtime > json_p.stat().st_mtime else json_p
-            if json_p.exists():
-                return json_p
-            if md_p.exists():
-                return md_p
-
-        # Absolute default fallback
-        return (plugin_dir / "glossary.json") if plugin_dir else (fallback_dir / "glossary.json")
+        project_dir = self._project_dir()
+        if project_dir is None:
+            return None
+        return self._newest_glossary_in(project_dir) or (project_dir / "glossary.json")
 
     # ── Public: load prompts (cached) ───────────────────────────────────
 

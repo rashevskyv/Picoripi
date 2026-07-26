@@ -511,6 +511,14 @@ class ProjectActionHandler(BaseHandler):
         self.mw.active_game_plugin = ""
         self.mw.load_game_plugin()
 
+        # The glossary belongs to the project, so drop it when the project closes;
+        # otherwise its terms would keep highlighting in the next project.
+        if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+            try:
+                self.mw.translation_handler.initialize_glossary_highlighting()
+            except Exception as exc:
+                log_error(f"Failed to reset glossary on project close: {exc}")
+
         if hasattr(self.mw, 'settings_manager'):
             self.mw.settings_manager.set("last_opened_path", "")
             self.mw.settings_manager.set("active_game_plugin", "")
