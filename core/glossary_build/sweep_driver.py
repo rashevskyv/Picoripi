@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Iterable, List, Sequence
+from typing import Callable, Dict, Iterable, List, Optional, Sequence
 
 from core.glossary_manager import DescriptionFragment, GlossaryManager
 from .text_sweep import SweepChunk
@@ -62,6 +62,8 @@ def sweep_terms(
     *,
     normalize: Callable[[str], str] = GlossaryManager.normalize_term,
     max_fragments: int = DEFAULT_MAX_FRAGMENTS,
+    is_cancelled: Optional[Callable[[], bool]] = None,
+    on_chunk: Optional[Callable[[int, int], None]] = None,
 ) -> Dict[str, AggregatedTerm]:
     """Sweep every chunk and merge the raw terms by normalized key.
 
@@ -70,10 +72,16 @@ def sweep_terms(
     implementation can send ``chunk.text`` and, if it wishes, use provenance.
     Sweep fragments carry no precise coordinates -- exact occurrence positions
     come later from the occurrence index (pass 1b) / describe pass.
+
+    ``is_cancelled`` (checked before each chunk) and ``on_chunk(done, total)``
+    (called after each chunk) let a worker report progress and stop cleanly.
     """
     aggregated: Dict[str, AggregatedTerm] = {}
+    total = len(chunks)
 
-    for chunk in chunks:
+    for index, chunk in enumerate(chunks):
+        if is_cancelled is not None and is_cancelled():
+            break
         for raw in extract(chunk):
             term = (raw.term or "").strip()
             key = normalize(term)
@@ -94,5 +102,8 @@ def sweep_terms(
             if fragment and len(entry.fragments) < max_fragments:
                 if all(existing.text != fragment for existing in entry.fragments):
                     entry.fragments.append(DescriptionFragment(text=fragment))
+
+        if on_chunk is not None:
+            on_chunk(index + 1, total)
 
     return aggregated
