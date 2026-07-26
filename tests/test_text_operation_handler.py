@@ -42,6 +42,9 @@ class MockContext(MagicMock):
         self._physical_block_idx = -1
         self.current_block_idx = 0
         self.current_string_idx = 0
+        # The editor is showing this row, which is what makes a text change a
+        # real user edit rather than the app refilling the view.
+        self.editor_bound_row = (0, 0)
         self.data = [["Original line 1"]]
         self.edited_data = {}
         self.edited_file_data = [["Original line 1"]]

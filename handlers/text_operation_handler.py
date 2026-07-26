@@ -341,6 +341,23 @@ class TextOperationHandler(BaseHandler):
             self.preview_update_timer.stop()
             self._on_preview_update_timer_timeout()
 
+    def _editor_shows_current_row(self) -> bool:
+        """Whether the editor is actually displaying the current (block, string).
+
+        The editor is filled by the view updater, which records the row it just
+        rendered. Until that happens the editor still holds the previous row's
+        text -- or nothing at all, right after a project loads. Attributing its
+        contents to the current row then would save the wrong text, and an empty
+        editor would wipe a real translation.
+        """
+        bound = getattr(self.mw.data_store, 'editor_bound_row', None)
+        if bound is None:
+            return False
+        return bound == (
+            self.mw.data_store.physical_block_idx,
+            self.mw.data_store.current_string_idx,
+        )
+
     def text_edited(self) -> None:
         """Text edited."""
         if self.mw.is_programmatically_changing_text:
@@ -352,7 +369,9 @@ class TextOperationHandler(BaseHandler):
             return
         if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
-            
+        if not self._editor_shows_current_row():
+            return
+
         edited_edit = self.mw.edited_text_edit
         if not edited_edit:
             return
@@ -382,6 +401,14 @@ class TextOperationHandler(BaseHandler):
         # be mid-refill, which would write an empty string over a real one.
         if self.mw.is_loading_data or self.mw.is_programmatically_changing_text:
             log_debug("Editor flush skipped: data is loading or text is being set programmatically.")
+            return
+
+        if not self._editor_shows_current_row():
+            log_debug(
+                "Editor flush skipped: the editor is not displaying the current row yet "
+                f"(bound={getattr(self.mw.data_store, 'editor_bound_row', None)}, "
+                f"current={(block_idx, string_idx)})."
+            )
             return
 
         # SAFETY CHECK: If the selection has shifted before this timer could run/flush,

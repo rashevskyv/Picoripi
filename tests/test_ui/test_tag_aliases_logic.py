@@ -21,6 +21,8 @@ def test_text_edited_resolves_alias_to_tag(mock_async_scanner, mock_mw):
     # Mock data store
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_string_idx = 0
+    # The editor is displaying this row, so a text change is a real user edit.
+    mock_mw.data_store.editor_bound_row = (0, 0)
     mock_mw.data_store.data = [["original"]]
     mock_mw.data_store.edited_file_data = []
     mock_mw.data_store.edited_data = {}

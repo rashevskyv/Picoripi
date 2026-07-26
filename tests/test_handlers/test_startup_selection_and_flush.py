@@ -101,12 +101,15 @@ class TestRestoreRepopulatesAlreadyCurrentBlock:
 
 
 class TestEditorFlushGuards:
-    def _handler(self, *, loading=False, programmatic=False):
+    def _handler(self, *, loading=False, programmatic=False, bound=(0, 1)):
         mw = MagicMock()
         mw.is_loading_data = loading
         mw.is_programmatically_changing_text = programmatic
         mw.data_store.physical_block_idx = 0
         mw.data_store.current_string_idx = 1
+        # By default the editor is showing the current row, as after a normal
+        # selection; tests override this to model a stale or unfilled editor.
+        mw.data_store.editor_bound_row = bound
         handler = TextOperationHandler(mw, MagicMock(), MagicMock())
         handler.preview_update_timer = MagicMock()
         return handler, mw
@@ -138,6 +141,57 @@ class TestEditorFlushGuards:
 
     def test_flush_refuses_while_programmatic(self):
         handler, mw = self._handler(programmatic=True)
+        handler._debounce_block_idx = 0
+        handler._debounce_string_idx = 1
+        handler._on_preview_update_timer_timeout()
+        mw.edited_text_edit.toPlainText.assert_not_called()
+
+
+class TestEditorRowBinding:
+    """An edit may only be attributed to the row the editor actually shows.
+
+    On startup the editor is empty while the indices already point at a real
+    string; without this rule that empty editor was saved over the string's
+    translation (undoable, hence Ctrl+Z brought it back).
+    """
+
+    def _handler(self, *, bound):
+        mw = MagicMock()
+        mw.is_loading_data = False
+        mw.is_programmatically_changing_text = False
+        mw.data_store.physical_block_idx = 0
+        mw.data_store.current_string_idx = 1
+        mw.data_store.editor_bound_row = bound
+        handler = TextOperationHandler(mw, MagicMock(), MagicMock())
+        handler.preview_update_timer = MagicMock()
+        return handler, mw
+
+    def test_unfilled_editor_does_not_schedule(self):
+        """Right after a project loads the editor is bound to nothing."""
+        handler, _ = self._handler(bound=None)
+        handler.text_edited()
+        handler.preview_update_timer.start.assert_not_called()
+
+    def test_stale_editor_does_not_schedule(self):
+        """The editor still shows the previous row's text."""
+        handler, _ = self._handler(bound=(0, 99))
+        handler.text_edited()
+        handler.preview_update_timer.start.assert_not_called()
+
+    def test_matching_row_schedules(self):
+        handler, _ = self._handler(bound=(0, 1))
+        handler.text_edited()
+        handler.preview_update_timer.start.assert_called_once()
+
+    def test_flush_refuses_for_unbound_editor(self):
+        handler, mw = self._handler(bound=None)
+        handler._debounce_block_idx = 0
+        handler._debounce_string_idx = 1
+        handler._on_preview_update_timer_timeout()
+        mw.edited_text_edit.toPlainText.assert_not_called()
+
+    def test_flush_refuses_for_stale_binding(self):
+        handler, mw = self._handler(bound=(0, 99))
         handler._debounce_block_idx = 0
         handler._debounce_string_idx = 1
         handler._on_preview_update_timer_timeout()

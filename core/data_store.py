@@ -101,6 +101,10 @@ class AppDataStore:
     _physical_block_idx: int = -1
     current_view_kind: ViewKind = ViewKind.PHYSICAL
     current_string_idx: int = -1
+    # The (block, string) the translation editor is actually displaying. Set by
+    # the view updater when it fills the editor; edits are attributed only to
+    # this row, so a stale or unfilled editor can never overwrite another string.
+    editor_bound_row: Optional[Tuple[int, int]] = None
     selected_string_indices: List[int] = field(default_factory=list)
     _displayed_string_indices: List[Any] = field(default_factory=list, init=False, repr=False)
     _displayed_string_indices_map: Dict[Any, int] = field(default_factory=dict, init=False, repr=False)
@@ -409,6 +413,7 @@ class AppDataStore:
         self.virtual_block_cache = {}
         self.current_block_idx = -1
         self._physical_block_idx = -1
+        self.editor_bound_row = None
         self.current_view_kind = ViewKind.PHYSICAL
         self.current_string_idx = -1
         self.current_chapter_id = None

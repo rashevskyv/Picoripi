@@ -29,6 +29,23 @@ class MockMainWindow(MagicMock):
         self.is_programmatically_changing_text = False
 
     @property
+    def editor_bound_row(self):
+        """Model the normal state: the editor displays the current row.
+
+        Production code only attributes an edit to the row the editor is
+        actually showing. Tests that need the opposite (a stale or unfilled
+        editor) set this attribute explicitly.
+        """
+        try:
+            return object.__getattribute__(self, '_editor_bound_row_override')
+        except AttributeError:
+            return (self.physical_block_idx, self.current_string_idx)
+
+    @editor_bound_row.setter
+    def editor_bound_row(self, value) -> None:
+        self._editor_bound_row_override = value
+
+    @property
     def physical_block_idx(self) -> int:
         if hasattr(self, '_physical_block_idx'):
             val = self._physical_block_idx
@@ -51,7 +68,8 @@ class MockMainWindow(MagicMock):
         return -1
 
     def __getattribute__(self, name):
-        if name in ('physical_block_idx', '_physical_block_idx'):
+        if name in ('physical_block_idx', '_physical_block_idx',
+                    'editor_bound_row', '_editor_bound_row_override'):
             return object.__getattribute__(self, name)
         return super().__getattribute__(name)
 

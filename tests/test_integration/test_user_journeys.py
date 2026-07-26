@@ -48,6 +48,11 @@ class IntegrationMockMainWindow(QMainWindow):
         self.unsaved_changes = False
         self.current_block_idx = 0
         self.current_string_idx = 0
+        # The editor is showing this row; edits are attributed only to the row
+        # the editor actually displays.
+        self.editor_bound_row = (0, 0)
+        # Idle: a real user edit happens outside loading.
+        self.is_loading_data = False
         self.block_names = {"0": "Test Block"}
         self.problems_per_subline = {}
         self.string_metadata = {}

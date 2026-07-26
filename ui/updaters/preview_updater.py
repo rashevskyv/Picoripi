@@ -637,6 +637,13 @@ class PreviewUpdater(BaseUIUpdater):
 
         edited_widget = self.mw.edited_text_edit
         if edited_widget:
+            # Remember which row the editor is now showing. Edits are only ever
+            # attributed to this row, so a stale or not-yet-filled editor can
+            # never be written over a different string (see text_edited).
+            self.mw.data_store.editor_bound_row = (
+                self.mw.data_store.physical_block_idx,
+                self.mw.data_store.current_string_idx,
+            )
             if edited_widget.toPlainText() != edited_text_for_display_converted:
                 saved_edited_cursor_pos = int(edited_widget.textCursor().position())
                 saved_edited_anchor_pos = int(edited_widget.textCursor().anchor())
