@@ -59,6 +59,47 @@ class TestBlockSelectedForce:
         handler._handle_physical_block_selection.assert_not_called()
 
 
+class TestRestoreRepopulatesAlreadyCurrentBlock:
+    """The reported startup fault: session restore sets current_block_idx before
+    the view is built, so the "block already current, nothing to rebuild" check
+    skipped populating the strings list entirely."""
+
+    def _handler(self, *, current_block_idx):
+        mw = MagicMock()
+        mw.is_loading_data = False
+        mw.data_store.current_block_idx = current_block_idx
+        mw.data_store.current_category_name = None
+        mw.data_store.current_chapter_id = None
+        mw.data_store.current_speaker_name = None
+        mw._restoring_session_state = False
+        # No project block mapping: keeps the "last selected string" lookup out
+        # of the way so the test isolates the populate decision.
+        mw.block_to_project_file_map = {}
+        ui_updater = MagicMock()
+        handler = ListSelectionHandler(mw, MagicMock(), ui_updater)
+        handler._restoring_selection = False
+        handler._target_string_idx = None
+        handler._target_block_idx = None
+        return handler, ui_updater
+
+    def test_forced_restore_populates_already_current_block(self):
+        # Session restore already pointed data_store at block 2.
+        handler, ui_updater = self._handler(current_block_idx=2)
+        handler._handle_physical_block_selection(2, None, 2, 0, None, force=True)
+        ui_updater.populate_strings_for_block.assert_called_once_with(2, None)
+
+    def test_unforced_reselect_of_same_block_stays_cheap(self):
+        """Without force, re-selecting the current block must not rebuild."""
+        handler, ui_updater = self._handler(current_block_idx=2)
+        handler._handle_physical_block_selection(2, None, 2, 0, None)
+        ui_updater.populate_strings_for_block.assert_not_called()
+
+    def test_switching_block_populates_without_force(self):
+        handler, ui_updater = self._handler(current_block_idx=1)
+        handler._handle_physical_block_selection(2, None, 1, 0, None)
+        ui_updater.populate_strings_for_block.assert_called_once_with(2, None)
+
+
 class TestEditorFlushGuards:
     def _handler(self, *, loading=False, programmatic=False):
         mw = MagicMock()

@@ -244,7 +244,7 @@ class ListSelectionHandler(BaseHandler):
                 self._handle_folder_selection()
                 return
 
-            self._handle_physical_block_selection(block_index, category_name, old_block, old_string, old_category)
+            self._handle_physical_block_selection(block_index, category_name, old_block, old_string, old_category, force=force)
         finally:
             self.mw.is_programmatically_changing_text = False
 
@@ -519,8 +519,16 @@ class ListSelectionHandler(BaseHandler):
         self.ui_updater.update_statusbar_paths()
         self._update_block_toolbar_button_states(-2)
 
-    def _handle_physical_block_selection(self, block_index: int, category_name: Optional[str], old_block: int, old_string: int, old_category: Optional[str]) -> None:
-        if self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
+    def _handle_physical_block_selection(self, block_index: int, category_name: Optional[str], old_block: int, old_string: int, old_category: Optional[str], force: bool = False) -> None:
+        """Load a physical block into the view.
+
+        The body is normally skipped when the block is already the current one,
+        since re-selecting it would rebuild an identical view. ``force`` overrides
+        that: on session restore the indices are restored *before* the view is
+        built, so the "already current" check would leave the block selected with
+        no strings shown until the user clicked away and back.
+        """
+        if force or self.mw.data_store.current_block_idx != block_index or self.mw.data_store.current_category_name != category_name or type(self.mw.data_store.current_chapter_id) is int or isinstance(getattr(self.mw.data_store, 'current_speaker_name', None), str):
             self._clear_pending_speaker_retention()
             self.mw.data_store.current_block_idx = block_index
             self.mw.data_store.physical_block_idx = block_index
