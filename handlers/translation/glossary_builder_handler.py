@@ -56,42 +56,9 @@ class GlossaryBuilderHandler:
 
     def _resolve_translation_credentials(self, provider_name: str) -> dict:
         """Internal helper to resolve translation credentials."""
+        from handlers.translation.glossary_ai_config import resolve_translation_credentials
         translation_config = getattr(self.mw, 'translation_config', {}) or {}
-        providers_cfg = {}
-        if isinstance(translation_config, dict):
-            providers_cfg = translation_config.get('providers', {}) or {}
-
-        provider_key_map = {
-            'OpenAI': ['openai', 'openai_chat', 'perplexity'],
-            'OpenAI Compatible': ['openai', 'openai_chat', 'perplexity'],
-            'Gemini': ['gemini'],
-            'Ollama': ['ollama_chat']
-        }
-
-        base_url = ''
-        for key in provider_key_map.get(provider_name, []):
-            cfg = providers_cfg.get(key, {}) or {}
-
-            url_val = cfg.get('endpoint') or cfg.get('base_url')
-            if not base_url and url_val:
-                base_url = url_val
-
-            api_key = cfg.get('api_key')
-            api_key_env = cfg.get('api_key_env')
-            if api_key or api_key_env or base_url:
-                credentials = {
-                    'api_key': api_key or '',
-                    'api_key_env': api_key_env or ''
-                }
-                if base_url:
-                    credentials['base_url'] = base_url
-                    credentials['endpoint'] = base_url
-                return credentials
-
-        if provider_name == 'Ollama' and base_url:
-            return {'base_url': base_url}
-
-        return {}
+        return resolve_translation_credentials(translation_config, provider_name)
 
     def build_glossary_for_block(self, block_id, category_name: Optional[str] = None):
         """Create glossary for block."""
