@@ -330,6 +330,28 @@ class MenuBuilder:
         self.mw.mempalace_builder_action.setShortcut('Ctrl+M')
         tools_menu.addAction(self.mw.mempalace_builder_action)
 
+        # Dynamic icon for Build Glossary from Text with letter 'G'
+        pixmap_g = QPixmap(32, 32)
+        pixmap_g.fill(Qt.GlobalColor.transparent)
+        painter_g = QPainter(pixmap_g)
+        painter_g.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter_g.setPen(QColor("#107c10"))  # Green: builds new data
+        font_g = QFont("Arial", 22, QFont.Weight.Bold)
+        painter_g.setFont(font_g)
+        painter_g.drawText(pixmap_g.rect(), Qt.AlignmentFlag.AlignCenter, "G")
+        painter_g.end()
+
+        self.mw.build_glossary_text_action = QAction(
+            QIcon(pixmap_g),
+            'Build &Glossary from Text...',
+            self.mw
+        )
+        self.mw.build_glossary_text_action.setToolTip(
+            'Sweep project text with AI to collect glossary terms, then describe each term '
+            'from the context around every place it appears'
+        )
+        tools_menu.addAction(self.mw.build_glossary_text_action)
+
         # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
         pixmap_s = QPixmap(32, 32)
         pixmap_s.fill(Qt.GlobalColor.transparent)

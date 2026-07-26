@@ -76,6 +76,8 @@ class MainWindowEventHandler:
             self.mw.mempalace_builder_action.triggered.connect(self.mw.actions.open_mempalace_builder)
         if hasattr(self.mw, 'inspect_story_context_action') and self.mw.inspect_story_context_action:
             self.mw.inspect_story_context_action.triggered.connect(self.mw.actions.inspect_story_context)
+        if hasattr(self.mw, 'build_glossary_text_action') and self.mw.build_glossary_text_action:
+            self.mw.build_glossary_text_action.triggered.connect(self.mw.actions.build_glossary_from_text)
         if hasattr(self.mw, 'mempalace_viewer_action') and self.mw.mempalace_viewer_action:
             self.mw.mempalace_viewer_action.triggered.connect(self.mw.actions.open_mempalace_viewer)
         if hasattr(self.mw, 'fix_all_strings_action') and self.mw.fix_all_strings_action:
@@ -343,6 +345,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'script_markup_studio_action'): safe_disconnect(mw.script_markup_studio_action, 'triggered')
         if hasattr(mw, 'mempalace_builder_action'): safe_disconnect(mw.mempalace_builder_action, 'triggered')
         if hasattr(mw, 'inspect_story_context_action'): safe_disconnect(mw.inspect_story_context_action, 'triggered')
+        if hasattr(mw, 'build_glossary_text_action'): safe_disconnect(mw.build_glossary_text_action, 'triggered')
         if hasattr(mw, 'mempalace_viewer_action'): safe_disconnect(mw.mempalace_viewer_action, 'triggered')
         if hasattr(mw, 'fix_all_strings_action'): safe_disconnect(mw.fix_all_strings_action, 'triggered')
         if hasattr(mw, 'export_bmg_json_action'): safe_disconnect(mw.export_bmg_json_action, 'triggered')

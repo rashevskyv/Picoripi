@@ -412,6 +412,15 @@ class MainWindowActions:
         """Query and display visual context/timeline for the selected row from MemePalace without translating."""
         self.mempalace_actions.inspect_story_context()
 
+    def build_glossary_from_text(self):
+        """Build the glossary by sweeping project text with AI (see docs/PIPELINE_ROADMAP.md)."""
+        handler = getattr(self.mw, 'glossary_pipeline_handler', None)
+        if handler is None:
+            from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
+            handler = GlossaryPipelineHandler(self.mw)
+            self.mw.glossary_pipeline_handler = handler
+        handler.build_from_text()
+
     def open_bfn_editor_standalone(self):
         """Open BFN Font Editor as a standalone window (no archive binding)."""
         self.bfn_actions.open_bfn_editor_standalone()
