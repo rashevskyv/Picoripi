@@ -922,7 +922,9 @@ class BlockListUpdater(BaseUIUpdater):
                         if selected_physical_block_idx is not None and selected_physical_block_idx >= 0:
                             selection_handler._target_block_idx = selected_physical_block_idx
                             selection_handler._target_string_idx = selected_string_idx
-                        selection_handler.block_selected(target_item, None)
+                        # force: this is a deliberate restore, not incidental
+                        # selection churn, so it must run even while loading.
+                        selection_handler.block_selected(target_item, None, force=True)
 
                         if selected_string_idx != -1:
                             log_info(f"UIUpdater: Restoring string selection to absolute index {selected_string_idx}")

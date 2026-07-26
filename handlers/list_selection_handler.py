@@ -157,8 +157,19 @@ class ListSelectionHandler(BaseHandler):
         self._target_string_idx = None
         return False
 
-    def block_selected(self, current_item: Optional[QTreeWidgetItem], previous_item: Optional[QTreeWidgetItem]) -> None:
-        """Block selected."""
+    def block_selected(
+        self,
+        current_item: Optional[QTreeWidgetItem],
+        previous_item: Optional[QTreeWidgetItem],
+        force: bool = False,
+    ) -> None:
+        """Block selected.
+
+        ``force`` runs the load even while data is loading. Selection signals
+        fired incidentally during a load must be ignored, but a deliberate call
+        from session restore must not be: dropping it leaves the block selected
+        in the tree with no strings shown until the user clicks another block.
+        """
         try:
             from PyQt6 import sip
         except ImportError:
@@ -176,7 +187,7 @@ class ListSelectionHandler(BaseHandler):
         except (TypeError, RuntimeError):
             pass
 
-        if self.mw.is_loading_data or self._restoring_selection:
+        if not force and (self.mw.is_loading_data or self._restoring_selection):
             return
 
         if hasattr(self.mw, 'editor_operation_handler'):

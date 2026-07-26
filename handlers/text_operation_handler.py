@@ -345,6 +345,11 @@ class TextOperationHandler(BaseHandler):
         """Text edited."""
         if self.mw.is_programmatically_changing_text:
             return
+        # While data is loading the editor is emptied and refilled by the app, not
+        # by the user. Treating that as an edit would schedule a save of the empty
+        # editor over the string's real translation.
+        if self.mw.is_loading_data:
+            return
         if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
             return
             
@@ -368,8 +373,15 @@ class TextOperationHandler(BaseHandler):
         if block_idx == -1 or string_idx == -1:
             block_idx = self.mw.data_store.physical_block_idx
             string_idx = self.mw.data_store.current_string_idx
-            
+
         if block_idx == -1 or string_idx == -1:
+            return
+
+        # Last line of defence: never persist editor content while loading. A
+        # queued timeout can still fire after loading starts, and the editor may
+        # be mid-refill, which would write an empty string over a real one.
+        if self.mw.is_loading_data or self.mw.is_programmatically_changing_text:
+            log_debug("Editor flush skipped: data is loading or text is being set programmatically.")
             return
 
         # SAFETY CHECK: If the selection has shifted before this timer could run/flush,

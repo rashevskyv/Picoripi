@@ -57,6 +57,9 @@ class MockContext(MagicMock):
         self.newline_display_symbol = "↵"
         self.show_multiple_spaces_as_dots = False
         self.is_programmatically_changing_text = False
+        # A real edit happens outside loading; both guards must be modelled or
+        # MagicMock returns a truthy stub and the edit looks like app-driven churn.
+        self.is_loading_data = False
         self.edited_text_edit = MagicMock()
         self.helper = MagicMock()
         self.helper.get_font_map_for_string.return_value = {}

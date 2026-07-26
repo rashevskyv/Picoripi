@@ -84,7 +84,8 @@ def test_UIUpdater_apply_tree_state(updater):
         updater.apply_tree_state(state, on_completed=completed)
     assert item.isExpanded()
     # verify that block selection is restored
-    updater.mw.list_selection_handler.block_selected.assert_called_with(item, None)
+    # force=True: a session restore must load the block even while data is loading
+    updater.mw.list_selection_handler.block_selected.assert_called_with(item, None, force=True)
     completed.assert_called_once_with()
     assert updater.block_list_updater._tree_state_restore_pending is False
 
@@ -136,7 +137,7 @@ def test_tree_state_restores_exact_duplicate_virtual_node_and_collapsed_nodes(
     assert windows.isExpanded()
     assert dialog.isExpanded()
     assert not speakers.isExpanded()
-    mock_mw.list_selection_handler.block_selected.assert_called_with(window_none, None)
+    mock_mw.list_selection_handler.block_selected.assert_called_with(window_none, None, force=True)
     assert mock_mw.list_selection_handler._target_block_idx == 7
     assert mock_mw.list_selection_handler._target_string_idx == 8
     mock_mw.list_selection_handler.string_selected_from_preview.assert_called_with(1)

@@ -22,6 +22,11 @@ class MockMainWindow(MagicMock):
         super().__init__(*args, **kwargs)
         self._physical_block_idx = -1
         self.current_view_kind = ViewKind.PHYSICAL
+        # Default to "idle": handlers guard on these, and a bare MagicMock
+        # attribute is truthy, which would make every test look like the app is
+        # busy loading or setting text programmatically.
+        self.is_loading_data = False
+        self.is_programmatically_changing_text = False
 
     @property
     def physical_block_idx(self) -> int:
