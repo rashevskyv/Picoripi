@@ -30,8 +30,12 @@ from PyQt6.QtWidgets import (
     QWidget,
     QAbstractItemView,
 )
-from PyQt6.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor
-from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
+from PyQt6.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor, QBrush
+from core.glossary_manager import STATUS_CONFIRMED, GlossaryEntry, GlossaryOccurrence
+
+# Rows awaiting a human decision. Translucent so it tints the row without
+# fighting the selection highlight or the light/dark palette.
+_NEEDS_REVIEW_BRUSH = QBrush(QColor(255, 200, 0, 60))
 class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
 
@@ -164,6 +168,15 @@ class GlossaryDialog(QDialog):
         self._search_field.setProperty("selectAllOnClick", True)
         self._search_field.textChanged.connect(self._apply_filter)
         search_layout.addWidget(self._search_field, 1)
+        self._unconfirmed_only_checkbox = QCheckBox("Needs review", self)
+        self._unconfirmed_only_checkbox.setToolTip(
+            "Show only entries still awaiting your decision — highlighted rows: several "
+            "translation variants were proposed, or the entry has not been confirmed yet."
+        )
+        self._unconfirmed_only_checkbox.stateChanged.connect(
+            lambda _state: self._apply_filter(self._search_field.text())
+        )
+        search_layout.addWidget(self._unconfirmed_only_checkbox)
         layout.addLayout(search_layout)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
@@ -183,6 +196,22 @@ class GlossaryDialog(QDialog):
         right_layout.addWidget(translation_label)
         self._translation_edit = QLineEdit(self)
         right_layout.addWidget(self._translation_edit)
+
+        # Proposed variants: shown only when the AI offered a real choice.
+        self._variants_label = QLabel("Proposed variants (pick one):", self)
+        right_layout.addWidget(self._variants_label)
+        self._variants_list = QListWidget(self)
+        self._variants_list.setMaximumHeight(110)
+        self._variants_list.setWordWrap(True)
+        self._variants_list.itemClicked.connect(self._on_variant_chosen)
+        right_layout.addWidget(self._variants_list)
+        self._confirm_button = QPushButton("Confirm translation", self)
+        self._confirm_button.setToolTip(
+            "Mark this entry as decided. It stops being highlighted for review."
+        )
+        self._confirm_button.clicked.connect(self._on_confirm_clicked)
+        right_layout.addWidget(self._confirm_button)
+        self._set_variants_visible(False)
         self._profiled_checkbox = QCheckBox("Profiled via AI (Speech Profile generated)", self)
         right_layout.addWidget(self._profiled_checkbox)
         notes_row = QHBoxLayout()
@@ -380,6 +409,7 @@ class GlossaryDialog(QDialog):
                     entry.notes,
                     str(len(occurrences)),
                 ]
+                needs_review = self._needs_review(entry)
                 for col, value in enumerate(values):
                     item = QTableWidgetItem(value)
                     if col == 3:
@@ -389,6 +419,9 @@ class GlossaryDialog(QDialog):
                         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 3:
                         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    if needs_review:
+                        item.setBackground(_NEEDS_REVIEW_BRUSH)
+                        item.setToolTip(self._review_reason(entry))
                     table.setItem(row, col, item)
                     
             table.resizeColumnToContents(0)
@@ -617,11 +650,20 @@ class GlossaryDialog(QDialog):
             self._populate_entry_details(entry)
             return
         self._mark_editor_dirty(False)
-    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None) -> bool:
-        """Internal helper to attempt entry update."""
+    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None, confirm: bool = False) -> bool:
+        """Internal helper to attempt entry update.
+
+        ``confirm`` marks the entry as decided, which clears the review
+        highlight. Passed as a keyword so older callbacks stay compatible.
+        """
         if not self._update_callback:
             return False
-        result = self._update_callback(entry.original, new_translation, new_notes, profiled)
+        if confirm:
+            result = self._update_callback(
+                entry.original, new_translation, new_notes, profiled, status=STATUS_CONFIRMED
+            )
+        else:
+            result = self._update_callback(entry.original, new_translation, new_notes, profiled)
         if not result:
             return False
         new_entries, new_occurrence_map = result
@@ -782,6 +824,7 @@ class GlossaryDialog(QDialog):
         self._translation_edit.setText(entry.translation or '')
         self._notes_edit.setPlainText(entry.notes or '')
         self._profiled_checkbox.setChecked(entry.profiled)
+        self._populate_variants(entry)
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
@@ -796,12 +839,84 @@ class GlossaryDialog(QDialog):
         self._translation_edit.clear()
         self._notes_edit.clear()
         self._profiled_checkbox.setChecked(False)
+        self._populate_variants(None)
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
             self._notes_variation_button.setText(self._notes_variation_default_text)
             self._notes_variation_button.setEnabled(False)
         self._update_editor_enabled_state()
+
+    def _set_variants_visible(self, visible: bool) -> None:
+        """Show the variant picker only when there is a decision to make."""
+        self._variants_label.setVisible(visible)
+        self._variants_list.setVisible(visible)
+
+    def _populate_variants(self, entry: Optional[GlossaryEntry]) -> None:
+        """Fill the variant picker and the confirm button for this entry."""
+        self._variants_list.clear()
+        variants = list(getattr(entry, "translation_variants", ()) or ()) if entry else []
+        # One variant means the AI saw no real ambiguity; nothing to choose.
+        self._set_variants_visible(len(variants) > 1)
+        for variant in variants:
+            label = variant.translation
+            if variant.rationale:
+                label = f"{variant.translation} — {variant.rationale}"
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, variant.translation)
+            if entry and variant.translation == entry.translation:
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+            self._variants_list.addItem(item)
+
+        can_confirm = bool(entry) and self._needs_review(entry) and bool(self._update_callback)
+        self._confirm_button.setVisible(bool(entry) and self._needs_review(entry))
+        self._confirm_button.setEnabled(can_confirm)
+
+    def _on_variant_chosen(self, item: QListWidgetItem) -> None:
+        """Put the picked variant into the translation field (not yet saved)."""
+        translation = item.data(Qt.ItemDataRole.UserRole)
+        if translation:
+            self._translation_edit.setText(str(translation))
+
+    def _on_confirm_clicked(self) -> None:
+        """Save the current translation and mark the entry as decided."""
+        entry = self._current_entry
+        if not entry or not self._update_callback:
+            return
+        self._attempt_entry_update(
+            entry,
+            self._translation_edit.text(),
+            self._notes_edit.toPlainText(),
+            self._profiled_checkbox.isChecked(),
+            confirm=True,
+        )
+
+    @staticmethod
+    def _review_reason(entry: GlossaryEntry) -> str:
+        """Why this entry is flagged — shown as the row tooltip."""
+        variants = getattr(entry, "translation_variants", ()) or ()
+        if len(variants) > 1:
+            listed = "\n".join(
+                f"  • {v.translation}" + (f" — {v.rationale}" if v.rationale else "")
+                for v in variants
+            )
+            return f"{len(variants)} translation variants proposed:\n{listed}"
+        status = getattr(entry, "status", "") or "unconfirmed"
+        return f"Awaiting review (status: {status})."
+
+    @staticmethod
+    def _needs_review(entry: GlossaryEntry) -> bool:
+        """Whether the entry still awaits a human decision.
+
+        Either the AI offered more than one defensible translation, or the entry
+        has not been confirmed yet. Legacy entries carry no status and are not
+        flagged, so the marker stays meaningful instead of colouring everything.
+        """
+        if len(getattr(entry, "translation_variants", ()) or ()) > 1:
+            return True
+        return bool(getattr(entry, "is_unconfirmed", False))
 
     def _apply_filter(self, text: str) -> None:
         """Internal helper to apply filter."""
@@ -815,6 +930,10 @@ class GlossaryDialog(QDialog):
                 ).lower()
                 return pattern in haystack
             self._filtered_entries = [entry for entry in self._all_entries if matches(entry)]
+        if self._unconfirmed_only_checkbox.isChecked():
+            self._filtered_entries = [
+                entry for entry in self._filtered_entries if self._needs_review(entry)
+            ]
         self._populate_entries(self._filtered_entries)
         if self._pending_select_term:
             self._select_initial_term(self._pending_select_term, switch_tab=False)
