@@ -37,6 +37,9 @@ from .translate_driver import propose_translations
 MODE_THOROUGH = "thorough"
 MODE_DRAFT = "draft"
 MODE_AUGMENT = "augment"
+# Translate only: no sweep, no describe — just propose translations for entries
+# that already have a description but no translation.
+MODE_TRANSLATE = "translate"
 
 # Statuses whose entries still want a description (targets of the describe pass).
 _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
@@ -96,6 +99,9 @@ class GlossaryBuildCoordinator:
     ) -> BuildResult:
         """Run a build in the given mode."""
         result = BuildResult()
+        if mode == MODE_TRANSLATE:
+            # Nothing to build; the caller runs the translate pass.
+            return result
         if mode in (MODE_THOROUGH, MODE_DRAFT):
             aggregated = self._sweep(dataset, block_indices)
             if self._cancelled():
@@ -118,10 +124,15 @@ class GlossaryBuildCoordinator:
         result = result or BuildResult()
         propose = make_propose(self.call, self.prompts, target_lang=self.target_lang)
 
+        # An entry needs translating when it has something to translate from (a
+        # description) and no translation yet. Deliberately not keyed on status:
+        # entries added by hand or by older tools carry no status but still
+        # qualify. Entries that already have a translation are left alone --
+        # replacing a decided translation is not this pass's job.
         targets = [
             e
             for e in self.manager.get_entries()
-            if e.status == STATUS_SYNTHESIZED or (e.is_unconfirmed and e.notes and not e.translation)
+            if e.notes and not e.translation
         ]
         total = len(targets)
         for index, entry in enumerate(targets):

@@ -11,6 +11,7 @@ from core.glossary_build.pipeline_coordinator import (
     MODE_AUGMENT,
     MODE_DRAFT,
     MODE_THOROUGH,
+    MODE_TRANSLATE,
     GlossaryBuildCoordinator,
 )
 from core.glossary_manager import (
@@ -149,6 +150,50 @@ class TestTranslate:
         ordon = m.get_entry("Ordon")
         assert len(ordon.translation_variants) == 2
         assert ordon.is_unconfirmed  # translated but not confirmed -> yellow
+
+
+class TestTranslateOnly:
+    """Running the translation pass on its own, after skipping it earlier."""
+
+    def test_translate_only_does_not_sweep_or_describe(self):
+        m = _manager()
+        m.seed_entry("Ordon", section="Places", description="a village")
+        ai = FakeAI()
+        coord = GlossaryBuildCoordinator(m, ai, PROMPTS)
+
+        result = coord.build(DATASET, MODE_TRANSLATE)
+        coord.run_translate(result)
+
+        assert result.seeded == 0
+        assert result.described == 0
+        assert result.translated == 1
+        assert not any("Game text chunk" in c for c in ai.calls)
+        assert not any("Excerpts where it appears" in c for c in ai.calls)
+        assert m.get_entry("Ordon").translation == "Ордон"
+
+    def test_entry_without_status_is_translated(self):
+        """Entries from older tools or added by hand carry no status."""
+        m = _manager()
+        m.add_entry("Ordon", "", "a village")  # description, no translation
+        coord = GlossaryBuildCoordinator(m, FakeAI(), PROMPTS)
+        result = coord.run_translate()
+        assert result.translated == 1
+
+    def test_already_translated_entry_is_left_alone(self):
+        m = _manager()
+        m.add_entry("Ordon", "Мій Ордон", "a village")
+        coord = GlossaryBuildCoordinator(m, FakeAI(), PROMPTS)
+        result = coord.run_translate()
+        assert result.translated == 0
+        assert m.get_entry("Ordon").translation == "Мій Ордон"
+
+    def test_entry_without_description_is_skipped(self):
+        """Nothing to translate from — the term alone is not enough."""
+        m = _manager()
+        m.seed_entry("Ordon", section="Places")  # no description
+        coord = GlossaryBuildCoordinator(m, FakeAI(), PROMPTS)
+        result = coord.run_translate()
+        assert result.translated == 0
 
 
 class TestCancellation:

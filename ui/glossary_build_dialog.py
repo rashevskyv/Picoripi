@@ -21,7 +21,12 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from core.glossary_build.pipeline_coordinator import MODE_AUGMENT, MODE_DRAFT, MODE_THOROUGH
+from core.glossary_build.pipeline_coordinator import (
+    MODE_AUGMENT,
+    MODE_DRAFT,
+    MODE_THOROUGH,
+    MODE_TRANSLATE,
+)
 
 
 AREA_PROJECT = "project"
@@ -91,11 +96,17 @@ class GlossaryBuildDialog(QDialog):
         self._mode_augment.setToolTip(
             "Skip the sweep. Describe glossary entries that already exist, using the project text."
         )
+        self._mode_translate = QRadioButton("Translate existing entries only")
+        self._mode_translate.setToolTip(
+            "No sweep, no describing. Propose translations for entries that already have a "
+            "description but no translation. Entries that are already translated are left alone."
+        )
 
         for button, key in (
             (self._mode_thorough, MODE_THOROUGH),
             (self._mode_draft, MODE_DRAFT),
             (self._mode_augment, MODE_AUGMENT),
+            (self._mode_translate, MODE_TRANSLATE),
         ):
             self._mode_group.addButton(button)
             button.setProperty("mode_key", key)
@@ -120,6 +131,11 @@ class GlossaryBuildDialog(QDialog):
         )
         layout.addWidget(self._translate_check)
 
+        # In translate-only mode the translation pass IS the run, so the choice
+        # is not the user's to make — show it as on and locked.
+        self._mode_translate.toggled.connect(self._sync_translate_check)
+        self._sync_translate_check(self._mode_translate.isChecked())
+
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -127,6 +143,12 @@ class GlossaryBuildDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _sync_translate_check(self, translate_only: bool) -> None:
+        """Force the translate option on (and lock it) in translate-only mode."""
+        if translate_only:
+            self._translate_check.setChecked(True)
+        self._translate_check.setEnabled(not translate_only)
 
     def selected_area(self) -> str:
         button = self._area_group.checkedButton()

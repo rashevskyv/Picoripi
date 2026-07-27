@@ -1,5 +1,10 @@
 """Tests for the Build-Glossary-from-Text launch dialog."""
-from core.glossary_build.pipeline_coordinator import MODE_AUGMENT, MODE_DRAFT, MODE_THOROUGH
+from core.glossary_build.pipeline_coordinator import (
+    MODE_AUGMENT,
+    MODE_DRAFT,
+    MODE_THOROUGH,
+    MODE_TRANSLATE,
+)
 from ui.glossary_build_dialog import (
     AREA_CURRENT,
     AREA_PROJECT,
@@ -54,6 +59,27 @@ def test_chunk_and_translate_options(qtbot):
     options = dialog.options()
     assert options["chunk_size"] == "local"
     assert options["translate"] is True
+
+
+def test_translate_only_mode_forces_and_locks_translate(qtbot):
+    """In translate-only mode the translation pass IS the run."""
+    dialog = GlossaryBuildDialog(has_selection=False)
+    qtbot.addWidget(dialog)
+
+    dialog._mode_translate.setChecked(True)
+    options = dialog.options()
+    assert options["mode"] == MODE_TRANSLATE
+    assert options["translate"] is True
+    assert dialog._translate_check.isEnabled() is False
+
+
+def test_leaving_translate_only_unlocks_the_checkbox(qtbot):
+    dialog = GlossaryBuildDialog(has_selection=False)
+    qtbot.addWidget(dialog)
+
+    dialog._mode_translate.setChecked(True)
+    dialog._mode_thorough.setChecked(True)
+    assert dialog._translate_check.isEnabled() is True
 
 
 def test_current_block_label_shown(qtbot):
