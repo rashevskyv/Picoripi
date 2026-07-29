@@ -156,3 +156,25 @@ class TestConfirm:
         dialog = _dialog(qtbot, [AMBIGUOUS], update_callback=callback)
         dialog._attempt_entry_update(AMBIGUOUS, "x", "y", False)
         assert "status" not in callback.call_args.kwargs
+
+
+class TestBuildButton:
+    """The build/translate launcher reachable from inside the glossary."""
+
+    def test_hidden_without_callback(self, qtbot):
+        dialog = _dialog(qtbot, [LEGACY])
+        assert dialog._build_button.isVisibleTo(dialog) is False
+
+    def test_visible_and_wired_with_callback(self, qtbot):
+        build = MagicMock()
+        dialog = GlossaryDialog(
+            entries=[LEGACY],
+            occurrence_map={},
+            parent=None,
+            jump_callback=MagicMock(),
+            build_callback=build,
+        )
+        qtbot.addWidget(dialog)
+        assert dialog._build_button.isVisibleTo(dialog) is True
+        dialog._build_button.click()
+        build.assert_called_once_with()

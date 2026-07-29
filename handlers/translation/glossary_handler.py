@@ -303,6 +303,7 @@ class GlossaryHandler(BaseTranslationHandler):
                 delete_callback=self._handle_glossary_entry_delete,
                 ai_variation_callback=self._handle_notes_variation_from_dialog,
                 ai_classify_callback=self.classify_glossary_via_ai,
+                build_callback=self._launch_glossary_build,
                 global_replace_callback=self.global_replace_glossary,
                 initial_term=initial_term,
             )
@@ -318,6 +319,26 @@ class GlossaryHandler(BaseTranslationHandler):
         worker.finished.connect(worker.deleteLater)
         worker.start()
         progress_dialog.show()
+
+    def _launch_glossary_build(self) -> None:
+        """Open the build/translate launcher from inside the glossary dialog."""
+        actions = getattr(self.mw, "actions", None)
+        launcher = getattr(actions, "build_glossary_from_text", None)
+        if callable(launcher):
+            launcher()
+
+    def refresh_open_dialog(self) -> None:
+        """Reload the glossary dialog, if open, from the current manager state."""
+        if not self.dialog or not self.dialog.isVisible():
+            return
+        data_source = getattr(self.mw.data_store, "data", None)
+        occurrence_map = (
+            self.glossary_manager.build_occurrence_index(data_source)
+            if isinstance(data_source, list)
+            else self.glossary_manager.get_occurrence_map()
+        )
+        entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
+        self.dialog.reload_data(entries, occurrence_map)
 
     def prepare_to_close(self) -> None:
         """Gracefully shutdown glossary occurrence worker if running."""

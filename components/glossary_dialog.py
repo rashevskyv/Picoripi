@@ -117,6 +117,7 @@ class GlossaryDialog(QDialog):
         ] = None,
         ai_variation_callback: Optional[Callable[[GlossaryEntry], None]] = None,
         ai_classify_callback: Optional[Callable[[], None]] = None,
+        build_callback: Optional[Callable[[], None]] = None,
         global_replace_callback: Optional[Callable[[str, str], None]] = None,
         initial_term: Optional[str] = None,
     ) -> None:
@@ -146,6 +147,7 @@ class GlossaryDialog(QDialog):
         self._delete_callback = delete_callback
         self._ai_variation_callback = ai_variation_callback
         self._ai_classify_callback = ai_classify_callback
+        self._build_callback = build_callback
         self._global_replace_callback = global_replace_callback
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
@@ -251,6 +253,20 @@ class GlossaryDialog(QDialog):
         if self._update_callback is None or self._global_replace_callback is None:
             self._global_replace_button.setVisible(False)
             
+        # Same launcher as Tools > Build Glossary from Text: it already offers
+        # every mode (thorough / draft / augment / translate-only), so the
+        # glossary needs a door to it, not its own copy of the buttons.
+        self._build_button = QPushButton("Build / Translate via AI...", self)
+        self._build_button.setStyleSheet("background-color: #2563eb; color: white; font-weight: bold;")
+        self._build_button.setToolTip(
+            "Sweep the project text for terms, describe them, or propose translations "
+            "for entries that have a description but no translation yet."
+        )
+        self._build_button.clicked.connect(self._on_build_clicked)
+        button_box.addButton(self._build_button, QDialogButtonBox.ButtonRole.ActionRole)
+        if self._build_callback is None:
+            self._build_button.setVisible(False)
+
         self._ai_classify_button = QPushButton("Organize via AI", self)
         self._ai_classify_button.setStyleSheet("background-color: #8b5cf6; color: white; font-weight: bold;")
         self._ai_classify_button.clicked.connect(self._on_ai_classify_clicked)
@@ -295,6 +311,11 @@ class GlossaryDialog(QDialog):
         """Internal helper to handle the ai classify clicked event."""
         if self._ai_classify_callback:
             self._ai_classify_callback()
+
+    def _on_build_clicked(self) -> None:
+        """Internal helper to handle the build clicked event."""
+        if self._build_callback:
+            self._build_callback()
 
     def _on_global_replace_clicked(self) -> None:
         """Internal helper to handle the global replace clicked event."""

@@ -152,6 +152,9 @@ class GlossaryPipelineHandler:
                 manager.save_to_disk()
                 handler._cached_glossary = manager.get_raw_text()
                 handler.glossary_handler._update_glossary_highlighting()
+                # The build may have been launched from the open glossary dialog;
+                # it is holding a snapshot taken before the run.
+                handler.glossary_handler.refresh_open_dialog()
             except Exception as exc:
                 log_error(f"Failed to refresh glossary after build: {exc}")
 
