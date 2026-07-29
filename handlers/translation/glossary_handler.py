@@ -304,6 +304,7 @@ class GlossaryHandler(BaseTranslationHandler):
                 ai_variation_callback=self._handle_notes_variation_from_dialog,
                 ai_classify_callback=self.classify_glossary_via_ai,
                 build_callback=self._launch_glossary_build,
+                clear_callback=self._handle_glossary_clear,
                 global_replace_callback=self.global_replace_glossary,
                 initial_term=initial_term,
             )
@@ -701,6 +702,18 @@ class GlossaryHandler(BaseTranslationHandler):
                 self.mw.statusBar.showMessage(f"Glossary deleted: {original}", 4000)
             return entries, occurrence_map
         return None
+
+    def _handle_glossary_clear(self):
+        """Internal helper to handle clearing the whole glossary."""
+        removed = self.glossary_manager.clear_all()
+        if not removed:
+            return None
+        self.glossary_manager.save_to_disk()
+        self._update_glossary_highlighting()
+        self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
+        if self.mw.statusBar:
+            self.mw.statusBar.showMessage(f"Glossary cleared: {removed} entries removed", 4000)
+        return [], {}
 
     # ── AI Glossary Classification ───────────────────────────────────────
 

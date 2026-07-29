@@ -178,3 +178,50 @@ class TestBuildButton:
         assert dialog._build_button.isVisibleTo(dialog) is True
         dialog._build_button.click()
         build.assert_called_once_with()
+
+
+class TestClearButton:
+    """Wiping the glossary: confirmed, backed up, and reflected in the UI."""
+
+    def _with_clear(self, qtbot, clear_callback):
+        dialog = GlossaryDialog(
+            entries=[AMBIGUOUS, CONFIRMED, LEGACY],
+            occurrence_map={},
+            parent=None,
+            jump_callback=MagicMock(),
+            clear_callback=clear_callback,
+        )
+        qtbot.addWidget(dialog)
+        return dialog
+
+    def test_hidden_without_callback(self, qtbot):
+        dialog = _dialog(qtbot, [LEGACY])
+        assert dialog._clear_button.isVisibleTo(dialog) is False
+
+    def test_declining_the_prompt_keeps_entries(self, qtbot, monkeypatch):
+        clear = MagicMock(return_value=([], {}))
+        dialog = self._with_clear(qtbot, clear)
+        monkeypatch.setattr(
+            "components.glossary_dialog.QMessageBox.question",
+            lambda *a, **k: __import__(
+                "PyQt6.QtWidgets", fromlist=["QMessageBox"]
+            ).QMessageBox.StandardButton.No,
+        )
+        dialog._on_clear_clicked()
+        clear.assert_not_called()
+        assert len(dialog._all_entries) == 3
+
+    def test_accepting_empties_the_dialog(self, qtbot, monkeypatch):
+        clear = MagicMock(return_value=([], {}))
+        dialog = self._with_clear(qtbot, clear)
+        monkeypatch.setattr(
+            "components.glossary_dialog.QMessageBox.question",
+            lambda *a, **k: __import__(
+                "PyQt6.QtWidgets", fromlist=["QMessageBox"]
+            ).QMessageBox.StandardButton.Yes,
+        )
+        dialog._on_clear_clicked()
+        clear.assert_called_once_with()
+        assert dialog._all_entries == []
+        assert dialog._current_entry is None
+        assert dialog._active_table().rowCount() == 0

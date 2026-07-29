@@ -118,6 +118,9 @@ class GlossaryDialog(QDialog):
         ai_variation_callback: Optional[Callable[[GlossaryEntry], None]] = None,
         ai_classify_callback: Optional[Callable[[], None]] = None,
         build_callback: Optional[Callable[[], None]] = None,
+        clear_callback: Optional[
+            Callable[[], Optional[Tuple[Sequence[GlossaryEntry], Dict[str, List[GlossaryOccurrence]]]]]
+        ] = None,
         global_replace_callback: Optional[Callable[[str, str], None]] = None,
         initial_term: Optional[str] = None,
     ) -> None:
@@ -148,6 +151,7 @@ class GlossaryDialog(QDialog):
         self._ai_variation_callback = ai_variation_callback
         self._ai_classify_callback = ai_classify_callback
         self._build_callback = build_callback
+        self._clear_callback = clear_callback
         self._global_replace_callback = global_replace_callback
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
@@ -274,6 +278,14 @@ class GlossaryDialog(QDialog):
         if self._ai_classify_callback is None:
             self._ai_classify_button.setVisible(False)
             
+        self._clear_button = QPushButton("Clear Glossary", self)
+        self._clear_button.setStyleSheet("background-color: #b91c1c; color: white; font-weight: bold;")
+        self._clear_button.setToolTip("Remove every entry. The glossary file is backed up first.")
+        self._clear_button.clicked.connect(self._on_clear_clicked)
+        button_box.addButton(self._clear_button, QDialogButtonBox.ButtonRole.DestructiveRole)
+        if self._clear_callback is None:
+            self._clear_button.setVisible(False)
+
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
         self._translation_edit.textChanged.connect(self._on_editor_content_changed)
@@ -316,6 +328,35 @@ class GlossaryDialog(QDialog):
         """Internal helper to handle the build clicked event."""
         if self._build_callback:
             self._build_callback()
+
+    def _on_clear_clicked(self) -> None:
+        """Internal helper to handle the clear glossary clicked event."""
+        if not self._clear_callback:
+            return
+        total = len(self._all_entries)
+        if not total:
+            return
+        response = QMessageBox.question(
+            self,
+            "Clear Glossary",
+            f"Remove all {total} entries from the glossary?\n\n"
+            "This cannot be undone from here. The glossary file is copied to "
+            "glossary.json.bak first, so the entries can be restored by hand.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if response != QMessageBox.StandardButton.Yes:
+            return
+        result = self._clear_callback()
+        if not result:
+            return
+        new_entries, new_occurrence_map = result
+        self._all_entries = list(new_entries)
+        self._occurrences = new_occurrence_map
+        self._current_entry = None
+        self._pending_select_term = None
+        self._mark_editor_dirty(False)
+        self._apply_filter(self._search_field.text())
 
     def _on_global_replace_clicked(self) -> None:
         """Internal helper to handle the global replace clicked event."""

@@ -363,3 +363,26 @@ def test_GlossaryManager_update_occurrences_for_entry(manager):
 
 
 
+
+
+def test_GlossaryManager_clear_all_backs_up_and_empties(manager, tmp_path):
+    f = tmp_path / "glossary.json"
+    manager._glossary_path = f
+    manager.add_entry("Apple", "Яблуко", "")
+    manager.add_entry("Orange", "Апельсин", "")
+    manager.save_to_disk()
+
+    assert manager.clear_all() == 2
+    assert manager.get_entries() == []
+    assert manager.get_entry("Apple") is None
+    # The wipe has no undo, so the pre-clear file must survive beside it.
+    backup = tmp_path / "glossary.json.bak"
+    assert backup.exists()
+    assert "Яблуко" in backup.read_text(encoding="utf-8")
+    assert "Яблуко" not in f.read_text(encoding="utf-8")
+
+
+def test_GlossaryManager_clear_all_on_empty_glossary_is_a_noop(manager, tmp_path):
+    manager._glossary_path = tmp_path / "glossary.json"
+    assert manager.clear_all() == 0
+    assert not (tmp_path / "glossary.json.bak").exists()

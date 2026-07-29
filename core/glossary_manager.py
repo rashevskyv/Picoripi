@@ -599,6 +599,36 @@ class GlossaryManager:
         self._persist()
         return True
 
+    def clear_all(self) -> int:
+        """Remove every entry, returning how many were removed.
+
+        The glossary file is copied to ``<name>.bak`` first: this wipes work that
+        has no undo, and the copy costs nothing.
+        """
+        removed = len(self._entries)
+        if not removed:
+            return 0
+        self.backup_file()
+        for entry in self._entries:
+            self._session_changes[entry.original] = None
+        self._entries = []
+        self._occurrence_index = {}
+        self._persist()
+        return removed
+
+    def backup_file(self) -> Optional[Path]:
+        """Copy the glossary file to ``<name>.bak``. Returns the backup path."""
+        path = self._glossary_path
+        if not path or not path.exists():
+            return None
+        backup = path.with_suffix(path.suffix + '.bak')
+        try:
+            backup.write_bytes(path.read_bytes())
+            return backup
+        except Exception as exc:
+            log_debug(f"GlossaryManager: failed to back up {path.name}: {exc}")
+            return None
+
     def save_to_disk(self) -> None:
         """Save to disk."""
         self._persist(write_only=True)
