@@ -332,6 +332,8 @@ class GlossaryHandler(BaseTranslationHandler):
         if not self.dialog or not self.dialog.isVisible():
             return
         data_source = getattr(self.mw.data_store, "data", None)
+        # ponytail: rebuilds the index inline (same cost the open path pays behind
+        # a progress dialog); move to GlossaryOccurrenceWorker if it starts to stutter.
         occurrence_map = (
             self.glossary_manager.build_occurrence_index(data_source)
             if isinstance(data_source, list)
