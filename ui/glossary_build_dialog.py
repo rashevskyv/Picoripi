@@ -6,7 +6,7 @@ The build itself runs in GlossaryBuildWorker; this dialog only gathers input.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from PyQt6.QtWidgets import (
     QButtonGroup,

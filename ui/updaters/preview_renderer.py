@@ -1,10 +1,9 @@
-from typing import Any, List, Dict, Set, Tuple, Optional
+from typing import Any
 import re
-from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QColor, QTextCursor
 from utils.utils import (
     convert_dots_to_spaces_from_editor, calculate_string_width,
-    remove_all_tags, calculate_strict_string_width
+    remove_all_tags
 )
 
 class PreviewRenderer:
@@ -188,7 +187,7 @@ class PreviewRenderer:
 
     def _load_next_preview_chunk(self):
         """Internal helper to load next preview chunk."""
-        from utils.logging_utils import log_info, log_error
+        from utils.logging_utils import log_error
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
         mw_pu = getattr(self, 'preview_updater', None)
         if mw_pu is None:

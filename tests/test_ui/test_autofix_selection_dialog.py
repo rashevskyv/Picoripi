@@ -1,6 +1,4 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QDialog
+from unittest.mock import MagicMock
 from ui.autofix_selection_dialog import AutofixSelectionDialog
 
 def test_AutofixSelectionDialog_init(mock_mw):

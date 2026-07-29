@@ -1,6 +1,6 @@
 from PyQt6.QtCore import QObject, QEvent, Qt, QTimer
 from PyQt6.QtGui import QKeySequence
-from PyQt6.QtWidgets import QApplication, QLineEdit, QWidget
+from PyQt6.QtWidgets import QLineEdit, QWidget
 from utils.logging_utils import log_debug
 
 class TextEditEventFilter(QObject):

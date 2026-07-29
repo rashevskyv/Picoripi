@@ -15,7 +15,7 @@ This module parses those sections and renders compact, English conversation
 outlines used as extra context in AI translation prompts.
 """
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 import struct
 
 # Condition labels extracted from the debug strings of dMsgFlow_c::query001..053

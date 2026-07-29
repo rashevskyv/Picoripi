@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from handlers.project_action_handler import ProjectActionHandler
 from core.project_manager import ProjectManager

@@ -2,7 +2,7 @@
 
 import re
 from typing import Any, List
-from utils.utils import calculate_string_width, remove_all_tags
+from utils.utils import calculate_string_width
 from core.tag_utils import ANY_TAG_PATTERN_STR
 
 

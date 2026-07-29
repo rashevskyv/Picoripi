@@ -1,5 +1,4 @@
 import pytest
-import pickle
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from core.data_store import AppDataStore

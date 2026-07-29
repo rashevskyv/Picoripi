@@ -302,7 +302,6 @@ def test_registry_detect_all_respects_detection_enabled_false(base_profile):
 
 def test_rule_context_globals_are_restored_after_exception_or_second_scan(base_profile):
     import utils.utils as uu
-    from plugins.common.problem_rules import create_default_registry
     
     uu._ACTIVE_FONT_MAP = {"initial": "val"}
     uu._ACTIVE_TAG_MAPPINGS = {"initial_t": "val_t"}

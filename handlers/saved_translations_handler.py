@@ -3,11 +3,10 @@ import json
 import datetime
 from collections.abc import Mapping
 from pathlib import Path
-from typing import List, Tuple, Any, Optional
+from typing import List, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 from handlers.base_handler import BaseHandler
-from utils.logging_utils import log_info, log_error, log_debug
 
 class SavedTranslationsHandler(BaseHandler):
     """Handler for saved translations operations."""

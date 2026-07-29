@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import json
-import os
-import re
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .base_translation_handler import BaseTranslationHandler
 from core.glossary_manager import GlossaryEntry
 from core.translation.session_manager import TranslationSessionState
-from utils.utils import ALL_TAGS_PATTERN, resolve_target_language_prompt
+from utils.utils import resolve_target_language_prompt
 from utils.logging_utils import log_debug
 
 # Import new services

@@ -1,7 +1,6 @@
 import pytest
-from unittest.mock import MagicMock
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QPoint, QPointF, Qt, QEvent
+from PyQt6.QtCore import QPointF, Qt, QEvent
 from PyQt6.QtGui import QMouseEvent
 from ui.components.text_effects_dialog import AnglePickerWidget, TextEffectsDialog
 

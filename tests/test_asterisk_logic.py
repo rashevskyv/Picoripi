@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
 from PyQt6.QtWidgets import QMainWindow
-from core.data_store import AppDataStore
 from core.data_state_processor import DataStateProcessor
 from handlers.list_selection_handler import ListSelectionHandler
 from handlers.text_operation_handler import TextOperationHandler

@@ -1,8 +1,7 @@
 from typing import List, Tuple, Dict, Optional
 import re
-from ..base_import_rules import BaseImportRules, TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS, TAG_STATUS_WARNING
+from ..base_import_rules import BaseImportRules, TAG_STATUS_OK, TAG_STATUS_CRITICAL, TAG_STATUS_MISMATCHED_CURLY, TAG_STATUS_UNRESOLVED_BRACKETS
 from plugins.base_game_rules import BaseGameRules 
-from utils.logging_utils import log_debug 
 from utils.constants import ORIGINAL_PLAYER_TAG 
 from utils.utils import ALL_TAGS_PATTERN 
 from core.tag_utils import CURLY_TAG_PATTERN, BRACKET_TAG_PATTERN

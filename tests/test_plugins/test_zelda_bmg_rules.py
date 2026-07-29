@@ -1,4 +1,3 @@
-import pytest
 import re
 from plugins.zelda_bmg.rules import GameRules
 from bmg_tool import BMGFile, BMGMessage

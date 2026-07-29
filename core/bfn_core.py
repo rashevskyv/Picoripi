@@ -1,9 +1,7 @@
-﻿import os
-import struct
-import json
+﻿import struct
 from typing import Dict, Any, List, Tuple, Optional
 from PyQt6.QtGui import QImage, QColor
-from utils.logging_utils import log_info, log_warning, log_error
+from utils.logging_utils import log_error
 
 def align_to(value: int, alignment: int) -> int:
     """Align to."""

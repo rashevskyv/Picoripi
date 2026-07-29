@@ -255,7 +255,6 @@ def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
     # verify status bar updated instead of a change applied
     mock_mw.statusBar.showMessage.assert_called_with("Auto-fix: No changes made.", 2000)
 
-from PyQt6.QtGui import QTextCursor
 
 @patch('handlers.text_operation_handler.QTextCursor')
 def test_TextOperationHandler_update_preview_content_partial(mock_cursor_cls, handler, mock_mw):

@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock
 from core.mempalace_worker import MemePalaceWorker
 
@@ -180,8 +179,6 @@ def test_mempalace_worker_mapping_only_saves_data():
 
 
 def test_mempalace_client_cache_and_mapping(tmp_path):
-    import sqlite3
-    import json
     from core.mempalace_client import MemePalaceClient
     
     # 1. Create a temporary db file
@@ -385,7 +382,6 @@ def test_mempalace_worker_target_lang_and_glossary_prompt():
 
 
 def test_mempalace_client_cache_mtime_invalidation(tmp_path):
-    import os
     import time
     from core.mempalace_client import MemePalaceClient
     
@@ -441,7 +437,6 @@ def test_mempalace_client_cache_mtime_invalidation(tmp_path):
 
 def test_mempalace_character_profiler_worker():
     from core.mempalace_worker import MemePalaceCharacterProfilerWorker
-    from core.glossary_manager import GlossaryEntry
     
     client = MagicMock()
     # Mock character lines retrieval
@@ -608,7 +603,6 @@ def test_mempalace_character_profiler_worker_consecutive_failures():
 
 def test_mempalace_client_get_all_character_lines(tmp_path):
     from core.mempalace_client import MemePalaceClient
-    import json
     
     db_file = tmp_path / "mempalace_local.db"
     

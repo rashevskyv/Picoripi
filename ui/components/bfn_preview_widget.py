@@ -5,7 +5,7 @@ from collections import OrderedDict
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
                              QColorDialog, QVBoxLayout, QPushButton, QFrame, QDialog)
-from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFont, QFontMetrics,
+from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFontMetrics,
                          QRadialGradient, QBrush)
 from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
 

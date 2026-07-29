@@ -2,7 +2,6 @@ import os
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 from PyQt6.QtWidgets import QApplication
 
 # Initialize QApplication (needed once for the session)
@@ -32,11 +31,9 @@ class MockMainWindow(MagicMock):
         self.is_programmatically_changing_text = False
         def is_programmatically_changing(): return self.is_programmatically_changing_text
         self.is_programmatically_changing = is_programmatically_changing
-        from PyQt6.QtWidgets import QTreeWidget, QTextEdit, QLabel, QLineEdit, QTreeWidgetItem
+        from PyQt6.QtWidgets import QTreeWidgetItem
         
         def mock_create_item(text, data=None, role=None):
-            from PyQt6.QtWidgets import QTreeWidgetItem
-            from PyQt6.QtCore import Qt
             item = QTreeWidgetItem([str(text)])
             if data is not None and role is not None:
                 item.setData(0, role, data)

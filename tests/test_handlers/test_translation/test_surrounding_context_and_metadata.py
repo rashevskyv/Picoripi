@@ -1,9 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
 from core.data_state_processor import DataStateProcessor
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 from core.project_models import Project, Block
-from core.translation.session_manager import TranslationSessionState
 
 def test_DataStateProcessor_is_string_translated():
     # Setup mock MainWindow and DataStore

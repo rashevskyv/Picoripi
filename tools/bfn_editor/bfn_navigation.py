@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 import os
 from tools.bfn_editor.bfn_widgets import FillRangeDialog
-from tools.bfn_editor.bfn_commands import EditMetricsCommand, EditMapCommand, BatchMappingCommand
+from tools.bfn_editor.bfn_commands import EditMetricsCommand
 from utils.logging_utils import log_info, log_error
 
 class BfnNavigationMixin:

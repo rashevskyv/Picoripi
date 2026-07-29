@@ -1,6 +1,6 @@
 ﻿from PyQt6.QtWidgets import QWidget, QToolTip
-from PyQt6.QtGui import QPainter, QColor, QPen, QMouseEvent
-from PyQt6.QtCore import Qt, QRect, QSize, QPoint
+from PyQt6.QtGui import QColor, QMouseEvent
+from PyQt6.QtCore import Qt, QSize
 
 class LineNumberArea(QWidget):
     """Line number area implementation."""

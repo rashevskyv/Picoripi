@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QDialog
 from handlers.text_operation_handler import TextOperationHandler

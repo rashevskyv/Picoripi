@@ -1,13 +1,11 @@
 # /home/runner/work/RAG_project/RAG_project/handlers/main_window_actions.py
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Any, List
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from main import MainWindow
-from PyQt6.QtWidgets import QApplication, QMessageBox, QInputDialog, QProgressDialog, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox
-from PyQt6.QtGui import QIntValidator
-from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtWidgets import QApplication, QMessageBox, QProgressDialog, QDialog
+from PyQt6.QtCore import Qt
 from utils.logging_utils import log_info, log_error
-import copy
 from pathlib import Path
 import json
 from ui.settings_dialog import SettingsDialog

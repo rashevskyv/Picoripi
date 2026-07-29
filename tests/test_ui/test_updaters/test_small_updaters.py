@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 
 from ui.updaters.title_status_bar_updater import TitleStatusBarUpdater
 from ui.updaters.string_settings_updater import StringSettingsUpdater

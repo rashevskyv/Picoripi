@@ -6,7 +6,6 @@ This demonstrates the workflow described in PLAN.md.
 """
 
 import sys
-import io
 import tempfile
 from pathlib import Path
 

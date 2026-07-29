@@ -1,17 +1,15 @@
 # Dialog for interactive searching and replacing of text in a block
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QApplication, QListWidgetItem, QMenu)
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor
-from typing import List, Tuple
+from typing import List
 import re
 from utils.logging_utils import log_debug, log_error
 from dialogs.base_text_review_dialog import BaseTextReviewDialog
-from utils.utils import ALL_TAGS_PATTERN, FORCED_ALIAS_PATTERN, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches, clean_and_map_punctuation, is_control_modifier_pressed
+from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches, is_control_modifier_pressed
 
 from dialogs.search.search_worker import SearchWorker
 from dialogs.search.search_utils import (
-    map_forced_aliases,
-    map_remove_all_tags,
     prepare_text_for_tagless_search_with_mapping,
     adjust_replacement_case
 )
@@ -76,7 +74,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
         self.selection_status_label.setText(f"Selected: {count}")
 
     def setup_right_panel(self, layout: QVBoxLayout):
-        from PyQt6.QtWidgets import QCheckBox, QHBoxLayout
+        from PyQt6.QtWidgets import QCheckBox
         layout.addWidget(QLabel("Find:"))
         self.find_input = QLineEdit()
         self.find_input.setText(self.query)

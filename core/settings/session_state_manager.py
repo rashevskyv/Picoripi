@@ -1,7 +1,7 @@
 ﻿import json
 from pathlib import Path
-from typing import Dict, Any, Union, Optional
-from utils.logging_utils import log_debug, log_error
+from typing import Dict, Any, Union
+from utils.logging_utils import log_error
 
 class SessionStateManager:
     """Manages the UI session state (expanded nodes, selection, etc.)"""

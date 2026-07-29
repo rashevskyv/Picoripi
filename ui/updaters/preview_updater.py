@@ -1,11 +1,10 @@
-from typing import Optional, Any, OrderedDict, List, Tuple
+from typing import Optional, Any
 from collections import OrderedDict
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QTextCursor, QColor
+from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QTextCursor
 
 from utils.utils import (
-    convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor,
-    calculate_string_width, remove_all_tags, calculate_strict_string_width
+    convert_spaces_to_dots_for_display, calculate_strict_string_width
 )
 from core.glossary_manager import GlossaryOccurrence
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor

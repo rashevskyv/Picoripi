@@ -9,7 +9,6 @@ from core.story_context_overrides import (
     update_story_context_override,
 )
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug, log_info
 
 class SpeakerHandler(BaseHandler):
     """Handles virtual speaker folder navigation, persistence, and pending row retention."""

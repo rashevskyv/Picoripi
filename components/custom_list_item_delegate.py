@@ -1,8 +1,7 @@
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem, QToolTip
-from PyQt6.QtGui import QPainter, QColor, QPalette, QBrush, QPen, QFontMetrics, QFont, QIcon, QCursor
+from PyQt6.QtGui import QPainter, QColor, QPalette, QFontMetrics, QFont, QIcon, QCursor
 from PyQt6.QtCore import QRect, Qt, QPoint, QSize, QModelIndex, QEvent
 from utils.logging_utils import log_debug
-from utils.constants import LT_PREVIEW_SELECTED_LINE_COLOR, DT_PREVIEW_SELECTED_LINE_COLOR
 
 class CustomListItemDelegate(QStyledItemDelegate):
     """Custom list item delegate implementation."""

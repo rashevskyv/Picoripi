@@ -4,7 +4,6 @@ These tests act as a safety net for refactoring Issue #9 (removing QMessageBox f
 """
 from pathlib import Path
 import json
-import pytest
 
 from core.data_manager import load_json_file, save_json_file, load_text_file, save_text_file
 

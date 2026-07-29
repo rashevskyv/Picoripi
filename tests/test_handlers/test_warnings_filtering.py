@@ -1,5 +1,4 @@
 # tests/test_handlers/test_warnings_filtering.py
-import pytest
 from unittest.mock import MagicMock, patch
 from handlers.list_selection_handler import ListSelectionHandler
 from ui.updaters.preview_updater import PreviewUpdater

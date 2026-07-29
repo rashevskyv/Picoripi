@@ -1,9 +1,6 @@
 import pytest
-import json
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 from types import SimpleNamespace
-from PyQt6.QtWidgets import QMessageBox
 from core.data_state_processor import DataStateProcessor
 
 @pytest.fixture

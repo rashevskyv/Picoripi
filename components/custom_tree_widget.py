@@ -1,13 +1,13 @@
 # components/custom_tree_widget.py
 """Project file-tree widget — thin orchestrator that composes all behaviour mixins."""
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QHeaderView, QApplication, QToolTip,
+    QTreeWidget, QTreeWidgetItem, QHeaderView, QToolTip,
     QTreeWidgetItemIterator, QAbstractItemView,
 )
-from PyQt6.QtCore import Qt, QPoint, QEvent, QTimer
+from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QPainter
 
-from utils.logging_utils import log_debug, log_error
+from utils.logging_utils import log_debug
 
 from .tree_navigation_mixin import TreeNavigationMixin
 from .tree_context_menu_mixin import TreeContextMenuMixin

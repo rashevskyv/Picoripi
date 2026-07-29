@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import MagicMock, patch, ANY
 
 from handlers.translation.ai_variations_handler import AIVariationsHandler
-from core.translation.providers import ProviderResponse
 
 
 @pytest.fixture

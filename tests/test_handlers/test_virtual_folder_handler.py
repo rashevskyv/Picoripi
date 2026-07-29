@@ -1,6 +1,5 @@
 # tests/test_handlers/test_virtual_folder_handler.py
 
-import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QMessageBox, QDialog
 from PyQt6.QtCore import Qt

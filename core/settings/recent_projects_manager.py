@@ -1,5 +1,5 @@
 ﻿from pathlib import Path
-from typing import Any, List
+from typing import Any
 from utils.logging_utils import log_debug
 
 class RecentProjectsManager:

@@ -1,7 +1,6 @@
 ﻿import re
-from typing import List, Set, Tuple, Optional
+from typing import List, Set, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
-from PyQt6.QtCore import Qt
 
 class GenericTagManager:
     """Manager class for generic tag."""

@@ -1,7 +1,4 @@
-import pytest
 from unittest.mock import MagicMock
-import json
-from pathlib import Path
 
 from core.settings.recent_projects_manager import RecentProjectsManager
 

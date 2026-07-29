@@ -945,7 +945,6 @@ class BfnIoMixin:
         import tempfile
         import shutil
         from tools.bfn_editor.bfn_engine import extract_bfn_logic
-        from PIL import Image
         
         orig_temp_dir = tempfile.mkdtemp(prefix="bfn_original_")
         try:

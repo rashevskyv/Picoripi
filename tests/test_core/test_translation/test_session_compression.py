@@ -1,6 +1,5 @@
-import pytest
 from unittest.mock import MagicMock
-from core.translation.session_manager import TranslationSessionState, MAX_HISTORY_MESSAGES
+from core.translation.session_manager import TranslationSessionState
 from core.translation.providers import ProviderResponse
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 

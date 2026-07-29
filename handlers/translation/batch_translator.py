@@ -1,15 +1,14 @@
 # handlers/translation/batch_translator.py
 
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-from PyQt6.QtCore import QPoint
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QApplication
 
 from .base_translation_handler import BaseTranslationHandler
 from core.translation.providers import BaseTranslationProvider, ProviderResponse, GeminiProvider
 from dialogs.cached_translation_dialog import CachedTranslationDialog
-from utils.logging_utils import log_debug, log_warning, log_info
+from utils.logging_utils import log_debug, log_warning
 from utils.utils import is_control_modifier_pressed
 from core.translation.layout_contract import (
     editor_text_for_layout,

@@ -1,7 +1,5 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QPoint, QPointF, Qt, QEvent
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from handlers.translation.glossary_prompt_manager import GlossaryPromptManager
@@ -128,7 +126,6 @@ def test_glossary_highlighted_after_set_plain_text(qapp):
     This test would FAIL without that fix.
     """
     editor = LineNumberedTextEdit()
-    from utils.syntax_highlighter import JsonTagHighlighter
     from core.glossary_manager import GlossaryManager
 
     # 1. Build a real glossary manager with one entry
@@ -214,7 +211,6 @@ def test_glossary_translation_quick_replace_all(qapp):
 def test_glossary_translation_apply_all(qapp):
     from components.glossary_translation_update_dialog import GlossaryTranslationUpdateDialog
     from core.glossary_manager import GlossaryOccurrence, GlossaryEntry
-    from PyQt6.QtWidgets import QWidget
     
     entry = GlossaryEntry("t", "new")
     occ1 = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "This is old translation")

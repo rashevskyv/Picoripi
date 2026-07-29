@@ -95,7 +95,6 @@ def test_bfn_preview_widget_get_active_font_archive_fallback(qapp):
     assert active_font == bfn_mock
 
 def test_bfn_preview_widget_paint_event_fallback(qapp):
-    from PyQt6.QtGui import QImage
     
     # 1. Setup mocks
     mw_mock = MagicMock()
@@ -264,7 +263,6 @@ def test_bfn_preview_widget_menu_actions(qapp):
 
 
 def test_bfn_preview_widget_paint_event_no_bfn_fallback(qapp):
-    from PyQt6.QtGui import QImage
     
     # 1. Setup mocks with no BFN fonts
     mw_mock = MagicMock()
@@ -293,7 +291,6 @@ def test_bfn_preview_widget_paint_event_no_bfn_fallback(qapp):
 
 
 def test_bfn_preview_widget_paint_event_missing_glyph_fallback(qapp):
-    from PyQt6.QtGui import QImage
     
     # Setup mocks for a valid BFN font but missing glyph for specific character
     mw_mock = MagicMock()
@@ -344,7 +341,6 @@ def test_bfn_preview_widget_paint_event_missing_glyph_fallback(qapp):
 
 
 def test_bfn_preview_widget_with_active_editor_adapter(qapp):
-    from PyQt6.QtGui import QImage
     from ui.components.bfn_preview_widget import BfnEditorAdapter
 
     class DummyBfnEditor:
@@ -426,7 +422,6 @@ def test_bfn_preview_widget_stem_matching_and_fallback(qapp):
 
 def test_bfn_editor_to_global_preview_cache_sync(qapp):
     from tools.bfn_editor.bfn_io import BfnIoMixin
-    from PyQt6.QtGui import QImage
     
     # Create a mock window class that mixes in BfnIoMixin
     class DummyEditor(BfnIoMixin):
@@ -598,7 +593,6 @@ def test_disabled_bfn_preview_does_not_prepare_text(qapp):
 
 
 def test_page_bar_is_pinned_to_rendered_background(qapp):
-    from PyQt6.QtGui import QImage
 
     mw_mock = MagicMock()
     mw_mock.preview_enabled = True
@@ -616,7 +610,6 @@ def test_page_bar_is_pinned_to_rendered_background(qapp):
 
 
 def test_bfn_preview_widget_background_gestures(qapp):
-    from PyQt6.QtGui import QImage
     mw_mock = MagicMock()
     widget = BfnPreviewWidget(mw_mock)
     widget.setGeometry(0, 0, 500, 300)

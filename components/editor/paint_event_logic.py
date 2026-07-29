@@ -1,8 +1,6 @@
-﻿import re
-from PyQt6.QtGui import QPainter, QColor, QPen, QPaintEvent, QTextLine
+﻿from PyQt6.QtGui import QPainter, QColor, QPen, QPaintEvent
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow
-from utils.utils import calculate_string_width, remove_all_tags, convert_dots_to_spaces_from_editor
 from .constants import PAIR_SEPARATOR_LINE_COLOR, PAIR_SEPARATOR_LINE_STYLE, PAIR_SEPARATOR_LINE_THICKNESS
 
 class LNETPaintEventLogic:

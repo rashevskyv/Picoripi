@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog
-from utils.logging_utils import log_info, log_error, log_warning
+from utils.logging_utils import log_info
 from bmg_tool import BMGFile, BMGMessage
 
 class BfnActions:

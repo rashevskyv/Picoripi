@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from handlers.text_autofix_logic import TextAutofixLogic
-from PyQt6.QtWidgets import QMessageBox
 
 @pytest.fixture
 def mock_autofix(mock_mw):
@@ -27,29 +26,23 @@ def test_TextAutofixLogicfix_empty_odd_sublines(mock_autofix):
     fixed_text = mock_autofix._fix_empty_odd_sublines(text)
     assert isinstance(fixed_text, str)
 
-@patch('handlers.text_autofix_logic.calculate_string_width')
-def test_TextAutofixLogicfix_short_lines(mock_calc, mock_autofix, mock_mw):
+def test_TextAutofixLogicfix_short_lines(mock_autofix, mock_mw):
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.string_metadata = {}
     mock_mw.line_width_warning_threshold_pixels = 200
 
-    mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
-
     text = "This is a very long line that should be wrapped.\nAnd another line."
     fixed = mock_autofix._fix_short_lines(text)
     assert isinstance(fixed, str)
 
-@patch('handlers.text_autofix_logic.calculate_string_width')
-def test_TextAutofixLogicfix_width_exceeded(mock_calc, mock_autofix, mock_mw):
+def test_TextAutofixLogicfix_width_exceeded(mock_autofix, mock_mw):
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.string_metadata = {}
     mock_mw.line_width_warning_threshold_pixels = 100
-
-    mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
 
     text = "Very long line that exceeds the 100 limit.\nShort."
     fixed = mock_autofix._fix_width_exceeded(text)
@@ -211,11 +204,9 @@ def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix
     mock_warn.assert_called_once()
 
 
-@patch('handlers.text_autofix_logic.calculate_string_width')
-def test_TextAutofixLogic_fix_short_lines_boundary_cross(mock_calc, mock_autofix, mock_mw):
+def test_TextAutofixLogic_fix_short_lines_boundary_cross(mock_autofix, mock_mw):
     mock_mw.lines_per_page = 4
     mock_mw.font_map = {}
-    mock_calc.side_effect = lambda *args, **kwargs: len(args[0]) * 10
 
     # Mock analyzer's check_single_word_subline_generic and _is_single_word_ok_generic
     mock_mw.current_game_rules = MagicMock()

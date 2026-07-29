@@ -1,12 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from PyQt6.QtWidgets import QWidget, QApplication, QLabel
+from PyQt6.QtWidgets import QWidget, QApplication
 from PyQt6.QtGui import QFont, QPalette, QColor, QTextOption
 from PyQt6.QtCore import Qt
 from ui.themes import DARK_THEME_STYLESHEET, LIGHT_THEME_STYLESHEET
 from ui.adaptive_scrollbars import install_adaptive_scrollbars
 from utils.constants import DT_PREVIEW_SELECTED_LINE_COLOR, LT_PREVIEW_SELECTED_LINE_COLOR
-from typing import List
 from utils.logging_utils import log_info
 from components.custom_list_widget import CustomListWidget
 from components.custom_list_item_delegate import CustomListItemDelegate

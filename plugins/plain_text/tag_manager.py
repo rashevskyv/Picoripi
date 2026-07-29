@@ -1,5 +1,5 @@
 ﻿import re
-from typing import Optional, Set, List, Tuple
+from typing import Set, List, Tuple
 from plugins.common.tag_manager import GenericTagManager
 
 class TagManager(GenericTagManager):

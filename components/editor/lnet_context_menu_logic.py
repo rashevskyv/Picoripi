@@ -1,8 +1,8 @@
 import re
 from typing import Optional
-from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle, QApplication
+from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle
 from PyQt6.QtGui import QTextCursor
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import QPoint
 from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 from utils.utils import is_control_modifier_pressed

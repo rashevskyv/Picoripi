@@ -1,12 +1,12 @@
 # handlers/search_handler.py
 import re
-from typing import Any, Optional, List, Dict, Tuple, Set
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QColor, QTextCursor
-from PyQt6.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator
+from typing import Any, List, Tuple
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextCursor
+from PyQt6.QtWidgets import QTreeWidgetItemIterator
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
-from utils.utils import convert_spaces_to_dots_for_display, remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches, clean_and_map_punctuation
+from utils.utils import remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches
 
 class SearchHandler(BaseHandler):
     """Handler for search operations."""

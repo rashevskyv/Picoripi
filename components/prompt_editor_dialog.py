@@ -1,6 +1,6 @@
 ﻿"""Reusable prompt editor dialog for AI requests."""
 from __future__ import annotations
-from typing import Optional, Tuple
+from typing import Tuple
 
 from PyQt6.QtWidgets import (
     QDialog,
@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QCheckBox,
 )
-from PyQt6.QtCore import Qt
 
 class PromptEditorDialog(QDialog):
     """Allow users to preview/edit AI system+user prompts before sending."""

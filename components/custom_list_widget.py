@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt, QPoint, QSize, QEvent
+from PyQt6.QtCore import Qt, QPoint, QEvent
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
 from .custom_list_item_delegate import CustomListItemDelegate
 from utils.logging_utils import log_debug, log_error

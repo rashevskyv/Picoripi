@@ -13,7 +13,7 @@ Qt.FontRole = Qt.ItemDataRole.FontRole
 Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 
 from unittest.mock import MagicMock, Mock
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication
 from core.data_store import ViewKind
 
 class MockMainWindow(MagicMock):

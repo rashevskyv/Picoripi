@@ -1,7 +1,6 @@
-import os
 import re
-from typing import List, Dict, Any, Optional
-from utils.logging_utils import log_info, log_error, log_debug
+from typing import List, Dict, Any
+from utils.logging_utils import log_error
 
 def clean_chapter_title(raw_title: str) -> str:
     """Clean up spaced-out letters in chapter titles.

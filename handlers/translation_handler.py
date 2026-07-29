@@ -1,19 +1,13 @@
 # handlers/translation/translation_handler.py
 
-import json
-import re
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from PyQt6.QtCore import QTimer, Qt, QPoint, QThread, pyqtSignal
-from PyQt6.QtWidgets import QDialog, QMessageBox, QApplication
+from PyQt6.QtCore import QTimer, QPoint, QThread
+from PyQt6.QtWidgets import QDialog, QMessageBox
 from .base_handler import BaseHandler
 from core.glossary_manager import GlossaryEntry
-from core.translation.config import build_default_translation_config
 from core.translation.providers import (
     ProviderResponse,
-    TranslationProviderError,
-    create_translation_provider,
     BaseTranslationProvider,
     GeminiProvider,
 )
@@ -28,9 +22,8 @@ from .translation.ai_variations_handler import AIVariationsHandler
 from .translation.progress_manager import TranslationProgressManager
 from .translation.batch_translator import AIBatchTranslator
 from components.prompt_editor_dialog import PromptEditorDialog
-from dialogs.cached_translation_dialog import CachedTranslationDialog
-from utils.logging_utils import log_debug, log_warning
-from utils.utils import convert_spaces_to_dots_for_display, is_control_modifier_pressed
+from utils.logging_utils import log_debug
+from utils.utils import is_control_modifier_pressed
 from core.tag_utils import iter_all_strings
 
 

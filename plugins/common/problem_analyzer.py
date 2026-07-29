@@ -1,11 +1,9 @@
-from typing import Optional, Set, List, Dict, Any
+from typing import Optional, Set, List
 import re
-from utils.utils import calculate_string_width
 from plugins.common.problem_rules import (
     create_default_registry,
     GameProblemProfile,
-    RuleContext,
-    ProblemRuleRegistry
+    RuleContext
 )
 
 class GenericProblemAnalyzer:

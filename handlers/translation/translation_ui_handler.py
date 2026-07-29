@@ -3,7 +3,7 @@ import json
 import re
 from typing import Dict, List, Optional, Tuple, Any
 
-from PyQt6.QtWidgets import QDialog, QMessageBox, QApplication
+from PyQt6.QtWidgets import QDialog, QMessageBox
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor
 
@@ -160,7 +160,6 @@ class TranslationUIHandler(BaseTranslationHandler):
             return None
 
         # Strategy 1: Look for JSON code blocks (either array or object)
-        import re
         code_block_pattern = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", re.IGNORECASE)
         matches = code_block_pattern.findall(text)
         if matches:

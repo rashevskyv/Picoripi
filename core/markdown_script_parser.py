@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 
 
 def _clean_heading_title(text: str) -> str:

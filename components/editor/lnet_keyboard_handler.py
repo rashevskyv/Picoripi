@@ -16,7 +16,6 @@ class LNETKeyboardHandler:
         """Process key press event. Returns True if the event was consumed."""
         editor = self.editor
         main_window = editor.window()
-        from PyQt6.QtWidgets import QMainWindow
         if not isinstance(main_window, QMainWindow) or not hasattr(main_window, 'undo_typing_action'):
             curr = editor.parent()
             found = False

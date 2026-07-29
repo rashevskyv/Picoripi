@@ -321,7 +321,6 @@ def test_AIPromptComposer_compose_batch_request_chapter(composer):
 
 
 def test_AIPromptComposer_script_cache_invalidation(composer, tmp_path):
-    import os
     # Create a dummy script file
     script_file = tmp_path / "test_script.txt"
     script_file.write_text("RUSL\nHello, world!\n", encoding="utf-8")

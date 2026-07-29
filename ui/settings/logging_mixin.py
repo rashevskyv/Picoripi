@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QFormLayout, QCheckBox, QLineEdit, QLabel
+from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QFormLayout, QCheckBox, QLineEdit
 from utils.logging_utils import log_debug
 
 class SettingsLoggingMixin:

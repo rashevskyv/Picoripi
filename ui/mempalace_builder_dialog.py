@@ -20,7 +20,7 @@ from core.mempalace_worker import (
     MemePalaceScriptAnalyzerWorker, MemePalaceChapterMapperWorker, 
     MemePalaceChapterAIAnalyzerWorker, MemePalaceCharacterProfilerWorker
 )
-from utils.logging_utils import log_info, log_error
+from utils.logging_utils import log_error
 
 # Import decomposed elements
 from ui.mempalace.mempalace_sleep import prevent_sleep, restore_sleep, put_to_sleep

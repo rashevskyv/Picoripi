@@ -1,7 +1,6 @@
-from typing import Tuple, List, Optional, Set
+from typing import Tuple, Optional, Set
 import re
 from utils.utils import calculate_string_width
-from plugins.common.problem_rules import RuleContext, FixResult
 
 class GenericTextFixer:
     """Generic text fixer implementation acting as an adapter to Rule Engine."""
@@ -20,7 +19,6 @@ class GenericTextFixer:
                 if override_val is not None:
                     return override_val
 
-        from utils.utils import calculate_string_width
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
         default_w = 8 if self.problem_analyzer.profile.tag_style == "square" else 6

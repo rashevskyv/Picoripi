@@ -1,10 +1,8 @@
 ﻿from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QTabWidget, QWidget, QTextBrowser,
-    QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QDialogButtonBox,
-    QCheckBox
+    QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QEvent, QObject
-from PyQt6.QtGui import QTextCursor
 
 
 class _ChatInputEventFilter(QObject):

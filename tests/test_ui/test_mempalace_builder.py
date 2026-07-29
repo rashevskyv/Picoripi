@@ -2,7 +2,7 @@ import json
 import pytest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QApplication, QWidget, QListWidgetItem
+from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import QPoint, Qt
 from ui.mempalace_builder_dialog import MemePalaceBuilderDialog
 from ui.mempalace.mempalace_ui import (

@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication
 from PyQt6.QtCore import QRect, QProcess, QPoint, Qt
 from utils.logging_utils import log_debug, log_info, log_error
-import copy
 from pathlib import Path
 import sys
 

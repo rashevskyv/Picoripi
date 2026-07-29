@@ -10,7 +10,7 @@ This module provides data models and management for the project-oriented paradig
 
 import json
 from collections import OrderedDict
-from typing import List, Dict, Optional, Set, Any, Union
+from typing import List, Optional, Any, Union
 from pathlib import Path
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
@@ -325,7 +325,6 @@ class ProjectManager:
         existing_blocks = {b.source_file: b for b in self.project.blocks}
         found_sources = set()
         
-        import shutil
 
         def process_source_file(filepath: Path, rel_path: str):
             """Process source file."""
@@ -723,7 +722,6 @@ class ProjectManager:
         if not self.project or block_idx < 0 or block_idx >= len(self.project.blocks):
             return
             
-        from .project_models import Category
         block = self.project.blocks[block_idx]
         
         # Find or create target category

@@ -1,5 +1,4 @@
 # dialogs/search/search_utils.py
-import re
 from typing import List, Tuple
 from utils.utils import ALL_TAGS_PATTERN, FORCED_ALIAS_PATTERN
 

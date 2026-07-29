@@ -1,5 +1,5 @@
 # Dialog for interactive spellchecking of selected text
-from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QDialogButtonBox, QApplication)
+from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QApplication)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor
 from typing import List

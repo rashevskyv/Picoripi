@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QPushButton, QTextEdit,
     QComboBox, QFileDialog, QDialogButtonBox,
-    QMessageBox, QGroupBox, QRadioButton, QButtonGroup, QCheckBox,
+    QMessageBox, QRadioButton, QButtonGroup, QCheckBox,
     QTreeWidget, QTreeWidgetItem, QAbstractItemView, QStyle, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt

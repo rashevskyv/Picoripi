@@ -1,7 +1,6 @@
 ﻿from enum import Enum, auto
 from typing import Set, ContextManager
 from contextlib import contextmanager
-from utils.logging_utils import log_debug
 
 class AppState(Enum):
     """

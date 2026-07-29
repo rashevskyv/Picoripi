@@ -1,6 +1,6 @@
 # core/context.py
-from typing import Protocol, Optional, Any, Dict, List, Tuple, Set, TYPE_CHECKING, Type
-from PyQt6.QtWidgets import QStatusBar, QWidget, QListWidget, QComboBox, QSpinBox, QPushButton
+from typing import Protocol, Optional, Any, Dict, List, Tuple, TYPE_CHECKING
+from PyQt6.QtWidgets import QStatusBar, QWidget, QComboBox, QSpinBox, QPushButton
 from PyQt6.QtGui import QAction
 
 if TYPE_CHECKING:
@@ -430,9 +430,5 @@ class ProjectContext(Protocol):
     @property
     def default_tag_mappings(self) -> Dict[str, str]:
         """Default tag mappings."""
-        ...
-
-    def get_service(self, service_type: Type[Any]) -> Any:
-        """Get the service."""
         ...
 

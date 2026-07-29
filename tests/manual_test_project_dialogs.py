@@ -9,7 +9,6 @@ Usage:
 """
 
 import sys
-import io
 from pathlib import Path
 
 # Add parent directory to path

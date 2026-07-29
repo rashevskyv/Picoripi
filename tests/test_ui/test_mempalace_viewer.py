@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QApplication, QTableWidgetItem, QWidget
-from PyQt6.QtCore import Qt
 from ui.mempalace_viewer_dialog import MemePalaceViewerDialog
 
 @pytest.fixture(scope="module")

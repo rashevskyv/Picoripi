@@ -1,14 +1,14 @@
 from __future__ import annotations
 import re
 import copy
-from typing import Any, Optional, List, Dict, Tuple, Set, Union, TYPE_CHECKING
+from typing import Optional, Tuple, Set, TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit, QProgressDialog, QDialog
-from PyQt6.QtGui import QTextCursor, QTextBlock
+from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QTimer, Qt
 from ui.autofix_selection_dialog import AutofixSelectionDialog
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug, log_info
-from utils.utils import convert_dots_to_spaces_from_editor, convert_spaces_to_dots_for_display, calculate_string_width, remove_all_tags, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
+from utils.logging_utils import log_debug
+from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_width, remove_all_tags
 from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 from .autofix_worker import AutofixWorker
 from core.tag_utils import iter_all_strings

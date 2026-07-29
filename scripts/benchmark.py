@@ -11,11 +11,8 @@ Data: All 337 JSON files from PokemonRS/sources/ (~1.5 MB total text)
 import json
 import re
 import time
-import sys
-import os
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
-from functools import lru_cache
 
 # ---------------------------------------------------------------------------
 # Setup: load real data and font map

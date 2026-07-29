@@ -1,16 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
-from PyQt6.QtGui import QPainter, QColor, QPaintEvent
+from PyQt6.QtGui import QColor
 from PyQt6.QtCore import QRect, Qt
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.editor.line_number_area_paint_logic import LNETLineNumberAreaPaintLogic
 
-import pytest
-from unittest.mock import MagicMock
-from PyQt6.QtGui import QPainter, QColor
-from PyQt6.QtCore import QRect, Qt
-from components.editor.line_numbered_text_edit import LineNumberedTextEdit
-from components.editor.line_number_area_paint_logic import LNETLineNumberAreaPaintLogic
 
 class MockPainterRecorder:
     def __init__(self):

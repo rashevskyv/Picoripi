@@ -1,6 +1,5 @@
 """Tests for the pass-1a sweep driver (core/glossary_build/sweep_driver.py)."""
 from core.glossary_build.sweep_driver import (
-    AggregatedTerm,
     RawTerm,
     sweep_terms,
 )

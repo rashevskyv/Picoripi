@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QTextEdit, QApplication
-from PyQt6.QtGui import QTextCursor, QColor
+from PyQt6.QtWidgets import QTextEdit
+from PyQt6.QtGui import QColor
 
 from components.editor.text_highlight_manager import TextHighlightManager
 

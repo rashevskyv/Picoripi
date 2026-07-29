@@ -1,7 +1,8 @@
 # handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler
-from utils.utils import log_debug, calculate_string_width
+from utils.utils import calculate_string_width
+from utils.logging_utils import log_debug
 
 class StringSettingsHandler(BaseHandler):
     """Handler for string settings operations."""

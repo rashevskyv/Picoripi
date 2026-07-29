@@ -1,10 +1,9 @@
 # core/saved_translations_manager.py
 import json
-import datetime
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 
-from utils.logging_utils import log_info, log_error, log_debug
+from utils.logging_utils import log_info, log_error
 
 class SavedTranslationsManager:
     """Manager class for saved translations."""

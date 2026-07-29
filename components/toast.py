@@ -1,8 +1,7 @@
 # components/toast.py
-import sys
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
 from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QPoint, QEasingCurve
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont
 
 class ToastNotification(QWidget):
     """Toast notification implementation."""

@@ -1,5 +1,3 @@
-import pytest
-from unittest.mock import MagicMock
 from PyQt6.QtWidgets import QWidget
 from components.toast import ToastNotification
 

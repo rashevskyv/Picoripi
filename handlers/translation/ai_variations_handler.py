@@ -1,12 +1,11 @@
 # handlers/translation/ai_variations_handler.py
 
-from typing import Any, Dict, List, Optional
-from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from typing import Any, Dict, Optional
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QMessageBox
 
 from .base_translation_handler import BaseTranslationHandler
 from core.translation.providers import ProviderResponse
-from utils.logging_utils import log_debug
 from core.translation.layout_contract import (
     editor_text_for_layout,
     resolve_lines_per_window,

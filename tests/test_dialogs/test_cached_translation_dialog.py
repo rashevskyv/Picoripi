@@ -1,5 +1,3 @@
-import pytest
-from PyQt6.QtCore import Qt
 from dialogs.cached_translation_dialog import CachedTranslationDialog
 
 def test_cached_translation_dialog_single_item(qapp):

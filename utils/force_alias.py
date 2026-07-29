@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Tuple
 
 # Pattern to detect Force aliases: {F:Word} or {f:Word}
 _FORCE_ALIAS_RE = re.compile(r'\{[Ff]:([^}]+)\}')

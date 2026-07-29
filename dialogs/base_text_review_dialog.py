@@ -2,9 +2,9 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QSplitter, QDialogButtonBox, QWidget, QApplication, QProgressBar)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont, QTextBlockFormat
-from typing import List, Optional
-from utils.logging_utils import log_debug, log_error
+from PyQt6.QtGui import QTextCursor, QColor, QFont
+from typing import List
+from utils.logging_utils import log_debug
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 
 class BaseTextReviewDialog(QDialog):
@@ -223,7 +223,6 @@ class BaseTextReviewDialog(QDialog):
                 return parent
             parent = parent.parent() if hasattr(parent, 'parent') else None
 
-        from PyQt6.QtWidgets import QApplication
         for widget in QApplication.topLevelWidgets():
             if isinstance(widget, QMainWindow) and widget.objectName() != '':
                 return widget

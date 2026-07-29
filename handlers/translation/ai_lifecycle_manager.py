@@ -1,6 +1,6 @@
 # handlers/translation/ai_lifecycle_manager.py
-from typing import Dict, List, Optional, Tuple, Union, Any, Callable
-from PyQt6.QtCore import QThread, QTimer, Qt
+from typing import Dict, Optional, Union, Callable
+from PyQt6.QtCore import QThread, QTimer
 from PyQt6.QtWidgets import QMessageBox
 
 from .base_translation_handler import BaseTranslationHandler

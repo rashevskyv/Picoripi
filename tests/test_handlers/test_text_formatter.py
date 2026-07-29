@@ -1,6 +1,5 @@
 # tests/test_handlers/test_text_formatter.py
 
-import pytest
 from unittest.mock import MagicMock, patch
 from handlers.translation.text_formatter import TextFormatter
 
@@ -29,8 +28,7 @@ def test_text_formatter_basic():
     
     formatter = TextFormatter(mw)
     
-    with patch('handlers.translation.text_formatter.calculate_string_width', return_value=10), \
-         patch('handlers.translation.text_formatter.remove_all_tags', side_effect=lambda x: x):
+    with patch('handlers.translation.text_formatter.calculate_string_width', return_value=10):
         res = formatter.format_and_wrap_translation("Hello World", 0, 0)
         assert "Hello World" in res
 

@@ -1,7 +1,5 @@
-﻿from PyQt6.QtGui import QPainter, QColor, QFontMetrics, QTextBlock, QPaintEvent
-from PyQt6.QtCore import Qt, QRectF
-from typing import Optional
-from utils.utils import calculate_string_width, SPACE_DOT_SYMBOL
+﻿from PyQt6.QtGui import QPainter, QPaintEvent
+from utils.utils import calculate_string_width
 
 class LNETPaintHandlers:
     """L n e t paint handlers implementation."""

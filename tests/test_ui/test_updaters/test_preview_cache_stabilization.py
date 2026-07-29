@@ -1,6 +1,4 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtCore import QTimer
 from ui.updaters.preview_cache import PreviewCache
 
 def test_cancel_idle_caching(mock_mw):

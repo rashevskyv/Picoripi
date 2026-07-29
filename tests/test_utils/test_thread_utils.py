@@ -1,6 +1,4 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtCore import QThread
 from utils.thread_utils import safe_shutdown_thread
 
 def test_safe_shutdown_thread_all_branches():

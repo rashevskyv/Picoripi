@@ -7,7 +7,6 @@ Covers:
 - restore_force_aliases_in_translation: restoring original tags in translated text
 - Edge cases: empty inputs, missing glossary, multiple Force aliases, mixed tags
 """
-import pytest
 from utils.force_alias import (
     ForceAliasMapping,
     apply_aliases_to_text,

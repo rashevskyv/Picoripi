@@ -1,6 +1,4 @@
-from pathlib import Path
 from PyQt6.QtWidgets import QFormLayout, QComboBox, QLabel, QCheckBox, QLineEdit, QPushButton, QMessageBox
-from PyQt6.QtCore import Qt
 from components.labeled_spinbox import LabeledSpinBox
 from components.dictionary_manager_dialog import DictionaryManagerDialog
 from .settings_widgets import ColorPickerButton

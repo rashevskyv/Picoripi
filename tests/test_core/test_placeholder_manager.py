@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from core.translation.placeholder_manager import AIPlaceholderManager
 

@@ -1,8 +1,8 @@
 import re
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
-from utils.logging_utils import log_info, log_warning
+from utils.logging_utils import log_info
 from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
 from core.mempalace.story_timeline import (
@@ -805,7 +805,6 @@ class BlockListUpdater(BaseUIUpdater):
             "selected_physical_block_idx": self.mw.data_store.physical_block_idx,
             "selected_string_idx": self.mw.data_store.current_string_idx if (hasattr(self.mw, 'data_store') and hasattr(self.mw.data_store, 'current_string_idx')) else (self.mw.current_string_idx if hasattr(self.mw, 'current_string_idx') else -1)
         }
-        from utils.logging_utils import log_info
         log_info(f"UIUpdater: Captured tree state: selected={selected_id}, string_idx={result['selected_string_idx']}")
         return result
 

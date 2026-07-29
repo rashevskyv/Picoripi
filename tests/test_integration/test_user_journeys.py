@@ -2,9 +2,7 @@ import pytest
 pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QTextEdit, QMainWindow
-from PyQt6.QtCore import QTimer
 
-from core.data_store import AppDataStore
 from core.data_state_processor import DataStateProcessor
 from core.undo_manager import UndoManager
 from ui.updaters.preview_updater import PreviewUpdater

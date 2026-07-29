@@ -1,9 +1,6 @@
 import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-import re
 
-from core.glossary_manager import GlossaryEntry, GlossaryManager, GlossaryMatch, GlossaryOccurrence
+from core.glossary_manager import GlossaryEntry, GlossaryManager
 
 def test_GlossaryEntry_is_valid():
     assert GlossaryEntry("term", "term").is_valid()

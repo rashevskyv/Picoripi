@@ -9,7 +9,6 @@
 """
 from unittest.mock import MagicMock
 
-import pytest
 
 from handlers.list_selection_handler import ListSelectionHandler
 from handlers.text_operation_handler import TextOperationHandler

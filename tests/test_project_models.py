@@ -2,7 +2,6 @@
 Tests for core/project_models.py — Category, Block, Project data models.
 Safety net for refactoring: project management changes.
 """
-import pytest
 from core.project_models import Category, Block, Project
 
 

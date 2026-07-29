@@ -1,5 +1,4 @@
 ﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
-from pathlib import Path
 
 class MassFontDialog(QDialog):
     """Dialog class for mass font."""

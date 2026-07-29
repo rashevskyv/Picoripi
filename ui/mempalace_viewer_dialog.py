@@ -1,12 +1,10 @@
 ﻿import os
-import json
 from PyQt6.QtWidgets import (
-    QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-    QPushButton, QComboBox, QProgressBar, QTextEdit, 
-    QMessageBox, QGroupBox, QTabWidget, QWidget, QListWidget,
+    QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTextEdit, 
+    QMessageBox, QTabWidget, QWidget, QListWidget,
     QListWidgetItem, QTableWidget, QTableWidgetItem, QSplitter
 )
-from PyQt6.QtGui import QIcon, QFont, QColor
+from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt, pyqtSlot
 from core.mempalace_client import MemePalaceClient
 from utils.logging_utils import log_info, log_error

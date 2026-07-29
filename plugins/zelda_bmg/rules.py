@@ -2,7 +2,7 @@ import os
 import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
-from PyQt6.QtGui import QTextCharFormat, QColor, QFont
+from PyQt6.QtGui import QTextCharFormat
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_info, log_warning, log_debug, log_error
@@ -536,7 +536,6 @@ class GameRules(BaseGameRules):
         file is only read/parsed when its mtime (or archive member) changes.
         """
         import time
-        from bmg_tool import BMGFile
 
         block_cache = getattr(self, "_bmg_block_resolve_cache", None)
         if block_cache is None:

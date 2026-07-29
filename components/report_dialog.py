@@ -1,6 +1,5 @@
 # components/report_dialog.py
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QPushButton
-from PyQt6.QtCore import Qt
 
 class LargeTextReportDialog(QDialog):
     """Dialog class for large text report."""

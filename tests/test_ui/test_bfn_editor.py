@@ -355,7 +355,7 @@ def test_bfn_editor_window_parent_node_selection(qapp, dummy_bfn_bytes):
 
 def test_bfn_editor_window_escape_key_closes_window(qapp, dummy_bfn_bytes):
     """Test that pressing Escape key calls close() on the BFN editor window, and bypasses when editing."""
-    from PyQt6 import QtCore, QtGui, QtWidgets
+    from PyQt6 import QtCore, QtWidgets
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     
@@ -594,7 +594,6 @@ def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_byte
 
 def test_bfn_editor_window_dynamic_temp_dir_recreation(qapp, dummy_bfn_bytes):
     """Test that BFN Editor successfully recreates temp_dir on-the-fly if it was deleted or cleared before save."""
-    from PyQt6 import QtWidgets
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     

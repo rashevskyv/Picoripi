@@ -1,4 +1,3 @@
-import pytest
 from core.bfn_core import BfnCore
 
 def test_bfn_core_pack_unpack_lifecycle():

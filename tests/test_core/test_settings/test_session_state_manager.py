@@ -1,6 +1,3 @@
-import pytest
-import json
-from pathlib import Path
 from core.settings.session_state_manager import SessionStateManager
 
 def test_SessionStateManager_load_save(tmp_path):

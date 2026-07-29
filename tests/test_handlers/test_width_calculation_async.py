@@ -1,12 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QProgressDialog, QMessageBox, QPlainTextEdit
 from handlers.app_action_handler import AppActionHandler
-from handlers.width_calculation_worker import WidthCalculationWorker
 
 @pytest.fixture
 def mock_mw(qapp):
-    from PyQt6.QtCore import QObject
     mw = MagicMock()
     mw.data_store = MagicMock()
     mw.data_store.data = []

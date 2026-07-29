@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import (
     QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QTextCursor,
-    QShortcut, QKeySequence, QTextFormat, QTextBlockFormat, QPainter, QPen,
+    QShortcut, QKeySequence, QTextFormat, QPainter, QPen,
     QDrag, QPixmap, QFontMetrics,
 )
 from PyQt6.QtCore import Qt, QTimer, QEvent, QPoint, QRect, QSize, QItemSelectionModel
@@ -41,9 +41,7 @@ from core.script_markup import (
     HierarchyMark, HierarchyType, HierarchyTypeDefinition,
     default_type_definitions, line_styles_for_marks, mark_text,
     render_hierarchy_markdown,
-    MAX_AUTO_MARKUP_PROMPT_CHARS,
-    HierarchyAIPromptTooLarge, build_hierarchy_auto_markup_messages,
-    parse_hierarchy_auto_markup_response,
+    build_hierarchy_auto_markup_messages,
     infer_hierarchy_marks_from_examples,
     resolve_structure_name_iterator,
     build_hierarchy_tree,
@@ -56,18 +54,7 @@ from core.script_markup.hierarchy_ai_jobs import (
     HIERARCHY_PROJECT_FORMAT as _HIERARCHY_PROJECT_FORMAT,
     HierarchyAIPrepareWorker as _HierarchyAIPrepareWorker,
     HierarchyAIWorker as _HierarchyAIWorker,
-    build_hierarchy_ai_job_for_ranges_from_snapshot as _build_hierarchy_ai_job_for_ranges_from_snapshot,
-    clean_hierarchy_mark_text_value as _clean_hierarchy_mark_text_value,
-    format_raw_line_range_value as _format_raw_line_range_value,
-    hierarchy_ai_base_payload as _hierarchy_ai_base_payload,
-    hierarchy_mark_display_text_value as _hierarchy_mark_display_text_value,
-    hierarchy_mark_payload_value as _hierarchy_mark_payload_value,
-    hierarchy_scope_payload_from_snapshot as _hierarchy_scope_payload_from_snapshot,
-    hierarchy_type_definitions_payload_value as _hierarchy_type_definitions_payload_value,
     prepare_hierarchy_ai_jobs_from_snapshot as _prepare_hierarchy_ai_jobs_from_snapshot,
-    prepare_hierarchy_raw_scope_jobs_from_snapshot as _prepare_hierarchy_raw_scope_jobs_from_snapshot,
-    source_text_for_lines_value as _source_text_for_lines_value,
-    split_hierarchy_raw_range_jobs_from_snapshot as _split_hierarchy_raw_range_jobs_from_snapshot,
 )
 from core.script_markup.learn import (
     learn_speaker_pattern, learn_speaker_pattern_from_parts,

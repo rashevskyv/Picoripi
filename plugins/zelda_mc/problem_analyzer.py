@@ -1,5 +1,4 @@
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
-from utils.utils import calculate_string_width
 
 class ProblemAnalyzer(GenericProblemAnalyzer):
     """Problem analyzer implementation for Zelda MC."""

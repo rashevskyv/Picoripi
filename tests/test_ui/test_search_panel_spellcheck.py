@@ -1,11 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtGui import QTextCursor
-from PyQt6.QtGui import QTextCharFormat
 from components.search_panel import SearchPanelWidget, SearchLineEdit
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
-from utils.syntax_highlighter import JsonTagHighlighter
 
 class MockMainWindow(QWidget):
     def __init__(self):
@@ -84,7 +80,6 @@ def test_search_line_edit_context_menu(qapp):
 
 def test_translation_editor_spellcheck_highlighting(qapp):
     """Test that highlightBlock applies spell-check underline for the misspelled word range."""
-    from PyQt6.QtGui import QTextCharFormat
     mw = MockMainWindow()
     editor = LineNumberedTextEdit(mw)
     editor.setObjectName("edited_text_edit")

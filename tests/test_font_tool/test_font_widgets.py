@@ -1,6 +1,6 @@
 import pytest
-from PyQt6 import QtCore, QtGui, QtWidgets
-from tools.bfn_editor.bfn_widgets import ImageView, SimImageView, RenderFontDialog, ScaleSliderWidget
+from PyQt6 import QtCore, QtGui
+from tools.bfn_editor.bfn_widgets import ImageView, SimImageView, RenderFontDialog
 from tools.bfn_editor.bfn_editor_window import BfnEditorWindow
 
 @pytest.fixture

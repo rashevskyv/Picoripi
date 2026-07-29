@@ -1,17 +1,13 @@
 # handlers/project_action_handler.py
-import os
 import json
-import uuid
-import shutil
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union, Tuple
-from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog, QTreeWidgetItem, QDialog
+from typing import Dict, Any, List, Optional
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from core.project_manager import ProjectManager
 from core.data_manager import load_json_file, load_text_file
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
-from components.folder_delete_dialog import FolderDeleteDialog
 
 class ProjectLoadWorker(QThread):
     """Worker thread for loading project files asynchronously."""

@@ -1,18 +1,15 @@
 # handlers/app_action_handler.py
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple
-from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog, QPlainTextEdit
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog
 from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug, log_info, log_error
-from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN, convert_spaces_to_dots_for_display
-from core.tag_utils import apply_default_mappings_only
+from utils.logging_utils import log_info, log_error
 from core.data_manager import load_json_file, load_text_file
 from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
 from components.report_dialog import LargeTextReportDialog
-from components.toast import ToastNotification
 
 class SaveWorker(QThread):
     """Save worker implementation."""
@@ -532,7 +529,6 @@ class AppActionHandler(BaseHandler):
                                 f"(Game Dialog Limit: {mw_settings['game_dialog_max_width_pixels']}px)\n")
                 full_report = report_title + "\n" + report_text
                 
-                from components.report_dialog import LargeTextReportDialog
                 result_dialog = LargeTextReportDialog("Line Widths Report", full_report, self.mw)
                 result_dialog.show()
         

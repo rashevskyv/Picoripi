@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QMessageBox
 
 from handlers.translation.ai_lifecycle_manager import AILifecycleManager
 from core.translation.providers import ProviderResponse, TranslationProviderError

@@ -1,12 +1,11 @@
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
 import re
-import time
 import threading
 from pathlib import Path
 from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
 from spylls.hunspell import Dictionary
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QTimer
+from PyQt6.QtCore import QObject, QThread, pyqtSignal, QTimer
 
 CUSTOM_DICT_FILENAME = "custom_dictionary.txt"
 LOCAL_DICT_PATH = Path("resources/spellchecker")

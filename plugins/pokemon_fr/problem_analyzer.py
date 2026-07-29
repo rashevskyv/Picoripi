@@ -1,6 +1,5 @@
 import re
 from typing import Optional, Set, List
-from utils.utils import calculate_string_width
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
 class ProblemAnalyzer(GenericProblemAnalyzer):

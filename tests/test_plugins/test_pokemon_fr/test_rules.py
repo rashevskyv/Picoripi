@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
 from plugins.pokemon_fr.rules import GameRules
-from plugins.base_game_rules import BaseGameRules
 
 class MockMainWindow:
     def __init__(self):

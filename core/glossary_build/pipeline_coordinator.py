@@ -17,7 +17,7 @@ Translation (pass 3) is a separate step run on demand: ``run_translate``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence
 
 from core.glossary_manager import (
     STATUS_FRAGMENTS,

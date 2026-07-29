@@ -1,5 +1,4 @@
-from typing import List, Set, Dict, Any, Tuple
-from .models import ProblemMatch, FixResult
+from typing import List, Set, Tuple
 from .context import RuleContext, GameProblemProfile
 from .base import ProblemRule
 

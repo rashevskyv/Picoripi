@@ -1,12 +1,7 @@
-from PyQt6.QtGui import QColor, QTextCharFormat, QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextCharFormat
 from typing import Optional, Set, Dict, Any, Tuple, List
-import re
-import json
-import os
 
 from plugins.base_game_rules import BaseGameRules
-from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display
 
 from .config import (
@@ -18,7 +13,6 @@ from .config import (
     PROBLEM_SINGLE_WORD_SUBLINE,
     PROBLEM_SINGLE_WORD_SUBLINE_NON_START,
     COLOR_MARKER_DEFINITIONS,
-    CONTROL_CODES,
     PROBLEM_BAD_SPACING,
     PROBLEM_MISSING_ICON_SPACING,
     PROBLEM_EMPTY_FIRST_LINE_OF_PAGE

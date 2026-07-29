@@ -1,9 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, call, patch
-from PyQt6.QtGui import QColor, QTextDocument, QFont, QTextCharFormat, QPen
-from PyQt6.QtCore import Qt
+from unittest.mock import MagicMock
+from PyQt6.QtGui import QColor, QTextDocument, QFont, QTextCharFormat
 from utils.syntax_highlighter import JsonTagHighlighter
-from core.glossary_manager import GlossaryMatch
 
 @pytest.fixture
 def mock_mw():

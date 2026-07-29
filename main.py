@@ -1,14 +1,10 @@
 import sys
 import json
-import re
 import importlib
-import inspect
-import argparse
-from datetime import datetime
 from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
-from PyQt6.QtCore import Qt, QSize, QEvent, QTimer, QRect, QPoint, pyqtSignal, qInstallMessageHandler
+from PyQt6.QtCore import Qt, QRect, qInstallMessageHandler
 # Monkeypatch Qt item roles for backwards compatibility
 Qt.EditRole = Qt.ItemDataRole.EditRole
 Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
@@ -19,18 +15,14 @@ Qt.ForegroundRole = Qt.ItemDataRole.ForegroundRole
 Qt.CheckStateRole = Qt.ItemDataRole.CheckStateRole
 Qt.FontRole = Qt.ItemDataRole.FontRole
 Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
-from PyQt6.QtGui import QFont, QColor, QPalette, QIcon, QKeyEvent, QShowEvent
-from typing import Optional, Dict, Tuple, Set, Any, List, Type
-from core.service_container import ServiceContainer
+from PyQt6.QtGui import QIcon, QKeyEvent, QShowEvent
+from typing import Optional, Dict, Set, Any, List
 
 from ui.ui_setup import setup_main_window_ui
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
 from ui.ui_updater import UIUpdater
 from ui.updaters.string_settings_updater import StringSettingsUpdater
-from components.editor.line_numbered_text_edit import LineNumberedTextEdit
-from components.custom_list_widget import CustomListWidget
 from components.search_panel import SearchPanelWidget
-from ui.themes import DARK_THEME_STYLESHEET, LIGHT_THEME_STYLESHEET
 
 from handlers.app_action_handler import AppActionHandler
 from handlers.project_action_handler import ProjectActionHandler
@@ -69,13 +61,9 @@ from utils.constants import (
     EDITOR_PLAYER_TAG, ORIGINAL_PLAYER_TAG,
     DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,
     DEFAULT_LINE_WIDTH_WARNING_THRESHOLD,
-    GENERAL_APP_FONT_FAMILY, MONOSPACE_EDITOR_FONT_FAMILY, DEFAULT_APP_FONT_SIZE,
-    LT_PREVIEW_SELECTED_LINE_COLOR, DT_PREVIEW_SELECTED_LINE_COLOR
+    GENERAL_APP_FONT_FAMILY, MONOSPACE_EDITOR_FONT_FAMILY, DEFAULT_APP_FONT_SIZE
 )
-from utils.utils import ALL_TAGS_PATTERN
 
-from ui.settings_dialog import SettingsDialog
-from components.custom_list_item_delegate import CustomListItemDelegate
 from components.startup_splash import StartupSplash
 
 from ui.main_window.main_window_helper import MainWindowHelper
@@ -85,7 +73,7 @@ from ui.main_window.main_window_plugin_handler import MainWindowPluginHandler
 from ui.main_window.main_window_event_handler import MainWindowEventHandler
 from ui.main_window.main_window_block_handler import MainWindowBlockHandler
 
-from core.context import ProjectContext, UIProvider
+from core.context import UIProvider
 
 
 class StateProperty:
@@ -308,37 +296,6 @@ class MainWindow(QMainWindow):
         self.bookmark_handler = BookmarkHandler(self, self.data_processor, self.ui_updater)
         self.saved_translations_handler = SavedTranslationsHandler(self, self.data_processor, self.ui_updater)
 
-        # Service Container Registration
-        self._container = ServiceContainer()
-        self._container.register(SettingsManager, self.settings_manager)
-        self._container.register(FilterQueryAPI, self.filter_query_api)
-        self._container.register(MainWindowHelper, self.helper)
-        self._container.register(MainWindowActions, self.actions)
-        self._container.register(DataStateProcessor, self.data_processor)
-        self._container.register(SavedTranslationsManager, self.saved_translations_manager)
-        self._container.register(UIUpdater, self.ui_updater)
-        self._container.register(UndoManager, self.undo_manager)
-
-        self._container.register(StringSettingsUpdater, self.string_settings_updater)
-        self._container.register(SpellcheckerManager, self.spellchecker_manager)
-        self._container.register(MainWindowUIHandler, self.ui_handler)
-        self._container.register(MainWindowPluginHandler, self.plugin_handler)
-        self._container.register(MainWindowEventHandler, self.event_handler)
-        self._container.register(MainWindowBlockHandler, self.block_handler)
-
-        self._container.register(ListSelectionHandler, self.list_selection_handler)
-        self._container.register(TextOperationHandler, self.editor_operation_handler)
-        self._container.register(AppActionHandler, self.app_action_handler)
-        self._container.register(ProjectActionHandler, self.project_action_handler)
-        self._container.register(IssueScanHandler, self.issue_scan_handler)
-        self._container.register(SearchHandler, self.search_handler)
-        self._container.register(StringSettingsHandler, self.string_settings_handler)
-        self._container.register(TranslationHandler, self.translation_handler)
-        self._container.register(TextAnalysisHandler, self.text_analysis_handler)
-        self._container.register(AIChatHandler, self.ai_chat_handler)
-        self._container.register(BookmarkHandler, self.bookmark_handler)
-        self._container.register(SavedTranslationsHandler, self.saved_translations_handler)
-
     def _init_ui(self) -> None:
         # UI Attributes (placeholders for setup_main_window_ui)
         self.main_splitter = None
@@ -496,12 +453,6 @@ class MainWindow(QMainWindow):
         # Reload plugin settings to match the new active_game_plugin
         if hasattr(self, 'settings_manager'):
             self.settings_manager.plugin_settings.load(self.settings_manager._settings)
-
-    def get_service(self, service_type: Type[Any]) -> Any:
-        """
-        Retrieves a registered service instance from the container.
-        """
-        return self._container.get(service_type)
 
     def nativeEvent(self, eventType, message):
         if hasattr(self, 'hotkey_manager'):

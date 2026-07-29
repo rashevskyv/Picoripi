@@ -1,7 +1,5 @@
 import subprocess
 import sys
-import os
-import pytest
 
 def test_ruff_check():
     """

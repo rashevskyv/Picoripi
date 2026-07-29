@@ -1,7 +1,5 @@
-﻿import re
-from typing import Optional, Set, List, Tuple
+﻿from typing import Optional, Set, List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor
-from PyQt6.QtCore import Qt
 from plugins.common.tag_manager import GenericTagManager
 from utils.logging_utils import log_debug
 

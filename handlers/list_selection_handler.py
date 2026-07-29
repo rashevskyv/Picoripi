@@ -1,12 +1,11 @@
 # handlers/list_selection_handler.py
-from typing import Any, Optional, List, Dict, Union, Tuple
-from PyQt6.QtWidgets import QInputDialog, QTextEdit, QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
+from typing import Any, Optional, List, Tuple
+from PyQt6.QtWidgets import QTreeWidgetItemIterator, QTreeWidgetItem, QApplication
 from PyQt6.QtCore import Qt, QTimer, QObject, QSignalBlocker
-from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QTextBlock
+from PyQt6.QtGui import QTextCursor
 from core.data_store import ViewKind, get_view_kind, store_is_virtual_view
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug, log_info, log_error
-from utils.utils import calculate_string_width, remove_all_tags, ALL_TAGS_PATTERN
+from utils.logging_utils import log_debug, log_info
 
 class ListSelectionHandler(BaseHandler):
     """Handler for list selection operations."""

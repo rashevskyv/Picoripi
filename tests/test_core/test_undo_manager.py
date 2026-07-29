@@ -1,5 +1,4 @@
 import pytest
-import time
 from unittest.mock import MagicMock, patch
 from core.undo_manager import UndoManager, UndoAction, GroupAction, StructuralAction
 

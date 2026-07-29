@@ -4,7 +4,7 @@ from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from handlers.list_selection_handler import ListSelectionHandler
 from handlers.text_operation_handler import TextOperationHandler
 from core.data_state_processor import DataStateProcessor
-from core.glossary_manager import GlossaryManager, GlossaryEntry
+from core.glossary_manager import GlossaryManager
 
 class MockMainWindow:
     def __init__(self):

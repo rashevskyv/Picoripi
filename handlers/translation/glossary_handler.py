@@ -5,9 +5,9 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 
-from PyQt6.QtWidgets import (QMessageBox, QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QLineEdit, QLabel, QPushButton, QScrollArea, QWidget, QDialogButtonBox, QProgressDialog)
+from PyQt6.QtWidgets import (QMessageBox, QDialog, QVBoxLayout, QCheckBox, QLineEdit, QLabel, QScrollArea, QWidget, QDialogButtonBox, QProgressDialog)
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
@@ -17,7 +17,7 @@ from .glossary_occurrence_updater import GlossaryOccurrenceUpdater
 from core.glossary_manager import GlossaryEntry, GlossaryManager, GlossaryOccurrence
 from components.glossary_dialog import GlossaryDialog
 from components.glossary_edit_dialog import GlossaryEditDialog
-from utils.logging_utils import log_debug, log_warning
+from utils.logging_utils import log_debug
 
 
 class CategorySelectionDialog(QDialog):

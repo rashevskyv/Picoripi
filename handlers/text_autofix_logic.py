@@ -1,9 +1,8 @@
-import re
-from typing import Any, Tuple, Dict, Set
+from typing import Any, Tuple
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
-from utils.utils import convert_spaces_to_dots_for_display, calculate_string_width
+from utils.utils import convert_spaces_to_dots_for_display
 
 class TextAutofixLogic:
     """Text autofix logic implementation delegated to GameRules."""

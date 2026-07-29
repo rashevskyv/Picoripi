@@ -1,10 +1,3 @@
-from pathlib import Path
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QBrush, QTextCursor, QIcon
-from PyQt6.QtWidgets import QApplication, QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
-from utils.logging_utils import log_debug
-from utils.constants import APP_VERSION
-from utils.utils import convert_spaces_to_dots_for_display, convert_dots_to_spaces_from_editor, remove_curly_tags, calculate_string_width, calculate_strict_string_width, remove_all_tags
 from core.glossary_manager import GlossaryOccurrence
 
 class UIUpdater:

@@ -4,7 +4,6 @@ import pytest
 from unittest.mock import MagicMock, patch
 from ui.ui_updater import UIUpdater
 from ui.updaters.preview_updater import PreviewUpdater
-from utils.constants import APP_VERSION
 
 @pytest.fixture
 def updater(mock_mw):

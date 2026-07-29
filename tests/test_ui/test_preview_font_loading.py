@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QFileDialog
 from handlers.project_action_handler import ProjectActionHandler

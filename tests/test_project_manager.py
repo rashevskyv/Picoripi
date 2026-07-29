@@ -6,8 +6,6 @@ This is a simple test to verify the project management system works correctly.
 """
 
 import sys
-import io
-import shutil
 import tempfile
 from pathlib import Path
 

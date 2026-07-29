@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtGui import QMouseEvent
-from PyQt6.QtCore import Qt, QPoint, QPointF, QEvent
+from PyQt6.QtCore import Qt, QPointF, QEvent
 
 from components.editor.line_number_area import LineNumberArea
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit

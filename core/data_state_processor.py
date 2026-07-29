@@ -1,14 +1,11 @@
-from typing import List, Dict, Tuple, Optional, Any, Union, Set
-import json
-import re
+from typing import List, Dict, Tuple, Optional, Any, Set
 import datetime
 from pathlib import Path
-from .data_manager import load_json_file, save_json_file, save_text_file
+from .data_manager import save_json_file, save_text_file
 from .state_manager import AppState
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from components.toast import ToastNotification
 
-import pickle
 from PyQt6.QtCore import QTimer
 from .data_processor.session_manager import SessionManager
 from .data_processor.revert_manager import RevertManager
@@ -454,7 +451,6 @@ class DataStateProcessor:
 
                 if success_all:
                     if modified_archives:
-                        from core.containers import ContainerManager
                         for archive_rel_path in modified_archives:
                             try:
                                 if progress_callback:

@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock
 from core.translation.placeholder_manager import AIPlaceholderManager
 from core.translation.glossary_formatter import GlossaryPromptFormatter

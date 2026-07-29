@@ -2,7 +2,6 @@ import pytest
 pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtCore import Qt, QThread
 from components.dictionary_manager_dialog import DictionaryManagerDialog, DictionaryListFetchWorker, DownloadThread
 
 @pytest.fixture(scope="module")

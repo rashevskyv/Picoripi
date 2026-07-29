@@ -1,9 +1,7 @@
 ﻿from PyQt6.QtWidgets import QTextEdit
-from PyQt6.QtGui import QColor, QTextBlockFormat, QTextFormat, QTextCursor, QTextBlock, QTextCharFormat
-from PyQt6.QtCore import QTimer, QPoint, Qt
-from typing import Optional, List, Tuple
-import re
-from utils.logging_utils import log_debug
+from PyQt6.QtGui import QColor, QTextFormat, QTextCursor, QTextBlock, QTextCharFormat
+from PyQt6.QtCore import QTimer, Qt
+from typing import Optional, List
 
 class TextHighlightManager:
     """Manager class for text highlight."""

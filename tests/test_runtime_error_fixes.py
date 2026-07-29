@@ -1,9 +1,7 @@
-import pytest
 from PyQt6 import sip
 from PyQt6.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from dialogs.search_review_dialog import SearchReviewDialog
 from handlers.list_selection_handler import ListSelectionHandler
-from ui.updaters.block_list_updater import BlockListUpdater
 from unittest.mock import MagicMock
 
 import utils.utils

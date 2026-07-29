@@ -3,7 +3,7 @@ Tests for core/glossary_manager.py — glossary loading, matching, CRUD.
 Safety net for refactoring: TranslationHandler split (Issue #3).
 """
 import pytest
-from core.glossary_manager import GlossaryManager, GlossaryEntry
+from core.glossary_manager import GlossaryManager
 
 
 @pytest.fixture

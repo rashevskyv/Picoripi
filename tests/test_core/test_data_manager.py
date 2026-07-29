@@ -1,7 +1,5 @@
-import pytest
 import json
-from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 from core.data_manager import load_json_file, save_json_file, load_text_file, save_text_file
 
 def test_load_json_file(tmp_path):

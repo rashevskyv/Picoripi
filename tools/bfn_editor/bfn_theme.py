@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtGui
 
 def apply_premium_dark_theme(widget):
     dark_palette = QtGui.QPalette()

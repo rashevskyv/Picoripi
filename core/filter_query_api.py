@@ -1,5 +1,4 @@
-from typing import List, Dict, Tuple, Optional, Any, Union, Set
-import re
+from typing import List, Dict, Tuple, Optional, Any, Union
 
 class FilterQueryAPI:
     """Centralized filter and index query API for data filtering and aggregation."""

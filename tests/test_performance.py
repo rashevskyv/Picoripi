@@ -1,13 +1,12 @@
 import time
 import pytest
-from PyQt6.QtWidgets import QApplication
 from unittest.mock import MagicMock
 
-from utils.utils import calculate_string_width, convert_spaces_to_dots_for_display, clear_width_caches
+from utils.utils import calculate_string_width, clear_width_caches
 from core.spellchecker_manager import SpellcheckerManager
 from core.data_store import AppDataStore
 from core.data_state_processor import DataStateProcessor
-from core.glossary_manager import GlossaryManager, GlossaryEntry
+from core.glossary_manager import GlossaryEntry
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 from ui.updaters.preview_updater import PreviewUpdater
 

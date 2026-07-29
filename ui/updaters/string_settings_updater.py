@@ -1,10 +1,7 @@
 import re
 import os
-from pathlib import Path
-from PyQt6.QtWidgets import QComboBox, QMainWindow
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtWidgets import QComboBox
 from .base_ui_updater import BaseUIUpdater
-from utils.utils import log_debug
 from core.mempalace.story_timeline import StoryStringContext, StoryVirtualProjection
 from core.story_context_overrides import (
     get_story_context_override,

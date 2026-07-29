@@ -1,18 +1,16 @@
-import sys
 import re
-from typing import Dict, Iterable, List, Optional, Tuple
-from PyQt6.QtCore import QRegularExpression, Qt
+from typing import Dict, List, Optional, Tuple
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
     QSyntaxHighlighter,
     QTextBlockUserData,
     QTextCharFormat,
     QColor,
     QFont,
-    QPen,
     QTextDocument,
     QPalette,
 )
-from PyQt6.QtWidgets import QWidget, QMainWindow
+from PyQt6.QtWidgets import QWidget
 
 from .logging_utils import log_debug
 from .utils import SPACE_DOT_SYMBOL, convert_dots_to_spaces_from_editor, ALL_TAGS_PATTERN, get_tag_width

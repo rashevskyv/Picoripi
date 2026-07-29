@@ -16,7 +16,6 @@ from core.glossary_build.pipeline_coordinator import (
 )
 from core.glossary_manager import (
     STATUS_FRAGMENTS,
-    STATUS_SEEDED,
     STATUS_SYNTHESIZED,
     STATUS_TRANSLATED,
     GlossaryManager,

@@ -1,10 +1,8 @@
-import datetime
 import re
 import difflib # Додано
 from collections import OrderedDict
 from typing import Optional, List, Tuple, Any
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
-from .logging_utils import log_debug
 
 from core.tag_utils import ALL_TAGS_PATTERN
 

@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock
 from core.data_store import AppDataStore, IndexingDict
 from core.data_state_processor import DataStateProcessor

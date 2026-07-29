@@ -1,5 +1,4 @@
 from typing import Dict, Optional, List, Any
-from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QThread
 from PyQt6.QtGui import QTextCursor
 from .base_handler import BaseHandler
@@ -9,7 +8,6 @@ from core.translation.providers import ProviderResponse
 from handlers.translation.ai_worker import AIWorker
 from utils.logging_utils import log_debug, log_warning
 from html import escape
-import re
 import markdown
 
 class AIChatHandler(BaseHandler):

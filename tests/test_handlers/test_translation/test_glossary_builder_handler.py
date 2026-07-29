@@ -1,10 +1,8 @@
 import pytest
-from unittest.mock import MagicMock, patch, call
-import json
+from unittest.mock import MagicMock, patch
 
 from handlers.translation.glossary_builder_handler import GlossaryBuilderHandler
 from core.translation.providers import ProviderResponse
-from utils.utils import ALL_TAGS_PATTERN
 
 @pytest.fixture
 def mock_mw():
@@ -118,11 +116,10 @@ def test_gbh_build_glossary_for_block_success(mock_provider, mock_start, gbh):
     assert mock_start.call_args[0][4] == [0, 1] # target_indices
     assert mock_start.call_args[0][5] == 100 # chunk_size
 
-@patch('handlers.translation.glossary_builder_handler.QApplication.processEvents')
 @patch('handlers.translation.glossary_builder_handler.AIWorker')
 @patch('handlers.translation.glossary_builder_handler.QThread')
 @patch('handlers.translation.glossary_builder_handler.AIStatusDialog')
-def test_gbh_start_async_glossary_task(mock_dialog, mock_thread, mock_worker, mock_process_events, gbh):
+def test_gbh_start_async_glossary_task(mock_dialog, mock_thread, mock_worker, gbh):
     mock_provider = MagicMock()
     mock_dialog_inst = mock_dialog.return_value
     mock_thread_inst = mock_thread.return_value
@@ -139,11 +136,10 @@ def test_gbh_start_async_glossary_task(mock_dialog, mock_thread, mock_worker, mo
     assert gbh._thread == mock_thread_inst
 
 
-@patch('handlers.translation.glossary_builder_handler.QApplication.processEvents')
 @patch('handlers.translation.glossary_builder_handler.AIWorker')
 @patch('handlers.translation.glossary_builder_handler.QThread')
 @patch('handlers.translation.glossary_builder_handler.AIStatusDialog')
-def test_gbh_passes_window_context_to_glossary_worker(mock_dialog, mock_thread, mock_worker, mock_process_events, gbh):
+def test_gbh_passes_window_context_to_glossary_worker(mock_dialog, mock_thread, mock_worker, gbh):
     gbh.mw.statusBar = MagicMock()
     gbh.mw.glossary_manager = MagicMock()
     gbh.mw.current_game_rules.get_translation_context_for_string.return_value = {

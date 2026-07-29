@@ -1,5 +1,5 @@
 import re
-from typing import List, Tuple, Set, Optional, Dict, Any
+from typing import List, Tuple
 from core.tag_utils import ANY_TAG_PATTERN_STR
 from .base import ProblemRule
 from .models import ProblemMatch, FixResult

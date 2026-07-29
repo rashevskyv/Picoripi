@@ -1,5 +1,4 @@
 import re
-from utils.logging_utils import log_debug
 
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER
 

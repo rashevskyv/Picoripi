@@ -15,7 +15,6 @@ from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
 from ui.glossary_build_dialog import (
-    AREA_CURRENT,
     AREA_PROJECT,
     AREA_SELECTED,
     GlossaryBuildDialog,

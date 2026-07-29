@@ -1,9 +1,9 @@
 import json
 import base64
 from pathlib import Path
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Union
 from PyQt6.QtGui import QFont
-from utils.logging_utils import log_debug, log_info, log_error, log_warning
+from utils.logging_utils import log_debug, log_error, log_warning
 from core.translation.config import build_default_translation_config, merge_translation_config
 
 class GlobalSettings:

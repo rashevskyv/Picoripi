@@ -386,9 +386,8 @@ class BaseGameRules:
         Plugins should override this to handle custom separators, chapters, acts, speakers, etc.
         """
         import os
-        import json
         import re
-        from utils.logging_utils import log_info, log_warning
+        from utils.logging_utils import log_warning
         
         transcript_list = []
         if not file_path or not os.path.exists(file_path):

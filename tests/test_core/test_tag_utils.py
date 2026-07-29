@@ -1,5 +1,3 @@
-import pytest
-import re
 from core.tag_utils import (
     ANY_TAG_PATTERN,
     CURLY_TAG_PATTERN,

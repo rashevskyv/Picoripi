@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton,
-    QDialogButtonBox, QLabel, QProgressBar, QApplication, QLineEdit,
+    QDialogButtonBox, QLabel, QProgressBar, QLineEdit,
     QHBoxLayout
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal

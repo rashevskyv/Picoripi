@@ -1,7 +1,6 @@
 from pathlib import Path
-from typing import List, Any, Optional
-from utils.logging_utils import log_debug, log_error, log_info
-from .session_manager import SessionManager
+from typing import List, Any
+from utils.logging_utils import log_debug, log_error
 
 class RevertManager:
     """Manages reverting strings, blocks, and files to their original states."""

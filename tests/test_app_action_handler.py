@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 from handlers.app_action_handler import AppActionHandler
 
 class MockUIProvider:
@@ -109,8 +108,7 @@ class TestAppActionHandler(unittest.TestCase):
         mock_worker_inst.start.assert_called_once()
     @patch('handlers.app_action_handler.QProgressDialog')
     @patch('handlers.app_action_handler.SaveWorker')
-    @patch('handlers.app_action_handler.ToastNotification')
-    def test_perform_async_save_flow_success(self, mock_toast, mock_worker_cls, mock_progress):
+    def test_perform_async_save_flow_success(self, mock_worker_cls, mock_progress):
         # Setup mocks
         mock_pd_inst = mock_progress.return_value
         mock_worker_inst = mock_worker_cls.return_value

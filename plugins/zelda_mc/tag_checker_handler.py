@@ -1,6 +1,6 @@
 import re
-from typing import Optional, List, Tuple
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from typing import Optional
+from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
 

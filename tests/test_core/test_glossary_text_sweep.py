@@ -2,7 +2,6 @@
 from core.glossary_build.text_sweep import (
     CHUNK_SIZE_PRESETS,
     DEFAULT_CHUNK_SIZE,
-    SweepChunk,
     SweepItem,
     items_from_dataset,
     pack_chunks,

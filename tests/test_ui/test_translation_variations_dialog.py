@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, patch
-from PyQt6.QtCore import Qt, QModelIndex, QRect
-from PyQt6.QtGui import QPainter, QColor, QFont, QImage
+from unittest.mock import MagicMock
+from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtGui import QPainter, QFont, QImage
 from PyQt6.QtWidgets import QStyleOptionViewItem, QStyle
 
 from components.translation_variations_dialog import TranslationVariationsDialog, VariationsListDelegate

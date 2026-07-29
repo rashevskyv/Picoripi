@@ -1,4 +1,3 @@
-import os
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 from core.translation.script_speaker_finder import ScriptSpeakerFinder

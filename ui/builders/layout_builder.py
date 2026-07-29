@@ -1,10 +1,9 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter,
-    QLabel, QPushButton, QStyle, QSpacerItem, QSizePolicy, QComboBox, QSpinBox,
+    QLabel, QPushButton, QStyle, QSizePolicy, QComboBox, QSpinBox,
     QMenu, QCheckBox, QCompleter
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from pathlib import Path
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
 from components.chapter_picker import HierarchicalChapterComboBox

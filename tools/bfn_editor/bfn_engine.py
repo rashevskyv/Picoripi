@@ -1,7 +1,6 @@
 import os
 import struct
 import json
-import shutil
 from PIL import Image
 
 def align_to(value, alignment):

@@ -1,4 +1,3 @@
-import pytest
 from components.ai_status_dialog import AIStatusDialog
 
 def test_AIStatusDialog_init(qapp):
@@ -129,7 +128,7 @@ def test_AIStatusDialog_cancel_prevents_sleep(qapp):
         mock_timer.assert_not_called()
 
 def test_AIStatusDialog_finish_triggers_comparison(qapp):
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import patch
     import sys
     dialog = AIStatusDialog()
     

@@ -3,10 +3,10 @@ import re
 import difflib
 import sqlite3
 from PyQt6.QtCore import QThread, pyqtSignal
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
-from utils.logging_utils import log_info, log_error, log_debug, log_ai_traffic
+from utils.logging_utils import log_error, log_ai_traffic
 
 
 def robust_json_loads(text: str) -> dict:

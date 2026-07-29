@@ -2,21 +2,16 @@
 from pathlib import Path
 import json
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QComboBox,
-    QDialogButtonBox, QWidget, QLabel, QTabWidget,
-    QCheckBox, QLineEdit, QColorDialog, QPushButton,
-    QHBoxLayout, QFileDialog, QMessageBox, QGroupBox,
-    QDoubleSpinBox, QSpinBox, QStackedWidget, QTableWidget, QTableWidgetItem, QMenu, QInputDialog
+    QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QTabWidget,
+    QLineEdit, QPushButton,
+    QHBoxLayout, QFileDialog, QMessageBox, QInputDialog
 )
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor
 from PyQt6.QtCore import pyqtSignal, Qt, QThread
 from utils.logging_utils import log_debug
-from components.labeled_spinbox import LabeledSpinBox
-from components.dictionary_manager_dialog import DictionaryManagerDialog
 from core.translation.config import build_default_translation_config, merge_translation_config
 import pycountry
 
-from .settings.settings_widgets import ColorPickerButton, TagDisplayWidget
 from .settings.settings_ui_setup import SettingsDialogUiMixin
 
 class ProviderTestWorker(QThread):

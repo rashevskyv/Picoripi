@@ -1,6 +1,6 @@
 from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
-from PyQt6.QtGui import QTextCharFormat, QColor, QFont
+from PyQt6.QtGui import QTextCharFormat
 from plugins.base_game_rules import BaseGameRules
 from .config import (
     PROBLEM_DEFINITIONS,
@@ -16,15 +16,13 @@ from .config import (
     P_NEWLINE_MARKER,
     L_NEWLINE_MARKER,
     P_VISUAL_EDITOR_MARKER,
-    L_VISUAL_EDITOR_MARKER,
-    CONTROL_CODES
+    L_VISUAL_EDITOR_MARKER
 )
 from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display
-import re
 
 class ProblemIDs:
     PROBLEM_WIDTH_EXCEEDED = PROBLEM_WIDTH_EXCEEDED

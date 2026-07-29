@@ -403,7 +403,6 @@ def test_SpellcheckWorker_emit_runtime_error_handling(mock_mw):
 
 
 def test_SpellcheckerManager_extreme_load_processing(mock_mw, qtbot):
-    import sys
     
     sm = SpellcheckerManager(mock_mw)
     sm.enabled = True

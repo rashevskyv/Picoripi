@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore
 from tools.bfn_editor.bfn_commands import EditMetricsCommand
 
 class BfnViewMixin:

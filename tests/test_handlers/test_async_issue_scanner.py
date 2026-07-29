@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock
 from PyQt6.QtCore import QThreadPool
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool

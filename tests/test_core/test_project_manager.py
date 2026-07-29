@@ -1,11 +1,10 @@
 import pytest
-import os
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from core.project_manager import ProjectManager
-from core.project_models import Project, Block, Category, VirtualFolder
+from core.project_models import Project, Block, Category
 
 @pytest.fixture
 def pm(tmp_path):

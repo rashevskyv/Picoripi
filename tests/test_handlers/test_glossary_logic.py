@@ -1,5 +1,5 @@
 import pytest
-from core.glossary_manager import GlossaryManager, GlossaryEntry, GlossaryOccurrence
+from core.glossary_manager import GlossaryManager
 
 @pytest.fixture
 def gm():

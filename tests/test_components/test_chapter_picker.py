@@ -1,4 +1,3 @@
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QMessageBox
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch

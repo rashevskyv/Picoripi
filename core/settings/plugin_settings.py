@@ -1,7 +1,7 @@
 ﻿import json
 import os
 from pathlib import Path
-from typing import Dict, Optional, List, Any, Union
+from typing import Dict, Optional, Any
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
     DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,

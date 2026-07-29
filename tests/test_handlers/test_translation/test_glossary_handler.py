@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch, ANY
-from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtWidgets import QDialog
 
 from handlers.translation.glossary_handler import GlossaryHandler
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence

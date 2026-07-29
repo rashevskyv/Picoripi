@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt, QPoint, QTimer, QSignalBlocker
 from PyQt6.QtGui import QDrag, QFontMetrics, QPixmap, QPainter, QColor
 from PyQt6.QtWidgets import QTreeWidgetItemIterator
 
-from utils.logging_utils import log_debug
 
 
 class TreeDragDropMixin:

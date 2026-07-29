@@ -1,8 +1,5 @@
-import re
-from typing import List
-from PyQt6.QtWidgets import QMainWindow, QMessageBox
+from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtCore import QPoint, Qt
-from utils.logging_utils import log_debug
 
 class LNETSpellcheckLogic:
     """L n e t spellcheck logic implementation."""

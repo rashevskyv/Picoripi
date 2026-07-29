@@ -4,7 +4,6 @@ Guards the rule that a glossary is looked up ONLY in the open project's
 directory: two projects never share one, plugin and global copies are ignored,
 and with no project open there is no glossary path at all.
 """
-from pathlib import Path
 from unittest.mock import MagicMock
 
 from handlers.translation.glossary_prompt_manager import GlossaryPromptManager

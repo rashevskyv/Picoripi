@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QSizePolicy
+﻿from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox
 from PyQt6.QtGui import QFontMetrics
 
 class LabeledSpinBox(QWidget):

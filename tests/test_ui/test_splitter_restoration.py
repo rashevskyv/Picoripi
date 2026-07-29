@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QSplitter, QWidget
 from PyQt6.QtCore import Qt

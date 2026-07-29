@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import requests
-from core.translation.providers import OpenAIProvider, TranslationProviderError, ProviderResponse
+from core.translation.providers import OpenAIProvider, TranslationProviderError
 
 def test_openai_provider_init_default_url_requires_key():
     # Default URL, no key -> raises error

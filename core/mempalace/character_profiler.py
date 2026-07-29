@@ -3,7 +3,7 @@ import re
 import urllib.request
 import urllib.parse
 from PyQt6.QtCore import QThread, pyqtSignal
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider
 from utils.logging_utils import log_error, log_ai_traffic, log_warning, log_info

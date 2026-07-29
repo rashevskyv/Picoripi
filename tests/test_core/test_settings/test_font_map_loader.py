@@ -1,6 +1,5 @@
 import pytest
 import json
-from pathlib import Path
 from unittest.mock import MagicMock
 
 from core.settings.font_map_loader import FontMapLoader

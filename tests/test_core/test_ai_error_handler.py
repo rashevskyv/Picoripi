@@ -1,4 +1,3 @@
-import pytest
 import json
 from core.translation.ai_error_handler import handle_ai_error
 from core.translation.providers import TranslationProviderError

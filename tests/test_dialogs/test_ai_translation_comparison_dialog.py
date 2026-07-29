@@ -1,5 +1,4 @@
 # tests/test_dialogs/test_ai_translation_comparison_dialog.py
-import pytest
 from dialogs.ai_translation_comparison_dialog import AITranslationComparisonDialog
 from PyQt6.QtCore import Qt
 from unittest.mock import MagicMock, patch

@@ -1,5 +1,3 @@
-import pytest
-from PyQt6.QtCore import Qt
 from dialogs.ai_translation_result_dialog import AITranslationResultDialog
 
 def test_ai_translation_result_dialog_single_block(qapp):

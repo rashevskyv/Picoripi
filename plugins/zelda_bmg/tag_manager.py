@@ -1,8 +1,6 @@
 ﻿import re
-from typing import Optional, Set, List, Tuple
+from typing import Set, List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
-from PyQt6.QtCore import Qt
-from utils.logging_utils import log_debug
 
 class TagManager:
     """Manager class for tag."""

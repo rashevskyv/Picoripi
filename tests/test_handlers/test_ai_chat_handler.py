@@ -1,8 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from handlers.ai_chat_handler import AIChatHandler
-from core.translation.providers import ProviderResponse
-from PyQt6.QtCore import QThread
 
 @pytest.fixture
 def chat_handler(mock_mw):

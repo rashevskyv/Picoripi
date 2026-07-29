@@ -23,7 +23,6 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QPlainTextEdit,
     QStyledItemDelegate,
-    QAbstractItemView,
     QStyle,
     QTabWidget,
     QVBoxLayout,

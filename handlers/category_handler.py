@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import QTreeWidgetItemIterator
 from .base_handler import BaseHandler
-from utils.logging_utils import log_debug, log_info
+from utils.logging_utils import log_debug
 
 class CategoryHandler(BaseHandler):
     """Handles virtual block (Category) operations within projects."""

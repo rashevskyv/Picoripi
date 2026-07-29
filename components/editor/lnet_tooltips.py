@@ -1,6 +1,4 @@
-﻿from PyQt6.QtWidgets import QMainWindow, QToolTip, QApplication
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QTextCursor
+﻿from PyQt6.QtCore import QPoint
 from typing import Optional
 import re
 

@@ -1,6 +1,5 @@
 import time
 import re
-from typing import List
 
 # Fake data
 lines = [

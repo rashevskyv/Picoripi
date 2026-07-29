@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QMessageBox
 from plugins.base_game_rules import BaseGameRules
@@ -143,7 +142,6 @@ def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, moc
 
 def test_tag_alias_dialog_focus_and_return_pressed(qtbot):
     from ui.main_window.main_window_actions import TagAliasDialog
-    from PyQt6.QtWidgets import QDialog
 
     dialog = TagAliasDialog(
         parent=None,

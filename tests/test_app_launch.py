@@ -1,5 +1,3 @@
-import pytest
-from PyQt6.QtWidgets import QApplication
 from main import MainWindow
 
 def test_app_launch(qtbot):

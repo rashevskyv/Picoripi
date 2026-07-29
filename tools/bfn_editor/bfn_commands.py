@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui
 
 class EditMetricsCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, glyph_idx, old_kern, new_kern, old_width, new_width, description="Edit Metrics"):

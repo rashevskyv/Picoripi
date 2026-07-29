@@ -1,14 +1,11 @@
-from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QWidget, QHBoxLayout, QWidgetAction, QToolTip)
-from PyQt6.QtGui import (QAction)
+from PyQt6.QtWidgets import (QPlainTextEdit, QMainWindow, QMenu, QApplication, QToolTip)
 from PyQt6.QtGui import (QFont, QPaintEvent, QKeyEvent, QMouseEvent, QTextCursor, QDrag)
 from PyQt6.QtCore import Qt, QRect, QRectF, pyqtSignal, QPoint, QMimeData, QByteArray
 from typing import Optional, List, Tuple
-from pathlib import Path
 
 from .line_number_area import LineNumberArea
 from .minimap import TextMinimap
 from .text_highlight_manager import TextHighlightManager
-from utils.logging_utils import log_debug, log_error
 from utils.syntax_highlighter import JsonTagHighlighter
 from core.glossary_manager import GlossaryEntry
 

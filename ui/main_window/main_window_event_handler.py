@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtGui import QTextCursor, QKeyEvent
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QTimer
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from utils.utils import ALL_TAGS_PATTERN
 
