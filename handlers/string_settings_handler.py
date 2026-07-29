@@ -6,10 +6,6 @@ from utils.logging_utils import log_debug
 
 class StringSettingsHandler(BaseHandler):
     """Handler for string settings operations."""
-    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
-        """Initialize a new instance."""
-        super().__init__(main_window, data_processor, ui_updater)
-
     def get_default_width_for_string(self, block_idx: int, string_idx: int) -> int:
         """Return the effective plugin default for this specific string.
 

@@ -13,10 +13,6 @@ class VirtualFolderHandler(BaseHandler):
     Handles virtual folder management operations within projects,
     such as folder creation, deletion, moving items, and managing expansion state.
     """
-    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
-        """Initialize a new instance."""
-        super().__init__(main_window, data_processor, ui_updater)
-
     def add_folder_action(self) -> None:
         """Add folder action."""
         log_info("Add Folder action triggered.")

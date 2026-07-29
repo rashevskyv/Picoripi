@@ -1,5 +1,4 @@
 # handlers/category_handler.py
-from typing import Any
 from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
@@ -9,10 +8,6 @@ from utils.logging_utils import log_debug
 
 class CategoryHandler(BaseHandler):
     """Handles virtual block (Category) operations within projects."""
-    def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
-        """Initialize a new instance."""
-        super().__init__(main_window, data_processor, ui_updater)
-
     @staticmethod
     def _next_surviving_row(displayed_rows, selected_rows):
         """Return the row immediately after a removed selection, or nearest prior row."""

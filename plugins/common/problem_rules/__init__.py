@@ -15,6 +15,17 @@ from .common_rules import (
     StarTagRule
 )
 
+__all__ = [
+    "ProblemMatch", "FixResult",
+    "RuleContext", "GameProblemProfile",
+    "ProblemRule", "ProblemRuleRegistry",
+    "WidthRule", "BadSpacingRule", "MissingIconSpacingRule", "ShortLineRule",
+    "SingleWordSublineRule", "EmptyFirstLineOfPageRule",
+    "EmptyOddSublineDisplayRule", "BrokenIconHyphenRule", "TagWarningRule",
+    "StarTagRule",
+    "create_default_registry",
+]
+
 def create_default_registry(profile: GameProblemProfile) -> ProblemRuleRegistry:
     """
     Creates a ProblemRuleRegistry populated with all default common rules, 

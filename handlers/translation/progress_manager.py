@@ -7,10 +7,6 @@ from utils.logging_utils import log_debug
 class TranslationProgressManager(BaseTranslationHandler):
     """Manager class for translation progress and metadata serialization."""
 
-    def __init__(self, main_handler):
-        """Initialize a new instance."""
-        super().__init__(main_handler)
-
     def save_progress_to_metadata(self, block_idx: int) -> None:
         """Saves translation progress for a single block into the block's project metadata."""
         if not self.mw.project_manager or not self.mw.project_manager.project:

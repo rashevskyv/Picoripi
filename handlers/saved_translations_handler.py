@@ -10,10 +10,6 @@ from handlers.base_handler import BaseHandler
 
 class SavedTranslationsHandler(BaseHandler):
     """Handler for saved translations operations."""
-    def __init__(self, context, data_processor, ui_updater):
-        """Initialize a new instance."""
-        super().__init__(context, data_processor, ui_updater)
-
     def _get_project_name_for_export(self) -> str:
         project_manager = getattr(self.ctx, 'project_manager', None)
         project = getattr(project_manager, 'project', None) if project_manager else None

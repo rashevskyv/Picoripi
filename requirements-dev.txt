@@ -4,3 +4,6 @@ pytest-qt
 pytest-timeout
 pytest-xdist
 ruff
+
+# CLI only (see .agents/rules/graphify.md) - the app never imports it.
+graphifyy>=0.8.40

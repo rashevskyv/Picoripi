@@ -20,10 +20,6 @@ from core.translation.layout_contract import (
 class AIBatchTranslator(BaseTranslationHandler):
     """Handler for batch and chunked translation operations."""
 
-    def __init__(self, main_handler):
-        """Initialize a new instance."""
-        super().__init__(main_handler)
-
     @staticmethod
     def _translation_value(item: Dict[str, Any]) -> str:
         for key in ("translation", "text", "translated_text"):

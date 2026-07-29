@@ -243,7 +243,7 @@ def test_UIUpdater_update_block_item_text_with_problem_count(updater):
     assert item.text(0) == "Block 0 Base (2)"
     assert "prob1" in item.toolTip(0) or "2 sublines" in item.toolTip(0)
 
-def test_UIUpdater_synchronize_original_cursor(updater, mock_mw):
+def test_UIUpdater_synchronize_original_cursor_via_mock_mw(updater, mock_mw):
     mock_edited_cursor = MagicMock()
     mock_edited_cursor.blockNumber.return_value = 2
     mock_edited_cursor.positionInBlock.return_value = 5
