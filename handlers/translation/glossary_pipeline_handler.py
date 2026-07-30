@@ -80,25 +80,33 @@ class GlossaryPipelineHandler:
         the build seeds hundreds of entries into memory, ``get_raw_text()``
         renders them as Markdown that carries no status and drops untranslated
         rows, and the next reload parses that back into an empty glossary --
-        the whole run silently gone. Loading the prompts resolves and binds the
-        path, the same way opening the glossary dialog does.
+        the whole run silently gone.
+
+        Binding resolves the path fresh and creates the file when it does not
+        exist yet, so a first build on a new project works without the user
+        having to seed the file by hand.
         """
-        handler = getattr(self.mw, "translation_handler", None)
-        loader = getattr(handler, "load_prompts", None)
-        if callable(loader):
+        glossary_handler = getattr(
+            getattr(self.mw, "translation_handler", None), "glossary_handler", None
+        )
+        binder = getattr(glossary_handler, "bind_glossary_for_write", None)
+        if callable(binder):
             try:
-                loader()
+                if binder() is not None:
+                    return True
             except Exception as exc:
-                log_error(f"GlossaryPipelineHandler: load_prompts failed: {exc}")
+                log_error(f"GlossaryPipelineHandler: binding the glossary failed: {exc}")
         if getattr(manager, "glossary_path", None) is not None:
             return True
+
+        # No project directory means nowhere to put a project-scoped glossary.
         QMessageBox.warning(
             self.mw,
             "Build Glossary",
-            "The glossary is not bound to a project file, so a build would be "
-            "discarded when the glossary next reloads.\n\n"
-            "Open a project (the glossary lives beside it as glossary.json) and "
-            "try again.",
+            "No open project to store the glossary in.\n\n"
+            "The glossary belongs to the project and lives beside it as "
+            "glossary.json, so a build now would be discarded when the glossary "
+            "next reloads. Open or create a project, then run the build again.",
         )
         return False
 

@@ -28,7 +28,11 @@ def _mw(dataset=None, current_idx=0, selected=None, bind_glossary=True):
         plugin_name=None, glossary_path=path if bind_glossary else None, raw_text=""
     )
     mw.translation_handler.glossary_handler.glossary_manager = manager
-    mw.translation_handler.load_prompts = MagicMock()
+    # The handler binds through glossary_handler.bind_glossary_for_write, which
+    # returns the bound path or None when there is no project.
+    mw.translation_handler.glossary_handler.bind_glossary_for_write = MagicMock(
+        return_value=path if bind_glossary else None
+    )
 
     mw.get_selected_block_indices = MagicMock(return_value=selected or [])
     return mw
@@ -166,8 +170,8 @@ def test_current_block_in_a_virtual_view_uses_the_physical_block(
 
 @patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
 @patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildDialog")
-def test_build_refuses_to_run_against_an_unbound_glossary(mock_dialog, mock_box):
-    """A build with no file bound would be discarded on the next reload."""
+def test_build_refuses_to_run_with_no_project_to_store_the_glossary(mock_dialog, mock_box):
+    """Nowhere to persist means the run would be discarded on the next reload."""
     mw = _mw(bind_glossary=False)
     handler = GlossaryPipelineHandler(mw)
 
@@ -182,26 +186,19 @@ def test_build_refuses_to_run_against_an_unbound_glossary(mock_dialog, mock_box)
 @patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
 @patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
 @patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildDialog")
-def test_build_loads_prompts_to_bind_the_glossary_file(
-    mock_dialog, mock_provider, mock_worker, mock_status, tmp_path
+def test_build_binds_the_glossary_file_before_starting(
+    mock_dialog, mock_provider, mock_worker, mock_status
 ):
-    """Loading the prompts is what binds <project>/glossary.json."""
+    """The build must not start until the glossary has somewhere to persist."""
     mock_dialog.return_value.exec.return_value = True
     mock_dialog.return_value.options.return_value = {
         "area": AREA_PROJECT, "mode": "draft", "chunk_size": "local", "translate": False,
     }
-    mw = _mw(bind_glossary=False)
-    manager = mw.translation_handler.glossary_handler.glossary_manager
-
-    def bind():
-        manager.load_from_text(
-            plugin_name=None, glossary_path=tmp_path / "glossary.json", raw_text=""
-        )
-
-    mw.translation_handler.load_prompts = MagicMock(side_effect=bind)
+    mw = _mw()
+    binder = mw.translation_handler.glossary_handler.bind_glossary_for_write
     handler = GlossaryPipelineHandler(mw)
 
     handler.build_from_text()
 
-    mw.translation_handler.load_prompts.assert_called_once()
+    binder.assert_called_once()
     mock_worker.return_value.start.assert_called_once()

@@ -152,6 +152,53 @@ class GlossaryPromptManager:
         h._cached_glossary = glossary_text
         return system_prompt, glossary_text
 
+    def bind_glossary_for_write(self) -> Optional[Path]:
+        """Bind the manager to the project glossary file, creating it if absent.
+
+        For callers about to write a lot of entries (the build pipeline). The
+        path is resolved **fresh** rather than taken from ``_current_glossary_path``:
+        the cached prompt state may have been filled in at startup, before a
+        project was open, in which case it pins ``None`` and every write would be
+        kept in memory and lost on the next reload.
+
+        Returns the bound path, or ``None`` when there is no project to bind to.
+        """
+        plugin_name = getattr(self._mw, "active_game_plugin", None)
+        path = self._resolve_glossary_path(plugin_name)
+        if path is None:
+            return None
+
+        if not path.exists():
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("[]\n", encoding="utf-8")
+                log_debug(f"GlossaryPromptManager: created project glossary at {path}")
+            except OSError as exc:
+                log_debug(f"GlossaryPromptManager: cannot create glossary at {path}: {exc}")
+                return None
+
+        # Already bound to this exact file: leave the in-memory state alone
+        # rather than re-reading and discarding anything not yet flushed.
+        if self._glossary_manager.glossary_path == path:
+            self._current_glossary_path = path
+            self._current_plugin_name = plugin_name
+            return path
+
+        try:
+            text = path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            log_debug(f"GlossaryPromptManager: cannot read glossary at {path}: {exc}")
+            return None
+
+        self._current_glossary_path = path
+        self._current_plugin_name = plugin_name
+        self._main_handler._cached_glossary = text
+        self._glossary_manager.load_from_text(
+            plugin_name=plugin_name, glossary_path=path, raw_text=text
+        )
+        self._update_glossary_highlighting()
+        return path
+
     def initialize_highlighting(self) -> None:
         """Pre-load glossary text for syntax highlighting without a full prompts load."""
         plugin_name = getattr(self._mw, "active_game_plugin", None)

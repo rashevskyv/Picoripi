@@ -140,6 +140,10 @@ class GlossaryHandler(BaseTranslationHandler):
         """Load prompts."""
         return self._prompt_manager.load_prompts()
 
+    def bind_glossary_for_write(self):
+        """Bind the glossary to the project file, creating it when absent."""
+        return self._prompt_manager.bind_glossary_for_write()
+
     def save_prompt_section(self, section: str, field: str, value: str) -> bool:
         """Save prompt section."""
         return self._prompt_manager.save_prompt_section(section, field, value)
