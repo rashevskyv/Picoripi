@@ -19,6 +19,31 @@ STATUS_SYNTHESIZED = "synthesized"  # fragments folded into one description
 STATUS_TRANSLATED = "translated"    # one or more translation variants proposed
 STATUS_CONFIRMED = "confirmed"      # user picked the active translation
 
+# Descriptions are written before a translation is chosen, so a note must not
+# bake in one particular rendering of the term: the build prompts write this
+# placeholder wherever the term itself is named, and it is substituted with
+# whichever variant the user settles on.
+#
+# The substitution is literal. Ukrainian and other Slavic targets decline nouns,
+# so the prompts ask for phrasing that keeps the placeholder in the nominative;
+# declining an arbitrary noun phrase by rule is not something this layer can do
+# honestly. A note that needs the term in an oblique case should be rewritten
+# (the AI Variations button) rather than patched by string surgery.
+TERM_PLACEHOLDER = "{{TERM}}"
+
+
+def render_notes(notes: str, *, translation: str = "", original: str = "") -> str:
+    """Substitute the term placeholder with the chosen translation.
+
+    Falls back to the source term, and finally leaves the placeholder visible,
+    so a note never silently loses the subject of its own sentence.
+    """
+    if not notes or TERM_PLACEHOLDER not in notes:
+        return notes or ""
+    replacement = (translation or "").strip() or (original or "").strip()
+    return notes.replace(TERM_PLACEHOLDER, replacement) if replacement else notes
+
+
 # Statuses whose entries still await a confirmed human decision; the UI
 # highlights these as unconfirmed (roadmap section 7).
 UNCONFIRMED_STATUSES = frozenset(

@@ -424,3 +424,37 @@ def test_GlossaryManager_seeded_entry_survives_a_bound_json_file(manager, tmp_pa
     assert entry is not None
     assert entry.status == STATUS_FRAGMENTS
     assert entry.notes == "a village"
+
+
+def test_render_notes_substitutes_the_chosen_translation():
+    from core.glossary_manager import render_notes
+    tpl = "{{TERM}} — жуки, яких підривають бумерангом."
+    assert render_notes(tpl, translation="бомбожуки") == "бомбожуки — жуки, яких підривають бумерангом."
+
+
+def test_render_notes_falls_back_to_the_source_term():
+    from core.glossary_manager import render_notes
+    tpl = "{{TERM}} is an explosive insect."
+    assert render_notes(tpl, translation="", original="bomb bugs").startswith("bomb bugs is")
+
+
+def test_render_notes_keeps_the_token_when_there_is_nothing_to_put_there():
+    """Better a visible token than a sentence missing its subject."""
+    from core.glossary_manager import render_notes
+    assert render_notes("{{TERM}} explodes.", translation="", original="") == "{{TERM}} explodes."
+
+
+def test_render_notes_passes_plain_text_through():
+    from core.glossary_manager import render_notes
+    assert render_notes("no token here", translation="x") == "no token here"
+    assert render_notes("", translation="x") == ""
+
+
+def test_glossary_prompt_formatter_renders_notes_for_the_translator():
+    from core.translation.glossary_formatter import GlossaryPromptFormatter
+    entry = GlossaryEntry(
+        original="bomb bugs", translation="бомбожуки", notes="{{TERM}} вибухають."
+    )
+    text = GlossaryPromptFormatter().glossary_entries_to_text([entry])
+    assert "бомбожуки вибухають." in text
+    assert "{{TERM}}" not in text

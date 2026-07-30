@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 from typing import List, Sequence, Iterable, Optional
-from core.glossary_manager import GlossaryEntry
+from core.glossary_manager import GlossaryEntry, render_notes
 
 class GlossaryPromptFormatter:
     """Formats glossary entries and appends speaker terms for prompt context."""
@@ -12,7 +12,12 @@ class GlossaryPromptFormatter:
             return ""
         lines = ["| Original | Translation | Notes |", "|---|---|---|"]
         for entry in entries:
-            lines.append(f"| {entry.original} | {entry.translation} | {entry.notes} |")
+            # Notes are stored with a term placeholder; the translator must see
+            # the settled translation, not the token.
+            notes = render_notes(
+                entry.notes, translation=entry.translation, original=entry.original
+            )
+            lines.append(f"| {entry.original} | {entry.translation} | {notes} |")
         return "\n".join(lines)
 
     def append_speaker_glossary_entries(

@@ -30,7 +30,13 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
 )
 from PyQt6.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor, QBrush
-from core.glossary_manager import STATUS_CONFIRMED, GlossaryEntry, GlossaryOccurrence
+from core.glossary_manager import (
+    STATUS_CONFIRMED,
+    TERM_PLACEHOLDER,
+    GlossaryEntry,
+    GlossaryOccurrence,
+    render_notes,
+)
 
 # Rows awaiting a human decision. Translucent so it tints the row without
 # fighting the selection highlight or the light/dark palette.
@@ -136,6 +142,9 @@ class GlossaryDialog(QDialog):
         self._current_entry: Optional[GlossaryEntry] = None
         self._suppress_editor_signals = False
         self._editor_dirty = False
+        # Notes as stored (may hold the term placeholder); the editor shows them
+        # rendered against the current translation.
+        self._notes_template = ""
 
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
@@ -202,23 +211,37 @@ class GlossaryDialog(QDialog):
         self._translation_edit = QLineEdit(self)
         right_layout.addWidget(self._translation_edit)
 
-        # Proposed variants: shown only when the AI offered a real choice.
-        self._variants_label = QLabel("Proposed variants (pick one):", self)
-        right_layout.addWidget(self._variants_label)
-        self._variants_list = QListWidget(self)
-        self._variants_list.setMaximumHeight(110)
-        self._variants_list.setWordWrap(True)
-        self._variants_list.itemClicked.connect(self._on_variant_chosen)
-        right_layout.addWidget(self._variants_list)
         self._confirm_button = QPushButton("Confirm translation", self)
         self._confirm_button.setToolTip(
             "Mark this entry as decided. It stops being highlighted for review."
         )
         self._confirm_button.clicked.connect(self._on_confirm_clicked)
         right_layout.addWidget(self._confirm_button)
+
+        # The three variable-height areas share a draggable splitter: a long
+        # rationale or a long description needs room, and a fixed cap cannot
+        # know which one the user is reading.
+        detail_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        right_layout.addWidget(detail_splitter, 1)
+
+        # Proposed variants: shown only when the AI offered a real choice.
+        self._variants_pane = QWidget(self)
+        variants_layout = QVBoxLayout(self._variants_pane)
+        variants_layout.setContentsMargins(0, 0, 0, 0)
+        self._variants_label = QLabel("Proposed variants (pick one):", self)
+        variants_layout.addWidget(self._variants_label)
+        self._variants_list = QListWidget(self)
+        self._variants_list.setWordWrap(True)
+        self._variants_list.itemClicked.connect(self._on_variant_chosen)
+        variants_layout.addWidget(self._variants_list, 1)
+        detail_splitter.addWidget(self._variants_pane)
         self._set_variants_visible(False)
+
+        notes_pane = QWidget(self)
+        notes_layout = QVBoxLayout(notes_pane)
+        notes_layout.setContentsMargins(0, 0, 0, 0)
         self._profiled_checkbox = QCheckBox("Profiled via AI (Speech Profile generated)", self)
-        right_layout.addWidget(self._profiled_checkbox)
+        notes_layout.addWidget(self._profiled_checkbox)
         notes_row = QHBoxLayout()
         notes_label = QLabel("Notes:", self)
         notes_row.addWidget(notes_label)
@@ -228,20 +251,27 @@ class GlossaryDialog(QDialog):
         self._notes_variation_busy = False
         notes_row.addWidget(self._notes_variation_button)
         notes_row.addStretch()
-        right_layout.addLayout(notes_row)
+        notes_layout.addLayout(notes_row)
         if not self._ai_variation_callback:
             self._notes_variation_button.hide()
         self._notes_edit = QPlainTextEdit(self)
-        right_layout.addWidget(self._notes_edit, 1)
+        notes_layout.addWidget(self._notes_edit, 1)
+        detail_splitter.addWidget(notes_pane)
+
+        occurrences_pane = QWidget(self)
+        occurrences_layout = QVBoxLayout(occurrences_pane)
+        occurrences_layout.setContentsMargins(0, 0, 0, 0)
         self._occurrence_label = QLabel("Occurrences: 0", self)
-        right_layout.addWidget(self._occurrence_label)
+        occurrences_layout.addWidget(self._occurrence_label)
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
         self._occurrence_list.setWordWrap(True)
         self._occurrence_list.setTextElideMode(Qt.TextElideMode.ElideNone)
         self._occurrence_list.setItemDelegate(_RichTextItemDelegate(self._occurrence_list))
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
-        right_layout.addWidget(self._occurrence_list, 1)
+        occurrences_layout.addWidget(self._occurrence_list, 1)
+        detail_splitter.addWidget(occurrences_pane)
+        detail_splitter.setSizes([150, 200, 200])
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
         
         self._save_button = QPushButton("Save Changes", self)
@@ -467,7 +497,11 @@ class GlossaryDialog(QDialog):
                 values = [
                     entry.original,
                     entry.translation,
-                    entry.notes,
+                    render_notes(
+                        entry.notes,
+                        translation=entry.translation,
+                        original=entry.original,
+                    ),
                     str(len(occurrences)),
                 ]
                 needs_review = self._needs_review(entry)
@@ -669,7 +703,7 @@ class GlossaryDialog(QDialog):
         if self._suppress_editor_signals or not self._update_callback or not self._current_entry:
             return
         current_translation = self._translation_edit.text().strip()
-        current_notes = self._notes_edit.toPlainText().strip()
+        current_notes = self._notes_for_save()
         current_profiled = self._profiled_checkbox.isChecked()
         has_changes = (
             current_translation != self._current_entry.translation
@@ -704,7 +738,7 @@ class GlossaryDialog(QDialog):
         if self._is_populating or not self._update_callback or not self._current_entry:
             return
         new_translation = self._translation_edit.text().strip()
-        new_notes = self._notes_edit.toPlainText().strip()
+        new_notes = self._notes_for_save()
         new_profiled = self._profiled_checkbox.isChecked()
         entry = self._current_entry
         if not self._attempt_entry_update(entry, new_translation, new_notes, new_profiled):
@@ -883,7 +917,8 @@ class GlossaryDialog(QDialog):
         self._suppress_editor_signals = True
         self._original_label.setText(f"Term: {entry.original}")
         self._translation_edit.setText(entry.translation or '')
-        self._notes_edit.setPlainText(entry.notes or '')
+        self._notes_template = entry.notes or ''
+        self._notes_edit.setPlainText(self._rendered_notes())
         self._profiled_checkbox.setChecked(entry.profiled)
         self._populate_variants(entry)
         self._suppress_editor_signals = False
@@ -898,6 +933,7 @@ class GlossaryDialog(QDialog):
         self._suppress_editor_signals = True
         self._original_label.setText('Nothing selected')
         self._translation_edit.clear()
+        self._notes_template = ''
         self._notes_edit.clear()
         self._profiled_checkbox.setChecked(False)
         self._populate_variants(None)
@@ -910,6 +946,7 @@ class GlossaryDialog(QDialog):
 
     def _set_variants_visible(self, visible: bool) -> None:
         """Show the variant picker only when there is a decision to make."""
+        self._variants_pane.setVisible(visible)
         self._variants_label.setVisible(visible)
         self._variants_list.setVisible(visible)
 
@@ -935,11 +972,49 @@ class GlossaryDialog(QDialog):
         self._confirm_button.setVisible(bool(entry) and self._needs_review(entry))
         self._confirm_button.setEnabled(can_confirm)
 
+    def _rendered_notes(self) -> str:
+        """The stored notes with the term placeholder filled in."""
+        entry = self._current_entry
+        return render_notes(
+            self._notes_template,
+            translation=self._translation_edit.text(),
+            original=entry.original if entry else "",
+        )
+
+    def _refresh_rendered_notes(self) -> None:
+        """Re-render the notes after the translation changed."""
+        if TERM_PLACEHOLDER not in (self._notes_template or ""):
+            return
+        was_suppressed = self._suppress_editor_signals
+        self._suppress_editor_signals = True
+        self._notes_edit.setPlainText(self._rendered_notes())
+        self._suppress_editor_signals = was_suppressed
+
+    def _notes_for_save(self) -> str:
+        """What to store: the template if untouched, else what the user typed.
+
+        Keeping the placeholder means a later change of variant still updates the
+        note; once the user edits the text by hand, their wording wins.
+        """
+        typed = self._notes_edit.toPlainText().strip()
+        template = (self._notes_template or "").strip()
+        if template and typed == self._rendered_notes().strip():
+            return template
+        return typed
+
     def _on_variant_chosen(self, item: QListWidgetItem) -> None:
-        """Put the picked variant into the translation field (not yet saved)."""
+        """Pick a variant: fill the translation, re-render notes, and settle it.
+
+        Choosing from the list IS the decision the highlight is asking for, so
+        the entry stops being flagged immediately rather than needing a second
+        click on Confirm.
+        """
         translation = item.data(Qt.ItemDataRole.UserRole)
-        if translation:
-            self._translation_edit.setText(str(translation))
+        if not translation:
+            return
+        self._translation_edit.setText(str(translation))
+        self._refresh_rendered_notes()
+        self._on_confirm_clicked()
 
     def _on_confirm_clicked(self) -> None:
         """Save the current translation and mark the entry as decided."""
@@ -949,7 +1024,7 @@ class GlossaryDialog(QDialog):
         self._attempt_entry_update(
             entry,
             self._translation_edit.text(),
-            self._notes_edit.toPlainText(),
+            self._notes_for_save(),
             self._profiled_checkbox.isChecked(),
             confirm=True,
         )

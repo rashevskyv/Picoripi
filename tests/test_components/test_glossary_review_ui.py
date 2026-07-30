@@ -225,3 +225,75 @@ class TestClearButton:
         assert dialog._all_entries == []
         assert dialog._current_entry is None
         assert dialog._active_table().rowCount() == 0
+
+
+class TestVariantChoiceSettlesTheEntry:
+    """Picking from the list is the decision the highlight asks for."""
+
+    def test_choosing_a_variant_confirms_it(self, qtbot):
+        callback = MagicMock(return_value=([CONFIRMED], {}))
+        dialog = _dialog(qtbot, [AMBIGUOUS], update_callback=callback)
+        dialog._current_entry = AMBIGUOUS
+        dialog._populate_variants(AMBIGUOUS)
+
+        dialog._on_variant_chosen(dialog._variants_list.item(1))
+
+        assert dialog._translation_edit.text() == "Весняний Ґорон"
+        assert callback.call_args.kwargs["status"] == STATUS_CONFIRMED
+        assert callback.call_args.args[1] == "Весняний Ґорон"
+
+    def test_confirmed_entry_is_no_longer_highlighted(self):
+        settled = _entry("Spring Goron", "Весняний Ґорон", status=STATUS_CONFIRMED)
+        assert GlossaryDialog._needs_review(settled) is False
+
+    def test_variant_list_has_no_fixed_height_cap(self, qtbot):
+        """It lives in a splitter now, so the user can drag it larger."""
+        dialog = _dialog(qtbot, [AMBIGUOUS])
+        assert dialog._variants_list.maximumHeight() > 1000
+
+
+class TestNotesPlaceholder:
+    """Notes keep a term placeholder so they follow the chosen variant."""
+
+    TEMPLATE = "{{TERM}} — жуки, яких підривають бумерангом."
+
+    def _dialog_with_template(self, qtbot, update_callback=None):
+        entry = GlossaryEntry(
+            original="bomb bugs",
+            translation="вибухові жуки",
+            notes=self.TEMPLATE,
+            status=STATUS_TRANSLATED,
+            translation_variants=(
+                TranslationVariant("вибухові жуки", "прямий"),
+                TranslationVariant("бомбожуки", "склейка"),
+            ),
+        )
+        dialog = _dialog(qtbot, [entry], update_callback=update_callback)
+        dialog._current_entry = entry
+        dialog._populate_entry_details(entry)
+        return dialog, entry
+
+    def test_editor_shows_the_active_translation_not_the_token(self, qtbot):
+        dialog, _ = self._dialog_with_template(qtbot)
+        assert dialog._notes_edit.toPlainText().startswith("вибухові жуки —")
+        assert "{{TERM}}" not in dialog._notes_edit.toPlainText()
+
+    def test_notes_follow_a_newly_picked_variant(self, qtbot):
+        callback = MagicMock(return_value=([], {}))
+        dialog, entry = self._dialog_with_template(qtbot, update_callback=callback)
+        dialog._populate_variants(entry)
+
+        dialog._on_variant_chosen(dialog._variants_list.item(1))
+
+        assert dialog._notes_edit.toPlainText().startswith("бомбожуки —")
+        # Stored form keeps the token, so a later change of mind still works.
+        assert callback.call_args.args[2] == self.TEMPLATE
+
+    def test_hand_edited_notes_are_stored_verbatim(self, qtbot):
+        callback = MagicMock(return_value=([], {}))
+        dialog, _ = self._dialog_with_template(qtbot, update_callback=callback)
+        dialog._notes_edit.setPlainText("Моє власне пояснення.")
+
+        dialog._save_editor_changes()
+
+        assert callback.call_args.args[2] == "Моє власне пояснення."
