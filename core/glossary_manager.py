@@ -599,6 +599,15 @@ class GlossaryManager:
         self._persist()
         return True
 
+    @property
+    def glossary_path(self) -> Optional[Path]:
+        """The file this glossary persists to, or None when memory-only.
+
+        None means every write is dropped on the next reload, so callers that
+        are about to produce a lot of entries should check it first.
+        """
+        return self._glossary_path
+
     def clear_all(self) -> int:
         """Remove every entry, returning how many were removed.
 
@@ -809,6 +818,16 @@ class GlossaryManager:
         else:
             # In-memory only (e.g. tests)
             # Make sure _raw_text is in sync (we generate Markdown for compatibility/tests that check get_raw_text)
+            #
+            # Markdown carries no status column and the parser drops rows with an
+            # empty translation, so a seed-only entry does not survive a round
+            # trip through this text. Anything running the build pipeline must
+            # bind a real file first -- say so loudly instead of losing the work.
+            if self._entries:
+                log_debug(
+                    f"GlossaryManager: {len(self._entries)} entries kept in memory only "
+                    "(no glossary path bound); they will not survive a reload"
+                )
             self._raw_text = self._generate_markdown()
             self._build_pattern_cache()
 

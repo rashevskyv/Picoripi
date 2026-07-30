@@ -1,6 +1,6 @@
 import pytest
 
-from core.glossary_manager import GlossaryEntry, GlossaryManager
+from core.glossary_manager import STATUS_FRAGMENTS, GlossaryEntry, GlossaryManager
 
 def test_GlossaryEntry_is_valid():
     assert GlossaryEntry("term", "term").is_valid()
@@ -386,3 +386,41 @@ def test_GlossaryManager_clear_all_on_empty_glossary_is_a_noop(manager, tmp_path
     manager._glossary_path = tmp_path / "glossary.json"
     assert manager.clear_all() == 0
     assert not (tmp_path / "glossary.json.bak").exists()
+
+
+def test_GlossaryManager_seeded_entry_needs_a_bound_file_to_survive(manager):
+    """Why the build pipeline must bind a file: Markdown cannot carry a seed.
+
+    With no path the manager renders get_raw_text() as Markdown, which has no
+    status column and drops untranslated rows -- so re-loading that text loses
+    every seeded entry. This pins the data loss the pipeline guards against.
+    """
+    manager.load_from_text(plugin_name=None, glossary_path=None, raw_text="")
+    assert manager.glossary_path is None
+
+    manager.seed_entry("Ordon", section="Places", status=STATUS_FRAGMENTS, description="a village")
+    assert len(manager.get_entries()) == 1
+
+    reloaded = GlossaryManager()
+    reloaded.load_from_text(
+        plugin_name=None, glossary_path=None, raw_text=manager.get_raw_text()
+    )
+    assert reloaded.get_entries() == []
+
+
+def test_GlossaryManager_seeded_entry_survives_a_bound_json_file(manager, tmp_path):
+    """The same seed round-trips intact once a real file is bound."""
+    f = tmp_path / "glossary.json"
+    manager.load_from_text(plugin_name=None, glossary_path=f, raw_text="")
+    assert manager.glossary_path == f
+
+    manager.seed_entry("Ordon", section="Places", status=STATUS_FRAGMENTS, description="a village")
+
+    reloaded = GlossaryManager()
+    reloaded.load_from_text(
+        plugin_name=None, glossary_path=f, raw_text=f.read_text(encoding="utf-8")
+    )
+    entry = reloaded.get_entry("Ordon")
+    assert entry is not None
+    assert entry.status == STATUS_FRAGMENTS
+    assert entry.notes == "a village"

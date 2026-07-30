@@ -72,6 +72,36 @@ class GlossaryPipelineHandler:
         current = getattr(self.mw.data_store, "physical_block_idx", -1)
         return [current] if current is not None and current >= 0 else None
 
+    def _bind_glossary_file(self, manager) -> bool:
+        """Ensure the glossary is bound to the project file before building.
+
+        Launched from the Tools menu in a fresh session, nothing has resolved
+        ``<project>/glossary.json`` yet. The manager then persists to nowhere:
+        the build seeds hundreds of entries into memory, ``get_raw_text()``
+        renders them as Markdown that carries no status and drops untranslated
+        rows, and the next reload parses that back into an empty glossary --
+        the whole run silently gone. Loading the prompts resolves and binds the
+        path, the same way opening the glossary dialog does.
+        """
+        handler = getattr(self.mw, "translation_handler", None)
+        loader = getattr(handler, "load_prompts", None)
+        if callable(loader):
+            try:
+                loader()
+            except Exception as exc:
+                log_error(f"GlossaryPipelineHandler: load_prompts failed: {exc}")
+        if getattr(manager, "glossary_path", None) is not None:
+            return True
+        QMessageBox.warning(
+            self.mw,
+            "Build Glossary",
+            "The glossary is not bound to a project file, so a build would be "
+            "discarded when the glossary next reloads.\n\n"
+            "Open a project (the glossary lives beside it as glossary.json) and "
+            "try again.",
+        )
+        return False
+
     # -- entry point --------------------------------------------------------
 
     def build_from_text(self) -> None:
@@ -84,6 +114,9 @@ class GlossaryPipelineHandler:
         manager = self._glossary_manager()
         if manager is None:
             QMessageBox.warning(self.mw, "Build Glossary", "Glossary manager is not available.")
+            return
+
+        if not self._bind_glossary_file(manager):
             return
 
         # Label the block that would actually be swept (see _resolve_area).
