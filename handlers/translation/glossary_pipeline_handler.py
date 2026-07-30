@@ -66,7 +66,10 @@ class GlossaryPipelineHandler:
         if area == AREA_SELECTED:
             selected = self._selected_block_indices()
             return selected or None
-        current = getattr(self.mw.data_store, "current_block_idx", -1)
+        # physical_block_idx, not current_block_idx: in a virtual folder view the
+        # latter is a negative view marker (-2..-5), which would fall through to
+        # "whole project" and quietly sweep everything.
+        current = getattr(self.mw.data_store, "physical_block_idx", -1)
         return [current] if current is not None and current >= 0 else None
 
     # -- entry point --------------------------------------------------------
@@ -83,7 +86,8 @@ class GlossaryPipelineHandler:
             QMessageBox.warning(self.mw, "Build Glossary", "Glossary manager is not available.")
             return
 
-        current_idx = getattr(self.mw.data_store, "current_block_idx", -1)
+        # Label the block that would actually be swept (see _resolve_area).
+        current_idx = getattr(self.mw.data_store, "physical_block_idx", -1)
         block_names = getattr(self.mw, "block_names", {}) or {}
         current_label = block_names.get(str(current_idx)) or (
             f"Block {current_idx + 1}" if current_idx is not None and current_idx >= 0 else ""
@@ -122,11 +126,18 @@ class GlossaryPipelineHandler:
             parent=self.mw,
         )
         self._worker.progress.connect(self._on_progress)
+        self._worker.log.connect(self._on_log)
         self._worker.build_finished.connect(self._on_finished)
         self._status.cancelled.connect(self._worker.cancel)
         self._worker.start()
 
     # -- signals ------------------------------------------------------------
+
+    def _on_log(self, message: str) -> None:
+        """Surface retry / backoff notices instead of dropping them."""
+        log_debug(f"Glossary build: {message}")
+        if self._status:
+            self._status.update_step(1, message, AIStatusDialog.STATUS_IN_PROGRESS)
 
     def _on_progress(self, stage: str, done: int, total: int) -> None:
         if not self._status:

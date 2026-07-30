@@ -179,8 +179,9 @@ def test_worker_skips_the_chunk_once_retries_are_spent(qtbot):
 
     worker.run()
 
-    assert finished and finished[0][0] is True
-    assert "skipped after retries" in finished[0][1]
+    # Every call failed, so this is a failed run -- not a success with a footnote.
+    assert finished and finished[0][0] is False
+    assert "gave up after retries" in finished[0][1]
 
 
 def test_worker_still_aborts_on_a_configuration_error(qtbot):
@@ -202,3 +203,25 @@ def test_worker_still_aborts_on_a_configuration_error(qtbot):
 
     assert finished and finished[0][0] is False
     assert provider.attempts == 1
+
+
+def test_worker_reports_partial_success_when_some_chunks_land(qtbot):
+    """Losing a chunk but finding terms is a success that still names the loss."""
+    manager = _manager()
+    # Each string exceeds the 500-char budget, so it is packed alone and the run
+    # has two chunks: one to lose, one to land.
+    filler = "Ordon village is calm. " * 40
+    dataset = [[filler, filler + "Link visits Ordon."]]
+    worker = GlossaryBuildWorker(
+        manager, _RateLimited(fail_first=1), dataset, mode="draft",
+        retry_attempts=1, chunk_size=500,
+    )
+    worker._sleep = lambda _s: None
+    _, finished = _capture(worker)
+
+    worker.run()
+
+    ok, summary = finished[0]
+    assert ok is True
+    assert "gave up after retries" in summary
+    assert manager.get_entry("Ordon") is not None

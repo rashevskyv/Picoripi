@@ -127,20 +127,30 @@ class GlossaryBuildWorker(QThread):
             if self.translate and not result.cancelled:
                 coordinator.run_translate(result)
 
-            self.build_finished.emit(not result.cancelled, self._summarize(result))
+            # Skipping chunks is a partial result; skipping *every* chunk is a
+            # failed run wearing a success message. Only report success when
+            # something was produced, or when nothing failed in the first place
+            # (an augment/translate pass with no pending entries is a fine no-op).
+            produced = result.seeded or result.described or result.translated
+            success = not result.cancelled and bool(produced or not self._skipped_calls)
+            self.build_finished.emit(success, self._summarize(result))
         except Exception as exc:  # provider / parse failures abort the run
             log_error(f"GlossaryBuildWorker failed: {exc}", exc_info=True)
             self.build_finished.emit(False, str(exc))
 
     def _summarize(self, result: BuildResult) -> str:
-        parts = [
+        parts = []
+        if self._skipped_calls:
+            # Lead with the problem; buried at the end it reads as a footnote.
+            parts.append(
+                f"{self._skipped_calls} AI call(s) gave up after retries "
+                "(rate limited?) — those chunks contributed nothing"
+            )
+        parts += [
             f"seeded {result.seeded}",
             f"described {result.described}",
             f"translated {result.translated}",
         ]
-        if self._skipped_calls:
-            # Say it plainly: the glossary is short of what a clean run gives.
-            parts.append(f"{self._skipped_calls} chunk(s) skipped after retries")
         if result.cancelled:
             parts.append("(cancelled)")
         return ", ".join(parts)

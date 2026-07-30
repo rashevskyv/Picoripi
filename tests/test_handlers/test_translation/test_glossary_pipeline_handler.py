@@ -9,6 +9,9 @@ from ui.glossary_build_dialog import AREA_CURRENT, AREA_PROJECT, AREA_SELECTED
 def _mw(dataset=None, current_idx=0, selected=None):
     mw = MagicMock()
     mw.data_store.data = dataset if dataset is not None else [["a line"], ["another"]]
+    # physical_block_idx is what the handler reads: current_block_idx is a
+    # negative view marker while a virtual folder view is active.
+    mw.data_store.physical_block_idx = current_idx
     mw.data_store.current_block_idx = current_idx
     mw.block_names = {}
     mw.target_language = "Ukrainian"
@@ -126,3 +129,27 @@ def test_finished_failure_warns(mock_box):
     handler = GlossaryPipelineHandler(_mw())
     handler._on_finished(False, "provider exploded")
     mock_box.warning.assert_called_once()
+
+
+@patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
+@patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildDialog")
+def test_current_block_in_a_virtual_view_uses_the_physical_block(
+    mock_dialog, mock_provider, mock_worker, mock_status
+):
+    """In a speaker/chapter view current_block_idx is -3; sweeping must not
+    fall through to the whole project."""
+    mock_dialog.return_value.exec.return_value = True
+    mock_dialog.return_value.options.return_value = {
+        "area": AREA_CURRENT,
+        "mode": "draft",
+        "chunk_size": "balanced",
+        "translate": False,
+    }
+    mw = _mw(current_idx=1)
+    mw.data_store.current_block_idx = -3  # ViewKind.SPEAKER marker
+    handler = GlossaryPipelineHandler(mw)
+    handler.build_from_text()
+
+    assert mock_worker.call_args.kwargs["block_indices"] == [1]
