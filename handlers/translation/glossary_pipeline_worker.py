@@ -46,6 +46,7 @@ class GlossaryBuildWorker(QThread):
         translate: bool = False,
         prompts: Optional[dict] = None,
         retry_attempts: int = 6,
+        max_consecutive_failures: int = 3,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -59,7 +60,9 @@ class GlossaryBuildWorker(QThread):
         self.translate = translate
         self._prompts = prompts
         self._retry_attempts = retry_attempts
+        self._max_consecutive_failures = max(1, int(max_consecutive_failures))
         self._skipped_calls = 0
+        self._consecutive_failures = 0
         self._cancel = False
 
     def cancel(self) -> None:
@@ -87,9 +90,14 @@ class GlossaryBuildWorker(QThread):
         reply parses as "nothing found" for this chunk, which costs one chunk's
         terms instead of the entire run. A non-transient error still aborts --
         a bad key or model will not fix itself on chunk 400.
+
+        Skipping is for a flaky call, not a dead backend. Several give-ups in a
+        row mean the model is not coming back within this run, so the build stops
+        rather than grinding through hundreds of chunks that can only fail --
+        slowly producing nothing while every backoff is paid in full.
         """
         try:
-            return call_with_retry(
+            text = call_with_retry(
                 lambda: self._request(messages),
                 attempts=self._retry_attempts,
                 sleep=self._sleep,
@@ -102,8 +110,21 @@ class GlossaryBuildWorker(QThread):
             if not is_transient(exc) or self._cancel:
                 raise
             self._skipped_calls += 1
+            self._consecutive_failures += 1
             log_error(f"GlossaryBuildWorker: skipping chunk after retries: {exc}")
+            if self._consecutive_failures >= self._max_consecutive_failures:
+                raise RuntimeError(
+                    f"AI backend is not responding: {self._consecutive_failures} calls in "
+                    f"a row failed, each retried {self._retry_attempts} times. Stopped so "
+                    f"the rest of the run is not spent waiting. Entries finished before "
+                    f"this point are saved. Last error: {exc}"
+                ) from exc
+            self.log.emit(
+                f"Chunk skipped after {self._retry_attempts} attempts; continuing"
+            )
             return ""
+        self._consecutive_failures = 0
+        return text
 
     def _load_prompts(self) -> dict:
         if self._prompts is not None:
@@ -135,6 +156,11 @@ class GlossaryBuildWorker(QThread):
             success = not result.cancelled and bool(produced or not self._skipped_calls)
             self.build_finished.emit(success, self._summarize(result))
         except Exception as exc:  # provider / parse failures abort the run
+            if self._cancel:
+                # Cancelling mid-request surfaces as a provider error; report the
+                # reason the user actually gave.
+                self.build_finished.emit(False, self._summarize(BuildResult(cancelled=True)))
+                return
             log_error(f"GlossaryBuildWorker failed: {exc}", exc_info=True)
             self.build_finished.emit(False, str(exc))
 

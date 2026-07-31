@@ -7,6 +7,7 @@ from core.story_context_overrides import (
     get_story_context_override,
     iter_story_context_overrides,
 )
+from core.glossary_manager import render_notes
 
 class StringSettingsUpdater(BaseUIUpdater):
     """String settings updater implementation."""
@@ -606,13 +607,18 @@ class StringSettingsUpdater(BaseUIUpdater):
                                 info = f"• <b>{entry.original}</b>"
                                 if entry.translation:
                                     info += f" —> <font color='#2e7d32'><b>{entry.translation}</b></font>"
-                                if entry.notes:
+                                notes = render_notes(
+                                    entry.notes,
+                                    translation=entry.translation,
+                                    original=entry.original,
+                                )
+                                if notes:
                                     try:
                                         import markdown
-                                        notes_html = markdown.markdown(entry.notes, extensions=['nl2br'])
+                                        notes_html = markdown.markdown(notes, extensions=['nl2br'])
                                         info += f"<br><div style='margin-left: 15px; font-weight: normal;'>{notes_html}</div>"
                                     except Exception:
-                                        info += f"<br><div style='margin-left: 15px; font-style: italic; font-weight: normal;'>{entry.notes}</div>"
+                                        info += f"<br><div style='margin-left: 15px; font-style: italic; font-weight: normal;'>{notes}</div>"
                                 glossary_infos.append(info)
                         if glossary_infos:
                             tooltip_text += f"<br><div style='font-size: {font_size}px;'><b>Glossary Info:</b><br>" + "<br>".join(glossary_infos) + "</div>"

@@ -225,3 +225,77 @@ def test_worker_reports_partial_success_when_some_chunks_land(qtbot):
     assert ok is True
     assert "gave up after retries" in summary
     assert manager.get_entry("Ordon") is not None
+
+
+def test_worker_stops_once_the_backend_is_clearly_down(qtbot):
+    """Consecutive give-ups mean a dead backend, not a flaky call."""
+    provider = _RateLimited(fail_first=999)
+    filler = "Ordon village is calm. " * 40
+    dataset = [[filler, filler, filler, filler, filler]]
+    worker = GlossaryBuildWorker(
+        _manager(), provider, dataset, mode="draft",
+        retry_attempts=1, max_consecutive_failures=2, chunk_size=500,
+    )
+    worker._sleep = lambda _s: None
+    _, finished = _capture(worker)
+
+    worker.run()
+
+    ok, summary = finished[0]
+    assert ok is False
+    assert "not responding" in summary
+    # Stopped at the threshold rather than working through all five chunks.
+    assert provider.attempts == 2
+
+
+def test_worker_forgives_an_isolated_failure_between_successes(qtbot):
+    """One bad call in the middle must not count towards the stop threshold."""
+    class Flaky:
+        def __init__(self):
+            self.inner = FakeProvider()
+            self.n = 0
+
+        def translate(self, messages, session=None):
+            self.n += 1
+            if self.n == 2:
+                raise RuntimeError(_RateLimited.MESSAGE)
+            return self.inner.translate(messages, session=session)
+
+    filler = "Ordon village is calm. " * 40
+    dataset = [[filler, filler, filler + " Link visits Ordon."]]
+    worker = GlossaryBuildWorker(
+        _manager(), Flaky(), dataset, mode="draft",
+        retry_attempts=1, max_consecutive_failures=2, chunk_size=500,
+    )
+    worker._sleep = lambda _s: None
+    _, finished = _capture(worker)
+
+    worker.run()
+
+    assert finished[0][0] is True
+
+
+def test_worker_reports_a_cancel_as_cancelled_not_as_a_provider_error(qtbot):
+    """Cancelling mid-request must not surface as a scary 502."""
+    class CancelsOnCall:
+        def __init__(self, worker_ref):
+            self.worker_ref = worker_ref
+
+        def translate(self, messages, session=None):
+            self.worker_ref[0].cancel()
+            raise RuntimeError(_RateLimited.MESSAGE)
+
+    ref = []
+    worker = GlossaryBuildWorker(
+        _manager(), CancelsOnCall(ref), DATASET, mode="draft", retry_attempts=1
+    )
+    ref.append(worker)
+    worker._sleep = lambda _s: None
+    _, finished = _capture(worker)
+
+    worker.run()
+
+    ok, summary = finished[0]
+    assert ok is False
+    assert "cancelled" in summary
+    assert "502" not in summary

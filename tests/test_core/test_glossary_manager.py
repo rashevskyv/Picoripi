@@ -458,3 +458,18 @@ def test_glossary_prompt_formatter_renders_notes_for_the_translator():
     text = GlossaryPromptFormatter().glossary_entries_to_text([entry])
     assert "бомбожуки вибухають." in text
     assert "{{TERM}}" not in text
+
+
+def test_render_notes_in_the_editor_tooltip_falls_back_to_the_source_term():
+    """An untranslated entry must show the original, never the raw token."""
+    from core.glossary_manager import render_notes
+    entry = GlossaryEntry(
+        original="Blue-eyed beast",
+        translation="",
+        notes="{{TERM}} — це пророче іменування головного героя.",
+    )
+    shown = render_notes(
+        entry.notes, translation=entry.translation, original=entry.original
+    )
+    assert shown.startswith("Blue-eyed beast —")
+    assert "{{TERM}}" not in shown

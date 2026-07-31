@@ -7,7 +7,7 @@ from .line_number_area import LineNumberArea
 from .minimap import TextMinimap
 from .text_highlight_manager import TextHighlightManager
 from utils.syntax_highlighter import JsonTagHighlighter
-from core.glossary_manager import GlossaryEntry
+from core.glossary_manager import GlossaryEntry, render_notes
 
 from utils.constants import (
     EDITOR_PLAYER_TAG as EDITOR_PLAYER_TAG_CONST,
@@ -177,14 +177,18 @@ class LineNumberedTextEdit(QPlainTextEdit):
             main_window = self.window()
             font_size = getattr(main_window, 'tooltip_font_size', 11)
             lines = [f"<div style='font-size: {font_size}px;'><b>{entry.original}</b> → {entry.translation}"]
-            if entry.notes:
+            # Notes hold a term placeholder; show the term, never the token.
+            notes = render_notes(
+                entry.notes, translation=entry.translation, original=entry.original
+            )
+            if notes:
                 try:
                     import markdown
                     # Convert markdown to html with nl2br to preserve single newlines
-                    notes_html = markdown.markdown(entry.notes, extensions=['nl2br'])
+                    notes_html = markdown.markdown(notes, extensions=['nl2br'])
                     notes_html = f"<div style='margin-top: 4px; font-size: {font_size}px;'>{notes_html}</div>"
                 except Exception:
-                    notes_html = f"<div style='margin-top: 4px; font-style: italic; font-size: {font_size}px;'>{entry.notes}</div>"
+                    notes_html = f"<div style='margin-top: 4px; font-style: italic; font-size: {font_size}px;'>{notes}</div>"
                 lines.append(notes_html)
             lines.append("</div>")
             tooltip_text = "".join(lines)
