@@ -40,6 +40,9 @@ MODE_AUGMENT = "augment"
 # Translate only: no sweep, no describe — just propose translations for entries
 # that already have a description but no translation.
 MODE_TRANSLATE = "translate"
+# Structural seed only: take the terms the game names itself and stop. Makes no
+# AI call at all, so it costs nothing and works with the model offline.
+MODE_SEED = "seed"
 
 # Statuses whose entries still want a description (targets of the describe pass).
 _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
@@ -70,6 +73,7 @@ class GlossaryBuildCoordinator:
         is_cancelled: Optional[Callable[[], bool]] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
         weigh: Callable[[str], int] = len,
+        structural_seeds: Optional[Sequence[Dict[str, Any]]] = None,
     ) -> None:
         self.manager = manager
         self.call = call
@@ -80,6 +84,7 @@ class GlossaryBuildCoordinator:
         self._is_cancelled = is_cancelled
         self._on_progress = on_progress
         self.weigh = weigh
+        self.structural_seeds = list(structural_seeds or ())
 
     def _cancelled(self) -> bool:
         return bool(self._is_cancelled and self._is_cancelled())
@@ -102,6 +107,15 @@ class GlossaryBuildCoordinator:
         if mode == MODE_TRANSLATE:
             # Nothing to build; the caller runs the translate pass.
             return result
+
+        # Terms the game names itself cost nothing to take, so every build that
+        # is allowed to add entries starts with them.
+        if mode in (MODE_SEED, MODE_THOROUGH, MODE_DRAFT):
+            self._seed_structural(result)
+            if mode == MODE_SEED or self._cancelled():
+                result.cancelled = self._cancelled()
+                return result
+
         if mode in (MODE_THOROUGH, MODE_DRAFT):
             aggregated = self._sweep(dataset, block_indices)
             if self._cancelled():
@@ -158,6 +172,45 @@ class GlossaryBuildCoordinator:
         return result
 
     # -- passes -------------------------------------------------------------
+
+    def _seed_structural(self, result: BuildResult) -> None:
+        """Write the plugin's structural seeds into the glossary.
+
+        Gap-filling only, like every other seed: an entry that already carries a
+        decided translation is left exactly as it is.
+        """
+        total = len(self.structural_seeds)
+        for index, seed in enumerate(self.structural_seeds):
+            if self._cancelled():
+                return
+            term = str(seed.get("term") or "").strip()
+            if not term:
+                continue
+            existing = self.manager.get_entry(term)
+            if existing is not None and existing.translation and not existing.is_unconfirmed:
+                continue
+            description = str(seed.get("description") or "").strip()
+            section = seed.get("section") or None
+            status = STATUS_FRAGMENTS if description else STATUS_SEEDED
+            if existing is None:
+                self.manager.seed_entry(
+                    term,
+                    section=section,
+                    status=status,
+                    description=description,
+                    icon=str(seed.get("icon") or ""),
+                )
+                result.seeded += 1
+            elif description and not existing.notes:
+                self.manager.update_entry(
+                    term,
+                    translation=existing.translation,
+                    notes=description,
+                    section=section,
+                    status=status,
+                )
+                result.seeded += 1
+            self._progress("structural seed", index + 1, total)
 
     def _sweep(self, dataset, block_indices) -> Dict[str, AggregatedTerm]:
         items = items_from_dataset(dataset, block_indices=block_indices)

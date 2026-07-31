@@ -10,6 +10,7 @@ from pathlib import Path
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUGMENT,
     MODE_DRAFT,
+    MODE_SEED,
     MODE_THOROUGH,
     MODE_TRANSLATE,
     GlossaryBuildCoordinator,
@@ -216,3 +217,61 @@ class TestProgress:
         assert "sweep" in stages
         assert "seed" in stages
         assert "describe" in stages
+
+
+def _no_ai(messages):
+    raise AssertionError("structural seeding must not call the model")
+
+
+class TestStructuralSeeding:
+    """Terms the game names itself: seeded without a single AI call."""
+
+    SEEDS = [
+        {"term": "Ordon Village", "section": "Places"},
+        {"term": "Diababa", "section": "Boss Names"},
+        {"term": "Hero's Bow", "section": "Items", "description": "Fires arrows."},
+    ]
+
+    def _coordinator(self, manager, call=None, **kw):
+        return GlossaryBuildCoordinator(
+            manager,
+            call or _no_ai,
+            PROMPTS,
+            structural_seeds=self.SEEDS,
+            **kw,
+        )
+
+    def test_seed_mode_makes_no_ai_call(self):
+        manager = _manager()
+        result = self._coordinator(manager).build([["anything"]], MODE_SEED)
+
+        assert result.seeded == 3
+        assert manager.get_entry("Ordon Village").section == "Places"
+        assert manager.get_entry("Diababa").section == "Boss Names"
+
+    def test_a_supplied_description_lands_as_notes(self):
+        manager = _manager()
+        self._coordinator(manager).build([["anything"]], MODE_SEED)
+
+        entry = manager.get_entry("Hero's Bow")
+        assert entry.notes == "Fires arrows."
+        assert entry.status == STATUS_FRAGMENTS
+
+    def test_seeding_never_overwrites_a_decided_entry(self):
+        manager = _manager()
+        manager.add_entry("Diababa", "Діабаба", "my own note")
+
+        self._coordinator(manager).build([["anything"]], MODE_SEED)
+
+        entry = manager.get_entry("Diababa")
+        assert entry.translation == "Діабаба"
+        assert entry.notes == "my own note"
+
+    def test_blank_terms_are_ignored(self):
+        manager = _manager()
+        coordinator = GlossaryBuildCoordinator(
+            manager, _no_ai, PROMPTS,
+            structural_seeds=[{"term": "  "}, {"section": "Items"}],
+        )
+        assert coordinator.build([["x"]], MODE_SEED).seeded == 0
+        assert manager.get_entries() == []

@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from unittest.mock import MagicMock
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 from core.glossary_manager import GlossaryEntry
@@ -150,11 +151,18 @@ def test_batch_prompt_uses_manual_speaker_for_unlinked_system_row(composer):
 
 def test_batch_prompt_carries_boss_name_window_context(composer):
     composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    # Stands in for a plugin: the engine learns the role has no speaker, and what
+    # to tell the model about it, only from these keys.
     composer.mw.current_game_rules.get_translation_context_for_string.return_value = {
         "window_type": "Boss name",
         "content_role": "BossName",
         "glossary_section": "Boss Names",
         "force_glossary": True,
+        "has_speaker": False,
+        "role_instruction": (
+            "BOSS NAMES: a standalone in-game boss title/name card, not spoken "
+            "dialogue. Translate it consistently as a proper boss name/title."
+        ),
     }
     composer.mw.data_store.block_names = {"0": "Block 0"}
     composer.main_handler._glossary_manager = MagicMock()
@@ -173,6 +181,10 @@ def test_batch_prompt_carries_boss_name_window_context(composer):
     assert '"content_role": "BossName"' in user
     assert '"speaker": "NONE"' in user
     assert "standalone in-game boss title/name card" in user
+    # ...and it got there from the plugin, not from a branch in the engine.
+    assert "BossName" not in Path(
+        "handlers/translation/ai_prompt_composer.py"
+    ).read_text(encoding="utf-8")
     composer._find_speaker_in_script.assert_not_called()
 
 

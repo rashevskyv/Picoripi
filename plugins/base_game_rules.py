@@ -126,8 +126,65 @@ class BaseGameRules:
         return True
 
     def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
-        """Game metadata that should accompany this string in AI translation workflows."""
+        """Game metadata that should accompany this string in AI workflows.
+
+        The engine recognises these keys and assigns their VALUES no meaning --
+        it never compares them against anything game-specific. Every value, and
+        what it implies, belongs to the plugin:
+
+        ``window_type`` (str)
+            Inserted as ``Window Type: <value>``.
+        ``content_role`` (str)
+            Inserted as ``Content Role: <value>``. Free-form.
+        ``role_instruction`` (str)
+            Inserted verbatim as the instruction for that role. This is how a
+            plugin teaches the model what its own roles mean without the engine
+            having to know.
+        ``has_speaker`` (bool)
+            ``False`` marks the line as not spoken dialogue, so no speaker is
+            looked up for it. Omit it when the line is ordinary dialogue.
+        ``glossary_section`` (str)
+            Section a new term from this line goes into.
+        ``force_glossary`` (bool)
+            Marks the line as one that must produce a glossary entry.
+
+        Default: no metadata.
+        """
         return {}
+
+    def get_capabilities(self) -> Set[str]:
+        """Optional abilities this plugin declares, for the build wizard.
+
+        Lets the engine offer only the steps a plugin can actually perform,
+        instead of presenting every stage and failing halfway. Recognised names
+        are documented in docs/PLUGIN_AUTHORING_GUIDE.md. Default: none.
+        """
+        return set()
+
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Glossary material read straight out of the game's own data.
+
+        Some games name their own terms: an item window already pairs a name
+        with an icon and an explanation, a location plate already holds a place
+        name. Where that is true, the terms need no AI pass to be discovered --
+        the plugin hands them over and the build seeds them directly.
+
+        Returns a list of dicts with:
+        ``term`` (required), ``description``, ``section``, ``icon``,
+        ``source_ref`` (free-form provenance, e.g. block/string coordinates).
+        Default: nothing to seed.
+        """
+        return []
+
+    def get_external_lore(self, term: str) -> Optional[str]:
+        """Background knowledge about a term from a source outside the game.
+
+        For games with a community reference (a wiki, a published guide) a
+        plugin may look the term up and return prose the describe pass can use.
+        Whether such a source exists, and whether it is trustworthy, is entirely
+        the plugin's business. Default: no external source.
+        """
+        return None
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
         """Get the problem definitions."""
@@ -207,7 +264,8 @@ class BaseGameRules:
         """Return a mapping of {tag_string: replacement_name} for dynamic in-game names.
 
         These tags are substituted *before* stripping tags during script-matching distillation,
-        so that e.g. '{escape:0:0022}' in BMG text matches 'Epona' in the script.
+        so that a name tag in the game text matches the written-out name used in
+        an external script (e.g. a horse's name tag matching 'Epona').
         The dict key must be the exact tag string as it appears in editor text.
         """
         return {}
@@ -308,10 +366,10 @@ class BaseGameRules:
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """Per-line game-script flow context for the AI translation prompt.
 
-        Plugins that can reconstruct the game's dialogue graphs (e.g. zelda_bmg
-        with TP FLW1/FLI1 data) return a short English annotation: which
-        conversation the line belongs to, its position, branch conditions and
-        follow-up game actions. Default: no flow data.
+        Plugins that can reconstruct the game's dialogue graphs from its data
+        return a short English annotation: which conversation the line belongs
+        to, its position, branch conditions and follow-up game actions.
+        Default: no flow data.
         """
         return None
 
@@ -323,12 +381,12 @@ class BaseGameRules:
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         """Game-truth scene evidence for one line, for the Story Timeline window.
 
-        Plugins that can mine the game's own data (e.g. zelda_bmg with TP stage
-        arcs + FLW1/FLI1 flow) return a dict with any of: ``resource`` (message
-        file), ``msg_group``/``bmgres`` (message resource group), ``flow_ids``,
-        ``candidate_actors`` (owning NPC classes, may be ambiguous),
-        ``flow_summary`` (per-line conversation context), ``location_candidates``
-        (stages/locations that use this message resource). Default: no data.
+        Plugins that can mine the game's own data return a dict with any of:
+        ``resource`` (the file this line came from), ``msg_group`` (its resource
+        group), ``flow_ids``, ``candidate_actors`` (characters that own this
+        text, may be ambiguous), ``flow_summary`` (per-line conversation
+        context), ``location_candidates`` (places that use this resource).
+        Default: no data.
         """
         return {}
 

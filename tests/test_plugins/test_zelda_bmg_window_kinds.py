@@ -162,12 +162,14 @@ def test_boss_names_are_excluded_from_automatic_story_matching(bmg_rules):
     assert bmg_rules.should_auto_match_story_context(0, 1)
 
     boss_context = bmg_rules.get_translation_context_for_string(0, 0)
-    assert boss_context == {
-        "window_type": "Boss name",
-        "content_role": "BossName",
-        "glossary_section": "Boss Names",
-        "force_glossary": True,
-    }
+    # The plugin owns both the role and what it means: the engine only carries
+    # has_speaker and role_instruction through without interpreting them.
+    assert boss_context["window_type"] == "Boss name"
+    assert boss_context["content_role"] == "BossName"
+    assert boss_context["glossary_section"] == "Boss Names"
+    assert boss_context["force_glossary"] is True
+    assert boss_context["has_speaker"] is False
+    assert "boss title/name card" in boss_context["role_instruction"]
     assert bmg_rules.get_translation_context_for_string(0, 1) == {
         "window_type": "Dialogue",
     }

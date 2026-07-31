@@ -325,7 +325,9 @@ class AIPromptComposer(BaseTranslationHandler):
             manual_speaker = str(manual.get("speaker") or "").strip()
             if manual_speaker:
                 speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
-            elif translation_context.get('content_role') == 'BossName':
+            elif translation_context.get('has_speaker') is False:
+                # The plugin says this role is not spoken dialogue. The engine
+                # does not know which role that is, only that it has no speaker.
                 speaker = "NONE"
             elif is_single_word:
                 speaker = "NONE"
@@ -727,11 +729,17 @@ class AIPromptComposer(BaseTranslationHandler):
                 'match choice answers to the choice prompt, and pick the correct tone and referents.'
             )
 
-        if any(it.get('content_role') == 'BossName' for it in items_with_context):
-            instructions.append(
-                'BOSS NAMES: An item with "content_role": "BossName" is a standalone in-game boss title/name card, '
-                'not spoken dialogue. Translate it consistently as a proper boss name/title and preserve its line structure.'
-            )
+        # Role instructions come from the plugin verbatim: the engine inserts the
+        # text without knowing what the role means. Deduplicated in first-seen
+        # order so a role shared by many items is stated once.
+        seen_roles = set()
+        for item in items_with_context:
+            role = item.get('content_role')
+            instruction = item.get('role_instruction')
+            if not instruction or role in seen_roles:
+                continue
+            seen_roles.add(role)
+            instructions.append(str(instruction))
 
         if tag_alias_legend:
             instructions.append('TAG ALIAS LEGEND: Use the "tag_alias_legend" field in the JSON payload to understand the meaning of tag aliases (e.g. colors, speed). Place these tag aliases correctly around the corresponding translated words.')
@@ -866,7 +874,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 log_debug(f"AIPromptComposer: single-string translation context failed: {e}")
         if manual_speaker:
             speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
-        elif translation_context.get('content_role') == 'BossName':
+        elif translation_context.get('has_speaker') is False:
             speaker = "NONE"
         elif is_single_word:
             speaker = "NONE"
@@ -947,6 +955,9 @@ class AIPromptComposer(BaseTranslationHandler):
             context_lines.append(f"Window Type: {translation_context['window_type']}")
         if translation_context.get('content_role'):
             context_lines.append(f"Content Role: {translation_context['content_role']}")
+        if translation_context.get('role_instruction'):
+            # Inserted verbatim; the engine assigns it no meaning.
+            context_lines.append(f"Role Instruction: {translation_context['role_instruction']}")
         structure_path = [
             str(part) for part in manual.get('structure_path') or () if str(part)
         ]

@@ -224,6 +224,8 @@ class AIWorker(QObject):
                             metadata.append(f"Window Type: {context['window_type']}")
                         if context.get('content_role'):
                             metadata.append(f"Content Role: {context['content_role']}")
+                        if context.get('role_instruction'):
+                            metadata.append(f"Role Instruction: {context['role_instruction']}")
                         if context.get('glossary_section'):
                             metadata.append(f"Glossary Section: {context['glossary_section']}")
                         if context.get('force_glossary'):

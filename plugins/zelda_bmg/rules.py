@@ -1026,8 +1026,97 @@ class GameRules(BaseGameRules):
                 "content_role": "BossName",
                 "glossary_section": "Boss Names",
                 "force_glossary": True,
+                # The engine knows nothing about boss cards: it inserts this text
+                # verbatim and suppresses the speaker because we say so here.
+                "has_speaker": False,
+                "role_instruction": (
+                    'BOSS NAMES: An item with "content_role": "BossName" is a standalone '
+                    "in-game boss title/name card, not spoken dialogue. Translate it "
+                    "consistently as a proper boss name/title and preserve its line structure."
+                ),
             })
         return context
+
+    # Window kinds whose message text IS a name the glossary wants, with the
+    # section it belongs in. 12 = location plate, 19 = boss name card: in both
+    # the whole message is the name, nothing to parse out.
+    _NAME_CARD_KINDS = {12: "Places", 19: "Boss Names"}
+    _ITEM_WINDOW_KIND = 9
+
+    def get_capabilities(self) -> Set[str]:
+        """This plugin can read terms out of the game's own message data."""
+        return {"glossary_seed"}
+
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Terms TP names itself: location plates, boss cards, item windows.
+
+        These need no AI pass -- the game already separated them into their own
+        window kinds. Descriptions stay empty except where the item window
+        supplies one, so the describe pass still has work to do.
+        """
+        from utils.utils import remove_all_tags
+
+        data = getattr(getattr(self.mw, "data_store", None), "data", None)
+        if not isinstance(data, list):
+            return []
+
+        seeds: List[Dict[str, Any]] = []
+        seen: Set[str] = set()
+        for block_idx, block in enumerate(data):
+            if not isinstance(block, (list, tuple)):
+                continue
+            for string_idx, value in enumerate(block):
+                attrs = self.get_message_attributes(block_idx, string_idx)
+                if not attrs:
+                    continue
+                kind = attrs.get("fuki_kind")
+                section = self._NAME_CARD_KINDS.get(kind)
+                if section is None and kind != self._ITEM_WINDOW_KIND:
+                    continue
+
+                text = remove_all_tags("" if value is None else str(value)).strip()
+                if not text:
+                    continue
+
+                if section is not None:
+                    term, description = " ".join(text.split()), ""
+                else:
+                    term, description = self._split_item_window(text)
+                    section = "Items"
+                if not term:
+                    continue
+
+                key = term.casefold()
+                if key in seen:
+                    continue
+                seen.add(key)
+                seeds.append({
+                    "term": term,
+                    "description": description,
+                    "section": section,
+                    "source_ref": f"block {block_idx}, string {string_idx}",
+                })
+        return seeds
+
+    @staticmethod
+    def _split_item_window(text: str) -> Tuple[str, str]:
+        """Split an item window into (name, explanation).
+
+        The item window draws an icon, the item's name, then its explanation, so
+        the first line is the name. Only messages that actually look like that
+        are seeded: a long first line is a sentence ("You got the ...!"), not a
+        name, and seeding it would put a whole sentence in the glossary.
+
+        ponytail: length heuristic, not a parse of the item table. If the game's
+        item list can be read directly, prefer that and drop this.
+        """
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if len(lines) < 2:
+            return "", ""
+        name = " ".join(lines[0].split())
+        if len(name.split()) > 6 or name.endswith(("!", ".", "?")):
+            return "", ""
+        return name, " ".join(" ".join(lines[1:]).split())
 
     def get_preview_window_style(self, block_idx: Optional[int] = None,
                                  string_idx: Optional[int] = None) -> Dict[str, Any]:

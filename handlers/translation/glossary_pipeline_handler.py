@@ -14,6 +14,7 @@ from components.ai_status_dialog import AIStatusDialog
 from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
+from core.glossary_build.pipeline_coordinator import MODE_SEED
 from ui.glossary_build_dialog import (
     AREA_PROJECT,
     AREA_SELECTED,
@@ -49,6 +50,23 @@ class GlossaryPipelineHandler:
             except Exception:
                 return []
         return []
+
+    def _structural_seeds(self):
+        """Glossary material the active plugin can read out of the game data.
+
+        Optional: a plugin that cannot do this returns nothing and the build
+        simply has no head start.
+        """
+        rules = getattr(self.mw, "current_game_rules", None)
+        getter = getattr(rules, "get_glossary_seed_entries", None)
+        if not callable(getter):
+            return []
+        try:
+            seeds = getter()
+        except Exception as exc:
+            log_error(f"GlossaryPipelineHandler: plugin seeding failed: {exc}")
+            return []
+        return [s for s in (seeds or []) if isinstance(s, dict)]
 
     def _resolve_provider(self):
         config = resolve_glossary_ai_config(self.mw)
@@ -143,9 +161,13 @@ class GlossaryPipelineHandler:
             return
 
         options = dialog.options()
-        provider = self._resolve_provider()
-        if provider is None:
-            return
+        # Structural seeding makes no request, so it must not demand a working
+        # provider -- it is the one mode that still works with the model down.
+        provider = None
+        if options["mode"] != MODE_SEED:
+            provider = self._resolve_provider()
+            if provider is None:
+                return
 
         block_indices = self._resolve_area(options["area"])
         target_lang = getattr(self.mw, "target_language", "Ukrainian")
@@ -164,6 +186,7 @@ class GlossaryPipelineHandler:
             target_lang=target_lang,
             chunk_size=options["chunk_size"],
             translate=options["translate"],
+            structural_seeds=self._structural_seeds(),
             parent=self.mw,
         )
         self._worker.progress.connect(self._on_progress)

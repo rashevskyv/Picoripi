@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUGMENT,
     MODE_DRAFT,
+    MODE_SEED,
     MODE_THOROUGH,
     MODE_TRANSLATE,
 )
@@ -71,6 +72,7 @@ class GlossaryBuildDialog(QDialog):
             button.setProperty("area_key", key)
             area_layout.addWidget(button)
 
+        self._has_selection = has_selection
         self._area_selected.setEnabled(has_selection)
         if has_selection:
             self._area_selected.setChecked(True)
@@ -96,6 +98,11 @@ class GlossaryBuildDialog(QDialog):
         self._mode_augment.setToolTip(
             "Skip the sweep. Describe glossary entries that already exist, using the project text."
         )
+        self._mode_seed = QRadioButton("Structural seed only (no AI)")
+        self._mode_seed.setToolTip(
+            "Take only the terms the game names itself -- item windows, location "
+            "plates, boss cards. Makes no AI request at all."
+        )
         self._mode_translate = QRadioButton("Translate existing entries only")
         self._mode_translate.setToolTip(
             "No sweep, no describing. Propose translations for entries that already have a "
@@ -106,6 +113,7 @@ class GlossaryBuildDialog(QDialog):
             (self._mode_thorough, MODE_THOROUGH),
             (self._mode_draft, MODE_DRAFT),
             (self._mode_augment, MODE_AUGMENT),
+            (self._mode_seed, MODE_SEED),
             (self._mode_translate, MODE_TRANSLATE),
         ):
             self._mode_group.addButton(button)
@@ -135,6 +143,8 @@ class GlossaryBuildDialog(QDialog):
         # is not the user's to make — show it as on and locked.
         self._mode_translate.toggled.connect(self._sync_translate_check)
         self._sync_translate_check(self._mode_translate.isChecked())
+        self._mode_seed.toggled.connect(self._sync_seed_mode)
+        self._sync_seed_mode(self._mode_seed.isChecked())
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -149,6 +159,19 @@ class GlossaryBuildDialog(QDialog):
         if translate_only:
             self._translate_check.setChecked(True)
         self._translate_check.setEnabled(not translate_only)
+
+    def _sync_seed_mode(self, seed_only: bool) -> None:
+        """Structural seeding reads game data, not text: hide the text options."""
+        if seed_only:
+            self._translate_check.setChecked(False)
+        self._translate_check.setEnabled(not seed_only)
+        self._chunk_combo.setEnabled(not seed_only)
+        for button in (self._area_project, self._area_selected, self._area_current):
+            button.setEnabled(not seed_only and self._area_enabled(button))
+
+    def _area_enabled(self, button) -> bool:
+        """Selected-blocks stays disabled without a selection."""
+        return self._has_selection if button is self._area_selected else True
 
     def selected_area(self) -> str:
         button = self._area_group.checkedButton()

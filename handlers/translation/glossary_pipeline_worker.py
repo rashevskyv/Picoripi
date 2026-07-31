@@ -47,6 +47,7 @@ class GlossaryBuildWorker(QThread):
         prompts: Optional[dict] = None,
         retry_attempts: int = 6,
         max_consecutive_failures: int = 3,
+        structural_seeds=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -59,6 +60,7 @@ class GlossaryBuildWorker(QThread):
         self.chunk_size = chunk_size
         self.translate = translate
         self._prompts = prompts
+        self.structural_seeds = list(structural_seeds or ())
         self._retry_attempts = retry_attempts
         self._max_consecutive_failures = max(1, int(max_consecutive_failures))
         self._skipped_calls = 0
@@ -143,6 +145,7 @@ class GlossaryBuildWorker(QThread):
                 mask=mask_all_tags_including_visual_markers,
                 is_cancelled=lambda: self._cancel,
                 on_progress=self.progress.emit,
+                structural_seeds=self.structural_seeds,
             )
             result = coordinator.build(self.dataset, self.mode, block_indices=self.block_indices)
             if self.translate and not result.cancelled:
