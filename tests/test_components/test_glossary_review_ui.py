@@ -243,7 +243,21 @@ class TestVariantChoiceSettlesTheEntry:
         assert callback.call_args.args[1] == "Весняний Ґорон"
 
     def test_confirmed_entry_is_no_longer_highlighted(self):
-        settled = _entry("Spring Goron", "Весняний Ґорон", status=STATUS_CONFIRMED)
+        """Confirming must win over the variants still on record.
+
+        The earlier version of this test used an entry with no variants, so it
+        passed while the real case -- confirming one of several proposals --
+        stayed yellow forever.
+        """
+        settled = _entry(
+            "Spring Goron",
+            "Весняний Ґорон",
+            status=STATUS_CONFIRMED,
+            variants=(
+                TranslationVariant("Ґорон Джерела", "spring = bathhouse"),
+                TranslationVariant("Весняний Ґорон", "spring = season"),
+            ),
+        )
         assert GlossaryDialog._needs_review(settled) is False
 
     def test_variant_list_has_no_fixed_height_cap(self, qtbot):
@@ -297,3 +311,37 @@ class TestNotesPlaceholder:
         dialog._save_editor_changes()
 
         assert callback.call_args.args[2] == "Моє власне пояснення."
+
+
+class TestReviewStateFromContextMenu:
+    """Putting an entry back under review, and settling it, by hand."""
+
+    def test_marking_for_review_sends_an_unconfirmed_status(self, qtbot):
+        callback = MagicMock(return_value=([CONFIRMED], {}))
+        dialog = _dialog(qtbot, [CONFIRMED], update_callback=callback)
+
+        dialog._set_entry_review_state(CONFIRMED, needs_review=True)
+
+        assert callback.call_args.kwargs["status"] == STATUS_TRANSLATED
+        assert GlossaryDialog._needs_review(
+            _entry("Link", "Лінк", status=STATUS_TRANSLATED)
+        ) is True
+
+    def test_marking_as_reviewed_confirms(self, qtbot):
+        callback = MagicMock(return_value=([AMBIGUOUS], {}))
+        dialog = _dialog(qtbot, [AMBIGUOUS], update_callback=callback)
+
+        dialog._set_entry_review_state(AMBIGUOUS, needs_review=False)
+
+        assert callback.call_args.kwargs["status"] == STATUS_CONFIRMED
+
+    def test_round_trip_keeps_the_variants_on_record(self, qtbot):
+        """Re-flagging must not throw away the proposals it is flagging about."""
+        callback = MagicMock(return_value=([AMBIGUOUS], {}))
+        dialog = _dialog(qtbot, [AMBIGUOUS], update_callback=callback)
+
+        dialog._set_entry_review_state(AMBIGUOUS, needs_review=True)
+
+        # translation and notes are passed through untouched
+        assert callback.call_args.args[1] == AMBIGUOUS.translation
+        assert callback.call_args.args[2] == AMBIGUOUS.notes

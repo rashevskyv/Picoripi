@@ -32,6 +32,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QColor, QBrush
 from core.glossary_manager import (
     STATUS_CONFIRMED,
+    STATUS_TRANSLATED,
     TERM_PLACEHOLDER,
     GlossaryEntry,
     GlossaryOccurrence,
@@ -745,17 +746,19 @@ class GlossaryDialog(QDialog):
             self._populate_entry_details(entry)
             return
         self._mark_editor_dirty(False)
-    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None, confirm: bool = False) -> bool:
+    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None, status: Optional[str] = None) -> bool:
         """Internal helper to attempt entry update.
 
-        ``confirm`` marks the entry as decided, which clears the review
-        highlight. Passed as a keyword so older callbacks stay compatible.
+        ``status`` moves the entry's lifecycle state -- STATUS_CONFIRMED to
+        settle it and clear the review highlight, or an unconfirmed status to
+        put it back under review. Passed as a keyword so older callbacks that
+        do not accept it stay compatible when it is not needed.
         """
         if not self._update_callback:
             return False
-        if confirm:
+        if status:
             result = self._update_callback(
-                entry.original, new_translation, new_notes, profiled, status=STATUS_CONFIRMED
+                entry.original, new_translation, new_notes, profiled, status=status
             )
         else:
             result = self._update_callback(entry.original, new_translation, new_notes, profiled)
@@ -800,12 +803,28 @@ class GlossaryDialog(QDialog):
         if not entry:
             return
         menu = QMenu(self)
+        settled = not self._needs_review(entry)
+        review_action = menu.addAction(
+            "Mark for review" if settled else "Mark as reviewed"
+        )
+        review_action.setEnabled(self._update_callback is not None)
+        menu.addSeparator()
         delete_action = menu.addAction("Delete Entry")
         delete_action.setEnabled(self._delete_callback is not None)
         selected_action = menu.exec(self._active_table().viewport().mapToGlobal(pos))
         if selected_action == delete_action:
             self._active_table().selectRow(row)
             self._attempt_entry_delete(entry)
+        elif selected_action == review_action:
+            self._active_table().selectRow(row)
+            self._set_entry_review_state(entry, needs_review=settled)
+
+    def _set_entry_review_state(self, entry: GlossaryEntry, *, needs_review: bool) -> None:
+        """Flag an entry for review again, or settle it, from the context menu."""
+        status = STATUS_TRANSLATED if needs_review else STATUS_CONFIRMED
+        self._attempt_entry_update(
+            entry, entry.translation, entry.notes, entry.profiled, status=status
+        )
     def _load_dialog_state(self) -> None:
         """Internal helper to load dialog state."""
         data = self._read_settings_file()
@@ -1026,7 +1045,7 @@ class GlossaryDialog(QDialog):
             self._translation_edit.text(),
             self._notes_for_save(),
             self._profiled_checkbox.isChecked(),
-            confirm=True,
+            status=STATUS_CONFIRMED,
         )
 
     @staticmethod
@@ -1046,10 +1065,15 @@ class GlossaryDialog(QDialog):
     def _needs_review(entry: GlossaryEntry) -> bool:
         """Whether the entry still awaits a human decision.
 
-        Either the AI offered more than one defensible translation, or the entry
-        has not been confirmed yet. Legacy entries carry no status and are not
-        flagged, so the marker stays meaningful instead of colouring everything.
+        A confirmed entry is settled and never flagged -- the proposed variants
+        stay on record so the choice can be revisited, but their presence is not
+        an open question any more. Otherwise: several defensible translations, or
+        a status that has not been confirmed yet. Legacy entries carry no status
+        and are not flagged, so the marker stays meaningful instead of colouring
+        everything.
         """
+        if getattr(entry, "status", "") == STATUS_CONFIRMED:
+            return False
         if len(getattr(entry, "translation_variants", ()) or ()) > 1:
             return True
         return bool(getattr(entry, "is_unconfirmed", False))
