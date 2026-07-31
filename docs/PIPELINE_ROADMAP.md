@@ -359,7 +359,7 @@ UI не вигадуємо: у програмі вже є інфраструкт
 | **M1 ✅** | Механізм обходу тексту | проходи 1a / 1b / 2 / 2b; три режими (ретельний, чернетковий, доповнення); область > одного блоку; пакування цілими рядками; адаптивна ширина вікна; дія `Tools → Build Glossary from Text…` |
 | **M2 ✅** | Варіанти перекладу в UI | підсвітка записів, що чекають рішення (+ тултип із варіантами й обґрунтуванням), фільтр «Needs review», вибір варіанта, кнопка підтвердження; режим `Translate existing entries only` |
 | **M3** | Контракт можливостей | `get_capabilities`, `get_glossary_seed_entries`, `get_external_lore`; винесення Wiki в плагін; ключ `role_instruction` і **усунення витоку словника TP із рушія** (розділи 2.3-2.4) |  
-  **Стан:** нейтральність рушія, нові хуки та структурний засів TP — зроблено. Лишилось: `get_external_lore` у плагіні (переїзд Zelda Wiki з `core/mempalace/character_profiler.py`).
+  **Стан: зроблено.** Нейтральність рушія (`BossName` прибрано, слоти `role_instruction` і `has_speaker` опубліковано), хуки `get_capabilities` / `get_glossary_seed_entries` / `get_external_lore`, структурний засів TP (режим «Structural seed only»), Zelda Wiki переїхала у `plugins/zelda_bmg/wiki.py`.
 | **M4** | Адресат | `get_addressee_for_string`, показ у Story Timeline, передача в промпт перекладу |
 | **M5** | Майстер | оболонка поверх готових кроків |
 

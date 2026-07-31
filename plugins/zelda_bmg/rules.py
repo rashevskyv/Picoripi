@@ -1044,8 +1044,18 @@ class GameRules(BaseGameRules):
     _ITEM_WINDOW_KIND = 9
 
     def get_capabilities(self) -> Set[str]:
-        """This plugin can read terms out of the game's own message data."""
-        return {"glossary_seed"}
+        """Reads terms from the game's message data, and lore from Zelda Wiki."""
+        return {"glossary_seed", "external_lore"}
+
+    def get_external_lore(self, term: str) -> Optional[str]:
+        """Look ``term`` up in Zelda Wiki, in English, as published.
+
+        Translating the result belongs to the caller: this plugin knows where
+        Zelda lore lives, not which language the project targets.
+        """
+        from .wiki import lookup
+
+        return lookup(term)
 
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Terms TP names itself: location plates, boss cards, item windows.

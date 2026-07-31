@@ -1,10 +1,7 @@
 # tests/test_core/test_mempalace_speech_profiling.py
 import json
-import urllib.request
-import urllib.error
-import socket
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import pytest
 
 from core.mempalace.character_profiler import MemePalaceCharacterProfilerWorker
@@ -32,115 +29,41 @@ def profiler(mock_client, mock_ai):
         target_lang="Ukrainian"
     )
 
-@patch("urllib.request.urlopen")
-def test_fetch_zelda_wiki_description_success(mock_urlopen, profiler):
-    # Mock search and extracts responses
-    def urlopen_side_effect(req, timeout=5):
-        url = req.full_url if hasattr(req, "full_url") else req
-        resp = MagicMock()
-        resp.__enter__.return_value = resp
-        resp.status = 200
+# The Zelda Wiki fetch itself moved into the plugin that owns it; its cases now
+# live in tests/test_plugins/test_zelda_wiki_lore.py. What stays here is the
+# engine's half: asking whichever plugin is active, and translating the answer.
 
-        if "list=search" in url:
-            data = {"query": {"search": [{"title": "Midna"}]}}
-        elif "prop=extracts" in url:
-            data = {"query": {"pages": {"101": {"extract": "Midna is a character in Twilight Princess."}}}}
-        else:
-            data = {}
 
-        resp.read.return_value = json.dumps(data).encode("utf-8")
-        return resp
+def test_fetch_external_lore_asks_the_active_plugin(profiler):
+    profiler.mw = MagicMock()
+    profiler.mw.current_game_rules.get_external_lore.return_value = (
+        "Page: Midna\nMidna is a character in Twilight Princess."
+    )
 
-    mock_urlopen.side_effect = urlopen_side_effect
+    lore = profiler._fetch_external_lore("Midna")
 
-    desc = profiler._fetch_zelda_wiki_description("Midna")
-    assert "Midna" in desc
-    assert "Translated context details." in desc
-    assert profiler.ai_provider.translate.called
+    profiler.mw.current_game_rules.get_external_lore.assert_called_once_with("Midna")
+    assert "Translated context details." in lore
+    assert "Midna" in lore
 
-@patch("urllib.request.urlopen")
-def test_fetch_zelda_wiki_description_raw_wikitext_fallback(mock_urlopen, profiler):
-    # Mock search, empty extracts, and successful wikitext revision response
-    def urlopen_side_effect(req, timeout=5):
-        url = req.full_url if hasattr(req, "full_url") else req
-        resp = MagicMock()
-        resp.__enter__.return_value = resp
-        resp.status = 200
 
-        if "list=search" in url:
-            data = {"query": {"search": [{"title": "Zelda"}]}}
-        elif "prop=extracts" in url:
-            # Empty extract
-            data = {"query": {"pages": {"102": {"extract": ""}}}}
-        elif "prop=revisions" in url:
-            data = {
-                "query": {
-                    "pages": {
-                        "102": {
-                            "revisions": [
-                                {
-                                    "slots": {
-                                        "main": {
-                                            "*": "{{Infobox}} [[File:Zelda.png]] Princess Zelda is a key character."
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        else:
-            data = {}
+def test_fetch_external_lore_without_a_plugin_source(profiler):
+    """A plugin with no lore source grounds the profile in the script alone."""
+    profiler.mw = SimpleNamespace(current_game_rules=SimpleNamespace())
+    assert profiler._fetch_external_lore("Midna") == ""
 
-        resp.read.return_value = json.dumps(data).encode("utf-8")
-        return resp
 
-    mock_urlopen.side_effect = urlopen_side_effect
+def test_fetch_external_lore_survives_a_broken_plugin(profiler):
+    profiler.mw = MagicMock()
+    profiler.mw.current_game_rules.get_external_lore.side_effect = RuntimeError("boom")
+    assert profiler._fetch_external_lore("Midna") == ""
 
-    desc = profiler._fetch_zelda_wiki_description("Zelda")
-    assert "Zelda" in desc
-    assert "Translated context details." in desc
-    assert profiler.ai_provider.translate.called
 
-@patch("urllib.request.urlopen")
-def test_fetch_zelda_wiki_description_not_found(mock_urlopen, profiler):
-    # Mock search response with no results
-    resp = MagicMock()
-    resp.__enter__.return_value = resp
-    resp.status = 200
-    resp.read.return_value = json.dumps({"query": {"search": []}}).encode("utf-8")
-    mock_urlopen.return_value = resp
+def test_fetch_external_lore_treats_nothing_found_as_nothing(profiler):
+    profiler.mw = MagicMock()
+    profiler.mw.current_game_rules.get_external_lore.return_value = None
+    assert profiler._fetch_external_lore("Midna") == ""
 
-    desc = profiler._fetch_zelda_wiki_description("UnknownCharacter")
-    assert desc == ""
-
-@patch("urllib.request.urlopen")
-def test_fetch_zelda_wiki_description_http_500_error(mock_urlopen, profiler):
-    # Mock server error
-    mock_urlopen.side_effect = urllib.error.HTTPError("url", 500, "Internal Server Error", {}, None)
-
-    desc = profiler._fetch_zelda_wiki_description("Link")
-    assert desc == ""
-
-@patch("urllib.request.urlopen")
-def test_fetch_zelda_wiki_description_timeout(mock_urlopen, profiler):
-    # Mock socket timeout
-    mock_urlopen.side_effect = socket.timeout("timeout")
-
-    desc = profiler._fetch_zelda_wiki_description("Link")
-    assert desc == ""
-
-@patch("urllib.request.urlopen")
-def test_fetch_zelda_wiki_description_invalid_json(mock_urlopen, profiler):
-    resp = MagicMock()
-    resp.__enter__.return_value = resp
-    resp.status = 200
-    resp.read.return_value = b"invalid json content"
-    mock_urlopen.return_value = resp
-
-    desc = profiler._fetch_zelda_wiki_description("Link")
-    assert desc == ""
 
 def test_translate_wiki_to_target_lang_english(mock_client, mock_ai):
     # When target lang is English, translation is skipped
@@ -185,7 +108,7 @@ def test_character_profiler_skips_existing_long_profile(mock_client, mock_ai):
         glossary_manager=glossary_manager,
         target_lang="English",
     )
-    worker._fetch_zelda_wiki_description = MagicMock(return_value="")
+    worker._fetch_external_lore = MagicMock(return_value="")
 
     worker.run()
 
@@ -231,7 +154,7 @@ def test_character_profiler_reprofiles_short_existing_profile(mock_client):
         glossary_manager=glossary_manager,
         target_lang="English",
     )
-    worker._fetch_zelda_wiki_description = MagicMock(return_value="")
+    worker._fetch_external_lore = MagicMock(return_value="")
 
     worker.run()
 

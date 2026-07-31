@@ -1,7 +1,5 @@
 import json
 import re
-import urllib.request
-import urllib.parse
 from PyQt6.QtCore import QThread, pyqtSignal
 from typing import Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
@@ -44,82 +42,35 @@ class MemePalaceCharacterProfilerWorker(QThread):
         self.is_cancelled = True
         self.log.emit("Character speech profiling cancellation requested...")
 
-    def _fetch_zelda_wiki_description(self, char_name: str) -> str:
-        """Search and fetch character description from Zelda Fandom Wiki."""
-        # Search specifically within Twilight Princess context
-        query = f"{char_name} Twilight Princess"
-        try:
-            # 1. Search page on Zelda Wiki
-            search_url = f"https://zelda.fandom.com/api.php?action=query&list=search&srsearch={urllib.parse.quote(query)}&format=json"
-            req = urllib.request.Request(
-                search_url, 
-                headers={"User-Agent": "Picoripi Localization Tool/1.0 (Contact: admin@picoripi.org)"}
-            )
-            with urllib.request.urlopen(req, timeout=5) as response:
-                data = json.loads(response.read().decode('utf-8'))
-                search_results = data.get("query", {}).get("search", [])
-                if not search_results:
-                    return ""
-                
-                # Find the most relevant title
-                title = search_results[0].get("title")
-                if not title:
-                    return ""
-                    
-            # 2. Fetch page introduction (extract) with redirects resolved
-            extract_url = f"https://zelda.fandom.com/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles={urllib.parse.quote(title)}&redirects=1&format=json"
-            req_extract = urllib.request.Request(
-                extract_url,
-                headers={"User-Agent": "Picoripi Localization Tool/1.0 (Contact: admin@picoripi.org)"}
-            )
-            with urllib.request.urlopen(req_extract, timeout=5) as response:
-                data_extract = json.loads(response.read().decode('utf-8'))
-                pages = data_extract.get("query", {}).get("pages", {})
-                for page_id, page_data in pages.items():
-                    extract = page_data.get("extract", "")
-                    if extract and extract.strip():
-                        log_info(f"Successfully retrieved Zelda Wiki extract for '{char_name}' (Title: {title})")
-                        return self._translate_wiki_to_target_lang(title, extract.strip())
+    def _fetch_external_lore(self, char_name: str) -> str:
+        """Background lore about a character, from wherever the plugin keeps it.
 
-            # 3. Fallback: Fetch raw Wikitext content from revisions if extract was empty (common with complex templates/infoboxes)
-            log_info(f"Zelda Wiki extract was empty for '{char_name}'. Fetching raw Wikitext revisions content fallback...")
-            revisions_url = f"https://zelda.fandom.com/api.php?action=query&prop=revisions&rvprop=content&rvslots=main&titles={urllib.parse.quote(title)}&redirects=1&format=json"
-            req_rev = urllib.request.Request(
-                revisions_url,
-                headers={"User-Agent": "Picoripi Localization Tool/1.0 (Contact: admin@picoripi.org)"}
-            )
-            with urllib.request.urlopen(req_rev, timeout=5) as response:
-                data_rev = json.loads(response.read().decode('utf-8'))
-                pages_rev = data_rev.get("query", {}).get("pages", {})
-                for page_id, page_data in pages_rev.items():
-                    revisions = page_data.get("revisions", [])
-                    if revisions:
-                        slots = revisions[0].get("slots", {})
-                        raw_text = ""
-                        if "main" in slots:
-                            raw_text = slots["main"].get("*", "") or slots["main"].get("content", "")
-                        
-                        if raw_text:
-                            # Basic cleanup of wikitext to make it digestible
-                            clean_text = raw_text
-                            for _ in range(5):
-                                clean_text = re.sub(r'\{\{[^{}]*\}\}', '', clean_text)
-                            clean_text = re.sub(r'\[\[(File|Category|Image):[^\]]+\]\]', '', clean_text, flags=re.IGNORECASE)
-                            clean_text = re.sub(r'\[\[[^\]|]+\|([^\]]+)\]\]', r'\1', clean_text)
-                            clean_text = re.sub(r'\[\[([^\]]+)\]\]', r'\1', clean_text)
-                            clean_text = re.sub(r'<!--.*?-->', '', clean_text, flags=re.DOTALL)
-                            clean_text = clean_text.strip()
-                            if len(clean_text) > 1500:
-                                clean_text = clean_text[:1500] + "..."
-                                
-                            log_info(f"Successfully retrieved raw Wikitext for '{char_name}' (Title: {title})")
-                            return self._translate_wiki_to_target_lang(title, clean_text)
-        except Exception as e:
-            log_warning(f"Zelda Wiki lookup failed for '{char_name}': {e}")
-        return ""
+        The engine does not know what that source is -- a wiki, a guide, nothing
+        at all. It asks, and translates whatever English prose comes back.
+        A plugin without a lore source simply grounds the profile in the script.
+        """
+        rules = getattr(self.mw, "current_game_rules", None)
+        getter = getattr(rules, "get_external_lore", None)
+        if not callable(getter):
+            return ""
+        try:
+            lore = getter(char_name)
+        except Exception as exc:
+            log_warning(f"External lore lookup failed for '{char_name}': {exc}")
+            return ""
+        if not lore or not str(lore).strip():
+            return ""
+        # Lore may arrive with a "Page: <title>" header naming its source page.
+        title, _, body = str(lore).partition("\n")
+        title = title[len("Page: "):] if title.startswith("Page: ") else char_name
+        return self._translate_wiki_to_target_lang(title, (body or "").strip())
 
     def _translate_wiki_to_target_lang(self, title: str, text: str) -> str:
-        """Translate Zelda Wiki description to the target language immediately using AI."""
+        """Render the plugin's English lore into the target language.
+
+        Kept in the engine: the AI provider and the target language live here,
+        and this step is the same whatever source the lore came from.
+        """
         if not text or not text.strip():
             return ""
         
@@ -130,11 +81,11 @@ class MemePalaceCharacterProfilerWorker(QThread):
         if self.target_lang.strip().lower() == "ukrainian":
             system_prompt = (
                 "Ви — професійний перекладач відеоігор та редактор локалізації. Ваше завдання — зробити точний, "
-                "літературний переклад вступного опису персонажа з англійської Вікіпедії на українську мову. "
+                "літературний переклад вступного опису персонажа з англомовного довідника на українську мову. "
                 "Переклад має бути максимально природним та художнім."
             )
             user_prompt = f"""
-Перекладіть наступний опис персонажа '{title}' з гри The Legend of Zelda на українську мову:
+Перекладіть наступний опис персонажа '{title}' на українську мову:
 
 {text}
 
@@ -142,7 +93,7 @@ class MemePalaceCharacterProfilerWorker(QThread):
 """
         else:
             system_prompt = (
-                f"You are an expert game translation editor. Translate the provided Zelda character description "
+                f"You are an expert game translation editor. Translate the provided character description "
                 f"from English into {self.target_lang}. Keep it highly professional and natural."
             )
             user_prompt = f"""
@@ -159,10 +110,10 @@ Return ONLY the translated text. Do not add any introduction or meta comments.
         try:
             response = self.ai_provider.translate(messages, session=None)
             translated = response.text.strip()
-            log_info(f"Successfully translated Zelda Wiki context for '{title}' to {self.target_lang}")
+            log_info(f"Successfully translated background lore for '{title}' to {self.target_lang}")
             return f"Page: {title}\n{translated}"
         except Exception as e:
-            log_error(f"Failed to translate Zelda Wiki description for '{title}': {e}")
+            log_error(f"Failed to translate background lore for '{title}': {e}")
             return f"Page: {title} (Original English Context)\n{text}"
 
     def _load_plugin_prompts(self) -> dict:
@@ -470,13 +421,13 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 if script_glossary_context:
                     self.log.emit(f"AI Speech Profiler: Using script Glossary context for '{char_name}'.")
 
-                # 1. Fetch Wiki context from Zelda Wiki to secure factual grounding
-                self.log.emit(f"AI Speech Profiler: Searching Zelda Wiki context for '{char_name}'...")
-                wiki_context = self._fetch_zelda_wiki_description(char_name)
+                # 1. Ask the plugin for background lore to ground the profile in facts
+                self.log.emit(f"AI Speech Profiler: Looking up background lore for '{char_name}'...")
+                wiki_context = self._fetch_external_lore(char_name)
                 if wiki_context:
-                    self.log.emit(f"AI Speech Profiler: Found Zelda Wiki description for '{char_name}'.")
+                    self.log.emit(f"AI Speech Profiler: Found background lore for '{char_name}'.")
                 else:
-                    self.log.emit(f"AI Speech Profiler: No Zelda Wiki description found for '{char_name}' (using script dialogue only).")
+                    self.log.emit(f"AI Speech Profiler: No background lore found for '{char_name}' (using script dialogue only).")
 
                 # 2. Filter out non-informative short dialogue lines (< 3 words) and enrich with timeline chapter context
                 clean_lines = []
@@ -521,7 +472,7 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                     if script_glossary_context:
                         wiki_section += f"\n--- Script Glossary Context (source from Markup Studio) ---\n{script_glossary_context}\n"
                     if wiki_context:
-                        wiki_section += f"\n--- Wiki Context (Джерело істини з Zelda Wiki) ---\n{wiki_context}\n"
+                        wiki_section += f"\n--- Background Lore (Джерело істини) ---\n{wiki_context}\n"
                         
                     user_prompt = f"""
 Проаналізуйте наступну інформацію для персонажа '{char_name}':
