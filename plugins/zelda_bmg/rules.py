@@ -1091,7 +1091,8 @@ class GameRules(BaseGameRules):
                 if section is not None:
                     term, description = " ".join(text.split()), ""
                 else:
-                    term, description = self._split_item_window(text)
+                    term = self._item_name_in(str(value))
+                    description = " ".join(text.split())
                     section = "Items"
                 if not term:
                     continue
@@ -1108,25 +1109,39 @@ class GameRules(BaseGameRules):
                 })
         return seeds
 
-    @staticmethod
-    def _split_item_window(text: str) -> Tuple[str, str]:
-        """Split an item window into (name, explanation).
+    # An item window is a sentence, hard-wrapped to the window width, with the
+    # item's own name coloured inside it ("Power has returned to the\n{red}
+    # Dominion Rod{white}!"). Line breaks are therefore layout, not structure --
+    # reading the first line as the name yields half a sentence.
+    #
+    # {color:red} in the editor is {escape:255:000001} in the stored data, so
+    # both spellings are matched. 000000 / white is the reset back to body text
+    # and never opens a name.
+    _COLOR_OPEN_RE = re.compile(
+        r"\{color:(?!white\})[^}]*\}|\{escape:255:(?!000000\})\d{6}\}"
+    )
+    _COLOR_ANY_RE = re.compile(r"\{color:[^}]*\}|\{escape:255:\d{6}\}")
 
-        The item window draws an icon, the item's name, then its explanation, so
-        the first line is the name. Only messages that actually look like that
-        are seeded: a long first line is a sentence ("You got the ...!"), not a
-        name, and seeding it would put a whole sentence in the glossary.
+    @classmethod
+    def _item_name_in(cls, raw_text: str) -> str:
+        """The coloured item name inside an item window, or "" if there is none.
 
-        ponytail: length heuristic, not a parse of the item table. If the game's
-        item list can be read directly, prefer that and drop this.
+        Fails closed on purpose: a window whose name is not marked up gives
+        nothing, and the AI sweep finds that item like any other term. Guessing
+        instead fills the glossary with sentence fragments.
         """
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        if len(lines) < 2:
-            return "", ""
-        name = " ".join(lines[0].split())
-        if len(name.split()) > 6 or name.endswith(("!", ".", "?")):
-            return "", ""
-        return name, " ".join(" ".join(lines[1:]).split())
+        from utils.utils import remove_all_tags
+
+        opener = cls._COLOR_OPEN_RE.search(raw_text or "")
+        if opener is None:
+            return ""
+        rest = raw_text[opener.end():]
+        closer = cls._COLOR_ANY_RE.search(rest)
+        span = rest[:closer.start()] if closer else rest
+        name = " ".join(remove_all_tags(span).split())
+        # A coloured run that spans a whole clause is emphasis, not a name. The
+        # longest real item names run to about four words ("Bomb Bag and Bombs").
+        return name if name and len(name.split()) <= 5 else ""
 
     def get_preview_window_style(self, block_idx: Optional[int] = None,
                                  string_idx: Optional[int] = None) -> Dict[str, Any]:

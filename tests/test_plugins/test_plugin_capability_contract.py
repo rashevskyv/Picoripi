@@ -116,20 +116,46 @@ class TestZeldaStructuralSeeds:
         assert seeds["Diababa"]["section"] == "Boss Names"
         assert seeds["Ordon Village"]["description"] == ""
 
-    def test_item_window_splits_name_from_explanation(self):
+    def test_item_name_comes_from_the_coloured_run(self):
+        """The window is a wrapped sentence; only the colour marks the name."""
         rules = self._rules(
-            [["Hero's Bow\nFires arrows at distant targets."]], {(0, 0): 9}
+            [["Power has returned to the\n{color:red}Dominion Rod{color:white}!"]],
+            {(0, 0): 9},
         )
         seeds = rules.get_glossary_seed_entries()
 
-        assert seeds[0]["term"] == "Hero's Bow"
-        assert seeds[0]["description"] == "Fires arrows at distant targets."
+        assert seeds[0]["term"] == "Dominion Rod"
         assert seeds[0]["section"] == "Items"
+        # The whole message stays as the description -- it explains the item.
+        assert "Power has returned to the" in seeds[0]["description"]
 
-    def test_a_sentence_is_not_seeded_as_an_item_name(self):
-        """"You got the Hero's Bow!" is prose, not a glossary term."""
+    def test_stored_escape_form_is_recognised_too(self):
+        """Data holds {escape:255:000001}; the editor only shows {color:red}."""
         rules = self._rules(
-            [["You got the Hero's Bow!\nUse it to fire arrows."]], {(0, 0): 9}
+            [["You got the {escape:255:000001}Hero's Bow{escape:255:000000}!"]],
+            {(0, 0): 9},
+        )
+        assert rules.get_glossary_seed_entries()[0]["term"] == "Hero's Bow"
+
+    def test_a_line_break_mid_sentence_is_not_a_name_boundary(self):
+        """The bug this replaced: line 1 of a wrapped sentence is not a term."""
+        rules = self._rules(
+            [["You learned the fifth hidden\nskill, the mortal draw! Sheathe it."]],
+            {(0, 0): 9},
+        )
+        assert rules.get_glossary_seed_entries() == []
+
+    def test_an_unmarked_item_window_seeds_nothing(self):
+        """Fail closed: the AI sweep finds it rather than a guess polluting."""
+        rules = self._rules(
+            [["You caught bee larva in your\nbottle! Fish love them."]], {(0, 0): 9}
+        )
+        assert rules.get_glossary_seed_entries() == []
+
+    def test_a_whole_coloured_sentence_is_emphasis_not_a_name(self):
+        rules = self._rules(
+            [["{color:red}You have completed every single sidequest{color:white}!"]],
+            {(0, 0): 9},
         )
         assert rules.get_glossary_seed_entries() == []
 
