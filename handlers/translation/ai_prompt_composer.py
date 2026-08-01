@@ -398,6 +398,19 @@ class AIPromptComposer(BaseTranslationHandler):
             if isinstance(item, dict) and item.get('scene_context'):
                 item_for_ai['scene_context'] = item['scene_context']
 
+            # Who the line is spoken TO (plugin-provided). Needed for languages
+            # that mark politeness or gender in address; the speaker alone is
+            # not enough to choose between them.
+            if rules is not None and hasattr(rules, 'get_addressee_for_string'):
+                try:
+                    addressee = rules.get_addressee_for_string(
+                        real_b_idx, real_s_idx, speaker=speaker
+                    )
+                    if isinstance(addressee, str) and addressee:
+                        item_for_ai['addressee'] = self._translate_speaker(addressee)
+                except Exception as e:
+                    log_debug(f"AIPromptComposer: addressee failed for ({real_b_idx},{real_s_idx}): {e}")
+
             # Game-script flow context (plugin-provided): conversation position,
             # branch conditions and follow-up game actions for this exact line
             if rules is not None and hasattr(rules, 'get_ai_flow_context_for_string'):
@@ -697,7 +710,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 f'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
                 'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (e.g. formal/informal). Apply this information to the entire translation.',
                 'Resolve each item\'s "story_context_ref" in "story_context_catalog". Use its event, location, participants, event-local interactions, character profiles, and known relationships. Apply only populated facts; do not invent missing context.',
-                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine whether text is dialogue, a caption, a name, an item, or another UI role and translate it accordingly.',
+                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present), "speaker" and "addressee", to determine whether text is dialogue, a caption, a name, an item, or another UI role and translate it accordingly.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -714,7 +727,7 @@ class AIPromptComposer(BaseTranslationHandler):
                 'LAYOUT PRIORITY: Try to match every item\'s "layout", including window_count, and translate source lines one-to-one. Never remove, merge, or reorder source lines. Prefer concise wording within max_line_width_px; add only the minimum necessary extra lines or dialogue windows when preserving the original count is not viable.',
                 'GLOSSARY IS MANDATORY: Every term in the "glossary" MUST be translated exactly as specified. No synonyms or alternatives allowed.',
                 'Resolve each item\'s "story_context_ref" in "story_context_catalog" and use it for event facts, location, participants, interactions, character voices, relationships, gender agreement, and forms of address. Do not invent missing facts.',
-                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present) and "speaker", to determine the text role and tone.',
+                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present), "speaker" and "addressee", to determine the text role and tone.',
                 'Follow the rules from the system prompt regarding tags.',
                 'Do not add any explanations or text outside the JSON object.',
             ]
@@ -740,6 +753,14 @@ class AIPromptComposer(BaseTranslationHandler):
                 continue
             seen_roles.add(role)
             instructions.append(str(instruction))
+
+        if any(it.get('addressee') for it in items_with_context):
+            instructions.append(
+                'ADDRESSEE: The "addressee" field names who the line is spoken TO. '
+                'Use it to choose the form of address the target language requires '
+                '(politeness level, formal vs familiar "you", gendered forms) and to '
+                'keep that choice consistent for the same pair of characters.'
+            )
 
         if tag_alias_legend:
             instructions.append('TAG ALIAS LEGEND: Use the "tag_alias_legend" field in the JSON payload to understand the meaning of tag aliases (e.g. colors, speed). Place these tag aliases correctly around the corresponding translated words.')

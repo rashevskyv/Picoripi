@@ -173,3 +173,53 @@ class TestZeldaStructuralSeeds:
         rules = self._rules([["x"], ["Ordon Village"]], {(1, 0): 12, (0, 0): 0})
         seeds = rules.get_glossary_seed_entries()
         assert seeds[0]["source_ref"] == "block 1, string 0"
+
+
+class TestAddresseeContract:
+    """M4: who a line is spoken TO, when the game's data can say."""
+
+    def test_default_is_no_answer(self):
+        assert BaseGameRules().get_addressee_for_string(0, 0) is None
+
+    def test_default_accepts_the_resolved_speaker(self):
+        """The engine passes the speaker in so a plugin need not redo it."""
+        assert BaseGameRules().get_addressee_for_string(0, 0, speaker="Midna") is None
+
+
+class TestZeldaAddressee:
+    def _rules(self, fuki_kind, flow_ids=(7,), character="Colin"):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules.get_message_attributes = lambda b, s: {"fuki_kind": fuki_kind}
+        index = MagicMock()
+        index.flows_for_message.return_value = list(flow_ids)
+        rules._get_flow_context_for_block = lambda b: index
+        rules._get_flow_actor_map = lambda: (
+            {7: {"character": character}} if character else {}
+        )
+        return rules
+
+    def test_the_owning_npc_speaks_to_the_player(self):
+        assert self._rules(0).get_addressee_for_string(0, 0, speaker="Colin") == "Link"
+
+    def test_an_unknown_speaker_in_an_npc_flow_still_means_the_player(self):
+        assert self._rules(0).get_addressee_for_string(0, 0) == "Link"
+
+    def test_someone_else_in_the_flow_is_speaking_to_its_owner(self):
+        assert self._rules(0).get_addressee_for_string(0, 0, speaker="Ilia") == "Colin"
+
+    def test_cutscene_subtitles_get_no_answer(self):
+        """Two NPCs may address each other; the flow owner proves nothing."""
+        assert self._rules(1).get_addressee_for_string(0, 0, speaker="Colin") is None
+
+    def test_boss_cards_and_signs_get_no_answer(self):
+        for kind in (2, 6, 9, 12, 19):
+            assert self._rules(kind).get_addressee_for_string(0, 0) is None
+
+    def test_a_line_in_several_conversations_is_ambiguous(self):
+        assert self._rules(0, flow_ids=(7, 8)).get_addressee_for_string(0, 0) is None
+
+    def test_an_unreviewed_actor_yields_nothing(self):
+        """flow_actors entries without a human-readable name are not usable."""
+        assert self._rules(0, character="").get_addressee_for_string(0, 0) is None

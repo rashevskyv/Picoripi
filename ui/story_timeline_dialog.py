@@ -325,6 +325,18 @@ class StoryTimelineDialog(QDialog):
             block += "</div>"
             parts.append(block)
 
+        # addressee read from the game's own data (plugin hook), as opposed to
+        # the relation-derived "speaks to" list above
+        addressee = b.get("addressee") or {}
+        if addressee.get("raw"):
+            chip = self._chip(
+                f"{addressee.get('translated') or addressee['raw']} ({addressee['raw']})"
+            )
+            parts.append(
+                "<div style='margin-bottom:8px;'><b>🎯 Addressed to:</b> "
+                f"{chip} <span style='color:#5f6368'>· from game data</span></div>"
+            )
+
         # scene cast (participants ∪ game-truth candidate actors)
         cast: List[str] = list((b.get("event") or {}).get("participants", []))
         scene = b.get("scene") or {}

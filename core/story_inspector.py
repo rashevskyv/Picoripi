@@ -182,8 +182,22 @@ def build_timeline_inspection(
             "source": resolution.source,
         }
 
-    # --- game-truth scene (plugin hook) ---------------------------------------
+    # --- addressee (plugin hook) ----------------------------------------------
+    # Who the line is spoken TO. The speaker resolved just above is handed over
+    # so the plugin does not repeat that work.
     rules = getattr(mw, "current_game_rules", None)
+    get_addressee = getattr(rules, "get_addressee_for_string", None)
+    if callable(get_addressee):
+        addressee = _call(get_addressee, block_idx, string_idx, speaker=raw_speaker)
+        if addressee:
+            bundle["addressee"] = {
+                "raw": addressee,
+                "translated": _call(
+                    composer._translate_speaker, addressee, default=addressee
+                ),
+            }
+
+    # --- game-truth scene (plugin hook) ---------------------------------------
     if rules is not None:
         scene = _call(rules.get_scene_context_for_string, block_idx, string_idx, default={})
         if isinstance(scene, dict) and scene:

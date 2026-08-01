@@ -1043,9 +1043,66 @@ class GameRules(BaseGameRules):
     _NAME_CARD_KINDS = {12: "Places", 19: "Boss Names"}
     _ITEM_WINDOW_KIND = 9
 
+    # Windows that are not one character speaking to another: subtitles and
+    # staff credits (1, 5, 7), signs (2, 6, 15), item windows (9), location
+    # plates (12), howling stones (17) and boss cards (19).
+    _NON_CONVERSATIONAL_KINDS = {1, 2, 5, 6, 7, 9, 12, 15, 17, 19}
+
     def get_capabilities(self) -> Set[str]:
         """Reads terms from the game's message data, and lore from Zelda Wiki."""
         return {"glossary_seed", "external_lore"}
+
+    # The player character every NPC talk flow is aimed at. TP's talk flows are
+    # built per-NPC and fire when Link speaks to them, so an NPC line inside one
+    # is addressed to him by construction.
+    _PLAYER_CHARACTER = "Link"
+
+    def get_addressee_for_string(self, block_idx: int, string_idx: int,
+                                 speaker: Optional[str] = None) -> Optional[str]:
+        """Who an NPC talk line is spoken to.
+
+        Answers only for talk-box windows that belong to a conversation with one
+        known owning character. Cutscene subtitles are excluded on purpose: those
+        are the scenes where two NPCs address each other and the owner of the
+        flow says nothing about who is being spoken to.
+
+        Returns None whenever it cannot be told. A confidently wrong addressee
+        would push the translation into the wrong register.
+        """
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        if not attrs or attrs.get("fuki_kind") in self._NON_CONVERSATIONAL_KINDS:
+            return None
+
+        owner = self._conversation_owner(block_idx, string_idx)
+        if not owner:
+            return None
+
+        # The owning NPC is talking -> it is talking to the player. Somebody
+        # else is talking inside the NPC's flow -> they are talking to the NPC.
+        current = (speaker or "").strip()
+        if current and current.casefold() != owner.casefold():
+            return owner
+        return self._PLAYER_CHARACTER
+
+    def _conversation_owner(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The single reviewed character owning this line's conversation.
+
+        Ambiguity is refused: a line reached by several conversations, or a
+        conversation whose actor was never resolved to a human-readable name,
+        yields nothing.
+        """
+        index = self._get_flow_context_for_block(block_idx)
+        if index is None:
+            return None
+        try:
+            flow_ids = index.flows_for_message(string_idx)
+        except Exception:
+            return None
+        if len(flow_ids) != 1:
+            return None
+        entry = (self._get_flow_actor_map() or {}).get(flow_ids[0]) or {}
+        character = str(entry.get("character") or "").strip()
+        return character or None
 
     def get_external_lore(self, term: str) -> Optional[str]:
         """Look ``term`` up in Zelda Wiki, in English, as published.

@@ -176,6 +176,21 @@ class BaseGameRules:
         """
         return []
 
+    def get_addressee_for_string(self, block_idx: int, string_idx: int,
+                                speaker: Optional[str] = None) -> Optional[str]:
+        """Who this line is spoken TO, when the game's data can say.
+
+        Translations into languages with a T-V distinction or gendered address
+        need this: the same sentence is worded differently to a child, a stranger
+        or a monarch. Knowing the speaker is only half of it.
+
+        ``speaker`` is the already-resolved speaker of this line, passed in so a
+        plugin need not redo that work (resolving it is the engine's job and is
+        expensive). Return a display name, or None when it cannot be told --
+        a wrong addressee is worse than none.
+        """
+        return None
+
     def get_external_lore(self, term: str) -> Optional[str]:
         """Background knowledge about a term from a source outside the game.
 
