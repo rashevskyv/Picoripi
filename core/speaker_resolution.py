@@ -371,6 +371,10 @@ def _plugin_speaker_rows(mw: Any) -> dict:
     if not isinstance(data, list):
         return {}
 
+    # A code the script has already been merged onto becomes that name here, so
+    # every consumer -- editor field, folders, prompts -- sees the same one.
+    aliases = _speaker_aliases(mw)
+
     rows: dict = {}
     for block_idx, block in enumerate(data):
         if not isinstance(block, (list, tuple)):
@@ -387,8 +391,17 @@ def _plugin_speaker_rows(mw: Any) -> dict:
             # Only a real string counts: a plugin that answers with something
             # else must not be able to fill the pool with nonsense.
             if isinstance(name, str) and name.strip():
-                rows[(block_idx, string_idx)] = name.strip()
+                resolved_name = name.strip()
+                rows[(block_idx, string_idx)] = aliases.get(resolved_name, resolved_name)
     return rows
+
+
+def _speaker_aliases(mw: Any) -> dict:
+    """The project's code -> name map, if one has been merged from a script."""
+    from core.speaker_alias_merge import load_speaker_aliases
+
+    manager = getattr(mw, "project_manager", None)
+    return load_speaker_aliases(getattr(manager, "project_dir", None) if manager else None)
 
 
 def resolve_speaker_for_string(
