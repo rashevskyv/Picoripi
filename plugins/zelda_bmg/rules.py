@@ -1288,6 +1288,9 @@ class GameRules(BaseGameRules):
                     "term": term,
                     "description": description,
                     "section": section,
+                    # Which blocks this term came from, so a build restricted to
+                    # part of the project does not seed the whole game.
+                    "blocks": [block_idx],
                     "source_ref": f"block {block_idx}, string {string_idx}",
                 })
 
@@ -1306,7 +1309,7 @@ class GameRules(BaseGameRules):
         if not isinstance(data, list):
             return []
 
-        lines = self._lines_by_speaker(data)
+        lines, blocks = self._lines_by_speaker(data)
         out: List[Dict[str, Any]] = []
         for name, samples in sorted(lines.items()):
             key = name.casefold()
@@ -1315,6 +1318,7 @@ class GameRules(BaseGameRules):
             seen.add(key)
             out.append({
                 "term": name,
+                "blocks": sorted(blocks.get(name, ())),
                 # A placement code like "Bou" or "zrA" means nothing on its own.
                 # Its lines are the only evidence of who it is, and they cannot be
                 # found by searching for the code, so they are carried here: the
@@ -1329,11 +1333,16 @@ class GameRules(BaseGameRules):
     _EVIDENCE_LINES = 6
     _EVIDENCE_LINE_CHARS = 160
 
-    def _lines_by_speaker(self, data) -> Dict[str, List[str]]:
-        """Group every attributed line under the character who speaks it."""
+    def _lines_by_speaker(self, data) -> Tuple[Dict[str, List[str]], Dict[str, Set[int]]]:
+        """Group every attributed line under the character who speaks it.
+
+        Also returns which blocks each character speaks in, so a build limited
+        to part of the project seeds only the characters that appear there.
+        """
         from utils.utils import remove_all_tags
 
         lines: Dict[str, List[str]] = {}
+        blocks: Dict[str, Set[int]] = {}
         for block_idx, block in enumerate(data):
             if not isinstance(block, (list, tuple)):
                 continue
@@ -1347,7 +1356,8 @@ class GameRules(BaseGameRules):
                 text = " ".join(remove_all_tags(str(value or "")).split())
                 if text:
                     lines.setdefault(name, []).append(text)
-        return lines
+                    blocks.setdefault(name, set()).add(block_idx)
+        return lines, blocks
 
     def _speaker_evidence(self, name: str, samples: List[str]) -> str:
         """Raw evidence for who a placement code is: their own longest lines.

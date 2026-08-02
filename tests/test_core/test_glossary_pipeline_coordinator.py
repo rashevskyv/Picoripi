@@ -311,3 +311,49 @@ class TestDescribingTermsWithNoOccurrences:
 
         assert result.described == 0
         assert ai.calls == []
+
+
+class TestStructuralSeedsRespectTheArea:
+    """Choosing one block must not seed the whole game's terms."""
+
+    SEEDS = [
+        {"term": "Ordon Village", "section": "Places", "blocks": [0]},
+        {"term": "Diababa", "section": "Boss Names", "blocks": [5]},
+        {"term": "Bou", "section": "Characters", "blocks": [0, 5]},
+        {"term": "Nowhere", "section": "Terms"},        # plugin could not say
+    ]
+
+    def _build(self, manager, block_indices):
+        coordinator = GlossaryBuildCoordinator(
+            manager, FakeAI(extract=[]), PROMPTS, structural_seeds=self.SEEDS
+        )
+        return coordinator.build([["x"], [], [], [], [], ["y"]],
+                                 MODE_SEED, block_indices=block_indices)
+
+    def test_only_the_chosen_block_is_seeded(self):
+        manager = _manager()
+        self._build(manager, [0])
+
+        terms = {e.original for e in manager.get_entries()}
+        assert "Ordon Village" in terms
+        assert "Bou" in terms              # speaks in block 0 too
+        assert "Diababa" not in terms      # belongs to block 5
+
+    def test_a_seed_with_no_block_is_kept(self):
+        """Scoping something the plugin could not place would drop it silently."""
+        manager = _manager()
+        self._build(manager, [0])
+
+        assert manager.get_entry("Nowhere") is not None
+
+    def test_the_whole_project_still_seeds_everything(self):
+        manager = _manager()
+        self._build(manager, None)
+
+        assert len({e.original for e in manager.get_entries()}) == 4
+
+    def test_structural_seeds_are_counted_apart_from_swept_ones(self):
+        manager = _manager()
+        result = self._build(manager, [0])
+
+        assert result.seeded_structural == result.seeded == 3

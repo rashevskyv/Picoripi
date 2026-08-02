@@ -175,8 +175,18 @@ class GlossaryBuildWorker(QThread):
                 f"{self._skipped_calls} AI call(s) gave up after retries "
                 "(rate limited?) — those chunks contributed nothing"
             )
+        # Split the seed count: a run that found 3 terms with AI and took 200
+        # from the game data reads as "seeded 203" otherwise, which hides
+        # exactly the number the user is trying to judge.
+        seeded = f"seeded {result.seeded}"
+        if result.seeded_structural:
+            from_ai = result.seeded - result.seeded_structural
+            seeded = (
+                f"seeded {result.seeded} "
+                f"({from_ai} from text, {result.seeded_structural} from game data)"
+            )
         parts += [
-            f"seeded {result.seeded}",
+            seeded,
             f"described {result.described}",
             f"translated {result.translated}",
         ]

@@ -53,6 +53,7 @@ class BuildResult:
     """Counts from a build run."""
 
     seeded: int = 0
+    seeded_structural: int = 0
     described: int = 0
     translated: int = 0
     cancelled: bool = False
@@ -111,7 +112,7 @@ class GlossaryBuildCoordinator:
         # Terms the game names itself cost nothing to take, so every build that
         # is allowed to add entries starts with them.
         if mode in (MODE_SEED, MODE_THOROUGH, MODE_DRAFT):
-            self._seed_structural(result)
+            self._seed_structural(result, block_indices)
             if mode == MODE_SEED or self._cancelled():
                 result.cancelled = self._cancelled()
                 return result
@@ -173,14 +174,15 @@ class GlossaryBuildCoordinator:
 
     # -- passes -------------------------------------------------------------
 
-    def _seed_structural(self, result: BuildResult) -> None:
+    def _seed_structural(self, result: BuildResult, block_indices=None) -> None:
         """Write the plugin's structural seeds into the glossary.
 
         Gap-filling only, like every other seed: an entry that already carries a
         decided translation is left exactly as it is.
         """
-        total = len(self.structural_seeds)
-        for index, seed in enumerate(self.structural_seeds):
+        seeds = self._seeds_in_area(block_indices)
+        total = len(seeds)
+        for index, seed in enumerate(seeds):
             if self._cancelled():
                 return
             term = str(seed.get("term") or "").strip()
@@ -201,6 +203,7 @@ class GlossaryBuildCoordinator:
                     icon=str(seed.get("icon") or ""),
                 )
                 result.seeded += 1
+                result.seeded_structural += 1
             elif description and not existing.notes:
                 self.manager.update_entry(
                     term,
@@ -210,7 +213,25 @@ class GlossaryBuildCoordinator:
                     status=status,
                 )
                 result.seeded += 1
+                result.seeded_structural += 1
             self._progress("structural seed", index + 1, total)
+
+    def _seeds_in_area(self, block_indices) -> list:
+        """Seeds belonging to the blocks this build was asked to cover.
+
+        Choosing one block and getting the whole game's terms is not what the
+        area selector promises. A seed that records no block is kept: the plugin
+        could not say where it came from, so scoping it would silently drop it.
+        """
+        if block_indices is None:
+            return list(self.structural_seeds)
+        wanted = {int(b) for b in block_indices}
+        kept = []
+        for seed in self.structural_seeds:
+            blocks = seed.get("blocks")
+            if not blocks or wanted.intersection(int(b) for b in blocks):
+                kept.append(seed)
+        return kept
 
     def _sweep(self, dataset, block_indices) -> Dict[str, AggregatedTerm]:
         items = items_from_dataset(dataset, block_indices=block_indices)
