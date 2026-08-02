@@ -195,6 +195,71 @@ def parse_event_list(data: bytes) -> List[Dict[str, Any]]:
     return events
 
 
+# --- se_speaker -> character, derived from the flows we already resolved ------
+
+# Every BMG message carries a speaker id (INF1 attribute byte 5) used to pick the
+# character's voice grunts. It is present on cutscene lines too, which have no
+# talk flow at all -- so it reaches the dialogue the ACTR route cannot.
+#
+# The id->character table is not in the game's data. It is DERIVED: for every
+# message whose flow has one known owning NPC we already know the speaker, so
+# those messages vote on what each id means. Ids whose votes disagree are
+# dropped rather than guessed at.
+_SPEAKER_MIN_VOTES = 3
+_SPEAKER_MIN_AGREEMENT = 0.75
+
+
+def derive_speaker_ids(msg_root: str, flow_index: Dict[Tuple[int, int], str]) -> Dict[str, Any]:
+    """``{speaker_id: {name, votes, agreement}}`` learned from resolved flows."""
+    from collections import Counter, defaultdict
+
+    from bmg_tool import BMGFile
+
+    from .msg_flow import flow_context_from_bmg
+    from .window_kinds import decode_message_attributes
+
+    votes: Dict[int, Any] = defaultdict(Counter)
+    for group in range(1, 100):
+        arc_path = os.path.join(msg_root, f"bmgres{group}.arc")
+        if not os.path.exists(arc_path):
+            continue
+        try:
+            arc = _load_rarc(arc_path)
+        except Exception:
+            continue
+        for entry in arc.list_files():
+            if not entry.lower().endswith(".bmg"):
+                continue
+            try:
+                bmg = BMGFile()
+                bmg.load(arc.read_file(entry))
+                ctx = flow_context_from_bmg(bmg)
+            except Exception:
+                continue
+            if ctx is None:
+                continue
+            for i, msg in enumerate(getattr(bmg, "messages", []) or []):
+                spk = decode_message_attributes(getattr(msg, "info", b"")).get("se_speaker") or 0
+                if not spk:
+                    continue
+                flows = ctx.flows_for_message(i)
+                if len(flows) != 1:
+                    continue
+                name = flow_index.get((group, flows[0]))
+                if name:
+                    votes[spk][name] += 1
+
+    table: Dict[str, Any] = {}
+    for spk, counter in votes.items():
+        name, top = counter.most_common(1)[0]
+        total = sum(counter.values())
+        agreement = top / total
+        if top < _SPEAKER_MIN_VOTES or agreement < _SPEAKER_MIN_AGREEMENT:
+            continue
+        table[str(spk)] = {"name": name, "votes": top, "agreement": round(agreement, 3)}
+    return table
+
+
 # --- OBJNAME: which placement names are talking NPCs --------------------------
 
 # src/d/d_stage.cpp: OBJNAME("<placement>", fpcNm_<PROC>_e, <sub>) maps the 8-char
@@ -419,7 +484,25 @@ def extract_all(game_root: str, decomp_root: Optional[str] = None) -> Dict[str, 
         telop = parse_telop_data(decomp_root)
         if telop:
             doc["telop_data"] = telop
+
+    msg_root = _find_msg_root(game_root)
+    if msg_root:
+        table = derive_speaker_ids(msg_root, flow_speaker_index(doc))
+        if table:
+            doc["speaker_ids"] = table
     return doc
+
+
+def _find_msg_root(game_root: str) -> Optional[str]:
+    """Locate the folder holding bmgres*.arc (res/Msg<lang>)."""
+    res = os.path.join(game_root, "res")
+    if not os.path.isdir(res):
+        return None
+    for name in sorted(os.listdir(res)):
+        sub = os.path.join(res, name)
+        if os.path.isdir(sub) and os.path.exists(os.path.join(sub, "bmgres1.arc")):
+            return sub
+    return None
 
 
 # --- runtime loader -----------------------------------------------------------

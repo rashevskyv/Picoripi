@@ -1086,18 +1086,47 @@ class GameRules(BaseGameRules):
         owning NPC.
         """
         msg_group = self._get_msg_group_for_block(block_idx)
-        if msg_group is None:
-            return None
         ctx = self._get_flow_context_for_block(block_idx)
-        if ctx is None:
+        if msg_group is not None and ctx is not None:
+            try:
+                flow_ids = ctx.flows_for_message(int(string_idx))
+            except Exception:
+                flow_ids = []
+            if len(flow_ids) == 1:
+                owner = self._get_flow_speaker_index().get(
+                    (int(msg_group), int(flow_ids[0]))
+                )
+                if owner:
+                    return owner
+
+        # Second route, and the only one that reaches cutscenes: the message's
+        # own speaker id. Cinematic lines are played by JStudio demos and have no
+        # talk flow, but they still carry the byte that picks the character's
+        # voice.
+        return self._speaker_from_voice_id(block_idx, string_idx)
+
+    def _speaker_from_voice_id(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The character behind this message's se_speaker byte, if known."""
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        if not attrs:
             return None
-        try:
-            flow_ids = ctx.flows_for_message(int(string_idx))
-        except Exception:
+        speaker_id = attrs.get("se_speaker") or 0
+        if not speaker_id:
             return None
-        if len(flow_ids) != 1:
-            return None
-        return self._get_flow_speaker_index().get((int(msg_group), int(flow_ids[0])))
+        entry = self._get_speaker_id_table().get(str(int(speaker_id)))
+        return (entry or {}).get("name") or None
+
+    def _get_speaker_id_table(self) -> Dict[str, Any]:
+        """``se_speaker -> {name, votes, agreement}``, shipped with the plugin."""
+        table = getattr(self, "_speaker_id_table_cache", None)
+        if table is None:
+            try:
+                table = self._get_stage_scene_data().get("speaker_ids") or {}
+            except Exception as exc:
+                log_debug(f"ZeldaBmg: speaker id table failed: {exc}")
+                table = {}
+            self._speaker_id_table_cache = table
+        return table
 
     def get_addressee_for_string(self, block_idx: int, string_idx: int,
                                  speaker: Optional[str] = None) -> Optional[str]:

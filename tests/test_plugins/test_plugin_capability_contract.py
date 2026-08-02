@@ -242,6 +242,9 @@ class TestSpeakerFromGameData:
         rules._flow_speaker_index_cache = (
             {(1, 8): "Bou", (1, 12): "Jagar"} if index is None else index
         )
+        # These cases are about the talk-flow route; silence the voice-id one.
+        rules.get_message_attributes = lambda b, s: None
+        rules._speaker_id_table_cache = {}
         return rules
 
     def test_a_line_resolves_to_the_npc_holding_its_flow(self):
@@ -322,3 +325,55 @@ class TestSpeakerSeeds:
     def test_one_npc_with_many_flows_is_seeded_once(self):
         rules = self._rules(index={(1, 8): "Bou", (1, 51): "Bou", (1, 52): "Bou"})
         assert [s["term"] for s in rules.get_glossary_seed_entries()] == ["Bou"]
+
+
+class TestSpeakerFromVoiceId:
+    """The message's own speaker byte, for lines with no talk flow."""
+
+    def _rules(self, se_speaker, flow_ids=(), table=None):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules.get_message_attributes = lambda b, s: {"se_speaker": se_speaker}
+        rules._get_msg_group_for_block = lambda b: 1
+        ctx = MagicMock()
+        ctx.flows_for_message.return_value = list(flow_ids)
+        rules._get_flow_context_for_block = lambda b: ctx
+        rules._flow_speaker_index_cache = {(1, 8): "Bou"}
+        rules._speaker_id_table_cache = table if table is not None else {
+            "35": {"name": "Hanjo", "votes": 24, "agreement": 1.0},
+        }
+        return rules
+
+    def test_a_line_with_no_flow_still_resolves(self):
+        assert self._rules(35).get_speaker_for_string(0, 0) == "Hanjo"
+
+    def test_an_unmapped_id_yields_nothing(self):
+        """Characters who only ever speak in cutscenes get no votes."""
+        assert self._rules(99).get_speaker_for_string(0, 0) is None
+
+    def test_no_voice_id_yields_nothing(self):
+        assert self._rules(0).get_speaker_for_string(0, 0) is None
+
+    def test_the_talk_flow_wins_when_both_are_available(self):
+        """The flow names one placement; the voice id can be shared by several."""
+        assert self._rules(35, flow_ids=(8,)).get_speaker_for_string(0, 0) == "Bou"
+
+
+class TestDerivedSpeakerIdTable:
+    def test_disagreement_and_thin_evidence_are_dropped(self):
+        from plugins.zelda_bmg import stage_data
+
+        doc = (stage_data.load_stage_scene_data().get("speaker_ids") or {})
+        assert doc, "the shipped extraction carries no speaker id table"
+        for sid, entry in doc.items():
+            assert entry["votes"] >= 3
+            assert entry["agreement"] >= 0.75
+
+    def test_the_derivation_agrees_with_the_decompiled_voice_switch(self):
+        """Independent check: Z2SpeechMgr2::playOneShotVoice names these ids."""
+        from plugins.zelda_bmg import stage_data
+
+        table = stage_data.load_stage_scene_data().get("speaker_ids") or {}
+        for sid, expected in (("32", "Moi"), ("35", "Hanjo"), ("37", "Besu")):
+            assert table[sid]["name"] == expected

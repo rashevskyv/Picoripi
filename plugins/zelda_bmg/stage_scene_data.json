@@ -30284,5 +30284,192 @@
   "F127": 1140,
   "R127": 1140,
   "F126": 1141
+ },
+ "speaker_ids": {
+  "33": {
+   "name": "Uri",
+   "votes": 7,
+   "agreement": 1.0
+  },
+  "37": {
+   "name": "Besu",
+   "votes": 20,
+   "agreement": 0.87
+  },
+  "27": {
+   "name": "Aru",
+   "votes": 54,
+   "agreement": 0.982
+  },
+  "36": {
+   "name": "Seira",
+   "votes": 20,
+   "agreement": 0.833
+  },
+  "28": {
+   "name": "Jagar",
+   "votes": 27,
+   "agreement": 1.0
+  },
+  "35": {
+   "name": "Hanjo",
+   "votes": 24,
+   "agreement": 1.0
+  },
+  "32": {
+   "name": "Moi",
+   "votes": 11,
+   "agreement": 1.0
+  },
+  "34": {
+   "name": "Kolin",
+   "votes": 10,
+   "agreement": 1.0
+  },
+  "25": {
+   "name": "Yelia",
+   "votes": 26,
+   "agreement": 0.963
+  },
+  "13": {
+   "name": "Post",
+   "votes": 7,
+   "agreement": 1.0
+  },
+  "69": {
+   "name": "Npc_ne",
+   "votes": 37,
+   "agreement": 1.0
+  },
+  "45": {
+   "name": "The",
+   "votes": 21,
+   "agreement": 0.84
+  },
+  "39": {
+   "name": "Lud",
+   "votes": 13,
+   "agreement": 1.0
+  },
+  "56": {
+   "name": "grC",
+   "votes": 18,
+   "agreement": 0.818
+  },
+  "55": {
+   "name": "grA",
+   "votes": 44,
+   "agreement": 0.957
+  },
+  "40": {
+   "name": "Len",
+   "votes": 3,
+   "agreement": 1.0
+  },
+  "108": {
+   "name": "grZ",
+   "votes": 3,
+   "agreement": 1.0
+  },
+  "5": {
+   "name": "Shad",
+   "votes": 19,
+   "agreement": 1.0
+  },
+  "24": {
+   "name": "zrC",
+   "votes": 17,
+   "agreement": 1.0
+  },
+  "57": {
+   "name": "grD1",
+   "votes": 5,
+   "agreement": 1.0
+  },
+  "60": {
+   "name": "grO",
+   "votes": 5,
+   "agreement": 1.0
+  },
+  "58": {
+   "name": "grS",
+   "votes": 12,
+   "agreement": 1.0
+  },
+  "59": {
+   "name": "grR",
+   "votes": 9,
+   "agreement": 1.0
+  },
+  "67": {
+   "name": "clerkB",
+   "votes": 5,
+   "agreement": 1.0
+  },
+  "4": {
+   "name": "Ash",
+   "votes": 19,
+   "agreement": 0.95
+  },
+  "41": {
+   "name": "NpcChat",
+   "votes": 3,
+   "agreement": 1.0
+  },
+  "17": {
+   "name": "grC",
+   "votes": 5,
+   "agreement": 1.0
+  },
+  "76": {
+   "name": "NpcChat",
+   "votes": 6,
+   "agreement": 1.0
+  },
+  "88": {
+   "name": "NpcChat",
+   "votes": 3,
+   "agreement": 1.0
+  },
+  "86": {
+   "name": "NpcChat",
+   "votes": 4,
+   "agreement": 1.0
+  },
+  "66": {
+   "name": "Fairy",
+   "votes": 4,
+   "agreement": 1.0
+  },
+  "50": {
+   "name": "ykW",
+   "votes": 9,
+   "agreement": 1.0
+  },
+  "49": {
+   "name": "ykM",
+   "votes": 18,
+   "agreement": 0.947
+  },
+  "112": {
+   "name": "clerkT",
+   "votes": 3,
+   "agreement": 1.0
+  },
+  "7": {
+   "name": "impal",
+   "votes": 4,
+   "agreement": 1.0
+  },
+  "12": {
+   "name": "Npc_ne",
+   "votes": 8,
+   "agreement": 1.0
+  },
+  "44": {
+   "name": "Hoz",
+   "votes": 10,
+   "agreement": 1.0
+  }
  }
 }
