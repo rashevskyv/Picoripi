@@ -292,39 +292,80 @@ class TestFlowSpeakerIndex:
 
 
 class TestSpeakerSeeds:
-    """NPCs that hold conversations become glossary Characters entries."""
+    """Characters are seeded from the lines actually attributed to them."""
 
-    def _rules(self, msg_groups=(1,), index=None):
+    def _rules(self, rows):
+        """``rows`` maps (block, string) -> speaker name."""
         from plugins.zelda_bmg.rules import GameRules
 
         rules = GameRules.__new__(GameRules)
         rules.mw = MagicMock()
-        rules.mw.data_store.data = [["a line"]]
-        rules.get_message_attributes = lambda b, s: None      # no window seeds
-        rules._get_msg_group_for_block = lambda b: msg_groups[0]
-        rules._flow_speaker_index_cache = index if index is not None else {
-            (1, 8): "Bou", (1, 12): "Jagar", (2, 3): "Ashei",
-        }
+        blocks = {}
+        for (b, s_idx) in rows:
+            blocks.setdefault(b, {})[s_idx] = f"line {b}.{s_idx}"
+        data = [
+            [blocks[b].get(i, "") for i in range(max(blocks[b]) + 1)]
+            for b in sorted(blocks)
+        ]
+        rules.mw.data_store.data = data
+        rules.get_message_attributes = lambda b, s: None   # no window seeds
+        rules.get_speaker_for_string = lambda b, s: rows.get((b, s))
         return rules
 
-    def test_npcs_of_the_loaded_group_are_seeded(self):
-        seeds = {s["term"]: s for s in self._rules().get_glossary_seed_entries()}
+    def test_attributed_speakers_become_characters(self):
+        rules = self._rules({(0, 0): "Bou", (0, 1): "Jagar"})
+        seeds = {s["term"]: s for s in rules.get_glossary_seed_entries()}
 
-        assert set(seeds) == {"Bou", "Jagar"}          # group 2 is not loaded
+        assert set(seeds) == {"Bou", "Jagar"}
         assert seeds["Bou"]["section"] == "Characters"
 
-    def test_speakers_carry_no_description(self):
-        """The describe pass reads their own lines and works out who they are."""
-        seeds = self._rules().get_glossary_seed_entries()
-        assert all(s["description"] == "" for s in seeds)
+    def test_the_lines_travel_with_the_entry_as_evidence(self):
+        """A code like "Bou" means nothing; its own lines are the only clue,
+        and they cannot be found by searching the text for "Bou"."""
+        rules = self._rules({(0, 0): "Bou", (0, 1): "Bou"})
+        entry = rules.get_glossary_seed_entries()[0]
 
-    def test_provenance_names_the_flow_it_came_from(self):
-        seeds = {s["term"]: s for s in self._rules().get_glossary_seed_entries()}
-        assert seeds["Bou"]["source_ref"] == "bmgres1 dialogue flow 8"
+        assert "line 0.0" in entry["description"]
+        assert "line 0.1" in entry["description"]
+        assert entry["source_ref"] == "2 attributed line(s)"
 
-    def test_one_npc_with_many_flows_is_seeded_once(self):
-        rules = self._rules(index={(1, 8): "Bou", (1, 51): "Bou", (1, 52): "Bou"})
+    def test_one_speaker_with_many_lines_is_seeded_once(self):
+        rules = self._rules({(0, 0): "Bou", (0, 1): "Bou", (0, 2): "Bou"})
         assert [s["term"] for s in rules.get_glossary_seed_entries()] == ["Bou"]
+
+    def test_system_lines_are_not_a_character(self):
+        rules = self._rules({(0, 0): "System", (0, 1): "Bou"})
+        assert [s["term"] for s in rules.get_glossary_seed_entries()] == ["Bou"]
+
+    def test_unattributed_rows_contribute_nothing(self):
+        rules = self._rules({(0, 0): None, (0, 1): None})
+        assert rules.get_glossary_seed_entries() == []
+
+
+class TestSystemLines:
+    """Windows nobody speaks are the game talking, not an unknown speaker."""
+
+    def _rules(self, fuki_kind):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules.get_message_attributes = lambda b, s: {"fuki_kind": fuki_kind}
+        rules._get_msg_group_for_block = lambda b: None
+        rules._get_flow_context_for_block = lambda b: None
+        rules._speaker_id_table_cache = {}
+        return rules
+
+    @pytest.mark.parametrize("kind", [2, 6, 7, 9, 12, 15, 17, 19])
+    def test_signs_items_plates_and_credits_are_system(self, kind):
+        assert self._rules(kind).get_speaker_for_string(0, 0) == "System"
+
+    @pytest.mark.parametrize("kind", [1, 5])
+    def test_subtitles_are_not_system(self, kind):
+        """Somebody IS speaking in a cutscene; we just cannot say who yet."""
+        assert self._rules(kind).get_speaker_for_string(0, 0) is None
+
+    def test_a_talk_box_is_not_system(self):
+        assert self._rules(0).get_speaker_for_string(0, 0) is None
 
 
 class TestSpeakerFromVoiceId:

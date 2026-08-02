@@ -1048,6 +1048,13 @@ class GameRules(BaseGameRules):
     # plates (12), howling stones (17) and boss cards (19).
     _NON_CONVERSATIONAL_KINDS = {1, 2, 5, 6, 7, 9, 12, 15, 17, 19}
 
+    # Of those, the ones with no speaker at all: signs (2, 6, 15), staff credits
+    # (7), item windows (9), location plates (12), howling stones (17) and boss
+    # cards (19). Subtitles (1, 5) are excluded -- somebody IS speaking there,
+    # we just cannot say who yet.
+    _SYSTEM_VOICE_KINDS = {2, 6, 7, 9, 12, 15, 17, 19}
+    _SYSTEM_SPEAKER = "System"
+
     def get_capabilities(self) -> Set[str]:
         """Reads terms from the game's message data, and lore from Zelda Wiki."""
         return {"glossary_seed", "external_lore"}
@@ -1085,6 +1092,13 @@ class GameRules(BaseGameRules):
         is reached by more than one conversation, or its flow has no single
         owning NPC.
         """
+        # Windows that nobody speaks: a sign, an item pickup, a location plate,
+        # the credits. Attributing them to a character would be wrong, but they
+        # are not unknown either -- the game itself is talking.
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        if attrs and attrs.get("fuki_kind") in self._SYSTEM_VOICE_KINDS:
+            return self._SYSTEM_SPEAKER
+
         msg_group = self._get_msg_group_for_block(block_idx)
         ctx = self._get_flow_context_for_block(block_idx)
         if msg_group is not None and ctx is not None:
@@ -1251,29 +1265,64 @@ class GameRules(BaseGameRules):
         if not isinstance(data, list):
             return []
 
-        groups = set()
-        for block_idx in range(len(data)):
-            group = self._get_msg_group_for_block(block_idx)
-            if group is not None:
-                groups.add(int(group))
-        if not groups:
-            return []
-
+        lines = self._lines_by_speaker(data)
         out: List[Dict[str, Any]] = []
-        for (group, flow), name in sorted(self._get_flow_speaker_index().items()):
-            if group not in groups:
-                continue
+        for name, samples in sorted(lines.items()):
             key = name.casefold()
             if key in seen:
                 continue
             seen.add(key)
             out.append({
                 "term": name,
-                "description": "",
+                # A placement code like "Bou" or "zrA" means nothing on its own.
+                # Its lines are the only evidence of who it is, and they cannot be
+                # found by searching for the code, so they are carried here: the
+                # describe pass turns them into "who this is", and the translate
+                # pass proposes the name from that.
+                "description": self._speaker_evidence(name, samples),
                 "section": "Characters",
-                "source_ref": f"bmgres{group} dialogue flow {flow}",
+                "source_ref": f"{len(samples)} attributed line(s)",
             })
         return out
+
+    _EVIDENCE_LINES = 6
+    _EVIDENCE_LINE_CHARS = 160
+
+    def _lines_by_speaker(self, data) -> Dict[str, List[str]]:
+        """Group every attributed line under the character who speaks it."""
+        from utils.utils import remove_all_tags
+
+        lines: Dict[str, List[str]] = {}
+        for block_idx, block in enumerate(data):
+            if not isinstance(block, (list, tuple)):
+                continue
+            for string_idx, value in enumerate(block):
+                try:
+                    name = self.get_speaker_for_string(block_idx, string_idx)
+                except Exception:
+                    continue
+                if not name or name == self._SYSTEM_SPEAKER:
+                    continue
+                text = " ".join(remove_all_tags(str(value or "")).split())
+                if text:
+                    lines.setdefault(name, []).append(text)
+        return lines
+
+    def _speaker_evidence(self, name: str, samples: List[str]) -> str:
+        """Raw evidence for who a placement code is: their own longest lines.
+
+        Longest first because one-word replies ("Yes.", "Hmm...") identify
+        nobody, while a full sentence usually names a role, a place or a
+        relationship.
+        """
+        best = sorted(set(samples), key=len, reverse=True)[: self._EVIDENCE_LINES]
+        if not best:
+            return ""
+        quoted = "; ".join(f'"{s[: self._EVIDENCE_LINE_CHARS]}"' for s in best)
+        return (
+            f"In-game speaker id {name} ({len(samples)} lines). "
+            f"Identify who this is from what they say: {quoted}"
+        )
 
     # An item window is a sentence, hard-wrapped to the window width, with the
     # item's own name coloured inside it ("Power has returned to the\n{red}
