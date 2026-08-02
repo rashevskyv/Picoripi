@@ -1057,6 +1057,48 @@ class GameRules(BaseGameRules):
     # is addressed to him by construction.
     _PLAYER_CHARACTER = "Link"
 
+    def _get_flow_speaker_index(self):
+        """``(msg_group, flow_node) -> NPC placement name``, built once."""
+        index = getattr(self, "_flow_speaker_index_cache", None)
+        if index is None:
+            from .stage_data import flow_speaker_index
+
+            try:
+                index = flow_speaker_index(self._get_stage_scene_data())
+            except Exception as exc:
+                log_debug(f"ZeldaBmg: flow speaker index failed: {exc}")
+                index = {}
+            self._flow_speaker_index_cache = index
+        return index
+
+    def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The NPC who holds this line's conversation, from the game's own data.
+
+        TP does not hardcode who speaks what: ``daNpc*::getFlowNodeNo()`` returns
+        ``home.angle.x``, the X rotation of the NPC's placement record in
+        ``room.dzr``. So the room's actor list is the map from a dialogue flow
+        to the character who holds it, and stage_scene_data.json carries it,
+        scoped by the stage's message group.
+
+        Returns the placement name as the game spells it ("Bou", "Kolin"); the
+        glossary is what turns that into a display name. None whenever the line
+        is reached by more than one conversation, or its flow has no single
+        owning NPC.
+        """
+        msg_group = self._get_msg_group_for_block(block_idx)
+        if msg_group is None:
+            return None
+        ctx = self._get_flow_context_for_block(block_idx)
+        if ctx is None:
+            return None
+        try:
+            flow_ids = ctx.flows_for_message(int(string_idx))
+        except Exception:
+            return None
+        if len(flow_ids) != 1:
+            return None
+        return self._get_flow_speaker_index().get((int(msg_group), int(flow_ids[0])))
+
     def get_addressee_for_string(self, block_idx: int, string_idx: int,
                                  speaker: Optional[str] = None) -> Optional[str]:
         """Who an NPC talk line is spoken to.
@@ -1164,7 +1206,45 @@ class GameRules(BaseGameRules):
                     "section": section,
                     "source_ref": f"block {block_idx}, string {string_idx}",
                 })
+
+        seeds.extend(self._speaker_seed_entries(seen))
         return seeds
+
+    def _speaker_seed_entries(self, seen: Set[str]) -> List[Dict[str, Any]]:
+        """Every NPC that holds a conversation in the loaded message groups.
+
+        The name is the game's own placement name ("Bou", "Kolin"). Left without
+        a description on purpose: the describe pass reads that NPC's own lines
+        and works out who they are, which is exactly the evidence a translator
+        needs to pick the Ukrainian name.
+        """
+        data = getattr(getattr(self.mw, "data_store", None), "data", None)
+        if not isinstance(data, list):
+            return []
+
+        groups = set()
+        for block_idx in range(len(data)):
+            group = self._get_msg_group_for_block(block_idx)
+            if group is not None:
+                groups.add(int(group))
+        if not groups:
+            return []
+
+        out: List[Dict[str, Any]] = []
+        for (group, flow), name in sorted(self._get_flow_speaker_index().items()):
+            if group not in groups:
+                continue
+            key = name.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "term": name,
+                "description": "",
+                "section": "Characters",
+                "source_ref": f"bmgres{group} dialogue flow {flow}",
+            })
+        return out
 
     # An item window is a sentence, hard-wrapped to the window width, with the
     # item's own name coloured inside it ("Power has returned to the\n{red}

@@ -349,8 +349,42 @@ def build_speaker_pool(
     # 5. deep per-row fuzzy match (opt-in via the ⟳ button).
     if script_raw_rows:
         fill(script_raw_rows)
+    # 6. the game's own data, for rows nothing above claimed. Last on purpose:
+    # it is authoritative about the game but knows nothing of the user's
+    # corrections, and those must win.
+    fill(_plugin_speaker_rows(mw))
 
     return {row: name for row, name in resolved.items() if name}
+
+
+def _plugin_speaker_rows(mw: Any) -> dict:
+    """Speakers the active plugin can read out of the game's own data.
+
+    Optional: a plugin without such a source answers nothing and the pool is
+    exactly what it was before.
+    """
+    rules = getattr(mw, "current_game_rules", None)
+    getter = getattr(rules, "get_speaker_for_string", None)
+    if not callable(getter):
+        return {}
+    data = getattr(getattr(mw, "data_store", None), "data", None)
+    if not isinstance(data, list):
+        return {}
+
+    rows: dict = {}
+    for block_idx, block in enumerate(data):
+        if not isinstance(block, (list, tuple)):
+            continue
+        for string_idx in range(len(block)):
+            try:
+                name = getter(block_idx, string_idx)
+            except Exception:
+                continue
+            # Only a real string counts: a plugin that answers with something
+            # else must not be able to fill the pool with nonsense.
+            if isinstance(name, str) and name.strip():
+                rows[(block_idx, string_idx)] = name.strip()
+    return rows
 
 
 def resolve_speaker_for_string(

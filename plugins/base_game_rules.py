@@ -176,6 +176,19 @@ class BaseGameRules:
         """
         return []
 
+    def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """Who speaks this line, when the game's own data records it.
+
+        Some games bind a conversation to the character who holds it, in data
+        rather than in code. Where that is true this is authoritative and needs
+        no marked-up script, so the engine uses it to fill rows the user has not
+        covered -- never to overwrite a choice the user made.
+
+        Return the name as the game spells it; the glossary turns that into the
+        display name. None when it cannot be told. Default: no answer.
+        """
+        return None
+
     def get_addressee_for_string(self, block_idx: int, string_idx: int,
                                 speaker: Optional[str] = None) -> Optional[str]:
         """Who this line is spoken TO, when the game's data can say.

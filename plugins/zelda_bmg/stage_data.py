@@ -21,7 +21,8 @@ Binary layouts are from dusklight (``include/d/d_stage.h``,
 
     DZX (DZR/DZS): u32 num_chunks, then num_chunks * (char tag[4], u32 count,
                    u32 offset). All big-endian.
-    ACTR-family element (0x20): char name[8]; u32 parameters; ... (name @0x00)
+    ACTR-family element (0x20): char name[8]; u32 parameters; cXyz pos;
+                                csXyz angle @0x18 (angle.x = dialogue flow node)
     SCOB/TGSC element   (0x24): char name[8]; u32 parameters; ... + scale
     SCLS element        (0x0D): char stage[8]; u8 spawn; s8 room; ...
     STAG (in stage.dzs, 0x3C): ... u8 mMsgGroup @0x28; u16 mStageTitleNo @0x2A
@@ -51,6 +52,8 @@ _ACTOR_TAG_RE = re.compile(r"^(ACTR|TGOB|ACT[0-9ab])$")
 _TGSC_TAG_RE = re.compile(r"^(SCOB|TGSC|TGDR|SCO[0-9ab])$")
 
 _ACTOR_STRIDE = 0x20
+# angle.x inside fopAcM_prmBase_class: the NPC's dialogue flow node number.
+_ACTOR_ANGLE_X_OFF = 0x18
 _TGSC_STRIDE = 0x24
 _SCLS_STRIDE = 0x0D
 _STAG_MSGGROUP_OFF = 0x28
@@ -93,9 +96,39 @@ def _read_named_entries(data: bytes, offset: int, count: int, stride: int) -> Co
     return names
 
 
+def _read_actor_flows(data: bytes, offset: int, count: int) -> Dict[str, List[int]]:
+    """Placement name -> the dialogue flow nodes those placements talk with.
+
+    An NPC's talk flow is not in the game's code: ``getFlowNodeNo()`` reads
+    ``home.angle.x``, which is the X rotation of this placement record
+    (``fopAcM_prmBase_class.angle`` @0x18, s16 big-endian). So the room's actor
+    list IS the map from a conversation to the character who holds it.
+
+    0xFFFF (-1) means "no dialogue" and 0 is the unset default, so both are
+    dropped. One NPC normally has several placements, one per story state, each
+    with its own flow -- that is how its lines change as the game progresses.
+    """
+    flows: Dict[str, List[int]] = {}
+    for i in range(count):
+        b = offset + i * _ACTOR_STRIDE
+        if b + _ACTOR_STRIDE > len(data):
+            break
+        name = _cstr(data, b, 8)
+        if not name:
+            continue
+        node = struct.unpack_from(">h", data, b + _ACTOR_ANGLE_X_OFF)[0]
+        if node <= 0:
+            continue
+        bucket = flows.setdefault(name, [])
+        if node not in bucket:
+            bucket.append(node)
+    return flows
+
+
 @dataclass
 class DzxData:
     actors: Counter = field(default_factory=Counter)   # ACTR/ACTn/TGOB
+    actor_flows: Dict[str, List[int]] = field(default_factory=dict)  # name -> flow nodes
     objects: Counter = field(default_factory=Counter)   # SCOB/TGSC/TGDR
     scls: List[Dict[str, Any]] = field(default_factory=list)
     msg_group: Optional[int] = None
@@ -108,6 +141,9 @@ def parse_dzx(data: bytes) -> DzxData:
     for tag, count, off in parse_dzx_chunks(data):
         if _ACTOR_TAG_RE.match(tag):
             res.actors.update(_read_named_entries(data, off, count, _ACTOR_STRIDE))
+            for name, nodes in _read_actor_flows(data, off, count).items():
+                bucket = res.actor_flows.setdefault(name, [])
+                bucket.extend(n for n in nodes if n not in bucket)
         elif _TGSC_TAG_RE.match(tag):
             res.objects.update(_read_named_entries(data, off, count, _TGSC_STRIDE))
         elif tag == "SCLS":
@@ -157,6 +193,35 @@ def parse_event_list(data: bytes) -> List[Dict[str, Any]]:
         staff = [s for s in staff if s]
         events.append({"name": name, "staff": staff})
     return events
+
+
+# --- OBJNAME: which placement names are talking NPCs --------------------------
+
+# src/d/d_stage.cpp: OBJNAME("<placement>", fpcNm_<PROC>_e, <sub>) maps the 8-char
+# name in a room's ACTR record to the actor class that gets created.
+_OBJNAME_RE = re.compile(
+    r'OBJNAME\(\s*"([^"]+)"\s*,\s*fpcNm_([A-Za-z0-9_]+?)_e\s*,', re.M
+)
+
+
+def parse_npc_placement_names(decomp_root: str) -> set:
+    """Placement names that create an NPC actor.
+
+    Needed because angle.x only means "dialogue flow node" for actors whose
+    ``getFlowNodeNo()`` reads it -- the NPCs. For a clump of grass or a pot the
+    same field is what it looks like, an actual rotation, and reading it as a
+    conversation invents speakers that do not exist.
+    """
+    path = os.path.join(decomp_root, "src", "d", "d_stage.cpp")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return set()
+    return {
+        name for name, proc in _OBJNAME_RE.findall(text)
+        if proc.startswith("NPC") or proc.endswith("NPC")
+    }
 
 
 # --- TelopData (place-name captions), optional, from decomp source ------------
@@ -214,7 +279,10 @@ def extract_stage(stage_dir: str) -> Dict[str, Any]:
         except Exception:
             continue
         room = _room_label(arc_name)
-        room_rec = rooms.setdefault(room, {"actors": Counter(), "objects": Counter(), "events": []})
+        room_rec = rooms.setdefault(
+            room,
+            {"actors": Counter(), "objects": Counter(), "events": [], "actor_flows": {}},
+        )
 
         for f in files:
             low = f.lower()
@@ -222,6 +290,9 @@ def extract_stage(stage_dir: str) -> Dict[str, Any]:
                 if low.endswith((".dzr", ".dzs")):
                     dz = parse_dzx(arc.read_file(f))
                     room_rec["actors"].update(dz.actors)
+                    for nm, nodes in dz.actor_flows.items():
+                        bucket = room_rec["actor_flows"].setdefault(nm, [])
+                        bucket.extend(n for n in nodes if n not in bucket)
                     room_rec["objects"].update(dz.objects)
                     scls.extend(dz.scls)
                     if dz.msg_group is not None:
@@ -240,6 +311,7 @@ def extract_stage(stage_dir: str) -> Dict[str, Any]:
         stage_actors.update(rec["actors"])
         stage_actors.update(rec["objects"])
         rec["actors"] = dict(rec["actors"])
+        rec["actor_flows"] = {k: sorted(v) for k, v in rec["actor_flows"].items() if v}
         rec["objects"] = dict(rec["objects"])
         # dedupe events by name (same event repeats across room layers)
         seen = {}
@@ -255,7 +327,21 @@ def extract_stage(stage_dir: str) -> Dict[str, Any]:
             seen_scls.add(key)
             uniq_scls.append(s)
 
-    rec: Dict[str, Any] = {"rooms": rooms, "scls": uniq_scls, "actors": dict(stage_actors)}
+    # Stage-wide flow -> placement name, the map a message needs to name its
+    # speaker. Flow nodes are unique within a stage's message group, so rooms
+    # merge without collision.
+    stage_flow_owner: Dict[int, str] = {}
+    for rec_room in rooms.values():
+        for nm, nodes in (rec_room.get("actor_flows") or {}).items():
+            for node in nodes:
+                stage_flow_owner.setdefault(node, nm)
+
+    rec: Dict[str, Any] = {
+        "rooms": rooms,
+        "scls": uniq_scls,
+        "actors": dict(stage_actors),
+        "flow_owner": {str(k): v for k, v in sorted(stage_flow_owner.items())},
+    }
     if msg_group is not None:
         rec["msg_group"] = msg_group
         rec["bmgres"] = f"bmgres{msg_group}"
@@ -282,11 +368,27 @@ def extract_all(game_root: str, decomp_root: Optional[str] = None) -> Dict[str, 
     if not stage_root:
         raise FileNotFoundError(f"Could not find res/Stage under {game_root!r}")
 
+    # Only NPC placements use angle.x as a dialogue flow node; for scenery it is
+    # a real rotation. Without the decomp we cannot tell them apart, so the
+    # flow->speaker map is dropped rather than filled with invented speakers.
+    npc_names = parse_npc_placement_names(decomp_root) if decomp_root else set()
+
     stages: Dict[str, Any] = {}
     for name in sorted(os.listdir(stage_root)):
         sub = os.path.join(stage_root, name)
         if os.path.isdir(sub):
             stages[name] = extract_stage(sub)
+
+    for rec in stages.values():
+        owner = rec.get("flow_owner") or {}
+        rec["flow_owner"] = (
+            {k: v for k, v in owner.items() if v in npc_names} if npc_names else {}
+        )
+        for room in (rec.get("rooms") or {}).values():
+            flows = room.get("actor_flows") or {}
+            room["actor_flows"] = (
+                {k: v for k, v in flows.items() if k in npc_names} if npc_names else {}
+            )
 
     # reverse index: placement name -> stages + msg groups it appears in
     actor_index: Dict[str, Dict[str, Any]] = {}
@@ -304,7 +406,10 @@ def extract_all(game_root: str, decomp_root: Optional[str] = None) -> Dict[str, 
             "Generated by plugins/zelda_bmg/stage_data.py from res/Stage. "
             "msg_group = bmgres<N>.arc the stage loads (scopes local flow IDs). "
             "rooms.*.actors/objects = placement rosters (who is physically where). "
-            "rooms.*.events = event_list.dat cast (staff) per scripted scene."
+            "rooms.*.events = event_list.dat cast (staff) per scripted scene. "
+            "flow_owner = dialogue flow node -> NPC placement name, read from "
+            "ACTR angle.x (fopAcM_prmBase_class.angle @0x18), which is what "
+            "daNpc*::getFlowNodeNo() returns. Scoped by the stage's msg_group."
         ),
         "source": os.path.abspath(stage_root),
         "stages": stages,
@@ -337,6 +442,27 @@ def load_stage_scene_data(plugin_dir: Optional[str] = None) -> Dict[str, Any]:
 
 def msg_group_for_stage(doc: Dict[str, Any], stage: str) -> Optional[int]:
     return (doc.get("stages", {}).get(stage) or {}).get("msg_group")
+
+
+def flow_speaker_index(doc: Dict[str, Any]) -> Dict[Tuple[int, int], str]:
+    """``(msg_group, flow_node) -> NPC placement name``.
+
+    Flow node numbers are only unique within a message group, so the group is
+    part of the key. A node claimed by two different NPCs inside one group is
+    dropped: an ambiguous speaker is worse than none.
+    """
+    claims: Dict[Tuple[int, int], set] = {}
+    for rec in (doc.get("stages") or {}).values():
+        group = rec.get("msg_group")
+        if group is None:
+            continue
+        for node, name in (rec.get("flow_owner") or {}).items():
+            try:
+                key = (int(group), int(node))
+            except (TypeError, ValueError):
+                continue
+            claims.setdefault(key, set()).add(name)
+    return {key: next(iter(names)) for key, names in claims.items() if len(names) == 1}
 
 
 def stages_for_actor(doc: Dict[str, Any], actor: str) -> List[str]:

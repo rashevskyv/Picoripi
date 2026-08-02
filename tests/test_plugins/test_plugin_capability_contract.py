@@ -223,3 +223,102 @@ class TestZeldaAddressee:
     def test_an_unreviewed_actor_yields_nothing(self):
         """flow_actors entries without a human-readable name are not usable."""
         assert self._rules(0, character="").get_addressee_for_string(0, 0) is None
+
+
+class TestSpeakerFromGameData:
+    """The game binds a dialogue to its NPC in data, not in code."""
+
+    def test_default_is_no_answer(self):
+        assert BaseGameRules().get_speaker_for_string(0, 0) is None
+
+    def _rules(self, msg_group=1, flow_ids=(8,), index=None):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules._get_msg_group_for_block = lambda b: msg_group
+        ctx = MagicMock()
+        ctx.flows_for_message.return_value = list(flow_ids)
+        rules._get_flow_context_for_block = lambda b: ctx
+        rules._flow_speaker_index_cache = (
+            {(1, 8): "Bou", (1, 12): "Jagar"} if index is None else index
+        )
+        return rules
+
+    def test_a_line_resolves_to_the_npc_holding_its_flow(self):
+        assert self._rules(flow_ids=(8,)).get_speaker_for_string(0, 0) == "Bou"
+        assert self._rules(flow_ids=(12,)).get_speaker_for_string(0, 5) == "Jagar"
+
+    def test_flow_numbers_are_scoped_by_message_group(self):
+        """Node 8 in another bmgres is a different conversation entirely."""
+        assert self._rules(msg_group=2, flow_ids=(8,)).get_speaker_for_string(0, 0) is None
+
+    def test_a_line_in_several_conversations_is_ambiguous(self):
+        assert self._rules(flow_ids=(8, 12)).get_speaker_for_string(0, 0) is None
+
+    def test_an_unowned_flow_yields_nothing(self):
+        assert self._rules(flow_ids=(999,)).get_speaker_for_string(0, 0) is None
+
+    def test_no_message_group_means_no_answer(self):
+        assert self._rules(msg_group=None).get_speaker_for_string(0, 0) is None
+
+
+class TestFlowSpeakerIndex:
+    """Built from the shipped extraction of the retail stage arcs."""
+
+    def test_ambiguous_nodes_are_dropped(self):
+        from plugins.zelda_bmg.stage_data import flow_speaker_index
+
+        doc = {"stages": {
+            "A": {"msg_group": 1, "flow_owner": {"5": "Bou"}},
+            "B": {"msg_group": 1, "flow_owner": {"5": "Kolin", "6": "Taro"}},
+        }}
+        index = flow_speaker_index(doc)
+
+        assert (1, 5) not in index          # two NPCs claim it
+        assert index[(1, 6)] == "Taro"
+
+    def test_the_shipped_data_actually_binds_speakers(self):
+        """Guards the extraction: an empty index would silently disable this."""
+        from plugins.zelda_bmg.stage_data import flow_speaker_index, load_stage_scene_data
+
+        index = flow_speaker_index(load_stage_scene_data())
+
+        assert len(index) > 200
+        # Ordon's mayor, read from F_SP103 R00's ACTR angle.x.
+        assert index[(1, 8)] == "Bou"
+
+
+class TestSpeakerSeeds:
+    """NPCs that hold conversations become glossary Characters entries."""
+
+    def _rules(self, msg_groups=(1,), index=None):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules.mw = MagicMock()
+        rules.mw.data_store.data = [["a line"]]
+        rules.get_message_attributes = lambda b, s: None      # no window seeds
+        rules._get_msg_group_for_block = lambda b: msg_groups[0]
+        rules._flow_speaker_index_cache = index if index is not None else {
+            (1, 8): "Bou", (1, 12): "Jagar", (2, 3): "Ashei",
+        }
+        return rules
+
+    def test_npcs_of_the_loaded_group_are_seeded(self):
+        seeds = {s["term"]: s for s in self._rules().get_glossary_seed_entries()}
+
+        assert set(seeds) == {"Bou", "Jagar"}          # group 2 is not loaded
+        assert seeds["Bou"]["section"] == "Characters"
+
+    def test_speakers_carry_no_description(self):
+        """The describe pass reads their own lines and works out who they are."""
+        seeds = self._rules().get_glossary_seed_entries()
+        assert all(s["description"] == "" for s in seeds)
+
+    def test_provenance_names_the_flow_it_came_from(self):
+        seeds = {s["term"]: s for s in self._rules().get_glossary_seed_entries()}
+        assert seeds["Bou"]["source_ref"] == "bmgres1 dialogue flow 8"
+
+    def test_one_npc_with_many_flows_is_seeded_once(self):
+        rules = self._rules(index={(1, 8): "Bou", (1, 51): "Bou", (1, 52): "Bou"})
+        assert [s["term"] for s in rules.get_glossary_seed_entries()] == ["Bou"]
