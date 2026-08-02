@@ -6,7 +6,8 @@ the passes sequentially, so it is fully testable with a fake call and an
 in-memory manager. The Qt worker wraps this with a provider-backed call, a
 cancel flag, and progress signals.
 
-Three build modes (roadmap section 5):
+Build modes (roadmap section 5), each doing one thing:
+- ``seed``: take the terms the game names itself and stop. No AI call at all.
 - ``thorough``: sweep -> seed -> describe (status ends at synthesized).
 - ``draft``: sweep -> seed with the sweep fragment as a rough description
   (status fragments, flagged unconfirmed), no describe pass.
@@ -109,13 +110,16 @@ class GlossaryBuildCoordinator:
             # Nothing to build; the caller runs the translate pass.
             return result
 
-        # Terms the game names itself cost nothing to take, so every build that
-        # is allowed to add entries starts with them.
-        if mode in (MODE_SEED, MODE_THOROUGH, MODE_DRAFT):
+        # Structural seeding is its own mode and nothing else's prelude. Running
+        # it inside a sweep bought nothing -- the sweep is not told what is
+        # already seeded, so it costs exactly the same either way -- while in
+        # draft mode it actively lost work, replacing the game's own item text
+        # with a rougher sweep fragment. Keeping the modes apart also means the
+        # seeded count says what the AI actually found.
+        if mode == MODE_SEED:
             self._seed_structural(result, block_indices)
-            if mode == MODE_SEED or self._cancelled():
-                result.cancelled = self._cancelled()
-                return result
+            result.cancelled = self._cancelled()
+            return result
 
         if mode in (MODE_THOROUGH, MODE_DRAFT):
             aggregated = self._sweep(dataset, block_indices)
@@ -258,7 +262,12 @@ class GlossaryBuildCoordinator:
             # Never overwrite a real, already-decided entry; only fill gaps.
             if existing is not None and existing.translation and not existing.is_unconfirmed:
                 continue
-            description = agg.fragment_texts[0] if (mode == MODE_DRAFT and agg.fragment_texts) else ""
+            # A fragment is one chunk's impression of a term. It fills a gap; it
+            # never replaces a description that is already there -- least of all
+            # one the game itself wrote.
+            description = ""
+            if mode == MODE_DRAFT and agg.fragment_texts and not (existing and existing.notes):
+                description = agg.fragment_texts[0]
             self._write_seed(agg, status=status, description=description)
             result.seeded += 1
             self._progress("seed", index + 1, total)

@@ -357,3 +357,54 @@ class TestStructuralSeedsRespectTheArea:
         result = self._build(manager, [0])
 
         assert result.seeded_structural == result.seeded == 3
+
+
+class TestSeedingIsItsOwnMode:
+    """Structural seeding is not a prelude to the sweep modes."""
+
+    SEEDS = [{"term": "Dominion Rod", "section": "Items",
+              "description": "Power has returned to the Dominion Rod!"}]
+
+    def _coordinator(self, manager, ai=None):
+        return GlossaryBuildCoordinator(
+            manager, ai or FakeAI(), PROMPTS, structural_seeds=self.SEEDS
+        )
+
+    def test_a_sweep_run_does_not_seed_from_game_data(self):
+        manager = _manager()
+        result = self._coordinator(manager).build(DATASET, MODE_DRAFT)
+
+        assert manager.get_entry("Dominion Rod") is None
+        assert result.seeded_structural == 0
+
+    def test_a_thorough_run_does_not_either(self):
+        manager = _manager()
+        self._coordinator(manager).build(DATASET, MODE_THOROUGH)
+
+        assert manager.get_entry("Dominion Rod") is None
+
+    def test_the_seeded_count_is_only_what_the_sweep_found(self):
+        manager = _manager()
+        result = self._coordinator(manager).build(DATASET, MODE_DRAFT)
+
+        assert result.seeded == 2   # Ordon and Link, from the fake sweep
+
+
+class TestASweepFragmentNeverReplacesADescription:
+    """The game's own item text outranks one chunk's impression of a term."""
+
+    def test_an_existing_description_survives_a_draft_sweep(self):
+        manager = _manager()
+        manager.seed_entry(
+            "Ordon", section="Places", description="The village the game describes"
+        )
+        GlossaryBuildCoordinator(manager, FakeAI(), PROMPTS).build(DATASET, MODE_DRAFT)
+
+        assert manager.get_entry("Ordon").notes == "The village the game describes"
+
+    def test_a_gap_is_still_filled(self):
+        manager = _manager()
+        manager.seed_entry("Ordon", section="Places")   # no description
+        GlossaryBuildCoordinator(manager, FakeAI(), PROMPTS).build(DATASET, MODE_DRAFT)
+
+        assert manager.get_entry("Ordon").notes == "a village"

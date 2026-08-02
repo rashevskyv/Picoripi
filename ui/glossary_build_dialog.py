@@ -101,7 +101,9 @@ class GlossaryBuildDialog(QDialog):
         self._mode_seed = QRadioButton("Structural seed only (no AI)")
         self._mode_seed.setToolTip(
             "Take only the terms the game names itself -- item windows, location "
-            "plates, boss cards. Makes no AI request at all."
+            "plates, boss cards, the characters who hold each conversation. Makes "
+            "no AI request at all, and fills only gaps, so it is safe to run first "
+            "and safe to repeat."
         )
         self._mode_translate = QRadioButton("Translate existing entries only")
         self._mode_translate.setToolTip(
