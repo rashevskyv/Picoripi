@@ -375,7 +375,11 @@ def _plugin_speaker_rows(mw: Any) -> dict:
     for block_idx, block in enumerate(data):
         if not isinstance(block, (list, tuple)):
             continue
-        for string_idx in range(len(block)):
+        for string_idx, value in enumerate(block):
+            # A blank row says nothing and belongs to nobody. Attributing one
+            # inflates every speaker's count with padding.
+            if not str(value or "").strip():
+                continue
             try:
                 name = getter(block_idx, string_idx)
             except Exception:

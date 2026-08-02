@@ -3,6 +3,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
 from utils.logging_utils import log_info
+from utils.utils import natural_sort_key
 from pathlib import Path
 from .base_ui_updater import BaseUIUpdater
 from core.mempalace.story_timeline import (
@@ -525,7 +526,9 @@ class BlockListUpdater(BaseUIUpdater):
         self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
         root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
         assigned = set()
-        for name in sorted((name for name in speakers if name != "None"), key=str.casefold):
+        for name in sorted(
+            (name for name in speakers if name != "None"), key=natural_sort_key
+        ):
             rows = [row for row in speakers[name] if row in scope]
             if not rows:
                 continue
@@ -559,7 +562,7 @@ class BlockListUpdater(BaseUIUpdater):
         self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
         root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
         assigned = set()
-        for name in sorted(item_mappings, key=str.casefold):
+        for name in sorted(item_mappings, key=natural_sort_key):
             rows = [row for row in item_mappings[name] if row in scope]
             if not rows:
                 continue

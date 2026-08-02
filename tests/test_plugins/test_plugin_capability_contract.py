@@ -401,8 +401,9 @@ class TestSpeakerFromVoiceId:
     def test_a_named_id_beats_its_code(self):
         assert self._rules(35).get_speaker_for_string(0, 0) == "Hanjo"
 
-    def test_no_voice_id_yields_nothing(self):
-        assert self._rules(0).get_speaker_for_string(0, 0) is None
+    def test_no_voice_id_and_no_conversation_is_system(self):
+        """Nobody's voice and no flow: the game itself is talking."""
+        assert self._rules(0).get_speaker_for_string(0, 0) == "System"
 
     def test_the_talk_flow_wins_when_both_are_available(self):
         """The flow names one placement; the voice id can be shared by several."""
@@ -455,3 +456,36 @@ class TestPerCharacterWindows:
 
     def test_an_ordinary_talk_box_claims_nobody(self):
         assert self._rules(0, se_speaker=0).get_speaker_for_string(0, 0) is None
+
+
+class TestUnreachableLinesAreSystem:
+    """A talk box no conversation reaches is the game talking, not an NPC."""
+
+    def _rules(self, flows, se_speaker=0, has_ctx=True):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules.get_message_attributes = lambda b, s: {
+            "fuki_kind": 0, "se_speaker": se_speaker,
+        }
+        rules._get_msg_group_for_block = lambda b: 1
+        ctx = MagicMock()
+        ctx.flows_for_message.return_value = list(flows)
+        rules._get_flow_context_for_block = lambda b: (ctx if has_ctx else None)
+        rules._flow_speaker_index_cache = {}
+        rules._speaker_id_table_cache = {}
+        return rules
+
+    def test_a_line_no_flow_reaches_is_system(self):
+        assert self._rules(flows=()).get_speaker_for_string(0, 0) == "System"
+
+    def test_a_line_inside_a_conversation_stays_unattributed(self):
+        """Real dialogue whose owner we cannot name must not become System."""
+        assert self._rules(flows=(7,)).get_speaker_for_string(0, 0) is None
+
+    def test_a_voice_id_wins_over_the_system_fallback(self):
+        assert self._rules(flows=(), se_speaker=99).get_speaker_for_string(0, 0) == "Voice 99"
+
+    def test_a_file_with_no_flow_data_at_all_claims_nothing(self):
+        """Otherwise one unparsed file would label every line System."""
+        assert self._rules(flows=(), has_ctx=False).get_speaker_for_string(0, 0) is None

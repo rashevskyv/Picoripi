@@ -1133,7 +1133,23 @@ class GameRules(BaseGameRules):
         # own speaker id. Cinematic lines are played by JStudio demos and have no
         # talk flow, but they still carry the byte that picks the character's
         # voice.
-        return self._speaker_from_voice_id(block_idx, string_idx)
+        by_voice = self._speaker_from_voice_id(block_idx, string_idx)
+        if by_voice:
+            return by_voice
+
+        # Nobody's voice, and no conversation anywhere reaches it. The game
+        # never shows this line by talking to someone -- it is put on screen by
+        # code, so it is the game speaking: "You cannot use the Gale Boomerang
+        # in this room", an item description, a prompt. A line that IS reachable
+        # stays unattributed instead: that one is real dialogue we simply cannot
+        # place yet.
+        if ctx is not None:
+            try:
+                if not ctx.flows_for_message(int(string_idx)):
+                    return self._SYSTEM_SPEAKER
+            except Exception:
+                pass
+        return None
 
     def _speaker_from_voice_id(self, block_idx: int, string_idx: int) -> Optional[str]:
         """The character behind this message's se_speaker byte.

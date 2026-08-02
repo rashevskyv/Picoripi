@@ -473,3 +473,12 @@ def test_render_notes_in_the_editor_tooltip_falls_back_to_the_source_term():
     )
     assert shown.startswith("Blue-eyed beast —")
     assert "{{TERM}}" not in shown
+
+
+def test_natural_sort_key_orders_numbers_by_value():
+    """"Voice 100" must not sit between "Voice 10" and "Voice 11"."""
+    from utils.utils import natural_sort_key
+    names = ["Voice 100", "Voice 11", "Voice 2", "Voice 10", "Bou", "voice 3"]
+    assert sorted(names, key=natural_sort_key) == [
+        "Bou", "Voice 2", "voice 3", "Voice 10", "Voice 11", "Voice 100",
+    ]

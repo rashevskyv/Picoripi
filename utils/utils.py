@@ -1619,3 +1619,19 @@ def resolve_target_language_prompt(text: str, target_lang: str) -> str:
     text = text.replace("Ukrainian", target_lang)
     text = text.replace(temp_placeholder, target_lang)
     return text
+
+
+_NATURAL_CHUNK_RE = re.compile(r"(\d+)")
+
+
+def natural_sort_key(value: str):
+    """Sort key that orders embedded numbers by value, not by digit.
+
+    Plain alphabetical ordering puts "Voice 100" between "Voice 10" and
+    "Voice 11", which reads as broken to anyone scanning a list. Digits are
+    compared as integers and everything else case-insensitively.
+    """
+    parts = _NATURAL_CHUNK_RE.split(str(value or ""))
+    # (0, n) sorts numbers before text of equal position without ever comparing
+    # an int against a str.
+    return [(0, int(p), "") if p.isdigit() else (1, 0, p.casefold()) for p in parts]
