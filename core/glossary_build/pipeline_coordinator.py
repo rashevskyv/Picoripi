@@ -27,7 +27,7 @@ from core.glossary_manager import (
     GlossaryManager,
 )
 from .ai_adapters import make_extract, make_fold, make_propose, make_synthesize_stack
-from .describe_driver import describe_term
+from .describe_driver import DescribeResult, describe_term
 from .occurrence_bridge import occurrences_by_term
 from .sweep_driver import AggregatedTerm, sweep_terms
 from .text_sweep import DEFAULT_CHUNK_SIZE, items_from_dataset, pack_chunks
@@ -266,13 +266,20 @@ class GlossaryBuildCoordinator:
             if self._cancelled():
                 return
             occurrences = occ_by_term.get(entry.original, [])
-            if not occurrences:
-                continue
-            synthesize = make_synthesize_stack(
-                self.call, self.prompts, term=entry.original, target_lang=self.target_lang
-            )
             fold = make_fold(self.call, self.prompts, term=entry.original, target_lang=self.target_lang)
-            described = describe_term(dataset, occurrences, synthesize, fold=fold, weigh=self.weigh)
+            if occurrences:
+                synthesize = make_synthesize_stack(
+                    self.call, self.prompts, term=entry.original, target_lang=self.target_lang
+                )
+                described = describe_term(dataset, occurrences, synthesize, fold=fold, weigh=self.weigh)
+            elif entry.notes:
+                # A term the text never spells out -- a speaker identifier, say --
+                # has no occurrences to read, but a seeder may have handed over
+                # evidence in its notes. Fold that into prose instead of skipping
+                # the entry, which would leave it raw forever.
+                described = DescribeResult(description=fold([entry.notes]))
+            else:
+                continue
             if described.description:
                 self.manager.update_entry(
                     entry.original,

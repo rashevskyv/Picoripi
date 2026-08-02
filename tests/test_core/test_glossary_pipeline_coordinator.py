@@ -275,3 +275,39 @@ class TestStructuralSeeding:
         )
         assert coordinator.build([["x"]], MODE_SEED).seeded == 0
         assert manager.get_entries() == []
+
+
+class TestDescribingTermsWithNoOccurrences:
+    """A speaker code never appears in the text, but carries its own evidence."""
+
+    def test_evidence_in_the_notes_is_folded_into_prose(self):
+        manager = _manager()
+        manager.seed_entry(
+            "Voice 41",
+            section="Characters",
+            status=STATUS_FRAGMENTS,
+            description='Identify who this is: "I am the shaman of this village"',
+        )
+        ai = FakeAI(description="unused")
+        coordinator = GlossaryBuildCoordinator(manager, ai, PROMPTS)
+
+        # The dataset must not contain the term, or it would have occurrences.
+        coordinator.build([["a line that never names the speaker"]], MODE_AUGMENT)
+
+        entry = manager.get_entry("Voice 41")
+        assert entry.notes == "folded"
+        assert entry.status == STATUS_SYNTHESIZED
+        # It went through the fold pass, not the occurrence-based one.
+        assert any("Partial descriptions" in c for c in ai.calls)
+        assert not any("Excerpts where it appears" in c for c in ai.calls)
+
+    def test_an_entry_with_neither_occurrences_nor_notes_is_skipped(self):
+        manager = _manager()
+        manager.seed_entry("Ghost", section="Characters")
+        ai = FakeAI()
+        coordinator = GlossaryBuildCoordinator(manager, ai, PROMPTS)
+
+        result = coordinator.build([["nothing relevant here"]], MODE_AUGMENT)
+
+        assert result.described == 0
+        assert ai.calls == []
