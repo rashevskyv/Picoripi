@@ -187,3 +187,47 @@ def save_speaker_aliases(project_dir, aliases: Dict[str, str]) -> Optional[str]:
     except OSError:
         return None
     return str(path)
+
+
+# --- reading the marked-up script ---------------------------------------------
+
+_HEADING_RE = re.compile(r"^[A-Z0-9\s#]+$")
+
+
+def script_speaker_lines(composer) -> List[Tuple[str, str]]:
+    """``(speaker, line)`` pairs from the marked-up script.
+
+    The script's shape is an ALL-CAPS speaker heading followed by that
+    character's lines, with ``[bracketed]`` stage directions in between. Heading
+    lines and directions are not speech and are skipped; everything else belongs
+    to the heading above it.
+    """
+    import os
+
+    find_path = getattr(composer, "_find_script_path", None)
+    script_path = find_path() if callable(find_path) else None
+    if not script_path or not os.path.exists(script_path):
+        return []
+
+    lines = getattr(composer, "_script_lines_cache", None)
+    if not lines:
+        for encoding in ("cp1252", "utf-8"):
+            try:
+                with open(script_path, "r", encoding=encoding, errors="replace") as fh:
+                    lines = fh.readlines()
+                break
+            except OSError:
+                return []
+
+    out: List[Tuple[str, str]] = []
+    speaker: Optional[str] = None
+    for raw in lines or ():
+        stripped = raw.strip()
+        if not stripped or (stripped.startswith("[") and stripped.endswith("]")):
+            continue
+        if stripped.isupper() and len(stripped) >= 2 and _HEADING_RE.match(stripped):
+            speaker = stripped
+            continue
+        if speaker:
+            out.append((speaker, stripped))
+    return out

@@ -419,6 +419,15 @@ class MainWindowActions:
             self.mw.glossary_pipeline_handler = handler
         handler.build_from_text()
 
+    def merge_speakers_from_script(self):
+        """Name the plugin's speaker codes from the marked-up script."""
+        handler = getattr(self.mw, 'speaker_merge_handler', None)
+        if handler is None:
+            from handlers.speaker_merge_handler import SpeakerMergeHandler
+            handler = SpeakerMergeHandler(self.mw)
+            self.mw.speaker_merge_handler = handler
+        handler.merge_from_script()
+
     def open_bfn_editor_standalone(self):
         """Open BFN Font Editor as a standalone window (no archive binding)."""
         self.bfn_actions.open_bfn_editor_standalone()

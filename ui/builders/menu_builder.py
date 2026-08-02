@@ -352,6 +352,13 @@ class MenuBuilder:
         )
         tools_menu.addAction(self.mw.build_glossary_text_action)
 
+        self.mw.merge_speakers_action = QAction('&Merge Speakers from Script...', self.mw)
+        self.mw.merge_speakers_action.setToolTip(
+            'Match the marked-up script against the lines the game data already grouped '
+            'by speaker, and give those speaker codes their real names'
+        )
+        tools_menu.addAction(self.mw.merge_speakers_action)
+
         # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
         pixmap_s = QPixmap(32, 32)
         pixmap_s.fill(Qt.GlobalColor.transparent)

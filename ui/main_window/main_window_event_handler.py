@@ -78,6 +78,8 @@ class MainWindowEventHandler:
             self.mw.inspect_story_context_action.triggered.connect(self.mw.actions.inspect_story_context)
         if hasattr(self.mw, 'build_glossary_text_action') and self.mw.build_glossary_text_action:
             self.mw.build_glossary_text_action.triggered.connect(self.mw.actions.build_glossary_from_text)
+        if hasattr(self.mw, 'merge_speakers_action'):
+            self.mw.merge_speakers_action.triggered.connect(self.mw.actions.merge_speakers_from_script)
         if hasattr(self.mw, 'mempalace_viewer_action') and self.mw.mempalace_viewer_action:
             self.mw.mempalace_viewer_action.triggered.connect(self.mw.actions.open_mempalace_viewer)
         if hasattr(self.mw, 'fix_all_strings_action') and self.mw.fix_all_strings_action:

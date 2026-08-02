@@ -178,3 +178,64 @@ class TestPersistence:
 
         assert load_speaker_aliases(None) == {}
         assert save_speaker_aliases(None, {"a": "b"}) is None
+
+
+class TestReadingTheScript:
+    """The script is ALL-CAPS headings, [directions], and lines in between."""
+
+    def _composer(self, tmp_path, text):
+        path = tmp_path / "script.txt"
+        path.write_text(text, encoding="utf-8")
+
+        class _Composer:
+            _script_lines_cache = None
+
+            def _find_script_path(self):
+                return str(path)
+
+        return _Composer()
+
+    def test_lines_belong_to_the_heading_above_them(self, tmp_path):
+        from core.speaker_alias_merge import script_speaker_lines
+
+        composer = self._composer(tmp_path, (
+            "RENADO\n"
+            "Welcome to Kakariko Village.\n"
+            "The spirits are restless.\n"
+            "TELMA\n"
+            "Come in and sit down, honey.\n"
+        ))
+
+        assert script_speaker_lines(composer) == [
+            ("RENADO", "Welcome to Kakariko Village."),
+            ("RENADO", "The spirits are restless."),
+            ("TELMA", "Come in and sit down, honey."),
+        ]
+
+    def test_stage_directions_and_headings_are_not_speech(self, tmp_path):
+        from core.speaker_alias_merge import script_speaker_lines
+
+        composer = self._composer(tmp_path, (
+            "[Link enters the sanctuary]\n"
+            "RENADO\n"
+            "[he turns slowly]\n"
+            "You have returned.\n"
+        ))
+
+        assert script_speaker_lines(composer) == [("RENADO", "You have returned.")]
+
+    def test_text_before_any_heading_belongs_to_nobody(self, tmp_path):
+        from core.speaker_alias_merge import script_speaker_lines
+
+        composer = self._composer(tmp_path, "A prologue with no speaker\nRENADO\nHello there\n")
+
+        assert script_speaker_lines(composer) == [("RENADO", "Hello there")]
+
+    def test_a_missing_script_is_not_an_error(self, tmp_path):
+        from core.speaker_alias_merge import script_speaker_lines
+
+        class _Composer:
+            def _find_script_path(self):
+                return str(tmp_path / "nope.txt")
+
+        assert script_speaker_lines(_Composer()) == []
