@@ -389,9 +389,17 @@ class TestSpeakerFromVoiceId:
     def test_a_line_with_no_flow_still_resolves(self):
         assert self._rules(35).get_speaker_for_string(0, 0) == "Hanjo"
 
-    def test_an_unmapped_id_yields_nothing(self):
-        """Characters who only ever speak in cutscenes get no votes."""
-        assert self._rules(99).get_speaker_for_string(0, 0) is None
+    def test_an_unmapped_id_still_gets_a_stable_identity(self):
+        """All of that voice's lines group together, so naming it is one
+        decision rather than one per line."""
+        assert self._rules(99).get_speaker_for_string(0, 0) == "Voice 99"
+
+    def test_the_same_unmapped_id_always_gives_the_same_identity(self):
+        assert (self._rules(99).get_speaker_for_string(0, 0)
+                == self._rules(99).get_speaker_for_string(7, 3))
+
+    def test_a_named_id_beats_its_code(self):
+        assert self._rules(35).get_speaker_for_string(0, 0) == "Hanjo"
 
     def test_no_voice_id_yields_nothing(self):
         assert self._rules(0).get_speaker_for_string(0, 0) is None
@@ -418,3 +426,32 @@ class TestDerivedSpeakerIdTable:
         table = stage_data.load_stage_scene_data().get("speaker_ids") or {}
         for sid, expected in (("32", "Moi"), ("35", "Hanjo"), ("37", "Besu")):
             assert table[sid]["name"] == expected
+
+
+class TestPerCharacterWindows:
+    """Some windows belong to exactly one speaker."""
+
+    def _rules(self, fuki_kind, se_speaker=41):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules.get_message_attributes = lambda b, s: {
+            "fuki_kind": fuki_kind, "se_speaker": se_speaker,
+        }
+        rules._get_msg_group_for_block = lambda b: None
+        rules._get_flow_context_for_block = lambda b: None
+        rules._speaker_id_table_cache = {}
+        return rules
+
+    def test_midnas_window_is_midna(self):
+        assert self._rules(13).get_speaker_for_string(0, 0) == "Midna"
+
+    def test_the_light_spirit_window_is_a_light_spirit(self):
+        assert self._rules(8).get_speaker_for_string(0, 0) == "Light Spirit"
+
+    def test_the_window_beats_a_voice_code(self):
+        """The window IS the character, so it outranks an unnamed voice id."""
+        assert self._rules(13, se_speaker=99).get_speaker_for_string(0, 0) == "Midna"
+
+    def test_an_ordinary_talk_box_claims_nobody(self):
+        assert self._rules(0, se_speaker=0).get_speaker_for_string(0, 0) is None

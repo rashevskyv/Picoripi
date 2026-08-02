@@ -1055,6 +1055,16 @@ class GameRules(BaseGameRules):
     _SYSTEM_VOICE_KINDS = {2, 6, 7, 9, 12, 15, 17, 19}
     _SYSTEM_SPEAKER = "System"
 
+    # Prefix for a voice id we could not put a name to. Deliberately not a
+    # plausible character name, and free of '#' since the glossary normalises
+    # that away.
+    _UNNAMED_VOICE_PREFIX = "Voice "
+
+    # Window kinds the game reserves for one speaker (window_kinds.py): 13 is
+    # Midna's box with her cyan text and blue halo, 8 the light spirits' with
+    # their bright yellow one.
+    _WINDOW_SPEAKERS = {13: "Midna", 8: "Light Spirit"}
+
     def get_capabilities(self) -> Set[str]:
         """Reads terms from the game's message data, and lore from Zelda Wiki."""
         return {"glossary_seed", "external_lore"}
@@ -1096,8 +1106,14 @@ class GameRules(BaseGameRules):
         # the credits. Attributing them to a character would be wrong, but they
         # are not unknown either -- the game itself is talking.
         attrs = self.get_message_attributes(block_idx, string_idx)
-        if attrs and attrs.get("fuki_kind") in self._SYSTEM_VOICE_KINDS:
+        kind = attrs.get("fuki_kind") if attrs else None
+        if kind in self._SYSTEM_VOICE_KINDS:
             return self._SYSTEM_SPEAKER
+        # Some windows belong to one character: the game draws Midna's box only
+        # for Midna. That beats every other route, including a voice id, because
+        # the window IS the character.
+        if kind in self._WINDOW_SPEAKERS:
+            return self._WINDOW_SPEAKERS[kind]
 
         msg_group = self._get_msg_group_for_block(block_idx)
         ctx = self._get_flow_context_for_block(block_idx)
@@ -1120,7 +1136,15 @@ class GameRules(BaseGameRules):
         return self._speaker_from_voice_id(block_idx, string_idx)
 
     def _speaker_from_voice_id(self, block_idx: int, string_idx: int) -> Optional[str]:
-        """The character behind this message's se_speaker byte, if known."""
+        """The character behind this message's se_speaker byte.
+
+        A voice id selects one character's voice bank, so every line carrying the
+        same id is the same speaker even when we have no name for them. An id we
+        could not name still gets a stable identity of its own rather than being
+        thrown in with the unattributed: that groups all of its lines together,
+        which is what makes naming it later a single decision instead of one per
+        line. The label says plainly that it is a code, not a name.
+        """
         attrs = self.get_message_attributes(block_idx, string_idx)
         if not attrs:
             return None
@@ -1128,7 +1152,8 @@ class GameRules(BaseGameRules):
         if not speaker_id:
             return None
         entry = self._get_speaker_id_table().get(str(int(speaker_id)))
-        return (entry or {}).get("name") or None
+        name = (entry or {}).get("name")
+        return name or f"{self._UNNAMED_VOICE_PREFIX}{int(speaker_id)}"
 
     def _get_speaker_id_table(self) -> Dict[str, Any]:
         """``se_speaker -> {name, votes, agreement}``, shipped with the plugin."""
