@@ -28,6 +28,27 @@ class TestIsTransient:
     def test_not_retryable(self, message):
         assert is_transient(message) is False
 
+    @pytest.mark.parametrize("code", [400, 401, 403, 404, 405, 422])
+    def test_a_relayed_permanent_status_beats_the_502_wrapping_it(self, code):
+        """A proxy reports its own trouble as 502 and quotes the real answer.
+
+        Retrying a relayed 405 eighteen times spends three minutes proving what
+        the first attempt already said: the request is wrong.
+        """
+        message = (
+            f"502 Server Error: Bad Gateway for url: http://localhost:8081/v1/chat/"
+            f'completions - {{"error": {{"message": "upstream error: HTTP Error {code}: nope"}}}}'
+        )
+        assert is_transient(message) is False
+
+    @pytest.mark.parametrize("code", [429, 500, 502, 503])
+    def test_a_relayed_transient_status_is_still_retried(self, code):
+        message = (
+            f"502 Server Error: Bad Gateway for url: http://localhost:8081/v1/chat/"
+            f'completions - {{"error": {{"message": "upstream error: HTTP Error {code}: busy"}}}}'
+        )
+        assert is_transient(message) is True
+
     def test_bare_number_is_not_a_status_code(self):
         """A port or token count must not be read as a server error."""
         assert is_transient("connecting to http://localhost:5002/v1") is False

@@ -26,6 +26,14 @@ from typing import Callable, List, Optional
 # Error: ...". Anchoring on that shape keeps stray digits from matching.
 _STATUS_RE = re.compile(r"\b(408|409|425|429|500|502|503|504|529)\s+(?:client|server)\s+error", re.I)
 
+# An upstream status quoted inside a proxy's own error body, e.g.
+# '502 Bad Gateway ... {"error": {"message": "upstream error: HTTP Error 405"}}'.
+_RELAYED_STATUS_RE = re.compile(r"upstream error:\s*HTTP Error\s*(\d{3})", re.I)
+
+# Statuses that say the request itself is wrong. Sending it again unchanged
+# cannot help: a wrong endpoint, method, key or model stays wrong.
+_PERMANENT_STATUSES = frozenset({400, 401, 403, 404, 405, 406, 410, 422})
+
 # Named conditions, for providers that phrase failures in prose instead.
 _TRANSIENT_PHRASES = (
     "too many requests",
@@ -48,6 +56,15 @@ _TRANSIENT_PHRASES = (
 def is_transient(error: object) -> bool:
     """Whether a failure is worth retrying rather than aborting the run."""
     text = str(error or "")
+
+    # A proxy reports its own trouble reaching the model as 502, then quotes
+    # what the model actually said. The quoted status is the real answer: a
+    # relayed 405 or 401 will be identical on every attempt, however transient
+    # the 502 wrapping it looks.
+    relayed = _RELAYED_STATUS_RE.search(text)
+    if relayed:
+        return int(relayed.group(1)) not in _PERMANENT_STATUSES
+
     if _STATUS_RE.search(text):
         return True
     lowered = text.lower()
