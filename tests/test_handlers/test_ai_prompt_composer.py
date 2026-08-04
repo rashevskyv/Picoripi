@@ -698,16 +698,17 @@ def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
     composer.mw.data_store.block_names = {"0": "Block 0"}
 
-    # Test compose_batch_request preserves newlines and collects tag_alias_legend
-    source_items = [{"id": 0, "text": "Line1\nLine2"}]
-    all_items = [{"id": 0, "text": "Line1\nLine2"}]
+    # The legend now carries only the aliases the text actually uses, so the
+    # sample text has to contain one.
+    source_items = [{"id": 0, "text": "Line1 {Color:Red}\nLine2"}]
+    all_items = [{"id": 0, "text": "Line1 {Color:Red}\nLine2"}]
 
     system, user, pmap = composer.compose_batch_request(
         "SysPrompt", source_items, all_items, block_idx=0, mode_description="TestMode"
     )
 
     # Check that newlines are preserved in the JSON payload sent to AI
-    assert "Line1\\nLine2" in user or "Line1\nLine2" in user
+    assert "Line1 {Color:Red}\\nLine2" in user or "Line1 {Color:Red}\nLine2" in user
 
     # Check that forced alias {f:dummy} was excluded but {Color:Red} was included
     assert "tag_alias_legend" in user
@@ -719,7 +720,7 @@ def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     # Test compose_messages collects tag_alias_legend
     system_msg, user_msg = composer.compose_messages(
         "SysPrompt",
-        "Line1\nLine2",
+        "Line1 {Color:Red}\nLine2",
         block_idx=0,
         string_idx=0,
         expected_lines=2,
@@ -752,3 +753,96 @@ def test_batch_prompt_keeps_source_whitespace_instead_of_reflowing(composer):
     assert "  First  line  \\n\\nThird line\\n" in user
     assert '"blank_line_indices": [' in user
     assert '"ends_with_newline": true' in user
+
+
+class TestTagAliasLegendIsScopedToTheText:
+    """~500 aliases exist; a request needs only the ones its text uses."""
+
+    MAPPINGS = {
+        "{color:purple}": "{escape:255:000006}",
+        "{pause:5f}": "{escape:0:00070005}",
+        "{W:Nunchuk Z}": "{escape:3:0014}",
+        "{f:ignored}": "{escape:9:9999}",
+    }
+
+    def test_only_aliases_present_in_the_text_are_sent(self):
+        legend = AIPromptComposer._relevant_tag_aliases(
+            self.MAPPINGS, "...{pause:5f}Have {color:purple}10 Rupees{color:white}."
+        )
+
+        assert set(legend) == {"{color:purple}", "{pause:5f}"}
+
+    def test_a_raw_escape_that_slipped_through_still_resolves(self):
+        legend = AIPromptComposer._relevant_tag_aliases(
+            self.MAPPINGS, "text with {escape:3:0014} in it"
+        )
+
+        assert set(legend) == {"{W:Nunchuk Z}"}
+
+    def test_font_aliases_stay_excluded(self):
+        legend = AIPromptComposer._relevant_tag_aliases(self.MAPPINGS, "{f:ignored}")
+        assert legend == {}
+
+    def test_text_with_no_tags_gets_no_legend(self):
+        assert AIPromptComposer._relevant_tag_aliases(self.MAPPINGS, "plain words") == {}
+
+    def test_several_texts_are_all_considered(self):
+        legend = AIPromptComposer._relevant_tag_aliases(
+            self.MAPPINGS, "{pause:5f}first", None, "second {color:purple}"
+        )
+        assert set(legend) == {"{pause:5f}", "{color:purple}"}
+
+
+def test_batch_prompt_carries_only_the_tags_its_lines_use(composer):
+    composer.mw.default_tag_mappings = {
+        "{color:purple}": "{escape:255:000006}",
+        "{W:Nunchuk Z}": "{escape:3:0014}",
+    }
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+
+    _, user, _ = composer.compose_batch_request(
+        "SysPrompt",
+        [{"id": 1, "text": "Have {color:purple}10 Rupees{color:white}."}],
+        [{"id": 1, "text": "Have {color:purple}10 Rupees{color:white}."}],
+        block_idx=0,
+        mode_description="translation",
+    )
+
+    assert "{color:purple}" in user
+    assert "{W:Nunchuk Z}" not in user
+
+
+class TestPromptEditorLayout:
+    """The two prompts are read side by side and need independent room."""
+
+    def _dialog(self, qtbot):
+        from components.prompt_editor_dialog import PromptEditorDialog
+
+        dialog = PromptEditorDialog(
+            title="AI Translation Prompt",
+            system_prompt="sys",
+            user_prompt="user",
+        )
+        qtbot.addWidget(dialog)
+        return dialog
+
+    def test_both_prompts_sit_in_one_draggable_splitter(self, qtbot):
+        """Sizes are only meaningful once shown; the structure is the claim."""
+        dialog = self._dialog(qtbot)
+
+        assert dialog._splitter.count() == 2
+        assert dialog._splitter.isAncestorOf(dialog._system_edit)
+        assert dialog._splitter.isAncestorOf(dialog._user_edit)
+        assert dialog._splitter.handle(1) is not None   # a grip between them
+
+    def test_editing_still_returns_both_prompts(self, qtbot):
+        dialog = self._dialog(qtbot)
+        dialog._system_edit.setPlainText("edited sys")
+        dialog._user_edit.setPlainText("edited user")
+
+        system, user, save = dialog.get_user_inputs()
+
+        assert (system, user, save) == ("edited sys", "edited user", False)

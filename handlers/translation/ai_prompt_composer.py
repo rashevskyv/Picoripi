@@ -239,6 +239,27 @@ class AIPromptComposer(BaseTranslationHandler):
     # ------------------------------------------------------------------
     # Prompt composition helpers
     # ------------------------------------------------------------------
+    @staticmethod
+    def _relevant_tag_aliases(mappings, *texts) -> dict:
+        """Only the tag aliases that actually occur in what is being sent.
+
+        The full mapping is ~500 entries. Sending all of it with every request
+        buries the handful of tags the line really uses under a wall the model
+        has to read past, and costs the tokens to do it. An alias the text does
+        not contain explains nothing.
+        """
+        haystack = "\n".join(str(t or "") for t in texts)
+        legend = {}
+        for alias, orig in (mappings or {}).items():
+            lowered = alias.lower()
+            if lowered.startswith('{f:') or lowered.startswith('[f:'):
+                continue
+            # Match the alias as shown, and the raw form in case one leaks
+            # through unconverted.
+            if alias in haystack or (orig and orig in haystack):
+                legend[alias] = orig
+        return legend
+
     def compose_batch_request(
         self,
         system_prompt: str,
@@ -676,13 +697,10 @@ class AIPromptComposer(BaseTranslationHandler):
                 log_debug(f"AIPromptComposer: flow overview failed: {e}")
 
         # 4. Build JSON payload
-        tag_alias_legend = {}
-        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
-        if default_tag_mappings:
-            for alias, orig in default_tag_mappings.items():
-                if alias.lower().startswith('{f:') or alias.lower().startswith('[f:'):
-                    continue
-                tag_alias_legend[alias] = orig
+        tag_alias_legend = self._relevant_tag_aliases(
+            getattr(self.mw, 'default_tag_mappings', {}),
+            *(str(it.get('text', '')) for it in items_with_context),
+        )
 
         json_payload_for_ai = {
             'strings_to_translate': items_with_context
@@ -939,13 +957,10 @@ class AIPromptComposer(BaseTranslationHandler):
             if relevant_glossary_entries:
                 glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 
-        tag_alias_legend = {}
-        default_tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
-        if default_tag_mappings:
-            for alias, orig in default_tag_mappings.items():
-                if alias.lower().startswith('{f:') or alias.lower().startswith('[f:'):
-                    continue
-                tag_alias_legend[alias] = orig
+        tag_alias_legend = self._relevant_tag_aliases(
+            getattr(self.mw, 'default_tag_mappings', {}),
+            source_text, current_translation,
+        )
 
         tag_alias_legend_text = ""
         if tag_alias_legend:

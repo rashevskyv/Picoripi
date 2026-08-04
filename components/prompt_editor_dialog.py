@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Tuple
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -10,6 +11,8 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QCheckBox,
+    QSplitter,
+    QWidget,
 )
 
 class PromptEditorDialog(QDialog):
@@ -33,21 +36,22 @@ class PromptEditorDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        system_label_row = QHBoxLayout()
-        system_label_row.addWidget(QLabel("System Prompt:", self))
-        layout.addLayout(system_label_row)
+        # The two prompts differ wildly in length from request to request, so a
+        # fixed split is wrong for most of them: let the reader give whichever
+        # one they are studying the room.
+        self._splitter = QSplitter(Qt.Orientation.Vertical, self)
+        layout.addWidget(self._splitter, 1)
 
         self._system_edit = QPlainTextEdit(self)
         self._system_edit.setPlainText(system_prompt or "")
-        layout.addWidget(self._system_edit, 1)
-
-        user_label_row = QHBoxLayout()
-        user_label_row.addWidget(QLabel("User Prompt:", self))
-        layout.addLayout(user_label_row)
+        self._splitter.addWidget(
+            self._labelled("System Prompt:", self._system_edit)
+        )
 
         self._user_edit = QPlainTextEdit(self)
         self._user_edit.setPlainText(user_prompt or "")
-        layout.addWidget(self._user_edit, 2)
+        self._splitter.addWidget(self._labelled("User Prompt:", self._user_edit))
+        self._splitter.setSizes([200, 400])
 
         options_row = QHBoxLayout()
         options_row.addStretch(1)
@@ -60,6 +64,15 @@ class PromptEditorDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _labelled(self, text: str, editor: QPlainTextEdit) -> QWidget:
+        """Pair a label with its editor so the splitter moves them together."""
+        pane = QWidget(self)
+        pane_layout = QVBoxLayout(pane)
+        pane_layout.setContentsMargins(0, 0, 0, 0)
+        pane_layout.addWidget(QLabel(text, pane))
+        pane_layout.addWidget(editor, 1)
+        return pane
 
     def get_user_inputs(self) -> Tuple[str, str, bool]:
         """Return edited system prompt, user prompt, and save flag."""
