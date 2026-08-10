@@ -281,6 +281,7 @@ def test_AIPromptComposer_compose_batch_request_chapter(composer):
     # Configure mock data_store
     data_store = MagicMock()
     data_store.block_names = {"3": "Block 3", "-2": "Chapter 2"}
+    data_store.data = [[""], [""], [""], ["", "", "", "", "", "Hello, world!"]]
     composer.mw.data_store = data_store
 
     # Mock script path and file opening so _find_speaker_in_script resolves speaker
@@ -846,3 +847,116 @@ class TestPromptEditorLayout:
         system, user, save = dialog.get_user_inputs()
 
         assert (system, user, save) == ("edited sys", "edited user", False)
+
+
+class TestSpeakerInPrompts:
+    def test_script_matching_receives_original_text_from_data_store(self, composer):
+        composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+        composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+        composer.mw.current_game_rules.get_text_representation_for_editor.side_effect = lambda t: f"CONVERTED: {t}"
+        composer.mw.data_store.block_names = {"0": "Block 0"}
+        composer.mw.data_store.data = [["RAW ORIGINAL TEXT"]]
+        composer.main_handler._glossary_manager = MagicMock()
+        composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+        composer.main_handler._glossary_manager.get_entries.return_value = []
+        composer._find_speaker_in_script = MagicMock(return_value=("Barnes", "10"))
+
+        composer.compose_messages(
+            "SysPrompt", "RAW ORIGINAL TEXT", block_idx=0, string_idx=0,
+            expected_lines=1, mode_description="translation"
+        )
+        composer._find_speaker_in_script.assert_called_with(0, 0, "RAW ORIGINAL TEXT")
+
+    def test_single_prompt_contains_speaker_barnes_and_not_clerk_b(self, composer, tmp_path):
+        import json
+        from core.speaker_alias_merge import ALIAS_FILENAME
+        (tmp_path / ALIAS_FILENAME).write_text(json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8")
+        composer.mw.project_manager.project_dir = tmp_path
+        composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+        composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+        composer.mw.data_store.block_names = {"0": "Block 0"}
+        composer.mw.data_store.data = [["Hello there!"]]
+        composer.main_handler._glossary_manager = MagicMock()
+        composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+        composer.main_handler._glossary_manager.get_entries.return_value = []
+        composer._find_speaker_in_script = MagicMock(return_value=("CLERK_B", "10"))
+
+        _, user = composer.compose_messages(
+            "SysPrompt", "Hello there!", block_idx=0, string_idx=0,
+            expected_lines=1, mode_description="translation"
+        )
+        assert "Speaker: Barnes" in user
+        assert "CLERK_B" not in user
+
+    def test_batch_prompt_contains_speaker_barnes_and_not_clerk_b(self, composer, tmp_path):
+        import json
+        from core.speaker_alias_merge import ALIAS_FILENAME
+        (tmp_path / ALIAS_FILENAME).write_text(json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8")
+        composer.mw.project_manager.project_dir = tmp_path
+        composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+        composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+        composer.mw.data_store.block_names = {"0": "Block 0"}
+        composer.mw.data_store.data = [["Hello there!"]]
+        composer.main_handler._glossary_manager = MagicMock()
+        composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+        composer.main_handler._glossary_manager.get_entries.return_value = []
+        composer._find_speaker_in_script = MagicMock(return_value=("CLERK_B", "10"))
+
+        _, user, _ = composer.compose_batch_request(
+            "SysPrompt", [{"id": 0, "text": "Hello there!"}],
+            [{"id": 0, "text": "Hello there!"}], block_idx=0, mode_description="translation"
+        )
+        assert '"speaker": "Barnes"' in user
+        assert "CLERK_B" not in user
+
+    def test_manual_story_context_placeholder_resolves_via_alias(self, composer, tmp_path):
+        import json
+        from core.speaker_alias_merge import ALIAS_FILENAME
+        (tmp_path / ALIAS_FILENAME).write_text(json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8")
+        composer.mw.project_manager.project_dir = tmp_path
+        composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+        composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+        composer.mw.data_store.block_names = {"0": "Block 0"}
+        composer.mw.data_store.data = [["Hello there!"]]
+        composer.main_handler._glossary_manager = MagicMock()
+        composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+        composer.main_handler._glossary_manager.get_entries.return_value = []
+
+        block = MagicMock()
+        block.metadata = {
+            "story_context_assignments": {"0": {
+                "speaker": "CLERK_B",
+            }}
+        }
+        composer.mw.project_manager.project.blocks = [block]
+        composer.mw.block_to_project_file_map = {0: 0}
+
+        _, user = composer.compose_messages(
+            "SysPrompt", "Hello there!", block_idx=0, string_idx=0,
+            expected_lines=1, mode_description="translation"
+        )
+        assert "Speaker: Barnes" in user
+        assert "CLERK_B" not in user
+
+    def test_unresolved_placeholder_uses_unknown_or_omits_never_clerk_b(self, composer):
+        composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+        composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+        composer.mw.current_game_rules.is_placeholder_speaker.side_effect = lambda n: n == "CLERK_B"
+        composer.mw.data_store.block_names = {"0": "Block 0"}
+        composer.mw.data_store.data = [["Hello there!"]]
+        composer.main_handler._glossary_manager = MagicMock()
+        composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+        composer.main_handler._glossary_manager.get_entries.return_value = []
+        composer._find_speaker_in_script = MagicMock(return_value=("CLERK_B", "10"))
+
+        _, single_user = composer.compose_messages(
+            "SysPrompt", "Hello there!", block_idx=0, string_idx=0,
+            expected_lines=1, mode_description="translation"
+        )
+        _, batch_user, _ = composer.compose_batch_request(
+            "SysPrompt", [{"id": 0, "text": "Hello there!"}],
+            [{"id": 0, "text": "Hello there!"}], block_idx=0, mode_description="translation"
+        )
+        assert "CLERK_B" not in single_user
+        assert "CLERK_B" not in batch_user
+        assert '"speaker": "Unknown"' in batch_user

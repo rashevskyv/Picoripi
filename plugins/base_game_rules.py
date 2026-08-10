@@ -156,10 +156,33 @@ class BaseGameRules:
         """Optional abilities this plugin declares, for the build wizard.
 
         Lets the engine offer only the steps a plugin can actually perform,
-        instead of presenting every stage and failing halfway. Recognised names
-        are documented in docs/PLUGIN_AUTHORING_GUIDE.md. Default: none.
+        instead of presenting every stage and failing halfway. Declaring nothing
+        is a complete answer: the pipeline wizard still offers the whole path
+        that works on extracted text alone.
+
+        Recognised names, documented in docs/PLUGIN_AUTHORING_GUIDE.md:
+        ``glossary_seed`` (``get_glossary_seed_entries``),
+        ``external_lore`` (``get_external_lore``),
+        ``speaker_attribution`` (``get_speaker_for_string``).
+        Default: none.
         """
         return set()
+
+    def is_placeholder_speaker(self, name: str) -> bool:
+        """Whether this speaker identity is an internal id, not a name to show.
+
+        ``get_speaker_for_string`` returns whatever the game data calls a
+        character, and games spell that in their own terms: an actor placement
+        name, a voice-bank index, a table row. Those group a character's lines
+        correctly but mean nothing to a translator, so the script-merge step
+        offers to replace them with the name a marked-up script uses.
+
+        Say ``False`` for identities that are already display names -- a
+        curated character name, or a marker like "System" that no character
+        should ever be voted onto. Default: every identity is a candidate,
+        which is the safe answer for a plugin that returns raw ids.
+        """
+        return True
 
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Glossary material read straight out of the game's own data.

@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.076-dev] - 2026-08-10
+
+### Added
+- **Manual Speaker Identity Review**: Added a five-source Merge Speakers review with editable unmatched codes, evidence and conflict details, and explicit Apply-only persistence.
+
+### Changed
+- **Confirmed Speaker Propagation**: Confirmed code-to-name identities now migrate provisional glossary entries and update speaker lists, virtual folders, Story Context, and single/batch translation prompts.
+- **Version Updates**: Bumped the application and documentation version to `0.3.076-dev`.
+
+### Fixed
+- **Speaker Prompt Safety**: Kept marked-script matching on original game text and prevented unresolved developer speaker codes from reaching translation AI context.
+
 ## [0.3.075-dev] - 2026-07-17
 
 ### Added

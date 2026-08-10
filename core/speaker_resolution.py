@@ -11,7 +11,14 @@ The resolution order (highest authority first) is:
    (``character_assignments[str(string_idx)]``),
 2. the MemePalace cached context speaker for the row's BMG id,
 3. a fuzzy lookup of the line in the marked-up script
-   (``ScriptSpeakerFinder`` via ``AIPromptComposer._find_speaker_in_script``).
+   (``ScriptSpeakerFinder`` via ``AIPromptComposer._find_speaker_in_script``),
+4. the active plugin rules fallback (``BaseGameRules.get_speaker_for_string``).
+
+Post-processing:
+If the resolved name has a confirmed alias in ``speaker_aliases.json``, it is mapped to
+that permanent alias (source suffix ``(alias)`` or ``alias``). Otherwise, if the name is an
+unconfirmed placeholder (``BaseGameRules.is_placeholder_speaker``), it is cleared to None/none
+so raw developer codes are never used as display names or sent to translation AI.
 
 Step 3 must be fed the **original** game text, never the edited/translated text:
 the script is in the source language, so matching a translation against it
@@ -33,7 +40,7 @@ _UNKNOWN = ("", "unknown", "none")
 class SpeakerResolution:
     """Resolved speaker for one row. ``name`` is None when nothing is known."""
     name: Optional[str] = None
-    source: str = "none"          # 'assignment' | 'mempalace' | 'script' | 'none'
+    source: str = "none"
     script_line: Optional[int] = None
 
     def __bool__(self) -> bool:
@@ -316,9 +323,27 @@ def build_speaker_pool(
         composer = getattr(handler, "prompt_composer", None) if handler else None
 
     translate = _glossary_translator(composer)
+    aliases = _speaker_aliases(mw)
 
     # Highest authority first; a row keeps the first source that claims it.
     resolved: dict = {}
+
+    # One spelling per name. A script heading shouts "MIDNA", the game's data
+    # says "Midna", and both are the same character -- but a folder list keyed
+    # on the raw string shows two Midnas and splits her lines between them.
+    # The first spelling an authority uses wins, which keeps the choice on the
+    # same priority order as everything else here.
+    canonical: dict = {}
+
+    def canonicalize(name: str) -> str:
+        text = " ".join(str(name or "").split())
+        if not text:
+            return text
+        return canonical.setdefault(text.casefold(), text)
+
+    def display_name(name: Any) -> str:
+        raw = str(name or "").strip()
+        return canonicalize(translate(aliases.get(raw, raw)))
 
     # Every source is glossary-translated to one canonical DISPLAY name so the
     # editor field and the folders show the identical string for a row (e.g. a
@@ -332,12 +357,14 @@ def build_speaker_pool(
         if "speaker" not in assignment:
             continue
         name = str(assignment.get("speaker") or "").strip()
-        resolved[(block_idx, string_idx)] = translate(name) if _is_known(name) else None
+        resolved[(block_idx, string_idx)] = (
+            display_name(name) if _is_known(name) else None
+        )
 
     def fill(source_rows: dict) -> None:
         for row, name in source_rows.items():
             if row not in resolved and name:
-                resolved[row] = translate(name)
+                resolved[row] = display_name(name)
 
     # 2. normalized marked-script speakers.
     if projection is not None:
@@ -354,7 +381,28 @@ def build_speaker_pool(
     # corrections, and those must win.
     fill(_plugin_speaker_rows(mw))
 
-    return {row: name for row, name in resolved.items() if name}
+    # A blank row is padding in the file, not a line anybody speaks. It has to
+    # stay visible in its real block -- that is the file's shape -- but putting
+    # it in a speaker's folder inflates every count with rows that say nothing.
+    blank = _blank_rows(mw)
+    return {
+        row: name for row, name in resolved.items() if name and row not in blank
+    }
+
+
+def _blank_rows(mw: Any) -> set:
+    """Rows whose source text is empty, so no virtual folder should hold them."""
+    data = getattr(getattr(mw, "data_store", None), "data", None)
+    if not isinstance(data, list):
+        return set()
+    blank = set()
+    for block_idx, block in enumerate(data):
+        if not isinstance(block, (list, tuple)):
+            continue
+        for string_idx, value in enumerate(block):
+            if not str(value or "").strip():
+                blank.add((block_idx, string_idx))
+    return blank
 
 
 def _plugin_speaker_rows(mw: Any) -> dict:
@@ -370,10 +418,6 @@ def _plugin_speaker_rows(mw: Any) -> dict:
     data = getattr(getattr(mw, "data_store", None), "data", None)
     if not isinstance(data, list):
         return {}
-
-    # A code the script has already been merged onto becomes that name here, so
-    # every consumer -- editor field, folders, prompts -- sees the same one.
-    aliases = _speaker_aliases(mw)
 
     rows: dict = {}
     for block_idx, block in enumerate(data):
@@ -391,8 +435,7 @@ def _plugin_speaker_rows(mw: Any) -> dict:
             # Only a real string counts: a plugin that answers with something
             # else must not be able to fill the pool with nonsense.
             if isinstance(name, str) and name.strip():
-                resolved_name = name.strip()
-                rows[(block_idx, string_idx)] = aliases.get(resolved_name, resolved_name)
+                rows[(block_idx, string_idx)] = name.strip()
     return rows
 
 
@@ -402,6 +445,27 @@ def _speaker_aliases(mw: Any) -> dict:
 
     manager = getattr(mw, "project_manager", None)
     return load_speaker_aliases(getattr(manager, "project_dir", None) if manager else None)
+
+
+def resolve_speaker_identity(mw: Any, name: Any) -> Optional[str]:
+    """Map a confirmed code to its name and hide unconfirmed placeholders."""
+    resolved = str(name or "").strip()
+    if not _is_known(resolved):
+        return None
+
+    alias = _speaker_aliases(mw).get(resolved)
+    if alias:
+        return str(alias).strip() or None
+
+    rules = getattr(mw, "current_game_rules", None) if mw else None
+    is_placeholder = getattr(rules, "is_placeholder_speaker", None)
+    if callable(is_placeholder):
+        try:
+            if is_placeholder(resolved) is True:
+                return None
+        except Exception as exc:
+            log_debug(f"speaker_resolution: is_placeholder_speaker failed: {exc}")
+    return resolved
 
 
 def resolve_speaker_for_string(
@@ -480,5 +544,27 @@ def resolve_speaker_for_string(
                     name, source = str(raw_spk).strip(), "script"
         except Exception as exc:
             log_debug(f"speaker_resolution: script lookup failed: {exc}")
+    # 4. plugin rules (final fallback)
+    if name is None and mw is not None:
+        try:
+            rules = getattr(mw, "current_game_rules", None)
+            getter = getattr(rules, "get_speaker_for_string", None)
+            if callable(getter):
+                plugin_spk = getter(block_idx, string_idx)
+                if isinstance(plugin_spk, str) and _is_known(plugin_spk):
+                    name, source = plugin_spk.strip(), "plugin"
+        except Exception as exc:
+            log_debug(f"speaker_resolution: plugin lookup failed: {exc}")
+
+    if name is not None:
+        resolved_name = resolve_speaker_identity(mw, name)
+        if resolved_name is None:
+            name = None
+            source = "none"
+        elif resolved_name != name:
+            name = resolved_name
+            source = "alias" if source == "none" else f"{source} (alias)"
+        else:
+            name = resolved_name
 
     return SpeakerResolution(name=name, source=source, script_line=script_line)

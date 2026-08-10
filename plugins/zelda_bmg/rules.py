@@ -1066,8 +1066,8 @@ class GameRules(BaseGameRules):
     _WINDOW_SPEAKERS = {13: "Midna", 8: "Light Spirit"}
 
     def get_capabilities(self) -> Set[str]:
-        """Reads terms from the game's message data, and lore from Zelda Wiki."""
-        return {"glossary_seed", "external_lore"}
+        """Reads terms and speakers from the game's data, and lore from the wiki."""
+        return {"glossary_seed", "external_lore", "speaker_attribution"}
 
     # The player character every NPC talk flow is aimed at. TP's talk flows are
     # built per-NPC and fire when Link speaks to them, so an NPC line inside one
@@ -1087,6 +1087,37 @@ class GameRules(BaseGameRules):
                 index = {}
             self._flow_speaker_index_cache = index
         return index
+
+    def _placement_names(self) -> Set[str]:
+        """Every actor placement name this plugin can return, built once."""
+        cached = getattr(self, "_placement_name_cache", None)
+        if cached is None:
+            cached = {
+                str(name) for name in self._get_flow_speaker_index().values() if name
+            }
+            self._placement_name_cache = cached
+        return cached
+
+    def is_placeholder_speaker(self, name: str) -> bool:
+        """Whether this is the game's own spelling rather than a display name.
+
+        Placement names are how ``room.dzr`` labels an actor -- CLERK_B, GER_A,
+        GERD_1, YKW -- and an unnamed voice code is a bank index. Both group a
+        character's lines correctly and tell a reader nothing, so both are worth
+        replacing with whatever a marked-up script calls them.
+
+        Midna, the light spirits and System are the exceptions: those are names
+        this plugin chose to show, and System is not a character at all -- a
+        script line must never be voted onto the game's own narration.
+        """
+        text = str(name or "").strip()
+        if not text or text == self._SYSTEM_SPEAKER:
+            return False
+        if text in self._WINDOW_SPEAKERS.values():
+            return False
+        if text.startswith(self._UNNAMED_VOICE_PREFIX):
+            return True
+        return text in self._placement_names()
 
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """The NPC who holds this line's conversation, from the game's own data.

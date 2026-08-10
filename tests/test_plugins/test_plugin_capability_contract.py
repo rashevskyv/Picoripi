@@ -265,6 +265,44 @@ class TestSpeakerFromGameData:
         assert self._rules(msg_group=None).get_speaker_for_string(0, 0) is None
 
 
+class TestWhichIdentitiesAreStillCodes:
+    """Only the plugin knows how its game spells an actor."""
+
+    def test_the_default_offers_every_identity(self):
+        """A plugin returning raw ids must not be second-guessed by the engine."""
+        assert BaseGameRules().is_placeholder_speaker("anything") is True
+
+    def _rules(self):
+        from plugins.zelda_bmg.rules import GameRules
+
+        rules = GameRules.__new__(GameRules)
+        rules._flow_speaker_index_cache = {(1, 8): "Bou", (1, 9): "CLERK_B"}
+        return rules
+
+    def test_a_placement_name_is_the_games_own_spelling(self):
+        rules = self._rules()
+
+        assert rules.is_placeholder_speaker("CLERK_B") is True
+        assert rules.is_placeholder_speaker("Bou") is True
+
+    def test_an_unnamed_voice_code_is_a_bank_index(self):
+        assert self._rules().is_placeholder_speaker("Voice 41") is True
+
+    def test_a_name_the_plugin_chose_to_show_is_not(self):
+        rules = self._rules()
+
+        assert rules.is_placeholder_speaker("Midna") is False
+        assert rules.is_placeholder_speaker("Light Spirit") is False
+
+    def test_the_narration_marker_is_never_a_character(self):
+        """Voting a script line onto System would put a speaker on the game."""
+        assert self._rules().is_placeholder_speaker("System") is False
+
+    def test_an_unknown_name_is_left_alone(self):
+        assert self._rules().is_placeholder_speaker("Some Display Name") is False
+        assert self._rules().is_placeholder_speaker("") is False
+
+
 class TestFlowSpeakerIndex:
     """Built from the shipped extraction of the retail stage arcs."""
 

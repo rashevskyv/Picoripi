@@ -12,7 +12,7 @@ Placeholders in templates are substituted with ``str.replace`` rather than
 from __future__ import annotations
 
 import json
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Sequence
 
 from .context_window import ContextWindow
 from .sweep_driver import RawTerm
@@ -175,6 +175,57 @@ def make_fold(
         return _description_from_reply(call(_messages(system, user)))
 
     return fold
+
+
+class NameGuess(NamedTuple):
+    """A candidate name for an internal identifier, and why."""
+
+    name: str
+    confidence: str = ""
+    evidence: str = ""
+
+    @property
+    def is_confident(self) -> bool:
+        return bool(self.name) and self.confidence.lower() != "low"
+
+
+def make_name_suggester(
+    call: Call,
+    prompts: Dict[str, Any],
+    *,
+    target_lang: str = "Ukrainian",
+) -> Callable[[str, str], NameGuess]:
+    """Build ``suggest(term, description) -> NameGuess``.
+
+    A description written from a character's own lines usually names them --
+    they say their own name, someone addresses them, they advertise the shop
+    they keep. That is already in the text; this asks for it as a field instead
+    of leaving a person to read three hundred descriptions looking for it.
+
+    Deliberately its own call rather than a field on the describe prompt: it
+    also works on entries described in an earlier run, so names can be filled
+    in without paying for the descriptions again.
+    """
+    cfg = prompts["name"]
+    system = _fill(cfg["system_prompt"], target_lang=target_lang)
+
+    def suggest(term: str, description: str) -> NameGuess:
+        if not str(description or "").strip():
+            return NameGuess("")
+        user = _fill(
+            cfg["user_prompt_template"],
+            term=term,
+            description=description,
+            target_lang=target_lang,
+        )
+        obj = parse_json_object(call(_messages(system, user)))
+        return NameGuess(
+            name=str(obj.get("name") or "").strip(),
+            confidence=str(obj.get("confidence") or "").strip(),
+            evidence=str(obj.get("evidence") or "").strip(),
+        )
+
+    return suggest
 
 
 def make_propose(

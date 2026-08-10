@@ -81,6 +81,17 @@ class GlossaryEntry:
     icon: str = ""
     fragments: Tuple[DescriptionFragment, ...] = ()
     translation_variants: Tuple[TranslationVariant, ...] = ()
+    # The term itself is a stand-in, not a name: an actor id like "CLERK_B" or
+    # a voice code the game data produced. It groups the character's lines
+    # correctly and means nothing to a reader, so it is shown as provisional
+    # until a real name is decided for it.
+    provisional: bool = False
+    # What the AI read out of the description as this character's likely real
+    # name, with how sure it was. A suggestion for a person to accept or reject
+    # -- never applied on its own, because a wrong name here would be stamped
+    # onto every line the character speaks.
+    suggested_name: str = ""
+    suggested_name_evidence: str = ""
 
     def is_valid(self) -> bool:
         """Whether the entry should load and appear.
@@ -178,6 +189,12 @@ def _entry_to_dict(entry: GlossaryEntry) -> Dict[str, Any]:
         out["status"] = entry.status
     if entry.icon:
         out["icon"] = entry.icon
+    if entry.provisional:
+        out["provisional"] = True
+    if entry.suggested_name:
+        out["suggested_name"] = entry.suggested_name
+    if entry.suggested_name_evidence:
+        out["suggested_name_evidence"] = entry.suggested_name_evidence
     if entry.fragments:
         out["fragments"] = [
             {"text": f.text, "block_idx": f.block_idx, "string_idx": f.string_idx}
@@ -261,6 +278,11 @@ class GlossaryManager:
                         icon=str(item.get("icon", "") or ""),
                         fragments=_fragments_from_raw(item.get("fragments")),
                         translation_variants=_variants_from_raw(item.get("translation_variants")),
+                        provisional=bool(item.get("provisional", False)),
+                        suggested_name=str(item.get("suggested_name", "") or ""),
+                        suggested_name_evidence=str(
+                            item.get("suggested_name_evidence", "") or ""
+                        ),
                     )
                     if entry.is_valid():
                         self._entries.append(entry)
@@ -561,6 +583,12 @@ class GlossaryManager:
                         if translation_variants is not None
                         else entry.translation_variants
                     ),
+                    # Carried over like every other lifecycle field: a plain
+                    # edit of the translation must not quietly turn a
+                    # placeholder term into one that looks decided.
+                    provisional=entry.provisional,
+                    suggested_name=entry.suggested_name,
+                    suggested_name_evidence=entry.suggested_name_evidence,
                 )
                 new_entries = list(self._entries)
                 new_entries[idx] = updated_entry
@@ -571,6 +599,126 @@ class GlossaryManager:
                 return updated_entry
         return None
 
+    def rename_original(self, old_original: str, new_original: str) -> Optional[GlossaryEntry]:
+        """Rename an entry's original term, merging evidence on collision.
+
+        Confirms a placeholder term (``provisional=False``) and clears AI name
+        suggestions. If ``new_original`` already exists in the glossary, the two
+        entries are merged: the target entry's active translation and lifecycle
+        fields are preferred, but distinct notes, fragments, and translation
+        variants from the provisional entry are retained.
+        """
+        old_key = (old_original or "").strip()
+        new_key = (new_original or "").strip()
+        if not old_key or not new_key:
+            return None
+        if old_key == new_key:
+            return self.get_entry(old_key)
+
+        old_entry = next((e for e in self._entries if e.original == old_key), None)
+        if old_entry is None:
+            return None
+
+        from dataclasses import replace
+
+        target_entry = next((e for e in self._entries if e.original == new_key), None)
+
+        if target_entry is None:
+            updated_entry = replace(
+                old_entry,
+                original=new_key,
+                provisional=False,
+                suggested_name="",
+                suggested_name_evidence="",
+            )
+            new_entries = [
+                updated_entry if e.original == old_key else e
+                for e in self._entries
+            ]
+            self._entries = new_entries
+            self._session_changes[old_key] = None
+            self._session_changes[new_key] = updated_entry
+            self._occurrence_index = {}
+            self._persist()
+            return updated_entry
+
+        # Merge old_entry into target_entry (collision case)
+        merged_notes = target_entry.notes
+        if old_entry.notes and old_entry.notes not in (target_entry.notes or ""):
+            if target_entry.notes:
+                merged_notes = f"{target_entry.notes}\n\n{old_entry.notes}"
+            else:
+                merged_notes = old_entry.notes
+
+        merged_frags = list(target_entry.fragments)
+        for f in old_entry.fragments:
+            if f not in merged_frags:
+                merged_frags.append(f)
+
+        merged_vars = list(target_entry.translation_variants)
+        for v in old_entry.translation_variants:
+            if v not in merged_vars:
+                merged_vars.append(v)
+
+        merged_entry = replace(
+            target_entry,
+            original=new_key,
+            translation=target_entry.translation or old_entry.translation,
+            notes=merged_notes,
+            section=target_entry.section if target_entry.section is not None else old_entry.section,
+            profiled=target_entry.profiled or old_entry.profiled,
+            status=target_entry.status or old_entry.status,
+            icon=target_entry.icon or old_entry.icon,
+            fragments=tuple(merged_frags),
+            translation_variants=tuple(merged_vars),
+            provisional=False,
+            suggested_name="",
+            suggested_name_evidence="",
+        )
+
+        new_entries = []
+        for e in self._entries:
+            if e.original == old_key:
+                continue
+            if e.original == new_key:
+                new_entries.append(merged_entry)
+            else:
+                new_entries.append(e)
+
+        self._entries = new_entries
+        self._session_changes[old_key] = None
+        self._session_changes[new_key] = merged_entry
+        self._occurrence_index = {}
+        self._persist()
+        return merged_entry
+
+    def suggest_name(self, original: str, name: str, evidence: str = "") -> Optional[GlossaryEntry]:
+        """Record a candidate real name for a placeholder term.
+
+        Stored, never applied: renaming a character is a decision with reach --
+        every line they speak carries it -- so this waits for a person.
+        """
+        original_key = (original or "").strip()
+        if not original_key:
+            return None
+        for idx, entry in enumerate(self._entries):
+            if entry.original != original_key:
+                continue
+            from dataclasses import replace
+
+            updated = replace(
+                entry,
+                suggested_name=(name or "").strip(),
+                suggested_name_evidence=(evidence or "").strip(),
+            )
+            new_entries = list(self._entries)
+            new_entries[idx] = updated
+            self._entries = new_entries
+            self._session_changes[original_key] = updated
+            self._persist()
+            return updated
+        return None
+
     def seed_entry(
         self,
         original: str,
@@ -579,6 +727,7 @@ class GlossaryManager:
         icon: str = "",
         status: str = STATUS_SEEDED,
         description: str = "",
+        provisional: bool = False,
     ) -> Optional[GlossaryEntry]:
         """Insert a term-only seed entry when the term is not already present.
 
@@ -601,6 +750,7 @@ class GlossaryManager:
             section=section,
             status=status,
             icon=(icon or "").strip(),
+            provisional=provisional,
         )
         self._session_changes[original_key] = new_entry
         self._entries = list(self._entries) + [new_entry]

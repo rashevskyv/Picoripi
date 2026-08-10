@@ -202,3 +202,55 @@ def test_build_binds_the_glossary_file_before_starting(
 
     binder.assert_called_once()
     mock_worker.return_value.start.assert_called_once()
+
+
+class TestSpeakerSeedSources:
+    def _handler(self, tmp_path, *, plugin_seeds=(), aliases=None):
+        import json
+
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        mw.current_game_rules.get_glossary_seed_entries.return_value = list(plugin_seeds)
+        mw.translation_handler.prompt_composer._find_script_path.return_value = str(
+            tmp_path / "script.txt"
+        )
+        if aliases:
+            (tmp_path / "speaker_aliases.json").write_text(
+                json.dumps(aliases), encoding="utf-8"
+            )
+        return GlossaryPipelineHandler(mw)
+
+    def test_confirmed_name_replaces_the_game_identifier(self, tmp_path):
+        handler = self._handler(
+            tmp_path,
+            plugin_seeds=[{"term": "Bou", "section": "Characters"}],
+            aliases={"Bou": "MAYOR BO"},
+        )
+
+        assert handler._structural_seeds()[0]["term"] == "MAYOR BO"
+
+    def test_unconfirmed_identifier_is_provisional(self, tmp_path):
+        handler = self._handler(
+            tmp_path,
+            plugin_seeds=[{"term": "CLERK_B", "section": "Characters"}],
+        )
+        handler.mw.current_game_rules.is_placeholder_speaker = lambda n: n == "CLERK_B"
+
+        assert handler._structural_seeds()[0]["provisional"] is True
+
+    def test_real_name_is_not_provisional(self, tmp_path):
+        handler = self._handler(
+            tmp_path,
+            plugin_seeds=[{"term": "Midna", "section": "Characters"}],
+        )
+        handler.mw.current_game_rules.is_placeholder_speaker = lambda _n: False
+
+        assert not handler._structural_seeds()[0].get("provisional")
+
+    def test_plugin_without_seeds_still_gets_markup_speakers(self, tmp_path):
+        handler = self._handler(tmp_path)
+        handler._markup_seeds = lambda: [
+            {"term": "RENADO", "section": "Characters"}
+        ]
+
+        assert handler._structural_seeds()[0]["term"] == "RENADO"

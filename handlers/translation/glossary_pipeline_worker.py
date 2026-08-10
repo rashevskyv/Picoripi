@@ -190,6 +190,11 @@ class GlossaryBuildWorker(QThread):
             f"described {result.described}",
             f"translated {result.translated}",
         ]
+        if result.names_suggested:
+            parts.append(
+                f"{result.names_suggested} placeholder name(s) have a suggestion "
+                "waiting in Merge Speakers"
+            )
         if result.cancelled:
             parts.append("(cancelled)")
         return ", ".join(parts)

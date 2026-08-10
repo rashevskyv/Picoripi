@@ -42,6 +42,10 @@ from core.glossary_manager import (
 # Rows awaiting a human decision. Translucent so it tints the row without
 # fighting the selection highlight or the light/dark palette.
 _NEEDS_REVIEW_BRUSH = QBrush(QColor(255, 200, 0, 60))
+# A term that is not a name at all -- an actor id the game data gave us. Red
+# rather than the review amber: this is not a translation to weigh up, it is a
+# placeholder to replace.
+_PROVISIONAL_BRUSH = QBrush(QColor(220, 60, 60, 55))
 class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
 
@@ -506,6 +510,7 @@ class GlossaryDialog(QDialog):
                     str(len(occurrences)),
                 ]
                 needs_review = self._needs_review(entry)
+                provisional = bool(getattr(entry, "provisional", False))
                 for col, value in enumerate(values):
                     item = QTableWidgetItem(value)
                     if col == 3:
@@ -518,6 +523,18 @@ class GlossaryDialog(QDialog):
                     if needs_review:
                         item.setBackground(_NEEDS_REVIEW_BRUSH)
                         item.setToolTip(self._review_reason(entry))
+                    # Louder than "needs review", and for a different reason:
+                    # the TERM is wrong here, not the translation. Nobody should
+                    # translate "CLERK_B" -- they should find out who that is.
+                    if provisional:
+                        item.setBackground(_PROVISIONAL_BRUSH)
+                        item.setToolTip(
+                            "Provisional name.\n\n"
+                            f"\"{entry.original}\" is how the game's own files label this "
+                            "character, not a name. Run Merge Speakers to match it "
+                            "against a marked-up script, or set the name there by hand; "
+                            "the glossary then shows the real name instead."
+                        )
                     table.setItem(row, col, item)
                     
             table.resizeColumnToContents(0)

@@ -194,6 +194,10 @@ class StoryContextManager:
             manual_parts.append(f"Manually assigned Story chapter/scene: {' > '.join(manual_path)}")
         manual_speaker = str(manual.get("speaker") or "").strip()
         if manual_speaker:
+            from core.speaker_resolution import resolve_speaker_identity
+
+            manual_speaker = resolve_speaker_identity(self.mw, manual_speaker) or ""
+        if manual_speaker:
             manual_parts.append(f"Manually assigned speaker in this line: {manual_speaker}")
         translator_note = str(manual.get("translator_note") or "").strip()
         if translator_note:

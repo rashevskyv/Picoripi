@@ -27,7 +27,13 @@ from core.glossary_manager import (
     STATUS_TRANSLATED,
     GlossaryManager,
 )
-from .ai_adapters import make_extract, make_fold, make_propose, make_synthesize_stack
+from .ai_adapters import (
+    make_extract,
+    make_fold,
+    make_name_suggester,
+    make_propose,
+    make_synthesize_stack,
+)
 from .describe_driver import DescribeResult, describe_term
 from .occurrence_bridge import occurrences_by_term
 from .sweep_driver import AggregatedTerm, sweep_terms
@@ -56,6 +62,7 @@ class BuildResult:
     seeded: int = 0
     seeded_structural: int = 0
     described: int = 0
+    names_suggested: int = 0
     translated: int = 0
     cancelled: bool = False
 
@@ -205,6 +212,7 @@ class GlossaryBuildCoordinator:
                     status=status,
                     description=description,
                     icon=str(seed.get("icon") or ""),
+                    provisional=bool(seed.get("provisional")),
                 )
                 result.seeded += 1
                 result.seeded_structural += 1
@@ -319,3 +327,25 @@ class GlossaryBuildCoordinator:
                 )
                 result.described += 1
             self._progress("describe", index + 1, total)
+        self._suggest_names(result)
+
+    def _suggest_names(self, result: BuildResult) -> None:
+        """Store AI name guesses for review without applying them."""
+        targets = [
+            entry for entry in self.manager.get_entries()
+            if entry.provisional and entry.notes and not entry.suggested_name
+        ]
+        if not targets:
+            return
+        suggest = make_name_suggester(
+            self.call, self.prompts, target_lang=self.target_lang
+        )
+        total = len(targets)
+        for index, entry in enumerate(targets):
+            if self._cancelled():
+                return
+            guess = suggest(entry.original, entry.notes)
+            if guess.name:
+                self.manager.suggest_name(entry.original, guess.name, guess.evidence)
+                result.names_suggested += 1
+            self._progress("name", index + 1, total)

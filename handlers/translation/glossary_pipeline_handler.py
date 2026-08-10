@@ -15,6 +15,8 @@ from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
 from core.glossary_build.pipeline_coordinator import MODE_SEED
+from core.glossary_build.script_seeds import seeds_from_markup
+from core.speaker_alias_merge import find_markup_project, load_speaker_aliases
 from ui.glossary_build_dialog import (
     AREA_PROJECT,
     AREA_SELECTED,
@@ -52,6 +54,41 @@ class GlossaryPipelineHandler:
         return []
 
     def _structural_seeds(self):
+        """Glossary material already written down somewhere, needing no AI."""
+        return self._apply_speaker_names(self._plugin_seeds() + self._markup_seeds())
+
+    def _apply_speaker_names(self, seeds):
+        """Use confirmed names and mark unresolved game identifiers temporary."""
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        try:
+            aliases = load_speaker_aliases(project_dir)
+        except Exception as exc:
+            log_error(f"GlossaryPipelineHandler: reading speaker names failed: {exc}")
+            return seeds
+        renamed = []
+        for seed in seeds:
+            term = str(seed.get("term") or "").strip()
+            name = (aliases or {}).get(term)
+            if name:
+                renamed.append({**seed, "term": name, "provisional": False})
+            elif self._is_placeholder(term):
+                renamed.append({**seed, "provisional": True})
+            else:
+                renamed.append(seed)
+        return renamed
+
+    def _is_placeholder(self, term: str) -> bool:
+        hook = getattr(
+            getattr(self.mw, "current_game_rules", None), "is_placeholder_speaker", None
+        )
+        if not callable(hook):
+            return False
+        try:
+            return bool(hook(term))
+        except Exception:
+            return False
+
+    def _plugin_seeds(self):
         """Glossary material the active plugin can read out of the game data.
 
         Optional: a plugin that cannot do this returns nothing and the build
@@ -67,6 +104,20 @@ class GlossaryPipelineHandler:
             log_error(f"GlossaryPipelineHandler: plugin seeding failed: {exc}")
             return []
         return [s for s in (seeds or []) if isinstance(s, dict)]
+
+    def _markup_seeds(self):
+        """Characters the marked-up script names, if there is one."""
+        composer = getattr(
+            getattr(self.mw, "translation_handler", None), "prompt_composer", None
+        )
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        try:
+            finder = getattr(composer, "_find_script_path", None)
+            script_path = finder() if callable(finder) else None
+            return seeds_from_markup(find_markup_project(script_path, project_dir))
+        except Exception as exc:
+            log_error(f"GlossaryPipelineHandler: script seeding failed: {exc}")
+            return []
 
     def _resolve_provider(self):
         config = resolve_glossary_ai_config(self.mw)

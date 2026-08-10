@@ -482,3 +482,139 @@ def test_natural_sort_key_orders_numbers_by_value():
     assert sorted(names, key=natural_sort_key) == [
         "Bou", "Voice 2", "voice 3", "Voice 10", "Voice 11", "Voice 100",
     ]
+
+
+def test_rename_original_renames_entry_and_preserves_fields_clearing_provisional(manager):
+    from core.glossary_manager import DescriptionFragment, TranslationVariant
+    old = GlossaryEntry(
+        original="CLERK_B",
+        translation="Клерк B",
+        notes="Works at Barnes shop",
+        section="NPCs",
+        profiled=True,
+        status="seeded",
+        icon="icon.png",
+        fragments=(DescriptionFragment("frag1"),),
+        translation_variants=(TranslationVariant("Var1"),),
+        provisional=True,
+        suggested_name="Barnes",
+        suggested_name_evidence="evidence",
+    )
+    manager._entries = [old]
+    res = manager.rename_original("CLERK_B", "Barnes")
+
+    assert res is not None
+    assert res.original == "Barnes"
+    assert res.translation == "Клерк B"
+    assert res.notes == "Works at Barnes shop"
+    assert res.section == "NPCs"
+    assert res.profiled is True
+    assert res.status == "seeded"
+    assert res.icon == "icon.png"
+    assert res.fragments == (DescriptionFragment("frag1"),)
+    assert res.translation_variants == (TranslationVariant("Var1"),)
+    assert res.provisional is False
+    assert res.suggested_name == ""
+    assert res.suggested_name_evidence == ""
+
+    assert manager.get_entry("CLERK_B") is None
+    assert manager.get_entry("Barnes") == res
+    changes = manager.get_session_changes()
+    assert changes["CLERK_B"] is None
+    assert changes["Barnes"] == res
+
+
+def test_rename_original_collision_merges_evidence_into_single_target(manager):
+    from core.glossary_manager import DescriptionFragment, TranslationVariant
+    old = GlossaryEntry(
+        original="CLERK_B",
+        translation="Клерк B",
+        notes="Note B",
+        fragments=(DescriptionFragment("frag B"),),
+        translation_variants=(TranslationVariant("Var B"),),
+        provisional=True,
+        suggested_name="Barnes",
+    )
+    target = GlossaryEntry(
+        original="Barnes",
+        translation="Барнс",
+        notes="Note Barnes",
+        fragments=(DescriptionFragment("frag Barnes"),),
+        translation_variants=(TranslationVariant("Var Barnes"),),
+        provisional=False,
+    )
+    manager._entries = [old, target]
+    res = manager.rename_original("CLERK_B", "Barnes")
+
+    assert res is not None
+    assert len(manager.get_entries()) == 1
+    assert res.original == "Barnes"
+    assert res.translation == "Барнс"
+    assert "Note Barnes" in res.notes and "Note B" in res.notes
+    frag_texts = [f.text for f in res.fragments]
+    assert "frag Barnes" in frag_texts and "frag B" in frag_texts
+    var_trans = [v.translation for v in res.translation_variants]
+    assert "Var Barnes" in var_trans and "Var B" in var_trans
+    assert res.provisional is False
+
+
+def test_rename_original_collision_deduplicates_fragments_by_full_equality(manager):
+    from core.glossary_manager import DescriptionFragment
+    frag_coords_1 = DescriptionFragment("Same text", block_idx=0, string_idx=1)
+    frag_coords_2 = DescriptionFragment("Same text", block_idx=2, string_idx=5)
+    exact_dup = DescriptionFragment("Same text", block_idx=0, string_idx=1)
+
+    old = GlossaryEntry(
+        original="CLERK_B",
+        translation="",
+        fragments=(frag_coords_1, frag_coords_2, exact_dup),
+        provisional=True,
+    )
+    target = GlossaryEntry(
+        original="Barnes",
+        translation="Барнс",
+        fragments=(frag_coords_1,),
+        provisional=False,
+    )
+    manager._entries = [old, target]
+    res = manager.rename_original("CLERK_B", "Barnes")
+
+    assert res is not None
+    assert len(res.fragments) == 2
+    assert res.fragments == (frag_coords_1, frag_coords_2)
+
+
+def test_rename_original_collision_deduplicates_variants_by_full_equality(manager):
+    from core.glossary_manager import TranslationVariant
+    var_rat_1 = TranslationVariant("Барнс", rationale="From script context")
+    var_rat_2 = TranslationVariant("Барнс", rationale="From manual review")
+    exact_dup = TranslationVariant("Барнс", rationale="From script context")
+
+    old = GlossaryEntry(
+        original="CLERK_B",
+        translation="",
+        translation_variants=(var_rat_1, var_rat_2, exact_dup),
+        provisional=True,
+    )
+    target = GlossaryEntry(
+        original="Barnes",
+        translation="Барнс",
+        translation_variants=(var_rat_1,),
+        provisional=False,
+    )
+    manager._entries = [old, target]
+    res = manager.rename_original("CLERK_B", "Barnes")
+
+    assert res is not None
+    assert len(res.translation_variants) == 2
+    assert res.translation_variants == (var_rat_1, var_rat_2)
+
+
+def test_rename_original_safe_noops(manager):
+    entry = GlossaryEntry("Apple", "Яблуко")
+    manager._entries = [entry]
+
+    assert manager.rename_original("", "New") is None
+    assert manager.rename_original("Apple", "") is None
+    assert manager.rename_original("Missing", "New") is None
+    assert manager.rename_original("Apple", "Apple") == entry

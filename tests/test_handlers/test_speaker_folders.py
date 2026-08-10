@@ -548,8 +548,9 @@ def test_save_speaker_in_virtual_folder_keeps_same_physical_string_when_old_fold
     mock_mw.project_manager.project = project
     mock_mw.block_to_project_file_map = {i: i for i in range(8)}
     mock_mw.data_store.data = [[] for _ in range(8)]
-    mock_mw.data_store.data[5] = [""] * 11
-    mock_mw.data_store.data[7] = [""] * 3
+    # Real text: a blank row is padding and joins no speaker folder.
+    mock_mw.data_store.data[5] = ["a line"] * 11
+    mock_mw.data_store.data[7] = ["a line"] * 3
     mock_mw.data_store.block_names = {str(i): f"Block {i}" for i in range(8)}
     mock_mw.data_store.current_block_idx = 5
     mock_mw.data_store.set_view_kind(ViewKind.SPEAKER)
@@ -645,8 +646,9 @@ def test_save_speaker_with_real_rebuild_retains_old_folder_until_next_row(qapp, 
     mock_mw.translation_handler = None
     mock_mw.block_to_project_file_map = {i: i for i in range(8)}
     mock_mw.data_store.data = [[] for _ in range(8)]
-    mock_mw.data_store.data[5] = [""] * 11
-    mock_mw.data_store.data[7] = [""] * 3
+    # Real text: a blank row is padding and joins no speaker folder.
+    mock_mw.data_store.data[5] = ["a line"] * 11
+    mock_mw.data_store.data[7] = ["a line"] * 3
     mock_mw.data_store.block_names = {str(i): f"Block {i}" for i in range(8)}
     mock_mw.data_store.problems_per_subline = {}
     mock_mw.data_store.edited_data = {}
@@ -729,8 +731,9 @@ def test_block_list_rebuild_keeps_pending_speaker_retention_before_selection(qap
     mock_mw.translation_handler = None
     mock_mw.block_to_project_file_map = {i: i for i in range(8)}
     mock_mw.data_store.data = [[] for _ in range(8)]
-    mock_mw.data_store.data[5] = [""] * 11
-    mock_mw.data_store.data[7] = [""] * 3
+    # Real text: a blank row is padding and joins no speaker folder.
+    mock_mw.data_store.data[5] = ["a line"] * 11
+    mock_mw.data_store.data[7] = ["a line"] * 3
     mock_mw.data_store.block_names = {str(i): f"Block {i}" for i in range(8)}
     mock_mw.data_store.problems_per_subline = {}
     mock_mw.data_store.current_block_idx = 5

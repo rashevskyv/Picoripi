@@ -91,6 +91,32 @@ def test_story_context_manager_returns_manual_row_context_without_script_link(mo
     assert "Manually assigned speaker in this line: System" in result
 
 
+def test_story_context_manager_resolves_manual_speaker_alias(mock_mw, tmp_path):
+    import json
+
+    from core.speaker_alias_merge import ALIAS_FILENAME
+
+    (tmp_path / ALIAS_FILENAME).write_text(
+        json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8"
+    )
+    mock_mw.project_manager.project_dir = tmp_path
+    block = MagicMock()
+    block.metadata = {
+        "story_context_assignments": {"5": {"speaker": "CLERK_B"}}
+    }
+    mock_mw.project_manager.project.blocks = [block]
+    mock_mw.block_to_project_file_map = {0: 0}
+    manager = StoryContextManager(mock_mw)
+    manager.get_mempalace_client = MagicMock(return_value=None)
+
+    result = manager.fetch_story_context(
+        0, 5, "Hello there", MagicMock(), MagicMock()
+    )
+
+    assert "Manually assigned speaker in this line: Barnes" in result
+    assert "CLERK_B" not in result
+
+
 def test_story_context_manager_includes_semantic_timeline(mock_mw):
     manager = StoryContextManager(mock_mw)
     mock_client = MagicMock()

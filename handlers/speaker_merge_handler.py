@@ -11,8 +11,12 @@ from typing import Dict, Tuple
 
 from PyQt6.QtWidgets import QMessageBox
 
+from components.speaker_merge_dialog import SpeakerMergeDialog
 from core.speaker_alias_merge import (
+    Vote,
+    find_markup_project,
     load_speaker_aliases,
+    markup_speaker_lines,
     merge_script_speakers,
     save_speaker_aliases,
     script_speaker_lines,
@@ -35,6 +39,43 @@ class SpeakerMergeHandler:
     def _composer(self):
         handler = getattr(self.mw, "translation_handler", None)
         return getattr(handler, "prompt_composer", None) if handler else None
+
+    def _script_rows(self, composer, project_dir) -> Tuple[list, bool]:
+        """The script's speaker attributions, and whether they were reviewed.
+
+        A marked-up script says who speaks each line because a person decided
+        so. Without one the shape has to be guessed, which is a materially worse
+        input -- hence the flag, so the caller can warn instead of quietly
+        producing a weaker merge.
+        """
+        if composer is None:
+            return [], False
+        finder = getattr(composer, "_find_script_path", None)
+        script_path = finder() if callable(finder) else None
+        project = find_markup_project(script_path, project_dir)
+        rows = markup_speaker_lines(project) if project is not None else []
+        if rows:
+            return rows, True
+        return script_speaker_lines(composer), False
+
+    def _confirm_guessing(self) -> bool:
+        """Warn that an unmarked script gives a weaker merge; offer to stop."""
+        answer = QMessageBox.warning(
+            self.mw,
+            "Merge Speakers",
+            "This script has not been marked up in Script Markup Studio, so the "
+            "speakers have to be guessed.\n\n"
+            "Guessing means every ALL-CAPS line is read as a name and everything "
+            "under it as that character's lines. Section banners and shouted "
+            "words become speakers, a heading that is not upper case is missed "
+            "entirely, and stage directions blur into speech. Names will be "
+            "wrong and many will not be found.\n\n"
+            "Mark the script up first for a merge you can trust, or continue and "
+            "check every name in the report.",
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        return answer == QMessageBox.StandardButton.Ok
 
     def _game_rows_and_codes(self) -> Tuple[Dict, Dict]:
         """Every non-empty row's text, and the identity the plugin gives it."""
@@ -62,6 +103,16 @@ class SpeakerMergeHandler:
                     codes[(block_idx, string_idx)] = name.strip()
         return rows, codes
 
+    def placeholder_codes(self) -> set:
+        """Every speaker code still waiting for a real name, named or not.
+
+        The denominator for "how far along is this step". Walking every row is
+        the only way to know it, so callers that show it in a status light are
+        expected to cache the answer rather than ask on each redraw.
+        """
+        _, row_codes = self._game_rows_and_codes()
+        return {code for code in row_codes.values() if self._looks_like_a_code(code)}
+
     # -- entry point --------------------------------------------------------
 
     def merge_from_script(self) -> None:
@@ -71,16 +122,6 @@ class SpeakerMergeHandler:
             QMessageBox.information(
                 self.mw, "Merge Speakers",
                 "Open a project first: the speaker names are stored beside it.",
-            )
-            return
-
-        composer = self._composer()
-        script_rows = script_speaker_lines(composer) if composer else []
-        if not script_rows:
-            QMessageBox.information(
-                self.mw, "Merge Speakers",
-                "No marked-up script was found, so there are no names to take.\n\n"
-                "Mark a script up in Script Markup Studio and run this again.",
             )
             return
 
@@ -107,34 +148,148 @@ class SpeakerMergeHandler:
             )
             return
 
+        script_rows, reviewed = self._script_rows(self._composer(), project_dir)
+        if script_rows and not reviewed and not self._confirm_guessing():
+            return
+
+        display_names = sorted({
+            code for code in row_codes.values()
+            if not self._looks_like_a_code(code)
+        })
+
         result = merge_script_speakers(
             script_rows, game_rows, row_codes, codes_to_resolve=unresolved
         )
+        result.codes_seen = len(unresolved)
+        self._add_glossary_suggestions(result, unresolved)
+        result.is_markup = reviewed
+        result.all_placeholders = unresolved
+        result.game_display_names = display_names
         log_debug(f"Speaker merge: {result.summary}")
 
-        if result.resolved:
-            merged = dict(existing)
-            merged.update(result.resolved)
-            path = save_speaker_aliases(project_dir, merged)
-            if path is None:
-                log_error("Speaker merge: could not write speaker_aliases.json")
-                QMessageBox.warning(
-                    self.mw, "Merge Speakers",
-                    "Found names but could not write speaker_aliases.json.",
+        # Shown, not exec'd: it is a report to read against the project, and a
+        # modal one would freeze the wizard that launched the step.
+        self._report_dialog = SpeakerMergeDialog(
+            result, self.mw, on_apply=lambda names: self._save_names(project_dir, names)
+        )
+        self._report_dialog.show()
+        self._report_dialog.raise_()
+
+    def _add_glossary_suggestions(self, result, unresolved) -> None:
+        """Bring in names the AI read out of each placeholder's description.
+
+        A code the script never matched is invisible to the join, but the
+        glossary may already know who it is: its description was written from
+        that character's own lines, and those lines name them. Both kinds of
+        suggestion belong in one place, so they arrive here as votes -- clearly
+        marked, and confirmed by the same Apply.
+        """
+        try:
+            manager = self.mw.translation_handler.glossary_handler.glossary_manager
+            entries = list(manager.get_entries() or [])
+        except Exception as exc:
+            log_debug(f"Speaker merge: reading glossary suggestions failed: {exc}")
+            return
+        wanted = set(unresolved or ())
+        for entry in entries:
+            name = str(getattr(entry, "suggested_name", "") or "").strip()
+            code = entry.original
+            if not name or code not in wanted or code in result.resolved:
+                continue
+            if code in result.unproven:
+                continue  # the script's own evidence outranks a reading of prose
+            result.unproven[code] = {name: 1}
+            result.evidence.setdefault(code, []).append(
+                Vote(
+                    name,
+                    "From the glossary description: "
+                    + (getattr(entry, "suggested_name_evidence", "") or entry.notes or ""),
+                    (),
                 )
+            )
+
+    def _save_names(self, project_dir, names: dict) -> None:
+        """Store the names as the report now reads them and migrate glossary entries.
+
+        The join proposes; a person decides. A voice matched by one line is a
+        suggestion the user confirms here, and a voice the join got wrong is
+        corrected here -- both end up in the same file as the automatic ones.
+        """
+        confirmed_mappings = {code: name for code, name in (names or {}).items() if name}
+        if not confirmed_mappings:
+            return
+        merged = dict(load_speaker_aliases(project_dir))
+        merged.update(confirmed_mappings)
+        if save_speaker_aliases(project_dir, merged) is None:
+            log_error("Speaker merge: could not write speaker_aliases.json")
+            QMessageBox.warning(
+                self.mw, "Merge Speakers", "Could not write speaker_aliases.json."
+            )
+            return
+        self._refresh_speaker_views()
+        self._migrate_glossary_entries(confirmed_mappings)
+
+    def _migrate_glossary_entries(self, confirmed_mappings: dict) -> None:
+        """Migrate existing glossary entries from code -> confirmed permanent speaker name."""
+        try:
+            glossary_handler = getattr(
+                getattr(self.mw, "translation_handler", None), "glossary_handler", None
+            )
+            if glossary_handler is None:
                 return
-            self._refresh_speaker_views()
+            manager = getattr(glossary_handler, "glossary_manager", None)
+            if manager is None or not callable(getattr(manager, "rename_original", None)):
+                return
+        except Exception as exc:
+            log_debug(f"Speaker merge: glossary manager unavailable: {exc}")
+            return
 
-        QMessageBox.information(self.mw, "Merge Speakers", self._report(result))
+        renamed_count = 0
+        for code, permanent_name in confirmed_mappings.items():
+            if not code or not permanent_name or code == permanent_name:
+                continue
+            try:
+                result = manager.rename_original(code, permanent_name)
+                if result is not None:
+                    renamed_count += 1
+            except Exception as exc:
+                log_debug(
+                    f"Speaker merge: failed renaming glossary entry {code} -> {permanent_name}: {exc}"
+                )
 
-    @staticmethod
-    def _looks_like_a_code(name: str) -> bool:
+        if renamed_count > 0:
+            try:
+                main_handler = getattr(glossary_handler, "main_handler", None)
+                if main_handler is not None:
+                    raw_text = manager.get_raw_text()
+                    setattr(main_handler, "_cached_glossary", raw_text)
+
+                update_highlighting = getattr(glossary_handler, "_update_glossary_highlighting", None)
+                if callable(update_highlighting):
+                    update_highlighting()
+
+                refresh_dialog = getattr(glossary_handler, "refresh_open_dialog", None)
+                if callable(refresh_dialog):
+                    refresh_dialog()
+            except Exception as exc:
+                log_debug(f"Speaker merge: refreshing glossary views failed: {exc}")
+
+    def _looks_like_a_code(self, name: str) -> bool:
         """Whether this identity is still a placeholder rather than a name.
 
-        Kept as a prefix test rather than a plugin call: the engine only needs
-        to know that a name it has never seen resolved should be left alone.
+        The plugin answers, because only it knows how its game spells an actor.
+        The engine used to test for a "Voice " prefix, which quietly excluded
+        every other internal id the same plugin produced -- placement names
+        like CLERK_B or GER_A -- from ever being named from the script.
         """
-        return name.startswith("Voice ")
+        rules = getattr(self.mw, "current_game_rules", None)
+        hook = getattr(rules, "is_placeholder_speaker", None)
+        if callable(hook):
+            try:
+                return bool(hook(name))
+            except Exception as exc:
+                log_debug(f"Speaker merge: is_placeholder_speaker failed: {exc}")
+        return True
 
     def _refresh_speaker_views(self) -> None:
         """Rebuild the folders so the new names show without a restart."""
@@ -145,28 +300,3 @@ class SpeakerMergeHandler:
                 refresh()
             except Exception as exc:
                 log_debug(f"Speaker merge: folder refresh failed: {exc}")
-
-    @staticmethod
-    def _report(result) -> str:
-        lines = [result.summary, ""]
-        if result.resolved:
-            lines.append("Named:")
-            lines += [f"  {code} -> {name}" for code, name in sorted(result.resolved.items())]
-            lines.append("")
-        if result.conflicts:
-            lines.append("Need your decision (the script disagrees with itself here):")
-            for code, counter in sorted(result.conflicts.items()):
-                votes = ", ".join(
-                    f"{name} x{n}" for name, n in
-                    sorted(counter.items(), key=lambda kv: -kv[1])
-                )
-                lines.append(f"  {code}: {votes}")
-            lines.append("")
-        if result.ambiguous_script_lines:
-            lines.append(
-                f"{result.ambiguous_script_lines} script line(s) appear under more "
-                "than one speaker in the game and were ignored."
-            )
-        if not result.resolved:
-            lines.append("Nothing was saved.")
-        return "\n".join(lines)

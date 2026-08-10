@@ -153,7 +153,8 @@ def test_stored_script_batch_is_glossary_translated(tmp_path):
     glossary = _Glossary([("FOUNTAIN SOLDIER", "Солдат біля фонтану")])
     composer = _Composer(str(script_path), client, glossary, {2: "FOUNTAIN SOLDIER"})
     handler = _Handler({"zel_00_Str_5": (0, 5)})
-    mw = _MW(blocks=[_Block()], data=[[""] * 6], handler=handler)
+    # Real text: a blank row is padding and never joins a speaker folder.
+    mw = _MW(blocks=[_Block()], data=[["a line"] * 6], handler=handler)
 
     pool = build_speaker_pool(mw, composer=composer, projection=None)
     assert pool[(0, 5)] == "Солдат біля фонтану"
@@ -178,3 +179,73 @@ def test_deep_script_rows_are_translated_and_lowest_priority():
     )
     assert pool[(0, 0)] == "LETTER"                 # projection wins
     assert pool[(0, 1)] == "Солдат біля фонтану"    # deep fold, translated
+
+
+def test_the_same_name_in_two_cases_is_one_speaker():
+    """A script shouts MIDNA, the game data says Midna: one character, one folder."""
+    mapping = StoryVirtualMapping("0", "zel_00_Str_0", 0)
+    projection = StoryVirtualProjection(
+        1, (), (StoryVirtualSpeaker("MIDNA", (mapping,)),)
+    )
+    mw = _MW(
+        blocks=[_Block({"character_assignments": {"1": "Midna", "2": "midna"}})],
+        data=[["a line", "another line", "a third line"]],
+    )
+
+    pool = build_speaker_pool(mw, composer=None, projection=projection)
+
+    assert set(pool.values()) == {"MIDNA"}
+    assert len(pool) == 3
+
+
+def test_the_first_authority_decides_the_spelling():
+    """Priority order picks the spelling, exactly as it picks everything else."""
+    mw = _MW(
+        blocks=[_Block({"character_assignments": {"0": "Midna", "1": "MIDNA"}})],
+        data=[["a line", "another line"]],
+    )
+
+    pool = build_speaker_pool(mw, composer=None, projection=None)
+
+    assert set(pool.values()) == {"Midna"}
+
+
+def test_a_blank_row_belongs_to_no_speaker_folder():
+    """Padding rows stay in their real block; they inflate every folder here."""
+    mw = _MW(
+        blocks=[_Block({"character_assignments": {"0": "Hero", "1": "Hero", "2": "Hero"}})],
+        data=[["a line", "", "   "]],
+    )
+
+    pool = build_speaker_pool(mw, composer=None, projection=None)
+
+    assert pool == {(0, 0): "Hero"}
+
+
+def test_confirmed_alias_replaces_codes_from_every_pool_source(tmp_path):
+    import json
+
+    from core.speaker_alias_merge import ALIAS_FILENAME
+
+    (tmp_path / ALIAS_FILENAME).write_text(
+        json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8"
+    )
+    mw = _MW(
+        blocks=[_Block({
+            "story_context_assignments": {"0": {"speaker": "CLERK_B"}},
+            "character_assignments": {"1": "CLERK_B"},
+        })],
+        data=[["manual", "legacy", "plugin"]],
+    )
+    mw.project_manager.project_dir = tmp_path
+    mw.current_game_rules = type(
+        "Rules", (), {"get_speaker_for_string": lambda self, _b, _s: "CLERK_B"}
+    )()
+
+    pool = build_speaker_pool(mw, composer=None, projection=None)
+
+    assert pool == {
+        (0, 0): "Barnes",
+        (0, 1): "Barnes",
+        (0, 2): "Barnes",
+    }

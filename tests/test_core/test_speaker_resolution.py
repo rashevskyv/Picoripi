@@ -94,3 +94,74 @@ def test_invalid_indices_short_circuit():
     mw = _MW()
     assert resolve_speaker_for_string(mw, -1, 0, composer=_Composer()).name is None
     assert resolve_speaker_for_string(mw, -2, 0, composer=_Composer()).name is None
+
+
+def test_script_or_mempalace_returns_clerk_b_with_alias_maps_to_barnes(tmp_path):
+    import json
+    from core.speaker_alias_merge import ALIAS_FILENAME
+    (tmp_path / ALIAS_FILENAME).write_text(json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8")
+    mw = _MW()
+    mw.project_manager.project_dir = tmp_path
+
+    # Script returns CLERK_B
+    composer = _Composer(_Client(None), speaker="CLERK_B")
+    res = resolve_speaker_for_string(mw, 0, 0, composer=composer)
+    assert res.name == "Barnes"
+    assert "alias" in res.source
+
+    # MemePalace returns CLERK_B
+    res_db = resolve_speaker_for_string(mw, 0, 0, composer=_Composer(_Client("CLERK_B")))
+    assert res_db.name == "Barnes"
+    assert "alias" in res_db.source
+
+
+def test_plugin_returns_clerk_b_with_alias_maps_to_barnes(tmp_path):
+    import json
+    from core.speaker_alias_merge import ALIAS_FILENAME
+    (tmp_path / ALIAS_FILENAME).write_text(json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8")
+    mw = _MW()
+    mw.project_manager.project_dir = tmp_path
+
+    class _Rules:
+        def get_speaker_for_string(self, b, s):
+            return "CLERK_B"
+
+    mw.current_game_rules = _Rules()
+    composer = _Composer(_Client(None), speaker="NONE")
+    res = resolve_speaker_for_string(mw, 0, 0, composer=composer)
+    assert res.name == "Barnes"
+    assert "alias" in res.source
+
+
+def test_plugin_unresolved_placeholder_returns_none():
+    mw = _MW()
+
+    class _Rules:
+        def get_speaker_for_string(self, b, s):
+            return "CLERK_B"
+
+        def is_placeholder_speaker(self, name):
+            return name == "CLERK_B"
+
+    mw.current_game_rules = _Rules()
+    composer = _Composer(_Client(None), speaker="NONE")
+    res = resolve_speaker_for_string(mw, 0, 0, composer=composer)
+    assert res.name is None
+    assert res.source == "none"
+
+
+def test_plugin_real_display_name_remains_available():
+    mw = _MW()
+
+    class _Rules:
+        def get_speaker_for_string(self, b, s):
+            return "System"
+
+        def is_placeholder_speaker(self, name):
+            return False
+
+    mw.current_game_rules = _Rules()
+    composer = _Composer(_Client(None), speaker="NONE")
+    res = resolve_speaker_for_string(mw, 0, 0, composer=composer)
+    assert res.name == "System"
+    assert res.source == "plugin"

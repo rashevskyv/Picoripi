@@ -239,6 +239,7 @@ class AIPromptComposer(BaseTranslationHandler):
     # ------------------------------------------------------------------
     # Prompt composition helpers
     # ------------------------------------------------------------------
+
     @staticmethod
     def _relevant_tag_aliases(mappings, *texts) -> dict:
         """Only the tag aliases that actually occur in what is being sent.
@@ -329,54 +330,20 @@ class AIPromptComposer(BaseTranslationHandler):
                 except Exception as e:
                     log_debug(f"AIPromptComposer: translation context failed for ({real_b_idx},{real_s_idx}): {e}")
 
-            # Resolve speaker
-            speaker = None
-            raw_spk = None
-
-            from utils.utils import remove_all_tags
-            clean_item_text = remove_all_tags(current_text).strip()
-            is_single_word = len(clean_item_text.split()) <= 1
-
             manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
             structured_story_context = (
                 {}
                 if manual.get("structure_id") == "story:none"
                 else self._get_structured_story_context(real_b_idx, real_s_idx)
             )
-            manual_speaker = str(manual.get("speaker") or "").strip()
-            if manual_speaker:
-                speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
-            elif translation_context.get('has_speaker') is False:
-                # The plugin says this role is not spoken dialogue. The engine
-                # does not know which role that is, only that it has no speaker.
-                speaker = "NONE"
-            elif is_single_word:
-                speaker = "NONE"
-            else:
-                real_block_label = self._get_block_label(real_b_idx)
 
-                if client:
-                    bmg_id = f"{real_block_label}_Str_{real_s_idx}"
-                    cached_ctx = client.get_cached_context(bmg_id, current_text)
-                    if cached_ctx:
-                        speaker = cached_ctx.get("speaker")
+            speaker, item_spk_candidates = self._resolve_prompt_speaker(
+                real_b_idx, real_s_idx, current_text, translation_context
+            )
+            if not speaker:
+                speaker = "Unknown"
 
-                script_res = self._find_speaker_in_script(real_b_idx, real_s_idx, current_text)
-                if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
-                    raw_spk = script_res[0]
-
-                if not speaker:
-                    speaker = self._translate_speaker(raw_spk) if raw_spk else None
-
-                if not speaker:
-                    speaker = "Unknown"
-
-            if raw_spk:
-                for part in raw_spk.split(','):
-                    speaker_candidates.add(part.strip())
-            if speaker and speaker not in ("Unknown", "NONE"):
-                for part in speaker.split(','):
-                    speaker_candidates.add(part.strip())
+            speaker_candidates.update(item_spk_candidates)
             speaker_candidates.update(
                 glossary_names_from_story_bundle(structured_story_context)
             )
@@ -821,6 +788,67 @@ class AIPromptComposer(BaseTranslationHandler):
         )
         return combined_system, user_content, placeholder_map
 
+    def _resolve_prompt_speaker(
+        self,
+        block_idx: Optional[int],
+        string_idx: Optional[int],
+        text: str,
+        translation_context: Dict,
+    ) -> Tuple[Optional[str], set]:
+        """Resolve speaker for single/batch translation prompts via resolve_speaker_for_string.
+
+        Returns (resolved_speaker, speaker_candidates).
+        """
+        from utils.utils import remove_all_tags
+        from core.speaker_resolution import (
+            resolve_speaker_for_string,
+            resolve_speaker_identity,
+        )
+
+        clean_text = remove_all_tags(text).strip()
+        is_single_word = len(clean_text.split()) <= 1
+
+        manual = (
+            get_story_context_override(self.mw, block_idx, string_idx)
+            if block_idx is not None and string_idx is not None else {}
+        )
+        manual_speaker = str(manual.get("speaker") or "").strip()
+
+        raw_identity: Optional[str] = None
+        speaker: Optional[str] = None
+
+        if manual_speaker:
+            if manual_speaker.casefold() == "none":
+                speaker = "NONE"
+            else:
+                raw_identity = resolve_speaker_identity(self.mw, manual_speaker)
+                if raw_identity is None:
+                    speaker = "NONE"
+                else:
+                    speaker = self._translate_speaker(raw_identity)
+        elif translation_context.get('has_speaker') is False:
+            speaker = "NONE"
+        elif is_single_word:
+            speaker = "NONE"
+        elif block_idx is not None and string_idx is not None:
+            res = resolve_speaker_for_string(self.mw, block_idx, string_idx, composer=self)
+            if res and res.name:
+                raw_identity = res.name
+                speaker = self._translate_speaker(raw_identity)
+
+        speaker_candidates = set()
+        if raw_identity and raw_identity not in ("Unknown", "NONE"):
+            for part in raw_identity.split(','):
+                if part.strip():
+                    speaker_candidates.add(part.strip())
+
+        if speaker and speaker not in ("Unknown", "NONE"):
+            for part in speaker.split(','):
+                if part.strip():
+                    speaker_candidates.add(part.strip())
+
+        return speaker, speaker_candidates
+
     def compose_variation_request(
         self,
         system_prompt: str,
@@ -882,15 +910,6 @@ class AIPromptComposer(BaseTranslationHandler):
         glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
 
-        # Resolve speaker for this string to include in glossary lookup
-        speaker_candidates = set()
-        from utils.utils import remove_all_tags
-        clean_src_text = remove_all_tags(source_text).strip()
-        is_single_word = len(clean_src_text.split()) <= 1
-
-        speaker = None
-        raw_spk = None
-
         manual = (
             get_story_context_override(self.mw, block_idx, string_idx)
             if block_idx is not None and string_idx is not None else {}
@@ -901,7 +920,7 @@ class AIPromptComposer(BaseTranslationHandler):
             or block_idx is None or string_idx is None
             else self._get_structured_story_context(block_idx, string_idx)
         )
-        manual_speaker = str(manual.get("speaker") or "").strip()
+
         translation_context = {}
         rules = getattr(self.mw, 'current_game_rules', None)
         if rules is not None and block_idx is not None and string_idx is not None and hasattr(rules, 'get_translation_context_for_string'):
@@ -911,37 +930,12 @@ class AIPromptComposer(BaseTranslationHandler):
                     translation_context = candidate
             except Exception as e:
                 log_debug(f"AIPromptComposer: single-string translation context failed: {e}")
-        if manual_speaker:
-            speaker = "NONE" if manual_speaker.casefold() == "none" else manual_speaker
-        elif translation_context.get('has_speaker') is False:
-            speaker = "NONE"
-        elif is_single_word:
-            speaker = "NONE"
-        elif block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
-            client = self._get_mempalace_client()
-            block_label = self._get_block_label(block_idx)
-            if client:
-                bmg_id = f"{block_label}_Str_{string_idx}"
-                cached_ctx = client.get_cached_context(bmg_id, source_text)
-                if cached_ctx:
-                    speaker = cached_ctx.get("speaker")
 
-            script_res = self._find_speaker_in_script(block_idx, string_idx, source_text)
-            if script_res and isinstance(script_res, (tuple, list)) and len(script_res) == 2:
-                raw_spk = script_res[0]
+        speaker, item_spk_candidates = self._resolve_prompt_speaker(
+            block_idx, string_idx, source_text, translation_context
+        )
 
-            if not speaker:
-                speaker = self._translate_speaker(raw_spk) if raw_spk else None
-
-            if not speaker:
-                speaker = "Unknown"
-
-        if raw_spk:
-            for part in raw_spk.split(','):
-                speaker_candidates.add(part.strip())
-        if speaker and speaker not in ("Unknown", "NONE"):
-            for part in speaker.split(','):
-                speaker_candidates.add(part.strip())
+        speaker_candidates = set(item_spk_candidates)
         speaker_candidates.update(
             glossary_names_from_story_bundle(structured_story_context)
         )
@@ -985,6 +979,8 @@ class AIPromptComposer(BaseTranslationHandler):
             context_lines.append(f'Block: {block_label} (#{block_idx})')
         if string_idx is not None and string_idx != -1:
             context_lines.append(f'Row: #{string_idx}')
+        if speaker and speaker not in ("Unknown", "NONE"):
+            context_lines.append(f'Speaker: {speaker}')
         if mode_description:
             context_lines.append(f'Mode: {mode_description}')
         if translation_context.get('window_type'):
