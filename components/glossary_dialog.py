@@ -223,6 +223,14 @@ class GlossaryDialog(QDialog):
         self._original_label.setWordWrap(True)
         right_layout.addWidget(self._original_label)
 
+        category_row = QHBoxLayout()
+        category_row.addWidget(QLabel("Category:", self))
+        self._category_combo = QComboBox(self)
+        self._category_combo.setEditable(True)
+        self._category_combo.setPlaceholderText("Select or type a new category...")
+        category_row.addWidget(self._category_combo, 1)
+        right_layout.addLayout(category_row)
+
         # Speaker identity resolution pane (shown for provisional Character entries)
         self._speaker_identity_pane = QWidget(self)
         speaker_layout = QVBoxLayout(self._speaker_identity_pane)
@@ -369,6 +377,7 @@ class GlossaryDialog(QDialog):
         self._translation_edit.textChanged.connect(self._on_editor_content_changed)
         self._notes_edit.textChanged.connect(self._on_editor_content_changed)
         self._profiled_checkbox.stateChanged.connect(self._on_editor_content_changed)
+        self._category_combo.currentTextChanged.connect(self._on_editor_content_changed)
         self._update_editor_enabled_state()
         self._load_dialog_state()
         self._populate_entries(self._filtered_entries)
@@ -762,10 +771,12 @@ class GlossaryDialog(QDialog):
         current_translation = self._translation_edit.text().strip()
         current_notes = self._notes_for_save()
         current_profiled = self._profiled_checkbox.isChecked()
+        current_section = self._canonical_category_name(self._category_combo.currentText())
         has_changes = (
             current_translation != self._current_entry.translation
             or current_notes != self._current_entry.notes
             or current_profiled != self._current_entry.profiled
+            or current_section != (self._current_entry.section or "")
         )
         self._mark_editor_dirty(has_changes)
     def _mark_editor_dirty(self, dirty: bool) -> None:
@@ -778,6 +789,7 @@ class GlossaryDialog(QDialog):
         self._translation_edit.setReadOnly(not can_edit)
         self._notes_edit.setReadOnly(not can_edit)
         self._profiled_checkbox.setEnabled(can_edit)
+        self._category_combo.setEnabled(can_edit)
         if hasattr(self, '_notes_variation_button'):
             has_callback = self._ai_variation_callback is not None
             self._notes_variation_button.setVisible(has_callback)
@@ -797,12 +809,26 @@ class GlossaryDialog(QDialog):
         new_translation = self._translation_edit.text().strip()
         new_notes = self._notes_for_save()
         new_profiled = self._profiled_checkbox.isChecked()
+        new_section = self._canonical_category_name(self._category_combo.currentText())
         entry = self._current_entry
-        if not self._attempt_entry_update(entry, new_translation, new_notes, new_profiled):
+        section_change = (
+            new_section if new_section != (entry.section or "") else None
+        )
+        if not self._attempt_entry_update(
+            entry, new_translation, new_notes, new_profiled, section=section_change
+        ):
             self._populate_entry_details(entry)
             return
         self._mark_editor_dirty(False)
-    def _attempt_entry_update(self, entry: GlossaryEntry, new_translation: str, new_notes: str, profiled: Optional[bool] = None, status: Optional[str] = None) -> bool:
+    def _attempt_entry_update(
+        self,
+        entry: GlossaryEntry,
+        new_translation: str,
+        new_notes: str,
+        profiled: Optional[bool] = None,
+        status: Optional[str] = None,
+        section: Optional[str] = None,
+    ) -> bool:
         """Internal helper to attempt entry update.
 
         ``status`` moves the entry's lifecycle state -- STATUS_CONFIRMED to
@@ -812,9 +838,12 @@ class GlossaryDialog(QDialog):
         """
         if not self._update_callback:
             return False
-        if status:
+        if status or section is not None:
+            kwargs = {"section": section} if section is not None else {}
+            if status:
+                kwargs["status"] = status
             result = self._update_callback(
-                entry.original, new_translation, new_notes, profiled, status=status
+                entry.original, new_translation, new_notes, profiled, **kwargs
             )
         else:
             result = self._update_callback(entry.original, new_translation, new_notes, profiled)
@@ -826,6 +855,31 @@ class GlossaryDialog(QDialog):
         self._pending_select_term = entry.original
         self._apply_filter(self._search_field.text())
         return True
+
+    def _populate_category_choices(self, entry: GlossaryEntry) -> None:
+        """List existing categories and retain the entry's current choice."""
+        categories = {}
+        for candidate in self._all_entries:
+            value = (candidate.section or "").strip()
+            if value:
+                categories.setdefault(value.casefold(), value)
+        self._category_combo.blockSignals(True)
+        self._category_combo.clear()
+        self._category_combo.addItem("")
+        self._category_combo.addItems(sorted(categories.values(), key=str.casefold))
+        self._category_combo.setEditText((entry.section or "").strip())
+        self._category_combo.blockSignals(False)
+
+    def _canonical_category_name(self, value: str) -> str:
+        """Reuse an existing category spelling; a new name becomes a new tab."""
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        for entry in self._all_entries:
+            section = (entry.section or "").strip()
+            if section and section.casefold() == text.casefold():
+                return section
+        return text
     def _attempt_entry_delete(self, entry: GlossaryEntry) -> None:
         """Internal helper to attempt entry delete."""
         if not self._delete_callback:
@@ -991,6 +1045,7 @@ class GlossaryDialog(QDialog):
         self._current_entry = entry
         self._suppress_editor_signals = True
         self._original_label.setText(f"Term: {entry.original}")
+        self._populate_category_choices(entry)
         self._translation_edit.setText(entry.translation or '')
         self._notes_template = entry.notes or ''
         self._notes_edit.setPlainText(self._rendered_notes())
@@ -1067,6 +1122,7 @@ class GlossaryDialog(QDialog):
         self._current_entry = None
         self._suppress_editor_signals = True
         self._original_label.setText('Nothing selected')
+        self._category_combo.clear()
         self._translation_edit.clear()
         self._notes_template = ''
         self._notes_edit.clear()

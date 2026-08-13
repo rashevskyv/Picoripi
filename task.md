@@ -1,3 +1,7 @@
+# Completed: glossary category assignment
+
+- [x] Allow every glossary entry to reuse or type a Category; a saved new category appears as a tab.
+
 # Завершено: підтвердження імен мовців у Glossary
 
 - [x] Перевірити наявні provisional-поля, AI-пропозиції, описи, репліки й alias-save path.

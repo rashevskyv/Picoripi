@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.081-dev] - 2026-08-13
+
+### Added
+- **Manual Glossary Categories**: Every glossary entry now has an editable Category selector. Reusing an existing category preserves its spelling; entering a new category creates its own tab after saving.
+
 ## [0.3.080-dev] - 2026-08-13
 
 ### Added

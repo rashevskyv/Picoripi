@@ -359,6 +359,32 @@ class TestReviewStateFromContextMenu:
         assert callback.call_args.args[2] == AMBIGUOUS.notes
 
 
+class TestCategoryAssignment:
+    def test_existing_category_is_reused_case_insensitively(self, qtbot):
+        entry = GlossaryEntry("Ash", "", "", section="Characters")
+        item = GlossaryEntry("Boomerang", "", "", section="Items")
+        dialog = _dialog(qtbot, [entry, item], update_callback=MagicMock())
+
+        assert dialog._canonical_category_name("items") == "Items"
+
+    def test_new_category_is_saved_and_becomes_a_tab(self, qtbot):
+        entry = GlossaryEntry("Ash", "", "", section="Characters")
+        item = GlossaryEntry("Boomerang", "", "", section="Items")
+        moved_entry = GlossaryEntry("Ash", "", "", section="Creatures")
+        callback = MagicMock(return_value=([moved_entry, item], {}))
+        dialog = _dialog(qtbot, [entry, item], update_callback=callback)
+        dialog.focus_term("Ash")
+
+        dialog._category_combo.setEditText("Creatures")
+        dialog._save_editor_changes()
+
+        assert callback.call_args.kwargs["section"] == "Creatures"
+        assert "Creatures" in [
+            dialog._tab_widget.tabText(index)
+            for index in range(dialog._tab_widget.count())
+        ]
+
+
 class TestSpeakerIdentityResolution:
     """Provisional speaker identity resolution in the Glossary Characters tab."""
 

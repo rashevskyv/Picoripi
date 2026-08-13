@@ -1,3 +1,9 @@
+# Glossary category assignment (v0.3.081-dev)
+
+- Every selected glossary entry exposes an editable **Category** selector.
+- Existing categories are reused case-insensitively; typing a new category and using **Save Changes** stores it and creates the corresponding tab.
+- Verified: 104 focused dialog, handler, and glossary-manager tests passed; Ruff is clean for the changed files.
+
 # Результати реалізації (Walkthrough)
 
 ## Виконані зміни:

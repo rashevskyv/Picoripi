@@ -1,4 +1,10 @@
-# Completed plan: edit confirmed speaker identity mappings
+# Completed plan: assign glossary categories
+
+1. [x] Reuse the existing glossary entry section field as a per-entry Category selector.
+2. [x] Preserve category spelling case-insensitively and create a new tab from a newly saved category.
+3. [x] Add focused dialog and handler tests, verify, version, document, and commit the change.
+
+# Previously completed plan: edit confirmed speaker identity mappings
 
 1. [x] Keep confirmed identity mappings non-provisional while exposing their originating game code in Glossary.
 2. [x] Let a user reassign that code to another permanent character name, preserving the existing explicit alias save and glossary-migration path.

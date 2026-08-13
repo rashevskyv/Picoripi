@@ -705,7 +705,15 @@ class GlossaryHandler(BaseTranslationHandler):
 
     # ── Entry update/delete callbacks (called from GlossaryDialog) ────────
 
-    def _handle_glossary_entry_update(self, original: str, translation: str, notes: str, profiled: Optional[bool] = None, status: Optional[str] = None):
+    def _handle_glossary_entry_update(
+        self,
+        original: str,
+        translation: str,
+        notes: str,
+        profiled: Optional[bool] = None,
+        status: Optional[str] = None,
+        section: Optional[str] = None,
+    ):
         """Internal helper to handle glossary entry update.
 
         ``status`` moves the entry along its lifecycle — the dialog passes
@@ -717,7 +725,10 @@ class GlossaryHandler(BaseTranslationHandler):
 
         old_index = self.glossary_manager._occurrence_index.copy() if self.glossary_manager._occurrence_index else {}
 
-        if self.glossary_manager.update_entry(original, translation, notes, profiled=profiled, status=status):
+        update_kwargs = {"profiled": profiled, "status": status}
+        if section is not None:
+            update_kwargs["section"] = section
+        if self.glossary_manager.update_entry(original, translation, notes, **update_kwargs):
             self.glossary_manager._occurrence_index = old_index
             data_source = getattr(self.mw.data_store, "data", [])
             updated_entry = self.glossary_manager.get_entry(original)
